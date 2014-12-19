@@ -2,13 +2,11 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -34,10 +32,14 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -93,6 +95,11 @@ public class PlannerTest {
         protected void configure() {
             ClusterService clusterService = mock(ClusterService.class);
             ClusterState clusterState = mock(ClusterState.class);
+            MetaData metaData = mock(MetaData.class);
+            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+            when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(clusterState.metaData()).thenReturn(metaData);
             DiscoveryNodes nodes = mock(DiscoveryNodes.class);
             DiscoveryNode node = mock(DiscoveryNode.class);
             when(clusterService.state()).thenReturn(clusterState);
@@ -103,6 +110,7 @@ public class PlannerTest {
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             bind(ClusterService.class).toInstance(clusterService);
+            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
             super.configure();
         }
 
@@ -110,7 +118,7 @@ public class PlannerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            TableIdent userTableIdent = new TableIdent(null, "users");
+            TableIdent userTableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "users");
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
@@ -118,16 +126,16 @@ public class PlannerTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(userTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
-            TableIdent charactersTableIdent = new TableIdent(null, "characters");
+            when(userTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
+            TableIdent charactersTableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "characters");
             TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(charactersTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
-            TableIdent partedTableIdent = new TableIdent(null, "parted");
+            when(charactersTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
+            TableIdent partedTableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, partedRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
@@ -136,13 +144,13 @@ public class PlannerTest {
                             new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue(),
                             new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
                             new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()
-                            )
+                    )
                     .addPrimaryKey("id")
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            when(partedTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
-            TableIdent emptyPartedTableIdent = new TableIdent(null, "empty_parted");
+            when(partedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
+            TableIdent emptyPartedTableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "empty_parted");
             TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
@@ -151,7 +159,7 @@ public class PlannerTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            TableIdent multiplePartitionedTableIdent= new TableIdent(null, "multi_parted");
+            TableIdent multiplePartitionedTableIdent= new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "multi_parted");
             TableInfo multiplePartitionedTableInfo = new TestingTableInfo.Builder(
                     multiplePartitionedTableIdent, RowGranularity.DOC, new Routing())
                     .add("id", DataTypes.INTEGER, null)
@@ -165,13 +173,13 @@ public class PlannerTest {
                             new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).stringValue(),
                             new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).stringValue())
                     .build();
-            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
             when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
         }
 
@@ -186,7 +194,7 @@ public class PlannerTest {
                     // here we want a table with handlerSideRouting and DOC granularity.
                     RowGranularity.DOC,
                     SysClusterTableInfo.ROUTING
-            ).schemaInfo(schemaInfo).add("name", DataTypes.STRING, null).build();
+            ).schemaInfo(schemaInfo).add("name", DataTypes.STRING, null).schemaInfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysClusterTableInfo.ident().name())).thenReturn(sysClusterTableInfo);
 
             TableInfo sysNodesTableInfo = TestingTableInfo.builder(
@@ -194,17 +202,17 @@ public class PlannerTest {
                     RowGranularity.NODE,
                     nodesRouting)
                     .schemaInfo(schemaInfo)
-                    .add("name", DataTypes.STRING, null).build();
+                    .add("name", DataTypes.STRING, null).schemaInfo(schemaInfo).build();
+
             when(schemaInfo.getTableInfo(sysNodesTableInfo.ident().name())).thenReturn(sysNodesTableInfo);
 
             TableInfo sysShardsTableInfo = TestingTableInfo.builder(
                     SysShardsTableInfo.IDENT,
                     RowGranularity.SHARD,
-                    nodesRouting)
-                    .schemaInfo(schemaInfo)
-                    .add("id", DataTypes.INTEGER, null)
-                    .add("table_name", DataTypes.STRING, null)
-                    .build();
+                    nodesRouting
+            ).add("id", DataTypes.INTEGER, null)
+             .add("table_name", DataTypes.STRING, null)
+             .schemaInfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysShardsTableInfo.ident().name())).thenReturn(sysShardsTableInfo);
             when(schemaInfo.systemSchema()).thenReturn(true);
             return schemaInfo;
@@ -1178,7 +1186,7 @@ public class PlannerTest {
         assertThat(toCollect.get(0), isFunction("toLong"));
         assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc.id"));
         assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
-            new ReferenceIdent(new TableIdent(null, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
+            new ReferenceIdent(new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
     }
 
     @Test
@@ -1224,23 +1232,25 @@ public class PlannerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode)planNode;
-        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectNode.projections().get(1), instanceOf(FilterProjection.class));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
-
-        assertThat(localMergeNode.projections().size(), is(2));
-        assertThat(localMergeNode.projections().get(0), instanceOf(FilterProjection.class));
-        assertThat(localMergeNode.projections().get(1), instanceOf(TopNProjection.class));
-
-        FilterProjection filterProjection = (FilterProjection)localMergeNode.projections().get(0);
+        FilterProjection filterProjection = (FilterProjection)collectNode.projections().get(1);
         assertThat(filterProjection.requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(filterProjection.outputs().size(), is(1));
         assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
         InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
         assertThat(inputColumn.index(), is(0));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections().get(0), instanceOf(TopNProjection.class));
+
+
     }
 
     @Test
@@ -1312,5 +1322,173 @@ public class PlannerTest {
     public void testQueryRequiresScalar() throws Exception {
         // only scalar functions are allowed on system tables because we have no lucene queries
         plan("select * from sys.shards where match(table_name, 'characters')");
+    }
+
+    @Test
+    public void testGroupByWithHavingAndLimit() throws Exception {
+        Plan plan = plan("select count(*), name from users group by name having count(*) > 1 limit 100");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode collectNode = iterator.next();
+        assertThat(collectNode, instanceOf(CollectNode.class));
+
+        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        // group projection
+        //      outputs: name, count(*)
+        // filter projection
+        //      outputs: name, count(*)
+        // topN projection
+        //      outputs: count(*), name     -> swaps symbols to match original selectList
+
+        Projection projection = mergeNode.projections().get(1);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) projection;
+
+        Symbol countArgument = filterProjection.query().arguments().get(0);
+        assertThat(countArgument, instanceOf(InputColumn.class));
+        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+
+        // outputs: name, count(*)
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+
+        // outputs: count(*), name
+        TopNProjection topN = (TopNProjection) mergeNode.projections().get(2);
+        // swapped!
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+
+
+        MergeNode localMerge = (MergeNode) iterator.next();
+        assertThat(localMerge, instanceOf(MergeNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        // topN projection
+        //      outputs: count(*), name
+        topN = (TopNProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+    }
+
+    @Test
+    public void testGroupByWithHavingAndNoLimit() throws Exception {
+        Plan plan = plan("select count(*), name from users group by name having count(*) > 1");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode collectNode = iterator.next();
+        assertThat(collectNode, instanceOf(CollectNode.class));
+
+        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        // group projection
+        //      outputs: name, count(*)
+
+        Projection projection = mergeNode.projections().get(1);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) projection;
+
+        Symbol countArgument = filterProjection.query().arguments().get(0);
+        assertThat(countArgument, instanceOf(InputColumn.class));
+        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+
+        // filter projection - can't reorder here
+        //      outputs: name, count(*)
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+
+        assertThat(mergeNode.outputTypes().get(0), equalTo((DataType) DataTypes.STRING));
+        assertThat(mergeNode.outputTypes().get(1), equalTo((DataType) DataTypes.LONG));
+
+        MergeNode localMerge = (MergeNode) iterator.next();
+        assertThat(localMerge, instanceOf(MergeNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        // topN projection
+        //      outputs: name, count(*)
+        TopNProjection topN = (TopNProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+    }
+
+    @Test
+    public void testGroupByWithHavingAndNoSelectListReordering() throws Exception {
+        Plan plan = plan("select name, count(*) from users group by name having count(*) > 1");
+
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode collectNode = iterator.next();
+        assertThat(collectNode, instanceOf(CollectNode.class));
+
+        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        // group projection
+        //      outputs: name, count(*)
+        // filter projection
+        //      outputs: name, count(*)
+
+        Projection projection = mergeNode.projections().get(1);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) projection;
+
+        Symbol countArgument = filterProjection.query().arguments().get(0);
+        assertThat(countArgument, instanceOf(InputColumn.class));
+        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+
+        // outputs: name, count(*)
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+
+        MergeNode localMerge = (MergeNode) iterator.next();
+        assertThat(localMerge, instanceOf(MergeNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        // topN projection
+        //      outputs: name, count(*)
+        TopNProjection topN = (TopNProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+    }
+
+    @Test
+    public void testGroupByHavingAndNoSelectListReOrderingWithLimit() throws Exception {
+        Plan plan = plan("select name, count(*) from users group by name having count(*) > 1 limit 100");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode collectNode = iterator.next();
+        assertThat(collectNode, instanceOf(CollectNode.class));
+
+        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        // group projection
+        //      outputs: name, count(*)
+        // filter projection
+        //      outputs: name, count(*)
+        // topN projection
+        //      outputs: name, count(*)
+
+        Projection projection = mergeNode.projections().get(1);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) projection;
+
+        Symbol countArgument = filterProjection.query().arguments().get(0);
+        assertThat(countArgument, instanceOf(InputColumn.class));
+        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+
+        // outputs: name, count(*)
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+
+        // outputs: name, count(*)
+        TopNProjection topN = (TopNProjection) mergeNode.projections().get(2);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+
+
+        MergeNode localMerge = (MergeNode) iterator.next();
+        assertThat(localMerge, instanceOf(MergeNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        // topN projection
+        //      outputs: name, count(*)
+        topN = (TopNProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
     }
 }

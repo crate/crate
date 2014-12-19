@@ -21,10 +21,13 @@
 
 package io.crate.testing;
 
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -44,6 +47,9 @@ public class MockedClusterServiceModule extends AbstractModule {
         when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
         when(metaData.persistentSettings()).thenReturn(ImmutableSettings.EMPTY);
         when(metaData.transientSettings()).thenReturn(ImmutableSettings.EMPTY);
+        when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+        when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+        when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(state.metaData()).thenReturn(metaData);
         when(clusterService.state()).thenReturn(state);
         bind(ClusterService.class).toInstance(clusterService);
@@ -59,5 +65,7 @@ public class MockedClusterServiceModule extends AbstractModule {
         when(discovery.localNode()).thenReturn(node);
         when(node.getId()).thenReturn("node-id-1");
         when(node.getName()).thenReturn("node 1");
+
+        bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
     }
 }

@@ -216,7 +216,7 @@ public class ExpressionAnalyzer {
         if (dataType != null
                 && DataTypes.isCollectionType(dataType)
                 && DataTypes.isCollectionType(((CollectionType)dataType).innerType())) {
-            throw new ColumnValidationException(columnIdent.fqn(),
+            throw new ColumnValidationException(columnIdent.sqlFqn(),
                     String.format(Locale.ENGLISH, "Invalid datatype '%s'", dataType));
         }
     }
@@ -251,7 +251,7 @@ public class ExpressionAnalyzer {
                 DynamicReference dynamicReference = tableInfo.getDynamic(nestedIdent, forWrite);
                 DataType type = DataTypes.guessType(entry.getValue(), false);
                 if (type == null) {
-                    throw new ColumnValidationException(info.ident().columnIdent().fqn(), "Invalid value");
+                    throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(), "Invalid value");
                 }
                 dynamicReference.valueType(type);
                 nestedInfo = dynamicReference.info();
@@ -294,7 +294,7 @@ public class ExpressionAnalyzer {
             }
             return info.type().value(primitiveValue);
         } catch (Exception e) {
-            throw new ColumnValidationException(info.ident().columnIdent().fqn(),
+            throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
                     String.format("Invalid %s",
                             info.type().getName()
                     )
@@ -736,7 +736,7 @@ public class ExpressionAnalyzer {
                 List<Literal> literals = new ArrayList<>(node.values().size());
                 for (Expression e : node.values()) {
                     Symbol arrayElement = process(e, context);
-                    if (innerType == null) {
+                    if (innerType == null || (innerType == DataTypes.UNDEFINED && !arrayElement.valueType().equals(innerType))) {
                         innerType = arrayElement.valueType();
                     } else if (!arrayElement.valueType().equals(innerType)) {
                         throw new IllegalArgumentException(String.format(

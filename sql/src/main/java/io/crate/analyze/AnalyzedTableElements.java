@@ -169,8 +169,9 @@ public class AnalyzedTableElements {
 
     private void validatePrimaryKeys() {
         for (String additionalPrimaryKey : additionalPrimaryKeys) {
-            if (!columnIdents.contains(ColumnIdent.fromPath(additionalPrimaryKey))) {
-                throw new ColumnUnknownException(additionalPrimaryKey);
+            ColumnIdent columnIdent = ColumnIdent.fromPath(additionalPrimaryKey);
+            if (!columnIdents.contains(columnIdent)) {
+                throw new ColumnUnknownException(columnIdent.sqlFqn());
             }
         }
     }
@@ -179,7 +180,7 @@ public class AnalyzedTableElements {
         for (Map.Entry<String, Set<String>> entry : copyToMap.entrySet()) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey());
             if (!columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.fqn());
+                throw new ColumnUnknownException(columnIdent.sqlFqn());
             }
             if (!columnTypes.get(columnIdent).equalsIgnoreCase("string")) {
                 throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
@@ -261,7 +262,7 @@ public class AnalyzedTableElements {
             if (skipIfNotFound) {
                 return;
             }
-            throw new ColumnUnknownException(partitionedByIdent.fqn());
+            throw new ColumnUnknownException(partitionedByIdent.sqlFqn());
         }
         if (columnDefinition.dataType().equals("object")) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,

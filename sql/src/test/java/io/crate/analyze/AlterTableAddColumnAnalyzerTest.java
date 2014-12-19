@@ -25,7 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.ParsingException;
@@ -61,7 +61,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name()))
                     .thenReturn(userTableInfoClusteredByOnly);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
 

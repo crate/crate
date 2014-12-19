@@ -24,11 +24,7 @@ package io.crate.analyze;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -72,7 +68,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             .add("obj", DataTypes.STRING, Arrays.asList("name"))
             .clusteredBy("obj.name").build();
 
-    private final static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
+    private final static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "alias");
     private final static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("bla", DataTypes.STRING, null)
@@ -90,7 +86,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
             when(schemaInfo.getTableInfo(NESTED_CLUSTERED_BY_TABLE_IDENT.name())).thenReturn(NESTED_CLUSTERED_BY_TABLE_INFO);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
 
         @Override
@@ -185,7 +181,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalyzedStatement statement = analyze("update users set name='Trillian'");
         UpdateAnalyzedStatement.NestedAnalyzedStatement statement1 = statement.nestedStatements().get(0);
         assertThat(statement1.assignments().size(), is(1));
-        assertThat(((TableRelation) statement.sourceRelation()).tableInfo().ident(), is(new TableIdent(null, "users")));
+        assertThat(((TableRelation) statement.sourceRelation()).tableInfo().ident(), is(new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "users")));
 
         Reference ref = statement1.assignments().keySet().iterator().next();
         assertThat(ref.info().ident().tableIdent().name(), is("users"));

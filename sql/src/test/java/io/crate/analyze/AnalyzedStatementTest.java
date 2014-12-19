@@ -29,7 +29,6 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -38,6 +37,7 @@ import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -121,7 +121,7 @@ public class AnalyzedStatementTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_TABLE_IDENT.name())).thenReturn(userTableInfo);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
 
@@ -130,6 +130,7 @@ public class AnalyzedStatementTest {
     @Before
     public void prepare() {
         Injector injector = new ModulesBuilder()
+                .add(new MockedClusterServiceModule())
                 .add(new TestMetaDataModule())
                 .createInjector();
         expressionAnalyzer = new ExpressionAnalyzer(injector.getInstance(AnalysisMetaData.class),

@@ -22,6 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import com.google.common.base.Optional;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.node.PlanVisitor;
 import org.elasticsearch.common.settings.Settings;
 
@@ -30,7 +31,7 @@ import java.util.Map;
 
 public class CreateTableNode extends DDLPlanNode {
 
-    private final String tableName;
+    private final TableIdent tableIdent;
     private final Settings settings;
     private final Map<String, Object> mapping;
 
@@ -38,11 +39,11 @@ public class CreateTableNode extends DDLPlanNode {
     private final Optional<String> templateName;
     private final Optional<String> templateIndexMatch;
 
-    private CreateTableNode(String tableName, Settings settings,
+    private CreateTableNode(TableIdent tableIdent, Settings settings,
                             Map<String, Object> mapping,
                             @Nullable String templateName,
                             @Nullable String templateIndexMatch) {
-        this.tableName = tableName;
+        this.tableIdent = tableIdent;
         this.settings = settings;
 
         this.mapping = mapping;
@@ -50,22 +51,22 @@ public class CreateTableNode extends DDLPlanNode {
         this.templateIndexMatch = Optional.fromNullable(templateIndexMatch);
     }
 
-    public static CreateTableNode createPartitionedTableNode(String tableName,
+    public static CreateTableNode createPartitionedTableNode(TableIdent tableIdent,
                                                        Settings settings,
                                                        Map<String, Object> mapping,
                                                        String templateName,
                                                        String templateIndexMatch) {
-        return new CreateTableNode(tableName, settings, mapping, templateName, templateIndexMatch);
+        return new CreateTableNode(tableIdent, settings, mapping, templateName, templateIndexMatch);
     }
 
-    public static CreateTableNode createTableNode(String tableName,
+    public static CreateTableNode createTableNode(TableIdent tableIdent,
                                                   Settings settings,
                                                   Map<String, Object> mapping) {
-        return new CreateTableNode(tableName, settings, mapping, null, null);
+        return new CreateTableNode(tableIdent, settings, mapping, null, null);
     }
 
-    public String tableName() {
-        return tableName;
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 
     public Settings settings() {

@@ -23,8 +23,8 @@ package io.crate.operation.reference.information;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.information.InformationTablesTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -50,7 +50,7 @@ public abstract class InformationTablesExpression<T>
 
     public static class TablesSchemaNameExpression extends InformationTablesExpression<BytesRef> {
 
-        static final BytesRef DOC_SCHEMA_INFO = new BytesRef(DocSchemaInfo.NAME);
+        static final BytesRef DOC_SCHEMA_INFO = new BytesRef(ReferenceInfos.DEFAULT_SCHEMA_NAME);
 
         public TablesSchemaNameExpression() {
             super(InformationTablesTableInfo.ReferenceInfos.SCHEMA_NAME);

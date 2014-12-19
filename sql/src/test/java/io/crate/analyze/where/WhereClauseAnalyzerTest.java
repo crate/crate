@@ -25,13 +25,10 @@ import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
@@ -92,7 +89,7 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.name()).thenReturn(DocSchemaInfo.NAME);
+            when(schemaInfo.name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo("users")).thenReturn(
                     TestingTableInfo.builder(new TableIdent("doc", "users"), RowGranularity.DOC, twoNodeRouting)
                             .add("id", DataTypes.STRING, null)
@@ -139,7 +136,7 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                     .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
                     .clusteredBy("id")
                     .build());
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
 

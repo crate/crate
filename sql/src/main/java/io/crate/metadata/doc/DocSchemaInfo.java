@@ -32,9 +32,10 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -55,14 +56,20 @@ import java.util.concurrent.ExecutionException;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
-    public static final String NAME = "doc";
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
 
-    private static final Predicate<String> tablesFilter = new Predicate<String>() {
+    private final Predicate<String> tablesFilter = new Predicate<String>() {
         @Override
         public boolean apply(String input) {
-            return !BlobIndices.isBlobIndex(input);
+            if (BlobIndices.isBlobIndex(input)) {
+                return false;
+            }
+            if (name().equalsIgnoreCase(ReferenceInfos.DEFAULT_SCHEMA_NAME)) {
+                return !input.matches(ReferenceInfos.SCHEMA_REGEX);
+            } else {
+                return input.startsWith(name());
+            }
         }
     };
 
@@ -88,6 +95,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             @Nullable
             @Override
             public TableInfo apply(@Nullable String input) {
+                if (input.matches(ReferenceInfos.SCHEMA_REGEX)) {
+                    input = input.substring(name().length()+1);
+                }
                 return getTableInfo(input);
             }
         };
@@ -97,7 +107,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
                 this,
-                new TableIdent(NAME, name),
+                new TableIdent(name(), name),
                 clusterService,
                 transportPutIndexTemplateAction,
                 checkAliasSchema
@@ -128,7 +138,10 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             String templateName = templates.next();
             try {
                 String tableName = PartitionName.tableName(templateName);
-                tables.add(tableName);
+                String schemaName = PartitionName.schemaName(templateName);
+                if (schemaName.equalsIgnoreCase(name())) {
+                    tables.add(tableName);
+                }
             } catch (IllegalArgumentException e) {
                 // do nothing
             }
@@ -139,7 +152,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     @Override
     public String name() {
-        return NAME;
+        return ReferenceInfos.DEFAULT_SCHEMA_NAME;
     }
 
     @Override
@@ -199,7 +212,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     }
                 } else {
                     // this is the case if a single partition has been modified using alter table <t> partition (...)
-                    String possibleTemplateName = PartitionName.templateName(tableName);
+                    String possibleTemplateName = PartitionName.templateName(name(), tableName);
                     if (templates.contains(possibleTemplateName)) {
                         for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
                             if (PartitionName.isPartition(indexEntry.key)) {

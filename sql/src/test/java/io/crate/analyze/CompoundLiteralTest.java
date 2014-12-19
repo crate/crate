@@ -28,12 +28,21 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.*;
 import org.apache.lucene.util.AbstractRandomizedTest;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -49,6 +58,8 @@ import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CompoundLiteralTest extends AbstractRandomizedTest {
 
@@ -59,11 +70,22 @@ public class CompoundLiteralTest extends AbstractRandomizedTest {
 
     @Before
     public void prepare() {
+        ClusterService clusterService = mock(ClusterService.class);
+        ClusterState state = mock(ClusterState.class);
+        MetaData metaData = mock(MetaData.class);
+        when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+        when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+        when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+        when(state.metaData()).thenReturn(metaData);
+        when(clusterService.state()).thenReturn(state);
+        TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         analysisMetaData = new AnalysisMetaData(
                 new Functions(
                         Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
                         Collections.<String, DynamicFunctionResolver>emptyMap()),
-                new ReferenceInfos(Collections.<String, SchemaInfo>emptyMap()),
+                new ReferenceInfos(Collections.<String, SchemaInfo>emptyMap(),
+                                   clusterService,
+                                   transportPutIndexTemplateAction),
                 new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap())
         );
     }
@@ -131,7 +153,7 @@ public class CompoundLiteralTest extends AbstractRandomizedTest {
     @Test
     public void testObjectliteralWithParameter() throws Exception {
         Literal objectLiteral = (Literal) analyzeExpression("{ident=?}", new Object[]{1});
-        assertThat(objectLiteral.valueType(), is((DataType)ObjectType.INSTANCE));
+        assertThat(objectLiteral.valueType(), is((DataType) ObjectType.INSTANCE));
         assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", 1).map()));
     }
 
@@ -169,9 +191,9 @@ public class CompoundLiteralTest extends AbstractRandomizedTest {
     @Test
     public void testArrayLiteralWithParameter() throws Exception {
         Literal array = (Literal) analyzeExpression("[1, ?]", new Object[]{4L});
-        assertThat(array.valueType(), is((DataType)new ArrayType(LongType.INSTANCE)));
-        assertThat(((Object[])array.value()).length, is(2));
-        assertThat((Object[])array.value(), is(new Object[]{1L, 4L}));
+        assertThat(array.valueType(), is((DataType) new ArrayType(LongType.INSTANCE)));
+        assertThat(((Object[]) array.value()).length, is(2));
+        assertThat((Object[]) array.value(), is(new Object[]{1L, 4L}));
     }
 
     @Test

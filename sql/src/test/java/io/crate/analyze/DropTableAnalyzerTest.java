@@ -21,14 +21,14 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -51,7 +51,7 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
 

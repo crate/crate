@@ -23,11 +23,10 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.*;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
@@ -46,7 +45,6 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -75,7 +73,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY.name())).thenReturn(userTableInfoRefreshIntervalByOnly);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
 
@@ -351,9 +349,13 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.tableParameter().settings().get("search"), is("foobar"));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testCreateTableWithSchemaName() throws Exception {
-        analyze("create table something.foo (id integer primary key)");
+        CreateTableAnalyzedStatement analysis =
+                (CreateTableAnalyzedStatement)analyze("create table something.foo (id integer primary key)");
+        TableIdent tableIdent = analysis.tableIdent();
+        assertThat(tableIdent.schema(), is("something"));
+        assertThat(tableIdent.name(), is("foo"));
     }
 
     @Test
@@ -609,5 +611,37 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number 'foo'");
         analyze("create table t (id int primary key) clustered into ? shards", new Object[]{"foo"});
+    }
+
+    @Test
+    public void testCreateTableWithParitionedColumnInClusteredBy() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use CLUSTERED BY column in PARTITIONED BY clause");
+        analyze("create table t(id int primary key) partitioned by (id) clustered by (id)");
+    }
+
+    @Test
+    public void testCreateTableWithEmptySchema() throws Exception {
+        expectedException.expect(InvalidSchemaNameException.class);
+        expectedException.expectMessage("schema name \"\" is invalid.");
+        analyze("create table \"\".my_table (" +
+                "id long primary key" +
+                ")");
+    }
+
+    @Test
+    public void testCreateTableWithIllegalSchema() throws Exception {
+        expectedException.expect(InvalidSchemaNameException.class);
+        expectedException.expectMessage("schema name \"with.\" is invalid.");
+        analyze("create table \"with.\".my_table (" +
+                "id long primary key" +
+                ")");
+    }
+
+    @Test
+    public void testCreateTableWithInvalidColumnName() throws Exception {
+        expectedException.expect(InvalidColumnNameException.class);
+        expectedException.expectMessage("column name \"'test\" is invalid");
+        analyze("create table my_table (\"'test\" string)");
     }
 }

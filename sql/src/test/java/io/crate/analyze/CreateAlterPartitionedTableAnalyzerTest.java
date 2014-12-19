@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
@@ -74,7 +74,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY.name())).thenReturn(userTableInfoRefreshIntervalByOnly);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
 

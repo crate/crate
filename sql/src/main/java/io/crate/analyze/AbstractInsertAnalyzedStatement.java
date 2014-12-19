@@ -131,13 +131,13 @@ public abstract class AbstractInsertAnalyzedStatement extends AnalyzedStatement 
                 }
                 referenceInfo = reference.info();
                 if (!allocatedReferences.add(referenceInfo)) {
-                    throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().fqn()));
+                    throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().sqlFqn()));
                 }
                 return reference;
             }
         }
         if (!allocatedReferences.add(referenceInfo)) {
-            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().fqn()));
+            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().sqlFqn()));
         }
         return new Reference(referenceInfo);
     }

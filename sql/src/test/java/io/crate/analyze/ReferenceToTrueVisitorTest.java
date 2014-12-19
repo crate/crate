@@ -37,6 +37,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -56,6 +57,7 @@ public class ReferenceToTrueVisitorTest {
     @Before
     public void setUp() throws Exception {
         Injector injector = new ModulesBuilder()
+            .add(new MockedClusterServiceModule())
             .add(new MetaDataModule())
             .add(new OperatorModule())
             .add(new MetaDataInformationModule())

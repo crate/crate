@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -59,7 +59,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_NESTED_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_NESTED_PARTITIONED_TABLE_INFO);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
 

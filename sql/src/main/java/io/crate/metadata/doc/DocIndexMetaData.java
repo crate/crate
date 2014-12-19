@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
@@ -109,7 +109,7 @@ public class DocIndexMetaData {
     public DocIndexMetaData(IndexMetaData metaData, TableIdent ident) throws IOException {
         this.ident = ident;
         this.metaData = metaData;
-        this.isAlias = !metaData.getIndex().equals(ident.name());
+        this.isAlias = !metaData.getIndex().equals(ident.esName());
         this.numberOfShards = metaData.numberOfShards();
         Settings settings = metaData.getSettings();
         String autoExpandReplicas = settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
@@ -498,7 +498,7 @@ public class DocIndexMetaData {
 
     private void updateTemplate(DocIndexMetaData md,
                                 TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
-        String templateName = PartitionName.templateName(name());
+        String templateName = PartitionName.templateName(ident.schema(), ident.name());
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
                 .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
                 .create(false)

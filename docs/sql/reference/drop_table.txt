@@ -9,7 +9,7 @@ Synopsis
 
 .. code-block:: sql
 
-    DROP [BLOB] TABLE table_name
+    DROP [BLOB] TABLE table_ident
 
 Description
 ===========
@@ -22,4 +22,5 @@ Use the ``BLOB`` keyword in order to remove a blob table (see
 Parameters
 ==========
 
-:table_name: The name (optionally schema-qualified) of the table to be removed.
+:table_ident: The name (optionally schema-qualified) of the table to
+              be removed.

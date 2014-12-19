@@ -21,7 +21,7 @@
 
 package io.crate.metadata.table;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;

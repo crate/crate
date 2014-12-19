@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
@@ -40,7 +39,7 @@ public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     }
 
     public String index() {
-        return tableIdent.name();
+        return tableIdent.esName();
     }
 
     @Override
@@ -51,11 +50,11 @@ public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         }
         if (schemaInfo.systemSchema()) {
             throw new UnsupportedOperationException(
-                    String.format("cannot delete '%s'.", Joiner.on('.').join(tableIdent.schema(), tableIdent.name())));
+                    String.format("cannot delete '%s'.", tableIdent.fqn()));
         }
         TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.name());
+            throw new TableUnknownException(tableIdent.fqn());
         } else if (tableInfo.isAlias()) {
             throw new UnsupportedOperationException("Table alias not allowed in DROP TABLE statement.");
         }

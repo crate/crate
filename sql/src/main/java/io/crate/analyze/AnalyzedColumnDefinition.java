@@ -25,6 +25,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.Constants;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -56,6 +58,10 @@ public class AnalyzedColumnDefinition {
 
     public void name(String name) {
         Preconditions.checkArgument(!name.startsWith("_"), "Column ident must not start with '_'");
+        if(Constants.INVALID_COLUMN_NAME_PREDICATE.apply(name)){
+            throw new InvalidColumnNameException(name);
+        }
+
         this.name = name;
         if (this.parent != null) {
             this.ident = ColumnIdent.getChild(this.parent.ident, name);

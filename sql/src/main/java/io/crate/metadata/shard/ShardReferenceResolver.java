@@ -22,7 +22,7 @@
 package io.crate.metadata.shard;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -56,13 +56,13 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 .putAll(shardImplementations);
 
         if (PartitionName.isPartition(index.name())) {
-            String tableName = PartitionName.tableName(index.name());
+            TableIdent tableIdent = new TableIdent(PartitionName.schemaName(index.name()), PartitionName.tableName(index.name()));
             // check if alias exists
-            if (clusterService.state().metaData().hasConcreteIndex(tableName)) {
+            if (clusterService.state().metaData().hasConcreteIndex(tableIdent.esName())) {
                 // get DocTableInfo for virtual partitioned table
                 DocTableInfo info = new DocTableInfoBuilder(
                         docSchemaInfo,
-                        new TableIdent(DocSchemaInfo.NAME, tableName),
+                        tableIdent,
                         clusterService, transportPutIndexTemplateAction, true).build();
                 assert info.isPartitioned();
                 int i = 0;
@@ -72,7 +72,8 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 try {
                     partitionName = PartitionName.fromString(
                             index.name(),
-                            tableName);
+                            tableIdent.schema(),
+                            tableIdent.name());
                 } catch (IllegalArgumentException e) {
                     throw new UnhandledServerException(
                             String.format(Locale.ENGLISH,
@@ -91,8 +92,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 }
             } else {
                 logger.error("Orphaned partition '{}' with missing table '{}' found",
-                        index, tableName);
-
+                        index, tableIdent.fqn());
             }
         }
         this.implementations = builder.build();

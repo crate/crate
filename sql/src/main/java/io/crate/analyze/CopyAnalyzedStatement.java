@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
@@ -108,7 +108,7 @@ public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     public boolean partitionExists(String partitionIdent){
         if (table.isPartitioned() && partitionIdent != null ){
-            return table.partitions().contains(PartitionName.fromPartitionIdent(table.ident().name(), partitionIdent));
+            return table.partitions().contains(PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), partitionIdent));
         }
         return false;
     }

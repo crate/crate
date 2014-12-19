@@ -138,7 +138,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
             try {
                 valuesSymbol = expressionAnalyzer.normalizeInputForReference(valuesSymbol, column, true);
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
-                throw new ColumnValidationException(column.info().ident().columnIdent().fqn(), e);
+                throw new ColumnValidationException(column.info().ident().columnIdent().sqlFqn(), e);
             }
             try {
                 Object value = ((Input) valuesSymbol).value();

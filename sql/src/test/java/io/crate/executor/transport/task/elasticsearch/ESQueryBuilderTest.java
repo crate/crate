@@ -23,7 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.operation.operator.*;
@@ -470,7 +470,7 @@ public class ESQueryBuilderTest {
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Marvin")));
 
         ESDeleteByQueryNode deleteByQueryNode = new ESDeleteByQueryNode(
-                new String[]{characters.name()},
+                new String[]{characters.esName()},
                 new WhereClause(whereClause));
 
         BytesReference reference = generator.convert(deleteByQueryNode);
@@ -523,7 +523,7 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testSelect_excludePartitionedColumns() throws Exception {
-        PartitionName partitionName = new PartitionName(characters.name(), Arrays.asList(new BytesRef("0.5")));
+        PartitionName partitionName = new PartitionName(characters.esName(), Arrays.asList(new BytesRef("0.5")));
         QueryThenFetchNode searchNode = new QueryThenFetchNode(
                 new Routing(),
                 ImmutableList.<Symbol>of(name_ref, weight_ref),

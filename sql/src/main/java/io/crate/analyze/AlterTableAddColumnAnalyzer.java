@@ -83,7 +83,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
         if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReferenceInfo(column.ident()) != null) {
             throw new IllegalArgumentException(String.format(
                     "The table \"%s\" already has a column named \"%s\"",
-                    tableInfo.ident().name(),
+                    tableInfo.ident().fqn(),
                     column.ident().sqlFqn()));
         }
         for (AnalyzedColumnDefinition child : column.children()) {

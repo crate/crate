@@ -23,7 +23,7 @@ package io.crate.planner.symbol;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.ReferenceInfos;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
@@ -81,7 +81,7 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
     public String visitReference(Reference symbol, Void context) {
         StringBuilder builder = new StringBuilder();
         String schema = symbol.info().ident().tableIdent().schema();
-        if (schema != null && !schema.equals(DocSchemaInfo.NAME)) {
+        if (schema != null && !schema.equals(ReferenceInfos.DEFAULT_SCHEMA_NAME)) {
             builder.append(symbol.info().ident().tableIdent().schema()).append(".");
         }
         return builder.append(symbol.info().ident().tableIdent().name())

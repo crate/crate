@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -92,7 +92,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'boo' unknown");
+        expectedException.expectMessage("Column boo unknown");
         execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)");
     }
 
@@ -112,7 +112,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'boo' unknown");
+        expectedException.expectMessage("Column boo unknown");
         execute("update strict_table set name='Trillian', boo=true where id=1");
     }
 
@@ -275,7 +275,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 });
         execute("refresh table books");
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'author.name.middle_name' unknown");
+        expectedException.expectMessage("Column author['name']['middle_name'] unknown");
         authorMap = new HashMap<String, Object>(){{
             put("name", new HashMap<String, Object>(){{
                 put("first_name", "Douglas");
@@ -388,7 +388,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         GetIndexTemplatesResponse response = client().admin().indices()
-                .prepareGetTemplates(PartitionName.templateName("numbers"))
+                .prepareGetTemplates(PartitionName.templateName(null, "numbers"))
                 .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
@@ -409,7 +409,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'perfect' unknown");
+        expectedException.expectMessage("Column perfect unknown");
         execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
                 new Object[]{28, true, false, true});
     }
@@ -424,7 +424,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         GetIndexTemplatesResponse response = client().admin().indices()
-                .prepareGetTemplates(PartitionName.templateName("numbers"))
+                .prepareGetTemplates(PartitionName.templateName(null, "numbers"))
                 .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
@@ -445,7 +445,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'perfect' unknown");
+        expectedException.expectMessage("Column perfect unknown");
         execute("update numbers set num=?, perfect=? where num=6",
                 new Object[]{28, true});
     }
@@ -460,7 +460,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         GetIndexTemplatesResponse templateResponse = client().admin().indices()
-                .prepareGetTemplates(PartitionName.templateName("numbers"))
+                .prepareGetTemplates(PartitionName.templateName(null, "numbers"))
                 .execute().actionGet();
         assertThat(templateResponse.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = templateResponse.getIndexTemplates().get(0);
@@ -523,7 +523,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table dynamic_table set (column_policy = 'strict')");
         waitNoPendingTasksOnAll();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'new_col' unknown");
+        expectedException.expectMessage("Column new_col unknown");
         execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')");
     }
 
@@ -603,7 +603,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table dynamic_table");
         ensureGreen();
         GetIndexTemplatesResponse response = client().admin().indices()
-                .prepareGetTemplates(PartitionName.templateName("dynamic_table"))
+                .prepareGetTemplates(PartitionName.templateName(null, "dynamic_table"))
                 .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);

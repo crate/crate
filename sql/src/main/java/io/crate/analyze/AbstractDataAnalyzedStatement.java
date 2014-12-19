@@ -102,7 +102,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         }
         TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
         if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.name());
+            throw new TableUnknownException(tableIdent.fqn());
         }
         // if we have a system schema, queries require scalar functions, since those are not using lucene
         onlyScalarsAllowed = schemaInfo.systemSchema();
@@ -150,22 +150,22 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
                     }
                     reference = tableInfo.getDynamic(ident.columnIdent(), forWrite);
                     if (reference == null) {
-                        throw new ColumnUnknownException(ident.columnIdent().fqn());
+                        throw new ColumnUnknownException(ident.columnIdent().sqlFqn());
                     }
                     info = reference.info();
                 }
             }
             if (info.granularity().finerThan(table.rowGranularity())) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "Cannot resolve reference '%s.%s', reason: finer granularity than table '%s'",
-                        info.ident().tableIdent().fqn(), info.ident().columnIdent().fqn(), table.ident().fqn()));
+                        "Cannot resolve reference %s.%s, reason: finer granularity than table '%s'",
+                        info.ident().tableIdent().fqn(), info.ident().columnIdent().sqlFqn(), table.ident().fqn()));
             }
             if (reference == null) {
                 reference = new Reference(info);
             }
             referenceSymbols.put(info.ident(), reference);
         } else if (unique) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().fqn()));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference %s repeated", ident.columnIdent().sqlFqn()));
         }
         return reference;
     }
@@ -358,7 +358,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         if (dataType != null
                 && DataTypes.isCollectionType(dataType)
                 && DataTypes.isCollectionType(((CollectionType)dataType).innerType())) {
-            throw new ColumnValidationException(columnIdent.fqn(),
+            throw new ColumnValidationException(columnIdent.sqlFqn(),
                     String.format(Locale.ENGLISH, "Invalid datatype '%s'", dataType));
         }
     }
@@ -406,7 +406,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
                 DynamicReference dynamicReference = tableInfo.getDynamic(nestedIdent, forWrite);
                 DataType type = DataTypes.guessType(entry.getValue(), false);
                 if (type == null) {
-                    throw new ColumnValidationException(info.ident().columnIdent().fqn(), "Invalid value");
+                    throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(), "Invalid value");
                 }
                 dynamicReference.valueType(type);
                 nestedInfo = dynamicReference.info();
@@ -445,7 +445,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
             }
             return info.type().value(primitiveValue);
         } catch (Exception e) {
-            throw new ColumnValidationException(info.ident().columnIdent().fqn(),
+            throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
                     String.format("Invalid %s",
                             info.type().getName()
                     )

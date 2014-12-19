@@ -11,6 +11,16 @@ Unreleased
  - improved speed of bulk inserts in partitioned tables to avoid request
    timeouts
 
+ - Restricted allowed characters in column names
+
+2014/12/17 0.46.0
+=================
+
+ - Add support for user-defined schemas.
+
+ - Changed output of column names in error messages to subscript notation,
+   so the correct notation to address columns in sql is reflected
+
  - implemented table ``information_schema.schemata`` with column ``schema_name``
    listing all available schemas
 
@@ -20,8 +30,38 @@ Unreleased
 
  - Updated Elasticsearch to 1.4.1
 
- - Fix: improve performance of regex functions by actually
+ - Improve performance of regex functions by actually
    pre-compiling their used patterns (if given as literal)
+
+ - Add sql query breaker which will terminate a query execution if too
+   much memory will be consumed.
+
+ - Use flake ids for interal id generation
+
+ - Added Support for Column Policies, which can be used to define if a
+   table enforces its defined schema or if it's allowed to store
+   additional columns which are not defined in the schema.
+
+ - Throw an error while using unknown root columns on SELECT
+
+2014/12/16 0.45.6
+=================
+
+ - Fix: Nested Columns of ignored objects where exported
+   as `null` values when using COPY TO
+
+ - Fix: Inserting arrays with a null value at first position
+   failed
+
+ - Fix: Using CLUSTERED BY Column in PARTITIONED BY clause threw
+   misleading exception
+
+ - Fix: Added comments to the logging.yml config file and reduced the
+   amount of log entries by changing the loglevel of some log messages
+
+ - Fix: correctly plan group by queries using HAVING clause
+
+ - Fix: Improve Error messages on COPY TO and COPY FROM
 
  - Fix: The clustered-by columns could be updated if they were nested.
 
@@ -32,8 +72,8 @@ Unreleased
  - Fixed possible race condition that could cause the `LIMIT` to not
    be applied correctly.
 
- - Add sql query breaker which will terminate a query execution if too
-   much memory will be consumed.
+ - improved speed of bulk inserts in partitioned tables to avoid request
+   timeouts
 
  - Fixed NPE which could occur on a shard failure while collecting
    distributed (e.g. group by query)
@@ -50,13 +90,6 @@ Unreleased
  - Fix: adding column on partitioned table without partitions threw
    exception although column was added to schema
 
- - Use flake ids for interal id generation
-
- - Added Support for Column Policies, which can be used to define if a
-   table enforces its defined schema or if it's allowed to store
-   additional columns which are not defined in the schema.
-
- - Throw an error while using unknown root columns on SELECT
 
 2014/11/18 0.45.5
 =================

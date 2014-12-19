@@ -138,7 +138,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         try {
             updateValue = expressionAnalyzer.normalizeInputForReference(value, reference, true);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
-            throw new ColumnValidationException(ident.fqn(), e);
+            throw new ColumnValidationException(ident.sqlFqn(), e);
         }
 
         if (tableInfo.clusteredBy() != null) {

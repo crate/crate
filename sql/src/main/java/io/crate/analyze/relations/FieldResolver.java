@@ -116,7 +116,7 @@ public class FieldResolver {
             if (!tableNameMatched) {
                 throw new IllegalArgumentException(String.format("Cannot resolve relation '%s'", columnTableName));
             }
-            throw new ColumnUnknownException(columnIdent.fqn());
+            throw new ColumnUnknownException(columnIdent.sqlFqn());
         }
         return lastField;
     }

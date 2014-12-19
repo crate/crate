@@ -22,10 +22,10 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.PartitionName;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
@@ -54,10 +54,10 @@ public class PartitionPropertiesAnalyzer {
     public static PartitionName toPartitionName(TableInfo tableInfo,
                                                 List<Assignment> partitionProperties,
                                                 Object[] parameters) {
-        Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().name());
+        Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().fqn());
         Preconditions.checkArgument(partitionProperties.size() == tableInfo.partitionedBy().size(),
                 "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
-                tableInfo.ident().name(),
+                tableInfo.ident().fqn(),
                 tableInfo.partitionedBy().size(),
                 partitionProperties.size()
         );
@@ -74,7 +74,7 @@ public class PartitionPropertiesAnalyzer {
                 values[idx] = converted == null ? null : DataTypes.STRING.value(converted);
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
-                        String.format("\"%s\" is no known partition column", entry.getKey().fqn()));
+                        String.format("\"%s\" is no known partition column", entry.getKey().sqlFqn()));
             }
         }
         return new PartitionName(tableInfo.ident().name(), Arrays.asList(values));

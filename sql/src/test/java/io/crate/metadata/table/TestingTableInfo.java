@@ -21,10 +21,8 @@
 
 package io.crate.metadata.table;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.PartitionName;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -36,13 +34,13 @@ import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
 import org.mockito.Answers;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestingTableInfo extends AbstractTableInfo {
 
@@ -70,7 +68,8 @@ public class TestingTableInfo extends AbstractTableInfo {
         private final Routing routing;
         private boolean isAlias = false;
         private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
-        private SchemaInfo schemaInfo = null;
+
+        private SchemaInfo schemaInfo = mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get());
 
         public Builder(TableIdent ident, RowGranularity granularity, Routing routing) {
             this.granularity = granularity;
@@ -159,7 +158,7 @@ public class TestingTableInfo extends AbstractTableInfo {
 
         public Builder addPartitions(String... partitionNames) {
             for (String partitionName : partitionNames) {
-                PartitionName partition = PartitionName.fromString(partitionName, ident.name());
+                PartitionName partition = PartitionName.fromString(partitionName, ident.schema(), ident.name());
                 partitions.add(partition);
             }
             return this;
@@ -168,7 +167,6 @@ public class TestingTableInfo extends AbstractTableInfo {
         public TableInfo build() {
             addDocSysColumns();
             return new TestingTableInfo(
-                    schemaInfo,
                     columns.build(),
                     partitionedByColumns.build(),
                     indexColumns.build(),
@@ -181,7 +179,8 @@ public class TestingTableInfo extends AbstractTableInfo {
                     isAlias,
                     partitionedBy.build(),
                     partitions.build(),
-                    columnPolicy);
+                    columnPolicy,
+                    schemaInfo == null ? mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()) : schemaInfo);
         }
 
     }
@@ -202,8 +201,7 @@ public class TestingTableInfo extends AbstractTableInfo {
     private final TableParameterInfo tableParameterInfo;
 
 
-    public TestingTableInfo(@Nullable SchemaInfo schemaInfo,
-                            List<ReferenceInfo> columns,
+    public TestingTableInfo(List<ReferenceInfo> columns,
                             List<ReferenceInfo> partitionedByColumns,
                             Map<ColumnIdent, IndexReferenceInfo> indexColumns,
                             Map<ColumnIdent, ReferenceInfo> references,
@@ -214,8 +212,10 @@ public class TestingTableInfo extends AbstractTableInfo {
                             boolean isAlias,
                             List<ColumnIdent> partitionedBy,
                             List<PartitionName> partitions,
-                            ColumnPolicy columnPolicy) {
-        super(MoreObjects.firstNonNull(schemaInfo, mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get())));
+                            ColumnPolicy columnPolicy,
+                            SchemaInfo schemaInfo
+                            ) {
+        super(schemaInfo);
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
         this.indexColumns = indexColumns;
@@ -309,7 +309,7 @@ public class TestingTableInfo extends AbstractTableInfo {
             ColumnIdent parentIdent = ident.getParent();
             ReferenceInfo parentInfo = getReferenceInfo(parentIdent);
             if (parentInfo != null && parentInfo.columnPolicy() == ColumnPolicy.STRICT) {
-                throw new ColumnUnknownException(ident.fqn());
+                throw new ColumnUnknownException(ident.sqlFqn());
             }
         }
         return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
@@ -338,5 +338,12 @@ public class TestingTableInfo extends AbstractTableInfo {
     @Override
     public TableParameterInfo tableParameterInfo () {
         return tableParameterInfo;
+    }
+
+    @Override
+    public SchemaInfo schemaInfo() {
+        final SchemaInfo schemaInfo = super.schemaInfo();
+        when(schemaInfo.name()).thenReturn(ident.schema());
+        return schemaInfo;
     }
 }

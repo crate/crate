@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
@@ -85,7 +85,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
             for (String columnName : columnNames) {
                 values.add(BytesRefs.toBytesRef(map.get(columnName)));
             }
-            PartitionName partitionName = new PartitionName(tableInfo().ident().name(), values);
+            PartitionName partitionName = new PartitionName(tableInfo().ident().schema(), tableInfo().ident().name(), values);
             partitionValues.add(partitionName.stringValue());
         }
         return partitionValues;

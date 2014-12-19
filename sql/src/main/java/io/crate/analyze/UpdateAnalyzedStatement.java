@@ -97,9 +97,10 @@ public class UpdateAnalyzedStatement extends AnalyzedStatement {
         }
 
         public void addAssignment(Reference reference, Symbol value) {
-            if (assignments.put(reference, value) != null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().fqn()));
+            if (assignments.containsKey(reference)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().sqlFqn()));
             }
+            assignments.put(reference, value);
         }
     }
 }

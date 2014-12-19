@@ -21,9 +21,12 @@
 
 package io.crate;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class Constants {
 
@@ -32,7 +35,6 @@ public class Constants {
      * Mapping Type that contains table definitions
      */
     public static final String DEFAULT_MAPPING_TYPE = "default";
-    public static final Integer GROUP_BY_TIMEOUT = 120;
 
     // port rangess for HTTP and Transport
     public static final String HTTP_PORT_RANGE = "4200-4300";
@@ -47,5 +49,5 @@ public class Constants {
 
     public static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
 
-    public static final String PARTITIONED_TABLE_PREFIX = ".partitioned";
+    public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]]"));
 }

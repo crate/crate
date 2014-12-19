@@ -48,7 +48,7 @@ public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
         tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.name());
+            throw new TableUnknownException(tableIdent.fqn());
         }
     }
 

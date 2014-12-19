@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Reference;

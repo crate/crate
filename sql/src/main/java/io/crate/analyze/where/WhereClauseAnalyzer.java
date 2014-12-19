@@ -23,9 +23,9 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.ReferenceResolver;

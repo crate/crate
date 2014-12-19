@@ -41,8 +41,14 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -59,6 +65,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ShardProjectorChainTest {
 
@@ -71,8 +78,16 @@ public class ShardProjectorChainTest {
 
         @Override
         protected void configure() {
+            ClusterService clusterService = mock(ClusterService.class);
+            ClusterState state = mock(ClusterState.class);
+            MetaData metaData = mock(MetaData.class);
+            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(state.metaData()).thenReturn(metaData);
+            when(clusterService.state()).thenReturn(state);
+            bind(ClusterService.class).toInstance(clusterService);
+            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
-
         }
     }
 

@@ -21,12 +21,12 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.testing.MockedClusterServiceModule;
@@ -63,7 +63,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(docSchemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
 
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(docSchemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
         }
     }
 

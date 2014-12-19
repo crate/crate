@@ -21,6 +21,8 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
@@ -41,6 +43,7 @@ public class PlannerContext {
     List<Symbol> orderBy = new ArrayList<>();
     List<Symbol> outputs = new ArrayList<>();
     List<Symbol> originalGroupBy;
+    ImmutableList.Builder<Projection> projectionBuilder;
 
     public PlannerContext(int numGroupKeys, int numAggregationSteps) {
         this.numGroupKeys = numGroupKeys;
@@ -82,5 +85,9 @@ public class PlannerContext {
             toCollectAllocation.put(symbol, inputColumn);
         }
         return inputColumn;
+    }
+
+    void addResolvedSymbol(Symbol original, Symbol resolved) {
+        resolvedSymbols.put(original, resolved);
     }
 }

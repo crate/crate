@@ -121,7 +121,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     @Test
     public void testAddColumnToStrictObject() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'author.name.middle_name' unknown");
+        expectedException.expectMessage("Column author['name']['middle_name'] unknown");
 
         Map<String, Object> authorMap = new HashMap<String, Object>(){{
             put("name", new HashMap<String, Object>(){{
@@ -180,7 +180,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     @Test
     public void updateToStrictObject() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'author.name.middle_name' unknown");
+        expectedException.expectMessage("Column author['name']['middle_name'] unknown");
 
         execute("update ot set author['name']['middle_name']='Noel' " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");

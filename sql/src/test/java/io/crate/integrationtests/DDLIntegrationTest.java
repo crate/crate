@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -494,7 +494,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table quotes set (number_of_shards=5)");
         waitNoPendingTasksOnAll();
 
-        String templateName = PartitionName.templateName("quotes");
+        String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -511,4 +511,40 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(settingsResponse.getSetting(partition, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("5"));
     }
 
+
+    @Test
+    public void testCreateTableWithCustomSchema() throws Exception {
+        execute("create table a.t (name string) with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("insert into a.t (name) values ('Ford')");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        execute("select name from a.t");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String)response.rows()[0][0], is("Ford"));
+
+        execute("select schema_name from information_schema.tables where table_name = 't'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String)response.rows()[0][0], is("a"));
+    }
+
+    @Test
+    public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("table name \"AAA.t\" is invalid.");
+        execute("create table \"AAA\".t (name string) with (number_of_replicas=0)");
+    }
+
+    @Test
+    public void testDropTableWithCustomSchema() throws Exception {
+        execute("create table a.t (name string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("drop table a.t");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select schema_name from information_schema.tables where table_name = 't'");
+        assertThat(response.rowCount(), is(0L));
+    }
 }

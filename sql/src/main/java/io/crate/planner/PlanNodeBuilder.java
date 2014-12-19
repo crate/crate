@@ -25,8 +25,8 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.dql.CollectNode;
@@ -113,7 +113,7 @@ public class PlanNodeBuilder {
         Routing routing = tableInfo.getRouting(whereClause);
         if (partitionIdent != null && routing.hasLocations()) {
             routing = filterRouting(routing, PartitionName.fromPartitionIdent(
-                    tableInfo.ident().name(), partitionIdent).stringValue());
+                    tableInfo.ident().schema(), tableInfo.ident().name(), partitionIdent).stringValue());
         }
         CollectNode node = new CollectNode("collect", routing);
         node.whereClause(whereClause);

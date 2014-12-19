@@ -104,7 +104,7 @@ public class FieldResolverTest {
     @Test
     public void testResolveDynamicReference() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column 'age' unknown");
+        expectedException.expectMessage("Column age unknown");
         AnalyzedRelation barT = new DummyRelation(newTI("bar.t"), "name");
         FieldResolver resolver = new FieldResolver(ImmutableMap.of(newQN("bar.t"), barT));
         resolver.resolveField(newQN("t.age"), false);

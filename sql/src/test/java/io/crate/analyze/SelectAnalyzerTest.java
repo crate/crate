@@ -32,8 +32,8 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -122,7 +122,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_CLUSTER_BY_STRING_TABLE_INFO.ident().name()))
                     .thenReturn(TEST_CLUSTER_BY_STRING_TABLE_INFO);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
 
         @Override
@@ -1586,14 +1586,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testFunctionArgumentsCantBeAliases() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column 'n' unknown");
+        expectedException.expectMessage("Column n unknown");
         analyze("select name as n, substr(n, 1, 1) from users");
     }
 
     @Test
     public void testSubscriptOnAliasShouldntWork() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column 'n' unknown");
+        expectedException.expectMessage("Column n unknown");
         analyze("select name as n, n[1] from users");
     }
 
@@ -1633,6 +1633,5 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot order by \"users.o['unknown_column']\". The column doesn't exist.");
         analyze("select name from users order by o['unknown_column']");
-
     }
 }

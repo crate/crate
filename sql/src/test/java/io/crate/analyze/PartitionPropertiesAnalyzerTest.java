@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;

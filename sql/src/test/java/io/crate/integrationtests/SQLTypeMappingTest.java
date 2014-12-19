@@ -182,7 +182,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInvalidInsertIntoObject() throws Exception {
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Validation failed for object_field.created: Invalid timestamp");
+        expectedException.expectMessage("Validation failed for object_field['created']: Invalid timestamp");
 
         setUpObjectTable();
         execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
@@ -290,7 +290,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         refresh();
         waitNoPendingTasksOnAll();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Validation failed for o.a: Invalid string");
+        expectedException.expectMessage("Validation failed for o['a']: Invalid string");
         execute("insert into t1 values ({a=['123', '456']})");
     }
 
@@ -363,7 +363,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertNewColumnToStrictObject() throws Exception {
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'strict_field.another_new_col' unknown");
+        expectedException.expectMessage("Column strict_field['another_new_col'] unknown");
 
         setUpObjectTable();
         Map<String, Object> strictContent = new HashMap<String, Object>(){{
