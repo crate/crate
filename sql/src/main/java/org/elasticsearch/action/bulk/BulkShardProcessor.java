@@ -82,7 +82,7 @@ public class BulkShardProcessor {
     private final ReadWriteLock retryLock = new ReadWriteLock();
     private final Semaphore executeLock = new Semaphore(1);
     private final ScheduledExecutorService scheduledExecutorService =
-        Executors.newScheduledThreadPool(1, daemonThreadFactory("bulkShardProcessor"));
+            Executors.newSingleThreadScheduledExecutor(daemonThreadFactory("bulkShardProcessor"));
     private final TimeValue requestTimeout;
 
     private final ESLogger logger = Loggers.getLogger(getClass());
@@ -174,12 +174,12 @@ public class BulkShardProcessor {
         if (pending.get() == 0) {
             setResult();
         }
-        scheduledExecutorService.shutdown();
     }
 
     private void setFailure(Throwable e) {
         failure.compareAndSet(null, e);
         result.setException(e);
+        scheduledExecutorService.shutdown();
     }
 
     private void setResult() {
@@ -189,6 +189,7 @@ public class BulkShardProcessor {
         } else {
             result.setException(throwable);
         }
+        scheduledExecutorService.shutdown();
     }
 
     private void setResultIfDone(int successes) {

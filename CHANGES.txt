@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause bulk inserts to get stalled.
+
  - Restricted allowed characters in column names
 
 2014/12/17 0.46.0
