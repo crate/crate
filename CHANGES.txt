@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause bulk inserts to get stalled.
+
 2014/12/16 0.45.6
 =================
 
