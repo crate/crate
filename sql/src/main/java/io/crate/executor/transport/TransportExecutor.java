@@ -29,6 +29,7 @@ import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
+import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.CreateTableTask;
 import io.crate.executor.transport.task.DistributedMergeTask;
 import io.crate.executor.transport.task.DropTableTask;
@@ -50,6 +51,7 @@ import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -66,7 +68,6 @@ import java.util.UUID;
 public class TransportExecutor implements Executor, TaskExecutor {
 
     private final Functions functions;
-    private final ReferenceResolver referenceResolver;
     private final Provider<SearchPhaseController> searchPhaseControllerProvider;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
     private final StatsTables statsTables;
@@ -77,9 +78,11 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
 
+    private final ImplementationSymbolVisitor globalImplementationSymbolVisitor;
+    private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
+
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
-    private final ProjectionToProjectorVisitor projectorVisitor;
     private final CircuitBreaker circuitBreaker;
 
     @Inject
@@ -99,18 +102,17 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
         this.functions = functions;
-        this.referenceResolver = referenceResolver;
         this.searchPhaseControllerProvider = searchPhaseControllerProvider;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.visitor = new Visitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
-        ImplementationSymbolVisitor clusterImplementationSymbolVisitor =
-                new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
-        projectorVisitor = new ProjectionToProjectorVisitor(
+        this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
+                referenceResolver, functions, RowGranularity.CLUSTER);
+        this.globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
                 clusterService, settings, transportActionProvider,
-                clusterImplementationSymbolVisitor);
+                globalImplementationSymbolVisitor);
     }
 
     @Override
@@ -191,7 +193,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         clusterService,
                         settings,
                         transportActionProvider,
-                        new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
+                        globalImplementationSymbolVisitor,
                         node,
                         statsTables,
                         circuitBreaker));
@@ -206,7 +208,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public ImmutableList<Task> visitGlobalAggregateNode(GlobalAggregateNode globalAggregateNode, UUID jobId) {
             return ImmutableList.<Task>builder()
                     .addAll(
-                            visitCollectNode(globalAggregateNode.collectNode(), jobId))
+                        visitCollectNode(globalAggregateNode.collectNode(), jobId))
                     .addAll(
                         visitMergeNode(globalAggregateNode.mergeNode(), jobId))
                     .build();
@@ -238,11 +240,22 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
+        public ImmutableList<Task> visitNestedLoopNode(NestedLoopNode node, UUID jobId) {
+            return singleTask(new NestedLoopTask(
+                        jobId,
+                        clusterService.localNode().id(),
+                        node,
+                        TransportExecutor.this,
+                        globalProjectionToProjectionVisitor,
+                        circuitBreaker));
+        }
+
+        @Override
         public ImmutableList<Task> visitESGetNode(ESGetNode node, UUID jobId) {
             return singleTask(new ESGetTask(
                     jobId,
                     functions,
-                    projectorVisitor,
+                    globalProjectionToProjectionVisitor,
                     transportActionProvider.transportMultiGetAction(),
                     transportActionProvider.transportGetAction(),
                     node));
@@ -266,11 +279,13 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public ImmutableList<Task> visitCreateTableNode(CreateTableNode node, UUID jobId) {
-            return singleTask(new CreateTableTask(jobId, clusterService,
-                transportActionProvider.transportCreateIndexAction(),
-                transportActionProvider.transportDeleteIndexAction(),
-                transportActionProvider.transportPutIndexTemplateAction(),
-                node)
+            return singleTask(new CreateTableTask(
+                            jobId,
+                            clusterService,
+                            transportActionProvider.transportCreateIndexAction(),
+                            transportActionProvider.transportDeleteIndexAction(),
+                            transportActionProvider.transportPutIndexTemplateAction(),
+                            node)
             );
         }
 
