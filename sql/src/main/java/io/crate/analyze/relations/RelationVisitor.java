@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.SelectAnalyzedStatement;
 
 import javax.annotation.Nullable;
@@ -45,5 +46,9 @@ public abstract class RelationVisitor<C, R> {
 
     public R visitPlanedAnalyzedRelation(PlannedAnalyzedRelation plannedAnalyzedRelation, C context) {
         return visitAnalyzedRelation(plannedAnalyzedRelation, context);
+    }
+
+    public R visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, C context) {
+        return visitAnalyzedRelation(insertFromSubQueryAnalyzedStatement, context);
     }
 }
