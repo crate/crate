@@ -33,6 +33,7 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRespo
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 
 import java.util.List;
+import java.util.UUID;
 
 public class ESCreateTemplateTask extends AbstractChainedTask {
 
@@ -63,8 +64,10 @@ public class ESCreateTemplateTask extends AbstractChainedTask {
     private final PutIndexTemplateRequest request;
     private final CreateTemplateListener listener;
 
-    public ESCreateTemplateTask(ESCreateTemplateNode node, TransportPutIndexTemplateAction transport) {
-        super();
+    public ESCreateTemplateTask(UUID jobId,
+                                ESCreateTemplateNode node,
+                                TransportPutIndexTemplateAction transport) {
+        super(jobId);
         this.transport = transport;
         this.listener = new CreateTemplateListener(result);
         this.request = buildRequest(node);

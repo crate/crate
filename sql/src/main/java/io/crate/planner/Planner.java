@@ -628,12 +628,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } else if (context.indexWriterProjection.isPresent()) {
             distributedWriterGroupBy(analysis, tableInfo, whereClauseContext, plan, context.indexWriterProjection.get());
         } else {
-            logger.debug("choosing distributed group by for {}", analysis);
-            distributedGroupBy(analysis, tableInfo, whereClauseContext, plan);
+            assert false : "this case should have been handled in the ConsumingPlanner";
         }
     }
 
-    private boolean requiresDistribution(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
+    private static boolean requiresDistribution(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
         Routing routing = tableInfo.getRouting(analysis.whereClause());
         if (!routing.hasLocations()) return false;
         if (routing.locations().size() > 1) return true;
@@ -645,35 +644,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     private boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
-        List<Symbol> groupBy = analysis.groupBy();
+        List<Symbol> groupBy = unwrap(analysis.groupBy());
         assert groupBy != null;
-        if (groupBy.size() > 1) {
-            return groupedByPrimaryKeys(groupBy, tableInfo.primaryKey());
-        }
-
-        // this also handles the case if there is only one primary key.
-        // as clustered by column == pk column  in that case
-        Symbol groupByKey = unwrap(groupBy.get(0));
-        return (groupByKey instanceof Reference
-                && ((Reference) groupByKey).info().ident().columnIdent().equals(tableInfo.clusteredBy()));
-    }
-
-    private boolean groupedByPrimaryKeys(List<Symbol> groupBy, List<ColumnIdent> primaryKeys) {
-        if (groupBy.size() != primaryKeys.size()) {
-            return false;
-        }
-        for (int i = 0, groupBySize = groupBy.size(); i < groupBySize; i++) {
-            Symbol groupBySymbol = unwrap(groupBy.get(i));
-            if (groupBySymbol instanceof Reference) {
-                ColumnIdent pkIdent = primaryKeys.get(i);
-                if (!pkIdent.equals(((Reference) groupBySymbol).info().ident().columnIdent())) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        return true;
+        return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableInfo, groupBy);
     }
 
     /**
@@ -792,12 +765,14 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
 
+
+        List<Symbol> groupBy = unwrap(analysis.groupBy());
         int numAggregationSteps = 2;
 
         PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, unwrap(analysis.groupBy()), ignoreSorting)
-                        .output(unwrap(analysis.outputSymbols()))
-                        .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
+                new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
+                .output(unwrap(analysis.outputSymbols()))
+                .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
 
         Symbol havingClause = null;
         Symbol having = unwrap(analysis.havingClause());
@@ -875,100 +850,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return (analysis.limit() != null
                 || analysis.offset() > 0
                 || aggregationsWrappedInScalar);
-    }
-
-    /**
-     * distributed collect on mapper nodes
-     * with merge on reducer to final (they have row authority)
-     * <p/>
-     * final merge on handler
-     */
-    private void distributedGroupBy(SelectAnalyzedStatement analysis,
-                                    TableInfo tableInfo,
-                                    WhereClauseContext whereClauseContext,
-                                    Plan plan) {
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, unwrap(analysis.groupBy()))
-                .output(unwrap(analysis.outputSymbols()))
-                .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
-
-        Symbol havingClause = unwrap(analysis.havingClause());
-        if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(havingClause);
-        }
-
-        // collector
-        contextBuilder.addProjection(new GroupProjection(
-                contextBuilder.groupBy(), contextBuilder.aggregations()));
-        CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                tableInfo,
-                whereClauseContext.whereClause(),
-                contextBuilder.toCollect(),
-                nodesFromTable(tableInfo, whereClauseContext.whereClause()),
-                contextBuilder.getAndClearProjections()
-        );
-        plan.add(collectNode);
-
-        contextBuilder.nextStep();
-
-        // mergeNode for reducer
-        contextBuilder.addProjection(new GroupProjection(
-                contextBuilder.groupBy(),
-                contextBuilder.aggregations()));
-
-
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            /**
-             * Pass through outputs from previous group by projection as-is.
-             * In case group by has more outputs than the select statement strip those outputs away.
-             *
-             * E.g.
-             *      select count(*), name from t having avg(y) > 10
-             *
-             * output from group by projection:
-             *      name, count(*), avg(y)
-             *
-             * outputs from fp:
-             *      name, count(*)
-             *
-             * Any additional aggregations in the having clause that are not part of the selectList must come
-             * AFTER the selectList aggregations
-             */
-            fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.outputSymbols().size()));
-            contextBuilder.addProjection(fp);
-        }
-        TopNProjection topNForReducer = getTopNForReducer(analysis, contextBuilder, contextBuilder.outputs());
-        if (topNForReducer != null) {
-            contextBuilder.addProjection(topNForReducer);
-        }
-
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
-                collectNode,
-                contextBuilder.getAndClearProjections());
-        plan.add(mergeNode);
-
-
-        List<Symbol> outputs;
-        List<Symbol> orderBy;
-        if (topNForReducer == null) {
-            orderBy = contextBuilder.orderBy();
-            outputs = contextBuilder.outputs();
-        } else {
-            orderBy = contextBuilder.passThroughOrderBy();
-            outputs = contextBuilder.passThroughOutputs();
-        }
-        // mergeNode handler
-        TopNProjection topN = new TopNProjection(
-                firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                analysis.offset(),
-                orderBy,
-                analysis.orderBy().reverseFlags(),
-                analysis.orderBy().nullsFirst()
-        );
-        topN.outputs(outputs);
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
-        plan.add(localMergeNode);
     }
 
     /**

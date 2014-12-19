@@ -22,14 +22,24 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
-
 import java.util.List;
+import java.util.UUID;
 
-public interface Task<R extends TaskResult> {
+public abstract class Task {
 
-    public void start();
+    private final UUID jobId;
 
-    public List<ListenableFuture<R>> result();
+    protected Task(UUID jobId) {
+        this.jobId = jobId;
+    }
 
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result);
+    public UUID jobId() {
+        return this.jobId;
+    }
+
+    public abstract void start();
+
+    public abstract List<ListenableFuture<TaskResult>> result();
+
+    public abstract void upstreamResult(List<ListenableFuture<TaskResult>> result);
 }

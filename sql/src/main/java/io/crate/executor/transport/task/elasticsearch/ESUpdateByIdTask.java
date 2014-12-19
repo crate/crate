@@ -33,6 +33,8 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import java.util.UUID;
+
 public class ESUpdateByIdTask extends AsyncChainedTask {
 
     private final TransportUpdateAction transport;
@@ -67,7 +69,8 @@ public class ESUpdateByIdTask extends AsyncChainedTask {
         }
     }
 
-    public ESUpdateByIdTask(TransportUpdateAction transport, ESUpdateNode node) {
+    public ESUpdateByIdTask(UUID jobId, TransportUpdateAction transport, ESUpdateNode node) {
+        super(jobId);
         this.transport = transport;
 
         assert node.ids().size() == 1;

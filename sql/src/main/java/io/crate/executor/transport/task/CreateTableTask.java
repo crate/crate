@@ -43,6 +43,7 @@ import org.elasticsearch.cluster.ClusterService;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public class CreateTableTask extends AbstractChainedTask {
 
@@ -54,10 +55,12 @@ public class CreateTableTask extends AbstractChainedTask {
     private final TransportPutIndexTemplateAction putIndexTemplateAction;
     private final CreateTableNode planNode;
 
-    public CreateTableTask(ClusterService clusterService,
+    public CreateTableTask(UUID jobId,
+                           ClusterService clusterService,
                            TransportCreateIndexAction createIndexAction,
                            TransportDeleteIndexAction deleteIndexAction, TransportPutIndexTemplateAction putIndexTemplateAction,
                            CreateTableNode node) {
+        super(jobId);
         this.clusterService = clusterService;
         this.createIndexAction = createIndexAction;
         this.deleteIndexAction = deleteIndexAction;

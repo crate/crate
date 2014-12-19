@@ -47,6 +47,7 @@ import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
+import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
 import io.crate.types.*;
 import org.elasticsearch.ElasticsearchParseException;
@@ -310,9 +311,15 @@ public class ExpressionAnalyzer {
         forWrite = value;
     }
 
-    class InnerExpressionAnalyzer extends DefaultTraversalVisitor<Symbol, ExpressionAnalysisContext> {
+    class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
 
         private boolean insideNotPredicate;
+
+        @Override
+        protected Symbol visitExpression(Expression node, ExpressionAnalysisContext context) {
+            throw new UnsupportedOperationException(String.format(
+                    "Unsupported expression %s", ExpressionFormatter.formatExpression(node)));
+        }
 
         @Override
         protected Symbol visitFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {

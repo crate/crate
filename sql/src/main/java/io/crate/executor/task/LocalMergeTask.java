@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * merging rows locally on the handler
  */
-public class LocalMergeTask implements Task<TaskResult> {
+public class LocalMergeTask extends Task {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -76,7 +76,8 @@ public class LocalMergeTask implements Task<TaskResult> {
      *
      * @param implementationSymbolVisitor symbol visitor (on cluster level)
      */
-    public LocalMergeTask(ThreadPool threadPool,
+    public LocalMergeTask(UUID jobId,
+                          ThreadPool threadPool,
                           ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
@@ -84,6 +85,7 @@ public class LocalMergeTask implements Task<TaskResult> {
                           MergeNode mergeNode,
                           StatsTables statsTables,
                           CircuitBreaker circuitBreaker) {
+        super(jobId);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.settings = settings;

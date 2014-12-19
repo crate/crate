@@ -35,15 +35,17 @@ import io.crate.planner.node.ddl.GenericDDLPlanNode;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.UUID;
 
-public class DDLTask implements Task<RowCountResult> {
+public class DDLTask extends Task {
 
     private final AnalyzedStatement analyzedStatement;
     private DDLStatementDispatcher ddlStatementDispatcher;
-    private SettableFuture<RowCountResult> result = SettableFuture.create();
-    private List<ListenableFuture<RowCountResult>> results = ImmutableList.<ListenableFuture<RowCountResult>>of(result);
+    private SettableFuture<TaskResult> result = SettableFuture.create();
+    private List<ListenableFuture<TaskResult>> results = ImmutableList.<ListenableFuture<TaskResult>>of(result);
 
-    public DDLTask(DDLStatementDispatcher ddlStatementDispatcher, GenericDDLPlanNode genericDDLPlanNode) {
+    public DDLTask(UUID jobId, DDLStatementDispatcher ddlStatementDispatcher, GenericDDLPlanNode genericDDLPlanNode) {
+        super(jobId);
         this.ddlStatementDispatcher = ddlStatementDispatcher;
         analyzedStatement = genericDDLPlanNode.analyzedStatement();
     }
@@ -69,7 +71,7 @@ public class DDLTask implements Task<RowCountResult> {
     }
 
     @Override
-    public List<ListenableFuture<RowCountResult>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return results;
     }
 

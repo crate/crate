@@ -240,7 +240,7 @@ public class PlannerTest {
     public void testGroupByWithAggregationStringLiteralArguments() {
         Plan plan = plan("select count('foo'), name from users group by name");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode) iterator.next();
+        CollectNode collectNode = ((DistributedGroupByPlanNode) iterator.next()).collectNode();
         // TODO: optimize to not collect literal
         //assertThat(collectNode.toCollect().size(), is(1));
         GroupProjection groupProjection = (GroupProjection) collectNode.projections().get(0);
@@ -257,9 +257,11 @@ public class PlannerTest {
         Iterator<PlanNode> iterator = plan.iterator();
 
         PlanNode planNode = iterator.next();
+        DistributedGroupByPlanNode distributedGroupByPlanNode = (DistributedGroupByPlanNode) planNode;
+        assertThat(iterator.hasNext(), is(false));
+
         // distributed collect
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode) planNode;
+        CollectNode collectNode = distributedGroupByPlanNode.collectNode();
         assertThat(collectNode.downStreamNodes().size(), is(2));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectNode.executionNodes().size(), is(2));
@@ -270,9 +272,7 @@ public class PlannerTest {
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
         assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode) planNode;
+        MergeNode mergeNode = distributedGroupByPlanNode.reducerMergeNode();
 
         assertThat(mergeNode.numUpstreams(), is(2));
         assertThat(mergeNode.executionNodes().size(), is(2));
@@ -289,11 +289,7 @@ public class PlannerTest {
         assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(0));
         assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(1));
 
-
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-
-        MergeNode localMerge = (MergeNode) planNode;
+        MergeNode localMerge = distributedGroupByPlanNode.localMergeNode();
 
         assertThat(localMerge.numUpstreams(), is(2));
         assertTrue(localMerge.executionNodes().isEmpty());
@@ -380,10 +376,12 @@ public class PlannerTest {
         Iterator<PlanNode> iterator = plan.iterator();
 
         PlanNode planNode = iterator.next();
-        planNode = iterator.next();
+        assertThat(iterator.hasNext(), is(false));
+
+        DistributedGroupByPlanNode distributedGroupByPlanNode = (DistributedGroupByPlanNode) planNode;
 
         // distributed merge
-        MergeNode mergeNode = (MergeNode) planNode;
+        MergeNode mergeNode = distributedGroupByPlanNode.reducerMergeNode();
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
 
@@ -399,7 +397,7 @@ public class PlannerTest {
 
 
         // local merge
-        DQLPlanNode dqlPlanNode = (DQLPlanNode)iterator.next();
+        DQLPlanNode dqlPlanNode = distributedGroupByPlanNode.localMergeNode();
         assertThat(dqlPlanNode.projections().get(0), instanceOf(TopNProjection.class));
         topN = (TopNProjection) dqlPlanNode.projections().get(0);
         assertThat(topN.limit(), is(1));
@@ -668,14 +666,12 @@ public class PlannerTest {
     public void testGroupByWithOrderOnAggregate() throws Exception {
         Plan plan = plan("select count(*), name from users group by name order by count(*)");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode)iterator.next();
-
-        // reducer
-        iterator.next();
+        DistributedGroupByPlanNode distributedGroupByPlanNode = (DistributedGroupByPlanNode) iterator.next();
+        assertThat(iterator.hasNext(), is(false));
 
         // sort is on handler because there is no limit/offset
         // handler
-        MergeNode mergeNode = (MergeNode)iterator.next();
+        MergeNode mergeNode = distributedGroupByPlanNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
 
         TopNProjection topNProjection = (TopNProjection)mergeNode.projections().get(0);
@@ -714,8 +710,11 @@ public class PlannerTest {
         Plan plan = plan("select count(distinct id), name from users group by name order by count(distinct id)");
         Iterator<PlanNode> iterator = plan.iterator();
 
+        DistributedGroupByPlanNode distributedGroupByPlanNode = (DistributedGroupByPlanNode) iterator.next();
+        CollectNode collectNode = distributedGroupByPlanNode.collectNode();
+        assertThat(iterator.hasNext(), is(false));
+
         // collect
-        CollectNode collectNode = (CollectNode)iterator.next();
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
         assertThat(collectNode.toCollect().size(), is(2));
         assertThat(((Reference)collectNode.toCollect().get(1)).info().ident().columnIdent().name(), is("id"));
@@ -736,7 +735,7 @@ public class PlannerTest {
 
 
         // reducer
-        MergeNode mergeNode = (MergeNode)iterator.next();
+        MergeNode mergeNode = distributedGroupByPlanNode.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         Projection groupProjection1 = mergeNode.projections().get(0);
         assertThat(groupProjection1, instanceOf(GroupProjection.class));
@@ -753,9 +752,8 @@ public class PlannerTest {
         assertThat(collection_count, instanceOf(Function.class));
 
 
-
         // handler
-        MergeNode localMergeNode = (MergeNode)iterator.next();
+        MergeNode localMergeNode = distributedGroupByPlanNode.localMergeNode();
         assertThat(localMergeNode.projections().size(), is(1));
         Projection localTopN = localMergeNode.projections().get(0);
         assertThat(localTopN, instanceOf(TopNProjection.class));
@@ -1146,23 +1144,24 @@ public class PlannerTest {
         Plan plan = plan("select avg(date), name from users group by name having min(date) > '1970-01-01'");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode)planNode;
+        assertThat(planNode, instanceOf(DistributedGroupByPlanNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        DistributedGroupByPlanNode distributedGroupByPlanNode = (DistributedGroupByPlanNode) planNode;
+        CollectNode collectNode = distributedGroupByPlanNode.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
+        MergeNode mergeNode = distributedGroupByPlanNode.reducerMergeNode();
 
-        assertThat(localMergeNode.projections().size(), is(2));
-        assertThat(localMergeNode.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(localMergeNode.projections().get(1), instanceOf(FilterProjection.class));
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
 
-        GroupProjection groupProjection = (GroupProjection)localMergeNode.projections().get(0);
+        GroupProjection groupProjection = (GroupProjection)mergeNode.projections().get(0);
         assertThat(groupProjection.values().size(), is(2));
 
-        FilterProjection filterProjection = (FilterProjection)localMergeNode.projections().get(1);
+        FilterProjection filterProjection = (FilterProjection)mergeNode.projections().get(1);
         assertThat(filterProjection.outputs().size(), is(2));
         assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
         InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
@@ -1328,10 +1327,10 @@ public class PlannerTest {
     public void testGroupByWithHavingAndLimit() throws Exception {
         Plan plan = plan("select count(*), name from users group by name having count(*) > 1 limit 100");
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode collectNode = iterator.next();
-        assertThat(collectNode, instanceOf(CollectNode.class));
+        DistributedGroupByPlanNode planNode = (DistributedGroupByPlanNode)iterator.next();
+        assertThat(iterator.hasNext(), is(false));
 
-        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+        MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
         // group projection
         //      outputs: name, count(*)
@@ -1359,9 +1358,7 @@ public class PlannerTest {
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
 
 
-        MergeNode localMerge = (MergeNode) iterator.next();
-        assertThat(localMerge, instanceOf(MergeNode.class));
-        assertThat(iterator.hasNext(), is(false));
+        MergeNode localMerge = planNode.localMergeNode();
 
         // topN projection
         //      outputs: count(*), name
@@ -1374,10 +1371,11 @@ public class PlannerTest {
     public void testGroupByWithHavingAndNoLimit() throws Exception {
         Plan plan = plan("select count(*), name from users group by name having count(*) > 1");
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode collectNode = iterator.next();
-        assertThat(collectNode, instanceOf(CollectNode.class));
+        DistributedGroupByPlanNode planNode = (DistributedGroupByPlanNode)iterator.next();
+        assertThat(iterator.hasNext(), is(false));
 
-        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
         // group projection
         //      outputs: name, count(*)
@@ -1398,9 +1396,7 @@ public class PlannerTest {
         assertThat(mergeNode.outputTypes().get(0), equalTo((DataType) DataTypes.STRING));
         assertThat(mergeNode.outputTypes().get(1), equalTo((DataType) DataTypes.LONG));
 
-        MergeNode localMerge = (MergeNode) iterator.next();
-        assertThat(localMerge, instanceOf(MergeNode.class));
-        assertThat(iterator.hasNext(), is(false));
+        MergeNode localMerge = planNode.localMergeNode();
 
         // topN projection
         //      outputs: name, count(*)
@@ -1414,10 +1410,10 @@ public class PlannerTest {
         Plan plan = plan("select name, count(*) from users group by name having count(*) > 1");
 
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode collectNode = iterator.next();
-        assertThat(collectNode, instanceOf(CollectNode.class));
+        DistributedGroupByPlanNode planNode = (DistributedGroupByPlanNode)iterator.next();
+        assertThat(iterator.hasNext(), is(false));
 
-        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+        MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
         // group projection
         //      outputs: name, count(*)
@@ -1436,10 +1432,7 @@ public class PlannerTest {
         assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
         assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
 
-        MergeNode localMerge = (MergeNode) iterator.next();
-        assertThat(localMerge, instanceOf(MergeNode.class));
-        assertThat(iterator.hasNext(), is(false));
-
+        MergeNode localMerge = planNode.localMergeNode();
         // topN projection
         //      outputs: name, count(*)
         TopNProjection topN = (TopNProjection) localMerge.projections().get(0);
@@ -1451,10 +1444,10 @@ public class PlannerTest {
     public void testGroupByHavingAndNoSelectListReOrderingWithLimit() throws Exception {
         Plan plan = plan("select name, count(*) from users group by name having count(*) > 1 limit 100");
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode collectNode = iterator.next();
-        assertThat(collectNode, instanceOf(CollectNode.class));
+        DistributedGroupByPlanNode planNode = (DistributedGroupByPlanNode)iterator.next();
+        assertThat(iterator.hasNext(), is(false));
 
-        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+        MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
         // group projection
         //      outputs: name, count(*)
@@ -1481,9 +1474,7 @@ public class PlannerTest {
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
 
 
-        MergeNode localMerge = (MergeNode) iterator.next();
-        assertThat(localMerge, instanceOf(MergeNode.class));
-        assertThat(iterator.hasNext(), is(false));
+        MergeNode localMerge = planNode.localMergeNode();
 
         // topN projection
         //      outputs: name, count(*)
