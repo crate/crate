@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Restricted allowed characters in column names
+
+2014/12/22 0.46.1
+=================
+
  - Fixed broken COPY FROM/TO S3 caused by missing depencenies
 
  - Updated crate-admin to 0.11.1 which includes following changes:
@@ -13,8 +18,6 @@ Unreleased
      down
 
  - Fixed an issue that could cause bulk inserts to get stalled.
-
- - Restricted allowed characters in column names
 
 2014/12/17 0.46.0
 =================
