@@ -37,7 +37,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.DistributedGroupByPlanNode;
+import io.crate.planner.node.dql.DistributedGroupByNode;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.FilterProjection;
@@ -192,7 +192,7 @@ public class DistributedGroupByConsumer implements Consumer {
             MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
 
             context.result = true;
-            return new DistributedGroupByPlanNode(
+            return new DistributedGroupByNode(
                     collectNode,
                     mergeNode,
                     localMergeNode

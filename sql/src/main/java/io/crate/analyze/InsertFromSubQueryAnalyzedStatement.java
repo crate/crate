@@ -78,16 +78,17 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
     @Nullable
     @Override
     public Field getField(ColumnIdent path) {
-        throw new UnsupportedOperationException("getField on InsertFromQueryStatement is not supported");
+        return null;
     }
 
+    @Nullable
     @Override
     public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField on InsertFromQueryStatement is not supported");
+        return null;
     }
 
     @Override
     public List<Field> fields() {
-        throw new UnsupportedOperationException("fields on InsertFromQueryStatement is not supported");
+        return ImmutableList.of();
     }
 }

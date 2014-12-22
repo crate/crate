@@ -139,28 +139,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement analysis, Context context) {
-        List<ColumnIdent> columns = Lists.transform(analysis.columns(), new com.google.common.base.Function<Reference, ColumnIdent>() {
-            @Nullable
-            @Override
-            public ColumnIdent apply(@Nullable Reference input) {
-                if (input == null) {
-                    return null;
-                }
-                return input.info().ident().columnIdent();
-            }
-        });
-        ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
-                analysis.tableInfo().ident().name(),
-                analysis.tableInfo().primaryKey(),
-                columns,
-                analysis.primaryKeyColumnIndices(),
-                analysis.partitionedByIndices(),
-                analysis.routingColumn(),
-                analysis.routingColumnIndex(),
-                ImmutableSettings.EMPTY, // TODO: define reasonable writersettings
-                analysis.tableInfo().isPartitioned()
-        );
-        return relationPlanner.process(analysis.subQueryRelation(), new Context(indexWriterProjection));
+        return relationPlanner.process(analysis, context);
     }
 
     @Override
@@ -370,7 +349,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement statement, Context context) {
         Plan plan = new Plan();
-        plan.add(new GenericDDLPlanNode(statement));
+        plan.add(new GenericDDLNode(statement));
         return plan;
     }
 
@@ -1058,7 +1037,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private class RelationPlanner extends RelationVisitor<Context, Plan> {
 
         @Override
-        public Plan visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
+        public Plan process(AnalyzedRelation relation, @Nullable Context context) {
             /**
              * in case of insert from query the indexWriterProjection is set.
              * New consumingPlanner will handle Insert-From-Query differently and therefore can't handle the
@@ -1066,12 +1045,16 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
              */
             if (!context.indexWriterProjection.isPresent()) {
                 ConsumingPlanner consumingPlanner = new ConsumingPlanner(analysisMetaData);
-                Plan plan = consumingPlanner.plan(statement);
+                Plan plan = consumingPlanner.plan(relation);
                 if (plan != null) {
                     return plan;
                 }
             }
+            return relation.accept(this, context);
+        }
 
+        @Override
+        public Plan visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
             assert statement.sources().size() == 1 : "more then 1 source is not supported";
             AnalyzedRelation sourceRelation = Iterables.getOnlyElement(statement.sources().entrySet()).getValue();
             assert sourceRelation instanceof TableRelation : "source must be a TableRelation";

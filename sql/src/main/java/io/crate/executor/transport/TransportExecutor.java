@@ -46,10 +46,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.node.ddl.*;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.cluster.ClusterService;
@@ -179,8 +176,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitGenericDDLPlanNode(GenericDDLPlanNode genericDDLPlanNode, UUID jobId) {
-            return singleTask(new DDLTask(jobId, ddlAnalysisDispatcherProvider.get(), genericDDLPlanNode));
+        public ImmutableList<Task> visitGenericDDLNode(GenericDDLNode node, UUID jobId) {
+            return singleTask(new DDLTask(jobId, ddlAnalysisDispatcherProvider.get(), node));
         }
 
         @Override
@@ -205,24 +202,34 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitGlobalAggregateNode(GlobalAggregateNode globalAggregateNode, UUID jobId) {
+        public ImmutableList<Task> visitGlobalAggregateNode(GlobalAggregateNode node, UUID jobId) {
             return ImmutableList.<Task>builder()
                     .addAll(
-                        visitCollectNode(globalAggregateNode.collectNode(), jobId))
+                            visitCollectNode(node.collectNode(), jobId))
                     .addAll(
-                        visitMergeNode(globalAggregateNode.mergeNode(), jobId))
+                            visitMergeNode(node.mergeNode(), jobId))
                     .build();
         }
 
         @Override
-        public ImmutableList<Task> visitDistributedGroupByPlanNode(DistributedGroupByPlanNode distributedGroupByPlanNode, UUID jobId) {
+        public ImmutableList<Task> visitDistributedGroupByNode(DistributedGroupByNode node, UUID jobId) {
             return ImmutableList.<Task>builder()
                     .addAll(
-                        visitCollectNode(distributedGroupByPlanNode.collectNode(), jobId)
+                            visitCollectNode(node.collectNode(), jobId)
                     ).addAll(
-                        visitMergeNode(distributedGroupByPlanNode.reducerMergeNode(), jobId)
+                            visitMergeNode(node.reducerMergeNode(), jobId)
                     ).addAll(
-                        visitMergeNode(distributedGroupByPlanNode.localMergeNode(), jobId)
+                            visitMergeNode(node.localMergeNode(), jobId)
+                    ).build();
+        }
+
+        @Override
+        public ImmutableList<Task> visitQueryAndFetchNode(QueryAndFetchNode node, UUID jobId){
+            return ImmutableList.<Task>builder()
+                    .addAll(
+                            visitCollectNode(node.collectNode(), jobId)
+                    ).addAll(
+                            visitMergeNode(node.localMergeNode(), jobId)
                     ).build();
         }
 

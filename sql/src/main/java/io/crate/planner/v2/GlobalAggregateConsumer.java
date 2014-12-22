@@ -32,15 +32,14 @@ import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GlobalAggregateNode;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static io.crate.planner.symbol.Field.unwrap;
 
 public class GlobalAggregateConsumer implements Consumer {
 
@@ -67,50 +66,62 @@ public class GlobalAggregateConsumer implements Consumer {
             if (selectAnalyzedStatement.hasGroupBy() || !selectAnalyzedStatement.hasAggregates()) {
                 return null;
             }
-            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(selectAnalyzedStatement.sources());
-            if (tableRelation == null) {
-                return null;
-            }
-            PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
-                    .output(tableRelation.resolve(selectAnalyzedStatement.outputSymbols()));
-
-            Symbol havingClause = null;
-            Symbol having = selectAnalyzedStatement.havingClause();
-            if (having != null && having instanceof Function) {
-                havingClause = contextBuilder.having(tableRelation.resolve(having));
-            }
-
-            AggregationProjection aggregationProjection = new AggregationProjection(contextBuilder.aggregations());
-            CollectNode collectNode = PlanNodeBuilder.collect(
-                    tableRelation.tableInfo(),
-                    tableRelation.resolve(selectAnalyzedStatement.whereClause()),
-                    contextBuilder.toCollect(),
-                    ImmutableList.<Projection>of(aggregationProjection)
-            );
-            contextBuilder.nextStep();
-
-            List<Projection> handlerProjections = new ArrayList<>();
-            handlerProjections.add(new AggregationProjection(contextBuilder.aggregations()));
-
-            if (havingClause != null) {
-                FilterProjection fp = new FilterProjection((Function) havingClause);
-                fp.outputs(contextBuilder.passThroughOutputs());
-                handlerProjections.add(fp);
-            }
-
-            if (contextBuilder.aggregationsWrappedInScalar || havingClause != null) {
-                // will filter out optional having symbols which are not selected
-                TopNProjection topNProjection = new TopNProjection(1, 0);
-                topNProjection.outputs(contextBuilder.outputs());
-                handlerProjections.add(topNProjection);
-            }
-            MergeNode mergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode);
-            return new GlobalAggregateNode(collectNode, mergeNode);
+            return globalAggregates(selectAnalyzedStatement, null);
         }
 
         @Override
         protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
             return null;
         }
+    }
+
+    public static PlannedAnalyzedRelation globalAggregates(SelectAnalyzedStatement statement, ColumnIndexWriterProjection indexWriterProjection){
+        TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
+        if (tableRelation == null) {
+            return null;
+        }
+        // global aggregate: collect and partial aggregate on C and final agg on H
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(unwrap(statement.outputSymbols()));
+
+        // havingClause could be a Literal or Function.
+        // if its a Literal and value is false, we'll never reach this point (no match),
+        // otherwise (true value) having can be ignored
+        Symbol havingClause = null;
+        Symbol having = statement.havingClause();
+        if (having != null && having instanceof Function) {
+            havingClause = contextBuilder.having(tableRelation.resolve(having));
+        }
+
+        AggregationProjection ap = new AggregationProjection();
+        ap.aggregations(contextBuilder.aggregations());
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                tableRelation.tableInfo(),
+                tableRelation.resolve(statement.whereClause()),
+                contextBuilder.toCollect(),
+                ImmutableList.<Projection>of(ap)
+        );
+        contextBuilder.nextStep();
+
+        //// the handler stuff
+        List<Projection> projections = new ArrayList<>();
+        projections.add(new AggregationProjection(contextBuilder.aggregations()));
+
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.passThroughOutputs());
+            projections.add(fp);
+        }
+
+        if (contextBuilder.aggregationsWrappedInScalar || havingClause != null) {
+            // will filter out optional having symbols which are not selected
+            TopNProjection topNProjection = new TopNProjection(1, 0);
+            topNProjection.outputs(contextBuilder.outputs());
+            projections.add(topNProjection);
+        }
+        if (indexWriterProjection != null) {
+            projections.add(indexWriterProjection);
+        }
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
+        return new GlobalAggregateNode(collectNode, localMergeNode);
     }
 }

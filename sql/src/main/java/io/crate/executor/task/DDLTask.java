@@ -31,7 +31,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
-import io.crate.planner.node.ddl.GenericDDLPlanNode;
+import io.crate.planner.node.ddl.GenericDDLNode;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -44,10 +44,10 @@ public class DDLTask extends Task {
     private SettableFuture<TaskResult> result = SettableFuture.create();
     private List<ListenableFuture<TaskResult>> results = ImmutableList.<ListenableFuture<TaskResult>>of(result);
 
-    public DDLTask(UUID jobId, DDLStatementDispatcher ddlStatementDispatcher, GenericDDLPlanNode genericDDLPlanNode) {
+    public DDLTask(UUID jobId, DDLStatementDispatcher ddlStatementDispatcher, GenericDDLNode genericDDLNode) {
         super(jobId);
         this.ddlStatementDispatcher = ddlStatementDispatcher;
-        analyzedStatement = genericDDLPlanNode.analyzedStatement();
+        analyzedStatement = genericDDLNode.analyzedStatement();
     }
 
     @Override

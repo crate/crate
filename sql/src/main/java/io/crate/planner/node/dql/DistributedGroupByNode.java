@@ -33,13 +33,13 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class DistributedGroupByPlanNode implements PlannedAnalyzedRelation, PlanNode {
+public class DistributedGroupByNode implements PlannedAnalyzedRelation, PlanNode {
 
     private final CollectNode collectNode;
     private final MergeNode reducerMergeNode;
     private final MergeNode localMergeNode;
 
-    public DistributedGroupByPlanNode(CollectNode collectNode, MergeNode reducerMergeNode, MergeNode localMergeNode) {
+    public DistributedGroupByNode(CollectNode collectNode, MergeNode reducerMergeNode, MergeNode localMergeNode) {
         this.collectNode = collectNode;
         this.reducerMergeNode = reducerMergeNode;
         this.localMergeNode = localMergeNode;
@@ -53,22 +53,22 @@ public class DistributedGroupByPlanNode implements PlannedAnalyzedRelation, Plan
     @Nullable
     @Override
     public Field getField(ColumnIdent path) {
-        throw new UnsupportedOperationException("getField is not supported on DistributedGroupByPlanNode");
+        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override
     public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField is not supported on DistributedGroupByPlanNode");
+        throw new UnsupportedOperationException("getWritableField is not supported");
     }
 
     @Override
     public List<Field> fields() {
-        throw new UnsupportedOperationException("fields is not supported on DistributedGroupByPlanNode");
+        throw new UnsupportedOperationException("fields is not supported");
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitDistributedGroupByPlanNode(this, context);
+        return visitor.visitDistributedGroupByNode(this, context);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class DistributedGroupByPlanNode implements PlannedAnalyzedRelation, Plan
 
     @Override
     public void outputTypes(List<DataType> outputTypes) {
-        throw new UnsupportedOperationException("Can't set outputTypes on DistributedGroupByPlanNode");
+        throw new UnsupportedOperationException("set outputTypes is not supported");
     }
 
     public CollectNode collectNode() {

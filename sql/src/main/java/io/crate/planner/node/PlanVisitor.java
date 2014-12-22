@@ -97,19 +97,23 @@ public class PlanVisitor<C, R> {
         return visitDDLPlanNode(node, context);
     }
 
-    public R visitGenericDDLPlanNode(GenericDDLPlanNode genericDDLPlanNode, C context) {
-        return visitPlanNode(genericDDLPlanNode, context);
+    public R visitGenericDDLNode(GenericDDLNode node, C context) {
+        return visitPlanNode(node, context);
     }
 
-    public R visitGlobalAggregateNode(GlobalAggregateNode globalAggregateNode, C context) {
-        return visitPlanNode(globalAggregateNode, context);
+    public R visitGlobalAggregateNode(GlobalAggregateNode node, C context) {
+        return visitPlanNode(node, context);
     }
 
-    public R visitDistributedGroupByPlanNode(DistributedGroupByPlanNode distributedGroupByPlanNode, C context) {
-        return visitPlanNode(distributedGroupByPlanNode, context);
+    public R visitDistributedGroupByNode(DistributedGroupByNode node, C context) {
+        return visitPlanNode(node, context);
     }
 
     public R visitNestedLoopNode(NestedLoopNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
+    public R visitQueryAndFetchNode(QueryAndFetchNode node, C context){
         return visitPlanNode(node, context);
     }
 }

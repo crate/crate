@@ -24,11 +24,11 @@ package io.crate.planner.node.ddl;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.planner.node.PlanVisitor;
 
-public class GenericDDLPlanNode extends DDLPlanNode {
+public class GenericDDLNode extends DDLPlanNode {
 
     private AnalyzedStatement analyzedStatement;
 
-    public GenericDDLPlanNode(AnalyzedStatement analyzedStatement) {
+    public GenericDDLNode(AnalyzedStatement analyzedStatement) {
         this.analyzedStatement = analyzedStatement;
     }
 
@@ -38,6 +38,6 @@ public class GenericDDLPlanNode extends DDLPlanNode {
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitGenericDDLPlanNode(this, context);
+        return visitor.visitGenericDDLNode(this, context);
     }
 }
