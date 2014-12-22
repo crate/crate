@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed broken COPY FROM/TO S3 caused by missing depencenies
+
  - Updated crate-admin to 0.11.1 which includes following changes:
 
    - Fixed title of `tables` view if no tables exists or connection is

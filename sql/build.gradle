@@ -14,11 +14,7 @@ dependencies {
     compile project(':core')
     compile project(':blob')
     compile project(':sql-parser')
-    compile ('com.amazonaws:aws-java-sdk:1.8.7') {
-        exclude group: 'commons-logging', module: 'commons-logging'
-        exclude group: 'org.apache.httpcomponents', module: 'httpclient'
-    }
-
+    compile 'com.amazonaws:aws-java-sdk:1.8.7'
 
     testCompile project(':testing')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
