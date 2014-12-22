@@ -28,8 +28,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.NodeCollectRequest;
 import io.crate.executor.transport.NodeCollectResponse;
@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class RemoteCollectTask extends Task {
+public class RemoteCollectTask extends JobTask {
 
     private final CollectNode collectNode;
     private final List<ListenableFuture<TaskResult>> result;

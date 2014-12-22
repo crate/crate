@@ -26,10 +26,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
-import io.crate.executor.TaskExecutor;
-import io.crate.executor.TaskResult;
+import io.crate.executor.*;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.join.NestedLoopNode;
@@ -41,7 +38,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-public class NestedLoopTask extends Task {
+public class NestedLoopTask extends JobTask {
 
     private NestedLoopOperation operation;
     private final SettableFuture<TaskResult> result = SettableFuture.create();

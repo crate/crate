@@ -25,8 +25,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
-import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -42,7 +42,7 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.UUID;
 
-public class ESBulkIndexTask extends Task {
+public class ESBulkIndexTask extends JobTask {
 
     private final BulkShardProcessor bulkShardProcessor;
     private final ESIndexNode node;

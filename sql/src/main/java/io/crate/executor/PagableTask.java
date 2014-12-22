@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,23 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.executor;
 
-import io.crate.executor.Task;
+/**
+ * a task that is able to return paged results
+ */
+public interface PagableTask extends Task {
 
-import java.util.Locale;
-
-public class TaskExecutionException extends UnhandledServerException {
-
-    private static final String MSG = "Error executing task '%s'";
-
-    public TaskExecutionException(Task task, Throwable e) {
-        super(String.format(Locale.ENGLISH, MSG, task.toString()), e);
-    }
-
-    @Override
-    public int errorCode() {
-        return 1;
-    }
-
+    public void setPaging(PageInfo pageInfo);
 }

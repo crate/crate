@@ -23,10 +23,10 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Joiner;
 import io.crate.Constants;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TaskExecutionException;
-import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.CreateTableNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;

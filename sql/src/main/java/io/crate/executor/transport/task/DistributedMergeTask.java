@@ -26,8 +26,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.UnknownUpstreamFailure;
+import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.merge.NodeMergeRequest;
 import io.crate.executor.transport.merge.NodeMergeResponse;
@@ -47,7 +47,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class DistributedMergeTask extends Task {
+public class DistributedMergeTask extends JobTask {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 

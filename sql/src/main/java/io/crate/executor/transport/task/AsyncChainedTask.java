@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.RowCountResult;
-import io.crate.executor.Task;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 
 import javax.annotation.Nonnull;
@@ -40,7 +40,7 @@ import java.util.UUID;
  *
  * Implementations have to set the result on {@link #result} and just have to implement {@link #start()}.
  */
-public abstract class AsyncChainedTask extends Task {
+public abstract class AsyncChainedTask extends JobTask {
 
     protected final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> resultList;
@@ -51,7 +51,7 @@ public abstract class AsyncChainedTask extends Task {
         ListenableFuture<TaskResult> resultFallback = Futures.withFallback(result, new FutureFallback<TaskResult>() {
             @Override
             public ListenableFuture<TaskResult> create(@Nonnull Throwable t) throws Exception {
-                return Futures.immediateFuture((TaskResult) RowCountResult.error(t));
+                return Futures.<TaskResult>immediateFuture(RowCountResult.error(t));
             }
         });
         resultList = new ArrayList<>();

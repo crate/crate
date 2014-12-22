@@ -28,10 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
-import io.crate.executor.TaskExecutor;
-import io.crate.executor.TaskResult;
+import io.crate.executor.*;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
@@ -66,7 +63,7 @@ import static org.mockito.Mockito.mock;
 
 public class NestedLoopOperationTest extends RandomizedTest {
 
-    private class ImmediateTestTask extends Task {
+    private class ImmediateTestTask extends JobTask {
 
         private final List<ListenableFuture<TaskResult>> result;
 

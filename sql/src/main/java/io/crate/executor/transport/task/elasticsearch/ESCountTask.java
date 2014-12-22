@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.dql.ESCountNode;
 import org.elasticsearch.action.ActionListener;
@@ -39,7 +39,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-public class ESCountTask extends Task {
+public class ESCountTask extends JobTask {
 
     private final CrateTransportCountAction transportCountAction;
     private final List<ListenableFuture<TaskResult>> results;

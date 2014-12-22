@@ -110,7 +110,7 @@ public class LocalMergeTaskTest {
                     aggState
             };
         }
-        return Futures.immediateFuture((TaskResult) new QueryResult(rows));
+        return Futures.<TaskResult>immediateFuture(new QueryResult(rows));
     }
 
     @Test

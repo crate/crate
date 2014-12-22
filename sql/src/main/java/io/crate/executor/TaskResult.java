@@ -23,24 +23,22 @@ package io.crate.executor;
 
 import javax.annotation.Nullable;
 
-public abstract class TaskResult {
+/**
+ * The result of executing a {@linkplain io.crate.executor.Task}.
+ */
+public interface TaskResult {
+    Object[][] EMPTY_ROWS = new Object[0][];
+    RowCountResult ZERO = new RowCountResult(0L);
+    RowCountResult ONE_ROW = new RowCountResult(1L);
+    RowCountResult ROW_COUNT_UNKNOWN = new RowCountResult(-1L);
+    RowCountResult FAILURE = new RowCountResult(-2L);
+    QueryResult EMPTY_RESULT = new QueryResult(EMPTY_ROWS);
 
-    public static final Object[][] EMPTY_ROWS = new Object[0][];
-
-    public static final RowCountResult ZERO = new RowCountResult(0L);
-    public static final RowCountResult ONE_ROW = new RowCountResult(1L);
-    public static final RowCountResult ROW_COUNT_UNKNOWN = new RowCountResult(-1L);
-    public static final RowCountResult FAILURE = new RowCountResult(-2L);
-
-    public static final QueryResult EMPTY_RESULT = new QueryResult(EMPTY_ROWS);
-
-    public abstract Object[][] rows();
+    Object[][] rows();
 
     /**
      * can be set in bulk operations to set the error for a single operation
      */
     @Nullable
-    public String errorMessage() {
-        return null;
-    }
+    String errorMessage();
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,23 +19,21 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.executor;
 
-import io.crate.executor.Task;
+import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.Locale;
+/**
+ * enhanced TaskResult that supports fetching the next page
+ * asynchronously.
+ */
+public interface PagableTaskResult extends TaskResult {
 
-public class TaskExecutionException extends UnhandledServerException {
-
-    private static final String MSG = "Error executing task '%s'";
-
-    public TaskExecutionException(Task task, Throwable e) {
-        super(String.format(Locale.ENGLISH, MSG, task.toString()), e);
-    }
-
-    @Override
-    public int errorCode() {
-        return 1;
-    }
-
+    /**
+     * get the page identified by <code>pageInfo</code>.
+     *
+     * @param pageInfo identifying the page to fetch
+     * @return a future holding the result of fetching the next page
+     */
+    ListenableFuture<PagableTaskResult> fetch(PageInfo pageInfo);
 }

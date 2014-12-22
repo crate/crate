@@ -19,23 +19,21 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.executor;
 
-import io.crate.executor.Task;
+import java.util.UUID;
 
-import java.util.Locale;
+public abstract class JobTask implements Task {
 
-public class TaskExecutionException extends UnhandledServerException {
+    private final UUID jobId;
 
-    private static final String MSG = "Error executing task '%s'";
-
-    public TaskExecutionException(Task task, Throwable e) {
-        super(String.format(Locale.ENGLISH, MSG, task.toString()), e);
+    protected JobTask(UUID jobId) {
+        this.jobId = jobId;
     }
 
     @Override
-    public int errorCode() {
-        return 1;
+    public UUID jobId() {
+        return this.jobId;
     }
 
 }
