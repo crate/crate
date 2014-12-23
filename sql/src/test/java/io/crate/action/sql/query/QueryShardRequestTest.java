@@ -21,6 +21,7 @@
 
 package io.crate.action.sql.query;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ReferenceInfo;
@@ -32,11 +33,13 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 public class QueryShardRequestTest {
 
@@ -56,7 +59,8 @@ public class QueryShardRequestTest {
                 10,
                 0,
                 whereClause,
-                ImmutableList.<ReferenceInfo>of()
+                ImmutableList.<ReferenceInfo>of(),
+                Optional.of(TimeValue.timeValueHours(3))
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -65,7 +69,6 @@ public class QueryShardRequestTest {
         BytesStreamInput in = new BytesStreamInput(out.bytes());
         QueryShardRequest inRequest = new QueryShardRequest();
         inRequest.readFrom(in);
-
-        assertEquals(request, inRequest);
+        assertThat(request, equalTo(inRequest));
     }
 }

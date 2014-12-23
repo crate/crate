@@ -16,6 +16,7 @@ import java.util.Set;
 public class Routing implements Streamable {
 
     private Map<String, Map<String, Set<Integer>>> locations;
+    private volatile int numShards = -1;
 
     public Routing() {
 
@@ -49,7 +50,6 @@ public class Routing implements Streamable {
 
     /**
      * get the number of shards in this routing for a node with given nodeId
-     * @param nodeId
      * @return int >= 0
      */
     public int numShards(String nodeId) {
@@ -63,6 +63,28 @@ public class Routing implements Streamable {
             }
         }
         return count;
+    }
+
+    /**
+     * get the number of shards in this routing
+     * @return int >= 0
+     */
+    public int numShards() {
+        if (numShards == -1) {
+            int count = 0;
+            if (hasLocations()) {
+                for (Map<String, Set<Integer>> nodeRouting : locations.values()) {
+                    if (nodeRouting != null) {
+                        for (Set<Integer> shardIds : nodeRouting.values()) {
+                            count += shardIds.size();
+                        }
+                    }
+                }
+            }
+            numShards = count;
+        }
+
+        return numShards;
     }
 
     /**

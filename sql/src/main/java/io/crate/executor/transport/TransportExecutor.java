@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
+import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
@@ -82,6 +83,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
+    private final CrateResultSorter crateResultSorter;
+
     @Inject
     public TransportExecutor(Settings settings,
                              TransportActionProvider transportActionProvider,
@@ -93,7 +96,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
-                             CrateCircuitBreakerService breakerService) {
+                             CrateCircuitBreakerService breakerService,
+                             CrateResultSorter crateResultSorter) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -103,6 +107,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
+        this.crateResultSorter = crateResultSorter;
         this.visitor = new Visitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -253,7 +258,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     transportActionProvider.transportQueryShardAction(),
                     transportActionProvider.searchServiceTransportAction(),
                     searchPhaseControllerProvider.get(),
-                    threadPool));
+                    threadPool,
+                    crateResultSorter));
         }
 
         @Override

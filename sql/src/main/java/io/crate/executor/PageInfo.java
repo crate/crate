@@ -21,20 +21,71 @@
 
 package io.crate.executor;
 
-public class PageInfo {
-    private final long size;
-    private final long position;
+import com.google.common.base.MoreObjects;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-    public PageInfo(long size, long position) {
-        this.size = size;
+import java.io.IOException;
+
+public class PageInfo {
+
+    private final int size;
+    private final int position;
+
+    public PageInfo(int position, int size) {
         this.position = position;
+        this.size = size;
     }
 
-    public long size() {
+    public int size() {
         return size;
     }
 
-    public long position() {
+    public int position() {
         return position;
+    }
+
+    public static PageInfo firstPage(int size) {
+        return new PageInfo(0, size);
+    }
+
+    public PageInfo nextPage(int nextSize) {
+        return new PageInfo(position+size, nextSize);
+    }
+
+    public static PageInfo fromStream(StreamInput in) throws IOException {
+        return new PageInfo(in.readVInt(), in.readVInt());
+    }
+
+    public static void toStream(PageInfo pageInfo, StreamOutput out) throws IOException {
+        out.writeVInt(pageInfo.position);
+        out.writeVInt(pageInfo.size);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("position", position)
+                .add("size", size).toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PageInfo pageInfo = (PageInfo) o;
+
+        if (position != pageInfo.position) return false;
+        if (size != pageInfo.size) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = size;
+        result = 31 * result + position;
+        return result;
     }
 }

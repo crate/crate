@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.action.sql.query.CrateSearchService;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.executor.Executor;
@@ -37,6 +38,8 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportCollectNodeAction.class).asEagerSingleton();
         bind(TransportMergeNodeAction.class).asEagerSingleton();
         bind(TransportQueryShardAction.class).asEagerSingleton();
+
+        bind(CrateResultSorter.class).asEagerSingleton();
 
         bind(SearchService.class).to(CrateSearchService.class).asEagerSingleton();
     }
