@@ -437,12 +437,15 @@ public class PlannerTest {
 
         Iterator<PlanNode> iterator = plan.iterator();
 
-        CollectNode collectNode = (CollectNode) iterator.next();
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
+        assertThat(iterator.hasNext(), is(false));
+
+        CollectNode collectNode = planNode.collectNode();
         assertFalse(collectNode.hasDownstreams());
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
         assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
 
-        MergeNode mergeNode = (MergeNode) iterator.next();
+        MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.numUpstreams(), is(2));
         assertThat(mergeNode.projections().size(), is(2));
 
@@ -461,7 +464,6 @@ public class PlannerTest {
         assertThat(((InputColumn) projection.outputs().get(0)).index(), is(1));
         assertThat(((InputColumn) projection.outputs().get(1)).index(), is(0));
 
-        assertFalse(iterator.hasNext());
     }
 
     @Test
@@ -692,14 +694,17 @@ public class PlannerTest {
     public void testHandlerSideRoutingGroupBy() throws Exception {
         Plan plan = plan("select count(*) from sys.cluster group by name");
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
+        assertThat(iterator.hasNext(), is(false));
         // just testing the dispatching here.. making sure it is not a ESSearchNode
-        assertThat(planNode, instanceOf(CollectNode.class));
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
+        CollectNode collectNode = planNode.collectNode();
+        assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(collectNode.toCollect().size(), is(1));
 
-        // no distributed merge, only 1 mergeNode
-        assertFalse(iterator.hasNext());
+        MergeNode mergeNode = planNode.localMergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
     }
 
     @Test
@@ -926,7 +931,7 @@ public class PlannerTest {
     public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
         Plan plan = plan("insert into users (id, name) (select name, count(*) from sys.nodes where name='Ford' group by name)");
         Iterator<PlanNode> iterator = plan.iterator();
-        QueryAndFetchNode planNode = (QueryAndFetchNode)iterator.next();
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
         assertThat(iterator.hasNext(), is(false));
 
         MergeNode mergeNode = planNode.localMergeNode();

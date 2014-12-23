@@ -599,8 +599,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     private void groupBy(SelectAnalyzedStatement analysis, TableInfo tableInfo, WhereClauseContext whereClauseContext, Plan plan, Context context) {
         if (tableInfo.schemaInfo().systemSchema() || !requiresDistribution(analysis, tableInfo)) {
-            logger.debug("choosing non distributed group by plan for {}", analysis);
-            nonDistributedGroupBy(analysis, tableInfo, whereClauseContext, plan, context);
+            assert false: "this case should have been handled in the ConsumingPlanner";
         } else if (groupedByClusteredColumnOrPrimaryKeys(analysis, tableInfo)) {
             logger.debug("choosing optimized reduce on collect group by plan for {}", analysis);
             optimizedReduceOnCollectorGroupBy(analysis, tableInfo, whereClauseContext, plan, context);
@@ -611,15 +610,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
     }
 
+    /**
+     * Should be removed when all groupBy methods are implemented as consumers
+     */
     private static boolean requiresDistribution(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
         Routing routing = tableInfo.getRouting(analysis.whereClause());
-        if (!routing.hasLocations()) return false;
-        if (routing.locations().size() > 1) return true;
-        Map<String, Map<String, Set<Integer>>> locations = routing.locations();
-        if (locations != null && locations.size() > 1) {
-            return true;
-        }
-        return false;
+        return GroupByConsumer.requiresDistribution(tableInfo, routing);
     }
 
     private boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
@@ -712,85 +708,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     analysis.orderBy().nullsFirst()
             );
             topN.outputs(outputs);
-            contextBuilder.addProjection(topN);
-        }
-        if (context.indexWriterProjection.isPresent()) {
-            contextBuilder.addProjection(context.indexWriterProjection.get());
-        }
-        plan.add(PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode));
-    }
-
-
-    /**
-     * Group by on System Tables (never needs distribution)
-     * or Group by on user tables (RowGranulariy.DOC) with only one node.
-     *
-     * produces:
-     *
-     * SELECT:
-     *  Collect ( GroupProjection ITER -> PARTIAL )
-     *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
-     *
-     * INSERT FROM QUERY:
-     *  Collect ( GroupProjection ITER -> PARTIAL )
-     *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], [TopN], IndexWriterProjection )
-     */
-    private void nonDistributedGroupBy(SelectAnalyzedStatement analysis,
-                                       TableInfo tableInfo,
-                                       WhereClauseContext whereClauseContext,
-                                       Plan plan,
-                                       Context context) {
-        boolean ignoreSorting = context.indexWriterProjection.isPresent()
-                && analysis.limit() == null
-                && analysis.offset() == TopN.NO_OFFSET;
-
-
-        List<Symbol> groupBy = unwrap(analysis.groupBy());
-        int numAggregationSteps = 2;
-
-        PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
-                .output(unwrap(analysis.outputSymbols()))
-                .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
-
-        Symbol havingClause = null;
-        Symbol having = unwrap(analysis.havingClause());
-        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
-            // extract collect symbols and such from having clause
-            havingClause = contextBuilder.having(having);
-        }
-
-        // mapper / collect
-        GroupProjection groupProjection =
-                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        contextBuilder.addProjection(groupProjection);
-
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                tableInfo,
-                whereClauseContext.whereClause(),
-                contextBuilder.toCollect(),
-                contextBuilder.getAndClearProjections()
-        );
-        plan.add(collectNode);
-
-        // handler
-        contextBuilder.nextStep();
-        Projection handlerGroupProjection = new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        contextBuilder.addProjection(handlerGroupProjection);
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(handlerGroupProjection.outputs(), handlerGroupProjection.outputs().size()));
-            contextBuilder.addProjection(fp);
-        }
-        if (!ignoreSorting) {
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(contextBuilder.outputs());
             contextBuilder.addProjection(topN);
         }
         if (context.indexWriterProjection.isPresent()) {

@@ -86,6 +86,7 @@ public class DistributedGroupByConsumer implements Consumer {
 
         @Override
         public AnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
+            // Test if statement is root relation because the rootRelation will be replaced with the returned plan
             if (context.consumerContext.rootRelation() != statement) {
                 return statement;
             }
@@ -99,13 +100,18 @@ public class DistributedGroupByConsumer implements Consumer {
             TableInfo tableInfo = tableRelation.tableInfo();
             List<Symbol> groupBy = tableRelation.resolve(statement.groupBy());
 
+            // TODO: remove this check after optimizedReduceOnCollectorGroupBy is implemented as Consumer
+            if(GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableInfo, groupBy)){
+                return statement;
+            }
+
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
             WhereClause whereClause = whereClauseContext.whereClause();
 
             Routing routing = tableInfo.getRouting(whereClause);
 
-            if (!GroupByConsumer.requiresDistribution(tableInfo, groupBy, routing)) {
+            if (!GroupByConsumer.requiresDistribution(tableInfo, routing)) {
                 return statement;
             }
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, tableRelation.resolve(statement.groupBy()))

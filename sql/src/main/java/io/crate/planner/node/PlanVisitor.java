@@ -109,6 +109,10 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
+    public R visitNonDistributedGroupByNode(NonDistributedGroupByNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
     public R visitNestedLoopNode(NestedLoopNode node, C context) {
         return visitPlanNode(node, context);
     }

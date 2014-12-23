@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.FunctionIdent;
@@ -52,7 +53,6 @@ import org.elasticsearch.common.Nullable;
 import java.util.*;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static io.crate.planner.symbol.Field.unwrap;
 
 /**
  * Utils class which contains methods to create PlanNodes which are used by consumers
@@ -63,11 +63,12 @@ import static io.crate.planner.symbol.Field.unwrap;
 public class ConsumerUtils {
 
     public static AnalyzedRelation normalSelect(SelectAnalyzedStatement statement, WhereClauseContext whereClauseContext,
-                                          TableInfo tableInfo, ColumnIndexWriterProjection indexWriterProjection, Functions functions){
+                                          TableRelation tableRelation, ColumnIndexWriterProjection indexWriterProjection, Functions functions){
+        TableInfo tableInfo = tableRelation.tableInfo();
         WhereClause whereClause = whereClauseContext.whereClause();
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .output(unwrap(statement.outputSymbols()))
-                .orderBy(unwrap(statement.orderBy().orderBySymbols()));
+                .output(tableRelation.resolve(statement.outputSymbols()))
+                .orderBy(tableRelation.resolve(statement.orderBy().orderBySymbols()));
         ImmutableList<Projection> projections;
         if (statement.isLimited()) {
             // if we have an offset we have to get as much docs from every node as we have offset+limit
@@ -127,14 +128,14 @@ public class ConsumerUtils {
         );
     }
 
-    public static AnalyzedRelation groupBy(SelectAnalyzedStatement statement, TableInfo tableInfo, WhereClauseContext whereClauseContext,
+    public static AnalyzedRelation groupBy(SelectAnalyzedStatement statement, TableRelation tableRelation, WhereClauseContext whereClauseContext,
                                            @Nullable ColumnIndexWriterProjection indexWriterProjection, @Nullable Functions functions){
-        if (tableInfo.schemaInfo().systemSchema() || !requiresDistribution(statement, tableInfo)) {
-            return nonDistributedGroupBy(statement, tableInfo, whereClauseContext, indexWriterProjection);
-        } else if (groupedByClusteredColumnOrPrimaryKeys(statement, tableInfo)) {
-            return optimizedReduceOnCollectorGroupBy(statement, tableInfo, whereClauseContext, indexWriterProjection);
+        if (tableRelation.tableInfo().schemaInfo().systemSchema() || !requiresDistribution(statement, tableRelation.tableInfo())) {
+            return NonDistributedGroupByConsumer.nonDistributedGroupBy(statement, tableRelation, whereClauseContext, indexWriterProjection);
+        } else if (groupedByClusteredColumnOrPrimaryKeys(statement, tableRelation)) {
+            return optimizedReduceOnCollectorGroupBy(statement, tableRelation, whereClauseContext, indexWriterProjection);
         } else if (indexWriterProjection != null) {
-            return distributedWriterGroupBy(statement, tableInfo, whereClauseContext, indexWriterProjection, functions);
+            return distributedWriterGroupBy(statement, tableRelation, whereClauseContext, indexWriterProjection, functions);
         } else {
             assert false : "this case should have been handled in the ConsumingPlanner";
         }
@@ -152,73 +153,10 @@ public class ConsumerUtils {
         return false;
     }
 
-    private static boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
-        List<Symbol> groupBy = unwrap(analysis.groupBy());
+    private static boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis, TableRelation tableRelation) {
+        List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
         assert groupBy != null;
-        return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableInfo, groupBy);
-    }
-
-    private static AnalyzedRelation nonDistributedGroupBy(SelectAnalyzedStatement analysis,
-                                       TableInfo tableInfo,
-                                       WhereClauseContext whereClauseContext,
-                                       ColumnIndexWriterProjection indexWriterProjection) {
-        boolean ignoreSorting = indexWriterProjection != null
-                && analysis.limit() == null
-                && analysis.offset() == TopN.NO_OFFSET;
-
-
-        List<Symbol> groupBy = unwrap(analysis.groupBy());
-        int numAggregationSteps = 2;
-
-        PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
-                        .output(unwrap(analysis.outputSymbols()))
-                        .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
-
-        Symbol havingClause = null;
-        Symbol having = unwrap(analysis.havingClause());
-        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
-            // extract collect symbols and such from having clause
-            havingClause = contextBuilder.having(having);
-        }
-
-        // mapper / collect
-        GroupProjection groupProjection =
-                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        contextBuilder.addProjection(groupProjection);
-
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                tableInfo,
-                whereClauseContext.whereClause(),
-                contextBuilder.toCollect(),
-                contextBuilder.getAndClearProjections()
-        );
-
-        // handler
-        contextBuilder.nextStep();
-        Projection handlerGroupProjection = new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        contextBuilder.addProjection(handlerGroupProjection);
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(handlerGroupProjection.outputs(), handlerGroupProjection.outputs().size()));
-            contextBuilder.addProjection(fp);
-        }
-        if (!ignoreSorting) {
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(contextBuilder.outputs());
-            contextBuilder.addProjection(topN);
-        }
-        if (indexWriterProjection != null) {
-            contextBuilder.addProjection(indexWriterProjection);
-        }
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode);
-        return new QueryAndFetchNode(collectNode, localMergeNode);
+        return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation.tableInfo(), groupBy);
     }
 
     /**
@@ -235,17 +173,18 @@ public class ConsumerUtils {
      *  CollectNode ( GroupProjection, [FilterProjection], [TopN] )
      *  LocalMergeNode ( [TopN], IndexWriterProjection )
      */
-    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(SelectAnalyzedStatement analysis, TableInfo tableInfo, WhereClauseContext whereClauseContext, ColumnIndexWriterProjection indexWriterProjection) {
-        assert groupedByClusteredColumnOrPrimaryKeys(analysis, tableInfo) : "not grouped by clustered column or primary keys";
+    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(SelectAnalyzedStatement analysis, TableRelation tableRelation, WhereClauseContext whereClauseContext, ColumnIndexWriterProjection indexWriterProjection) {
+        assert groupedByClusteredColumnOrPrimaryKeys(analysis, tableRelation) : "not grouped by clustered column or primary keys";
+        TableInfo tableInfo = tableRelation.tableInfo();
         boolean ignoreSorting = indexWriterProjection != null
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
         int numAggregationSteps = 1;
         PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, unwrap(analysis.groupBy()), ignoreSorting)
-                        .output(unwrap(analysis.outputSymbols()))
-                        .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
-        Symbol havingClause = unwrap(analysis.havingClause());
+                new PlannerContextBuilder(numAggregationSteps, tableRelation.resolve(analysis.groupBy()), ignoreSorting)
+                        .output(tableRelation.resolve(analysis.outputSymbols()))
+                        .orderBy(tableRelation.resolve(analysis.orderBy().orderBySymbols()));
+        Symbol havingClause = tableRelation.resolve(analysis.havingClause());
         if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
             // replace aggregation symbols with input columns from previous projection
             havingClause = contextBuilder.having(havingClause);
@@ -321,21 +260,26 @@ public class ConsumerUtils {
      * final merge + index write on handler if limit or offset is set
      */
     private static AnalyzedRelation distributedWriterGroupBy(SelectAnalyzedStatement analysis,
-                                          TableInfo tableInfo,
+                                          TableRelation tableRelation,
                                           WhereClauseContext whereClauseContext,
                                           Projection writerProjection,
                                           Functions functions) {
         boolean ignoreSorting = !analysis.isLimited();
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, unwrap(analysis.groupBy()), ignoreSorting)
-                .output(unwrap(analysis.outputSymbols()))
-                .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
+        List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, groupBy, ignoreSorting)
+                .output(tableRelation.resolve(analysis.outputSymbols()))
+                .orderBy(tableRelation.resolve(analysis.orderBy().orderBySymbols()));
 
-        Symbol havingClause = unwrap(analysis.havingClause());
+        Symbol havingClause = null;
+        if(analysis.havingClause() != null){
+            havingClause = tableRelation.resolve(analysis.havingClause());
+        }
         if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
             // replace aggregation symbols with input columns from previous projection
             havingClause = contextBuilder.having(havingClause);
         }
 
+        TableInfo tableInfo = tableRelation.tableInfo();
         Routing routing = tableInfo.getRouting(whereClauseContext.whereClause());
 
         // collector
@@ -370,7 +314,7 @@ public class ConsumerUtils {
             TopNProjection topN = new TopNProjection(
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                     0,
-                    unwrap(analysis.orderBy().orderBySymbols()),
+                    tableRelation.resolve(analysis.orderBy().orderBySymbols()),
                     analysis.orderBy().reverseFlags(),
                     analysis.orderBy().nullsFirst()
             );

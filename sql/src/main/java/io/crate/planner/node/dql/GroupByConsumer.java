@@ -34,10 +34,9 @@ import java.util.Set;
 
 public class GroupByConsumer {
 
-    public static boolean requiresDistribution(TableInfo tableInfo, List<Symbol> groupBySymbols, Routing routing) {
+    public static boolean requiresDistribution(TableInfo tableInfo, Routing routing) {
         if (tableInfo.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()) return false;
         if (!routing.hasLocations()) return false;
-        if (groupedByClusteredColumnOrPrimaryKeys(tableInfo, groupBySymbols)) return false;
         Map<String, Map<String, Set<Integer>>> locations = routing.locations();
         return (locations != null && locations.size() > 1);
     }

@@ -224,6 +224,16 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
+        public ImmutableList<Task> visitNonDistributedGroupByNode(NonDistributedGroupByNode node, UUID jobId){
+            return ImmutableList.<Task>builder()
+                    .addAll(
+                            visitCollectNode(node.collectNode(), jobId)
+                    ).addAll(
+                            visitMergeNode(node.localMergeNode(), jobId)
+                    ).build();
+        }
+
+        @Override
         public ImmutableList<Task> visitQueryAndFetchNode(QueryAndFetchNode node, UUID jobId){
             return ImmutableList.<Task>builder()
                     .addAll(

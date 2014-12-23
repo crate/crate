@@ -120,11 +120,11 @@ public class InsertFromSubQueryConsumer implements Consumer {
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
             context.result = true;
             if(statement.hasGroupBy()){
-                return ConsumerUtils.groupBy(statement,tableInfo, whereClauseContext, context.indexWriterProjection, analysisMetaData.functions());
+                return ConsumerUtils.groupBy(statement, tableRelation, whereClauseContext, context.indexWriterProjection, analysisMetaData.functions());
             } else if(statement.hasAggregates()){
                 return GlobalAggregateConsumer.globalAggregates(statement, context.indexWriterProjection);
             } else {
-                return ConsumerUtils.normalSelect(statement, whereClauseContext, tableInfo,
+                return ConsumerUtils.normalSelect(statement, whereClauseContext, tableRelation,
                         context.indexWriterProjection, analysisMetaData.functions());
             }
         }
