@@ -44,13 +44,15 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
-import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESCountNode;
+import io.crate.planner.node.dql.FileUriCollectNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.planner.v2.ConsumingPlanner;
@@ -597,261 +599,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 && function.info().ident().name().equalsIgnoreCase(CountAggregation.NAME));
     }
 
-    private void groupBy(SelectAnalyzedStatement analysis, TableInfo tableInfo, WhereClauseContext whereClauseContext, Plan plan, Context context) {
-        if (tableInfo.schemaInfo().systemSchema() || !requiresDistribution(analysis, tableInfo)) {
-            assert false: "this case should have been handled in the ConsumingPlanner";
-        } else if (groupedByClusteredColumnOrPrimaryKeys(analysis, tableInfo)) {
-            logger.debug("choosing optimized reduce on collect group by plan for {}", analysis);
-            optimizedReduceOnCollectorGroupBy(analysis, tableInfo, whereClauseContext, plan, context);
-        } else if (context.indexWriterProjection.isPresent()) {
-            distributedWriterGroupBy(analysis, tableInfo, whereClauseContext, plan, context.indexWriterProjection.get());
-        } else {
-            assert false : "this case should have been handled in the ConsumingPlanner";
-        }
-    }
-
-    /**
-     * Should be removed when all groupBy methods are implemented as consumers
-     */
-    private static boolean requiresDistribution(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
-        Routing routing = tableInfo.getRouting(analysis.whereClause());
-        return GroupByConsumer.requiresDistribution(tableInfo, routing);
-    }
-
-    private boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
-        List<Symbol> groupBy = unwrap(analysis.groupBy());
-        assert groupBy != null;
-        return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableInfo, groupBy);
-    }
-
-    /**
-     * grouping on doc tables by clustered column or primary keys, no distribution needed
-     * only one aggregation step as the mappers (shards) have row-authority
-     *
-     * produces:
-     *
-     * SELECT:
-     *  CollectNode ( GroupProjection, [FilterProjection], [TopN] )
-     *  LocalMergeNode ( TopN )
-     *
-     * INSERT FROM QUERY:
-     *  CollectNode ( GroupProjection, [FilterProjection], [TopN] )
-     *  LocalMergeNode ( [TopN], IndexWriterProjection )
-     */
-    public void optimizedReduceOnCollectorGroupBy(SelectAnalyzedStatement analysis, TableInfo tableInfo, WhereClauseContext whereClauseContext, Plan plan, Context context) {
-        assert groupedByClusteredColumnOrPrimaryKeys(analysis, tableInfo) : "not grouped by clustered column or primary keys";
-        boolean ignoreSorting = context.indexWriterProjection.isPresent()
-                && analysis.limit() == null
-                && analysis.offset() == TopN.NO_OFFSET;
-        int numAggregationSteps = 1;
-        PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, unwrap(analysis.groupBy()), ignoreSorting)
-                        .output(unwrap(analysis.outputSymbols()))
-                        .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
-        Symbol havingClause = unwrap(analysis.havingClause());
-        if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(havingClause);
-        }
-
-        // mapper / collect
-        List<Symbol> toCollect = contextBuilder.toCollect();
-
-        // grouping
-        GroupProjection groupProjection =
-                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        groupProjection.setRequiredGranularity(RowGranularity.SHARD);
-        contextBuilder.addProjection(groupProjection);
-
-        // optional having
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(groupProjection.outputs(), groupProjection.outputs().size()));
-            fp.requiredGranularity(RowGranularity.SHARD); // running on every shard
-            contextBuilder.addProjection(fp);
-        }
-
-        // use topN on collector if needed
-        TopNProjection topNReducer = getTopNForReducer(
-                analysis,
-                contextBuilder,
-                contextBuilder.outputs());
-        if (topNReducer != null) {
-            contextBuilder.addProjection(topNReducer);
-        }
-
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                tableInfo,
-                whereClauseContext.whereClause(),
-                toCollect,
-                contextBuilder.getAndClearProjections()
-        );
-        plan.add(collectNode);
-        // handler
-        
-        if (!ignoreSorting) {
-            List<Symbol> orderBy;
-            List<Symbol> outputs;
-            if (topNReducer == null) {
-                orderBy = contextBuilder.orderBy();
-                outputs = contextBuilder.outputs();
-            } else {
-                orderBy = contextBuilder.passThroughOrderBy();
-                outputs = contextBuilder.passThroughOutputs();
-            }
-
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    orderBy,
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(outputs);
-            contextBuilder.addProjection(topN);
-        }
-        if (context.indexWriterProjection.isPresent()) {
-            contextBuilder.addProjection(context.indexWriterProjection.get());
-        }
-        plan.add(PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode));
-    }
-
-    /**
-     * returns a topNProjection intended for the reducer in a group by query.
-     *
-     * result will be null if topN on reducer is not needed or possible.
-     *
-     * the limit given to the topN projection will be limit + offset because there will be another
-     * @param outputs list of outputs to add to the topNProjection if applicable.
-     */
-    @Nullable
-    private TopNProjection getTopNForReducer(SelectAnalyzedStatement analysis,
-                                             PlannerContextBuilder contextBuilder,
-                                             List<Symbol> outputs) {
-        if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
-                    0,
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(outputs);
-            return topN;
-        }
-        return null;
-    }
-
-    private boolean requireLimitOnReducer(SelectAnalyzedStatement analysis, boolean aggregationsWrappedInScalar) {
-        return (analysis.limit() != null
-                || analysis.offset() > 0
-                || aggregationsWrappedInScalar);
-    }
-
-    /**
-     * distributed collect on mapper nodes
-     * with merge on reducer to final (they have row authority) and index write
-     * if no limit and not offset is set
-     * <p/>
-     * final merge + index write on handler if limit or offset is set
-     */
-    private void distributedWriterGroupBy(SelectAnalyzedStatement analysis,
-                                          TableInfo tableInfo,
-                                          WhereClauseContext whereClauseContext,
-                                          Plan plan,
-                                          Projection writerProjection) {
-        boolean ignoreSorting = !analysis.isLimited();
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, unwrap(analysis.groupBy()), ignoreSorting)
-                .output(unwrap(analysis.outputSymbols()))
-                .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
-
-        Symbol havingClause = unwrap(analysis.havingClause());
-        if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(havingClause);
-        }
-
-        // collector
-        contextBuilder.addProjection(new GroupProjection(
-                contextBuilder.groupBy(), contextBuilder.aggregations()));
-        CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                tableInfo,
-                whereClauseContext.whereClause(),
-                contextBuilder.toCollect(),
-                nodesFromTable(tableInfo, whereClauseContext.whereClause()),
-                contextBuilder.getAndClearProjections()
-        );
-        plan.add(collectNode);
-
-        contextBuilder.nextStep();
-
-        // mergeNode for reducer
-
-        contextBuilder.addProjection(new GroupProjection(
-                contextBuilder.groupBy(),
-                contextBuilder.aggregations()));
-
-
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.outputSymbols().size()));
-            contextBuilder.addProjection(fp);
-        }
-
-        boolean topNDone = false;
-        if (analysis.isLimited()) {
-            topNDone = true;
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
-                    0,
-                    unwrap(analysis.orderBy().orderBySymbols()),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(contextBuilder.outputs());
-            contextBuilder.addProjection((topN));
-        } else {
-            contextBuilder.addProjection((writerProjection));
-        }
-
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, contextBuilder.getAndClearProjections());
-        plan.add(mergeNode);
-
-
-        // local merge on handler
-        if (analysis.isLimited()) {
-            List<Symbol> outputs;
-            List<Symbol> orderBy;
-            if (topNDone) {
-                orderBy = contextBuilder.passThroughOrderBy();
-                outputs = contextBuilder.passThroughOutputs();
-            } else {
-                orderBy = contextBuilder.orderBy();
-                outputs = contextBuilder.outputs();
-            }
-            // mergeNode handler
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    orderBy,
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(outputs);
-            contextBuilder.addProjection(topN);
-            contextBuilder.addProjection(writerProjection);
-        } else {
-            // sum up distributed indexWriter results
-            contextBuilder.addProjection(localMergeProjection());
-        }
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), mergeNode);
-        plan.add(localMergeNode);
-    }
-
-    private List<String> nodesFromTable(TableInfo tableInfo, WhereClause whereClause) {
-        return Lists.newArrayList(tableInfo.getRouting(whereClause).nodes());
-    }
-
     private void ESIndex(InsertFromValuesAnalyzedStatement analysis, Plan plan) {
         String[] indices;
         if (analysis.tableInfo().isPartitioned()) {
@@ -989,9 +736,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 ensureNoLuceneOnlyPredicates(whereClauseContext.whereClause().query());
             }
             Plan plan = new Plan();
-            if (statement.hasGroupBy()) {
-                groupBy(statement, tableInfo, whereClauseContext, plan, context);
-            } else if (statement.hasAggregates()) {
+            if (statement.hasAggregates()) {
                 globalAggregates(statement, tableInfo, whereClauseContext, plan, context);
             } else {
                 assert !(!context.indexWriterProjection.isPresent()

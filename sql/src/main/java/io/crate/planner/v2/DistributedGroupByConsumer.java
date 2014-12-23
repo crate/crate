@@ -98,13 +98,6 @@ public class DistributedGroupByConsumer implements Consumer {
                 return statement;
             }
             TableInfo tableInfo = tableRelation.tableInfo();
-            List<Symbol> groupBy = tableRelation.resolve(statement.groupBy());
-
-            // TODO: remove this check after optimizedReduceOnCollectorGroupBy is implemented as Consumer
-            if(GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableInfo, groupBy)){
-                return statement;
-            }
-
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
             WhereClause whereClause = whereClauseContext.whereClause();

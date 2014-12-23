@@ -632,15 +632,16 @@ public class PlannerTest {
     }
 
     @Test
-    public void testNoDistributedGroupByOnClusteredColumn() throws Exception {
+    public void testNonDistributedGroupByOnClusteredColumn() throws Exception {
         Plan plan = plan("select count(*), id from users group by id limit 20");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode)iterator.next();
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
+        CollectNode collectNode = planNode.collectNode();
         assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        MergeNode mergeNode = (MergeNode)iterator.next();
+        MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertFalse(iterator.hasNext());
     }
@@ -649,13 +650,14 @@ public class PlannerTest {
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
         Plan plan = plan("select count(*), id, date from empty_parted group by id, date limit 20");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode)iterator.next();
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
+        CollectNode collectNode = planNode.collectNode();
         assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
-        MergeNode mergeNode = (MergeNode)iterator.next();
+        MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
         assertFalse(iterator.hasNext());
@@ -1204,9 +1206,8 @@ public class PlannerTest {
     public void testGroupByHavingNonDistributed() throws Exception {
         Plan plan = plan("select id from users group by id having id > 0");
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode)planNode;
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
+        CollectNode collectNode = planNode.collectNode();
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.projections().get(1), instanceOf(FilterProjection.class));
@@ -1218,9 +1219,7 @@ public class PlannerTest {
         InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
         assertThat(inputColumn.index(), is(0));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
+        MergeNode localMergeNode = planNode.localMergeNode();
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(TopNProjection.class));

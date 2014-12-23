@@ -40,6 +40,7 @@ public class ConsumingPlanner {
 
     public ConsumingPlanner(AnalysisMetaData analysisMetaData) {
         consumers.add(new NonDistributedGroupByConsumer(analysisMetaData));
+        consumers.add(new ReduceOnCollectorGroupByConsumer(analysisMetaData));
         consumers.add(new DistributedGroupByConsumer(analysisMetaData));
         consumers.add(new ESCountConsumer(analysisMetaData));
         consumers.add(new GlobalAggregateConsumer());
