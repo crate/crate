@@ -472,16 +472,13 @@ public class PlannerTest {
         // TODO: add where clause
 
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode) planNode;
+        QueryAndFetchNode planNode = (QueryAndFetchNode)iterator.next();
+        CollectNode collectNode = planNode.collectNode();
 
         assertEquals(DataTypes.INTEGER, collectNode.outputTypes().get(0));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode) planNode;
+        MergeNode mergeNode = planNode.localMergeNode();
 
         assertThat(mergeNode.inputTypes().size(), is(1));
         assertEquals(DataTypes.INTEGER, mergeNode.inputTypes().get(0));
@@ -687,9 +684,9 @@ public class PlannerTest {
     public void testHandlerSideRouting() throws Exception {
         Plan plan = plan("select * from sys.cluster");
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
         // just testing the dispatching here.. making sure it is not a ESSearchNode
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(iterator.next(), instanceOf(QueryAndFetchNode.class));
+        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
@@ -863,9 +860,8 @@ public class PlannerTest {
     public void testShardSelect() throws Exception {
         Plan plan = plan("select id from sys.shards");
         Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode) planNode;
+        QueryAndFetchNode planNode = (QueryAndFetchNode)iterator.next();
+        CollectNode collectNode = planNode.collectNode();
         assertTrue(collectNode.isRouted());
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
     }

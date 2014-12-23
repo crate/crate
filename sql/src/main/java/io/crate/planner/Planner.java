@@ -26,35 +26,29 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import io.crate.Constants;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.validator.SortSymbolValidator;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
-import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.ESCountNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import io.crate.planner.v2.ConsumingPlanner;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -63,8 +57,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -81,8 +73,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
-    private final RelationPlanner relationPlanner = new RelationPlanner();
+    private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
     private Functions functions;
     private AnalysisMetaData analysisMetaData;
@@ -107,6 +98,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         this.clusterService = clusterService;
         this.functions = analysisMetaData.functions();
         this.analysisMetaData = analysisMetaData;
+        this.consumingPlanner = new ConsumingPlanner(analysisMetaData);
     }
 
     /**
@@ -128,7 +120,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitSelectStatement(SelectAnalyzedStatement statement, Context context) {
-        return relationPlanner.process(statement, context);
+        return consumingPlanner.plan(statement);
     }
 
     @Override
@@ -141,7 +133,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement analysis, Context context) {
-        return relationPlanner.process(analysis, context);
+        return consumingPlanner.plan(analysis);
     }
 
     @Override
@@ -449,156 +441,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
     }
 
-    private void normalSelect(SelectAnalyzedStatement analysis,
-                              TableInfo tableInfo,
-                              WhereClauseContext whereClauseContext,
-                              Plan plan,
-                              Context context) {
-        // node or shard level normal select
-
-        // TODO: without locations the localMerge node can be removed and the topN projection
-        // added to the collectNode.
-
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .output(unwrap(analysis.outputSymbols()))
-                .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
-
-        WhereClause whereClause = whereClauseContext.whereClause();
-
-        ImmutableList<Projection> projections;
-        if (analysis.isLimited()) {
-            // if we have an offset we have to get as much docs from every node as we have offset+limit
-            // otherwise results will be wrong
-            TopNProjection tnp = new TopNProjection(
-                    analysis.offset() + analysis.limit(),
-                    0,
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            tnp.outputs(contextBuilder.outputs());
-            projections = ImmutableList.<Projection>of(tnp);
-        } else if(context.indexWriterProjection.isPresent()) {
-            // no limit, projection (index writer) will run on shard/CollectNode
-            projections = ImmutableList.<Projection>of(context.indexWriterProjection.get());
-        } else {
-            projections = ImmutableList.of();
-        }
-
-        List<Symbol> toCollect;
-        if (tableInfo.schemaInfo().systemSchema()) {
-            toCollect = contextBuilder.toCollect();
-        } else {
-            toCollect = new ArrayList<>();
-            for (Symbol symbol : contextBuilder.toCollect()) {
-                toCollect.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
-            }
-        }
-
-        CollectNode collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, projections);
-        plan.add(collectNode);
-        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
-
-        if (!context.indexWriterProjection.isPresent() || analysis.isLimited()) {
-            // limit set, apply topN projection
-            TopNProjection tnp = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            tnp.outputs(contextBuilder.outputs());
-            projectionBuilder.add(tnp);
-        }
-        if (context.indexWriterProjection.isPresent() && analysis.isLimited()) {
-            // limit set, context projection (index writer) will run on handler
-            projectionBuilder.add(context.indexWriterProjection.get());
-        } else if (context.indexWriterProjection.isPresent() && !analysis.isLimited()) {
-            // no limit -> no topN projection, use aggregation projection to merge node results
-            projectionBuilder.add(localMergeProjection());
-        }
-        plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), collectNode));
-    }
-
-    private void globalAggregates(SelectAnalyzedStatement analysis,
-                                  TableInfo tableInfo,
-                                  WhereClauseContext whereClauseContext,
-                                  Plan plan,
-                                  Context context) {
-        String schema = tableInfo.ident().schema();
-        WhereClause whereClause = whereClauseContext.whereClause();
-
-        if ((schema == null || !tableInfo.schemaInfo().systemSchema())
-                && hasOnlyGlobalCount(analysis.outputSymbols())
-                && !analysis.hasSysExpressions()
-                && !context.indexWriterProjection.isPresent()) {
-            plan.add(new ESCountNode(indices(tableInfo, whereClauseContext.whereClause()), analysis.whereClause()));
-            return;
-        }
-        // global aggregate: collect and partial aggregate on C and final agg on H
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(unwrap(analysis.outputSymbols()));
-
-        // havingClause could be a Literal or Function.
-        // if its a Literal and value is false, we'll never reach this point (no match),
-        // otherwise (true value) having can be ignored
-        Symbol havingClause = unwrap(analysis.havingClause());
-        if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(havingClause);
-        }
-
-        AggregationProjection ap = new AggregationProjection();
-        ap.aggregations(contextBuilder.aggregations());
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                tableInfo,
-                whereClause,
-                contextBuilder.toCollect(),
-                ImmutableList.<Projection>of(ap)
-        );
-        plan.add(collectNode);
-
-        contextBuilder.nextStep();
-
-        //// the handler stuff
-        List<Projection> projections = new ArrayList<>();
-
-        projections.add(new AggregationProjection(contextBuilder.aggregations()));
-
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.passThroughOutputs());
-            projections.add(fp);
-        }
-
-        if (contextBuilder.aggregationsWrappedInScalar || havingClause != null) {
-            // will filter out optional having symbols which are not selected
-            TopNProjection topNProjection = new TopNProjection(1, 0);
-            topNProjection.outputs(contextBuilder.outputs());
-            projections.add(topNProjection);
-        }
-        if (context.indexWriterProjection.isPresent()) {
-            projections.add(context.indexWriterProjection.get());
-        }
-        plan.add(PlanNodeBuilder.localMerge(projections, collectNode));
-    }
-
-    private boolean hasOnlyGlobalCount(List<Symbol> symbols) {
-        if (symbols.size() != 1) {
-            return false;
-        }
-
-        Symbol symbol = symbols.get(0);
-        if (symbol.symbolType() != SymbolType.FUNCTION) {
-            return false;
-        }
-
-        Function function = (Function)symbol;
-        return (function.info().type() == FunctionInfo.Type.AGGREGATE
-                && function.arguments().size() == 0
-                && function.info().ident().name().equalsIgnoreCase(CountAggregation.NAME));
-    }
-
     private void ESIndex(InsertFromValuesAnalyzedStatement analysis, Plan plan) {
         String[] indices;
         if (analysis.tableInfo().isPartitioned()) {
@@ -696,81 +538,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             );
         }
         return localMergeProjection;
-    }
-
-    private class RelationPlanner extends RelationVisitor<Context, Plan> {
-
-        @Override
-        public Plan process(AnalyzedRelation relation, @Nullable Context context) {
-            /**
-             * in case of insert from query the indexWriterProjection is set.
-             * New consumingPlanner will handle Insert-From-Query differently and therefore can't handle the
-             * indexWriterProjection so if it is set fallback to old planner logic
-             */
-            if (!context.indexWriterProjection.isPresent()) {
-                ConsumingPlanner consumingPlanner = new ConsumingPlanner(analysisMetaData);
-                Plan plan = consumingPlanner.plan(relation);
-                if (plan != null) {
-                    return plan;
-                }
-            }
-            return relation.accept(this, context);
-        }
-
-        @Override
-        public Plan visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
-            assert statement.sources().size() == 1 : "more then 1 source is not supported";
-            AnalyzedRelation sourceRelation = Iterables.getOnlyElement(statement.sources().entrySet()).getValue();
-            assert sourceRelation instanceof TableRelation : "source must be a TableRelation";
-
-            TableRelation tableRelation = (TableRelation) sourceRelation;
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(unwrap(statement.whereClause()));
-            TableInfo tableInfo = tableRelation.tableInfo();
-
-            for (Symbol symbol : statement.orderBy().orderBySymbols()) {
-                SortSymbolValidator.validate(symbol, tableInfo.partitionedBy());
-            }
-
-            if (tableInfo.schemaInfo().systemSchema() && whereClauseContext.whereClause().hasQuery()) {
-                ensureNoLuceneOnlyPredicates(whereClauseContext.whereClause().query());
-            }
-            Plan plan = new Plan();
-            if (statement.hasAggregates()) {
-                globalAggregates(statement, tableInfo, whereClauseContext, plan, context);
-            } else {
-                assert !(!context.indexWriterProjection.isPresent()
-                        && tableInfo.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
-                        tableInfo.getRouting(whereClauseContext.whereClause()).hasLocations() &&
-                        tableInfo.schemaInfo().name().equals(ReferenceInfos.DEFAULT_SCHEMA_NAME)) : "ConsumingPlanner should have produced a plan for QTF";
-
-                normalSelect(statement, tableInfo, whereClauseContext, plan, context);
-            }
-            return plan;
-        }
-
-        @Override
-        public Plan visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            throw new UnsupportedOperationException(String.format("relation \"%s\" can't be planned", relation));
-        }
-    }
-
-    private void ensureNoLuceneOnlyPredicates(Symbol query) {
-        NoPredicateVisitor noPredicateVisitor = new NoPredicateVisitor();
-        noPredicateVisitor.process(query, null);
-    }
-
-    private static class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
-        @Override
-        public Void visitFunction(Function symbol, Void context) {
-            if (symbol.info().ident().name().equals(MatchPredicate.NAME)) {
-                throw new UnsupportedFeatureException("Cannot use match predicate on system tables");
-            }
-            for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
-            }
-            return null;
-        }
     }
 }
 
