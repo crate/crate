@@ -21,7 +21,9 @@
 
 package io.crate.executor;
 
-public class QueryResult extends TaskResult {
+import javax.annotation.Nullable;
+
+public class QueryResult implements TaskResult {
 
     private final Object[][] rows;
 
@@ -32,5 +34,11 @@ public class QueryResult extends TaskResult {
     @Override
     public Object[][] rows() {
         return rows;
+    }
+
+    @Nullable
+    @Override
+    public String errorMessage() {
+        return null;
     }
 }

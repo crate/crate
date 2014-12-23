@@ -30,8 +30,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * merging rows locally on the handler
  */
-public class LocalMergeTask extends Task {
+public class LocalMergeTask extends JobTask {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 

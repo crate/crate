@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,23 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.executor;
 
-import io.crate.executor.Task;
+public class PageInfo {
+    private final long size;
+    private final long position;
 
-import java.util.Locale;
-
-public class TaskExecutionException extends UnhandledServerException {
-
-    private static final String MSG = "Error executing task '%s'";
-
-    public TaskExecutionException(Task task, Throwable e) {
-        super(String.format(Locale.ENGLISH, MSG, task.toString()), e);
+    public PageInfo(long size, long position) {
+        this.size = size;
+        this.position = position;
     }
 
-    @Override
-    public int errorCode() {
-        return 1;
+    public long size() {
+        return size;
     }
 
+    public long position() {
+        return position;
+    }
 }

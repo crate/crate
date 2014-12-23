@@ -27,10 +27,10 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
-import io.crate.executor.TaskResult;
+import io.crate.executor.JobTask;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Scalar;
@@ -53,7 +53,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class ESGetTask extends Task {
+public class ESGetTask extends JobTask {
 
     private final static Visitor VISITOR = new Visitor();
     private final List<ListenableFuture<TaskResult>> results;

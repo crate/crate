@@ -25,7 +25,7 @@ import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nullable;
 
-public class RowCountResult extends TaskResult {
+public class RowCountResult implements TaskResult {
 
     @Nullable private final Throwable error;
     private final Object[][] rows;

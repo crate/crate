@@ -29,7 +29,7 @@ import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -67,7 +67,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class QueryThenFetchTask extends Task {
+public class QueryThenFetchTask extends JobTask {
 
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
