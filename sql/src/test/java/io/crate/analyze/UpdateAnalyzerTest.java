@@ -48,7 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.*;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -93,6 +93,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         protected void bindFunctions() {
             super.bindFunctions();
             functionBinder.addBinding(ABS_FUNCTION_INFO.ident()).to(AbsFunction.class);
+            functionBinder.addBinding(ADD_FUNCTION_INFO.ident()).to(AddTestFunction.class);
         }
     }
 
@@ -137,9 +138,22 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         analyze("update unknown set name='Prosser'");
     }
 
-    @Test( expected = ColumnValidationException.class)
+    @Test
     public void testUpdateSetColumnToColumnValue() throws Exception {
-        analyze("update users set name=name");
+        UpdateAnalyzedStatement statement = analyze("update users set name=name");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement statement1 = statement.nestedStatements().get(0);
+        assertThat(statement1.assignments().size(), is(1));
+        Symbol value = statement1.assignments().entrySet().iterator().next().getValue();
+        assertThat(value, isReference("name"));
+    }
+
+    @Test
+    public void testUpdateSetExpression() throws Exception {
+        UpdateAnalyzedStatement statement = analyze("update users set other_id=other_id+1");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement statement1 = statement.nestedStatements().get(0);
+        assertThat(statement1.assignments().size(), is(1));
+        Symbol value = statement1.assignments().entrySet().iterator().next().getValue();
+        assertThat(value, isFunction("add"));
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -318,17 +332,17 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         analyze("update users set _id=1");
     }
 
-    @Test( expected = IllegalArgumentException.class )
+    @Test( expected = ColumnValidationException.class )
     public void testUpdatePrimaryKey() throws Exception {
         analyze("update users set id=1");
     }
 
-    @Test( expected = IllegalArgumentException.class )
+    @Test( expected = ColumnValidationException.class )
     public void testUpdateClusteredBy() throws Exception {
         analyze("update users_clustered_by_only set id=1");
     }
 
-    @Test( expected = IllegalArgumentException.class )
+    @Test( expected = ColumnValidationException.class )
     public void testUpdatePartitionedByColumn() throws Exception {
         analyze("update parted set date = 1395874800000");
     }
@@ -412,8 +426,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateNestedClusteredByColumn() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Updating a clustered-by column is not supported");
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for obj: Updating a clustered-by column is not supported");
         analyze("update nestedclustered set obj = {name='foobar'}");
     }
 }

@@ -22,8 +22,12 @@
 package io.crate.analyze;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.metadata.ColumnIdent;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 
@@ -33,7 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class UpdateAnalyzedStatement extends AnalyzedStatement {
+public class UpdateAnalyzedStatement extends AnalyzedStatement implements AnalyzedRelation {
 
     private static final Predicate<NestedAnalyzedStatement> HAS_NO_RESULT_PREDICATE = new Predicate<NestedAnalyzedStatement>() {
         @Override
@@ -102,5 +106,25 @@ public class UpdateAnalyzedStatement extends AnalyzedStatement {
             }
             assignments.put(reference, value);
         }
+    }
+
+    @Override
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+        return visitor.visitUpdateAnalyzedStatement(this, context);
+    }
+
+    @Override
+    public Field getField(ColumnIdent path) {
+        throw new UnsupportedOperationException("getField on UpdateAnalyzedStatement is not implemented");
+    }
+
+    @Override
+    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("UpdateAnalyzedStatement is not writable");
+    }
+
+    @Override
+    public List<Field> fields() {
+        return ImmutableList.of();
     }
 }

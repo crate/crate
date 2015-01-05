@@ -896,6 +896,26 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testUpdateWithExpression() throws Exception {
+        execute("create table test (id integer, other_id long)");
+        ensureGreen();
+
+        execute("insert into test (id, other_id) values(1, 10),(2, 20)");
+        assertEquals(2, response.rowCount());
+        refresh();
+
+        execute("update test set id=(id+10)*other_id");
+
+        assertEquals(2, response.rowCount());
+        refresh();
+
+        execute("select id from test order by id");
+        assertEquals(2, response.rowCount());
+        assertEquals(110, response.rows()[0][0]);
+        assertEquals(240, response.rows()[1][0]);
+    }
+
+    @Test
     public void testUpdateMultipleDocuments() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
