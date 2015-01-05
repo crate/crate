@@ -61,5 +61,9 @@ public class ProjectionVisitor<C, R> {
     public R visitFilterProjection(FilterProjection projection, C context) {
         return visitProjection(projection, context);
     }
+
+    public R visitUpdateProjection(UpdateProjection projection, C context) {
+        return visitProjection(projection, context);
+    }
 }
 

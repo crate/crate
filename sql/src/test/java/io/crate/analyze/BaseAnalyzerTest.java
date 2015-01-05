@@ -196,6 +196,9 @@ public abstract class BaseAnalyzerTest {
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.<DataType>asList(DataTypes.LONG)),
             DataTypes.LONG);
+    static final FunctionInfo ADD_FUNCTION_INFO = new FunctionInfo(
+            new FunctionIdent("add", Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)),
+            DataTypes.LONG);
     static final FunctionInfo YEAR_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("year", Arrays.<DataType>asList(DataTypes.TIMESTAMP)),
             DataTypes.STRING);
@@ -241,6 +244,33 @@ public abstract class BaseAnalyzerTest {
         public Symbol normalizeSymbol(Function symbol) {
             if (symbol.arguments().get(0) instanceof Input) {
                 return Literal.newLiteral(evaluate((Input<Number>) symbol.arguments().get(0)));
+            }
+            return symbol;
+        }
+    }
+
+    static class AddTestFunction extends Scalar<Long, Number> {
+
+        @Override
+        public Long evaluate(Input<Number>... args) {
+            assert args.length == 2;
+            if (args[0].value() == null || args[1].value() == null) {
+                return null;
+            }
+            return args[0].value().longValue() + args[1].value().longValue();
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return ADD_FUNCTION_INFO;
+        }
+
+
+        @Override
+        public Symbol normalizeSymbol(Function symbol) {
+            assert symbol.arguments().size() == 2;
+            if (symbol.arguments().get(0) instanceof Input && symbol.arguments().get(1) instanceof Input) {
+                return Literal.newLiteral(evaluate((Input<Number>) symbol.arguments().get(0), (Input<Number>) symbol.arguments().get(1)));
             }
             return symbol;
         }

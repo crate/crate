@@ -351,6 +351,16 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
+        public ImmutableList<Task> visitUpdateNode(UpdateNode node, UUID jobId) {
+            ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
+            for (CollectNode collectNode : node.collectNodes()) {
+                taskBuilder.addAll(visitCollectNode(collectNode, jobId));
+            }
+            taskBuilder.addAll(visitMergeNode(node.mergeNode(), jobId));
+            return taskBuilder.build();
+        }
+
+        @Override
         public ImmutableList<Task> visitDropTableNode(DropTableNode node, UUID jobId) {
             return singleTask(new DropTableTask(jobId,
                     transportActionProvider.transportDeleteIndexTemplateAction(),

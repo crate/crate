@@ -28,12 +28,15 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,17 +49,32 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     private final TransportActionProvider transportActionProvider;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
+    private final ShardId shardId;
+    private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
+
+
+    public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Settings settings,
+                                        TransportActionProvider transportActionProvider,
+                                        ImplementationSymbolVisitor symbolVisitor,
+                                        EvaluatingNormalizer normalizer,
+                                        @Nullable ShardId shardId,
+                                        @Nullable CollectInputSymbolVisitor docInputSymbolVisitor) {
+        this.clusterService = clusterService;
+        this.settings = settings;
+        this.transportActionProvider = transportActionProvider;
+        this.symbolVisitor = symbolVisitor;
+        this.normalizer = normalizer;
+        this.shardId = shardId;
+        this.docInputSymbolVisitor = docInputSymbolVisitor;
+    }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer) {
-        this.clusterService = clusterService;
-        this.settings = settings;
-        this.transportActionProvider = transportActionProvider;
-        this.symbolVisitor = symbolVisitor;
-        this.normalizer = normalizer;
+        this(clusterService, settings, transportActionProvider, symbolVisitor, normalizer, null, null);
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
@@ -285,6 +303,30 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new FilterProjector(
                 ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()]),
                 condition);
+    }
+
+    @Override
+    public Projector visitUpdateProjection(UpdateProjection projection, Context context) {
+        if (shardId == null || docInputSymbolVisitor == null) {
+            throw new UnsupportedOperationException("Update projection can only be executed on a shard");
+        }
+
+        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
+        List<ColumnIdent> columnIdents = new ArrayList<>(projection.assignments().size());
+        for (Symbol symbol : projection.inputs()) {
+            symbolVisitor.process(symbol, ctx);
+        }
+        for (Map.Entry<Reference, Symbol> entry : projection.assignments().entrySet()) {
+            columnIdents.add(entry.getKey().info().ident().columnIdent());
+            docInputSymbolVisitor.process(entry.getKey());
+        }
+
+        return new UpdateProjector(
+                shardId,
+                transportActionProvider.transportUpdateAction(),
+                columnIdents,
+                ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()]),
+                projection.requiredVersion());
     }
 
     public static class Context {

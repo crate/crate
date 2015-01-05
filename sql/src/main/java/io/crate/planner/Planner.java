@@ -40,7 +40,6 @@ import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -138,28 +137,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
-        Plan plan = new Plan();
-        assert statement.sourceRelation() instanceof TableRelation : "sourceRelation of update statement must be a TableRelation";
-        TableRelation tableRelation = (TableRelation) statement.sourceRelation();
-        TableInfo tableInfo = tableRelation.tableInfo();
-
-        for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
-            WhereClause whereClause = whereClauseContext.whereClause();
-
-            if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
-                ESUpdateNode node = new ESUpdateNode(
-                        indices(tableInfo, whereClause),
-                        nestedAnalysis.assignments(),
-                        whereClause,
-                        whereClauseContext.ids(),
-                        whereClauseContext.routingValues()
-                );
-                plan.add(node);
-            }
-        }
-        return plan;
+        return consumingPlanner.plan(statement);
     }
 
     @Override

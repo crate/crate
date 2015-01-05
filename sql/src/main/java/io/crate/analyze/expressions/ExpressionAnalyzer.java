@@ -153,10 +153,17 @@ public class ExpressionAnalyzer {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public Literal normalizeInputForReference(Symbol valueSymbol, Reference reference, boolean forWrite) {
+    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference, boolean forWrite) {
+        if (valueSymbol.symbolType() == SymbolType.REFERENCE) {
+            return valueSymbol;
+        }
         Literal literal;
         try {
-            literal = (Literal) normalizer.process(valueSymbol, null);
+            valueSymbol = normalizer.process(valueSymbol, null);
+            if (valueSymbol.symbolType() != SymbolType.LITERAL) {
+                return valueSymbol;
+            }
+            literal = (Literal) valueSymbol;
 
             if (reference instanceof DynamicReference) {
                 if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
@@ -303,7 +310,7 @@ public class ExpressionAnalyzer {
         }
     }
 
-    public Literal normalizeInputForReference(Symbol inputValue, Reference reference) {
+    public Symbol normalizeInputForReference(Symbol inputValue, Reference reference) {
         return normalizeInputForReference(inputValue, reference, false);
     }
 
