@@ -137,36 +137,37 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         // it's something that we can normalize to a literal
         Symbol value = expressionAnalyzer.normalize(
                 tableRelation.resolve(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
-        Literal updateValue;
         try {
-            updateValue = expressionAnalyzer.normalizeInputForReference(value, reference, true);
+            value = expressionAnalyzer.normalizeInputForReference(value, reference, true);
+            if (tableInfo.clusteredBy() != null) {
+                ensureNotUpdated(ident, value, tableInfo.clusteredBy(),
+                        "Updating a clustered-by column is not supported");
+            }
+            for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
+                ensureNotUpdated(ident, value, pkIdent, "Updating a primary key is not supported");
+            }
+            for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
+                ensureNotUpdated(ident, value, partitionIdent, "Updating a partitioned-by column is not supported");
+            }
+
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }
 
-        if (tableInfo.clusteredBy() != null) {
-            ensureNotUpdated(ident, updateValue, tableInfo.clusteredBy(),
-                    "Updating a clustered-by column is not supported");
-        }
-        for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
-            ensureNotUpdated(ident, updateValue, pkIdent, "Updating a primary key is not supported");
-        }
-        for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
-            ensureNotUpdated(ident, updateValue, partitionIdent, "Updating a partitioned-by column is not supported");
-        }
-        nestedAnalyzedStatement.addAssignment(reference, updateValue);
+        nestedAnalyzedStatement.addAssignment(reference, value);
     }
 
     private void ensureNotUpdated(ColumnIdent columnUpdated,
-                                  Literal newValue,
+                                  Symbol newValue,
                                   ColumnIdent protectedColumnIdent,
                                   String errorMessage) {
         if (columnUpdated.equals(protectedColumnIdent)) {
             throw new IllegalArgumentException(errorMessage);
         }
+
         if (protectedColumnIdent.isChildOf(columnUpdated) &&
                 !(newValue.valueType().equals(DataTypes.OBJECT)
-                        && StringObjectMaps.fromMapByPath((Map) newValue.value(), protectedColumnIdent.path()) == null)) {
+                        && StringObjectMaps.fromMapByPath((Map) ((Literal)newValue).value(), protectedColumnIdent.path()) == null)) {
             throw new IllegalArgumentException(errorMessage);
         }
     }

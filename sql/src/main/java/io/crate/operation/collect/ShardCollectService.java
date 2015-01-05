@@ -23,7 +23,6 @@ package io.crate.operation.collect;
 
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.UnhandledServerException;
@@ -51,7 +50,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -126,7 +124,9 @@ public class ShardCollectService {
                 settings,
                 transportActionProvider,
                 shardImplementationSymbolVisitor,
-                shardNormalizer);
+                shardNormalizer,
+                shardId,
+                docInputSymbolVisitor);
     }
 
     /**

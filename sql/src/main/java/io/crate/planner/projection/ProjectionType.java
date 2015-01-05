@@ -29,7 +29,8 @@ public enum ProjectionType {
     FILTER(FilterProjection.FACTORY),
     WRITER(WriterProjection.FACTORY),
     INDEX_WRITER(SourceIndexWriterProjection.FACTORY),
-    COLUMN_INDEX_WRITER(ColumnIndexWriterProjection.FACTORY);
+    COLUMN_INDEX_WRITER(ColumnIndexWriterProjection.FACTORY),
+    UPDATE(UpdateProjection.FACTORY);
 
     private final Projection.ProjectionFactory factory;
 

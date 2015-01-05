@@ -151,13 +151,13 @@ public class AnalyzedStatementTest {
         Literal<Boolean> trueLiteral = Literal.newLiteral(true);
 
         assertThat(expressionAnalyzer.normalizeInputForReference(trueLiteral, new Reference(info)),
-                Matchers.<Literal>is(trueLiteral));
+                Matchers.<Symbol>is(trueLiteral));
 
         Reference infoRef = new Reference(info);
         assertThat(expressionAnalyzer.normalizeInputForReference(Literal.newLiteral("true"), infoRef),
-                Matchers.<Literal>is(trueLiteral));
+                Matchers.<Symbol>is(trueLiteral));
         assertThat(expressionAnalyzer.normalizeInputForReference(Literal.newLiteral("false"), infoRef),
-                Matchers.<Literal>is(Literal.newLiteral(false)));
+                Matchers.<Symbol>is(Literal.newLiteral(false)));
     }
 
     @Test
@@ -167,7 +167,7 @@ public class AnalyzedStatementTest {
                 .type(DataTypes.DOUBLE)
                 .ident(TEST_TABLE_IDENT, new ColumnIdent("double")).build();
         Function f = new Function(TEST_FUNCTION_INFO, Arrays.<Symbol>asList(Literal.newLiteral(-9.9)));
-        assertThat(expressionAnalyzer.normalizeInputForReference(f, new Reference(info)), Matchers.<Literal>is(Literal.newLiteral(9.9)));
+        assertThat(expressionAnalyzer.normalizeInputForReference(f, new Reference(info)), Matchers.<Symbol>is(Literal.newLiteral(9.9)));
     }
 
     @Test
@@ -177,7 +177,7 @@ public class AnalyzedStatementTest {
         Map<String, Object> map = new HashMap<>();
         map.put("time", "2014-02-16T00:00:01");
         map.put("false", true);
-        Literal<Map<String, Object>> normalized = expressionAnalyzer.normalizeInputForReference(
+        Literal<Map<String, Object>> normalized = (Literal)expressionAnalyzer.normalizeInputForReference(
                 Literal.newLiteral(map), new Reference(objInfo));
         assertThat((Long) normalized.value().get("time"), is(1392508801000l));
         assertThat((Boolean)normalized.value().get("false"), is(true));
@@ -197,7 +197,7 @@ public class AnalyzedStatementTest {
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2.9");
 
-        Literal normalized = expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo));
+        Symbol normalized = expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo));
         assertThat(normalized, instanceOf(Literal.class));
         assertThat(((Literal<Map<String, Object>>)normalized).value().get("d"), Matchers.<Object>is(2.9d));
     }
@@ -213,7 +213,7 @@ public class AnalyzedStatementTest {
         }};
         expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo));
 
-        Literal normalized = expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo));
+        Symbol normalized = expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo));
         assertThat(normalized, instanceOf(Literal.class));
         assertThat(((Literal<Map<String, Object>>)normalized).value().get("d"), Matchers.<Object>is(2.9d));
         assertThat(((Literal<Map<String, Object>>)normalized).value().get("inner_strict"),
@@ -229,8 +229,9 @@ public class AnalyzedStatementTest {
         Map<String, Object> map = new HashMap<>();
         map.put("d", 2.9d);
         map.put("half", "1.45");
-        Literal normalized = expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo));
-        assertThat(normalized.value(), Matchers.<Object>is(map)); // stays the same
+        Symbol normalized = expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo));
+        assertThat(normalized, instanceOf(Literal.class));
+        assertThat(((Literal)normalized).value(), Matchers.<Object>is(map)); // stays the same
     }
 
 
@@ -273,7 +274,7 @@ public class AnalyzedStatementTest {
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
         }};
-        Literal<Map<String, Object>> literal = expressionAnalyzer.normalizeInputForReference(
+        Literal<Map<String, Object>> literal = (Literal)expressionAnalyzer.normalizeInputForReference(
                 Literal.newLiteral(map),
                 new Reference(objInfo)
         );
@@ -286,7 +287,7 @@ public class AnalyzedStatementTest {
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
         }};
-        Literal<Map<String, Object>> literal = expressionAnalyzer.normalizeInputForReference(
+        Literal<Map<String, Object>> literal = (Literal)expressionAnalyzer.normalizeInputForReference(
                 Literal.newLiteral(map),
                 new Reference(objInfo)
         );
@@ -299,7 +300,7 @@ public class AnalyzedStatementTest {
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("no_time", "1970");
         }};
-        Literal<Map<String, Object>> literal = expressionAnalyzer.normalizeInputForReference(
+        Literal<Map<String, Object>> literal = (Literal)expressionAnalyzer.normalizeInputForReference(
                 Literal.newLiteral(map),
                 new Reference(objInfo)
         );
@@ -310,7 +311,7 @@ public class AnalyzedStatementTest {
     public void testNormalizeStringToNumberColumn() throws Exception {
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("d"));
         Literal<BytesRef> stringDoubleLiteral = Literal.newLiteral("298.444");
-        Literal literal = expressionAnalyzer.normalizeInputForReference(stringDoubleLiteral, new Reference(objInfo));
+        Literal literal = (Literal)expressionAnalyzer.normalizeInputForReference(stringDoubleLiteral, new Reference(objInfo));
         assertLiteralSymbol(literal, 298.444d);
     }
 }
