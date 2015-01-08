@@ -437,26 +437,24 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
             });
 
         }
-        if (!concreteTableParameter.settings().getAsMap().isEmpty()) {
+        if (!concreteTableParameter.settings().getAsMap().isEmpty() && indices.length > 0) {
             // update every concrete index
-            for (String index : indices) {
-                UpdateSettingsRequest request = new UpdateSettingsRequest(
-                        concreteTableParameter.settings(),
-                        index);
-                final SettableFuture<?> future = SettableFuture.create();
-                results.add(future);
-                transportActionProvider.transportUpdateSettingsAction().execute(request, new ActionListener<UpdateSettingsResponse>() {
-                    @Override
-                    public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
-                        future.set(null);
-                    }
+            UpdateSettingsRequest request = new UpdateSettingsRequest(
+                    concreteTableParameter.settings(),
+                    indices);
+            final SettableFuture<?> future = SettableFuture.create();
+            results.add(future);
+            transportActionProvider.transportUpdateSettingsAction().execute(request, new ActionListener<UpdateSettingsResponse>() {
+                @Override
+                public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
+                    future.set(null);
+                }
 
-                    @Override
-                    public void onFailure(Throwable e) {
-                        future.setException(e);
-                    }
-                });
-            }
+                @Override
+                public void onFailure(Throwable e) {
+                    future.setException(e);
+                }
+            });
         }
         if (updateMapping) {
             PutMappingRequest request = new PutMappingRequest(indices);
