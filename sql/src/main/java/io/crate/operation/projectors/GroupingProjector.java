@@ -205,7 +205,7 @@ public class GroupingProjector implements Projector {
         private final AggregationCollector[] aggregationCollectors;
         private final Input keyInput;
         private final CollectExpression[] collectExpressions;
-        private final SizeEstimator sizeEstimator;
+        private final SizeEstimator<Object> sizeEstimator;
 
         public SingleKeyGrouper(Input keyInput,
                                 DataType keyInputType,
@@ -237,7 +237,7 @@ public class GroupingProjector implements Projector {
                     states[i] = aggregationCollectors[i].state();
                 }
                 ramAccountingContext.addBytes(
-                        ramAccountingContext.roundUp(sizeEstimator.estimateSize(key)) + 24); // 24 bytes overhead per entry
+                        RamAccountingContext.roundUp(sizeEstimator.estimateSize(key)) + 24); // 24 bytes overhead per entry
                 result.put(key, states);
             } else {
                 for (int i = 0; i < aggregationCollectors.length; i++) {
@@ -258,9 +258,9 @@ public class GroupingProjector implements Projector {
 
             // account the multi-dimension `rows` array
             // 1st level
-            ramAccountingContext.addBytes(ramAccountingContext.roundUp(12 + result.size() * 4));
+            ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
             // 2nd level
-            ramAccountingContext.addBytes(ramAccountingContext.roundUp(
+            ramAccountingContext.addBytes(RamAccountingContext.roundUp(
                     (1 + aggregationCollectors.length) * 4 + 12));
             Object[][] rows = new Object[result.size()][1 + aggregationCollectors.length];
             boolean sendToDownStream = downstream != null;
@@ -286,7 +286,7 @@ public class GroupingProjector implements Projector {
         private final Map<List<Object>, AggregationState[]> result;
         private final List<Input<?>> keyInputs;
         private final CollectExpression[] collectExpressions;
-        private final List<SizeEstimator> sizeEstimators;
+        private final List<SizeEstimator<Object>> sizeEstimators;
 
         public ManyKeyGrouper(List<Input<?>> keyInputs,
                               List<? extends DataType> keyTypes,
@@ -317,7 +317,7 @@ public class GroupingProjector implements Projector {
                 key.add(keyInput.value());
                 // 4 bytes overhead per list entry + 4 bytes overhead for later hashCode
                 // calculation while using list.get()
-                ramAccountingContext.addBytes(ramAccountingContext.roundUp(
+                ramAccountingContext.addBytes(RamAccountingContext.roundUp(
                         sizeEstimators.get(keyIdx).estimateSize(keyInput.value()) + 4) + 4);
                 keyIdx++;
             }
@@ -352,9 +352,9 @@ public class GroupingProjector implements Projector {
             }
             // account the multi-dimension `rows` array
             // 1st level
-            ramAccountingContext.addBytes(ramAccountingContext.roundUp(12 + result.size() * 4));
+            ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
             // 2nd level
-            ramAccountingContext.addBytes(ramAccountingContext.roundUp(12 +
+            ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 +
                     (keyInputs.size() + aggregationCollectors.length) * 4));
             Object[][] rows = new Object[result.size()][keyInputs.size() + aggregationCollectors.length];
             boolean sendToDownStream = downstream != null;
