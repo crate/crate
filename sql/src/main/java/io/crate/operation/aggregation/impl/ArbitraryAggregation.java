@@ -31,7 +31,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
-import io.crate.operation.aggregation.VariableSizeAggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -54,9 +53,8 @@ public abstract class ArbitraryAggregation<T extends Comparable<T>> extends Aggr
                     ) {
                              @Override
                              public AggregationState newState(RamAccountingContext ramAccountingContext) {
-                                 return new ArbitraryAggState(ramAccountingContext,
-                                         t.streamer(),
-                                         SizeEstimatorFactory.create(t));
+                                 SizeEstimator<Object> sizeEstimator = SizeEstimatorFactory.create(t);
+                                 return new ArbitraryAggState(ramAccountingContext, t.streamer());
                              }
                          }
             );
@@ -79,15 +77,13 @@ public abstract class ArbitraryAggregation<T extends Comparable<T>> extends Aggr
     }
 
 
-    public static class ArbitraryAggState<T extends Comparable<T>> extends VariableSizeAggregationState<ArbitraryAggState<T>> {
+    static class ArbitraryAggState<T extends Comparable<T>> extends AggregationState<ArbitraryAggState<T>> {
 
-        Streamer<T> streamer;
-        private T value = null;
+        Streamer streamer;
+        private Object value = null;
 
-        public ArbitraryAggState(RamAccountingContext ramAccountingContext,
-                                 Streamer<T> streamer,
-                                 SizeEstimator sizeEstimator) {
-            super(ramAccountingContext, sizeEstimator);
+        public ArbitraryAggState(RamAccountingContext ramAccountingContext, Streamer streamer) {
+            super(ramAccountingContext);
             this.streamer = streamer;
         }
 
@@ -99,8 +95,7 @@ public abstract class ArbitraryAggregation<T extends Comparable<T>> extends Aggr
         @Override
         public void reduce(ArbitraryAggState<T> other) {
             if (this.value == null){
-                addEstimatedSize(sizeEstimator.estimateSize(value, other.value));
-                this.value = other.value;
+                setValue(other.value);
             }
         }
 
@@ -114,15 +109,12 @@ public abstract class ArbitraryAggregation<T extends Comparable<T>> extends Aggr
         }
 
         public void add(T otherValue) {
-            addEstimatedSize(sizeEstimator.estimateSize(value, otherValue));
-            value = otherValue;
+            setValue(otherValue);
         }
 
-        public void setValue(T value) {
-            addEstimatedSize(sizeEstimator.estimateSize(this.value, value));
+        public void setValue(Object value) {
             this.value = value;
         }
-
 
         @Override
         public String toString() {

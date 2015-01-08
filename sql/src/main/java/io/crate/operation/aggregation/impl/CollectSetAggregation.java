@@ -30,7 +30,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.VariableSizeAggregationState;
+import io.crate.operation.aggregation.AggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -98,13 +98,15 @@ public abstract class CollectSetAggregation<T extends Comparable<T>>
         return true;
     }
 
-    public static abstract class CollectSetAggState extends VariableSizeAggregationState<CollectSetAggState> {
+    public static abstract class CollectSetAggState extends AggregationState<CollectSetAggState> {
 
+        private final SizeEstimator<Object> sizeEstimator;
         private Set<Object> value = new HashSet<>();
         private long valueSize = 0;
 
-        public CollectSetAggState(RamAccountingContext ramAccountingContext, SizeEstimator sizeEstimator) {
-            super(ramAccountingContext, sizeEstimator);
+        public CollectSetAggState(RamAccountingContext ramAccountingContext, SizeEstimator<Object> sizeEstimator) {
+            super(ramAccountingContext);
+            this.sizeEstimator = sizeEstimator;
         }
 
         @Override
