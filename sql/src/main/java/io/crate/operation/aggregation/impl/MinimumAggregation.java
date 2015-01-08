@@ -22,6 +22,8 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Streamer;
+import io.crate.breaker.ConstSizeEstimator;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -29,7 +31,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.VariableSizeAggregationState;
+import io.crate.operation.aggregation.AggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -46,33 +48,19 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
 
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
-            mod.register(
-                    new MinimumAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME,
-                                    ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE)
-                    ) {
-                        @Override
-                        public MinimumAggState newState(RamAccountingContext ramAccountingContext) {
-                            return new MinimumAggState(ramAccountingContext, SizeEstimatorFactory.create(dataType)) {
-                                @Override
-                                public void readFrom(StreamInput in) throws IOException {
-                                    if (!in.readBoolean()) {
-                                        setValue((Comparable) dataType.streamer().readValueFrom(in));
-                                    }
-                                }
+            mod.register(new MinimumAggregation(
+                    new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE)) {
 
-                                @Override
-                                public void writeTo(StreamOutput out) throws IOException {
-                                    Object value = value();
-                                    out.writeBoolean(value == null);
-                                    if (value != null) {
-                                        dataType.streamer().writeValueTo(out, value);
-                                    }
-                                }
-                            };
-                        }
+                @Override
+                public MinimumAggregation.MinimumAggState newState(RamAccountingContext ramAccountingContext) {
+                    SizeEstimator<Object> sizeEstimator = SizeEstimatorFactory.create(dataType);
+                    if (sizeEstimator instanceof ConstSizeEstimator) {
+                        return new MinimumAggState(dataType.streamer(), ramAccountingContext, ((ConstSizeEstimator) sizeEstimator).size());
+                    } else {
+                        return new VariableMinimumAggState(dataType.streamer(), ramAccountingContext, sizeEstimator);
                     }
-            );
+                }
+            });
         }
     }
 
@@ -93,12 +81,37 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
         return true;
     }
 
-    public static abstract class MinimumAggState extends VariableSizeAggregationState<MinimumAggState> {
+    static class VariableMinimumAggState extends MinimumAggState {
 
-        private Comparable value = null;
+        private final SizeEstimator<Object> sizeEstimator;
 
-        public MinimumAggState(RamAccountingContext ramAccountingContext, SizeEstimator sizeEstimator) {
-            super(ramAccountingContext, sizeEstimator);
+        public VariableMinimumAggState(Streamer streamer,
+                                       RamAccountingContext ramAccountingContext,
+                                       SizeEstimator<Object> sizeEstimator) {
+            super(streamer, ramAccountingContext);
+            this.sizeEstimator = sizeEstimator;
+        }
+
+        @Override
+        public void setValue(Comparable newValue) throws CircuitBreakingException {
+            ramAccountingContext.addBytes(sizeEstimator.estimateSizeDelta(this.value, newValue));
+            super.setValue(newValue);
+        }
+    }
+
+    public static class MinimumAggState extends AggregationState<MinimumAggState> {
+
+        private final Streamer streamer;
+        protected Comparable value = null;
+
+        private MinimumAggState(Streamer streamer, RamAccountingContext ramAccountingContext) {
+            super(ramAccountingContext);
+            this.streamer = streamer;
+        }
+
+        MinimumAggState(Streamer streamer, RamAccountingContext ramAccountingContext, long constStateSize) {
+            this(streamer, ramAccountingContext);
+            ramAccountingContext.addBytes(constStateSize);
         }
 
         @Override
@@ -107,29 +120,37 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
         }
 
         @Override
+        public void readFrom(StreamInput in) throws IOException {
+            if (!in.readBoolean()) {
+                setValue((Comparable) streamer.readValueFrom(in));
+            }
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            Object value = value();
+            out.writeBoolean(value == null);
+            if (value != null) {
+                streamer.writeValueTo(out, value);
+            }
+        }
+
+        @Override
         public void reduce(MinimumAggState other) throws CircuitBreakingException {
-            if (other.value() == null) {
-                return;
-            }
-            if (value() == null || compareTo(other) > 0) {
-                addEstimatedSize(sizeEstimator.estimateSize(value, other.value));
-                value = other.value;
-            }
+            add(other.value);
         }
 
         void add(Comparable otherValue) throws CircuitBreakingException {
             if (otherValue == null) {
                 return;
             }
-            if (value() == null || compareValue(otherValue) > 0) {
-                addEstimatedSize(sizeEstimator.estimateSize(value, otherValue));
-                value = otherValue;
+            if (value == null || compareValue(otherValue) > 0) {
+                setValue(otherValue);
             }
         }
 
-        public void setValue(Comparable value) throws CircuitBreakingException {
-            addEstimatedSize(sizeEstimator.estimateSize(this.value, value));
-            this.value = value;
+        public void setValue(Comparable newValue) throws CircuitBreakingException {
+            this.value = newValue;
         }
 
         @Override

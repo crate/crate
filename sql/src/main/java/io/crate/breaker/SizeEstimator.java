@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
 public abstract class SizeEstimator<T> {
     public abstract long estimateSize(@Nullable T value);
 
-    public long estimateSize(@Nullable T oldValue, @Nullable T newValue) {
+    public long estimateSizeDelta(@Nullable T oldValue, @Nullable T newValue) {
         return estimateSize(newValue) - estimateSize(oldValue);
     }
 }
