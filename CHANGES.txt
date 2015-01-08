@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - improved speed of Alter table settings in partitioned tables
+
  - Restricted allowed characters in column names
 
  - Fix: Return zero row count instead of an exception if update by id

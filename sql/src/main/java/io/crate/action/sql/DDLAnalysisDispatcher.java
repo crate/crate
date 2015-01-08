@@ -456,25 +456,24 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
 
         }
         // update every concrete index
-        if (!concreteTableSettings.settings().getAsMap().isEmpty()) {
-            for (String index : indices) {
-                UpdateSettingsRequest request = new UpdateSettingsRequest(
-                        concreteTableSettings.settings(),
-                        index);
-                final SettableFuture<?> future = SettableFuture.create();
-                results.add(future);
-                transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
-                    @Override
-                    public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
-                        future.set(null);
-                    }
+        if (!concreteTableSettings.settings().getAsMap().isEmpty() && indices.length > 0) {
+            // update every concrete index
+            UpdateSettingsRequest request = new UpdateSettingsRequest(
+                    concreteTableSettings.settings(),
+                    indices);
+            final SettableFuture<?> future = SettableFuture.create();
+            results.add(future);
+            transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
+                @Override
+                public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
+                    future.set(null);
+                }
 
-                    @Override
-                    public void onFailure(Throwable e) {
-                        future.setException(e);
-                    }
-                });
-            }
+                @Override
+                public void onFailure(Throwable e) {
+                    future.setException(e);
+                }
+            });
         }
         Futures.addCallback(Futures.allAsList(results), new FutureCallback<List<?>>() {
             @Override
