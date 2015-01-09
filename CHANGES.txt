@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: throw correct exception if one uses `_version` without primary key
+   in a select statements where clause
+
  - Optimized memory estimates for min()/max() aggregates for the CircuitBreaker
 
  - improved speed of Alter table settings in partitioned tables
