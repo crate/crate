@@ -1,5 +1,5 @@
 Crate Data
-Copyright 2013-2014 CRATE Technology GmbH ("Crate")
+Copyright 2013-2015 CRATE Technology GmbH ("Crate")
 
 
 Licensed to CRATE Technology GmbH (referred to in this notice as "Crate")
