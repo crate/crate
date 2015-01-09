@@ -22,25 +22,19 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Streamer;
-import io.crate.breaker.ConstSizeEstimator;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
+import io.crate.exceptions.CircuitBreakingException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.types.FixedWithType;
 
-import java.io.IOException;
-
-public abstract class MinimumAggregation extends AggregationFunction<MinimumAggregation.MinimumAggState> {
+public abstract class MinimumAggregation extends AggregationFunction<Comparable, Comparable> {
 
     public static final String NAME = "min";
 
@@ -48,19 +42,77 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
 
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
-            mod.register(new MinimumAggregation(
-                    new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE)) {
+            FunctionInfo functionInfo = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(dataType)),
+                    dataType, FunctionInfo.Type.AGGREGATE);
 
-                @Override
-                public MinimumAggregation.MinimumAggState newState(RamAccountingContext ramAccountingContext) {
-                    SizeEstimator<Object> sizeEstimator = SizeEstimatorFactory.create(dataType);
-                    if (sizeEstimator instanceof ConstSizeEstimator) {
-                        return new MinimumAggState(dataType.streamer(), ramAccountingContext, ((ConstSizeEstimator) sizeEstimator).size());
-                    } else {
-                        return new VariableMinimumAggState(dataType.streamer(), ramAccountingContext, sizeEstimator);
-                    }
+            if (dataType instanceof FixedWithType) {
+                mod.register(new FixedMinimumAggregation(functionInfo));
+            } else {
+                mod.register(new VariableMinimumAggregation(functionInfo));
+            }
+        }
+    }
+
+    private static class VariableMinimumAggregation extends MinimumAggregation {
+
+        private final SizeEstimator<Object> estimator;
+
+        VariableMinimumAggregation(FunctionInfo info) {
+            super(info);
+            estimator = SizeEstimatorFactory.create(partialType());
+        }
+
+        @Override
+        public Comparable newState(RamAccountingContext ramAccountingContext) {
+            return null;
+        }
+
+        @Override
+        public Comparable reduce(RamAccountingContext ramAccountingContext, Comparable state1, Comparable state2) {
+            if (state1 == null) {
+                if (state2 != null) {
+                    ramAccountingContext.addBytes(estimator.estimateSize(state2));
                 }
-            });
+                return state2;
+            }
+            if (state2 == null) {
+                return state1;
+            }
+            if (state1.compareTo(state2) > 0) {
+                ramAccountingContext.addBytes(estimator.estimateSizeDelta(state1, state2));
+                return state2;
+            }
+            return state1;
+        }
+    }
+
+    private static class FixedMinimumAggregation extends MinimumAggregation {
+
+        private final int size;
+
+        FixedMinimumAggregation(FunctionInfo info) {
+            super(info);
+            size = ((FixedWithType) partialType()).fixedSize();
+        }
+
+        @Override
+        public Comparable newState(RamAccountingContext ramAccountingContext) {
+            ramAccountingContext.addBytes(size);
+            return null;
+        }
+
+        @Override
+        public Comparable reduce(RamAccountingContext ramAccountingContext, Comparable state1, Comparable state2) {
+            if (state1 == null) {
+                return state2;
+            }
+            if (state2 == null) {
+                return state1;
+            }
+            if (state1.compareTo(state2) > 0) {
+                return state2;
+            }
+            return state1;
         }
     }
 
@@ -74,100 +126,17 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
     }
 
     @Override
-    public boolean iterate(MinimumAggState state, Input... args) throws CircuitBreakingException {
-        Object value = args[0].value();
-        assert value == null || value instanceof Comparable;
-        state.add((Comparable) value);
-        return true;
+    public DataType partialType() {
+        return info().returnType();
     }
 
-    static class VariableMinimumAggState extends MinimumAggState {
-
-        private final SizeEstimator<Object> sizeEstimator;
-
-        public VariableMinimumAggState(Streamer streamer,
-                                       RamAccountingContext ramAccountingContext,
-                                       SizeEstimator<Object> sizeEstimator) {
-            super(streamer, ramAccountingContext);
-            this.sizeEstimator = sizeEstimator;
-        }
-
-        @Override
-        public void setValue(Comparable newValue) throws CircuitBreakingException {
-            ramAccountingContext.addBytes(sizeEstimator.estimateSizeDelta(this.value, newValue));
-            super.setValue(newValue);
-        }
+    @Override
+    public Comparable terminatePartial(RamAccountingContext ramAccountingContext, Comparable state) {
+        return state;
     }
 
-    public static class MinimumAggState extends AggregationState<MinimumAggState> {
-
-        private final Streamer streamer;
-        protected Comparable value = null;
-
-        private MinimumAggState(Streamer streamer, RamAccountingContext ramAccountingContext) {
-            super(ramAccountingContext);
-            this.streamer = streamer;
-        }
-
-        MinimumAggState(Streamer streamer, RamAccountingContext ramAccountingContext, long constStateSize) {
-            this(streamer, ramAccountingContext);
-            ramAccountingContext.addBytes(constStateSize);
-        }
-
-        @Override
-        public Object value() {
-            return value;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            if (!in.readBoolean()) {
-                setValue((Comparable) streamer.readValueFrom(in));
-            }
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            Object value = value();
-            out.writeBoolean(value == null);
-            if (value != null) {
-                streamer.writeValueTo(out, value);
-            }
-        }
-
-        @Override
-        public void reduce(MinimumAggState other) throws CircuitBreakingException {
-            add(other.value);
-        }
-
-        void add(Comparable otherValue) throws CircuitBreakingException {
-            if (otherValue == null) {
-                return;
-            }
-            if (value == null || compareValue(otherValue) > 0) {
-                setValue(otherValue);
-            }
-        }
-
-        public void setValue(Comparable newValue) throws CircuitBreakingException {
-            this.value = newValue;
-        }
-
-        @Override
-        public int compareTo(MinimumAggState o) {
-            if (o == null) return -1;
-            return compareValue(o.value);
-        }
-
-        public int compareValue(Comparable otherValue) {
-            if (value == null) return (otherValue == null ? 0 : 1);
-            if (otherValue == null) return -1;
-            return value.compareTo(otherValue);
-        }
-
-        @Override
-        public String toString() {
-            return "<MinimumAggState \"" + value + "\"";
-        }
+    @Override
+    public Comparable iterate(RamAccountingContext ramAccountingContext, Comparable state, Input... args) throws CircuitBreakingException {
+        return reduce(ramAccountingContext, state, (Comparable) args[0].value());
     }
 }

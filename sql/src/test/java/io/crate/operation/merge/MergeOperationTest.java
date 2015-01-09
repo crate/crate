@@ -25,7 +25,6 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.TopN;
@@ -65,14 +64,12 @@ public class MergeOperationTest {
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private GroupProjection groupProjection;
-    private AggregationFunction<MinimumAggregation.MinimumAggState> minAggFunction;
     private ImplementationSymbolVisitor symbolVisitor;
-    private Injector injector;
 
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        injector = new ModulesBuilder()
+        Injector injector = new ModulesBuilder()
                 .add(new AggregationImplModule())
                 .add(new AbstractModule() {
                     @Override
@@ -87,7 +84,6 @@ public class MergeOperationTest {
 
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));
         FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataTypes.DOUBLE);
-        minAggFunction = (AggregationFunction<MinimumAggregation.MinimumAggState>) functions.get(minAggIdent);
 
         groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.INTEGER)));
@@ -120,9 +116,7 @@ public class MergeOperationTest {
 
         Object[][] rows = new Object[20][];
         for (int i=0; i<rows.length; i++) {
-            MinimumAggregation.MinimumAggState aggState = minAggFunction.newState(ramAccountingContext);
-            aggState.setValue(i+0.5d);
-            rows[i] = new Object[]{ i%4, aggState};
+            rows[i] = new Object[]{ i%4, i + 0.5d};
         }
         assertTrue(mergeOperation.addRows(rows));
 
@@ -154,15 +148,11 @@ public class MergeOperationTest {
                 ramAccountingContext
         );
         Object[][] rows = new Object[1][];
-        MinimumAggregation.MinimumAggState aggState = minAggFunction.newState(ramAccountingContext);
-        aggState.setValue(100.0d);
-        rows[0] = new Object[]{0, aggState};
+        rows[0] = new Object[]{0, 100.0d};
         assertTrue(mergeOperation.addRows(rows));
 
         Object[][] otherRows = new Object[1][];
-        MinimumAggregation.MinimumAggState otherAggState = minAggFunction.newState(ramAccountingContext);
-        otherAggState.setValue(2.5d);
-        otherRows[0] = new Object[]{0, otherAggState};
+        otherRows[0] = new Object[]{0, 2.5d};
         assertTrue(mergeOperation.addRows(otherRows));
         mergeOperation.finished();
 

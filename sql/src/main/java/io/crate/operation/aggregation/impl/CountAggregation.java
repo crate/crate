@@ -29,20 +29,15 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
 import java.util.List;
 
-public class CountAggregation extends AggregationFunction<CountAggregation.CountAggState> {
+public class CountAggregation extends AggregationFunction<Long, Long> {
 
     public static final String NAME = "count";
     private final FunctionInfo info;
@@ -74,58 +69,18 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
         this.hasArgs = hasArgs;
     }
 
-    public static class CountAggState extends AggregationState<CountAggState> {
-
-        public long value = 0;
-
-        public CountAggState(RamAccountingContext ramAccountingContext) {
-            super(ramAccountingContext);
-            // long value
-            ramAccountingContext.addBytes(8);
-        }
-
-        @Override
-        public Object value() {
-            return value;
-        }
-
-        @Override
-        public void reduce(CountAggState other) {
-            value += other.value;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            value = in.readVLong();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeVLong(value);
-        }
-
-        @Override
-        public String toString() {
-            return "CountAggState {" + value + "}";
-        }
-
-        @Override
-        public int compareTo(@Nonnull CountAggState o) {
-            return Long.compare(value, o.value);
-        }
-    }
-
     @Override
-    public boolean iterate(CountAggState state, Input... args) {
+    public Long iterate(RamAccountingContext ramAccountingContext, Long state, Input... args) {
         if (!hasArgs || args[0].value() != null){
-            state.value++;
+            return state + 1;
         }
-        return true;
+        return state;
     }
 
     @Override
-    public CountAggState newState(RamAccountingContext ramAccountingContext) {
-        return new CountAggState(ramAccountingContext);
+    public Long newState(RamAccountingContext ramAccountingContext) {
+        ramAccountingContext.addBytes(DataTypes.LONG.fixedSize());
+        return 0L;
     }
 
     @Override
@@ -139,7 +94,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
 
         if (function.arguments().size() == 1) {
             if (function.arguments().get(0).symbolType().isValueSymbol()) {
-                if (((Literal)function.arguments().get(0)).valueType() == DataTypes.UNDEFINED) {
+                if ((function.arguments().get(0)).valueType() == DataTypes.UNDEFINED) {
                     return Literal.newLiteral(0L);
                 } else{
                     return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());
@@ -147,5 +102,20 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
             }
         }
         return function;
+    }
+
+    @Override
+    public DataType partialType() {
+        return DataTypes.LONG;
+    }
+
+    @Override
+    public Long reduce(RamAccountingContext ramAccountingContext, Long state1, Long state2) {
+        return state1 + state2;
+    }
+
+    @Override
+    public Long terminatePartial(RamAccountingContext ramAccountingContext, Long state) {
+        return state;
     }
 }

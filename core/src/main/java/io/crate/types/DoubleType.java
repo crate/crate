@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class DoubleType extends DataType<Double> implements Streamer<Double>, DataTypeFactory {
+public class DoubleType extends DataType<Double> implements FixedWithType, Streamer<Double>, DataTypeFactory {
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
@@ -88,5 +88,10 @@ public class DoubleType extends DataType<Double> implements Streamer<Double>, Da
     @Override
     public DataType<?> create() {
         return INSTANCE;
+    }
+
+    @Override
+    public int fixedSize() {
+        return 16; // 8 object overhead + 8 for double
     }
 }

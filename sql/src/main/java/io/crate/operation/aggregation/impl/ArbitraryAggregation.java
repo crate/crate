@@ -22,7 +22,6 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -30,39 +29,27 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-
-public abstract class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFunction<ArbitraryAggregation.ArbitraryAggState<T>> {
+public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     public static final String NAME = "arbitrary";
 
     private final FunctionInfo info;
+    private final SizeEstimator<Object> partialEstimator;
 
     public static void register(AggregationImplModule mod) {
         for (final DataType t : DataTypes.PRIMITIVE_TYPES) {
             mod.register(new ArbitraryAggregation(
-                            new FunctionInfo(
-                                    new FunctionIdent(NAME, ImmutableList.of(t)),
-                                    t, FunctionInfo.Type.AGGREGATE)
-                    ) {
-                             @Override
-                             public AggregationState newState(RamAccountingContext ramAccountingContext) {
-                                 SizeEstimator<Object> sizeEstimator = SizeEstimatorFactory.create(t);
-                                 return new ArbitraryAggState(ramAccountingContext, t.streamer(), sizeEstimator);
-                             }
-                         }
-            );
+                    new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t,
+                                    FunctionInfo.Type.AGGREGATE)));
         }
     }
 
     ArbitraryAggregation(FunctionInfo info) {
         this.info = info;
+        partialEstimator = SizeEstimatorFactory.create(partialType());
     }
 
     @Override
@@ -71,70 +58,34 @@ public abstract class ArbitraryAggregation<T extends Comparable<T>> extends Aggr
     }
 
     @Override
-    public boolean iterate(ArbitraryAggState<T> state, Input... args) {
-        state.add((T) args[0].value());
-        return false;
+    public DataType partialType() {
+        return info.returnType();
     }
 
+    @Override
+    public Comparable newState(RamAccountingContext ramAccountingContext) {
+        return null;
+    }
 
-    static class ArbitraryAggState<T extends Comparable<T>> extends AggregationState<ArbitraryAggState<T>> {
+    @Override
+    public Object iterate(RamAccountingContext ramAccountingContext, Object state, Input... args) {
+        return reduce(ramAccountingContext, state, args[0].value());
+    }
 
-        Streamer streamer;
-        private final SizeEstimator<Object> sizeEstimator;
-        private Object value = null;
-
-        public ArbitraryAggState(RamAccountingContext ramAccountingContext,
-                                 Streamer streamer,
-                                 SizeEstimator<Object> sizeEstimator) {
-            super(ramAccountingContext);
-            this.streamer = streamer;
-            this.sizeEstimator = sizeEstimator;
-        }
-
-        @Override
-        public Object value() {
-            return value;
-        }
-
-        @Override
-        public void reduce(ArbitraryAggState<T> other) {
-            if (this.value == null){
-                setValue(other.value);
+    @Override
+    public Object reduce(RamAccountingContext ramAccountingContext, Object state1, Object state2) {
+        if (state1 == null) {
+            if (state2 != null) {
+                // this case happens only once per aggregation so ram usage is only estimated once
+                ramAccountingContext.addBytes(partialEstimator.estimateSize(state2));
             }
+            return state2;
         }
+        return state1;
+    }
 
-        @Override
-        public int compareTo(ArbitraryAggState<T> o) {
-            if (o == null) return 1;
-            if (value == null) return (o.value == null ? 0 : -1);
-            if (o.value == null) return 1;
-
-            return 0; // any two object that are not null are considered equal
-        }
-
-        public void add(T otherValue) {
-            setValue(otherValue);
-        }
-
-        public void setValue(Object value) {
-            // setValue is only called once if value changes from null to something else, size is only estimated once here
-            ramAccountingContext.addBytes(sizeEstimator.estimateSize(value));
-            this.value = value;
-        }
-
-        @Override
-        public String toString() {
-            return "<AnyAggState \"" + (value) + "\">";
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            setValue(streamer.readValueFrom(in));
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            streamer.writeValueTo(out, value);
-        }
+    @Override
+    public Object terminatePartial(RamAccountingContext ramAccountingContext, Object state) {
+        return state;
     }
 }

@@ -23,31 +23,35 @@ package io.crate.operation.aggregation;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
-import io.crate.operation.collect.RowCollector;
 import io.crate.planner.symbol.Aggregation;
 
 import java.util.Locale;
 
-public class AggregationCollector implements RowCollector {
+/**
+ * A wrapper around an AggregationFunction that is aware of the aggregation steps (iter, partial, final)
+ * and will call the correct functions on the aggregationFunction depending on these steps.
+ */
+public class Aggregator {
 
     private final Input[] inputs;
     private final AggregationFunction aggregationFunction;
     private final FromImpl fromImpl;
     private final ToImpl toImpl;
 
-    private AggregationState aggregationState;
-
-    public AggregationCollector(Aggregation a, AggregationFunction aggregationFunction, Input... inputs) {
+    public Aggregator(RamAccountingContext ramAccountingContext,
+                      Aggregation a,
+                      AggregationFunction aggregationFunction,
+                      Input... inputs) {
         if (a.fromStep() == Aggregation.Step.PARTIAL && inputs.length > 1) {
             throw new UnsupportedOperationException("Aggregation from PARTIAL is only allowed with one input.");
         }
 
         switch (a.fromStep()) {
             case ITER:
-                fromImpl = new FromIter();
+                fromImpl = new FromIter(ramAccountingContext);
                 break;
             case PARTIAL:
-                fromImpl = new FromPartial();
+                fromImpl = new FromPartial(ramAccountingContext);
                 break;
             case FINAL:
                 throw new UnsupportedOperationException("Can't start from FINAL");
@@ -59,10 +63,10 @@ public class AggregationCollector implements RowCollector {
             case ITER:
                 throw new UnsupportedOperationException("Can't aggregate to ITER");
             case PARTIAL:
-                toImpl = new ToPartial();
+                toImpl = new ToPartial(ramAccountingContext);
                 break;
             case FINAL:
-                toImpl = new ToFinal();
+                toImpl = new ToFinal(ramAccountingContext);
                 break;
             default:
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "invalid to step %s", a.toStep().name()));
@@ -73,72 +77,91 @@ public class AggregationCollector implements RowCollector {
     }
 
 
-    public boolean startCollect(RamAccountingContext ramAccountingContext) {
-        aggregationState = fromImpl.startCollect(ramAccountingContext);
-        return true;
+    public Object prepareState() {
+        return fromImpl.prepareState();
     }
 
-    public boolean processRow() {
-        return fromImpl.processRow();
+    public Object processRow(Object value) {
+        return fromImpl.processRow(value);
     }
 
-
-    public Object finishCollect() {
-        return toImpl.finishCollect();
-    }
-
-    public AggregationState state() {
-        return aggregationState;
-    }
-
-    public void state(AggregationState state) {
-        aggregationState = state;
+    public Object finishCollect(Object state) {
+        return toImpl.finishCollect(state);
     }
 
     abstract class FromImpl {
 
-        public AggregationState startCollect(RamAccountingContext ramAccountingContext) {
+        protected final RamAccountingContext ramAccountingContext;
+
+        public FromImpl(RamAccountingContext ramAccountingContext) {
+            this.ramAccountingContext = ramAccountingContext;
+        }
+
+        public Object prepareState() {
             return aggregationFunction.newState(ramAccountingContext);
         }
 
-        public abstract boolean processRow();
+        public abstract Object processRow(Object value);
     }
 
     class FromIter extends FromImpl {
 
+        public FromIter(RamAccountingContext ramAccountingContext) {
+            super(ramAccountingContext);
+        }
+
         @Override
         @SuppressWarnings("unchecked")
-        public boolean processRow() {
-            return aggregationFunction.iterate(aggregationState, inputs);
+        public Object processRow(Object value) {
+            return aggregationFunction.iterate(ramAccountingContext, value, inputs);
         }
     }
 
     class FromPartial extends FromImpl {
 
+        public FromPartial(RamAccountingContext ramAccountingContext) {
+            super(ramAccountingContext);
+        }
+
         @Override
         @SuppressWarnings("unchecked")
-        public boolean processRow() {
-            aggregationState.reduce((AggregationState)inputs[0].value());
-            return true;
+        public Object processRow(Object value) {
+            return aggregationFunction.reduce(ramAccountingContext, value, inputs[0].value());
         }
     }
 
     static abstract class ToImpl {
-        public abstract Object finishCollect();
+        protected final RamAccountingContext ramAccountingContext;
+
+        public ToImpl(RamAccountingContext ramAccountingContext) {
+            this.ramAccountingContext = ramAccountingContext;
+        }
+
+        public abstract Object finishCollect(Object state);
     }
 
     class ToPartial extends ToImpl {
+
+        public ToPartial(RamAccountingContext ramAccountingContext) {
+            super(ramAccountingContext);
+        }
+
         @Override
-        public Object finishCollect() {
-            return aggregationState;
+        public Object finishCollect(Object state) {
+            return state;
         }
     }
 
     class ToFinal extends ToImpl {
+
+        public ToFinal(RamAccountingContext ramAccountingContext) {
+            super(ramAccountingContext);
+        }
+
         @Override
-        public Object finishCollect() {
-            aggregationState.terminatePartial();
-            return aggregationState.value();
+        public Object finishCollect(Object state) {
+            //noinspection unchecked
+            return aggregationFunction.terminatePartial(ramAccountingContext, state);
         }
     }
 }

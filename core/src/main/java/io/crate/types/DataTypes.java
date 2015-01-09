@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.TimestampFormat;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
@@ -85,7 +86,7 @@ public class DataTypes {
             LONG
     );
 
-    public static final ImmutableMap<Integer, DataTypeFactory> typeRegistry = ImmutableMap.<Integer, DataTypeFactory>builder()
+    public static final Map<Integer, DataTypeFactory> TYPE_REGISTRY = new MapBuilder<Integer, DataTypeFactory>()
         .put(UndefinedType.ID, UNDEFINED)
         .put(NotSupportedType.ID, NOT_SUPPORTED)
         .put(ByteType.ID, BYTE)
@@ -122,7 +123,7 @@ public class DataTypes {
             public DataType<?> create(DataType innerType) {
                 return new SetType(innerType);
             }
-        }).build();
+        }).map();
 
     private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
             .addAll(NUMERIC_PRIMITIVE_TYPES)
@@ -156,11 +157,11 @@ public class DataTypes {
     public static DataType fromStream(StreamInput in) throws IOException {
         int i = in.readVInt();
         try {
-            DataType type = typeRegistry.get(i).create();
+            DataType type = TYPE_REGISTRY.get(i).create();
             type.readFrom(in);
             return type;
         } catch (NullPointerException e) {
-            logger.error(String.format(Locale.ENGLISH, "%d is missing in typeRegistry", i), e);
+            logger.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
             throw e;
         }
     }
@@ -263,9 +264,15 @@ public class DataTypes {
         if (type instanceof List) {
             int idCollectionType = (Integer) ((List) type).get(0);
             int idInnerType = (Integer) ((List) type).get(1);
-            return ((CollectionTypeFactory) typeRegistry.get(idCollectionType)).create(ofJsonObject(idInnerType));
+            return ((CollectionTypeFactory) TYPE_REGISTRY.get(idCollectionType)).create(ofJsonObject(idInnerType));
         }
         assert type instanceof Integer;
-        return typeRegistry.get(type).create();
+        return TYPE_REGISTRY.get(type).create();
+    }
+
+    public static void register(int id, DataTypeFactory dataTypeFactory) {
+        if (TYPE_REGISTRY.put(id, dataTypeFactory) != null) {
+            throw new IllegalArgumentException("Already got a dataType with id " + id);
+        };
     }
 }

@@ -24,7 +24,6 @@ package io.crate.operation.aggregation.impl;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -64,14 +63,14 @@ public class CollectSetAggregationTest extends AggregationTest {
     public void testLongSerialization() throws Exception {
         FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.<DataType>of(DataTypes.LONG));
         AggregationFunction impl = (AggregationFunction) functions.get(fi);
-        AggregationState state = impl.newState(ramAccountingContext);
+
+        Object state = impl.newState(ramAccountingContext);
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
-        state.writeTo(streamOutput);
+        impl.partialType().streamer().writeValueTo(streamOutput, state);
 
-        AggregationState newState = impl.newState(ramAccountingContext);
-        newState.readFrom(new BytesStreamInput(streamOutput.bytes()));
-        assertEquals(state.value(), newState.value());
+        Object newState = impl.partialType().streamer().readValueFrom(new BytesStreamInput(streamOutput.bytes()));
+        assertEquals(state, newState);
     }
 
     @Test
@@ -138,5 +137,4 @@ public class CollectSetAggregationTest extends AggregationTest {
         assertEquals(2, ((Set)result[0][0]).size());
         assertFalse(((Set)result[0][0]).contains(null));
     }
-
 }

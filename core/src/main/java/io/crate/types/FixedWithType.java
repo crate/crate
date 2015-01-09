@@ -19,23 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.types;
 
-import io.crate.types.*;
+/**
+ * A type that has a fixed size for every value
+ */
+public interface FixedWithType {
 
-public class SizeEstimatorFactory {
-
-    @SuppressWarnings("unchecked")
-    public static <T> SizeEstimator<T> create(DataType type) {
-        switch (type.id()) {
-            case StringType.ID:
-            case IpType.ID:
-                return (SizeEstimator<T>)new BytesRefSizeEstimator();
-            default:
-                if (type instanceof FixedWithType) {
-                    return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWithType) type).fixedSize());
-                }
-                throw new UnsupportedOperationException(String.format("Cannot get SizeEstimator for type %s", type));
-        }
-    }
+    /**
+     * The fixed amount of memory a value object instance of type t requires.
+     * (t is the type described by our DataType interface or something that implements FixedWithType)
+     *
+     *
+     * Implementations here may not be 100% accurate because sizes may vary between JVM implementations
+     * and then there is also stuff like padding and other JVM magic.
+     *
+     * See also:
+     *  https://blogs.oracle.com/jrose/entry/fixnums_in_the_vm
+     *  http://www.javaworld.com/article/2077496/testing-debugging/java-tip-130--do-you-know-your-data-size-.html
+     */
+    public int fixedSize();
 }
