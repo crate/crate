@@ -54,7 +54,7 @@ public abstract class ArbitraryAggregation<T extends Comparable<T>> extends Aggr
                              @Override
                              public AggregationState newState(RamAccountingContext ramAccountingContext) {
                                  SizeEstimator<Object> sizeEstimator = SizeEstimatorFactory.create(t);
-                                 return new ArbitraryAggState(ramAccountingContext, t.streamer());
+                                 return new ArbitraryAggState(ramAccountingContext, t.streamer(), sizeEstimator);
                              }
                          }
             );
@@ -80,11 +80,15 @@ public abstract class ArbitraryAggregation<T extends Comparable<T>> extends Aggr
     static class ArbitraryAggState<T extends Comparable<T>> extends AggregationState<ArbitraryAggState<T>> {
 
         Streamer streamer;
+        private final SizeEstimator<Object> sizeEstimator;
         private Object value = null;
 
-        public ArbitraryAggState(RamAccountingContext ramAccountingContext, Streamer streamer) {
+        public ArbitraryAggState(RamAccountingContext ramAccountingContext,
+                                 Streamer streamer,
+                                 SizeEstimator<Object> sizeEstimator) {
             super(ramAccountingContext);
             this.streamer = streamer;
+            this.sizeEstimator = sizeEstimator;
         }
 
         @Override
@@ -113,6 +117,8 @@ public abstract class ArbitraryAggregation<T extends Comparable<T>> extends Aggr
         }
 
         public void setValue(Object value) {
+            // setValue is only called once if value changes from null to something else, size is only estimated once here
+            ramAccountingContext.addBytes(sizeEstimator.estimateSize(value));
             this.value = value;
         }
 
