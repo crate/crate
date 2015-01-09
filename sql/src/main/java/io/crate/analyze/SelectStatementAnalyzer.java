@@ -28,6 +28,7 @@ import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.analyze.validator.SortSymbolValidator;
 import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -115,7 +116,9 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalyze
 
 
         context.whereClause(generateWhereClause(node.getWhere(), context));
-
+        if(context.whereClause().version().isPresent()){
+            throw new UnsupportedFeatureException("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        }
         if (!node.getGroupBy().isEmpty()) {
             context.selectFromFieldCache = true;
         }

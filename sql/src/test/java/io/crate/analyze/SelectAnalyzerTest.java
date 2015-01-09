@@ -24,11 +24,11 @@ package io.crate.analyze;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import io.crate.metadata.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -519,12 +519,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testPrimaryKeyAndVersion() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-            "select name from users where id = 2 and \"_version\" = 1");
-        assertEquals(ImmutableList.of("2"), analysis.ids());
-        assertEquals(ImmutableList.of("2"), analysis.routingValues());
-        assertThat(analysis.whereClause().version().get(), is(1L));
+    public void testVersion() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        analyze("select name from users where id = 2 and \"_version\" = 1");
     }
 
     @Test
