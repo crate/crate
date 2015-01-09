@@ -5,8 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
- - fix: throw correct exception if one uses `_version` without primary key
-   in a select statements where clause
+ - fix: throw correct exception if one uses `_version` in a select statements
+   where clause
 
  - improved speed of Alter table settings in partitioned tables
 
