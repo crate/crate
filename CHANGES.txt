@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: throw correct exception if one uses `_version` without primary key
+   in a select statements where clause
+
  - Fixed an issue that could cause bulk inserts to get stalled.
 
 2014/12/16 0.45.6

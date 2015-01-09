@@ -30,6 +30,7 @@ import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.DocReferenceConverter;
@@ -754,7 +755,7 @@ public class LuceneQueryBuilder {
                 }
                 String unsupportedMessage = Context.UNSUPPORTED_FIELDS.get(columnName);
                 if (unsupportedMessage != null) {
-                    throw new UnsupportedOperationException(unsupportedMessage);
+                    throw new UnsupportedFeatureException(unsupportedMessage);
                 }
             }
             return false;
