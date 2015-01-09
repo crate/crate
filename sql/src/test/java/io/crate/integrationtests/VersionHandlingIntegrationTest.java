@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -149,5 +150,25 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         execute("select col2 from test where col1 = 1");
         assertEquals(1L, response.rowCount());
         assertEquals("ok now panic", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectWhereVersionWithoutPrimaryKey() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("\"_version\" column is only valid in the WHERE clause if the primary key column is also present");
+        execute("select _version from test where col2 = 'hello' and _version = 1");
+    }
+
+    @Test
+    public void testSelectWhereVersionWithPrimaryKey() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+        execute("select _version from test where col1 = 1 and _version = 1");
+        assertEquals(1L, response.rowCount());
     }
 }
