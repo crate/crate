@@ -25,6 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
@@ -120,7 +121,9 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
 
         context.whereClause(generateWhereClause(node.getWhere(), context));
-
+        if(context.whereClause().version().isPresent()){
+            throw new UnsupportedFeatureException("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        }
         if (!node.getGroupBy().isEmpty()) {
             context.selectFromFieldCache = true;
         }
