@@ -29,6 +29,7 @@ import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.PlanNodeBuilder;
@@ -102,6 +103,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            if(whereClauseContext.whereClause().version().isPresent()){
+                context.consumerContext.validationException(new VersionInvalidException());
+                return statement;
+            }
             context.result = true;
             return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(statement, tableRelation, whereClauseContext, null);
         }

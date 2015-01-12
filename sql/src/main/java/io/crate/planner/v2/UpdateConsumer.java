@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.UpdateAnalyzedStatement;
+import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -114,6 +115,12 @@ public class UpdateConsumer implements Consumer {
                 WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
                 WhereClause whereClause = whereClauseContext.whereClause();
 
+                if(whereClauseContext.whereClause().version().isPresent()){
+                    VersionRewriter versionRewriter = new VersionRewriter();
+                    Symbol whereClauseQuery = versionRewriter.rewrite(whereClause.query());
+                    whereClause = new WhereClause(whereClauseQuery);
+                }
+
                 if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
                     // for updates, we always need to collect the `_uid`
                     Reference uidReference = new Reference(
@@ -129,7 +136,7 @@ public class UpdateConsumer implements Consumer {
                     UpdateProjection updateProjection = new UpdateProjection(
                             nestedAnalysis.assignments(),
                             contextBuilder.outputs(),
-                            whereClause.version().orNull());
+                            whereClauseContext.whereClause().version().orNull());
 
                     CollectNode collectNode = PlanNodeBuilder.collect(
                             tableInfo,
@@ -137,7 +144,6 @@ public class UpdateConsumer implements Consumer {
                             contextBuilder.toCollect(),
                             ImmutableList.<Projection>of(updateProjection)
                     );
-
                     MergeNode mergeNode = PlanNodeBuilder.localMerge(
                             ImmutableList.<Projection>of(localMergeProjection), collectNode);
                     childNodes.add(ImmutableList.<DQLPlanNode>of(collectNode, mergeNode));

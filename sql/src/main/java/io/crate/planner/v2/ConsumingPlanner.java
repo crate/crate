@@ -43,7 +43,7 @@ public class ConsumingPlanner {
         consumers.add(new ReduceOnCollectorGroupByConsumer(analysisMetaData));
         consumers.add(new DistributedGroupByConsumer(analysisMetaData));
         consumers.add(new ESCountConsumer(analysisMetaData));
-        consumers.add(new GlobalAggregateConsumer());
+        consumers.add(new GlobalAggregateConsumer(analysisMetaData));
         consumers.add(new ESGetConsumer(analysisMetaData));
         consumers.add(new QueryThenFetchConsumer(analysisMetaData));
         consumers.add(new UpdateConsumer(analysisMetaData));
@@ -67,7 +67,9 @@ public class ConsumingPlanner {
                 }
             }
         }
-
+        if(consumerContext.validationException() != null){
+            throw consumerContext.validationException();
+        }
         return null;
     }
 

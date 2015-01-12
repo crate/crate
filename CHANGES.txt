@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: throw correct exception if one uses `_version` in a select statements
+   where clause
+
  - Removed undocumented feature: It is no longer possible to use sys
    expressions in any context.
 

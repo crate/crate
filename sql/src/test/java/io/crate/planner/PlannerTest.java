@@ -6,6 +6,7 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -316,6 +317,13 @@ public class PlannerTest {
     }
 
     @Test
+    public void testGetWithVersion() throws Exception{
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        plan("select name from users where id = 1 and _version = 1");
+    }
+
+    @Test
     public void testGetPlanStringLiteral() throws Exception {
         Plan plan = plan("select name from characters where id = 'one'");
         Iterator<PlanNode> iterator = plan.iterator();
@@ -432,6 +440,13 @@ public class PlannerTest {
     }
 
     @Test
+    public void testGlobalAggregationVersion() throws Exception {
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        plan("select count(name) from users where _version=1");
+    }
+
+    @Test
     public void testGroupByOnNodeLevel() throws Exception {
         Plan plan = plan("select count(*), name from sys.nodes group by name");
 
@@ -505,6 +520,13 @@ public class PlannerTest {
         assertThat(searchNode.partitionBy().size(), is(0));
 
         assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testESSEarchPlanWithVersion() throws Exception {
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        plan("select name from users where name = 'x' and _version = 1");
     }
 
     @Test
@@ -1118,6 +1140,13 @@ public class PlannerTest {
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+    }
+
+    @Test
+    public void testInsertFromSubQueryWithVersion() throws Exception {
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        plan("insert into users (date, id, name) (select date, id, name from users where _version = 1)");
     }
 
     @Test

@@ -29,6 +29,7 @@ import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
@@ -48,7 +49,7 @@ public class ESCountConsumer implements Consumer {
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        AnalyzedRelation analyzedRelation = visitor.process(rootRelation, null);
+        AnalyzedRelation analyzedRelation = visitor.process(rootRelation, context);
         if (analyzedRelation != null) {
             context.rootRelation(analyzedRelation);
             return true;
@@ -56,7 +57,7 @@ public class ESCountConsumer implements Consumer {
         return false;
     }
 
-    private static class Visitor extends RelationVisitor<Void, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
 
@@ -65,7 +66,7 @@ public class ESCountConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, Void context) {
+        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, ConsumerContext context) {
             if (!selectAnalyzedStatement.hasAggregates() || selectAnalyzedStatement.hasGroupBy()) {
                 return null;
             }
@@ -85,12 +86,16 @@ public class ESCountConsumer implements Consumer {
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(selectAnalyzedStatement.whereClause());
+            if(whereClauseContext.whereClause().version().isPresent()){
+                context.validationException(new VersionInvalidException());
+                return null;
+            }
             return new ESCountNode(Planner.indices(tableInfo, whereClauseContext.whereClause()),
                     whereClauseContext.whereClause());
         }
 
         @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
             return null;
         }
 

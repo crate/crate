@@ -32,6 +32,7 @@ import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
@@ -130,6 +131,10 @@ public class InsertFromSubQueryConsumer implements Consumer {
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            if(whereClauseContext.whereClause().version().isPresent()){
+                context.consumerContext.validationException(new VersionInvalidException());
+                return statement;
+            }
             context.result = true;
             if(statement.hasGroupBy()){
                 return groupBy(statement, tableRelation, whereClauseContext, context.indexWriterProjection, analysisMetaData.functions());
