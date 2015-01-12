@@ -26,8 +26,7 @@ import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
@@ -35,20 +34,14 @@ import java.util.List;
 
 public class UpdateNode extends DMLPlanNode implements PlannedAnalyzedRelation {
 
-    private final List<CollectNode> collectNodes;
-    private final MergeNode mergeNode;
+    private final List<List<DQLPlanNode>> nodes;
 
-    public UpdateNode(List<CollectNode> collectNodes, MergeNode mergeNode) {
-        this.collectNodes = collectNodes;
-        this.mergeNode = mergeNode;
+    public UpdateNode(List<List<DQLPlanNode>> nodes) {
+        this.nodes = nodes;
     }
 
-    public List<CollectNode> collectNodes() {
-        return collectNodes;
-    }
-
-    public MergeNode mergeNode() {
-        return mergeNode;
+    public List<List<DQLPlanNode>> nodes() {
+        return nodes;
     }
 
     @Override

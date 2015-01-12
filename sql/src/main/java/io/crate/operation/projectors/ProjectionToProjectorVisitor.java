@@ -318,7 +318,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         }
         for (Map.Entry<Reference, Symbol> entry : projection.assignments().entrySet()) {
             columnIdents.add(entry.getKey().info().ident().columnIdent());
-            docInputSymbolVisitor.process(entry.getKey());
+            docInputSymbolVisitor.process(entry.getValue());
         }
 
         return new UpdateProjector(
