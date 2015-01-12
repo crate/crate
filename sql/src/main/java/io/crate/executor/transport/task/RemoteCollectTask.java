@@ -150,6 +150,6 @@ public class RemoteCollectTask extends JobTask {
 
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("nope");
+        throw new UnsupportedOperationException("RemoteCollectTask does not support upstream results");
     }
 }

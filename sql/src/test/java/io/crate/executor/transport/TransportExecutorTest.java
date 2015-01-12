@@ -76,6 +76,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
+import static org.junit.Assert.*;
 
 public class TransportExecutorTest extends BaseTransportExecutorTest {
 
