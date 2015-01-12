@@ -31,10 +31,7 @@ import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.task.join.NestedLoopTask;
-import io.crate.executor.transport.task.CreateTableTask;
-import io.crate.executor.transport.task.DistributedMergeTask;
-import io.crate.executor.transport.task.DropTableTask;
-import io.crate.executor.transport.task.RemoteCollectTask;
+import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
@@ -60,6 +57,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.search.controller.SearchPhaseController;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -372,10 +370,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
         @Override
         public ImmutableList<Task> visitUpdateNode(UpdateNode node, UUID jobId) {
             ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
-            for (CollectNode collectNode : node.collectNodes()) {
-                taskBuilder.addAll(visitCollectNode(collectNode, jobId));
+            for (List<DQLPlanNode> childNodes : node.nodes()) {
+                List<Task> subTasks = new ArrayList<>(childNodes.size());
+                for (DQLPlanNode childNode : childNodes) {
+                    subTasks.addAll(childNode.accept(this, jobId));
+                }
+                UpdateTask updateTask = new UpdateTask(TransportExecutor.this, jobId, subTasks);
+                taskBuilder.add(updateTask);
             }
-            taskBuilder.addAll(visitMergeNode(node.mergeNode(), jobId));
             return taskBuilder.build();
         }
 

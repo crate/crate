@@ -24,10 +24,9 @@ package io.crate.planner.node.dml;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Path;
 import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
@@ -35,20 +34,14 @@ import java.util.List;
 
 public class UpdateNode extends DMLPlanNode implements PlannedAnalyzedRelation {
 
-    private final List<CollectNode> collectNodes;
-    private final MergeNode mergeNode;
+    private final List<List<DQLPlanNode>> nodes;
 
-    public UpdateNode(List<CollectNode> collectNodes, MergeNode mergeNode) {
-        this.collectNodes = collectNodes;
-        this.mergeNode = mergeNode;
+    public UpdateNode(List<List<DQLPlanNode>> nodes) {
+        this.nodes = nodes;
     }
 
-    public List<CollectNode> collectNodes() {
-        return collectNodes;
-    }
-
-    public MergeNode mergeNode() {
-        return mergeNode;
+    public List<List<DQLPlanNode>> nodes() {
+        return nodes;
     }
 
     @Override
@@ -58,18 +51,18 @@ public class UpdateNode extends DMLPlanNode implements PlannedAnalyzedRelation {
 
     @Nullable
     @Override
-    public Field getField(ColumnIdent path) {
-        return null;
+    public Field getField(Path path) {
+        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override
-    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException {
-        return null;
+    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getWritableField is not supported");
     }
 
     @Override
     public List<Field> fields() {
-        return null;
+        throw new UnsupportedOperationException("fields is not supported");
     }
 
     @Override

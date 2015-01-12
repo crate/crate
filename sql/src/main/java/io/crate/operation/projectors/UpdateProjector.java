@@ -21,15 +21,21 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -46,7 +52,7 @@ public class UpdateProjector implements Projector {
     private Projector downstream;
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
-    private final ArrayList<ActionFuture<UpdateResponse>> updateRequests = new ArrayList<>();
+    private final List<SettableFuture<Long>> updateResults = new ArrayList<>();
 
     private final ShardId shardId;
     private final TransportUpdateAction transportUpdateAction;
@@ -55,6 +61,8 @@ public class UpdateProjector implements Projector {
     @Nullable
     private final Long requiredVersion;
     private final Object lock = new Object();
+
+    private final ESLogger logger = Loggers.getLogger(getClass());
 
     public UpdateProjector(ShardId shardId,
                            TransportUpdateAction transportUpdateAction,
@@ -83,7 +91,30 @@ public class UpdateProjector implements Projector {
                 collectExpression.setNextRow(row);
             }
 
-            updateRequests.add(transportUpdateAction.execute(updateRequest()));
+            final SettableFuture<Long> future = SettableFuture.create();
+            updateResults.add(future);
+
+            final UpdateRequest updateRequest = updateRequest();
+
+            transportUpdateAction.execute(updateRequest, new ActionListener<UpdateResponse>() {
+                @Override
+                public void onResponse(UpdateResponse updateResponse) {
+                    future.set(1L);
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    if (e instanceof VersionConflictEngineException) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Updating document with id {} failed because of a version conflict", updateRequest.id());
+                        }
+                        future.set(0L);
+                    } else {
+                        logger.error("Updating document with id {} failed", e, updateRequest.id());
+                        future.set(0L);
+                    }
+                }
+            });
         }
 
         return true;
@@ -114,23 +145,7 @@ public class UpdateProjector implements Projector {
         }
 
         if (downstream != null) {
-            try {
-                long rowCount = 0;
-                for (ActionFuture<UpdateResponse> updateResponse : updateRequests) {
-                    updateResponse.get();
-                    rowCount++;
-                }
-                downstream.setNextRow(rowCount);
-            } catch (Exception e) {
-                downstream.upstreamFailed(e);
-                return;
-            }
-            Throwable throwable = upstreamFailure.get();
-            if (throwable == null) {
-                downstream.upstreamFinished();
-            } else {
-                downstream.upstreamFailed(throwable);
-            }
+            collectUpdateResultsAndPassOverRowCount();
         }
     }
 
@@ -141,16 +156,7 @@ public class UpdateProjector implements Projector {
             return;
         }
         if (downstream != null) {
-            try {
-                long rowCount = 0;
-                for (ActionFuture<UpdateResponse> updateResponse : updateRequests) {
-                    updateResponse.get();
-                    rowCount++;
-                }
-                downstream.setNextRow(rowCount);
-            } catch (Exception e) {
-            }
-            downstream.upstreamFailed(throwable);
+            collectUpdateResultsAndPassOverRowCount();
         }
     }
 
@@ -158,6 +164,31 @@ public class UpdateProjector implements Projector {
     public void downstream(Projector downstream) {
         this.downstream = downstream;
         downstream.registerUpstream(this);
+    }
+
+    private void collectUpdateResultsAndPassOverRowCount() {
+        Futures.addCallback(Futures.allAsList(updateResults), new FutureCallback<List<Long>>() {
+            @Override
+            public void onSuccess(@Nullable List<Long> result) {
+                long rowCount = 0;
+                for (Long val : result) {
+                    rowCount =+ val;
+                }
+                downstream.setNextRow(rowCount);
+                Throwable throwable = upstreamFailure.get();
+                if (throwable == null) {
+                    downstream.upstreamFinished();
+                } else {
+                    downstream.upstreamFailed(throwable);
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                downstream.setNextRow(0L);
+                downstream.upstreamFailed(t);
+            }
+        });
     }
 
     class ProjectorUpdateRequest extends UpdateRequest {

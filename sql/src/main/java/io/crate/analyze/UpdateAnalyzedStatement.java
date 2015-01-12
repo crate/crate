@@ -26,7 +26,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
-import io.crate.metadata.ColumnIdent;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.Path;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -113,13 +114,14 @@ public class UpdateAnalyzedStatement extends AnalyzedStatement implements Analyz
         return visitor.visitUpdateAnalyzedStatement(this, context);
     }
 
+    @Nullable
     @Override
-    public Field getField(ColumnIdent path) {
+    public Field getField(Path path) {
         throw new UnsupportedOperationException("getField on UpdateAnalyzedStatement is not implemented");
     }
 
     @Override
-    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
         throw new UnsupportedOperationException("UpdateAnalyzedStatement is not writable");
     }
 

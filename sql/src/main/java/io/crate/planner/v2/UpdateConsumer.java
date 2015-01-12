@@ -42,6 +42,7 @@ import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.UpdateNode;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
@@ -107,7 +108,7 @@ public class UpdateConsumer implements Consumer {
                 return null;
             }
 
-            List<CollectNode> collectNodes = new ArrayList<>(statement.nestedStatements().size());
+            List<List<DQLPlanNode>> childNodes = new ArrayList<>(statement.nestedStatements().size());
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
                 WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
@@ -115,8 +116,10 @@ public class UpdateConsumer implements Consumer {
 
                 if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
                     // for updates, we always need to collect the `_uid`
-                    ReferenceIdent uidIdent = new ReferenceIdent(tableInfo.ident(), "_uid");
-                    Reference uidReference = new Reference(new ReferenceInfo(uidIdent, RowGranularity.DOC, DataTypes.STRING));
+                    Reference uidReference = new Reference(
+                            new ReferenceInfo(
+                                    new ReferenceIdent(tableInfo.ident(), "_uid"),
+                                    RowGranularity.DOC, DataTypes.STRING));
 
                     PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
                             .output(Lists.newArrayList((Symbol)uidReference))
@@ -128,21 +131,20 @@ public class UpdateConsumer implements Consumer {
                             contextBuilder.outputs(),
                             whereClause.version().orNull());
 
-                    CollectNode node = PlanNodeBuilder.collect(
+                    CollectNode collectNode = PlanNodeBuilder.collect(
                             tableInfo,
                             whereClause,
                             contextBuilder.toCollect(),
                             ImmutableList.<Projection>of(updateProjection)
                     );
 
-                    collectNodes.add(node);
+                    MergeNode mergeNode = PlanNodeBuilder.localMerge(
+                            ImmutableList.<Projection>of(localMergeProjection), collectNode);
+                    childNodes.add(ImmutableList.<DQLPlanNode>of(collectNode, mergeNode));
                 }
             }
 
-            // TODO: needs to be added for every collect node (fix bulk update)
-            MergeNode mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection), collectNodes.get(0));
-
-            return new UpdateNode(collectNodes, mergeNode);
+            return new UpdateNode(childNodes);
         }
 
         @Override
