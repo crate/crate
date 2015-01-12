@@ -358,14 +358,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithLimitAndOffset() throws Exception {
-        createIndex("test");
+        execute("create table test (id string primary key) with (number_of_replicas=0)");
         ensureGreen();
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
+        execute("insert into test (id) values (?), (?), (?)", new Object[]{"id1", "id2", "id3"});
         refresh();
-        execute("select \"_id\" from test limit 1 offset 1");
+        execute("select \"id\" from test order by id limit 1 offset 1");
         assertEquals(1, response.rowCount());
+        assertThat((String)response.rows()[0][0], is("id2"));
     }
 
 

@@ -24,20 +24,24 @@ package io.crate.action.sql.query;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.ResponseForwarder;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.search.fetch.ScrollQueryFetchSearchResult;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.concurrent.Executor;
 
 public class TransportQueryShardAction {
 
-    private final String transportAction = "crate/sql/shard/query";
+    private final String queryTransportAction = "crate/sql/shard/query";
+    private final String queryScrollTransportAction = "crate/sql/shard/query/scroll";
     private final static String executorName = ThreadPool.Names.SEARCH;
     private final ClusterService clusterService;
     private final Executor executor;
@@ -53,61 +57,55 @@ public class TransportQueryShardAction {
         this.transportService = transportService;
         this.clusterService = clusterService;
         executor = threadPool.executor(executorName);
-        transportService.registerHandler(transportAction, new TransportHandler());
+        transportService.registerHandler(queryTransportAction, new QueryTransportHandler());
+        transportService.registerHandler(queryScrollTransportAction, new ScrollTransportHandler());
     }
 
-    public void execute(String node, QueryShardRequest request, ActionListener<QuerySearchResult> listener) {
-        new AsyncAction(node, request, listener).start();
+    public void executeLocalOrViaTransport(String node,
+                                          Runnable localRunnable,
+                                          ActionRequest request,
+                                          String transportActionName,
+                                          TransportResponseHandler<?> responseHandler) {
+        ClusterState clusterState = clusterService.state();
+        if (node.equals("_local") || node.equals(clusterState.nodes().localNodeId())) {
+            executor.execute(localRunnable);
+        } else {
+            transportService.sendRequest(
+                    clusterState.nodes().get(node),
+                    transportActionName,
+                    request,
+                    responseHandler
+            );
+        }
+
     }
 
-    private void shardOperation(QueryShardRequest request, ActionListener<QuerySearchResult> listener) {
+    public void executeQuery(String node, final QueryShardRequest request, final ActionListener<QuerySearchResult> listener) {
+        Runnable localRunnable = new Runnable() {
+            @Override
+            public void run() {
+                executeQueryOnShard(request, listener);
+            }
+        };
+        TransportResponseHandler<?> responseHandler = new DefaultTransportResponseHandler<QuerySearchResult>(listener, executorName) {
+            @Override
+            public QuerySearchResult newInstance() {
+                return new QuerySearchResult();
+            }
+        };
+        executeLocalOrViaTransport(node, localRunnable, request, queryTransportAction, responseHandler);
+    }
+
+    private void executeQueryOnShard(QueryShardRequest request, ActionListener<QuerySearchResult> listener) {
         try {
             QuerySearchResult querySearchResult = searchService.executeQueryPhase(request);
             listener.onResponse(querySearchResult);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             listener.onFailure(e);
         }
     }
 
-    private class AsyncAction {
-        private final String nodeId;
-        private final QueryShardRequest request;
-        private final ClusterState clusterState;
-        private final ActionListener<QuerySearchResult> listener;
-
-        private AsyncAction(String node, QueryShardRequest request, ActionListener<QuerySearchResult> listener) {
-            this.listener = listener;
-            clusterState = clusterService.state();
-            this.nodeId = node;
-            this.request = request;
-        }
-
-        public void start() {
-            if (nodeId.equals("_local") || nodeId.equals(clusterState.nodes().localNodeId())) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        shardOperation(request, listener);
-                    }
-                });
-            } else {
-                transportService.sendRequest(
-                        clusterState.nodes().get(nodeId),
-                        transportAction,
-                        request,
-                        new DefaultTransportResponseHandler<QuerySearchResult>(listener, executorName) {
-                            @Override
-                            public QuerySearchResult newInstance() {
-                                return new QuerySearchResult();
-                            }
-                        }
-                );
-            }
-        }
-    }
-
-
-    private class TransportHandler extends BaseTransportRequestHandler<QueryShardRequest> {
+    private class QueryTransportHandler extends BaseTransportRequestHandler<QueryShardRequest> {
 
         @Override
         public QueryShardRequest newInstance() {
@@ -117,7 +115,53 @@ public class TransportQueryShardAction {
         @Override
         public void messageReceived(QueryShardRequest request, TransportChannel channel) throws Exception {
             ActionListener<QuerySearchResult> listener = ResponseForwarder.forwardTo(channel);
-            shardOperation(request, listener);
+            executeQueryOnShard(request, listener);
+        }
+
+        @Override
+        public String executor() {
+            return executorName;
+        }
+    }
+
+    public void executeScroll(String node, final QueryShardScrollRequest request, final ActionListener<ScrollQueryFetchSearchResult> listener) {
+        Runnable localRunnable = new Runnable() {
+            @Override
+            public void run() {
+                executeScrollOnShard(request, listener);
+            }
+        };
+        TransportResponseHandler<?> responseHandler = new DefaultTransportResponseHandler<ScrollQueryFetchSearchResult>(listener, executorName) {
+            @Override
+            public ScrollQueryFetchSearchResult newInstance() {
+                return new ScrollQueryFetchSearchResult();
+            }
+        };
+        executeLocalOrViaTransport(node, localRunnable, request, queryScrollTransportAction, responseHandler);
+
+
+    }
+
+    public void executeScrollOnShard(QueryShardScrollRequest request, ActionListener<ScrollQueryFetchSearchResult> listener) {
+        try {
+            ScrollQueryFetchSearchResult result = searchService.executeScrollPhase(request);
+            listener.onResponse(result);
+        } catch (Throwable e) {
+            listener.onFailure(e);
+        }
+    }
+
+    private class ScrollTransportHandler extends BaseTransportRequestHandler<QueryShardScrollRequest> {
+
+        @Override
+        public QueryShardScrollRequest newInstance() {
+            return new QueryShardScrollRequest();
+        }
+
+        @Override
+        public void messageReceived(QueryShardScrollRequest request, TransportChannel channel) throws Exception {
+            ActionListener<ScrollQueryFetchSearchResult> listener = ResponseForwarder.forwardTo(channel);
+            executeScrollOnShard(request, listener);
         }
 
         @Override

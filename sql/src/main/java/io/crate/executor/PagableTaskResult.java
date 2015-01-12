@@ -21,13 +21,43 @@
 
 package io.crate.executor;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.NoSuchElementException;
 
 /**
  * enhanced TaskResult that supports fetching the next page
  * asynchronously.
+ *
  */
-public interface PagableTaskResult extends TaskResult {
+public interface PagableTaskResult extends TaskResult, Closeable {
+
+    public static final PagableTaskResult EMPTY_PAGABLE_RESULT = new PagableTaskResult() {
+        @Override
+        public ListenableFuture<PagableTaskResult> fetch(PageInfo pageInfo) {
+            return Futures.immediateFailedFuture(new NoSuchElementException());
+        }
+
+        @Override
+        public Object[][] rows() {
+            return TaskResult.EMPTY_ROWS;
+        }
+
+        @Nullable
+        @Override
+        public String errorMessage() {
+            return null;
+        }
+
+        @Override
+        public void close() throws IOException {
+            // shalalalalalala!
+        }
+    };
 
     /**
      * get the page identified by <code>pageInfo</code>.
@@ -36,4 +66,12 @@ public interface PagableTaskResult extends TaskResult {
      * @return a future holding the result of fetching the next page
      */
     ListenableFuture<PagableTaskResult> fetch(PageInfo pageInfo);
+
+
+    /**
+     * Must be called after paging is done
+     * as the resources necessary for paging must be cleared
+     */
+    @Override
+    void close() throws IOException;
 }
