@@ -24,6 +24,7 @@ package io.crate.planner.v2;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
@@ -32,6 +33,7 @@ import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.dql.CollectNode;
@@ -56,7 +58,7 @@ public class GlobalAggregateConsumer implements Consumer {
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        AnalyzedRelation analyzedRelation = visitor.process(rootRelation, null);
+        AnalyzedRelation analyzedRelation = visitor.process(rootRelation, context);
         if (analyzedRelation != null) {
             context.rootRelation(analyzedRelation);
             return true;
@@ -64,16 +66,16 @@ public class GlobalAggregateConsumer implements Consumer {
         return false;
     }
 
-    private static class Visitor extends RelationVisitor<Void, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
 
-        public Visitor(AnalysisMetaData analysisMetaData) {
+        public Visitor(AnalysisMetaData analysisMetaData){
             this.analysisMetaData = analysisMetaData;
         }
 
         @Override
-        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Void context) {
+        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
             if (statement.hasGroupBy() || !statement.hasAggregates()) {
                 return null;
             }
@@ -83,11 +85,17 @@ public class GlobalAggregateConsumer implements Consumer {
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            WhereClause whereClause = whereClauseContext.whereClause();
+            if(whereClause.version().isPresent()){
+                context.validationException(new VersionInvalidException());
+                return null;
+            }
             return globalAggregates(statement, tableRelation, whereClauseContext, null);
+
         }
 
         @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
             return null;
         }
     }

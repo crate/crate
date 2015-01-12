@@ -29,6 +29,7 @@ import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.QueryThenFetchNode;
@@ -43,7 +44,7 @@ public class QueryThenFetchConsumer implements Consumer {
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation plannedAnalyzedRelation = visitor.process(rootRelation, null);
+        PlannedAnalyzedRelation plannedAnalyzedRelation = visitor.process(rootRelation, context);
         if (plannedAnalyzedRelation == null) {
             return false;
         }
@@ -51,7 +52,7 @@ public class QueryThenFetchConsumer implements Consumer {
         return true;
     }
 
-    private static class Visitor extends RelationVisitor<Void, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
 
@@ -60,7 +61,7 @@ public class QueryThenFetchConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Void context) {
+        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
             if (statement.hasAggregates() || statement.hasGroupBy() || statement.hasSysExpressions()) {
                 return null;
             }
@@ -74,7 +75,10 @@ public class QueryThenFetchConsumer implements Consumer {
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
-
+            if(whereClauseContext.whereClause().version().isPresent()){
+                context.validationException(new VersionInvalidException());
+                return null;
+            }
             return new QueryThenFetchNode(
                     tableInfo.getRouting(whereClauseContext.whereClause()),
                     tableRelation.resolve(statement.outputSymbols()),
@@ -89,7 +93,7 @@ public class QueryThenFetchConsumer implements Consumer {
         }
 
         @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
             return null;
         }
     }

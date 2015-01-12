@@ -33,6 +33,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
@@ -106,6 +107,10 @@ public class QueryAndFetchConsumer implements Consumer {
             TableRelation tableRelation = (TableRelation) sourceRelation;
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(tableRelation.resolve(statement.whereClause()));
+            if(whereClauseContext.whereClause().version().isPresent()){
+                context.consumerContext.validationException(new VersionInvalidException());
+                return statement;
+            }
             TableInfo tableInfo = tableRelation.tableInfo();
 
             if (tableInfo.schemaInfo().systemSchema() && whereClauseContext.whereClause().hasQuery()) {

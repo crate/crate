@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -18,38 +18,11 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+package io.crate.exceptions;
 
-package io.crate.planner.v2;
+public class VersionInvalidException extends UnsupportedFeatureException{
 
-
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.exceptions.ValidationException;
-import org.elasticsearch.common.Nullable;
-
-public class ConsumerContext {
-
-    private AnalyzedRelation rootRelation;
-
-    private ValidationException validationException;
-
-    public ConsumerContext(AnalyzedRelation rootRelation) {
-        this.rootRelation = rootRelation;
-    }
-
-    public void rootRelation(AnalyzedRelation rootRelation) {
-        this.rootRelation = rootRelation;
-    }
-
-    public AnalyzedRelation rootRelation() {
-        return rootRelation;
-    }
-
-    public void validationException(ValidationException validationException){
-        this.validationException = validationException;
-    }
-
-    @Nullable
-    public ValidationException validationException(){
-        return validationException;
+    public VersionInvalidException(){
+        super("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
     }
 }

@@ -66,7 +66,9 @@ public class ConsumingPlanner {
                 }
             }
         }
-
+        if(consumerContext.validationException() != null){
+            throw consumerContext.validationException();
+        }
         return null;
     }
 
