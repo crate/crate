@@ -91,7 +91,6 @@ public class GlobalAggregateConsumer implements Consumer {
                 return null;
             }
             return globalAggregates(statement, tableRelation, whereClauseContext, null);
-
         }
 
         @Override
