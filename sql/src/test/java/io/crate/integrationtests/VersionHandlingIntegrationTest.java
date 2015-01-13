@@ -203,4 +203,5 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
         execute("select _version from test where col1 = 1 and _version = 50");
     }
+
 }

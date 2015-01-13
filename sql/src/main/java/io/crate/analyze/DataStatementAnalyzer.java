@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
+import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.metadata.PartitionName;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -120,7 +121,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
             // we currently have no dynamics
             return Literal.NULL;
         }
-        validateSystemColumnPredicate(left);
 
         Set<Object> rightValues = new HashSet<>();
         for (Expression expression : ((InListExpression)node.getValueList()).getValues()) {
@@ -154,7 +154,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
     @Override
     protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, T context) {
         Symbol argument = process(node.getValue(), context);
-        validateSystemColumnPredicate(argument);
 
         FunctionIdent isNullIdent =
                 new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(argument.valueType()));
@@ -243,42 +242,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
         }
         Comparison comparison = new Comparison(node.getType(), left, right);
         comparison.normalize(context);
-        validateSystemColumnComparison(comparison, context);
         FunctionInfo info = context.getFunctionInfo(comparison.toFunctionIdent());
         return context.allocateFunction(info, comparison.arguments());
-    }
-
-    /**
-     * Validates comparison of system columns like e.g. '_score'.
-     * Must be called AFTER comparison normalization.
-     */
-    protected void validateSystemColumnComparison(Comparison comparison, T context) {
-        if (comparison.left.symbolType() == SymbolType.REFERENCE) {
-            Reference reference = (Reference) comparison.left;
-            // _score column can only be used by > comparator
-            if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
-                    && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
-                        || context.insideNotPredicate)) {
-                throw new UnsupportedOperationException(
-                        String.format(Locale.ENGLISH,
-                                "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
-                                _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()));
-            }
-        }
-    }
-
-    /**
-     * Validates usage of system columns (e.g. '_score') within predicates.
-     */
-    protected void validateSystemColumnPredicate(Symbol node) {
-        if (node.symbolType() == SymbolType.REFERENCE) {
-            Reference reference = (Reference) node;
-            if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)) {
-                throw new UnsupportedOperationException(
-                        String.format(Locale.ENGLISH,
-                                "System column '%s' cannot be used within a predicate", _SCORE));
-            }
-        }
     }
 
     @Override
@@ -421,7 +386,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
         if (value.symbolType() == SymbolType.DYNAMIC_REFERENCE){
             return Literal.NULL;
         }
-        validateSystemColumnPredicate(value);
 
         FunctionIdent functionIdent =
                 new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME,  ImmutableList.of(value.valueType()));
@@ -444,6 +408,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
 
         WhereClause whereClause = new WhereClause(
                 context.normalizer.normalize(process(whereExpression.get(), context)));
+        if(whereClause.hasQuery()){
+            WhereClauseValidator whereClauseValidator = new WhereClauseValidator();
+            whereClauseValidator.validate(whereClause);
+        }
         if (whereClause.hasQuery()){
             if (!context.sysExpressionsAllowed && context.hasSysExpressions) {
                 throw new UnsupportedOperationException("Filtering system columns is currently " +
