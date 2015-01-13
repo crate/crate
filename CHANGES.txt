@@ -7,6 +7,8 @@ Unreleased
 
  - fix: throw correct exception if `_version` is misused in WHERE clause
 
+ - improved string lookup performance for group queries and global aggregates
+
  - fix: throw correct exception if one uses `_version` in a select statements
    where clause
 

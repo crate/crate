@@ -24,25 +24,26 @@ package io.crate.operation.reference.doc.lucene;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.exceptions.ValidationException;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 
-public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData, BytesRef> {
+public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
 
-    private SortedBinaryDocValues values;
+    private RandomAccessOrds values;
 
     public BytesRefColumnReference(String columnName) {
         super(columnName);
     }
 
+
     @Override
     public BytesRef value() throws ValidationException {
-        switch (values.count()) {
+        switch (values.cardinality()) {
             case 0:
                 return null;
             case 1:
-                return BytesRef.deepCopyOf(values.valueAt(0));
+                return BytesRef.deepCopyOf(values.lookupOrd(values.ordAt(0)));
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -51,7 +52,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getBytesValues();
+        values = indexFieldData.load(context).getOrdinalsValues();
     }
 
     @Override
@@ -75,5 +76,6 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     public int hashCode() {
         return columnName.hashCode();
     }
+
 }
 
