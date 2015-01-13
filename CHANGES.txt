@@ -5,8 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - fix: throw correct exception if one uses `_version` in a select statements
-   where clause
+ - fix: throw correct exception if `_version` is misused in WHERE clause
 
  - don’t allow full qualified names in UPDATE assignments, INSERT and INSERT INTO
 

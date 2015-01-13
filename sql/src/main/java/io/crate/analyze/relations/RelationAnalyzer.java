@@ -31,6 +31,7 @@ import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
+import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
@@ -80,6 +81,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
         WhereClause whereClause = analyzeWhere(node.getWhere());
+        if(whereClause.hasQuery()){
+            WhereClauseValidator whereClauseValidator = new WhereClauseValidator();
+            whereClauseValidator.validate(whereClause);
+        }
         SelectAnalyzer.SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(
                 node.getSelect(),
                 context.sources(),
