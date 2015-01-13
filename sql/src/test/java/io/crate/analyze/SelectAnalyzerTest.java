@@ -522,15 +522,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testPrimaryKeyAndVersion() throws Exception {
-        SelectAnalysis analysis = analyze(
-            "select name from users where id = 2 and \"_version\" = 1");
-        assertEquals(ImmutableList.of("2"), analysis.ids());
-        assertEquals(ImmutableList.of("2"), analysis.routingValues());
-        assertThat(analysis.whereClause().version().get(), is(1L));
-    }
-
-    @Test
     public void testVersion() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
@@ -1792,6 +1783,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testScoreReferenceComparisonWithColumn() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
+        analyze("select * from users where \"_score\" >= id");
+    }
+
+    @Test
     public void testScoreReferenceInvalidNotPredicate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
@@ -1801,21 +1799,21 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testScoreReferenceInvalidLikePredicate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("System column '_score' cannot be used within a predicate");
+        expectedException.expectMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
         analyze("select * from users where \"_score\" in (0.9)");
     }
 
     @Test
     public void testScoreReferenceInvalidNullPredicate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("System column '_score' cannot be used within a predicate");
+        expectedException.expectMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
         analyze("select * from users where \"_score\" is null");
     }
 
     @Test
     public void testScoreReferenceInvalidNotNullPredicate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("System column '_score' cannot be used within a predicate");
+        expectedException.expectMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
         analyze("select * from users where \"_score\" is not null");
     }
 

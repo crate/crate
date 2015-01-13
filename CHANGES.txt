@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: throw correct exception if `_version` is misused in WHERE clause
+
  - improved speed of Alter table settings in partitioned tables
 
  - Restricted allowed characters in column names
