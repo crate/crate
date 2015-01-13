@@ -140,13 +140,7 @@ public class ShardCollectService {
     public CrateCollector getCollector(CollectNode collectNode,
                                        ShardProjectorChain projectorChain) throws Exception {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
-        UUID jobId = null;
-        if (collectNode.jobId().isPresent()) {
-            jobId = collectNode.jobId().get();
-        }
-        String ramAccountingContextId = String.format("%s: %s", collectNode.id(), jobId);
-        RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor, ramAccountingContext);
+        Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
