@@ -56,11 +56,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static io.crate.planner.symbol.Field.unwrap;
+import java.util.*;
 
 public class UpdateConsumer implements Consumer {
     private final Visitor visitor;
@@ -129,13 +125,16 @@ public class UpdateConsumer implements Consumer {
                                     RowGranularity.DOC, DataTypes.STRING));
 
                     PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                            .output(Lists.newArrayList((Symbol)uidReference))
-                             // TODO: remove after expression evaluation moved to our new UpdateAction
-                            .output(unwrap(nestedAnalysis.assignments().values()));
+                            .output(Lists.newArrayList((Symbol) uidReference));
+
+                    Map<String, Symbol> assignments = new HashMap<>(nestedAnalysis.assignments().size());
+                    for(Map.Entry<Reference, Symbol> entry : nestedAnalysis.assignments().entrySet()) {
+                        assignments.put(entry.getKey().info().ident().columnIdent().fqn(), entry.getValue());
+                    }
 
                     UpdateProjection updateProjection = new UpdateProjection(
-                            nestedAnalysis.assignments(),
-                            contextBuilder.outputs(),
+                            contextBuilder.outputs().get(0),
+                            assignments,
                             whereClauseContext.whereClause().version().orNull());
 
                     CollectNode collectNode = PlanNodeBuilder.collect(

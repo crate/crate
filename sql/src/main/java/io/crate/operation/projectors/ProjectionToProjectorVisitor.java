@@ -312,20 +312,14 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         }
 
         ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
-        List<ColumnIdent> columnIdents = new ArrayList<>(projection.assignments().size());
-        for (Symbol symbol : projection.inputs()) {
-            symbolVisitor.process(symbol, ctx);
-        }
-        for (Map.Entry<Reference, Symbol> entry : projection.assignments().entrySet()) {
-            columnIdents.add(entry.getKey().info().ident().columnIdent());
-            docInputSymbolVisitor.process(entry.getValue());
-        }
+        symbolVisitor.process(projection.uidSymbol(), ctx);
+        assert ctx.collectExpressions().size() == 1;
 
         return new UpdateProjector(
                 shardId,
-                transportActionProvider.transportUpdateAction(),
-                columnIdents,
-                ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()]),
+                transportActionProvider.transportShardUpdateAction(),
+                ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()])[0],
+                projection.assignments(),
                 projection.requiredVersion());
     }
 

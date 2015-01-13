@@ -69,6 +69,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class QueryThenFetchTask extends JobTask {
 
+    private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR =
+            new SymbolToFieldExtractor<>(new SearchHitFieldExtractorFactory());
+
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
     private final QueryThenFetchNode searchNode;
@@ -122,62 +125,17 @@ public class QueryThenFetchTask extends JobTask {
 
         routing = searchNode.routing();
 
-        Context context = new Context(functions);
-        Visitor fieldExtractorVisitor = new Visitor(searchNode.partitionBy());
+        SearchHitExtractorContext context = new SearchHitExtractorContext(functions, searchNode.outputs().size(), searchNode.partitionBy());
         extractors = new ArrayList<>(searchNode.outputs().size());
         for (Symbol symbol : searchNode.outputs()) {
-            extractors.add(fieldExtractorVisitor.process(symbol, context));
+            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, context));
         }
-        requests = prepareRequests(context.references);
+        requests = prepareRequests(context.references());
         docIdsToLoad = new AtomicArray<>(requests.size());
         firstResults = new AtomicArray<>(requests.size());
         fetchResults = new AtomicArray<>(requests.size());
 
         numColumns = searchNode.outputs().size();
-    }
-
-    private static FieldExtractor<SearchHit> buildExtractor(Reference reference, List<ReferenceInfo> partitionBy) {
-        final ColumnIdent columnIdent = reference.info().ident().columnIdent();
-        if (DocSysColumns.VERSION.equals(columnIdent)) {
-            return new ESFieldExtractor() {
-                @Override
-                public Object extract(SearchHit hit) {
-                    return hit.getVersion();
-                }
-            };
-        } else if (DocSysColumns.ID.equals(columnIdent)) {
-            return new ESFieldExtractor() {
-                @Override
-                public Object extract(SearchHit hit) {
-                    return new BytesRef(hit.getId());
-                }
-            };
-        } else if (DocSysColumns.DOC.equals(columnIdent)) {
-            return new ESFieldExtractor() {
-                @Override
-                public Object extract(SearchHit hit) {
-                    return hit.getSource();
-                }
-            };
-        } else if (DocSysColumns.RAW.equals(columnIdent)) {
-            return new ESFieldExtractor() {
-                @Override
-                public Object extract(SearchHit hit) {
-                    return hit.getSourceRef().toBytesRef();
-                }
-            };
-        } else if (DocSysColumns.SCORE.equals(columnIdent)) {
-            return new ESFieldExtractor() {
-                @Override
-                public Object extract(SearchHit hit) {
-                    return hit.getScore();
-                }
-            };
-        } else if (partitionBy.contains(reference.info())) {
-            return new ESFieldExtractor.PartitionedByColumnExtractor(reference, partitionBy);
-        } else {
-            return new ESFieldExtractor.Source(columnIdent);
-        }
     }
 
     @Override
@@ -438,56 +396,61 @@ public class QueryThenFetchTask extends JobTask {
         result.setException(t);
     }
 
-    static class Context {
-        private Functions functions;
-        List<Reference> references = new ArrayList<>();
+    static class SearchHitExtractorContext extends SymbolToFieldExtractor.Context {
+        private final List<ReferenceInfo> partitionBy;
 
-        public Context(Functions functions) {
-            this.functions = functions;
-        }
-
-        public void addReference(Reference reference) {
-            references.add(reference);
-        }
-    }
-    static class Visitor extends SymbolVisitor<Context, FieldExtractor<SearchHit>> {
-
-        private List<ReferenceInfo> partitionBy;
-
-        public Visitor(List<ReferenceInfo> partitionBy) {
+        public SearchHitExtractorContext(Functions functions, int size, List<ReferenceInfo> partitionBy) {
+            super(functions, size);
             this.partitionBy = partitionBy;
         }
+    }
+
+    static class SearchHitFieldExtractorFactory implements FieldExtractorFactory<SearchHit, SearchHitExtractorContext> {
 
         @Override
-        protected FieldExtractor<SearchHit> visitSymbol(Symbol symbol, Context context) {
-            throw new UnsupportedOperationException(
-                    SymbolFormatter.format("QueryThenFetch doesn't support \"%s\" in outputs", symbol));
-        }
-
-        @Override
-        public FieldExtractor<SearchHit> visitReference(final Reference reference, Context context) {
-            context.addReference(reference);
-            return buildExtractor(reference, partitionBy);
-        }
-
-        @Override
-        public FieldExtractor<SearchHit> visitDynamicReference(DynamicReference symbol, Context context) {
-            return visitReference(symbol, context);
-        }
-
-        @Override
-        public FieldExtractor<SearchHit> visitFunction(Function symbol, Context context) {
-            List<FieldExtractor<SearchHit>> subExtractors = new ArrayList<>(symbol.arguments().size());
-            for (Symbol argument : symbol.arguments()) {
-                subExtractors.add(process(argument, context));
+        public FieldExtractor<SearchHit> build(Reference field, SearchHitExtractorContext context) {
+            final ColumnIdent columnIdent = field.info().ident().columnIdent();
+            if (DocSysColumns.VERSION.equals(columnIdent)) {
+                return new ESFieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return hit.getVersion();
+                    }
+                };
+            } else if (DocSysColumns.ID.equals(columnIdent)) {
+                return new ESFieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return new BytesRef(hit.getId());
+                    }
+                };
+            } else if (DocSysColumns.DOC.equals(columnIdent)) {
+                return new ESFieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return hit.getSource();
+                    }
+                };
+            } else if (DocSysColumns.RAW.equals(columnIdent)) {
+                return new ESFieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return hit.getSourceRef().toBytesRef();
+                    }
+                };
+            } else if (DocSysColumns.SCORE.equals(columnIdent)) {
+                return new ESFieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return hit.getScore();
+                    }
+                };
+            } else if (context.partitionBy.contains(field.info())) {
+                return new ESFieldExtractor.PartitionedByColumnExtractor(field, context.partitionBy);
+            } else {
+                return new ESFieldExtractor.Source(columnIdent);
             }
-            Scalar scalar = (Scalar) context.functions.getSafe(symbol.info().ident());
-            return new FunctionExtractor<>(scalar, subExtractors);
-        }
-
-        @Override
-        public FieldExtractor<SearchHit> visitLiteral(Literal symbol, Context context) {
-            return new LiteralExtractor<>(symbol.value());
         }
     }
+
 }
