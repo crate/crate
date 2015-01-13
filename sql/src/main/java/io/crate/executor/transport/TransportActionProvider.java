@@ -70,6 +70,7 @@ public class TransportActionProvider {
     private final Provider<TransportIndexAction> transportIndexActionProvider;
     private final Provider<TransportQueryShardAction> transportQueryShardActionProvider;
     private final Provider<TransportUpdateAction> transportUpdateActionProvider;
+    private final Provider<TransportShardUpdateAction> transportShardUpdateActionProvider;
     private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
@@ -91,6 +92,7 @@ public class TransportActionProvider {
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
                                    Provider<TransportIndexAction> transportIndexActionProvider,
                                    Provider<TransportUpdateAction> transportUpdateActionProvider,
+                                   Provider<TransportShardUpdateAction> transportShardUpdateActionProvider,
                                    Provider<TransportQueryShardAction> transportQueryShardActionProvider,
                                    Provider<TransportSearchAction> transportSearchActionProvider,
                                    Provider<SearchServiceTransportAction> searchServiceTransportActionProvider,
@@ -111,6 +113,7 @@ public class TransportActionProvider {
         this.transportIndexActionProvider = transportIndexActionProvider;
         this.transportQueryShardActionProvider = transportQueryShardActionProvider;
         this.transportUpdateActionProvider = transportUpdateActionProvider;
+        this.transportShardUpdateActionProvider = transportShardUpdateActionProvider;
         this.transportShardBulkActionProvider = transportShardBulkActionProvider;
         this.transportCollectNodeActionProvider = transportCollectNodeActionProvider;
         this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
@@ -172,6 +175,10 @@ public class TransportActionProvider {
 
     public TransportUpdateAction transportUpdateAction() {
         return transportUpdateActionProvider.get();
+    }
+
+    public TransportShardUpdateAction transportShardUpdateAction() {
+        return transportShardUpdateActionProvider.get();
     }
 
     public TransportShardBulkActionDelegate transportShardBulkAction() {

@@ -27,13 +27,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.executor.TaskResult;
-import io.crate.metadata.PartitionName;
-import io.crate.executor.QueryResult;
 import io.crate.executor.JobTask;
+import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Scalar;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -41,7 +40,9 @@ import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
@@ -55,7 +56,8 @@ import java.util.*;
 
 public class ESGetTask extends JobTask {
 
-    private final static Visitor VISITOR = new Visitor();
+    private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR =
+            new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
     private final List<ListenableFuture<TaskResult>> results;
     private final TransportAction transportAction;
     private final ActionRequest request;
@@ -77,16 +79,16 @@ public class ESGetTask extends JobTask {
 
 
         Map<String, Object> partitionValues = preparePartitionValues(node);
-        final Context ctx = new Context(functions, node.outputs().size(), partitionValues);
+        final GetResponseContext ctx = new GetResponseContext(functions, node.outputs().size(), partitionValues);
         List<FieldExtractor> extractors = new ArrayList<>(node.outputs().size());
         for (Symbol symbol : node.outputs()) {
-            extractors.add(VISITOR.process(symbol, ctx));
+            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
         }
         for (Symbol symbol : node.sortSymbols()) {
-            extractors.add(VISITOR.process(symbol, ctx));
+            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
         }
 
-        final FetchSourceContext fsc = new FetchSourceContext(ctx.fields());
+        final FetchSourceContext fsc = new FetchSourceContext(ctx.referenceNames());
         final SettableFuture<TaskResult> result = SettableFuture.create();
         results = Arrays.<ListenableFuture<TaskResult>>asList(result);
         if (node.ids().size() > 1) {
@@ -322,94 +324,51 @@ public class ESGetTask extends JobTask {
                         getClass().getSimpleName()));
     }
 
-    static FieldExtractor<GetResponse> buildExtractor(final String field, final Context context) {
-        if (field.equals("_version")) {
-            return new FieldExtractor<GetResponse>() {
-                @Override
-                public Object extract(GetResponse response) {
-                    return response.getVersion();
-                }
-            };
-        } else if (field.equals("_id")) {
-            return new FieldExtractor<GetResponse>() {
-                @Override
-                public Object extract(GetResponse response) {
-                    return response.getId();
-                }
-            };
-        } else if (context.partitionValues.containsKey(field)) {
-            return new FieldExtractor<GetResponse>() {
-                @Override
-                public Object extract(GetResponse response) {
-                    return context.partitionValues.get(field);
-                }
-            };
-        } else {
-            return new FieldExtractor<GetResponse>() {
-                @Override
-                public Object extract(GetResponse response) {
-                    assert response.getSourceAsMap() != null;
-                    return XContentMapValues.extractValue(field, response.getSourceAsMap());
-                }
-            };
-        }
-    }
-
-    static class Context {
-        private final List<String> fields;
-        private final Functions functions;
+    static class GetResponseContext extends SymbolToFieldExtractor.Context {
         private final Map<String, Object> partitionValues;
-        private String[] fieldsArray;
 
-        Context(Functions functions, int size, Map<String, Object> partitionValues) {
-            this.functions = functions;
+        public GetResponseContext(Functions functions, int size, Map<String, Object> partitionValues) {
+            super(functions, size);
             this.partitionValues = partitionValues;
-            fields = new ArrayList<>(size);
-        }
-
-        public void addField(String fieldName) {
-            fields.add(fieldName);
-        }
-        public String[] fields() {
-            if (fieldsArray == null) {
-                fieldsArray = fields.toArray(new String[fields.size()]);
-            }
-            return fieldsArray;
         }
     }
 
-    static class Visitor extends SymbolVisitor<Context, FieldExtractor<GetResponse>> {
+    static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
 
         @Override
-        public FieldExtractor<GetResponse> visitReference(Reference symbol, Context context) {
-            String fieldName = symbol.info().ident().columnIdent().fqn();
-            context.addField(fieldName);
-            return buildExtractor(fieldName, context);
-        }
-
-        @Override
-        public FieldExtractor<GetResponse> visitDynamicReference(DynamicReference symbol, Context context) {
-            return visitReference(symbol, context);
-        }
-
-        @Override
-        public FieldExtractor<GetResponse> visitFunction(Function symbol, Context context) {
-            List<FieldExtractor<GetResponse>> subExtractors = new ArrayList<>(symbol.arguments().size());
-            for (Symbol argument : symbol.arguments()) {
-                subExtractors.add(process(argument, context));
+        public FieldExtractor<GetResponse> build(Reference reference, final GetResponseContext context) {
+            final String field = reference.info().ident().columnIdent().fqn();
+            if (field.equals("_version")) {
+                return new FieldExtractor<GetResponse>() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return response.getVersion();
+                    }
+                };
+            } else if (field.equals("_id")) {
+                return new FieldExtractor<GetResponse>() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return response.getId();
+                    }
+                };
+            } else if (context.partitionValues.containsKey(field)) {
+                return new FieldExtractor<GetResponse>() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return context.partitionValues.get(field);
+                    }
+                };
+            } else {
+                return new FieldExtractor<GetResponse>() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        assert response.getSourceAsMap() != null;
+                        return XContentMapValues.extractValue(field, response.getSourceAsMap());
+                    }
+                };
             }
-            return new FunctionExtractor<>((Scalar) context.functions.getSafe(symbol.info().ident()), subExtractors);
-        }
-
-        @Override
-        public FieldExtractor<GetResponse> visitLiteral(Literal symbol, Context context) {
-            return new LiteralExtractor<>(symbol.value());
-        }
-
-        @Override
-        protected FieldExtractor<GetResponse> visitSymbol(Symbol symbol, Context context) {
-            throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Get operation not supported with symbol %s in the result column list", symbol));
         }
     }
+
 }
