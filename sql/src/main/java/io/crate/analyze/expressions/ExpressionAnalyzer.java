@@ -23,13 +23,13 @@ package io.crate.analyze.expressions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldResolver;
+import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -135,7 +135,12 @@ public class ExpressionAnalyzer {
 
     public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
         if (whereExpression.isPresent()) {
-            return new WhereClause(normalize(convert(whereExpression.get(), context)));
+            WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)));
+            if(whereClause.hasQuery()){
+                WhereClauseValidator whereClauseValidator = new WhereClauseValidator();
+                whereClauseValidator.validate(whereClause);
+            }
+            return whereClause;
         } else {
             return WhereClause.MATCH_ALL;
         }
@@ -383,7 +388,6 @@ public class ExpressionAnalyzer {
                 // we currently have no dynamics
                 return Literal.NULL;
             }
-            validateSystemColumnPredicate(left);
 
             Set<Object> rightValues = new HashSet<>();
             for (Expression expression : ((InListExpression) node.getValueList()).getValues()) {
@@ -410,7 +414,6 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, ExpressionAnalysisContext context) {
             Symbol argument = process(node.getValue(), context);
-            validateSystemColumnPredicate(argument);
 
             FunctionIdent isNullIdent =
                     new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(argument.valueType()));
@@ -496,50 +499,8 @@ public class ExpressionAnalyzer {
             }
             Comparison comparison = new Comparison(node.getType(), left, right);
             comparison.normalize(context);
-            validateSystemColumnComparison(comparison);
             FunctionInfo info = getFunctionInfo(comparison.toFunctionIdent());
             return context.allocateFunction(info, comparison.arguments());
-        }
-
-        /**
-         * Validates comparison of system columns like e.g. '_score'.
-         * Must be called AFTER comparison normalization.
-         */
-        protected void validateSystemColumnComparison(final Comparison comparison) {
-            Predicate<Symbol> invalidScoreComparison = new Predicate<Symbol>() {
-                @Override
-                public boolean apply(@Nullable Symbol input) {
-                    if (input instanceof Reference) {
-                        Reference ref = (Reference) input;
-                        return ref.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
-                                && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
-                                || insideNotPredicate);
-                    }
-                    return false;
-                }
-            };
-            if (Field.symbolOrTarget(comparison.left, invalidScoreComparison)) {
-                throw new UnsupportedOperationException(
-                        String.format(Locale.ENGLISH,
-                                "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
-                                _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()));
-            }
-        }
-
-        /**
-         * Validates usage of system columns (e.g. '_score') within predicates.
-         */
-        protected void validateSystemColumnPredicate(Symbol node) {
-            if (Field.symbolOrTarget(node, new Predicate<Symbol>() {
-                @Override
-                public boolean apply(@Nullable Symbol input) {
-                    return input instanceof Reference
-                            && ((Reference) input).info().ident().columnIdent().name().equalsIgnoreCase(_SCORE);
-                }
-            })) {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "System column '%s' cannot be used within a predicate", _SCORE));
-                }
         }
 
         @Override
@@ -679,7 +640,6 @@ public class ExpressionAnalyzer {
             if (!value.symbolType().isValueSymbol() && value.valueType().equals(DataTypes.UNDEFINED)) {
                 return Literal.NULL;
             }
-            validateSystemColumnPredicate(value);
 
             FunctionIdent functionIdent =
                     new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(value.valueType()));
