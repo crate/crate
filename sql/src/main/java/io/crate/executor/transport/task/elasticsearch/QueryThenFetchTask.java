@@ -74,7 +74,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class QueryThenFetchTask extends JobTask implements PagableTask {
+public class QueryThenFetchTask extends JobTask implements PageableTask {
 
     private static final TimeValue DEFAULT_KEEP_ALIVE = TimeValue.timeValueMinutes(5L);
     private final ESLogger logger = Loggers.getLogger(this.getClass());
@@ -217,7 +217,7 @@ public class QueryThenFetchTask extends JobTask implements PagableTask {
         requests = prepareRequests(references, pageInfo);
 
         if (!routing.hasLocations() || requests.size() == 0) {
-            result.set(PagableTaskResult.EMPTY_PAGABLE_RESULT);
+            result.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
         }
 
         state.blocks().globalBlockedRaiseException(ClusterBlockLevel.READ);
@@ -419,10 +419,10 @@ public class QueryThenFetchTask extends JobTask implements PagableTask {
         }
     }
 
-    class QTFScrollTaskResult implements PagableTaskResult {
+    class QTFScrollTaskResult implements PageableTaskResult {
 
         private final Object[][] rows;
-        private final SettableFuture<PagableTaskResult> future;
+        private final SettableFuture<PageableTaskResult> future;
         private final AtomicArray<QueryFetchSearchResult> queryFetchResults;
 
         public QTFScrollTaskResult(Object[][] rows) {
@@ -432,7 +432,7 @@ public class QueryThenFetchTask extends JobTask implements PagableTask {
         }
 
         @Override
-        public ListenableFuture<PagableTaskResult> fetch(final PageInfo pageInfo) {
+        public ListenableFuture<PageableTaskResult> fetch(final PageInfo pageInfo) {
             final AtomicInteger numOps = new AtomicInteger(numShards);
 
             final Scroll scroll = new Scroll(keepAlive.or(DEFAULT_KEEP_ALIVE));
@@ -461,7 +461,7 @@ public class QueryThenFetchTask extends JobTask implements PagableTask {
                                             final Object[][] rows = toRows(hits, extractors);
 
                                             if (rows.length == 0) {
-                                                future.set(PagableTaskResult.EMPTY_PAGABLE_RESULT);
+                                                future.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
                                                 close();
                                             } else {
                                                 future.set(new QTFScrollTaskResult(rows));

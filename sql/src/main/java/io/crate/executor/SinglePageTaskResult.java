@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
-public class SinglePageTaskResult implements PagableTaskResult {
+public class SinglePageTaskResult implements PageableTaskResult {
 
     private final Object[][] rows;
 
@@ -36,7 +36,7 @@ public class SinglePageTaskResult implements PagableTaskResult {
     }
 
     @Override
-    public ListenableFuture<PagableTaskResult> fetch(PageInfo pageInfo) {
+    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
         throw new NoSuchElementException();
     }
 
@@ -51,7 +51,7 @@ public class SinglePageTaskResult implements PagableTaskResult {
         return null;
     }
 
-    public static PagableTaskResult singlePage(Object[][] rows) {
+    public static PageableTaskResult singlePage(Object[][] rows) {
         return new SinglePageTaskResult(rows);
     }
 

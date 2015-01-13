@@ -34,11 +34,11 @@ import java.util.NoSuchElementException;
  * asynchronously.
  *
  */
-public interface PagableTaskResult extends TaskResult, Closeable {
+public interface PageableTaskResult extends TaskResult, Closeable {
 
-    public static final PagableTaskResult EMPTY_PAGABLE_RESULT = new PagableTaskResult() {
+    public static final PageableTaskResult EMPTY_PAGABLE_RESULT = new PageableTaskResult() {
         @Override
-        public ListenableFuture<PagableTaskResult> fetch(PageInfo pageInfo) {
+        public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
             return Futures.immediateFailedFuture(new NoSuchElementException());
         }
 
@@ -65,7 +65,7 @@ public interface PagableTaskResult extends TaskResult, Closeable {
      * @param pageInfo identifying the page to fetch
      * @return a future holding the result of fetching the next page
      */
-    ListenableFuture<PagableTaskResult> fetch(PageInfo pageInfo);
+    ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo);
 
 
     /**

@@ -1099,13 +1099,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(results.size(), is(1));
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PagableTaskResult.class));
+        assertThat(result, instanceOf(PageableTaskResult.class));
         assertThat(TestingHelpers.printedTable(result.rows()), is(
                 "1| Arthur| false\n" +
                 "4| Arthur| true\n"
                 ));
-        ListenableFuture<PagableTaskResult> nextPageResultFuture = ((PagableTaskResult)result).fetch(pageInfo.nextPage(2));
-        PagableTaskResult nextPageResult = nextPageResultFuture.get();
+        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo.nextPage(2));
+        PageableTaskResult nextPageResult = nextPageResultFuture.get();
         assertThat(TestingHelpers.printedTable(nextPageResult.rows()), is(
                 "2| Ford| false\n" +
                 "3| Trillian| true\n"
@@ -1145,13 +1145,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(results.size(), is(1));
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PagableTaskResult.class));
+        assertThat(result, instanceOf(PageableTaskResult.class));
         assertThat(TestingHelpers.printedTable(result.rows()), is(
                 "4| Arthur| true\n" +
                 "2| Ford| false\n"
         ));
-        ListenableFuture<PagableTaskResult> nextPageResultFuture = ((PagableTaskResult)result).fetch(pageInfo.nextPage(2));
-        PagableTaskResult nextPageResult = nextPageResultFuture.get();
+        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo.nextPage(2));
+        PageableTaskResult nextPageResult = nextPageResultFuture.get();
         assertThat(TestingHelpers.printedTable(nextPageResult.rows()), is(
                 "3| Trillian| true\n"
         ));
@@ -1191,15 +1191,15 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PagableTaskResult.class));
+        assertThat(result, instanceOf(PageableTaskResult.class));
 
         assertThat(result.rows().length, is(2));
 
-        ListenableFuture<PagableTaskResult> nextPageResultFuture = ((PagableTaskResult)result).fetch(pageInfo.nextPage(2));
-        PagableTaskResult nextPageResult = nextPageResultFuture.get();
+        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo.nextPage(2));
+        PageableTaskResult nextPageResult = nextPageResultFuture.get();
         assertThat(nextPageResult.rows().length, is(1));
 
-        PagableTaskResult furtherPageResult = nextPageResult.fetch(pageInfo.nextPage(2)).get();
+        PageableTaskResult furtherPageResult = nextPageResult.fetch(pageInfo.nextPage(2)).get();
         assertThat(furtherPageResult.rows().length, is(0));
 
         furtherPageResult.close();
