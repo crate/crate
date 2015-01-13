@@ -24,15 +24,14 @@ package io.crate.operation.projectors;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Constants;
-import io.crate.metadata.ColumnIdent;
+import io.crate.executor.transport.ShardUpdateRequest;
+import io.crate.executor.transport.TransportShardUpdateAction;
+import io.crate.executor.transport.task.ShardUpdateResponse;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.update.TransportUpdateAction;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -41,7 +40,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,9 +53,10 @@ public class UpdateProjector implements Projector {
     private final List<SettableFuture<Long>> updateResults = new ArrayList<>();
 
     private final ShardId shardId;
-    private final TransportUpdateAction transportUpdateAction;
-    private final List<ColumnIdent> columnIdents;
-    private final CollectExpression<?>[] collectExpressions;
+    private final TransportShardUpdateAction transportUpdateAction;
+    private final CollectExpression<?> collectUidExpression;
+    // The key of this map is expected to be a FQN columnIdent.
+    private final Map<String, Symbol> assignments;
     @Nullable
     private final Long requiredVersion;
     private final Object lock = new Object();
@@ -65,16 +64,15 @@ public class UpdateProjector implements Projector {
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     public UpdateProjector(ShardId shardId,
-                           TransportUpdateAction transportUpdateAction,
-                           List<ColumnIdent> columnIdents,
-                           CollectExpression<?>[] collectExpressions,
+                           TransportShardUpdateAction transportUpdateAction,
+                           CollectExpression<?> collectUidExpression,
+                           Map<String, Symbol> assignments,
                            @Nullable Long requiredVersion) {
         this.shardId = shardId;
         this.transportUpdateAction = transportUpdateAction;
-        this.columnIdents = columnIdents;
-        this.collectExpressions = collectExpressions;
+        this.collectUidExpression = collectUidExpression;
+        this.assignments = assignments;
         this.requiredVersion = requiredVersion;
-
     }
 
     @Override
@@ -87,18 +85,16 @@ public class UpdateProjector implements Projector {
     @Override
     public boolean setNextRow(Object... row) {
         synchronized (lock) {
-            for (CollectExpression<?> collectExpression : collectExpressions) {
-                collectExpression.setNextRow(row);
-            }
+            collectUidExpression.setNextRow(row);
 
             final SettableFuture<Long> future = SettableFuture.create();
             updateResults.add(future);
 
-            final UpdateRequest updateRequest = updateRequest();
+            final ShardUpdateRequest updateRequest = updateRequest();
 
-            transportUpdateAction.execute(updateRequest, new ActionListener<UpdateResponse>() {
+            transportUpdateAction.execute(updateRequest, new ActionListener<ShardUpdateResponse>() {
                 @Override
-                public void onResponse(UpdateResponse updateResponse) {
+                public void onResponse(ShardUpdateResponse updateResponse) {
                     future.set(1L);
                 }
 
@@ -120,17 +116,12 @@ public class UpdateProjector implements Projector {
         return true;
     }
 
-    private UpdateRequest updateRequest() {
-        Map<String, Object> updateDoc = new HashMap<>(columnIdents.size());
+    private ShardUpdateRequest updateRequest() {
+        // resolve the Uid
+        Uid uid = Uid.createUid(((BytesRef)collectUidExpression.value()).utf8ToString());
 
-        // first input is always the doc's uid
-        Uid uid = Uid.createUid(((BytesRef)collectExpressions[0].value()).utf8ToString());
-
-        for (int i = 0; i < columnIdents.size(); i++) {
-            updateDoc.put(columnIdents.get(i).fqn(), collectExpressions[i+1].value());
-        }
-
-        return new ProjectorUpdateRequest(shardId, uid, updateDoc);
+        ShardUpdateRequest request = new ShardUpdateRequest(shardId, uid, requiredVersion);
+        return request.assignments(assignments);
     }
 
     @Override
@@ -189,19 +180,5 @@ public class UpdateProjector implements Projector {
                 downstream.upstreamFailed(t);
             }
         });
-    }
-
-    class ProjectorUpdateRequest extends UpdateRequest {
-
-        ProjectorUpdateRequest(ShardId shardId, Uid uid, Map<String, Object> updateDoc) {
-            super(shardId.getIndex(), uid.type(), uid.id());
-            this.shardId = shardId.id();
-            if (requiredVersion != null) {
-                version(requiredVersion);
-            } else {
-                retryOnConflict(Constants.UPDATE_RETRY_ON_CONFLICT);
-            }
-            paths(updateDoc);
-        }
     }
 }

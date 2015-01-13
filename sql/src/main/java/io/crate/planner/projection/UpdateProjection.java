@@ -23,7 +23,6 @@ package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
 import io.crate.types.DataTypes;
@@ -32,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,23 +48,24 @@ public class UpdateProjection extends Projection {
             new Value(DataTypes.LONG)  // number of rows updated
     );
 
-    private Map<Reference, Symbol> assignments;
+    // The key of this map is expected to be a FQN columnIdent.
+    private Map<String, Symbol> assignments;
     @Nullable
     private Long requiredVersion;
-    private List<Symbol> inputs = ImmutableList.of();
+    private Symbol uidSymbol;
 
-    public UpdateProjection(Map<Reference, Symbol> assignments,
-                            List<Symbol> inputs,
+    public UpdateProjection(Symbol uidSymbol,
+                            Map<String, Symbol> assignments,
                             @Nullable Long requiredVersion) {
+        this.uidSymbol = uidSymbol;
         this.assignments = assignments;
-        this.inputs = inputs;
         this.requiredVersion = requiredVersion;
     }
 
     public UpdateProjection() {
     }
 
-    public Map<Reference, Symbol> assignments() {
+    public Map<String, Symbol> assignments() {
         return assignments;
     }
 
@@ -90,8 +89,8 @@ public class UpdateProjection extends Projection {
         return OUTPUTS;
     }
 
-    public List<? extends Symbol> inputs() {
-        return inputs;
+    public Symbol uidSymbol() {
+        return uidSymbol;
     }
 
     @Override
@@ -102,9 +101,9 @@ public class UpdateProjection extends Projection {
         UpdateProjection that = (UpdateProjection) o;
 
         if (!assignments.equals(that.assignments)) return false;
-        if (!inputs.equals(that.inputs)) return false;
         if (requiredVersion != null ? !requiredVersion.equals(that.requiredVersion) : that.requiredVersion != null)
             return false;
+        if (!uidSymbol.equals(that.uidSymbol)) return false;
 
         return true;
     }
@@ -114,21 +113,17 @@ public class UpdateProjection extends Projection {
         int result = super.hashCode();
         result = 31 * result + assignments.hashCode();
         result = 31 * result + (requiredVersion != null ? requiredVersion.hashCode() : 0);
-        result = 31 * result + inputs.hashCode();
+        result = 31 * result + uidSymbol.hashCode();
         return result;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        int numInputs = in.readVInt();
-        inputs = new ArrayList<>(numInputs);
-        for (int i = 0; i < numInputs; i++) {
-            inputs.add(Symbol.fromStream(in));
-        }
+        uidSymbol = Symbol.fromStream(in);
         int mapSize = in.readVInt();
         assignments = new HashMap<>(mapSize);
         for (int i = 0; i < mapSize; i++) {
-            assignments.put((Reference)Symbol.fromStream(in), Symbol.fromStream(in));
+            assignments.put(in.readString(), Symbol.fromStream(in));
         }
         requiredVersion = in.readVLong();
         if (requiredVersion == 0) {
@@ -138,13 +133,10 @@ public class UpdateProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(inputs.size());
-        for (Symbol symbol : inputs) {
-            Symbol.toStream(symbol, out);
-        }
+        Symbol.toStream(uidSymbol, out);
         out.writeVInt(assignments.size());
-        for (Map.Entry<Reference, Symbol> entry : assignments.entrySet()) {
-            Symbol.toStream(entry.getKey(), out);
+        for (Map.Entry<String, Symbol> entry : assignments.entrySet()) {
+            out.writeString(entry.getKey());
             Symbol.toStream(entry.getValue(), out);
         }
         if (requiredVersion == null) {
