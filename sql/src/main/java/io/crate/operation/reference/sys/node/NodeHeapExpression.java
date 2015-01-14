@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.jvm.JvmService;
@@ -30,9 +28,6 @@ import org.elasticsearch.monitor.jvm.JvmService;
 public class NodeHeapExpression extends SysNodeObjectReference {
 
     abstract class HeapExpression extends SysNodeExpression<Object> {
-        HeapExpression(String name) {
-            super(new ColumnIdent(NAME, ImmutableList.of(name)));
-        }
     }
 
     public static final String NAME = "heap";
@@ -45,25 +40,24 @@ public class NodeHeapExpression extends SysNodeObjectReference {
 
     @Inject
     public NodeHeapExpression(JvmService jvmService) {
-        super(NAME);
         this.jvmService = jvmService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(FREE, new HeapExpression(FREE) {
+        childImplementations.put(FREE, new HeapExpression() {
             @Override
             public Long value() {
                 return jvmService.stats().mem().getHeapMax().bytes() - jvmService.stats().mem().getHeapUsed().bytes();
             }
         });
-        childImplementations.put(USED, new HeapExpression(USED) {
+        childImplementations.put(USED, new HeapExpression() {
             @Override
             public Long value() {
                 return jvmService.stats().mem().getHeapUsed().bytes();
             }
         });
-        childImplementations.put(MAX, new HeapExpression(MAX) {
+        childImplementations.put(MAX, new HeapExpression() {
             @Override
             public Long value() {
                 return jvmService.stats().mem().getHeapMax().bytes();

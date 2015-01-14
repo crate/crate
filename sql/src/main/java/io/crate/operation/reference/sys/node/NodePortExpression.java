@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -35,10 +33,6 @@ public class NodePortExpression extends SysNodeObjectReference {
     public static final String NAME = "port";
 
     abstract class PortExpression extends SysNodeExpression<Integer> {
-
-        PortExpression(String name) {
-            super(new ColumnIdent(NAME, ImmutableList.of(name)));
-        }
     }
 
     public static final String HTTP = "http";
@@ -48,13 +42,12 @@ public class NodePortExpression extends SysNodeObjectReference {
 
     @Inject
     public NodePortExpression(NodeService nodeService) {
-        super(NAME);
         this.nodeService = nodeService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(HTTP, new PortExpression(HTTP) {
+        childImplementations.put(HTTP, new PortExpression() {
             @Override
             public Integer value() {
                 if (nodeService.info().getHttp() == null) {
@@ -63,7 +56,7 @@ public class NodePortExpression extends SysNodeObjectReference {
                 return portFromAddress(nodeService.info().getHttp().address().publishAddress());
             }
         });
-        childImplementations.put(TRANSPORT, new PortExpression(TRANSPORT) {
+        childImplementations.put(TRANSPORT, new PortExpression() {
             @Override
             public Integer value() {
                 return portFromAddress(nodeService.stats().getNode().address());

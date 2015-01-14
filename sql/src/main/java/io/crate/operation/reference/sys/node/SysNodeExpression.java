@@ -21,28 +21,9 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import org.elasticsearch.common.Preconditions;
 
 public abstract class SysNodeExpression<T> extends SysExpression<T> implements ReferenceImplementation {
 
-    private final ReferenceInfo info;
-
-    protected SysNodeExpression(String name) {
-        this(new ColumnIdent(name));
-    }
-
-    protected SysNodeExpression(ColumnIdent ident) {
-        info = SysNodesTableInfo.INFOS.get(ident);
-        Preconditions.checkNotNull(info, "info");
-    }
-
-    @Deprecated
-    public ReferenceInfo info() {
-        return info;
-    }
 }

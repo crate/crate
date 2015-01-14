@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.os.OsService;
@@ -30,9 +28,6 @@ import org.elasticsearch.monitor.os.OsService;
 public class NodeMemoryExpression extends SysNodeObjectReference {
 
     abstract class MemoryExpression extends SysNodeExpression<Object> {
-        MemoryExpression(String name) {
-            super(new ColumnIdent(NAME, ImmutableList.of(name)));
-        }
     }
 
     public static final String NAME = "mem";
@@ -46,31 +41,30 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
 
     @Inject
     public NodeMemoryExpression(OsService osService) {
-        super(NAME);
         this.osService = osService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(FREE, new MemoryExpression(FREE) {
+        childImplementations.put(FREE, new MemoryExpression() {
             @Override
             public Long value() {
                 return osService.stats().mem().actualFree().bytes();
             }
         });
-        childImplementations.put(USED, new MemoryExpression(USED) {
+        childImplementations.put(USED, new MemoryExpression() {
             @Override
             public Long value() {
                 return osService.stats().mem().actualUsed().bytes();
             }
         });
-        childImplementations.put(FREE_PERCENT, new MemoryExpression(FREE_PERCENT) {
+        childImplementations.put(FREE_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
                 return osService.stats().mem().freePercent();
             }
         });
-        childImplementations.put(USED_PERCENT, new MemoryExpression(USED_PERCENT) {
+        childImplementations.put(USED_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
                 return osService.stats().mem().usedPercent();

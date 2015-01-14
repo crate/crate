@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.os.OsService;
@@ -39,19 +37,17 @@ public class NodeLoadExpression extends SysNodeObjectReference {
 
     @Inject
     public NodeLoadExpression(OsService osService) {
-        super(NAME);
         this.osService = osService;
-        childImplementations.put(ONE, new LoadExpression(0, ONE));
-        childImplementations.put(FIVE, new LoadExpression(1, FIVE));
-        childImplementations.put(FIFTEEN, new LoadExpression(2, FIFTEEN));
+        childImplementations.put(ONE, new LoadExpression(0));
+        childImplementations.put(FIVE, new LoadExpression(1));
+        childImplementations.put(FIFTEEN, new LoadExpression(2));
     }
 
     class LoadExpression extends SysNodeExpression<Double> {
 
         private final int idx;
 
-        LoadExpression(int idx, String name) {
-            super(new ColumnIdent(NAME, ImmutableList.of(name)));
+        LoadExpression(int idx) {
             this.idx = idx;
         }
 
