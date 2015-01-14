@@ -1314,7 +1314,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupByHavingOtherColumnOutsideAggregate() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause");
+        expectedException.expectMessage("Cannot use column users.bytes outside of an Aggregation in HAVING clause");
 
         analyze("select sum(floats) from users group by name having bytes = 4");
     }
@@ -1322,7 +1322,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupByHavingOtherColumnOutsideAggregateInFunction() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause");
+        expectedException.expectMessage("Cannot use column users.bytes outside of an Aggregation in HAVING clause");
 
         analyze("select sum(floats), name from users group by name having (bytes + 1)  = 4");
     }
@@ -1384,7 +1384,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGlobalAggregateReference() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause. Only GROUP BY keys allowed here.");
+        expectedException.expectMessage("Cannot use column users.bytes outside of an Aggregation in HAVING clause. Only GROUP BY keys allowed here.");
 
         analyze("select sum(floats) from users having bytes in (42, 43, 44)");
     }
