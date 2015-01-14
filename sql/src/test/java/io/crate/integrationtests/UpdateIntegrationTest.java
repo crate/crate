@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,31 +50,38 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdate() throws Exception {
-        execute("create table test (message string)");
+        execute("create table test (message string) clustered into 2 shards");
         ensureGreen();
 
-        execute("insert into test values('hello'),('again')");
-        assertEquals(2, response.rowCount());
+        execute("insert into test values('hello'),('again'),('hello'),('hello')");
+        assertEquals(4, response.rowCount());
         refresh();
 
         execute("update test set message='b' where message = 'hello'");
 
-        assertEquals(1, response.rowCount());
+        assertEquals(3, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select message from test where message='b'");
-        assertEquals(1, response.rowCount());
+        assertEquals(3, response.rowCount());
         assertEquals("b", response.rows()[0][0]);
+    }
 
+    @Test
+    public void testUpdateByPrimaryKeyUnknownDocument() {
+        execute("create table test (id int primary key, message string)");
+        ensureGreen();
+        execute("update test set message='b' where id = 1");
+        assertEquals(0, response.rowCount());
     }
 
     @Test
     public void testUpdateWithExpression() throws Exception {
-        execute("create table test (id integer, other_id long)");
+        execute("create table test (id integer, other_id long, name string)");
         ensureGreen();
 
-        execute("insert into test (id, other_id) values(1, 10),(2, 20)");
+        execute("insert into test (id, other_id, name) values(1, 10, 'Ford'),(2, 20, 'Arthur')");
         assertEquals(2, response.rowCount());
         refresh();
 
@@ -82,10 +90,34 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rowCount());
         refresh();
 
-        execute("select id from test order by id");
+        execute("select id, other_id, name from test order by id");
         assertEquals(2, response.rowCount());
         assertEquals(110, response.rows()[0][0]);
+        assertEquals(10, response.rows()[0][1]);
+        assertEquals("Ford", response.rows()[0][2]);
         assertEquals(240, response.rows()[1][0]);
+        assertEquals(20, response.rows()[1][1]);
+        assertEquals("Arthur", response.rows()[1][2]);
+    }
+
+    @Test
+    public void testUpdateByPrimaryKeyWithExpression() throws Exception {
+        execute("create table test (id integer primary key, other_id long)");
+        ensureGreen();
+
+        execute("insert into test (id, other_id) values(1, 10),(2, 20)");
+        assertEquals(2, response.rowCount());
+        refresh();
+
+        execute("update test set other_id=(id+10)*id where id = 2");
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select other_id from test order by id");
+        assertEquals(2, response.rowCount());
+        assertEquals(10, response.rows()[0][0]);
+        assertEquals(24, response.rows()[1][0]);
     }
 
     @Test
@@ -512,5 +544,25 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Integer) response.rows()[0][1], is(4));
     }
 
+    @Test
+    public void testUpdateRetryOnVersionConflict() throws Exception {
+        // issue a bulk update request updating the same document to force a version conflict
+        execute("create table test (a string, b int) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (a, b) values ('foo', 1)");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        SQLBulkResponse bulkResp = execute("update test set a = ? where b = ?",
+                new Object[][]{
+                        new Object[]{"bar", 1},
+                        new Object[]{"baz", 1},
+                        new Object[]{"foobar", 1}});
+        assertThat(bulkResp.results().length, is(3));
+        // all statements must succeed and return 1 affected row
+        for (SQLBulkResponse.Result result : bulkResp.results()) {
+            assertThat(result.rowCount(), is(1L));
+        }
+    }
 
 }

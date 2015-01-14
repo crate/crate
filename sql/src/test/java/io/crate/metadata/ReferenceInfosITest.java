@@ -121,7 +121,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     @Test
     public void testNodesTable() throws Exception {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "nodes"));
-        Routing routing = ti.getRouting(null);
+        Routing routing = ti.getRouting(null, null);
         assertTrue(routing.hasLocations());
         assertEquals(2, routing.nodes().size());
         for (Map<String, Set<Integer>> indices : routing.locations().values()) {
@@ -136,7 +136,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "shards"));
-        Routing routing = ti.getRouting(null);
+        Routing routing = ti.getRouting(null, null);
 
         Set<String> tables = new HashSet<>();
         Set<String> expectedTables = Sets.newHashSet("t2", "t3");
@@ -154,7 +154,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterTable() throws Exception {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
-        assertTrue(ti.getRouting(null).locations().containsKey(null));
+        assertTrue(ti.getRouting(null, null).locations().containsKey(null));
     }
 
     @Test

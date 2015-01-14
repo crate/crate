@@ -86,7 +86,7 @@ public class SysJobsLogTableInfo extends SysTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return tableRouting(whereClause);
     }
 

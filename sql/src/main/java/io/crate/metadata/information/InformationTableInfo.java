@@ -80,7 +80,7 @@ public class InformationTableInfo extends AbstractTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return routing;
     }
 

@@ -169,7 +169,7 @@ atomic operation and could lead to inconsistent state::
 
     cr> UPDATE parted_table set content = 'now panic!', day = '2014-04-07'
     ... WHERE id = 1;
-    SQLActionException[Updating a partitioned-by column is not supported]
+    SQLActionException[Validation failed for day: Updating a partitioned-by column is not supported]
 
 ::
 

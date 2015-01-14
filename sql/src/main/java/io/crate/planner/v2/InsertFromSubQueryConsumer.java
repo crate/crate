@@ -154,7 +154,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
         private AnalyzedRelation groupBy(SelectAnalyzedStatement statement, TableRelation tableRelation, WhereClauseContext whereClauseContext,
                                                @Nullable ColumnIndexWriterProjection indexWriterProjection, @Nullable Functions functions){
             TableInfo tableInfo = tableRelation.tableInfo();
-            if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(statement.whereClause()))) {
+            if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(statement.whereClause(), null))) {
                 return NonDistributedGroupByConsumer.nonDistributedGroupBy(statement, tableRelation, whereClauseContext, indexWriterProjection);
             } else if (groupedByClusteredColumnOrPrimaryKeys(statement, tableRelation)) {
                 return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(statement, tableRelation, whereClauseContext, indexWriterProjection);
@@ -200,7 +200,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
             }
 
             TableInfo tableInfo = tableRelation.tableInfo();
-            Routing routing = tableInfo.getRouting(whereClauseContext.whereClause());
+            Routing routing = tableInfo.getRouting(whereClauseContext.whereClause(), null);
 
             // collector
             contextBuilder.addProjection(new GroupProjection(

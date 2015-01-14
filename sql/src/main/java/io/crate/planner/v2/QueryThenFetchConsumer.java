@@ -80,7 +80,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 return null;
             }
             return new QueryThenFetchNode(
-                    tableInfo.getRouting(whereClauseContext.whereClause()),
+                    tableInfo.getRouting(whereClauseContext.whereClause(), null),
                     tableRelation.resolve(statement.outputSymbols()),
                     tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()),
                     statement.orderBy().reverseFlags(),
