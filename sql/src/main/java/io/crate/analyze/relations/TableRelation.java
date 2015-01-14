@@ -51,6 +51,7 @@ public class TableRelation implements AnalyzedRelation {
     private TableInfo tableInfo;
     private List<Field> outputs;
     private final static FieldUnwrappingVisitor FIELD_UNWRAPPING_VISITOR = new FieldUnwrappingVisitor();
+    private final static SortValidator SORT_VALIDATOR = new SortValidator();
 
     public TableRelation(TableInfo tableInfo) {
         this.tableInfo = tableInfo;
@@ -178,6 +179,20 @@ public class TableRelation implements AnalyzedRelation {
         return result;
     }
 
+    public List<Symbol> resolveAndValidateOrderBy(List<Symbol> orderBySymbols) {
+        List<Symbol> result = new ArrayList<>(orderBySymbols.size());
+        for (Symbol symbol : orderBySymbols) {
+            Symbol resolved = resolve(symbol);
+            validate(resolved);
+            result.add(resolved);
+        }
+        return result;
+    }
+
+    private void validate(Symbol resolvedSymbol) throws IllegalArgumentException {
+        SORT_VALIDATOR.process(resolvedSymbol, this);
+    }
+
     private static class FieldUnwrappingVisitor extends SymbolVisitor<AnalyzedRelation, Symbol> {
 
         @Override
@@ -200,6 +215,35 @@ public class TableRelation implements AnalyzedRelation {
         @Override
         protected Symbol visitSymbol(Symbol symbol, AnalyzedRelation context) {
             return symbol;
+        }
+    }
+
+    private static class SortValidator extends SymbolVisitor<TableRelation, Symbol> {
+
+        @Override
+        public Symbol visitFunction(Function symbol, TableRelation context) {
+            for (Symbol arg : symbol.arguments()) {
+                process(arg, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Symbol visitReference(Reference symbol, TableRelation context) {
+            if (context.tableInfo.partitionedBy().contains(symbol.info().ident().columnIdent())) {
+                throw new UnsupportedOperationException(
+                        SymbolFormatter.format(
+                                "cannot use partitioned column %s in ORDER BY clause", symbol));
+            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
+                throw new UnsupportedOperationException(
+                        String.format("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible",
+                                SymbolFormatter.format(symbol)));
+            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
+                throw new UnsupportedOperationException(
+                        String.format("Cannot ORDER BY '%s': sorting on non-indexed columns is not possible",
+                                SymbolFormatter.format(symbol)));
+            }
+            return null;
         }
     }
 }

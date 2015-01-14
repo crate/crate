@@ -103,7 +103,7 @@ public class ESGetConsumer implements Consumer {
                     statement.outputTypes(),
                     whereClauseContext.ids(),
                     whereClauseContext.routingValues(),
-                    tableRelation.resolve(statement.orderBy().orderBySymbols()),
+                    tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()),
                     statement.orderBy().reverseFlags(),
                     statement.orderBy().nullsFirst(),
                     statement.limit(),

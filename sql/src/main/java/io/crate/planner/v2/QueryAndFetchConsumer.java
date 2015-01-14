@@ -30,7 +30,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.validator.SortSymbolValidator;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -60,7 +59,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static io.crate.planner.symbol.Field.unwrap;
 
 public class QueryAndFetchConsumer implements Consumer {
 
@@ -107,12 +105,8 @@ public class QueryAndFetchConsumer implements Consumer {
 
             TableRelation tableRelation = (TableRelation) sourceRelation;
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(unwrap(statement.whereClause()));
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(tableRelation.resolve(statement.whereClause()));
             TableInfo tableInfo = tableRelation.tableInfo();
-
-            for (Symbol symbol : statement.orderBy().orderBySymbols()) {
-                SortSymbolValidator.validate(symbol, tableInfo.partitionedBy());
-            }
 
             if (tableInfo.schemaInfo().systemSchema() && whereClauseContext.whereClause().hasQuery()) {
                 ensureNoLuceneOnlyPredicates(whereClauseContext.whereClause().query());
@@ -163,7 +157,7 @@ public class QueryAndFetchConsumer implements Consumer {
         WhereClause whereClause = whereClauseContext.whereClause();
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
                 .output(tableRelation.resolve(statement.outputSymbols()))
-                .orderBy(tableRelation.resolve(statement.orderBy().orderBySymbols()));
+                .orderBy(tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()));
         ImmutableList<Projection> projections;
         if (statement.isLimited()) {
             // if we have an offset we have to get as much docs from every node as we have offset+limit

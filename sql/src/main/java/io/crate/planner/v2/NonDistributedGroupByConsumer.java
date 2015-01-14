@@ -140,7 +140,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
         PlannerContextBuilder contextBuilder =
                 new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
                         .output(tableRelation.resolve(analysis.outputSymbols()))
-                        .orderBy(tableRelation.resolve(analysis.orderBy().orderBySymbols()));
+                        .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.orderBy().orderBySymbols()));
 
         Symbol havingClause = null;
         if(analysis.havingClause() != null){

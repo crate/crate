@@ -30,7 +30,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
-import io.crate.analyze.validator.SortSymbolValidator;
+import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
@@ -190,7 +190,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             SortItem sortItem = orderBy.get(i);
             Expression sortKey = sortItem.getSortKey();
             Symbol symbol = symbolFromSelectOutputReferenceOrExpression(sortKey, selectAnalysis, "ORDER BY");
-            SortSymbolValidator.validate(symbol, null);
+            SemanticSortValidator.validate(symbol);
 
             symbols.add(symbol);
             switch (sortItem.getNullOrdering()) {

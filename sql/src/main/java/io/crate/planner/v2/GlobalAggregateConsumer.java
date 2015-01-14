@@ -39,8 +39,6 @@ import io.crate.planner.symbol.Symbol;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.crate.planner.symbol.Field.unwrap;
-
 public class GlobalAggregateConsumer implements Consumer {
 
     private final Visitor visitor;
@@ -81,7 +79,7 @@ public class GlobalAggregateConsumer implements Consumer {
             return null;
         }
         // global aggregate: collect and partial aggregate on C and final agg on H
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(unwrap(statement.outputSymbols()));
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(tableRelation.resolve(statement.outputSymbols()));
 
         // havingClause could be a Literal or Function.
         // if its a Literal and value is false, we'll never reach this point (no match),

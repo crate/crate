@@ -951,20 +951,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testOrderByOnAnalyzed() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'users.text': sorting on analyzed/fulltext columns is not possible");
-        analyze("select text from users u order by 1");
-    }
-
-    @Test
-    public void testOrderByOnIndexOff() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'users.no_index': sorting on non-indexed columns is not possible");
-        analyze("select no_index from users u order by 1");
-    }
-
-    @Test
     public void testArithmeticPlus() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select load['1'] + load['5'] from sys.nodes");
         assertThat(((Function) analysis.outputSymbols().get(0)).info().ident().name(), is(AddFunction.NAME));
@@ -1626,12 +1612,5 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(symbols.size(), is(2));
         assertThat(unwrap(symbols.get(0)), isReference("id"));
         assertThat(symbols.get(1), isFunction("abs"));
-    }
-
-    @Test
-    public void testSortOnUnknownColumn() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot order by \"users.o['unknown_column']\". The column doesn't exist.");
-        analyze("select name from users order by o['unknown_column']");
     }
 }

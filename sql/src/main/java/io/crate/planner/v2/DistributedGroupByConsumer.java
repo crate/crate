@@ -109,7 +109,7 @@ public class DistributedGroupByConsumer implements Consumer {
             }
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, tableRelation.resolve(statement.groupBy()))
                     .output(tableRelation.resolve(statement.outputSymbols()))
-                    .orderBy(tableRelation.resolve(statement.orderBy().orderBySymbols()));
+                    .orderBy(tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()));
 
             Symbol havingClause = null;
             if(statement.havingClause() != null){

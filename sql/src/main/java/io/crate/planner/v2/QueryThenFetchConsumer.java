@@ -27,13 +27,11 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.validator.SortSymbolValidator;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.QueryThenFetchNode;
-import io.crate.planner.symbol.Symbol;
 
 public class QueryThenFetchConsumer implements Consumer {
 
@@ -77,18 +75,10 @@ public class QueryThenFetchConsumer implements Consumer {
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
 
-            for (Symbol symbol : statement.orderBy().orderBySymbols()) {
-                /**
-                 * this verifies that there are no partitioned by columns in the ORDER BY clause.
-                 * TODO: instead of throwing errors this should be added as warnings/info to the ConsumerContext
-                 * to indicate why this Consumer can't produce a plan node
-                 */
-                SortSymbolValidator.validate(symbol, tableInfo.partitionedBy());
-            }
             return new QueryThenFetchNode(
                     tableInfo.getRouting(whereClauseContext.whereClause()),
                     tableRelation.resolve(statement.outputSymbols()),
-                    tableRelation.resolve(statement.orderBy().orderBySymbols()),
+                    tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()),
                     statement.orderBy().reverseFlags(),
                     statement.orderBy().nullsFirst(),
                     statement.limit(),

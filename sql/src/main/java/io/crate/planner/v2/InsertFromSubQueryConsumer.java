@@ -183,7 +183,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
             List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, groupBy, ignoreSorting)
                     .output(tableRelation.resolve(analysis.outputSymbols()))
-                    .orderBy(tableRelation.resolve(analysis.orderBy().orderBySymbols()));
+                    .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.orderBy().orderBySymbols()));
 
             Symbol havingClause = null;
             if(analysis.havingClause() != null){
@@ -229,7 +229,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 TopNProjection topN = new TopNProjection(
                         firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                         0,
-                        tableRelation.resolve(analysis.orderBy().orderBySymbols()),
+                        tableRelation.resolveAndValidateOrderBy(analysis.orderBy().orderBySymbols()),
                         analysis.orderBy().reverseFlags(),
                         analysis.orderBy().nullsFirst()
                 );

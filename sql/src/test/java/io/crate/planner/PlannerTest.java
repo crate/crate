@@ -120,6 +120,8 @@ public class PlannerTest {
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
                     .add("date", DataTypes.TIMESTAMP, null)
+                    .add("text", DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED)
+                    .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
@@ -1072,7 +1074,7 @@ public class PlannerTest {
         assertThat(projection.columnIdents().get(0).fqn(), is("date"));
         assertThat(projection.columnIdents().get(1).fqn(), is("id"));
         assertThat(projection.columnIdents().get(2).fqn(), is("name"));
-        assertThat(((InputColumn)projection.ids().get(0)).index(), is(1));
+        assertThat(((InputColumn) projection.ids().get(0)).index(), is(1));
         assertThat(((InputColumn)projection.clusteredBy()).index(), is(1));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
@@ -1452,5 +1454,26 @@ public class PlannerTest {
         topN = (TopNProjection) localMerge.projections().get(0);
         assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+    }
+
+    @Test
+    public void testOrderByOnAnalyzed() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot ORDER BY 'users.text': sorting on analyzed/fulltext columns is not possible");
+        plan("select text from users u order by 1");
+    }
+
+    @Test
+    public void testSortOnUnknownColumn() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot ORDER BY 'users.o['unknown_column']': invalid data type 'null'.");
+        plan("select name from users order by o['unknown_column']");
+    }
+
+    @Test
+    public void testOrderByOnIndexOff() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot ORDER BY 'users.no_index': sorting on non-indexed columns is not possible");
+        plan("select no_index from users u order by 1");
     }
 }
