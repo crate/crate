@@ -5,12 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/01/14 0.46.2
+=================
+
  - fix: throw correct exception if `_version` is misused in WHERE clause
 
  - improved string lookup performance for group queries and global aggregates
-
- - fix: throw correct exception if one uses `_version` in a select statements
-   where clause
 
  - Optimized memory estimates for min()/max() aggregates for the CircuitBreaker
 
