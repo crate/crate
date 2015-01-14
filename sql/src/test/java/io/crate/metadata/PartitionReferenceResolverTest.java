@@ -39,11 +39,6 @@ public class PartitionReferenceResolverTest {
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "foo"), "bar");
         when(fallbackRefResolver.getImplementation(ident)).thenReturn(new ReferenceImplementation() {
             @Override
-            public ReferenceInfo info() {
-                return null;
-            }
-
-            @Override
             public ReferenceImplementation getChildImplementation(String name) {
                 return null;
             }

@@ -43,7 +43,7 @@ public abstract class SysNodeStaticObjectArrayReference extends SysStaticObjectA
         Preconditions.checkNotNull(info, "info");
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

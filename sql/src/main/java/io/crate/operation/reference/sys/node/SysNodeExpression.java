@@ -41,7 +41,7 @@ public abstract class SysNodeExpression<T> extends SysExpression<T> implements R
         Preconditions.checkNotNull(info, "info");
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

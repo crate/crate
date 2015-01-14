@@ -41,7 +41,7 @@ public abstract class SysShardExpression<T> extends SysExpression<T> implements 
         Preconditions.checkNotNull(info, "info");
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

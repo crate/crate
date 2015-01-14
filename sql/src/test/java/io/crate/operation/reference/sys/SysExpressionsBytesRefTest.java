@@ -21,13 +21,7 @@
 
 package io.crate.operation.reference.sys;
 
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.planner.RowGranularity;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
@@ -45,10 +39,6 @@ public class SysExpressionsBytesRefTest {
             return null;
         }
 
-        @Override
-        public ReferenceInfo info() {
-            return new ReferenceInfo(new ReferenceIdent(new TableIdent("bla", "blubb"), "foo"), RowGranularity.DOC, DataTypes.STRING);
-        }
     }
 
     static class NullFieldSysObjectReference extends SysObjectReference {
@@ -57,10 +47,6 @@ public class SysExpressionsBytesRefTest {
             childImplementations.put("n", new BytesRefNullSysExpression());
         }
 
-        @Override
-        public ReferenceInfo info() {
-            return new ReferenceInfo(new ReferenceIdent(new TableIdent("bla", "blubb"), "foo"), RowGranularity.DOC, DataTypes.OBJECT);
-        }
     }
 
 
@@ -68,11 +54,6 @@ public class SysExpressionsBytesRefTest {
 
         protected NullSysObjectArrayReference() {
             childImplementations.add(new NullFieldSysObjectReference());
-        }
-
-        @Override
-        public ReferenceInfo info() {
-            return new ReferenceInfo(new ReferenceIdent(new TableIdent("bla", "blubb"), "foo"), RowGranularity.DOC, new ArrayType(DataTypes.STRING));
         }
     }
 
@@ -94,7 +75,7 @@ public class SysExpressionsBytesRefTest {
         Object[] values = nullArrayRef.value();
         assertThat(values.length, is(1));
         assertThat(values[0], instanceOf(Map.class));
-        Map<String, Object> mapValue = (Map<String, Object>)values[0];
+        Map<String, Object> mapValue = (Map<String, Object>) values[0];
 
         assertThat(mapValue.size(), is(1));
         assertThat(mapValue, hasKey("n"));

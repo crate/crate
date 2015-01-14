@@ -32,7 +32,7 @@ public abstract class RowContextCollectorExpression<R, T> implements ReferenceIm
         this.info = info;
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

@@ -35,7 +35,7 @@ public abstract class SysNodeObjectArrayReference extends SysObjectArrayReferenc
         Preconditions.checkNotNull(info, "info");
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

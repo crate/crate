@@ -25,7 +25,7 @@ public abstract class UnassignedShardCollectorExpression<T> implements Reference
         return null;
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

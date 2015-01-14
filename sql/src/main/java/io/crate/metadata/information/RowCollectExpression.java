@@ -43,7 +43,7 @@ public abstract class RowCollectExpression<R, T> implements ReferenceImplementat
         return null;
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

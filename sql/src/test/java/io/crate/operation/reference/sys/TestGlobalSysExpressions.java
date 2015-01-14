@@ -53,6 +53,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -136,14 +137,12 @@ public class TestGlobalSysExpressions {
     public void testChildImplementationLookup() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
         SysObjectReference load = (SysObjectReference) resolver.getImplementation(ident);
-        assertEquals(LOAD_INFO, load.info());
 
         Input ci = load.getChildImplementation("1");
         assertEquals(1D, ci.value());
 
-        ident = LOAD1_INFO.ident();
-        SysExpression<Double> l1 = (SysExpression<Double>) resolver.getImplementation(ident);
-        assertEquals(LOAD1_INFO, l1.info());
+        SysExpression<Double> l1 = (SysExpression<Double>) resolver.getImplementation(LOAD1_INFO.ident());
+        assertTrue(ci == l1);
     }
 
     @Test
