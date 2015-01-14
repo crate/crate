@@ -50,7 +50,7 @@ public class PlanNodeBuilder {
                                            List<Symbol> toCollect,
                                            List<String> downstreamNodes,
                                            ImmutableList<Projection> projections) {
-        CollectNode node = new CollectNode("distributing collect", tableInfo.getRouting(whereClause));
+        CollectNode node = new CollectNode("distributing collect", tableInfo.getRouting(whereClause, null));
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
         node.downStreamNodes(downstreamNodes);
@@ -108,9 +108,10 @@ public class PlanNodeBuilder {
                                WhereClause whereClause,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections,
-                               @Nullable String partitionIdent) {
+                               @Nullable String partitionIdent,
+                               @Nullable String routingPreference) {
         assert !Iterables.any(toCollect, Predicates.instanceOf(InputColumn.class)) : "cannot collect inputcolumns";
-        Routing routing = tableInfo.getRouting(whereClause);
+        Routing routing = tableInfo.getRouting(whereClause, routingPreference);
         if (partitionIdent != null && routing.hasLocations()) {
             routing = filterRouting(routing, PartitionName.fromPartitionIdent(
                     tableInfo.ident().schema(), tableInfo.ident().name(), partitionIdent).stringValue());
@@ -154,6 +155,14 @@ public class PlanNodeBuilder {
                                WhereClause whereClause,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections) {
-        return collect(tableInfo, whereClause, toCollect, projections, null);
+        return collect(tableInfo, whereClause, toCollect, projections, null, null);
+    }
+
+    public static CollectNode collect(TableInfo tableInfo,
+                               WhereClause whereClause,
+                               List<Symbol> toCollect,
+                               ImmutableList<Projection> projections,
+                               @Nullable String partitionIdent) {
+        return collect(tableInfo, whereClause, toCollect, projections, partitionIdent, null);
     }
 }

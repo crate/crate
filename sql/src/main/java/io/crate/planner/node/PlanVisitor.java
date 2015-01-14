@@ -65,11 +65,11 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitESUpdateNode(ESUpdateNode node, C context) {
+    public R visitUpdateNode(UpdateNode node, C context) {
         return visitPlanNode(node, context);
     }
 
-    public R visitUpdateNode(UpdateNode node, C context) {
+    public R visitUpdateByIdExecutionNode(UpdateByIdExecutionNode node, C context) {
         return visitPlanNode(node, context);
     }
 

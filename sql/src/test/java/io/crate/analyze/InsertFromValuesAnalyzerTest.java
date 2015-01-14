@@ -529,7 +529,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithMatchPredicateInValues() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Invalid value of type 'FUNCTION'");
+        expectedException.expectMessage("Invalid value 'FUNCTION' in insert statement");
         analyze("insert into users (id, awesome) values (1, match(name, 'bar'))");
     }
 

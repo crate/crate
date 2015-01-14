@@ -102,7 +102,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                 return statement;
             }
 
-            Routing routing = tableInfo.getRouting(whereClause);
+            Routing routing = tableInfo.getRouting(whereClause, null);
 
             if(GroupByConsumer.requiresDistribution(tableInfo, routing) && !(tableInfo.schemaInfo().systemSchema())){
                 return statement;

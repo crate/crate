@@ -22,7 +22,6 @@
 package io.crate.planner.v2;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
@@ -39,8 +38,9 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.PlannerContextBuilder;
+import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.dml.UpdateByIdExecutionNode;
 import io.crate.planner.node.dml.UpdateNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
@@ -55,6 +55,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
+import org.elasticsearch.cluster.routing.operation.plain.Preference;
 
 import java.util.*;
 
@@ -111,45 +112,81 @@ public class UpdateConsumer implements Consumer {
                 WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
                 WhereClause whereClause = whereClauseContext.whereClause();
 
-                if(whereClauseContext.whereClause().version().isPresent()){
-                    VersionRewriter versionRewriter = new VersionRewriter();
-                    Symbol whereClauseQuery = versionRewriter.rewrite(whereClause.query());
-                    whereClause = new WhereClause(whereClauseQuery);
-                }
-
-                if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
-                    // for updates, we always need to collect the `_uid`
-                    Reference uidReference = new Reference(
-                            new ReferenceInfo(
-                                    new ReferenceIdent(tableInfo.ident(), "_uid"),
-                                    RowGranularity.DOC, DataTypes.STRING));
-
-                    PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                            .output(Lists.newArrayList((Symbol) uidReference));
-
-                    Map<String, Symbol> assignments = new HashMap<>(nestedAnalysis.assignments().size());
-                    for(Map.Entry<Reference, Symbol> entry : nestedAnalysis.assignments().entrySet()) {
-                        assignments.put(entry.getKey().info().ident().columnIdent().fqn(), entry.getValue());
-                    }
-
-                    UpdateProjection updateProjection = new UpdateProjection(
-                            contextBuilder.outputs().get(0),
-                            assignments,
-                            whereClauseContext.whereClause().version().orNull());
-
-                    CollectNode collectNode = PlanNodeBuilder.collect(
-                            tableInfo,
-                            whereClause,
-                            contextBuilder.toCollect(),
-                            ImmutableList.<Projection>of(updateProjection)
-                    );
-                    MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                            ImmutableList.<Projection>of(localMergeProjection), collectNode);
-                    childNodes.add(ImmutableList.<DQLPlanNode>of(collectNode, mergeNode));
+                if (whereClauseContext.ids().size() >= 1
+                        && whereClauseContext.routingValues().size() == whereClauseContext.ids().size()) {
+                    childNodes.add(updateById(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
+                } else {
+                    childNodes.add(updateByQuery(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
                 }
             }
 
             return new UpdateNode(childNodes);
+        }
+
+        private List<DQLPlanNode> updateByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
+                                               TableInfo tableInfo,
+                                               WhereClause whereClause,
+                                               WhereClauseContext whereClauseContext) {
+
+            if(whereClauseContext.whereClause().version().isPresent()){
+                VersionRewriter versionRewriter = new VersionRewriter();
+                Symbol whereClauseQuery = versionRewriter.rewrite(whereClause.query());
+                whereClause = new WhereClause(whereClauseQuery);
+            }
+
+            if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
+                // for updates, we always need to collect the `_uid`
+                Reference uidReference = new Reference(
+                        new ReferenceInfo(
+                                new ReferenceIdent(tableInfo.ident(), "_uid"),
+                                RowGranularity.DOC, DataTypes.STRING));
+
+                UpdateProjection updateProjection = new UpdateProjection(
+                        new InputColumn(0, DataTypes.STRING),
+                        convertAssignments(nestedAnalysis.assignments()),
+                        whereClauseContext.whereClause().version().orNull());
+
+                CollectNode collectNode = PlanNodeBuilder.collect(
+                        tableInfo,
+                        whereClause,
+                        ImmutableList.<Symbol>of(uidReference),
+                        ImmutableList.<Projection>of(updateProjection),
+                        null,
+                        Preference.PRIMARY.type()
+                );
+                MergeNode mergeNode = PlanNodeBuilder.localMerge(
+                        ImmutableList.<Projection>of(localMergeProjection), collectNode);
+                return ImmutableList.<DQLPlanNode>of(collectNode, mergeNode);
+            } else {
+                return ImmutableList.of();
+            }
+        }
+
+        private List<DQLPlanNode> updateById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
+                                             TableInfo tableInfo,
+                                             WhereClause whereClause,
+                                             WhereClauseContext whereClauseContext) {
+            String[] indices = Planner.indices(tableInfo, whereClause);
+            assert indices.length == 1;
+            assert whereClauseContext.ids().size() == whereClauseContext.routingValues().size();
+            List<DQLPlanNode> nodes = new ArrayList<>(whereClauseContext.ids().size());
+            for (int i = 0; i < whereClauseContext.ids().size(); i++) {
+                nodes.add(new UpdateByIdExecutionNode(
+                                indices[0],
+                                whereClauseContext.ids().get(i),
+                                whereClauseContext.routingValues().get(i),
+                                convertAssignments(nestedAnalysis.assignments()),
+                                whereClause.version()));
+            }
+            return nodes;
+        }
+
+        private Map<String, Symbol> convertAssignments(Map<Reference, Symbol> assignments) {
+            Map<String, Symbol> convertedAssignments = new HashMap<>(assignments.size());
+            for(Map.Entry<Reference, Symbol> entry : assignments.entrySet()) {
+                convertedAssignments.put(entry.getKey().info().ident().columnIdent().fqn(), entry.getValue());
+            }
+            return convertedAssignments;
         }
 
         @Override

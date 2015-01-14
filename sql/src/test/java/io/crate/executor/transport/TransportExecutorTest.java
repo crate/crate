@@ -26,22 +26,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
-import io.crate.executor.TaskResult;
-import io.crate.metadata.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.executor.task.join.NestedLoopTask;
-import io.crate.executor.transport.task.elasticsearch.*;
+import io.crate.executor.transport.task.UpdateByIdTask;
+import io.crate.executor.transport.task.elasticsearch.ESBulkIndexTask;
+import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
+import io.crate.executor.transport.task.elasticsearch.ESIndexTask;
+import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.OrOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.Plan;
@@ -49,7 +50,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dml.UpdateByIdExecutionNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
@@ -79,7 +80,6 @@ import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
@@ -98,6 +98,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     TableIdent charactersIdent = new TableIdent(null, "characters");
     TableIdent booksIdent = new TableIdent(null, "books");
 
+    Reference uidRef = new Reference(new ReferenceInfo(
+            new ReferenceIdent(charactersIdent, "_uid"), RowGranularity.DOC, DataTypes.STRING));
     Reference idRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));
     Reference nameRef = new Reference(new ReferenceInfo(
@@ -308,7 +310,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
         QueryThenFetchNode node = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
+                characters.getRouting(WhereClause.MATCH_ALL, null),
                 Arrays.<Symbol>asList(idRef, nameRef),
                 Arrays.<Symbol>asList(nameRef, idRef),
                 new boolean[]{false, false},
@@ -712,26 +714,24 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testESUpdateByIdTask() throws Exception {
+    public void testUpdateByIdTask() throws Exception {
         insertCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
-        WhereClause whereClause = new WhereClause(null, false);
-        whereClause.clusteredByLiteral(Literal.newLiteral("1"));
-        ESUpdateNode updateNode = new ESUpdateNode(
-                new String[]{"characters"},
-                new HashMap<Reference, Symbol>(){{
-                    put(nameRef, Literal.newLiteral("Vogon lyric fan"));
+        UpdateByIdExecutionNode updateNode = new UpdateByIdExecutionNode(
+                "characters",
+                "1",
+                "1",
+                new HashMap<String, Symbol>(){{
+                    put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Vogon lyric fan"));
                 }},
-                whereClause,
-                asList("1"),
-                asList("1")
+                Optional.<Long>fromNullable(null)
         );
         Plan plan = new Plan();
         plan.add(updateNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESUpdateByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
@@ -752,130 +752,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat((Integer)objects[0][0], is(1));
         assertThat((String)objects[0][1], is("Vogon lyric fan"));
     }
-
-    @Test
-    public void testUpdateByQueryTaskWithVersion() throws Exception {
-        insertCharacters();
-
-        // do update
-        Function whereClauseFunction = new Function(AndOperator.INFO, Arrays.<Symbol>asList(
-                new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)),
-                        DataTypes.BOOLEAN),
-                        Arrays.asList(versionRef, Literal.newLiteral(1L))
-                ),
-                new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME,
-                                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                        DataTypes.BOOLEAN),
-                        Arrays.asList(nameRef, Literal.newLiteral("Ford"))
-                )));
-
-        // update characters set name='mostly harmless' where name='Ford' and "_version"=?
-        WhereClause whereClause = new WhereClause(whereClauseFunction);
-        whereClause.version(1L);
-        ESUpdateNode updateNode = new ESUpdateNode(
-                new String[]{"characters"},
-                new HashMap<Reference, Symbol>(){{
-                    put(nameRef, Literal.newLiteral("mostly harmless"));
-                }},
-                whereClause,
-                ImmutableList.<String>of(),
-                ImmutableList.<String>of()
-        );
-        Plan plan = new Plan();
-        plan.add(updateNode);
-
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        assertThat(result.get(0).get().errorMessage(), is(nullValue()));
-        assertThat(((Long) result.get(0).get().rows()[0][0]), is(1L));
-
-        List<Symbol> outputs = Arrays.<Symbol>asList(idRef, nameRef, versionRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "2");
-        plan = new Plan();
-        plan.add(getNode);
-
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Object[][] rows = result.get(0).get().rows();
-
-        assertThat(rows.length, is(1));
-        assertThat((Integer)rows[0][0], is(2));
-        assertThat((String)rows[0][1], is("mostly harmless"));
-        assertThat((Long)rows[0][2], is(2L));
-    }
-
-    @Test
-    public void testUpdateByQueryTask() throws Exception {
-        insertCharacters();
-
-        Function whereClause = new Function(OrOperator.INFO, Arrays.<Symbol>asList(
-                new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                        DataTypes.BOOLEAN),
-                        Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Trillian"))
-                ),
-                new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME,
-                                Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)), DataTypes.BOOLEAN),
-                        Arrays.<Symbol>asList(idRef, Literal.newLiteral(1))
-                )));
-
-        // update characters set name='mostly harmless' where id=1 or name='Trillian'
-        ESUpdateNode updateNode = new ESUpdateNode(
-                new String[]{"characters"},
-                new HashMap<Reference, Symbol>(){{
-                    put(nameRef, Literal.newLiteral("mostly harmless"));
-                }},
-                new WhereClause(whereClause),
-                new ArrayList<String>(0),
-                new ArrayList<String>(0)
-        );
-        Plan plan = new Plan();
-        plan.add(updateNode);
-
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        assertThat(((Long) result.get(0).get().rows()[0][0]), is(2L));
-
-        refresh();
-
-        // verify update
-        Function searchWhereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(nameRef, Literal.newLiteral("mostly harmless")));
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        QueryThenFetchNode node = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef),
-                ImmutableList.<Symbol>of(idRef),
-                new boolean[]{false},
-                new Boolean[] { null },
-                null, null, new WhereClause(searchWhereClause),
-                null
-        );
-        node.outputTypes(Arrays.asList(idRef.info().type(), nameRef.info().type()));
-        plan = new Plan();
-        plan.add(node);
-
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Object[][] rows = result.get(0).get().rows();
-
-        assertThat(rows.length, is(2));
-        assertThat((Integer)rows[0][0], is(1));
-        assertThat((String)rows[0][1], is("mostly harmless"));
-
-        assertThat((Integer)rows[1][0], is(3));
-        assertThat((String)rows[1][1], is("mostly harmless"));
-
-    }
-
+    
     @Test
     public void testNestedLoopTask() throws Exception {
         insertCharacters();

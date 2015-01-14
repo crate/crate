@@ -92,7 +92,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 SortSymbolValidator.validate(symbol, tableInfo.partitionedBy());
             }
             return new QueryThenFetchNode(
-                    tableInfo.getRouting(whereClauseContext.whereClause()),
+                    tableInfo.getRouting(whereClauseContext.whereClause(), null),
                     tableRelation.resolve(statement.outputSymbols()),
                     tableRelation.resolve(statement.orderBy().orderBySymbols()),
                     statement.orderBy().reverseFlags(),

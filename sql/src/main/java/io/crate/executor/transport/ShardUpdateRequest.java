@@ -105,7 +105,7 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
     }
 
     public int retryOnConflict() {
-        return version == Versions.MATCH_ANY ? 0 : Constants.UPDATE_RETRY_ON_CONFLICT;
+        return version == Versions.MATCH_ANY ? Constants.UPDATE_RETRY_ON_CONFLICT : 0;
     }
 
     public ShardUpdateRequest assignments(Map<String, Symbol> assignments) {

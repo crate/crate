@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,29 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport.task.elasticsearch;
+package io.crate.executor.transport.task;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.AsyncChainedTask;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.executor.transport.ShardUpdateRequest;
+import io.crate.executor.transport.ShardUpdateResponse;
+import io.crate.executor.transport.TransportShardUpdateAction;
+import io.crate.planner.node.dml.UpdateByIdExecutionNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.update.TransportUpdateAction;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import java.util.UUID;
 
-public class ESUpdateByIdTask extends AsyncChainedTask {
+public class UpdateByIdTask extends AsyncChainedTask {
 
-    private final TransportUpdateAction transport;
-    private final ActionListener<UpdateResponse> listener;
-    private final UpdateRequest request;
+    private final TransportShardUpdateAction transport;
+    private final ActionListener<ShardUpdateResponse> listener;
+    private final ShardUpdateRequest request;
 
-    private static class UpdateResponseListener implements ActionListener<UpdateResponse> {
+    private static class UpdateResponseListener implements ActionListener<ShardUpdateResponse> {
 
         private final SettableFuture<TaskResult> future;
 
@@ -50,18 +49,15 @@ public class ESUpdateByIdTask extends AsyncChainedTask {
         }
 
         @Override
-        public void onResponse(UpdateResponse updateResponse) {
-            if (updateResponse.getGetResult().isExists()) {
-                future.set(TaskResult.ONE_ROW);
-            } else {
-                future.set(TaskResult.ZERO);
-            }
+        public void onResponse(ShardUpdateResponse updateResponse) {
+            future.set(TaskResult.ONE_ROW);
         }
 
         @Override
         public void onFailure(Throwable e) {
             e = Exceptions.unwrap(e);
-            if (e instanceof VersionConflictEngineException) {
+            if (e instanceof VersionConflictEngineException
+                    || e instanceof DocumentMissingException) {
                 future.set(TaskResult.ZERO);
             } else {
                 future.setException(e);
@@ -69,11 +65,10 @@ public class ESUpdateByIdTask extends AsyncChainedTask {
         }
     }
 
-    public ESUpdateByIdTask(UUID jobId, TransportUpdateAction transport, ESUpdateNode node) {
+    public UpdateByIdTask(UUID jobId, TransportShardUpdateAction transport, UpdateByIdExecutionNode node) {
         super(jobId);
         this.transport = transport;
 
-        assert node.ids().size() == 1;
         this.request = buildUpdateRequest(node);
         listener = new UpdateResponseListener(result);
     }
@@ -83,17 +78,14 @@ public class ESUpdateByIdTask extends AsyncChainedTask {
         transport.execute(this.request, this.listener);
     }
 
-    protected UpdateRequest buildUpdateRequest(ESUpdateNode node) {
-        UpdateRequest request = new UpdateRequest(node.indices()[0],
-                Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
-        request.fields(node.columns());
-        request.paths(node.updateDoc());
+    protected ShardUpdateRequest buildUpdateRequest(UpdateByIdExecutionNode node) {
+        ShardUpdateRequest request = new ShardUpdateRequest(node.index(), node.id());
+        request.routing(node.routing());
         if (node.version().isPresent()) {
             request.version(node.version().get());
-        } else {
-            request.retryOnConflict(Constants.UPDATE_RETRY_ON_CONFLICT);
         }
-        request.routing(node.routingValues().get(0));
+        request.assignments(node.assignments());
+
         return request;
     }
 }

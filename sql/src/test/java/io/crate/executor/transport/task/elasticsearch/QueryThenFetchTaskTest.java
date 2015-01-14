@@ -119,7 +119,7 @@ public class QueryThenFetchTaskTest {
     @Test
     public void testAggregationInOutputs() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("QueryThenFetch doesn't support \"count()\" in outputs");
+        expectedException.expectMessage("Operation not supported with symbol count()");
         new QueryThenFetchTask(
                 UUID.randomUUID(),
                 mock(Functions.class),

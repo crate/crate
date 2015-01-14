@@ -1,13 +1,10 @@
 package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.PartitionName;
+import io.crate.analyze.WhereClause;
+import io.crate.metadata.*;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexReferenceInfo;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 
@@ -138,5 +135,9 @@ public abstract class AbstractTableInfo implements TableInfo {
     @Override
     public String toString() {
         return String.format("%s.%s", schemaInfo.name(), ident().name());
+    }
+
+    public Routing getRouting(WhereClause whereClause) {
+        return getRouting(whereClause, null);
     }
 }

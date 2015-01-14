@@ -61,7 +61,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
 
     public TableIdent ident();
 
-    public Routing getRouting(WhereClause whereClause);
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference);
 
     public List<ColumnIdent> primaryKey();
 

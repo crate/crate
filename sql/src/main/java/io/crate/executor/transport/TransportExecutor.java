@@ -333,22 +333,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitESUpdateNode(ESUpdateNode node, UUID jobId) {
-            // update with _version currently only possible in update by query
-            if (node.ids().size() == 1 && node.routingValues().size() == 1) {
-                return singleTask(new ESUpdateByIdTask(
-                        jobId,
-                        transportActionProvider.transportUpdateAction(),
-                        node));
-            } else {
-                return singleTask(new ESUpdateByQueryTask(
-                        jobId,
-                        transportActionProvider.transportSearchAction(),
-                        node));
-            }
-        }
-
-        @Override
         public ImmutableList<Task> visitUpdateNode(UpdateNode node, UUID jobId) {
             ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
             for (List<DQLPlanNode> childNodes : node.nodes()) {
@@ -360,6 +344,13 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 taskBuilder.add(updateTask);
             }
             return taskBuilder.build();
+        }
+
+        @Override
+        public ImmutableList<Task> visitUpdateByIdExecutionNode(UpdateByIdExecutionNode node, UUID jobId) {
+            return singleTask(new UpdateByIdTask(jobId,
+                    transportActionProvider.transportShardUpdateAction(),
+                    node));
         }
 
         @Override

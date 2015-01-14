@@ -549,6 +549,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("update quotes set quote='now panic' where timestamp = ? and quote=?",
                 new Object[]{ 1395874800123L, "Don't panic" });
+        assertThat(response.rowCount(), is(0L));
         refresh();
 
         execute("select * from quotes where quote = 'now panic'");

@@ -161,7 +161,7 @@ public class DocTableInfo extends AbstractTableInfo {
 
 
     @Override
-    public Routing getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         ClusterState clusterState = clusterService.state();
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
 
@@ -183,7 +183,7 @@ public class DocTableInfo extends AbstractTableInfo {
                     indices,
                     routingIndices,
                     routingMap,
-                    null // preference
+                    preference
             );
         } catch (IndexMissingException e) {
             return new Routing();
