@@ -603,7 +603,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownGroupByColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("unknown column 'characters.details['lol']' not allowed in GROUP BY");
+        expectedException.expectMessage("Cannot GROUP BY 'characters.details['lol']': invalid data type 'null'");
         execute("select max(birthdate) from characters group by details['lol']");
     }
 

@@ -43,11 +43,10 @@ public class SelectAnalyzer {
     public static SelectAnalysis analyzeSelect(Select select,
                                                Map<QualifiedName, AnalyzedRelation> sources,
                                                ExpressionAnalyzer expressionAnalyzer,
-                                               ExpressionAnalysisContext expressionAnalysisContext,
-                                               boolean selectFromFieldCache) {
-        SelectAnalysis selectAnalysis = new SelectAnalysis(sources, expressionAnalyzer, expressionAnalysisContext, selectFromFieldCache);
+                                               ExpressionAnalysisContext expressionAnalysisContext) {
+        SelectAnalysis selectAnalysis = new SelectAnalysis(sources, expressionAnalyzer, expressionAnalysisContext);
         INSTANCE.process(select, selectAnalysis);
-        SelectSymbolValidator.validate(selectAnalysis.outputSymbols, selectAnalysis.selectFromFieldCache);
+        SelectSymbolValidator.validate(selectAnalysis.outputSymbols);
         return selectAnalysis;
     }
 
@@ -56,19 +55,16 @@ public class SelectAnalyzer {
         private Map<QualifiedName, AnalyzedRelation> sources;
         private ExpressionAnalyzer expressionAnalyzer;
         private ExpressionAnalysisContext expressionAnalysisContext;
-        private boolean selectFromFieldCache;
         private List<String> outputNames = new ArrayList<>();
         private List<Symbol> outputSymbols = new ArrayList<>();
         private Multimap<String, Symbol> outputMultiMap = HashMultimap.create();
 
         private SelectAnalysis(Map<QualifiedName, AnalyzedRelation> sources,
                                ExpressionAnalyzer expressionAnalyzer,
-                               ExpressionAnalysisContext expressionAnalysisContext,
-                               boolean selectFromFieldCache) {
+                               ExpressionAnalysisContext expressionAnalysisContext) {
             this.sources = sources;
             this.expressionAnalyzer = expressionAnalyzer;
             this.expressionAnalysisContext = expressionAnalysisContext;
-            this.selectFromFieldCache = selectFromFieldCache;
         }
 
         public List<String> outputNames() {

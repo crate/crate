@@ -94,9 +94,8 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             if(tableRelation == null){
                 return statement;
             }
-            TableInfo tableInfo = tableRelation.tableInfo();
 
-            if(!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableInfo, tableRelation.resolve(statement.groupBy()))){
+            if(!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, statement.groupBy())) {
                 return statement;
             }
 
@@ -130,9 +129,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
      *  LocalMergeNode ( [TopN], IndexWriterProjection )
      */
     public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(SelectAnalyzedStatement analysis, TableRelation tableRelation, WhereClauseContext whereClauseContext, ColumnIndexWriterProjection indexWriterProjection) {
-        List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
+        assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, analysis.groupBy()) : "not grouped by clustered column or primary keys";
         TableInfo tableInfo = tableRelation.tableInfo();
-        assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableInfo, groupBy) : "not grouped by clustered column or primary keys";
+        GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.groupBy());
+        List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
         boolean ignoreSorting = indexWriterProjection != null
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
@@ -143,7 +143,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.orderBy().orderBySymbols()));
         Symbol havingClause = null;
         if(analysis.havingClause() != null){
-            havingClause = tableRelation.resolve(analysis.havingClause());
+            havingClause = tableRelation.resolveHaving(analysis.havingClause());
         }
         if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
             // replace aggregation symbols with input columns from previous projection

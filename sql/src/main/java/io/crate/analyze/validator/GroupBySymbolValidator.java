@@ -21,7 +21,6 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
 
@@ -30,38 +29,17 @@ public class GroupBySymbolValidator {
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, null);
+        INNER_VALIDATOR.process(symbol, new Context());
     }
 
-    private static class InnerValidator extends SymbolVisitor<Void, Void> {
+    private static class Context {
+        private boolean insideFunction = false;
+    }
+
+    private static class InnerValidator extends SymbolVisitor<Context, Void> {
 
         @Override
-        public Void visitDynamicReference(DynamicReference symbol, Void context) {
-            throw new IllegalArgumentException(
-                    SymbolFormatter.format("unknown column '%s' not allowed in GROUP BY", symbol));
-        }
-
-        @Override
-        public Void visitReference(Reference symbol, Void context) {
-            if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
-                throw new IllegalArgumentException(
-                        String.format("Cannot GROUP BY '%s': invalid data type '%s'",
-                                SymbolFormatter.format(symbol),
-                                symbol.valueType()));
-            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
-                throw new IllegalArgumentException(
-                        String.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible",
-                                SymbolFormatter.format(symbol)));
-            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
-                throw new IllegalArgumentException(
-                        String.format("Cannot GROUP BY '%s': grouping on non-indexed columns is not possible",
-                                SymbolFormatter.format(symbol)));
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitFunction(Function symbol, Void context) {
+        public Void visitFunction(Function symbol, Context context) {
             switch (symbol.info().type()) {
                 case SCALAR:
                     break;
@@ -74,19 +52,29 @@ public class GroupBySymbolValidator {
                     throw new UnsupportedOperationException(
                             String.format("FunctionInfo.Type %s not handled", symbol.info().type()));
             }
+            context.insideFunction = true;
+            for (Symbol argument : symbol.arguments()) {
+                process(argument, context);
+            }
+            context.insideFunction = false;
             return null;
         }
 
         @Override
-        public Void visitField(Field field, Void context) {
-            return process(field.target(), context);
+        public Void visitField(Field field, Context context) {
+            // if insideFunction the type here doesn't matter, only the returnType of the function itself will matter.
+            if (!context.insideFunction && !DataTypes.PRIMITIVE_TYPES.contains(field.valueType())) {
+                throw new IllegalArgumentException(
+                        String.format("Cannot GROUP BY '%s': invalid data type '%s'",
+                                SymbolFormatter.format(field),
+                                field.valueType()));
+            }
+            return null;
         }
 
         @Override
-        protected Void visitSymbol(Symbol symbol, Void context) {
-            throw new UnsupportedOperationException(
-                    String.format("Cannot GROUP BY for '%s'", SymbolFormatter.format(symbol))
-            );
+        protected Void visitSymbol(Symbol symbol, Context context) {
+            return null;
         }
     }
 }

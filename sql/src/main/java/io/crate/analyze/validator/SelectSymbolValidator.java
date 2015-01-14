@@ -21,7 +21,6 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
 
 import java.util.Collection;
@@ -30,47 +29,19 @@ public class SelectSymbolValidator {
 
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
 
-    public static void validate(Collection<Symbol> symbols, boolean selectFromFieldCache) {
+    public static void validate(Collection<Symbol> symbols) {
         for (Symbol symbol : symbols) {
-            INNER_VALIDATOR.process(symbol, new SelectContext(selectFromFieldCache));
+            INNER_VALIDATOR.process(symbol, null);
         }
     }
 
-    static class SelectContext {
-        private boolean selectFromFieldCache;
-
-        public SelectContext(boolean selectFromFieldCache) {
-            this.selectFromFieldCache = selectFromFieldCache;
-        }
-    }
-
-    private static class InnerValidator extends SymbolVisitor<SelectSymbolValidator.SelectContext, Void> {
+    private static class InnerValidator extends SymbolVisitor<Void, Void> {
 
         @Override
-        public Void visitReference(Reference symbol, SelectContext context) {
-            if (context.selectFromFieldCache) {
-                if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
-                    throw new IllegalArgumentException(
-                            String.format("Cannot select analyzed column '%s' " +
-                                            "within grouping or aggregations",
-                                    SymbolFormatter.format(symbol)));
-                } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
-                    throw new IllegalArgumentException(
-                            String.format("Cannot select non-indexed column '%s' " +
-                                            "within grouping or aggregations",
-                                    SymbolFormatter.format(symbol)));
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitFunction(Function symbol, SelectContext context) {
+        public Void visitFunction(Function symbol, Void context) {
             switch (symbol.info().type()) {
                 case SCALAR:
-                    break;
                 case AGGREGATE:
-                    context.selectFromFieldCache = true;
                     break;
                 case PREDICATE:
                     throw new UnsupportedOperationException(String.format(
@@ -86,12 +57,7 @@ public class SelectSymbolValidator {
         }
 
         @Override
-        public Void visitField(Field field, SelectContext context) {
-            return process(field.target(), context);
-        }
-
-        @Override
-        public Void visitSymbol(Symbol symbol, SelectContext context) {
+        public Void visitSymbol(Symbol symbol, Void context) {
             return null;
         }
     }

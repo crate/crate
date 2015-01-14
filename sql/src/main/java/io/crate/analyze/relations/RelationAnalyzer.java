@@ -84,8 +84,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 node.getSelect(),
                 context.sources(),
                 expressionAnalyzer,
-                expressionAnalysisContext,
-                !node.getGroupBy().isEmpty()
+                expressionAnalysisContext
         );
 
         List<Symbol> groupBy = analyzeGroupBy(selectAnalysis, node.getGroupBy());

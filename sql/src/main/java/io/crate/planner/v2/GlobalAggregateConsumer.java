@@ -27,21 +27,24 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GlobalAggregateNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class GlobalAggregateConsumer implements Consumer {
 
     private final Visitor visitor;
+    private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
 
     public GlobalAggregateConsumer() {
         visitor = new Visitor();
@@ -78,6 +81,7 @@ public class GlobalAggregateConsumer implements Consumer {
         if (tableRelation == null) {
             return null;
         }
+        validateAggregationOutputs(tableRelation, statement.outputSymbols());
         // global aggregate: collect and partial aggregate on C and final agg on H
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(tableRelation.resolve(statement.outputSymbols()));
 
@@ -87,7 +91,7 @@ public class GlobalAggregateConsumer implements Consumer {
         Symbol havingClause = null;
         Symbol having = statement.havingClause();
         if (having != null && having instanceof Function) {
-            havingClause = contextBuilder.having(tableRelation.resolve(having));
+            havingClause = contextBuilder.having(tableRelation.resolveHaving(having));
         }
 
         AggregationProjection ap = new AggregationProjection();
@@ -121,5 +125,60 @@ public class GlobalAggregateConsumer implements Consumer {
         }
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
         return new GlobalAggregateNode(collectNode, localMergeNode);
+    }
+
+    private static void validateAggregationOutputs(TableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {
+        OutputValidatorContext context = new OutputValidatorContext(tableRelation);
+        for (Symbol outputSymbol : outputSymbols) {
+            context.insideAggregation = false;
+            AGGREGATION_OUTPUT_VALIDATOR.process(outputSymbol, context);
+        }
+    }
+
+    private static class OutputValidatorContext {
+        private final TableRelation tableRelation;
+        private boolean insideAggregation = false;
+
+        public OutputValidatorContext(TableRelation tableRelation) {
+            this.tableRelation = tableRelation;
+        }
+    }
+
+    private static class AggregationOutputValidator extends SymbolVisitor<OutputValidatorContext, Void> {
+
+        @Override
+        public Void visitFunction(Function symbol, OutputValidatorContext context) {
+            context.insideAggregation = context.insideAggregation || symbol.info().type().equals(FunctionInfo.Type.AGGREGATE);
+            for (Symbol argument : symbol.arguments()) {
+                process(argument, context);
+            }
+            context.insideAggregation = false;
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, OutputValidatorContext context) {
+            if (context.insideAggregation) {
+                ReferenceInfo.IndexType indexType = symbol.info().indexType();
+                if (indexType == ReferenceInfo.IndexType.ANALYZED) {
+                    throw new IllegalArgumentException(String.format(
+                            "Cannot select analyzed column '%s' within grouping or aggregations", SymbolFormatter.format(symbol)));
+                } else if (indexType == ReferenceInfo.IndexType.NO) {
+                    throw new IllegalArgumentException(String.format(
+                            "Cannot select non-indexed column '%s' within grouping or aggregations", SymbolFormatter.format(symbol)));
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitField(Field field, OutputValidatorContext context) {
+            return process(context.tableRelation.resolveField(field), context);
+        }
+
+        @Override
+        protected Void visitSymbol(Symbol symbol, OutputValidatorContext context) {
+            return null;
+        }
     }
 }

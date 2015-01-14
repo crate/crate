@@ -166,11 +166,6 @@ public class TableRelation implements AnalyzedRelation {
         return whereClause;
     }
 
-    public Symbol resolve(Symbol symbol) {
-        assert symbol != null : "can't resolve symbol that is null";
-        return FIELD_UNWRAPPING_VISITOR.process(symbol, this);
-    }
-
     public List<Symbol> resolve(Collection<? extends Symbol> symbols) {
         List<Symbol> result = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
@@ -179,18 +174,27 @@ public class TableRelation implements AnalyzedRelation {
         return result;
     }
 
+    public Symbol resolveHaving(Symbol symbol) {
+        return resolve(symbol);
+    }
+
+    public Reference resolveField(Field field) {
+        return (Reference) field.target();
+    }
+
+    private Symbol resolve(Symbol symbol) {
+        assert symbol != null : "can't resolve symbol that is null";
+        return FIELD_UNWRAPPING_VISITOR.process(symbol, this);
+    }
+
     public List<Symbol> resolveAndValidateOrderBy(List<Symbol> orderBySymbols) {
         List<Symbol> result = new ArrayList<>(orderBySymbols.size());
         for (Symbol symbol : orderBySymbols) {
             Symbol resolved = resolve(symbol);
-            validate(resolved);
+            SORT_VALIDATOR.process(resolved, this);
             result.add(resolved);
         }
         return result;
-    }
-
-    private void validate(Symbol resolvedSymbol) throws IllegalArgumentException {
-        SORT_VALIDATOR.process(resolvedSymbol, this);
     }
 
     private static class FieldUnwrappingVisitor extends SymbolVisitor<AnalyzedRelation, Symbol> {
@@ -218,18 +222,19 @@ public class TableRelation implements AnalyzedRelation {
         }
     }
 
-    private static class SortValidator extends SymbolVisitor<TableRelation, Symbol> {
-
+    private static class TraversalSymbolVisitor extends SymbolVisitor<TableRelation, Void> {
         @Override
-        public Symbol visitFunction(Function symbol, TableRelation context) {
+        public Void visitFunction(Function symbol, TableRelation context) {
             for (Symbol arg : symbol.arguments()) {
                 process(arg, context);
             }
             return null;
         }
+    }
+    private static class SortValidator extends TraversalSymbolVisitor {
 
         @Override
-        public Symbol visitReference(Reference symbol, TableRelation context) {
+        public Void visitReference(Reference symbol, TableRelation context) {
             if (context.tableInfo.partitionedBy().contains(symbol.info().ident().columnIdent())) {
                 throw new UnsupportedOperationException(
                         SymbolFormatter.format(

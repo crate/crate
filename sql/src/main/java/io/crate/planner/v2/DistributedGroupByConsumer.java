@@ -107,13 +107,15 @@ public class DistributedGroupByConsumer implements Consumer {
             if (!GroupByConsumer.requiresDistribution(tableInfo, routing)) {
                 return statement;
             }
+
+            GroupByConsumer.validateGroupBySymbols(tableRelation, statement.groupBy());
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, tableRelation.resolve(statement.groupBy()))
                     .output(tableRelation.resolve(statement.outputSymbols()))
                     .orderBy(tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()));
 
             Symbol havingClause = null;
             if(statement.havingClause() != null){
-                havingClause = tableRelation.resolve(statement.havingClause());
+                havingClause = tableRelation.resolveHaving(statement.havingClause());
             }
             if (havingClause != null && havingClause instanceof Function) {
                 // replace aggregation symbols with input columns from previous projection

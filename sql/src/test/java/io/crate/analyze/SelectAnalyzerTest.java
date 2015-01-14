@@ -936,19 +936,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from sys.nodes order by load");
     }
 
-    @Test
-    public void testGroupByOnAnalyzed() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select analyzed column 'users.text' within grouping or aggregations");
-        analyze("select text from users u group by 1");
-    }
-
-    @Test
-    public void testGroupByOnIndexOff() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select non-indexed column 'users.no_index' within grouping or aggregations");
-        analyze("select no_index from users u group by 1");
-    }
 
     @Test
     public void testArithmeticPlus() throws Exception {
@@ -1048,33 +1035,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DistanceFunction.NAME, ((Function) analysis.orderBy().orderBySymbols().get(0)).info().ident().name());
     }
 
-    @Test
-    public void testSelectAnalyzedReferenceInFunctionGroupBy() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select analyzed column 'users.text' within grouping or aggregations");
-        analyze("select substr(text, 0, 2) from users u group by 1");
-    }
-
-    @Test
-    public void testSelectAnalyzedReferenceInFunctionAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select analyzed column 'users.text' within grouping or aggregations");
-        analyze("select min(substr(text, 0, 2)) from users");
-    }
-
-    @Test
-    public void testSelectNonIndexedReferenceInFunctionGroupBy() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select non-indexed column 'users.no_index' within grouping or aggregations");
-        analyze("select substr(no_index, 0, 2) from users u group by 1");
-    }
-
-    @Test
-    public void testSelectNonIndexedReferenceInFunctionAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select non-indexed column 'users.no_index' within grouping or aggregations");
-        analyze("select min(substr(no_index, 0, 2)) from users");
-    }
 
     @Test
     public void testWhereMatchOnColumn() throws Exception {

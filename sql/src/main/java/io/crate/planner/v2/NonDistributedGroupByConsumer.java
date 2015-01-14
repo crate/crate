@@ -134,6 +134,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
         boolean ignoreSorting = indexWriterProjection != null;
         TableInfo tableInfo = tableRelation.tableInfo();
 
+        GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.groupBy());
         List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
         int numAggregationSteps = 2;
 
@@ -144,7 +145,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
         Symbol havingClause = null;
         if(analysis.havingClause() != null){
-            havingClause = tableRelation.resolve(analysis.havingClause());
+            havingClause = tableRelation.resolveHaving(analysis.havingClause());
         }
         if (havingClause != null && havingClause instanceof Function) {
             // extract collect symbols and such from having clause

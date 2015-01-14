@@ -126,7 +126,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByOnAnalyzedColumn() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot select analyzed column 'test1.col1' within grouping or aggregations");
+        expectedException.expectMessage("Cannot GROUP BY 'test1.col1': grouping on analyzed/fulltext columns is not possible");
 
         execute("create table test1 (col1 string index using fulltext)");
         ensureGreen();

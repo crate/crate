@@ -162,9 +162,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
         }
 
         private static boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis, TableRelation tableRelation) {
-            List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
-            assert groupBy != null;
-            return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation.tableInfo(), groupBy);
+            assert analysis.groupBy() != null;
+            return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, analysis.groupBy());
         }
 
         /**
@@ -180,6 +179,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                                                                  Projection writerProjection,
                                                                  Functions functions) {
             boolean ignoreSorting = !analysis.isLimited();
+            GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.groupBy());
             List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, groupBy, ignoreSorting)
                     .output(tableRelation.resolve(analysis.outputSymbols()))
@@ -187,7 +187,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
             Symbol havingClause = null;
             if(analysis.havingClause() != null){
-                havingClause = tableRelation.resolve(analysis.havingClause());
+                havingClause = tableRelation.resolveHaving(analysis.havingClause());
             }
             if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
                 // replace aggregation symbols with input columns from previous projection

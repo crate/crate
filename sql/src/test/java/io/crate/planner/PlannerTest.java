@@ -1476,4 +1476,46 @@ public class PlannerTest {
         expectedException.expectMessage("Cannot ORDER BY 'users.no_index': sorting on non-indexed columns is not possible");
         plan("select no_index from users u order by 1");
     }
+
+    @Test
+    public void testGroupByOnAnalyzed() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot GROUP BY 'users.text': grouping on analyzed/fulltext columns is not possible");
+        plan("select text from users u group by 1");
+    }
+
+    @Test
+    public void testGroupByOnIndexOff() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot GROUP BY 'users.no_index': grouping on non-indexed columns is not possible");
+        plan("select no_index from users u group by 1");
+    }
+
+    @Test
+    public void testSelectAnalyzedReferenceInFunctionGroupBy() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot GROUP BY 'users.text': grouping on analyzed/fulltext columns is not possible");
+        plan("select substr(text, 0, 2) from users u group by 1");
+    }
+
+    @Test
+    public void testSelectAnalyzedReferenceInFunctionAggregation() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot select analyzed column 'users.text' within grouping or aggregations");
+        plan("select min(substr(text, 0, 2)) from users");
+    }
+
+    @Test
+    public void testSelectNonIndexedReferenceInFunctionGroupBy() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot GROUP BY 'users.no_index': grouping on non-indexed columns is not possible");
+        plan("select substr(no_index, 0, 2) from users u group by 1");
+    }
+
+    @Test
+    public void testSelectNonIndexedReferenceInFunctionAggregation() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot select non-indexed column 'users.no_index' within grouping or aggregations");
+        plan("select min(substr(no_index, 0, 2)) from users");
+    }
 }
