@@ -431,6 +431,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
             this.queryFetchResults = new AtomicArray<>(numShards);
         }
 
+
         @Override
         public ListenableFuture<PageableTaskResult> fetch(final PageInfo pageInfo) {
             final AtomicInteger numOps = new AtomicInteger(numShards);
@@ -505,7 +506,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
         @Override
         public void close() throws IOException {
-            releaseScrollContexts(queryFetchResults);
+            releaseAllContexts();
         }
     }
 
@@ -528,11 +529,11 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         }
     }
 
-    private void releaseScrollContexts(AtomicArray<QueryFetchSearchResult> firstResults) {
-        for (AtomicArray.Entry<QueryFetchSearchResult> entry : firstResults.asList()) {
-            DiscoveryNode node = nodes.get(entry.value.queryResult().shardTarget().nodeId());
+    private void releaseAllContexts() {
+        for (Map.Entry<SearchShardTarget, Long> entry : searchContextIds.entrySet()) {
+            DiscoveryNode node = nodes.get(entry.getKey().nodeId());
             if (node != null) {
-                searchServiceTransportAction.sendFreeContext(node, entry.value.queryResult().id(), EMPTY_SEARCH_REQUEST);
+                searchServiceTransportAction.sendFreeContext(node, entry.getValue(), EMPTY_SEARCH_REQUEST);
             }
         }
     }
