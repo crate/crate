@@ -21,7 +21,7 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -63,9 +63,9 @@ public class TopNProjection extends Projection {
 
     public TopNProjection(int limit, int offset, @Nullable List<Symbol> orderBy, @Nullable boolean[] reverseFlags, @Nullable Boolean[] nullsFirst) {
         this(limit, offset);
-        this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
-        this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
-        this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
+        this.orderBy = MoreObjects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
+        this.reverseFlags = MoreObjects.firstNonNull(reverseFlags, new boolean[0]);
+        this.nullsFirst = MoreObjects.firstNonNull(nullsFirst, new Boolean[0]);
         assert this.orderBy.size() == this.reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert this.nullsFirst.length == this.reverseFlags.length;
     }

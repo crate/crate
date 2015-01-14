@@ -264,13 +264,20 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public ImmutableList<Task> visitNestedLoopNode(NestedLoopNode node, UUID jobId) {
-            return singleTask(new NestedLoopTask(
+            // TODO: optimize for outer and inner being the same relation
+            List<Task> outerTasks = node.outer().accept(this, jobId);
+            List<Task> innerTasks = node.inner().accept(this, jobId);
+            return singleTask(
+                    new NestedLoopTask(
                         jobId,
                         clusterService.localNode().id(),
                         node,
+                        outerTasks,
+                        innerTasks,
                         TransportExecutor.this,
                         globalProjectionToProjectionVisitor,
-                        circuitBreaker));
+                        circuitBreaker)
+            );
         }
 
         @Override

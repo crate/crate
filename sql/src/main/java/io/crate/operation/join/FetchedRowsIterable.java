@@ -19,55 +19,45 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.operation.join;
 
+import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.PageInfo;
+import io.crate.executor.TaskResult;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-public class SinglePageTaskResult implements PageableTaskResult {
+class FetchedRowsIterable extends RelationIterable {
 
     private final Object[][] rows;
 
-    public SinglePageTaskResult(Object[][] rows) {
-        this.rows = rows;
-    }
-
-    public SinglePageTaskResult(Object[][] rows, PageInfo pageInfo) {
-        if (pageInfo.position() != 0 || pageInfo.size() < rows.length) {
-            // TODO: use a row representation that hides the underlying array stuff
-            // so we could do this more efficiently
-            this.rows = Arrays.copyOfRange(rows, pageInfo.position(), pageInfo.position() + pageInfo.size());
-        } else {
-            this.rows = rows;
-        }
+    public FetchedRowsIterable(TaskResult taskResult, PageInfo pageInfo) {
+        super(pageInfo);
+        this.rows = taskResult.rows();
     }
 
     @Override
-    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
-        return Futures.immediateFuture(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+    public Iterator<Object[]> iterator() {
+        return Iterators.forArray(rows);
     }
 
     @Override
-    public Object[][] rows() {
-        return rows;
+    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
+        this.pageInfo(pageInfo);
+        return Futures.immediateFuture(null);
     }
 
-    @Nullable
     @Override
-    public String errorMessage() {
-        return null;
-    }
-
-    public static PageableTaskResult singlePage(Object[][] rows) {
-        return new SinglePageTaskResult(rows);
+    public boolean isComplete() {
+        return currentPageInfo().position() >= rows.length;
     }
 
     @Override
     public void close() throws IOException {
-        // boomshakalakka!
+        // ayayayayayaaaay!
     }
 }
