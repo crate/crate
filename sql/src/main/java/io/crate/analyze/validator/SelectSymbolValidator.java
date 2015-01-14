@@ -57,6 +57,11 @@ public class SelectSymbolValidator {
         }
 
         @Override
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
+            throw new UnsupportedOperationException("match predicate cannot be selected");
+        }
+
+        @Override
         public Void visitSymbol(Symbol symbol, Void context) {
             return null;
         }

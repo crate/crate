@@ -29,7 +29,6 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import javax.annotation.Nullable;
@@ -52,6 +51,8 @@ public class MatchPredicate implements FunctionImplementation<Function> {
             Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
     );
 
+    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
+
     public static String fieldNameWithBoost(String fieldName, @Nullable Object boost) {
         if (boost == null) {
             return fieldName;
@@ -71,24 +72,19 @@ public class MatchPredicate implements FunctionImplementation<Function> {
      * 4. match_type options - object mapping option name to value (Object) (nullable)
      */
     public static void register(PredicateModule module) {
-        module.register(new MatchPredicate(new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE)));
+        module.register(new MatchPredicate());
     }
 
-    private final FunctionInfo info;
-
-    @Inject
-    public MatchPredicate(FunctionInfo info) {
-        this.info = info;
+    public MatchPredicate() {
     }
 
     @Override
     public FunctionInfo info() {
-        return info;
+        return INFO;
     }
 
     @Override
     public Symbol normalizeSymbol(Function function) {
         return function;
     }
-
 }

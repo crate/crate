@@ -23,7 +23,8 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.OutputName;
+import io.crate.metadata.Path;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
@@ -77,7 +78,7 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
         assert outputNames.size() == outputSymbols.size() : "size of outputNames and outputSymbols must match";
         fields = new ArrayList<>(outputNames.size());
         for (int i = 0; i < outputNames.size(); i++) {
-            fields.add(new Field(this, outputNames.get(i), outputSymbols.get(i)));
+            fields.add(new Field(this, new OutputName(outputNames.get(i)), outputSymbols.get(i).valueType()));
         }
     }
 
@@ -169,12 +170,12 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
     }
 
     @Override
-    public Field getField(ColumnIdent path) {
+    public Field getField(Path path) {
         throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
     }
 
     @Override
-    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+    public Field getWritableField(Path path) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("SelectAnalyzedStatement is not writable");
     }
 

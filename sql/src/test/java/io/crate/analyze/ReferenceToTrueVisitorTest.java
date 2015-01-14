@@ -27,14 +27,13 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifedNameFieldResolver;
 import io.crate.analyze.relations.RelationVisitor;
-import io.crate.metadata.*;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.Path;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
@@ -89,14 +88,12 @@ public class ReferenceToTrueVisitorTest {
         }
 
         @Override
-        public Field getField(ColumnIdent columnIdent) {
-            return new Field(this, columnIdent.sqlFqn(),
-                    new Reference(new ReferenceInfo(new ReferenceIdent(
-                    new TableIdent("doc", "dummy"), columnIdent), RowGranularity.DOC, DataTypes.STRING)));
+        public Field getField(Path path) {
+            return new Field(this, path, DataTypes.STRING);
         }
 
         @Override
-        public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+        public Field getWritableField(Path path) throws UnsupportedOperationException {
             return null;
         }
 

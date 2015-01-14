@@ -595,7 +595,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("column 'characters.details['lol']' must appear in the GROUP BY clause or be used in an aggregation function");
+        expectedException.expectMessage("column 'details['lol']' must appear in the GROUP BY clause or be used in an aggregation function");
         execute("select details['lol'] from characters group by race");
     }
 
@@ -603,7 +603,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownGroupByColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'characters.details['lol']': invalid data type 'null'");
+        expectedException.expectMessage("Cannot GROUP BY 'details['lol']': invalid data type 'null'");
         execute("select max(birthdate) from characters group by details['lol']");
     }
 

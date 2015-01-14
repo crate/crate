@@ -1466,7 +1466,7 @@ public class PlannerTest {
     @Test
     public void testSortOnUnknownColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'users.o['unknown_column']': invalid data type 'null'.");
+        expectedException.expectMessage("Cannot ORDER BY 'o['unknown_column']': invalid data type 'null'.");
         plan("select name from users order by o['unknown_column']");
     }
 

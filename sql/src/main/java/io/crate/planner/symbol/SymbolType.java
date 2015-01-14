@@ -30,7 +30,8 @@ public enum SymbolType {
     LITERAL(Literal.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),
     DYNAMIC_REFERENCE(DynamicReference.FACTORY),
-    VALUE(Value.FACTORY);
+    VALUE(Value.FACTORY),
+    MATCH_PREDICATE(MatchPredicate.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

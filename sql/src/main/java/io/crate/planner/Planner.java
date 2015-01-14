@@ -66,7 +66,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static io.crate.planner.symbol.Field.unwrap;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
@@ -201,7 +200,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
             List<Symbol> columns = new ArrayList<>(analysis.outputSymbols().size());
             for (Symbol symbol : analysis.outputSymbols()) {
-                columns.add(DocReferenceConverter.convertIfPossible(unwrap(symbol), analysis.table()));
+                columns.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
             }
             contextBuilder = contextBuilder.output(columns);
             projection.inputs(contextBuilder.outputs());

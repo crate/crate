@@ -75,6 +75,11 @@ public class SemanticSortValidator {
             return null;
         }
 
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, SortContext context) {
+            throw new UnsupportedOperationException(String.format(
+                    "%s predicate cannot be used in an ORDER BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
+        }
+
         @Override
         public Void visitField(Field field, SortContext context) {
             // if we are in a function, we do not need to check the data type.
@@ -87,6 +92,11 @@ public class SemanticSortValidator {
                                 field.valueType())
                 );
             }
+            return null;
+        }
+
+        @Override
+        public Void visitSymbol(Symbol symbol, SortContext context) {
             return null;
         }
     }

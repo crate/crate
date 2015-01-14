@@ -112,7 +112,7 @@ public class SelectAnalyzer {
         protected Void visitAllColumns(AllColumns node, SelectAnalysis context) {
             for (AnalyzedRelation relation : context.sources.values()) {
                 for (Field field : relation.fields()) {
-                    context.add(field.name(), field);
+                    context.add(field.path().outputName(), field);
                 }
             }
             return null;

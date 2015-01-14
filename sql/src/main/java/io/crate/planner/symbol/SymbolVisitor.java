@@ -65,5 +65,9 @@ public class SymbolVisitor<C, R> {
     public R visitField(Field field, C context) {
         return visitSymbol(field, context);
     }
+
+    public R visitMatchPredicate(MatchPredicate matchPredicate, C context) {
+        return visitSymbol(matchPredicate, context);
+    }
 }
 

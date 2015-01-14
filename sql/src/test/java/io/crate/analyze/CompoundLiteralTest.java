@@ -104,12 +104,12 @@ public class CompoundLiteralTest extends AbstractRandomizedTest {
 
         @Nullable
         @Override
-        public Field getField(ColumnIdent path) {
+        public Field getField(Path path) {
             return null;
         }
 
         @Override
-        public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+        public Field getWritableField(Path path) throws UnsupportedOperationException {
             return null;
         }
 

@@ -25,12 +25,9 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Path;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Reference;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 import org.junit.Rule;
@@ -39,8 +36,8 @@ import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class FieldResolverTest {
@@ -143,7 +140,7 @@ public class FieldResolverTest {
                 new QualifiedName(Arrays.asList("t")), relation));
         Field field = resolver.resolveField(newQN("t.name"), false);
         assertThat(field.relation(), equalTo(relation));
-        assertThat(field.target(), isReference("name"));
+        assertThat(field.path().outputName(), is("name"));
     }
 
     @Test
@@ -153,7 +150,7 @@ public class FieldResolverTest {
         FieldResolver resolver = new FullQualifedNameFieldResolver(ImmutableMap.of(newQN("doc.t"), relation));
         Field field = resolver.resolveField(newQN("name"), false);
         assertThat(field.relation(), equalTo(relation));
-        assertThat(field.target(), isReference("name"));
+        assertThat(field.path().outputName(), is("name"));
     }
 
     @Test
@@ -164,7 +161,7 @@ public class FieldResolverTest {
         FieldResolver resolver = new FullQualifedNameFieldResolver(ImmutableMap.of(newQN("doc.t"), relation));
         Field field = resolver.resolveField(newQN("doc.t.name"), true);
         assertThat(field.relation(), equalTo(relation));
-        assertThat(field.target(), isReference("name"));
+        assertThat(field.path().outputName(), is("name"));
     }
 
     @Test
@@ -230,16 +227,16 @@ public class FieldResolverTest {
         }
 
         @Override
-        public Field getField(ColumnIdent columnIdent) {
+        public Field getField(Path path) {
+            ColumnIdent columnIdent = (ColumnIdent) path;
             if (supportedReference.contains(columnIdent.name())) {
-                return new Field(this, columnIdent.sqlFqn(), new Reference(new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, columnIdent), RowGranularity.DOC, DataTypes.STRING)));
+                return new Field(this, columnIdent, DataTypes.STRING);
             }
             return null;
         }
 
         @Override
-        public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+        public Field getWritableField(Path path) throws UnsupportedOperationException {
             return getField(path);
         }
 

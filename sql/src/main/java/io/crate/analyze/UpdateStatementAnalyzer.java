@@ -44,7 +44,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.planner.symbol.Field.unwrap;
 
 public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Void> {
 
@@ -76,7 +75,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                     "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
         }
         assert analyzedRelation instanceof TableRelation : "sourceRelation must be a TableRelation";
-        TableInfo tableInfo = ((TableRelation) analyzedRelation).tableInfo();
+        TableRelation tableRelation = ((TableRelation) analyzedRelation);
+        TableInfo tableInfo = tableRelation.tableInfo();
 
         FieldResolver fieldResolver = new NameFieldResolver(analyzedRelation);
         ExpressionAnalyzer expressionAnalyzer =
@@ -97,6 +97,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 analyzeAssignment(
                         assignment,
                         nestedAnalyzedStatement,
+                        tableRelation,
                         tableInfo,
                         expressionAnalyzer,
                         expressionAnalysisContext
@@ -113,13 +114,14 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
     public void analyzeAssignment(Assignment node,
                                   UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement,
+                                  TableRelation tableRelation,
                                   TableInfo tableInfo,
                                   ExpressionAnalyzer expressionAnalyzer,
                                   ExpressionAnalysisContext expressionAnalysisContext) {
         expressionAnalyzer.resolveWritableFields(true);
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) expressionAnalyzer.normalize(
-                unwrap(expressionAnalyzer.convert(node.columnName(), expressionAnalysisContext)));
+                tableRelation.resolve(expressionAnalyzer.convert(node.columnName(), expressionAnalysisContext)));
 
         expressionAnalyzer.resolveWritableFields(false);
         final ColumnIdent ident = reference.info().ident().columnIdent();
@@ -134,7 +136,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
         // it's something that we can normalize to a literal
         Symbol value = expressionAnalyzer.normalize(
-                unwrap(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
+                tableRelation.resolve(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
         Literal updateValue;
         try {
             updateValue = expressionAnalyzer.normalizeInputForReference(value, reference, true);

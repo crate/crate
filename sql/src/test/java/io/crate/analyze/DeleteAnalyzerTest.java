@@ -31,7 +31,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.testing.MockedClusterServiceModule;
@@ -94,7 +93,8 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testDeleteWhere() throws Exception {
         DeleteAnalyzedStatement statement = analyze("delete from users where name='Trillian'");
-        TableInfo tableInfo = ((TableRelation) statement.analyzedRelation()).tableInfo();
+        TableRelation tableRelation = ((TableRelation) statement.analyzedRelation);
+        TableInfo tableInfo = tableRelation.tableInfo();
         assertThat(TEST_DOC_TABLE_IDENT, equalTo(tableInfo.ident()));
 
         assertThat(tableInfo.rowGranularity(), is(RowGranularity.DOC));
@@ -103,7 +103,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
 
-        assertThat(Field.unwrap(whereClause.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(tableRelation.resolve(whereClause.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
 
         assertLiteralSymbol(whereClause.arguments().get(1), "Trillian");
     }

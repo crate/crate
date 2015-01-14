@@ -96,7 +96,7 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
 
     @Override
     public String visitField(Field field, Void context) {
-        return process(field.target(), context);
+        return field.path().outputName();
     }
 
     @Override

@@ -73,6 +73,12 @@ public class GroupBySymbolValidator {
         }
 
         @Override
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
+            throw new UnsupportedOperationException(String.format(
+                    "%s predicate cannot be used in a GROUP BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
+        }
+
+        @Override
         protected Void visitSymbol(Symbol symbol, Context context) {
             return null;
         }

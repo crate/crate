@@ -21,10 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.metadata.*;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -529,7 +529,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithMatchPredicateInValues() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Invalid value of type 'FUNCTION'");
+        expectedException.expectMessage("Validation failed for awesome: Invalid value of type 'MATCH_PREDICATE'");
         analyze("insert into users (id, awesome) values (1, match(name, 'bar'))");
     }
 

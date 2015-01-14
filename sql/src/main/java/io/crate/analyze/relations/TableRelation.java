@@ -26,6 +26,7 @@ import com.google.common.base.Predicate;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
@@ -33,9 +34,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class TableRelation implements AnalyzedRelation {
 
@@ -52,6 +51,7 @@ public class TableRelation implements AnalyzedRelation {
     private List<Field> outputs;
     private final static FieldUnwrappingVisitor FIELD_UNWRAPPING_VISITOR = new FieldUnwrappingVisitor();
     private final static SortValidator SORT_VALIDATOR = new SortValidator();
+    private Map<Path, Reference> allocatedFields = new HashMap<>();
 
     public TableRelation(TableInfo tableInfo) {
         this.tableInfo = tableInfo;
@@ -68,26 +68,32 @@ public class TableRelation implements AnalyzedRelation {
 
     @Nullable
     @Override
-    public Field getField(ColumnIdent path) {
+    public Field getField(Path path) {
         return getField(path, false);
     }
 
     @Override
-    public Field getWritableField(ColumnIdent path) throws ColumnUnknownException {
+    public Field getWritableField(Path path) throws ColumnUnknownException {
         return getField(path, true);
     }
 
-    private Field getField(ColumnIdent path, boolean forWrite) {
-        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(path);
+    private Field getField(Path path, boolean forWrite) {
+        ColumnIdent ci;
+        if (path instanceof ColumnIdent) {
+            ci = (ColumnIdent) path;
+        } else {
+            throw new UnsupportedOperationException("TableRelation requires a ColumnIdent as path to get a field");
+        }
+        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ci);
         if (referenceInfo == null) {
-            referenceInfo = tableInfo.indexColumn(path);
+            referenceInfo = tableInfo.indexColumn(ci);
             if (referenceInfo == null) {
-                DynamicReference dynamic = tableInfo.getDynamic(path, forWrite);
-                return new Field(this, path.sqlFqn(), dynamic);
+                DynamicReference dynamic = tableInfo.getDynamic(ci, forWrite);
+                return allocate(ci, dynamic);
             }
         }
         // TODO: build type correctly as array when the tableInfo is created and remove the conversion here
-        if (!path.isColumn() && hasMatchingParent(referenceInfo, IS_OBJECT_ARRAY)) {
+        if (!ci.isColumn() && hasMatchingParent(referenceInfo, IS_OBJECT_ARRAY)) {
             if (DataTypes.isCollectionType(referenceInfo.type())) {
                 // TODO: remove this limitation with next type refactoring
                 throw new UnsupportedOperationException("cannot query for arrays inside object arrays explicitly");
@@ -101,7 +107,12 @@ public class TableRelation implements AnalyzedRelation {
                     .type(new ArrayType(referenceInfo.type()))
                     .build();
         }
-        return new Field(this, path.sqlFqn(), new Reference(referenceInfo));
+        return allocate(ci, new Reference(referenceInfo));
+    }
+
+    private Field allocate(Path path, Reference reference) {
+        allocatedFields.put(path, reference);
+        return new Field(this, path, reference.valueType());
     }
 
     @Override
@@ -179,10 +190,14 @@ public class TableRelation implements AnalyzedRelation {
     }
 
     public Reference resolveField(Field field) {
-        return (Reference) field.target();
+        if (field.relation() == this) {
+            return allocatedFields.get(field.path());
+        }
+        throw new IllegalArgumentException(String.format(
+                "TableRelation %s can't resolve field of another relation", this));
     }
 
-    private Symbol resolve(Symbol symbol) {
+    public Symbol resolve(Symbol symbol) {
         assert symbol != null : "can't resolve symbol that is null";
         return FIELD_UNWRAPPING_VISITOR.process(symbol, this);
     }
@@ -197,19 +212,19 @@ public class TableRelation implements AnalyzedRelation {
         return result;
     }
 
-    private static class FieldUnwrappingVisitor extends SymbolVisitor<AnalyzedRelation, Symbol> {
+    private static class FieldUnwrappingVisitor extends SymbolVisitor<TableRelation, Symbol> {
 
-        @Override
-        public Symbol visitField(Field field, AnalyzedRelation context) {
-            if (field.relation() == context) {
-                return field.target();
-            }
-            throw new IllegalArgumentException(String.format(
-                    "TableRelation %s can't resolve field of another relation", context));
+        private Reference resolveField(Field field, TableRelation relation) {
+            return relation.resolveField(field);
         }
 
         @Override
-        public Symbol visitFunction(Function symbol, AnalyzedRelation context) {
+        public Symbol visitField(Field field, TableRelation context) {
+            return resolveField(field, context);
+        }
+
+        @Override
+        public Symbol visitFunction(Function symbol, TableRelation context) {
             for (int i = 0; i < symbol.arguments().size(); i++) {
                 symbol.setArgument(i, process(symbol.arguments().get(i), context));
             }
@@ -217,7 +232,25 @@ public class TableRelation implements AnalyzedRelation {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, AnalyzedRelation context) {
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, TableRelation context) {
+            Map<Field, Double> fieldBoostMap = matchPredicate.identBoostMap();
+            Map<String, Object> fqnBoostMap = new HashMap<>(fieldBoostMap.size());
+
+            for (Map.Entry<Field, Double> entry : fieldBoostMap.entrySet()) {
+                fqnBoostMap.put(resolveField(entry.getKey(), context).info().ident().columnIdent().fqn(), entry.getValue());
+            }
+
+            return new Function(
+                    io.crate.operation.predicate.MatchPredicate.INFO,
+                    Arrays.<Symbol>asList(
+                            Literal.newLiteral(fqnBoostMap),
+                            Literal.newLiteral(matchPredicate.queryTerm()),
+                            Literal.newLiteral(matchPredicate.matchType()),
+                            Literal.newLiteral(matchPredicate.options())));
+        }
+
+        @Override
+        protected Symbol visitSymbol(Symbol symbol, TableRelation context) {
             return symbol;
         }
     }

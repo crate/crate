@@ -24,7 +24,7 @@ package io.crate.planner.node.dql;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Path;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.Field;
@@ -52,12 +52,12 @@ public class DistributedGroupByNode implements PlannedAnalyzedRelation, PlanNode
 
     @Nullable
     @Override
-    public Field getField(ColumnIdent path) {
+    public Field getField(Path path) {
         throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override
-    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
         throw new UnsupportedOperationException("getWritableField is not supported");
     }
 

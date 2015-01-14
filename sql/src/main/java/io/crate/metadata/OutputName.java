@@ -19,23 +19,18 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.relations;
+package io.crate.metadata;
 
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
+public class OutputName implements Path {
 
-import javax.annotation.Nullable;
-import java.util.List;
+    private final String name;
 
-public interface AnalyzedRelation {
+    public OutputName(String name) {
+        this.name = name;
+    }
 
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context);
-
-    @Nullable
-    public Field getField(Path path);
-
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException;
-
-    public List<Field> fields();
+    @Override
+    public String outputName() {
+        return name;
+    }
 }

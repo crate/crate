@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldResolver;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -48,6 +49,7 @@ import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
@@ -321,7 +323,7 @@ public class ExpressionAnalyzer {
             // -> Need to check isConvertableTo to fail eagerly if the cast won't work.
             try {
                 return cast(symbolToCast, targetType, context);
-            } catch (NumberFormatException e) {
+            } catch (ClassCastException | NumberFormatException e) {
                 // exception is just thrown for literals, rest is evaluated lazy
                 throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
                         SymbolFormatter.format(symbolToCast), targetType.getName()), e);
@@ -528,16 +530,16 @@ public class ExpressionAnalyzer {
             Predicate<Symbol> invalidScoreComparison = new Predicate<Symbol>() {
                 @Override
                 public boolean apply(@Nullable Symbol input) {
-                    if (input instanceof Reference) {
-                        Reference ref = (Reference) input;
-                        return ref.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
+                    if (input instanceof Field) {
+                        Field field = (Field) input;
+                        return field.path().outputName().equalsIgnoreCase(_SCORE)
                                 && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
                                 || insideNotPredicate);
                     }
                     return false;
                 }
             };
-            if (Field.symbolOrTarget(comparison.left, invalidScoreComparison)) {
+            if (invalidScoreComparison.apply(comparison.left)) {
                 throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH,
                                 "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
@@ -549,16 +551,10 @@ public class ExpressionAnalyzer {
          * Validates usage of system columns (e.g. '_score') within predicates.
          */
         protected void validateSystemColumnPredicate(Symbol node) {
-            if (Field.symbolOrTarget(node, new Predicate<Symbol>() {
-                @Override
-                public boolean apply(@Nullable Symbol input) {
-                    return input instanceof Reference
-                            && ((Reference) input).info().ident().columnIdent().name().equalsIgnoreCase(_SCORE);
-                }
-            })) {
+            if (node instanceof Field && ((Field) node).path().outputName().equalsIgnoreCase(_SCORE)) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                         "System column '%s' cannot be used within a predicate", _SCORE));
-                }
+            }
         }
 
         @Override
@@ -696,8 +692,10 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
             Field field = fieldResolver.resolveField(node.getName(), forWrite);
-            context.hasSysExpressions = context.hasSysExpressions || SysSchemaInfo.NAME.equals(
-                    ((Reference) field.target()).info().ident().tableIdent().schema());
+            if (field.relation() instanceof TableRelation) {
+                context.hasSysExpressions = context.hasSysExpressions
+                        || SysSchemaInfo.NAME.equals(((TableRelation) field.relation()).tableInfo().schemaInfo().name());
+            }
             return field;
         }
 
@@ -781,28 +779,22 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
-
-            Map<String, Object> identBoostMap = new HashMap<>();
+            Map<Field, Double> identBoostMap = new HashMap<>(node.idents().size());
             for (MatchPredicateColumnIdent ident : node.idents()) {
-                Symbol reference = process(ident.columnIdent(), context);
-                if (reference instanceof Field) {
-                    reference = ((Field) reference).target();
-                }
+                Symbol column = process(ident.columnIdent(), context);
                 Preconditions.checkArgument(
-                        reference instanceof Reference,
-                        SymbolFormatter.format("can only MATCH on references, not on %s", reference)
+                        column.valueType().equals(DataTypes.STRING),
+                        String.format("Can only use MATCH on columns of type STRING, not on '%s'", column.valueType())
                 );
                 Preconditions.checkArgument(
-                        !(reference instanceof DynamicReference),
-                        SymbolFormatter.format("cannot MATCH on non existing column %s", reference)
+                        column instanceof Field,
+                        SymbolFormatter.format("can only MATCH on columns, not on %s", column)
                 );
+                assert column instanceof Field;
                 Number boost = ExpressionToNumberVisitor.convert(ident.boost(), parameterContext.parameters());
-                identBoostMap.put(((Reference) reference).info().ident().columnIdent().fqn(),
-                        boost == null ? null : boost.doubleValue());
+                identBoostMap.put(((Field) column), boost == null ? null : boost.doubleValue());
             }
-
             String queryTerm = ExpressionToStringVisitor.convert(node.value(), parameterContext.parameters());
-
             String matchType = node.matchType() == null
                     ? io.crate.operation.predicate.MatchPredicate.DEFAULT_MATCH_TYPE_STRING
                     : node.matchType();
@@ -811,16 +803,8 @@ public class ExpressionAnalyzer {
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid MATCH type '%s'", matchType), e);
             }
-
             Map<String, Object> options = MatchOptionsAnalysis.process(node.properties(), parameterContext.parameters());
-
-            FunctionInfo functionInfo = getFunctionInfo(io.crate.operation.predicate.MatchPredicate.IDENT);
-            return context.allocateFunction(functionInfo,
-                    Arrays.<Symbol>asList(
-                            newLiteral(identBoostMap),
-                            newLiteral(queryTerm),
-                            newLiteral(matchType),
-                            newLiteral(options)));
+            return new io.crate.planner.symbol.MatchPredicate(identBoostMap, queryTerm, matchType, options);
         }
     }
 

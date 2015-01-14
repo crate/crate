@@ -46,7 +46,6 @@ import java.util.Collection;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static io.crate.planner.symbol.Field.unwrap;
 
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, RelationAnalysisContext> {
 
@@ -120,7 +119,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
-            if (unwrap(symbol).symbolType() == SymbolType.DYNAMIC_REFERENCE) {
+            if (symbol.symbolType().equals(DataTypes.UNDEFINED)) {
                 throw new IllegalArgumentException(
                         SymbolFormatter.format("unknown column '%s' not allowed in a global DISTINCT", symbol));
             } else if (isAggregate(symbol)) {

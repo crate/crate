@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Path;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Field;
 import io.crate.types.DataType;
@@ -77,13 +77,13 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
 
     @Nullable
     @Override
-    public Field getField(ColumnIdent path) {
+    public Field getField(Path path) {
         return null;
     }
 
     @Nullable
     @Override
-    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
         return null;
     }
 

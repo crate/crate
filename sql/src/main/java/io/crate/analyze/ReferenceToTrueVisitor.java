@@ -75,6 +75,11 @@ public class ReferenceToTrueVisitor extends SymbolVisitor<Void, Symbol> {
     }
 
     @Override
+    public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
+        return Literal.newLiteral(true);
+    }
+
+    @Override
     protected Symbol visitSymbol(Symbol symbol, Void context) {
         return symbol;
     }
