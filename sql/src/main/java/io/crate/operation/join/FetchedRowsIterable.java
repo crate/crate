@@ -21,28 +21,33 @@
 
 package io.crate.operation.join;
 
-import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.PageInfo;
+import io.crate.executor.PageableTaskResult;
 import io.crate.executor.TaskResult;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 class FetchedRowsIterable extends RelationIterable {
 
-    private final Object[][] rows;
+    private final Iterable<Object[]> rows;
 
     public FetchedRowsIterable(TaskResult taskResult, PageInfo pageInfo) {
         super(pageInfo);
-        this.rows = taskResult.rows();
+        if (taskResult instanceof PageableTaskResult) {
+            this.rows = ((PageableTaskResult) taskResult).page();
+        } else {
+            this.rows = Arrays.asList(taskResult.rows());
+        }
     }
 
     @Override
     public Iterator<Object[]> iterator() {
-        return Iterators.forArray(rows);
+        return rows.iterator();
     }
 
     @Override
@@ -53,7 +58,7 @@ class FetchedRowsIterable extends RelationIterable {
 
     @Override
     public boolean isComplete() {
-        return currentPageInfo().position() >= rows.length;
+        return true;
     }
 
     @Override

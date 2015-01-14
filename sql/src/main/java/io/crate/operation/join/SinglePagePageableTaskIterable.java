@@ -21,13 +21,15 @@
 
 package io.crate.operation.join;
 
-import com.google.common.collect.Iterators;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.PageInfo;
 import io.crate.executor.PageableTaskResult;
 import io.crate.executor.SinglePageTaskResult;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -37,7 +39,7 @@ import java.util.NoSuchElementException;
  */
 public class SinglePagePageableTaskIterable extends RelationIterable {
 
-    private PageableTaskResult currentTaskResult;
+    private volatile PageableTaskResult currentTaskResult;
 
     protected SinglePagePageableTaskIterable(PageableTaskResult taskResult, PageInfo pageInfo) {
         super(pageInfo);
@@ -47,12 +49,35 @@ public class SinglePagePageableTaskIterable extends RelationIterable {
     @Override
     public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
         this.pageInfo(pageInfo);
-        return Futures.immediateFuture(null);
+
+        final SettableFuture<Void> future = SettableFuture.create();
+        Futures.addCallback(currentTaskResult.fetch(pageInfo), new FutureCallback<PageableTaskResult>() {
+            @Override
+            public void onSuccess(@Nullable PageableTaskResult result) {
+                if (result == null) {
+                    future.setException(new IllegalArgumentException("PageableTaskResult is null"));
+                }
+                currentTaskResult = result;
+                future.set(null);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                future.setException(t);
+            }
+        });
+        return future;
     }
 
     @Override
     public boolean isComplete() {
-        return currentTaskResult.rows().length == 0 || currentTaskResult instanceof SinglePageTaskResult;
+        return currentTaskResult.page().size() < currentPageInfo().size()
+                || currentTaskResult instanceof SinglePageTaskResult;
+    }
+
+    @Override
+    public Iterator<Object[]> forCurrentPage() {
+        return iterator();
     }
 
     @Override
@@ -62,6 +87,6 @@ public class SinglePagePageableTaskIterable extends RelationIterable {
 
     @Override
     public Iterator<Object[]> iterator() {
-        return Iterators.forArray(currentTaskResult.rows());
+        return currentTaskResult.page().iterator();
     }
 }

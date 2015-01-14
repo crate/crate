@@ -26,24 +26,17 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Arrays;
 
 public class SinglePageTaskResult implements PageableTaskResult {
 
-    private final Object[][] rows;
+    private final Page page;
 
     public SinglePageTaskResult(Object[][] rows) {
-        this.rows = rows;
+        this.page = new ObjectArrayPage(rows);
     }
 
-    public SinglePageTaskResult(Object[][] rows, PageInfo pageInfo) {
-        if (pageInfo.position() != 0 || pageInfo.size() < rows.length) {
-            // TODO: use a row representation that hides the underlying array stuff
-            // so we could do this more efficiently
-            this.rows = Arrays.copyOfRange(rows, pageInfo.position(), pageInfo.position() + pageInfo.size());
-        } else {
-            this.rows = rows;
-        }
+    public SinglePageTaskResult(Object[][] rows, int start, int end) {
+        this.page = new ObjectArrayPage(rows, start, end);
     }
 
     @Override
@@ -52,8 +45,13 @@ public class SinglePageTaskResult implements PageableTaskResult {
     }
 
     @Override
+    public Page page() {
+        return page;
+    }
+
+    @Override
     public Object[][] rows() {
-        return rows;
+        throw new UnsupportedOperationException("rows() not supported on SinglePageTaskResult");
     }
 
     @Nullable

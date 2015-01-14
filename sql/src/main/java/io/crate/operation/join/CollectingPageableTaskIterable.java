@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.Page;
 import io.crate.executor.PageInfo;
 import io.crate.executor.PageableTaskResult;
 import io.crate.executor.SinglePageTaskResult;
@@ -45,27 +46,27 @@ import java.util.*;
 public class CollectingPageableTaskIterable extends RelationIterable {
 
     private PageableTaskResult currentTaskResult;
-    private List<Object[][]> pages;
+    private List<Page> pages;
 
     public CollectingPageableTaskIterable(PageableTaskResult taskResult, PageInfo pageInfo) {
         super(pageInfo);
         this.currentTaskResult = taskResult;
         this.pages = new LinkedList<>();
         this.pages.add(
-                taskResult.rows()
+                taskResult.page()
         );
     }
 
     @Override
     public Iterator<Object[]> iterator() {
-        return Iterators.concat(Lists.transform(pages, new Function<Object[][], Iterator<Object[]>>() {
+        return Iterators.concat(Lists.transform(pages, new Function<Page, Iterator<Object[]>>() {
             @Nullable
             @Override
-            public Iterator<Object[]> apply(@Nullable Object[][] input) {
+            public Iterator<Object[]> apply(@Nullable Page input) {
                 if (input == null) {
                     return Collections.emptyIterator();
                 } else {
-                    return Iterators.forArray(input);
+                    return input.iterator();
                 }
             }
         }).iterator());
@@ -75,19 +76,16 @@ public class CollectingPageableTaskIterable extends RelationIterable {
     public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
         this.pageInfo(pageInfo);
 
-        if (isComplete()) {
-            return Futures.immediateFuture(null);
-        }
-
         final SettableFuture<Void> future = SettableFuture.create();
         Futures.addCallback(currentTaskResult.fetch(pageInfo), new FutureCallback<PageableTaskResult>() {
             @Override
             public void onSuccess(@Nullable PageableTaskResult result) {
                 if (result == null) {
-                    throw new IllegalArgumentException("PageableTaskResult is null");
+                    future.setException(new IllegalArgumentException("PageableTaskResult is null"));
+                } else {
+                    pages.add(result.page());
+                    future.set(null);
                 }
-                pages.add(result.rows());
-                future.set(null);
             }
 
             @Override
@@ -101,8 +99,8 @@ public class CollectingPageableTaskIterable extends RelationIterable {
     @Override
     public boolean isComplete() {
         // last page length is 0
-        return currentTaskResult instanceof SinglePageTaskResult ||
-                (!pages.isEmpty() && pages.get(pages.size()-1).length == 0);
+        return pages.get(pages.size()-1).size() < currentPageInfo().size()      // we fetched less than requested
+                || currentTaskResult instanceof SinglePageTaskResult;           // we only have this single page, nothing more
     }
 
     @Override

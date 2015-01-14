@@ -23,6 +23,8 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateResultSorter;
@@ -52,6 +54,8 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.search.Scroll;
@@ -88,6 +92,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
     private final SearchServiceTransportAction searchServiceTransportAction;
     private final SearchPhaseController searchPhaseController;
     private final ThreadPool threadPool;
+    private final BigArrays bigArrays;
     private final CrateResultSorter crateResultSorter;
 
     private final SettableFuture<TaskResult> result;
@@ -123,6 +128,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                               SearchServiceTransportAction searchServiceTransportAction,
                               SearchPhaseController searchPhaseController,
                               ThreadPool threadPool,
+                              BigArrays bigArrays,
                               CrateResultSorter crateResultSorter) {
         super(jobId);
         this.searchNode = searchNode;
@@ -130,6 +136,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         this.searchServiceTransportAction = searchServiceTransportAction;
         this.searchPhaseController = searchPhaseController;
         this.threadPool = threadPool;
+        this.bigArrays = bigArrays;
         this.crateResultSorter = crateResultSorter;
 
         state = clusterService.state();
@@ -217,7 +224,11 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         requests = prepareRequests(references, pageInfo);
 
         if (!routing.hasLocations() || requests.size() == 0) {
-            result.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+            result.set(
+                    pageInfo.isPresent()
+                            ? PageableTaskResult.EMPTY_PAGABLE_RESULT
+                            : TaskResult.EMPTY_RESULT
+            );
         }
 
         state.blocks().globalBlockedRaiseException(ClusterBlockLevel.READ);
@@ -371,8 +382,20 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         }
     }
 
+    private ObjectArray<Object[]> toPage(SearchHit[] hits, List<FieldExtractor<SearchHit>> extractors) {
+        ObjectArray<Object[]> rows = bigArrays.newObjectArray(hits.length);
+        for (int r = 0; r < hits.length; r++) {
+            Object[] row = new Object[numColumns];
+            for (int c = 0; c < numColumns; c++) {
+                row[c] = extractors.get(c).extract(hits[r]);
+            }
+            rows.set(r, row);
+        }
+        return rows;
+    }
+
     private Object[][] toRows(SearchHit[] hits, List<FieldExtractor<SearchHit>> extractors) {
-        final Object[][] rows = new Object[hits.length][numColumns];
+        Object[][] rows = new Object[hits.length][numColumns];
 
         for (int r = 0; r < hits.length; r++) {
             rows[r] = new Object[numColumns];
@@ -396,12 +419,14 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                             return;
                         }
                         InternalSearchResponse response = searchPhaseController.merge(sortedShardList, firstResults, fetchResults);
-                        final Object[][] rows = toRows(response.hits().hits(), extractors);
+
 
                         if (pageInfo.isPresent()) {
-                            result.set(new QTFScrollTaskResult(rows));
+                            ObjectArray<Object[]> page = toPage(response.hits().hits(), extractors);
+                            result.set(new QTFScrollTaskResult(page, 0, pageInfo.get()));
                         } else {
-                            result.set(SinglePageTaskResult.singlePage(rows));
+                            final Object[][] rows = toRows(response.hits().hits(), extractors);
+                            result.set(new QueryResult(rows));
                         }
                     } catch (Throwable t) {
                         result.setException(t);
@@ -421,19 +446,23 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
     class QTFScrollTaskResult implements PageableTaskResult {
 
-        private final Object[][] rows;
-        private final SettableFuture<PageableTaskResult> future;
+        private final ObjectArray<Object[]> pageSource;
+        private final Page page;
+        private final long startIndexAtPageSource;
+        private final PageInfo currentPageInfo;
         private final AtomicArray<QueryFetchSearchResult> queryFetchResults;
 
-        public QTFScrollTaskResult(Object[][] rows) {
-            this.rows = rows;
-            this.future = SettableFuture.create();
+        public QTFScrollTaskResult(ObjectArray<Object[]> pageSource, long startIndexAtPageSource, PageInfo pageInfo) {
+            this.pageSource = pageSource;
+            this.startIndexAtPageSource = startIndexAtPageSource;
+            this.currentPageInfo = pageInfo;
             this.queryFetchResults = new AtomicArray<>(numShards);
+            this.page = new BigArrayPage(pageSource, startIndexAtPageSource, currentPageInfo.size());
         }
 
+        private void fetchFromSource(long needToFetch, final FutureCallback<ObjectArray<Object[]>> callback) {
 
-        @Override
-        public ListenableFuture<PageableTaskResult> fetch(final PageInfo pageInfo) {
+            // TODO: build pageInfo from needToFetch
             final AtomicInteger numOps = new AtomicInteger(numShards);
 
             final Scroll scroll = new Scroll(keepAlive.or(DEFAULT_KEEP_ALIVE));
@@ -441,7 +470,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
             for (final Map.Entry<SearchShardTarget, Long> entry : searchContextIds.entrySet()) {
                 DiscoveryNode node = nodes.get(entry.getKey().nodeId());
 
-                QueryShardScrollRequest request = new QueryShardScrollRequest(entry.getValue(), scroll, pageInfo.size());
+                QueryShardScrollRequest request = new QueryShardScrollRequest(entry.getValue(), scroll, (int)needToFetch);
 
                 transportQueryShardAction.executeScroll(node.id(), request, new ActionListener<ScrollQueryFetchSearchResult>() {
                     @Override
@@ -459,14 +488,8 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                                             ScoreDoc[] sortedShardList = searchPhaseController.sortDocs(true, queryFetchResults);
                                             InternalSearchResponse response = searchPhaseController.merge(sortedShardList, queryFetchResults, queryFetchResults);
                                             final SearchHit[] hits = response.hits().hits();
-                                            final Object[][] rows = toRows(hits, extractors);
-
-                                            if (rows.length == 0) {
-                                                future.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
-                                                close();
-                                            } else {
-                                                future.set(new QTFScrollTaskResult(rows));
-                                            }
+                                            final ObjectArray<Object[]> page = toPage(hits, extractors);
+                                            callback.onSuccess(page);
                                         } catch (Throwable e) {
                                             onFailure(e);
                                         }
@@ -481,7 +504,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        future.setException(t);
+                        callback.onFailure(t);
                         try {
                             close();
                         } catch (IOException e) {
@@ -490,12 +513,98 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                     }
                 });
             }
+        }
+
+        @Override
+        public ListenableFuture<PageableTaskResult> fetch(final PageInfo pageInfo) {
+            Preconditions.checkArgument(
+                    pageInfo.position() == (this.currentPageInfo.size() + this.currentPageInfo.position()),
+                    "QueryThenFetchTask can only page forward without gaps");
+
+            final long restSize = (pageSource.size()-startIndexAtPageSource) - currentPageInfo.size();
+            final SettableFuture<PageableTaskResult> future = SettableFuture.create();
+            if (restSize >= pageInfo.size()) {
+                // don't need to fetch nuttin'
+                future.set(
+                        new QTFScrollTaskResult(
+                                pageSource,
+                                startIndexAtPageSource + currentPageInfo.size(),
+                                pageInfo)
+                );
+            } else if (restSize < 0) {
+                // if restSize is less than 0, we got less than requested
+                // and in that can safely assume that we're exhausted
+                future.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+                try {
+                    close();
+                } catch (IOException e) {
+                    logger.error("error closing QTFScrollTaskResult", e);
+                }
+            } else if (restSize == 0) {
+                fetchFromSource(pageInfo.size(), new FutureCallback<ObjectArray<Object[]>>() {
+                    @Override
+                    public void onSuccess(@Nullable ObjectArray<Object[]> result) {
+                        if (result.size() == 0) {
+                            future.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+                            try {
+                                close();
+                            } catch (IOException e) {
+                                logger.error("error closing QTFScrollTaskResult", e);
+                            }
+                        } else {
+                            future.set(new QTFScrollTaskResult(result, 0, pageInfo));
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        future.setException(t);
+                    }
+                });
+            } else if (restSize > 0) {
+                // we got a rest, need to combine stuff
+                fetchFromSource(pageInfo.size() - restSize, new FutureCallback<ObjectArray<Object[]>>() {
+                    @Override
+                    public void onSuccess(@Nullable ObjectArray<Object[]> result) {
+                        // TODO: invent PageSource, that can consists of > 1 backing arrays or such and can be used to get Pages
+                        try {
+                            ObjectArray<Object[]> grown = bigArrays.grow(result, result.size() + restSize); // this closes result
+
+                            // move result stuff
+                            for (long i = result.size() - restSize; i > 0; i++) {
+                                grown.set(i+restSize, grown.get(restSize));
+                            }
+                            // fill the new array
+                            for (long resultIdx=0L, pageSourceIndex = pageSource.size() - restSize;
+                                 pageSourceIndex < pageSource.size();
+                                 pageSourceIndex++, resultIdx++) {
+                                grown.set(resultIdx, pageSource.get(pageSourceIndex));
+                            }
+                            pageSource.close();
+                            future.set(new QTFScrollTaskResult(grown, 0, pageInfo));
+                        } catch (Throwable t) {
+                            onFailure(t);
+                        }
+
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        future.setException(t);
+                    }
+                });
+            }
             return future;
         }
 
         @Override
+        public Page page() {
+            return page;
+        }
+
+        @Override
         public Object[][] rows() {
-            return rows;
+            throw new UnsupportedOperationException("QTFScrollTaskResult does not support rows()");
         }
 
         @javax.annotation.Nullable

@@ -95,21 +95,23 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
 
         TaskResult result = resultFuture.get();
         assertThat(result, instanceOf(PageableTaskResult.class));
-        closeMeWhenDone = (PageableTaskResult)result;
-        assertThat(TestingHelpers.printedTable(result.rows()), is(
+        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
                 "1| Arthur| false\n" +
-                        "4| Arthur| true\n"
+                "4| Arthur| true\n"
         ));
-        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo.nextPage(2));
+        pageInfo = pageInfo.nextPage(2);
+        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo);
         PageableTaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
-        assertThat(TestingHelpers.printedTable(nextPageResult.rows()), is(
+        assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
                 "2| Ford| false\n" +
-                        "3| Trillian| true\n"
+                "3| Trillian| true\n"
         ));
 
-        Object[][] nextRows = nextPageResult.fetch(pageInfo.nextPage(2)).get().rows();
-        assertThat(nextRows.length, is(0));
+        pageInfo = pageInfo.nextPage(2);
+        Page nextPage = nextPageResult.fetch(pageInfo).get().page();
+        assertThat(nextPage.size(), is(0L));
 
     }
 
@@ -141,20 +143,23 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
         assertThat(result, instanceOf(PageableTaskResult.class));
-        closeMeWhenDone = (PageableTaskResult)result;
-        assertThat(TestingHelpers.printedTable(result.rows()), is(
+        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        closeMeWhenDone = pageableResult;
+        assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
                 "4| Arthur| true\n" +
-                        "2| Ford| false\n"
+                "2| Ford| false\n"
         ));
-        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo.nextPage(2));
+        pageInfo = pageInfo.nextPage(2);
+        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo);
         PageableTaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
-        assertThat(TestingHelpers.printedTable(nextPageResult.rows()), is(
+        assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
                 "3| Trillian| true\n"
         ));
 
-        Object[][] nextRows = nextPageResult.fetch(pageInfo.nextPage(2)).get().rows();
-        assertThat(nextRows.length, is(0));
+        pageInfo = pageInfo.nextPage(2);
+        Page lastPage = nextPageResult.fetch(pageInfo).get().page();
+        assertThat(lastPage.size(), is(0L));
     }
 
     @Test
@@ -187,17 +192,65 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         TaskResult result = resultFuture.get();
         assertThat(result, instanceOf(PageableTaskResult.class));
         closeMeWhenDone = (PageableTaskResult)result;
+        PageableTaskResult firstResult = (PageableTaskResult)result;
+        assertThat(firstResult.page().size(), is(2L));
 
-        assertThat(result.rows().length, is(2));
-
-        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo.nextPage(2));
+        pageInfo = pageInfo.nextPage(2);
+        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo);
         PageableTaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
-        assertThat(nextPageResult.rows().length, is(1));
+        assertThat(nextPageResult.page().size(), is(1L));
 
-        PageableTaskResult furtherPageResult = nextPageResult.fetch(pageInfo.nextPage(2)).get();
+        pageInfo = pageInfo.nextPage(2);
+        PageableTaskResult furtherPageResult = nextPageResult.fetch(pageInfo).get();
         closeMeWhenDone = furtherPageResult;
-        assertThat(furtherPageResult.rows().length, is(0));
+        assertThat(furtherPageResult.page().size(), is(0L));
+    }
+
+    @Test
+    public void testPagedQueryThenFetch1RowPages() throws Exception {
+        setup.setUpCharacters();
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+
+        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
+                null,
+                null,
+                null,
+                null,
+                null,
+                WhereClause.MATCH_ALL,
+                null
+        );
+
+        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        assertThat(tasks.size(), is(1));
+        QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
+        PageInfo pageInfo = new PageInfo(1, 1);
+        qtfTask.setKeepAlive(TimeValue.timeValueSeconds(10));
+        qtfTask.start(pageInfo);
+        List<ListenableFuture<TaskResult>> results = qtfTask.result();
+        assertThat(results.size(), is(1));
+
+        // first page
+        ListenableFuture<TaskResult> resultFuture = results.get(0);
+        TaskResult result = resultFuture.get();
+        assertThat(result, instanceOf(PageableTaskResult.class));
+        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        closeMeWhenDone = pageableResult;
+        assertThat(pageableResult.page().size(), is(1L));
+
+        PageableTaskResult nextPageResult = (PageableTaskResult)result;
+        for (int i = 0; i<2 ; i++) {
+            pageInfo = pageInfo.nextPage();
+            ListenableFuture<PageableTaskResult> nextPageResultFuture = nextPageResult.fetch(pageInfo);
+            nextPageResult = nextPageResultFuture.get();
+            closeMeWhenDone = nextPageResult;
+            assertThat(nextPageResult.page().size(), is(1L));
+        }
+        // no further pages
+        assertThat(nextPageResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
     }
 
     @Test
@@ -273,7 +326,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         TaskResult result = results.get(0).get();
         assertThat(result, instanceOf(QueryResult.class));
         assertThat(TestingHelpers.printedTable(result.rows()), is(
-                "4| Arthur| true| Life, the Universe and Everything\n" +
+                        "4| Arthur| true| Life, the Universe and Everything\n" +
                         "4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
                         "4| Arthur| true| The Restaurant at the End of the Universe\n" +
                         "1| Arthur| false| Life, the Universe and Everything\n" +
@@ -344,6 +397,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // SELECT characters.id, characters.name, characters.female, books.title
         // FROM characters CROSS JOIN books
         // ORDER BY character.name, character.female, books.title
+        // limit 10 offset 1
         NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 10, 1);
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
@@ -360,7 +414,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         TaskResult result = results.get(0).get();
         assertThat(result, instanceOf(QueryResult.class));
         assertThat(TestingHelpers.printedTable(result.rows()), is(
-                "4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
+                        "4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
                         "4| Arthur| true| The Restaurant at the End of the Universe\n" +
                         "1| Arthur| false| Life, the Universe and Everything\n" +
                         "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +

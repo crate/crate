@@ -44,7 +44,7 @@ public class CrateResultSorter {
      * copied from SearchPhaseController, to manually set offset
      *
      * @param resultsArr Shard result holder
-     * @param offset the number of results to skipd
+     * @param offset the number of results to skip
      * @param limit the number of results to return at max
      */
     public ScoreDoc[] sortDocs(AtomicArray<? extends QuerySearchResultProvider> resultsArr, int offset, int limit) throws IOException {
@@ -110,11 +110,6 @@ public class CrateResultSorter {
 
         // Need to use the length of the resultsArr array, since the slots will be based on the position in the resultsArr array
         TopDocs[] shardTopDocs = new TopDocs[resultsArr.length()];
-        if (firstResult.includeFetch()) {
-            // if we did both query and fetch on the same go, we have fetched all the docs from each shards already, use them...
-            // this is also important since we shortcut and fetch only docs from "from" and up to "size"
-            limit *= sortedResults.length;
-        }
         for (AtomicArray.Entry<? extends QuerySearchResultProvider> sortedResult : sortedResults) {
             TopDocs topDocs = sortedResult.value.queryResult().topDocs();
             // the 'index' field is the position in the resultsArr atomic array

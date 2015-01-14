@@ -42,6 +42,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -129,8 +130,6 @@ public class NestedLoopOperation implements ProjectorUpstream {
         final RelationIterable innerIterable;
         final boolean singlePage;
 
-        private boolean initialOffsetApplied = false;
-
         Iterator<Object[]> outerIterator;
         Iterator<Object[]> innerIterator;
 
@@ -143,14 +142,24 @@ public class NestedLoopOperation implements ProjectorUpstream {
         }
 
         void refreshOuterIteratorIfNeeded() {
-            if (outerIterator == null || !outerIterator.hasNext()) {
-                // outer iterator is iterated pagewise only
+            try {
+                if (outerIterator == null || !outerIterator.hasNext()) {
+                    // outer iterator is iterated pagewise only
+                    outerIterator = outerIterable.forCurrentPage();
+                }
+            } catch (ConcurrentModificationException e) {
+                // underlying list has been changed
                 outerIterator = outerIterable.forCurrentPage();
             }
         }
 
         void refreshInnerIteratorIfNeeded() {
-            if (innerIterator == null || !innerIterator.hasNext()) {
+            try {
+                if (innerIterator == null || !innerIterator.hasNext()) {
+                    innerIterator = innerIterable.iterator();
+                }
+            } catch (ConcurrentModificationException e) {
+                // underlying list has been changed
                 innerIterator = innerIterable.iterator();
             }
         }
@@ -176,22 +185,12 @@ public class NestedLoopOperation implements ProjectorUpstream {
             outerIterable.close();
             innerIterable.close();
         }
-
-        public boolean initialOffsetApplied() {
-            return initialOffsetApplied;
-        }
-
-        public void setInitialOffsetApplied() {
-            this.initialOffsetApplied = true;
-        }
     }
-
-
-    public static final int DEFAULT_PAGE_SIZE = 1024;
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final int limit;
+    private final int offset;
     private final List<Task> outerRelationTasks;
     private final List<Task> innerRelationTasks;
 
@@ -199,7 +198,6 @@ public class NestedLoopOperation implements ProjectorUpstream {
     private final ProjectionToProjectorVisitor projectionToProjectorVisitor;
     private final RamAccountingContext ramAccountingContext;
     private final List<Projection> projections;
-    private final boolean haveToFetchAllForPaging;
     private Projector downstream;
 
     private RowCombinator rowCombinator;
@@ -219,13 +217,12 @@ public class NestedLoopOperation implements ProjectorUpstream {
                                ProjectionToProjectorVisitor projectionToProjectorVisitor,
                                RamAccountingContext ramAccountingContext) {
         this.limit = nestedLoopNode.limit() == TopN.NO_LIMIT ? Constants.DEFAULT_SELECT_LIMIT : nestedLoopNode.limit();
+        this.offset = nestedLoopNode.offset();
+
         this.ramAccountingContext = ramAccountingContext;
         this.projectionToProjectorVisitor = projectionToProjectorVisitor;
         this.projections = nestedLoopNode.projections();
         this.taskExecutor = executor;
-
-        // used for optimizations when no projections are given and paging is used
-        this.haveToFetchAllForPaging = !this.projections.isEmpty();
 
         int leftNumColumns = nestedLoopNode.left().outputTypes().size();
         int rightNumColumns = nestedLoopNode.right().outputTypes().size();
@@ -268,9 +265,13 @@ public class NestedLoopOperation implements ProjectorUpstream {
             return Futures.<TaskResult>immediateFuture(TaskResult.EMPTY_RESULT);
         }
 
-        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, Optional.<PageInfo>absent());
+        int rowsToProduce = limit + offset;
+        int outerPageSize = 1;
+        final PageInfo outerPageInfo = new PageInfo(0, 1);
+        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, Optional.of(outerPageInfo));
         assert outerResults.size() == 1;
-        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, Optional.<PageInfo>absent());
+        final PageInfo innerPageInfo = new PageInfo(0, rowsToProduce/outerPageSize);
+        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, Optional.of(innerPageInfo));
         assert innerResults.size() == 1;
 
         Futures.addCallback(Futures.allAsList(ImmutableList.of(outerResults.get(0), innerResults.get(0))), new FutureCallback<List<TaskResult>>() {
@@ -278,21 +279,19 @@ public class NestedLoopOperation implements ProjectorUpstream {
             public void onSuccess(List<TaskResult> results) {
                 assert results.size() == 2;
                 try {
-                    PageInfo pageInfo = new PageInfo(0, limit);
-                    final RelationIterable outerIterable = RelationIterable.forTaskResult(results.get(0), pageInfo, false);
-                    final RelationIterable innerIterable = RelationIterable.forTaskResult(results.get(1), pageInfo, true);
+                    final RelationIterable outerIterable = RelationIterable.forTaskResult(results.get(0), outerPageInfo, false);
+                    final RelationIterable innerIterable = RelationIterable.forTaskResult(results.get(1), innerPageInfo, true);
 
-                    JoinContext joinContext = new JoinContext(
+                    final JoinContext joinContext = new JoinContext(
                             outerIterable,
                             innerIterable,
                             false);
-                    joinContext.refreshOuterIteratorIfNeeded();
+                    joinContext.refreshOuterIteratorIfNeeded(); // initialize outer iterator
                     executeAsync(joinContext, new FutureCallback<Void>() {
 
                         private void close() {
                             try {
-                                outerIterable.close();
-                                innerIterable.close();
+                                joinContext.close();
                             } catch (IOException e) {
                                 logger.error("error closing CROSS JOIN source relation resources", e);
                             }
@@ -364,6 +363,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     new FutureCallback<Void>() {
                         @Override
                         public void onSuccess(@Nullable Void result) {
+                            ctx.refreshInnerIteratorIfNeeded();
                             executeAsync(
                                     ctx,
                                     callback
@@ -384,6 +384,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     new FutureCallback<Void>() {
                         @Override
                         public void onSuccess(@Nullable Void result) {
+                            ctx.refreshOuterIteratorIfNeeded(); // refresh iterator
                             executeAsync(
                                     ctx,
                                     callback

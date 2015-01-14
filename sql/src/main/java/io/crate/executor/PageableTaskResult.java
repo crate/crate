@@ -43,8 +43,13 @@ public interface PageableTaskResult extends TaskResult, Closeable {
         }
 
         @Override
+        public Page page() {
+            return Page.EMPTY;
+        }
+
+        @Override
         public Object[][] rows() {
-            return TaskResult.EMPTY_ROWS;
+            throw new UnsupportedOperationException("rows() is not supported on PageableTaskResut");
         }
 
         @Nullable
@@ -67,6 +72,19 @@ public interface PageableTaskResult extends TaskResult, Closeable {
      */
     ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo);
 
+
+    /**
+     *
+     * <strong>
+     *     Use this instead of {@linkplain #rows()}!
+     * </strong>
+     * <p>
+     *
+     * Get the page that was fetched with this task result.
+     * It might contain less rows than requested.
+     * @return a Page you can iterate over to get the rows it consists of
+     */
+    Page page();
 
     /**
      * Must be called after paging is done
