@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport.task;
+package io.crate.executor.transport;
 
 import io.crate.Constants;
 import org.elasticsearch.action.ActionResponse;

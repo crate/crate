@@ -34,6 +34,7 @@ import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
 import org.mockito.Answers;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -274,7 +275,7 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return routing;
     }
 

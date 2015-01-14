@@ -47,6 +47,10 @@ public class UpdateTask extends AsyncChainedTask {
 
     @Override
     public void start() {
+        if (subTasks.size() == 0) {
+            result.set(RowCountResult.EMPTY_RESULT);
+            return;
+        }
         final List<ListenableFuture<TaskResult>> subTasksResult = transportExecutor.execute(subTasks, null);
         Futures.addCallback(Futures.allAsList(subTasksResult), new FutureCallback<List<TaskResult>>() {
             @Override
@@ -55,8 +59,8 @@ public class UpdateTask extends AsyncChainedTask {
                     result.setException(new NullPointerException());
                     return;
                 }
-                assert results.size() == 1 : "Expecting LocalMergeTask as last sub-task which always has one result";
-                result.set(new RowCountResult(((Double)results.get(0).rows()[0][0]).longValue()));
+                assert results.size() == 1 : "Last sub-task is expected to have 1 result only";
+                result.set(new RowCountResult(((Number)results.get(0).rows()[0][0]).longValue()));
             }
 
             @Override

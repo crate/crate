@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.ShardUpdateRequest;
 import io.crate.executor.transport.TransportShardUpdateAction;
-import io.crate.executor.transport.task.ShardUpdateResponse;
+import io.crate.executor.transport.ShardUpdateResponse;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
@@ -159,7 +159,7 @@ public class UpdateProjector implements Projector {
             public void onSuccess(@Nullable List<Long> result) {
                 long rowCount = 0;
                 for (Long val : result) {
-                    rowCount =+ val;
+                    rowCount += val;
                 }
                 downstream.setNextRow(rowCount);
                 Throwable throwable = upstreamFailure.get();

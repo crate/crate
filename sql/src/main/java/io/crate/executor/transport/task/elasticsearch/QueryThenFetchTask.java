@@ -705,41 +705,46 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         @Override
         public FieldExtractor<SearchHit> build(Reference field, SearchHitExtractorContext context) {
             final ColumnIdent columnIdent = field.info().ident().columnIdent();
-            if (DocSysColumns.VERSION.equals(columnIdent)) {
-                return new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return hit.getVersion();
-                    }
-                };
-            } else if (DocSysColumns.ID.equals(columnIdent)) {
-                return new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return new BytesRef(hit.getId());
-                    }
-                };
-            } else if (DocSysColumns.DOC.equals(columnIdent)) {
-                return new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return hit.getSource();
-                    }
-                };
-            } else if (DocSysColumns.RAW.equals(columnIdent)) {
-                return new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return hit.getSourceRef().toBytesRef();
-                    }
-                };
-            } else if (DocSysColumns.SCORE.equals(columnIdent)) {
-                return new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return hit.getScore();
-                    }
-                };
+            if (columnIdent.isSystemColumn()) {
+                if (DocSysColumns.VERSION.equals(columnIdent)) {
+                    return new ESFieldExtractor() {
+                        @Override
+                        public Object extract(SearchHit hit) {
+                            return hit.getVersion();
+                        }
+                    };
+                } else if (DocSysColumns.ID.equals(columnIdent)) {
+                    return new ESFieldExtractor() {
+                        @Override
+                        public Object extract(SearchHit hit) {
+                            return new BytesRef(hit.getId());
+                        }
+                    };
+                } else if (DocSysColumns.DOC.equals(columnIdent)) {
+                    return new ESFieldExtractor() {
+                        @Override
+                        public Object extract(SearchHit hit) {
+                            return hit.getSource();
+                        }
+                    };
+                } else if (DocSysColumns.RAW.equals(columnIdent)) {
+                    return new ESFieldExtractor() {
+                        @Override
+                        public Object extract(SearchHit hit) {
+                            return hit.getSourceRef().toBytesRef();
+                        }
+                    };
+                } else if (DocSysColumns.SCORE.equals(columnIdent)) {
+                    return new ESFieldExtractor() {
+                        @Override
+                        public Object extract(SearchHit hit) {
+                            return hit.getScore();
+                        }
+                    };
+                } else {
+                    throw new UnsupportedOperationException(
+                            String.format(Locale.ENGLISH, "Unsupported system column %s", columnIdent.name()));
+                }
             } else if (context.partitionBy.contains(field.info())) {
                 return new ESFieldExtractor.PartitionedByColumnExtractor(field, context.partitionBy);
             } else {

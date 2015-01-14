@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class SysShardsTableInfo extends SysTableInfo {
@@ -129,7 +130,7 @@ public class SysShardsTableInfo extends SysTableInfo {
 
 
     @Override
-    public Routing getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         // TODO: filter on whereClause
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
         for (ShardRouting shardRouting : clusterService.state().routingTable().allShards()) {

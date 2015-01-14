@@ -32,6 +32,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class SysClusterTableInfo extends SysTableInfo {
@@ -328,7 +329,7 @@ public class SysClusterTableInfo extends SysTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return ROUTING;
     }
 

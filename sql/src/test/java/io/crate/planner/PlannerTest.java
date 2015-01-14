@@ -53,8 +53,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.isFunction;
-import static io.crate.testing.TestingHelpers.isReference;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -786,35 +785,83 @@ public class PlannerTest {
     }
 
     @Test
-    public void testESUpdatePlan() throws Exception {
-        Plan plan = plan("update users set name='Vogon lyric fan' where id=1");
+    public void testUpdateByQueryPlan() throws Exception {
+        Plan plan = plan("update users set name='Vogon lyric fan'");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESUpdateNode.class));
+        assertThat(planNode.outputTypes().size(), is(1));
+        assertEquals(DataTypes.LONG, planNode.outputTypes().get(0));
+        assertThat(planNode, instanceOf(UpdateNode.class));
+        assertThat(((UpdateNode) planNode).nodes().size(), is(1));
 
-        ESUpdateNode updateNode = (ESUpdateNode)planNode;
-        assertThat(updateNode.indices(), is(new String[]{"users"}));
-        assertThat(updateNode.ids().size(), is(1));
-        assertThat(updateNode.ids().get(0), is("1"));
+        List<DQLPlanNode> childNodes = ((UpdateNode)planNode).nodes().get(0);
+        assertThat(childNodes.size(), is(2));
+        assertThat(childNodes.get(0), instanceOf(CollectNode.class));
+        assertThat(childNodes.get(1), instanceOf(MergeNode.class));
 
-        assertThat(updateNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.LONG, updateNode.outputTypes().get(0));
+        CollectNode collectNode = (CollectNode)childNodes.get(0);
+        assertThat(collectNode.routing(), is(shardRouting));
+        assertFalse(collectNode.whereClause().noMatch());
+        assertFalse(collectNode.whereClause().hasQuery());
+        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().get(0), instanceOf(UpdateProjection.class));
+        assertThat(collectNode.toCollect().size(), is(1));
+        assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().fqn(), is("_uid"));
 
-        Map.Entry<String, Object> entry = updateNode.updateDoc().entrySet().iterator().next();
+        UpdateProjection updateProjection = (UpdateProjection)collectNode.projections().get(0);
+        assertThat(updateProjection.uidSymbol(), instanceOf(InputColumn.class));
+
+        Map.Entry<String, Symbol> entry = updateProjection.assignments().entrySet().iterator().next();
         assertThat(entry.getKey(), is("name"));
-        assertThat((String) entry.getValue(), is("Vogon lyric fan"));
+        assertThat(entry.getValue(), isLiteral("Vogon lyric fan", DataTypes.STRING));
+
+        MergeNode mergeNode = (MergeNode)childNodes.get(1);
+        assertThat(mergeNode.projections().size(), is(1));
+        assertThat(mergeNode.projections().get(0), instanceOf(AggregationProjection.class));
     }
 
     @Test
-    public void testESUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
+    public void testUpdateByIdPlan() throws Exception {
+        Plan plan = plan("update users set name='Vogon lyric fan' where id=1");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode.outputTypes().size(), is(1));
+        assertEquals(DataTypes.LONG, planNode.outputTypes().get(0));
+        assertThat(planNode, instanceOf(UpdateNode.class));
+        assertThat(((UpdateNode) planNode).nodes().size(), is(1));
+
+        List<DQLPlanNode> childNodes = ((UpdateNode)planNode).nodes().get(0);
+        assertThat(childNodes.size(), is(1));
+        assertThat(childNodes.get(0), instanceOf(UpdateByIdExecutionNode.class));
+
+        UpdateByIdExecutionNode updateNode = (UpdateByIdExecutionNode)childNodes.get(0);
+        assertThat(updateNode.index(), is("users"));
+        assertThat(updateNode.id(), is("1"));
+
+        Map.Entry<String, Symbol> entry = updateNode.assignments().entrySet().iterator().next();
+        assertThat(entry.getKey(), is("name"));
+        assertThat(entry.getValue(), isLiteral("Vogon lyric fan", DataTypes.STRING));
+    }
+
+    @Test
+    public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
         Plan plan = plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESUpdateNode.class));
+        assertThat(planNode, instanceOf(UpdateNode.class));
+        assertThat(((UpdateNode) planNode).nodes().size(), is(1));
 
-        ESUpdateNode updateNode = (ESUpdateNode)planNode;
-        assertThat(updateNode.ids().size(), is(3));
-        assertThat(updateNode.ids(), containsInAnyOrder("1", "2", "3"));
+        List<DQLPlanNode> childNodes = ((UpdateNode)planNode).nodes().get(0);
+        assertThat(childNodes.size(), is(3));
+
+        List<String> ids = new ArrayList<>(3);
+        for (DQLPlanNode executionNode : childNodes) {
+            assertThat(executionNode, instanceOf(UpdateByIdExecutionNode.class));
+            ids.add(((UpdateByIdExecutionNode)executionNode).id());
+        }
+
+        assertThat(ids, containsInAnyOrder("1", "2", "3"));
     }
 
     @Test

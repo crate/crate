@@ -144,14 +144,14 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
                 clusterService.state(),
                 Strings.EMPTY_ARRAY,
                 new String[]{index},
                 null,
-                null // preference
+                preference
         );
         ShardRouting shardRouting;
         for (ShardIterator shardIterator : shardIterators) {

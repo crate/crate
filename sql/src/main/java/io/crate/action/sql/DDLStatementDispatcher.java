@@ -164,7 +164,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
 
         CollectNode collectNode = new CollectNode(
                 "count",
-                table.getRouting(WhereClause.MATCH_ALL),
+                table.getRouting(WhereClause.MATCH_ALL, null),
                 ImmutableList.<Symbol>of(),
                 Arrays.<Projection>asList(new AggregationProjection(ImmutableList.of(countAggregationPartial))));
         collectNode.maxRowGranularity(RowGranularity.DOC);
