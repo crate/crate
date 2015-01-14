@@ -311,6 +311,35 @@ public class ExpressionAnalyzer {
         forWrite = value;
     }
 
+
+    private static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType, ExpressionAnalysisContext context) {
+        DataType sourceType = symbolToCast.valueType();
+        if (sourceType.equals(targetType)) {
+            return symbolToCast;
+        }
+        if (sourceType.isConvertableTo(targetType)) {
+            // cast further below doesn't always fail because it might be lazy as it wraps functions/references inside a cast function.
+            // -> Need to check isConvertableTo to fail eagerly if the cast won't work.
+            try {
+                return cast(symbolToCast, targetType, context);
+            } catch (NumberFormatException e) {
+                // exception is just thrown for literals, rest is evaluated lazy
+                throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
+                        SymbolFormatter.format(symbolToCast), targetType.getName()), e);
+            }
+        }
+        throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
+                SymbolFormatter.format(symbolToCast), targetType.getName()));
+    }
+
+    private static Symbol cast(Symbol sourceSymbol, DataType targetType, ExpressionAnalysisContext context) {
+        if (sourceSymbol.symbolType().isValueSymbol()) {
+            return Literal.convert(sourceSymbol, targetType);
+        }
+        FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType);
+        return context.allocateFunction(functionInfo, Arrays.asList(sourceSymbol));
+    }
+
     class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
 
         private boolean insideNotPredicate;
@@ -362,9 +391,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
-            Symbol argSymbol = node.getExpression().accept(this, context);
-            FunctionInfo functionInfo = CastFunctionResolver.functionInfo(argSymbol.valueType(), returnType);
-            return context.allocateFunction(functionInfo, Arrays.asList(argSymbol));
+            return cast(process(node.getExpression(), context), returnType, context);
         }
 
         @Override
@@ -487,7 +514,7 @@ public class ExpressionAnalyzer {
             if (left.valueType().equals(DataTypes.UNDEFINED) || right.valueType().equals(DataTypes.UNDEFINED)) {
                 return Literal.NULL;
             }
-            Comparison comparison = new Comparison(node.getType(), left, right);
+            Comparison comparison = new Comparison(context, node.getType(), left, right);
             comparison.normalize(context);
             validateSystemColumnComparison(comparison);
             FunctionInfo info = getFunctionInfo(comparison.toFunctionIdent());
@@ -615,53 +642,20 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitLikePredicate(LikePredicate node, ExpressionAnalysisContext context) {
             if (node.getEscape() != null) {
-                throw new UnsupportedOperationException("ESCAPE is not supported yet.");
+                throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-
-            Symbol expressionSymbol = process(node.getValue(), context);
-            Symbol patternSymbol = process(node.getPattern(), context);
-
-            // handle possible parameter for expression
-            // try implicit conversion
-            if (!(expressionSymbol instanceof Field)) {
-                try {
-                    expressionSymbol = normalizeInputForType(expressionSymbol, StringType.INSTANCE);
-                } catch (IllegalArgumentException | UnsupportedOperationException e) {
-                    throw new UnsupportedOperationException("<expression> LIKE <pattern>: expression couldn't be implicitly casted to string. Try to explicitly cast to string.");
-                }
-            }
-
-            DataType expressionType = expressionSymbol.valueType();
-            DataType patternType;
-            try {
-                if (expressionSymbol instanceof Field) {
-                    patternSymbol = normalizeInputForReference(patternSymbol, (Reference) ((Field) expressionSymbol).target());
-                    patternType = patternSymbol.valueType();
-                } else {
-                    patternSymbol = normalizeInputForType(patternSymbol, DataTypes.STRING);
-                    patternType = DataTypes.STRING;
-                }
-            } catch (IllegalArgumentException | UnsupportedOperationException e) {
-                throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern couldn't be implicitly casted to string. Try to explicitly cast to string.");
-            }
-
+            Symbol expression = process(node.getValue(), context);
             // catch null types, might be null or dynamic reference, which are both not supported
-            if (expressionType.equals(DataTypes.UNDEFINED)) {
+            if (expression.valueType().equals(DataTypes.UNDEFINED)) {
                 return Literal.NULL;
             }
-
-            FunctionInfo functionInfo;
-            try {
-                FunctionIdent functionIdent = new FunctionIdent(LikeOperator.NAME, Arrays.asList(expressionType, patternType));
-                functionInfo = getFunctionInfo(functionIdent);
-            } catch (UnsupportedOperationException e1) {
-                // check pattern
-                if (!(patternSymbol.symbolType().isValueSymbol())) {
-                    throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");
-                }
-                throw new UnsupportedOperationException("invalid LIKE clause");
+            expression = castIfNeededOrFail(expression, DataTypes.STRING, context);
+            Symbol pattern = normalize(castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING, context));
+            if (!pattern.symbolType().isValueSymbol()) {
+                throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");
             }
-            return context.allocateFunction(functionInfo, Arrays.asList(expressionSymbol, patternSymbol));
+            FunctionIdent functionIdent = FunctionIdent.of(LikeOperator.NAME, expression.valueType(), pattern.valueType());
+            return context.allocateFunction(getFunctionInfo(functionIdent), Arrays.asList(expression, pattern));
         }
 
         @Override
@@ -836,6 +830,7 @@ public class ExpressionAnalyzer {
         private static final Set<ComparisonExpression.Type> NEGATING_TYPES = ImmutableSet.of(
                 ComparisonExpression.Type.REGEX_NO_MATCH,
                 ComparisonExpression.Type.NOT_EQUAL);
+        private final ExpressionAnalysisContext expressionAnalysisContext;
 
         private ComparisonExpression.Type comparisonExpressionType;
         private Symbol left;
@@ -845,7 +840,11 @@ public class ExpressionAnalyzer {
         private String operatorName;
         private FunctionIdent functionIdent = null;
 
-        private Comparison(ComparisonExpression.Type comparisonExpressionType, Symbol left, Symbol right) {
+        private Comparison(ExpressionAnalysisContext expressionAnalysisContext,
+                           ComparisonExpression.Type comparisonExpressionType,
+                           Symbol left,
+                           Symbol right) {
+            this.expressionAnalysisContext = expressionAnalysisContext;
             this.operatorName = "op_" + comparisonExpressionType.getValue();
             this.comparisonExpressionType = comparisonExpressionType;
             this.left = left;
@@ -883,34 +882,7 @@ public class ExpressionAnalyzer {
         }
 
         private void castTypes() {
-            if (leftType == rightType) {
-                return;
-            }
-
-            if (!left.symbolType().isValueSymbol() && !right.symbolType().isValueSymbol()) {
-                // no value symbol -> wrap in cast function because eager cast isn't possible.
-                if (rightType.isConvertableTo(leftType)) {
-                    FunctionInfo functionInfo = CastFunctionResolver.functionInfo(rightType, leftType);
-                    List<Symbol> arguments = Arrays.asList(right);
-                    right = new Function(functionInfo, arguments);
-                } else {
-                    throw new IllegalArgumentException(SymbolFormatter.format(
-                            "type of \"%s\" doesn't match type of \"%s\" and cannot be cast implicitly",
-                            left,
-                            right
-                    ));
-                }
-            } else {
-                try {
-                    right = Literal.convert(right, leftType);
-                } catch (ClassCastException | NumberFormatException e) {
-                    throw new IllegalArgumentException(SymbolFormatter.format(
-                            "type of \"%s\" doesn't match type of \"%s\" and cannot be cast implicitly",
-                            left,
-                            right
-                    ));
-                }
-            }
+            right = castIfNeededOrFail(right, leftType, expressionAnalysisContext);
             rightType = leftType;
         }
 

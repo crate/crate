@@ -306,7 +306,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateWithWrongParameters() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type of \"users.other_id\" doesn't match type of \"[1, 2, 3]\" and cannot be cast implicitly");
+        expectedException.expectMessage("[1, 2, 3] cannot be cast to type long");
 
         analyze("update users set name=?, friends=? where other_id=?",
                 new Object[]{

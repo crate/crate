@@ -1443,7 +1443,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRegexpMatchInvalidArg() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type of \"users.floats\" doesn't match type of \"'foo'\" and cannot be cast implicitly");
+        expectedException.expectMessage("'foo' cannot be cast to type float");
         analyze("select * from users where floats ~ 'foo'");
     }
 
