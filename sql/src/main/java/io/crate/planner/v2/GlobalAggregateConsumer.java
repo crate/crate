@@ -22,11 +22,14 @@
 package io.crate.planner.v2;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.analyze.where.WhereClauseContext;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.PlanNodeBuilder;
@@ -47,8 +50,8 @@ public class GlobalAggregateConsumer implements Consumer {
     private final Visitor visitor;
     private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
 
-    public GlobalAggregateConsumer() {
-        visitor = new Visitor();
+    public GlobalAggregateConsumer(AnalysisMetaData analysisMetaData) {
+        visitor = new Visitor(analysisMetaData);
     }
 
     @Override
@@ -63,12 +66,24 @@ public class GlobalAggregateConsumer implements Consumer {
 
     private static class Visitor extends RelationVisitor<Void, PlannedAnalyzedRelation> {
 
+        private final AnalysisMetaData analysisMetaData;
+
+        public Visitor(AnalysisMetaData analysisMetaData) {
+            this.analysisMetaData = analysisMetaData;
+        }
+
         @Override
-        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, Void context) {
-            if (selectAnalyzedStatement.hasGroupBy() || !selectAnalyzedStatement.hasAggregates()) {
+        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Void context) {
+            if (statement.hasGroupBy() || !statement.hasAggregates()) {
                 return null;
             }
-            return globalAggregates(selectAnalyzedStatement, null);
+            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
+            if (tableRelation == null) {
+                return null;
+            }
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            return globalAggregates(statement, tableRelation, whereClauseContext, null);
         }
 
         @Override
@@ -77,11 +92,10 @@ public class GlobalAggregateConsumer implements Consumer {
         }
     }
 
-    public static PlannedAnalyzedRelation globalAggregates(SelectAnalyzedStatement statement, ColumnIndexWriterProjection indexWriterProjection){
-        TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
-        if (tableRelation == null) {
-            return null;
-        }
+    public static PlannedAnalyzedRelation globalAggregates(SelectAnalyzedStatement statement,
+                                                           TableRelation tableRelation,
+                                                           WhereClauseContext whereClauseContext,
+                                                           ColumnIndexWriterProjection indexWriterProjection){
         validateAggregationOutputs(tableRelation, statement.outputSymbols());
         // global aggregate: collect and partial aggregate on C and final agg on H
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(tableRelation.resolve(statement.outputSymbols()));
@@ -99,7 +113,7 @@ public class GlobalAggregateConsumer implements Consumer {
         ap.aggregations(contextBuilder.aggregations());
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableRelation.tableInfo(),
-                tableRelation.resolve(statement.whereClause()),
+                whereClauseContext.whereClause(),
                 contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(ap)
         );

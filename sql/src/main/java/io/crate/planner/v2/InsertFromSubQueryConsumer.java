@@ -134,7 +134,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
             if(statement.hasGroupBy()){
                 return groupBy(statement, tableRelation, whereClauseContext, context.indexWriterProjection, analysisMetaData.functions());
             } else if(statement.hasAggregates()){
-                return GlobalAggregateConsumer.globalAggregates(statement, context.indexWriterProjection);
+                return GlobalAggregateConsumer.globalAggregates(statement, tableRelation, whereClauseContext, context.indexWriterProjection);
             } else {
                 return QueryAndFetchConsumer.normalSelect(statement, whereClauseContext, tableRelation,
                         context.indexWriterProjection, analysisMetaData.functions());

@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -779,7 +780,7 @@ public class PlannerTest {
 
         Map.Entry<String, Object> entry = updateNode.updateDoc().entrySet().iterator().next();
         assertThat(entry.getKey(), is("name"));
-        assertThat((String)entry.getValue(), is("Vogon lyric fan"));
+        assertThat((String) entry.getValue(), is("Vogon lyric fan"));
     }
 
     @Test
@@ -1517,5 +1518,16 @@ public class PlannerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot select non-indexed column 'users.no_index' within grouping or aggregations");
         plan("select min(substr(no_index, 0, 2)) from users");
+    }
+
+    @Test
+    public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
+        Plan plan = plan("select min(name) from parted where date > 0");
+        Iterator<PlanNode> iterator = plan.iterator();
+        GlobalAggregateNode globalAggregateNode = (GlobalAggregateNode) iterator.next();
+
+        WhereClause whereClause = globalAggregateNode.collectNode().whereClause();
+        assertThat(whereClause.partitions().size(), is(1));
+        assertThat(whereClause.noMatch(), is(false));
     }
 }

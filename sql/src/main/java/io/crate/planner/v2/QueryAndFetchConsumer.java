@@ -113,7 +113,7 @@ public class QueryAndFetchConsumer implements Consumer {
             }
             if (statement.hasAggregates()) {
                 context.result = true;
-                return GlobalAggregateConsumer.globalAggregates(statement, null);
+                return GlobalAggregateConsumer.globalAggregates(statement, tableRelation, whereClauseContext, null);
             } else {
                if(tableInfo.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
                         tableInfo.getRouting(whereClauseContext.whereClause()).hasLocations() &&
