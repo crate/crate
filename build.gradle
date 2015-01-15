@@ -30,7 +30,7 @@ allprojects {
 
 def jacocoProjects() {
     subprojects.findAll {
-        it.name != 'es' && it.name != 'testing'
+        it.name != 'es' && it.name != 'testing' && it.name != 'docs'
     }
 }
 
@@ -44,7 +44,6 @@ coveralls {
     }
     sourceDirs = files(tmpSources).files.absolutePath
 }
-
 
 task jacocoReport(type: JacocoReport) {
     // tests must have been executed so that execution data for the sub projects is generated
@@ -68,6 +67,26 @@ task jacocoReport(type: JacocoReport) {
             enabled true
             destination "${buildDir}/reports/jacoco/jacocoHtml"
         }
+    }
+}
+
+task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    dependsOn = jacocoProjects().test
+    sourceDirectories = files(jacocoProjects().sourceSets.main.allSource.srcDirs)
+    classDirectories =  files(jacocoProjects().sourceSets.main.output)
+    executionData = files(jacocoProjects().jacocoTestReport.executionData)
+    reports {
+        html.enabled = true
+        xml.enabled = true
+        csv.enabled = false
+    }
+    onlyIf = {
+        true
+    }
+    doFirst {
+        executionData = files(executionData.findAll {
+            it.exists()
+        })
     }
 }
 
