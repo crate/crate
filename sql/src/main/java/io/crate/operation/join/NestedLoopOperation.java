@@ -267,7 +267,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
         int rowsToProduce = limit + offset;
         int outerPageSize = 1;
-        final PageInfo outerPageInfo = new PageInfo(0, 1);
+        final PageInfo outerPageInfo = new PageInfo(0, outerPageSize);
         List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, Optional.of(outerPageInfo));
         assert outerResults.size() == 1;
         final PageInfo innerPageInfo = new PageInfo(0, rowsToProduce/outerPageSize);

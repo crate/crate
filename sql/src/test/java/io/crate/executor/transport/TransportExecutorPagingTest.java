@@ -254,6 +254,77 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
     }
 
     @Test
+    public void testPagedQueryThenFetchWithQueryOffset() throws Exception {
+        setup.setUpCharacters();
+        sqlExecutor.exec("insert into characters (id, name, female) values (?, ?, ?)", new Object[][]{
+                new Object[]{
+                        5, "Matthias Wahl", false,
+                },
+                new Object[]{
+                        6, "Philipp Bogensberger", false,
+
+                },
+                new Object[] {
+                        7, "Sebastian Utz", false
+                }
+        });
+        sqlExecutor.refresh("characters");
+
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+
+        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
+                ImmutableList.<Symbol>of(idRef),
+                new boolean[]{ false },
+                new Boolean[]{ null },
+                null,
+                1,
+                WhereClause.MATCH_ALL,
+                null
+        );
+
+        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        assertThat(tasks.size(), is(1));
+        QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
+        PageInfo pageInfo = new PageInfo(1, 1);
+        qtfTask.setKeepAlive(TimeValue.timeValueSeconds(10));
+        qtfTask.start(pageInfo);
+        List<ListenableFuture<TaskResult>> results = qtfTask.result();
+        assertThat(results.size(), is(1));
+
+        // first page
+        ListenableFuture<TaskResult> resultFuture = results.get(0);
+        TaskResult result = resultFuture.get();
+        assertThat(result, instanceOf(PageableTaskResult.class));
+        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        closeMeWhenDone = pageableResult;
+
+        // the two first records were hit by the query and page offset
+        assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
+                "3| Trillian| true\n"));
+
+        pageInfo = pageInfo.nextPage(1);
+        ListenableFuture<PageableTaskResult> nextPageResultFuture = pageableResult.fetch(pageInfo);
+        PageableTaskResult nextPageResult = nextPageResultFuture.get();
+        closeMeWhenDone = nextPageResult;
+        assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
+                "4| Arthur| true\n"));
+
+        pageInfo = pageInfo.nextPage(5);
+        nextPageResultFuture = nextPageResult.fetch(pageInfo);
+        nextPageResult = nextPageResultFuture.get();
+        closeMeWhenDone = nextPageResult;
+        assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
+                "5| Matthias Wahl| false\n" +
+                "6| Philipp Bogensberger| false\n" +
+                "7| Sebastian Utz| false\n"));
+
+        // no further pages
+        assertThat(nextPageResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
+    }
+
+    @Test
     public void testNestedLoopBothSidesPageableNoLimit() throws Exception {
         setup.setUpCharacters();
         setup.setUpBooks();

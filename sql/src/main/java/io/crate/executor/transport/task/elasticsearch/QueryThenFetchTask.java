@@ -31,6 +31,7 @@ import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.action.sql.query.QueryShardRequest;
 import io.crate.action.sql.query.QueryShardScrollRequest;
 import io.crate.action.sql.query.TransportQueryShardAction;
+import io.crate.core.bigarray.MultiObjectArrayBigArray;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.*;
@@ -461,8 +462,6 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         }
 
         private void fetchFromSource(long needToFetch, final FutureCallback<ObjectArray<Object[]>> callback) {
-
-            // TODO: build pageInfo from needToFetch
             final AtomicInteger numOps = new AtomicInteger(numShards);
 
             final Scroll scroll = new Scroll(keepAlive.or(DEFAULT_KEEP_ALIVE));
@@ -566,26 +565,14 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                 fetchFromSource(pageInfo.size() - restSize, new FutureCallback<ObjectArray<Object[]>>() {
                     @Override
                     public void onSuccess(@Nullable ObjectArray<Object[]> result) {
-                        // TODO: invent PageSource, that can consists of > 1 backing arrays or such and can be used to get Pages
-                        try {
-                            ObjectArray<Object[]> grown = bigArrays.grow(result, result.size() + restSize); // this closes result
 
-                            // move result stuff
-                            for (long i = result.size() - restSize; i > 0; i++) {
-                                grown.set(i+restSize, grown.get(restSize));
-                            }
-                            // fill the new array
-                            for (long resultIdx=0L, pageSourceIndex = pageSource.size() - restSize;
-                                 pageSourceIndex < pageSource.size();
-                                 pageSourceIndex++, resultIdx++) {
-                                grown.set(resultIdx, pageSource.get(pageSourceIndex));
-                            }
-                            pageSource.close();
-                            future.set(new QTFScrollTaskResult(grown, 0, pageInfo));
-                        } catch (Throwable t) {
-                            onFailure(t);
-                        }
-
+                        MultiObjectArrayBigArray<Object[]> merged = new MultiObjectArrayBigArray<>(
+                                pageSource.size() - restSize,
+                                pageInfo.size(),
+                                pageSource,
+                                result
+                        );
+                        future.set(new QTFScrollTaskResult(merged, 0, pageInfo));
                     }
 
                     @Override
