@@ -103,7 +103,7 @@ public class ParameterContext {
         try {
             if (hasBulkParams()) {
                 // already did a type guess so it is possible to create a literal directly
-                return newLiteral(bulkTypes[index], bulkParameters[currentIdx][index]);
+                return newLiteral(bulkTypes[index], bulkTypes[index].value(bulkParameters[currentIdx][index]));
             }
             DataType type = guessTypeSafe(parameters[index]);
             // use type.value because some types need conversion (String to BytesRef, List to Array)
