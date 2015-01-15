@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.FullQualifedNameFieldResolver;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.junit.Before;
@@ -58,7 +59,7 @@ public class ExpressionAnalyzerTest {
     public void testUnsupportedExpressionNullIf() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression NULLIF(1, 3)");
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, emptyParameterContext, dummySources);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, emptyParameterContext, new FullQualifedNameFieldResolver(dummySources));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         expressionAnalyzer.convert(SqlParser.createExpression("NULLIF ( 1 , 3 )"), expressionAnalysisContext);
@@ -68,7 +69,7 @@ public class ExpressionAnalyzerTest {
     public void testUnsupportedExpressionCurrentDate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, emptyParameterContext, dummySources);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, emptyParameterContext, new FullQualifedNameFieldResolver(dummySources));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);

@@ -78,8 +78,9 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         assert analyzedRelation instanceof TableRelation : "sourceRelation must be a TableRelation";
         TableInfo tableInfo = ((TableRelation) analyzedRelation).tableInfo();
 
+        FieldResolver sources = new NameFieldResolver(relationAnalysisContext.sources());
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources());
+                new ExpressionAnalyzer(analysisMetaData, parameterContext, sources);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;

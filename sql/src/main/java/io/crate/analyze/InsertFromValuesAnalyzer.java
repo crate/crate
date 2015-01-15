@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.FieldResolver;
+import io.crate.analyze.relations.FullQualifedNameFieldResolver;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
@@ -68,12 +70,14 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
         TableRelation tableRelation = new TableRelation(tableInfo);
         validateTable(tableInfo);
 
+        FieldResolver sources = new FullQualifedNameFieldResolver(ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                new QualifiedName(Arrays.asList(tableInfo.schemaInfo().name(), tableInfo.ident().name())),
+                tableRelation));
         expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 parameterContext,
-                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                        new QualifiedName(Arrays.asList(tableInfo.schemaInfo().name(), tableInfo.ident().name())),
-                        tableRelation));
+                sources
+                );
         expressionAnalyzer.resolveWritableFields(true);
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
