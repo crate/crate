@@ -253,26 +253,11 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testWrongQualifiedNameReferenceWithSchema() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
-        analyze("update users set sys.nodes.fs=?", new Object[]{new HashMap<String, Object>()});
-    }
-
-    @Test
-    public void testWrongQualifiedNameReference() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot resolve relation 'unknown'");
-        analyze("update users set unknown.name='Trillian'");
-    }
-
-    @Test
     public void testQualifiedNameReference() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column reference \"users.name\" has too many parts. A column must not have a schema or a table here.");
         UpdateAnalyzedStatement.NestedAnalyzedStatement analysis =
                 analyze("update users set users.name='Trillian'").nestedStatements().get(0);
-        Reference ref = analysis.assignments().keySet().iterator().next();
-        assertThat(ref.info().ident().tableIdent().name(), is("users"));
-        assertThat(ref.info().ident().columnIdent().fqn(), is("name"));
     }
 
     @Test
@@ -353,7 +338,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalyzedStatement.NestedAnalyzedStatement expectedAnalysis = analyze(
                 "update users set awesome=true where awesome=false").nestedStatements().get(0);
         UpdateAnalyzedStatement.NestedAnalyzedStatement actualAnalysis = analyze(
-                "update users as u set u.awesome=true where u.awesome=false").nestedStatements().get(0);
+                "update users as u set awesome=true where awesome=false").nestedStatements().get(0);
 
         assertEquals(
                 expectedAnalysis.assignments(),
@@ -382,6 +367,13 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze(
                 "update users set awesome=true where name='Ford' and _version=0").nestedStatements().get(0);
         assertThat(analysis.whereClause().noMatch(), is(false));
+    }
+
+    @Test
+    public void testUpdateWithFQName() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column reference \"users.name\" has too many parts. A column must not have a schema or a table here.");
+        analyze("update users set users.name = 'Ford Mustang'");
     }
 
     @Test

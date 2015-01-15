@@ -21,10 +21,9 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.NameFieldResolver;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -38,7 +37,6 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -109,9 +107,7 @@ public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyA
         expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 context.parameterContext(),
-                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                        new QualifiedName(Arrays.asList(tableInfo.schemaInfo().name(), tableInfo.ident().name())),
-                        new TableRelation(tableInfo)));
+                new NameFieldResolver(new TableRelation(tableInfo)));
         if (context.mode() == CopyAnalyzedStatement.Mode.FROM) {
             expressionAnalyzer.resolveWritableFields(true);
         }

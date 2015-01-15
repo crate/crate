@@ -21,10 +21,10 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.FieldResolver;
+import io.crate.analyze.relations.NameFieldResolver;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
@@ -37,7 +37,6 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromValues;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -47,7 +46,10 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
 
@@ -68,12 +70,12 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
         TableRelation tableRelation = new TableRelation(tableInfo);
         validateTable(tableInfo);
 
+        FieldResolver fieldResolver = new NameFieldResolver(tableRelation);
         expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 parameterContext,
-                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                        new QualifiedName(Arrays.asList(tableInfo.schemaInfo().name(), tableInfo.ident().name())),
-                        tableRelation));
+                fieldResolver
+                );
         expressionAnalyzer.resolveWritableFields(true);
         expressionAnalysisContext = new ExpressionAnalysisContext();
 

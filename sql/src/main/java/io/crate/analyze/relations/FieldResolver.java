@@ -21,103 +21,15 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.Field;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
-public class FieldResolver {
+public interface FieldResolver {
 
-    private Map<QualifiedName, AnalyzedRelation> sources;
+    public Field resolveField(QualifiedName qualifiedName, boolean forWrite);
 
-    public FieldResolver(Map<QualifiedName, AnalyzedRelation> sources) {
-        assert !sources.isEmpty() : "Must have at least one source";
-        this.sources = sources;
-    }
-
-    public Field resolveField(QualifiedName qualifiedName, boolean forWrite) {
-        return resolveField(qualifiedName, null, forWrite);
-    }
-
-    public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, boolean forWrite) {
-        List<String> parts = qualifiedName.getParts();
-        String columnSchema = null;
-        String columnTableName = null;
-        ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
-        switch (parts.size()) {
-            case 1:
-                break;
-            case 2:
-                columnTableName = parts.get(0).toLowerCase(Locale.ENGLISH);
-                break;
-            case 3:
-                columnSchema = parts.get(0).toLowerCase(Locale.ENGLISH);
-                columnTableName = parts.get(1).toLowerCase(Locale.ENGLISH);
-                break;
-            default:
-                throw new IllegalArgumentException("Column reference \"%s\" has too many parts. " +
-                        "A column reference can have at most 3 parts and must have one of the following formats:  " +
-                        "\"<column>\", \"<table>.<column>\" or \"<schema>.<table>.<column>\"");
-        }
-
-        boolean schemaMatched = false;
-        boolean tableNameMatched = false;
-        Field lastField = null;
-
-        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : sources.entrySet()) {
-            List<String> sourceParts = entry.getKey().getParts();
-            String sourceSchema = null;
-            String sourceTableOrAlias;
-
-            if (sourceParts.size() == 1) {
-                sourceTableOrAlias = sourceParts.get(0);
-            } else if (sourceParts.size() == 2) {
-                sourceSchema = sourceParts.get(0);
-                sourceTableOrAlias = sourceParts.get(1);
-            } else {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "sources key (QualifiedName) must have 1 or 2 parts, not %d", sourceParts.size()));
-            }
-            AnalyzedRelation sourceRelation = entry.getValue();
-
-            if (columnSchema != null && sourceSchema != null && !columnSchema.equals(sourceSchema)) {
-                continue;
-            }
-            schemaMatched = true;
-            if (columnTableName != null && !sourceTableOrAlias.equals(columnTableName)) {
-                continue;
-            }
-            tableNameMatched = true;
-
-            Field newField;
-            if (forWrite) {
-                newField = sourceRelation.getWritableField(columnIdent);
-            } else {
-                newField = sourceRelation.getField(columnIdent);
-            }
-            if (newField != null) {
-                if (lastField != null) {
-                    throw new AmbiguousColumnException(columnIdent);
-                }
-                lastField = newField;
-            }
-        }
-        if (lastField == null) {
-            if (!schemaMatched) {
-                throw new IllegalArgumentException(String.format(
-                        "Cannot resolve relation '%s.%s'", columnSchema, columnTableName));
-            }
-            if (!tableNameMatched) {
-                throw new IllegalArgumentException(String.format("Cannot resolve relation '%s'", columnTableName));
-            }
-            throw new ColumnUnknownException(columnIdent.sqlFqn());
-        }
-        return lastField;
-    }
+    public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, boolean forWrite);
 }

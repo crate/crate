@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -62,7 +61,7 @@ import static io.crate.planner.symbol.Literal.newLiteral;
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
  *
  * <p>
- * In order to resolve QualifiedName or SubscriptExpressions it will use the sources given in the constructor and
+ * In order to resolve QualifiedName or SubscriptExpressions it will use the fieldResolver given in the constructor and
  * generate a relationOutput for the matching Relation.
  * </p>
  */
@@ -83,7 +82,7 @@ public class ExpressionAnalyzer {
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final InnerExpressionAnalyzer innerAnalyzer;
     private final EvaluatingNormalizer normalizer;
-    private final FieldResolver sources;
+    private final FieldResolver fieldResolver;
     private final Functions functions;
     private final ReferenceInfos referenceInfos;
     private final ParameterContext parameterContext;
@@ -91,11 +90,11 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               ParameterContext parameterContext,
-                              Map<QualifiedName, AnalyzedRelation> sources) {
+                              FieldResolver fieldResolver) {
         functions = analysisMetaData.functions();
         referenceInfos = analysisMetaData.referenceInfos();
         this.parameterContext = parameterContext;
-        this.sources = new FieldResolver(sources);
+        this.fieldResolver = fieldResolver;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
         this.normalizer = new EvaluatingNormalizer(
                 analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver());
@@ -121,7 +120,7 @@ public class ExpressionAnalyzer {
      * <h2>Converts a expression into a symbol.</h2>
      *
      * <p>
-     *     Expressions like QualifiedName that reference a column are resolved using the sources that were passed
+     *     Expressions like QualifiedName that reference a column are resolved using the fieldResolver that were passed
      *     to the constructor.
      * </p>
      *
@@ -453,7 +452,7 @@ public class ExpressionAnalyzer {
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
             if (subscriptContext.qName() != null && subscriptExpression == null) {
-                subscriptSymbol = sources.resolveField(subscriptContext.qName(), subscriptContext.parts(), forWrite);
+                subscriptSymbol = fieldResolver.resolveField(subscriptContext.qName(), subscriptContext.parts(), forWrite);
             } else if (subscriptExpression != null) {
                 subscriptSymbol = subscriptExpression.accept(this, context);
             } else {
@@ -696,7 +695,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            Field field = sources.resolveField(node.getName(), forWrite);
+            Field field = fieldResolver.resolveField(node.getName(), forWrite);
             context.hasSysExpressions = context.hasSysExpressions || SysSchemaInfo.NAME.equals(
                     ((Reference) field.target()).info().ident().tableIdent().schema());
             return field;
