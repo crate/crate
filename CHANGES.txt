@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed type conversion of bulk parameters
+
  - Updated crate-admin to version 0.11.2 which includes following changes:
 
     - removed usage of sys expressions in wrong context
