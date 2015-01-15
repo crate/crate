@@ -45,6 +45,7 @@ public class SysNodeExpressionModule extends AbstractModule {
     protected void configure() {
         refBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
         infos = SysNodesTableInfo.INFOS;
+        bind(NodeSysExpression.class).asEagerSingleton();
 
         bindExpr(NodeFsExpression.NAME, NodeFsExpression.class);
         bindExpr(NodeHostnameExpression.NAME, NodeHostnameExpression.class);

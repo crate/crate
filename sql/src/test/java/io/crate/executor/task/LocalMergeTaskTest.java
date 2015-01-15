@@ -82,7 +82,8 @@ public class LocalMergeTaskTest {
                 })
                 .createInjector();
         Functions functions = injector.getInstance(Functions.class);
-        ReferenceResolver referenceResolver = new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
+        ReferenceResolver referenceResolver = new GlobalReferenceResolver(
+                Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
 
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));

@@ -23,6 +23,7 @@ package io.crate.planner.symbol;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -52,6 +53,10 @@ public class Reference extends Symbol {
 
     public ReferenceInfo info() {
         return info;
+    }
+
+    public ReferenceIdent ident() {
+        return info.ident();
     }
 
     @Override

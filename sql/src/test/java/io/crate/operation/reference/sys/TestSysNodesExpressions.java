@@ -38,6 +38,7 @@ import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -95,6 +96,10 @@ public class TestSysNodesExpressions {
         @Override
         protected void configure() {
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+
+            ClusterService clusterService = mock(ClusterService.class);
+            bind(ClusterService.class).toInstance(clusterService);
+
 
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);

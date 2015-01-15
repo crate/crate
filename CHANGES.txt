@@ -5,6 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The ``sys.operations`` table has now a ``_nodes`` system column
+   which exposes information about the node the operation runs on.
+
+ - Fixed an issue in the ``sys.shards`` table which caused an
+   exception when the select limit was lower then the number of
+   matching shards on a node.
+
  - Fixed type conversion of bulk parameters
 
  - Updated crate-admin to version 0.11.2 which includes following changes:

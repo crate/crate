@@ -29,7 +29,6 @@ import io.crate.types.*;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.*;
@@ -59,11 +58,15 @@ public class SysShardsTableInfo extends SysTableInfo {
         register("size", LongType.INSTANCE, null);
         register("state", StringType.INSTANCE, null);
         register("orphan_partition", BooleanType.INSTANCE, null);
+
+        INFOS.put(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
     }
 
-    @Inject
-    public SysShardsTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
+    private final TableColumn nodesTableColumn;
+
+    public SysShardsTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo, SysNodesTableInfo sysNodesTableInfo) {
         super(service, sysSchemaInfo);
+        nodesTableColumn = sysNodesTableInfo.tableColumn();
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {
@@ -72,12 +75,19 @@ public class SysShardsTableInfo extends SysTableInfo {
             columns.add(info);
         }
         INFOS.put(info.ident().columnIdent(), info);
+
+
+
         return info;
     }
 
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return INFOS.get(columnIdent);
+        ReferenceInfo info = INFOS.get(columnIdent);
+        if (info == null) {
+            return nodesTableColumn.getReferenceInfo(this.ident(), columnIdent);
+        }
+        return info;
     }
 
     @Override
