@@ -5,6 +5,16 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to version 0.11.2 which includes following changes:
+
+    - removed usage of sys expressions in wrong context
+
+    - fixed a template rendering issue in cluster view in Safari
+
+    - de-register watches to decrease DOM updates and improve performance in cluster view
+
+    - fixed title of `tables` view if no tables exists or connection is down
+
 2015/01/14 0.46.2
 =================
 
