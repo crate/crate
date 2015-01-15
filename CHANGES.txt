@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed type conversion of bulk parameters
+
  - fix: throw correct exception if `_version` is misused in WHERE clause
 
  - Removed undocumented feature: It is no longer possible to use sys
