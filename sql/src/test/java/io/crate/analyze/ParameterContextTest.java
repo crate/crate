@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -71,13 +72,13 @@ public class ParameterContextTest {
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(1), 1);
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(2), "foo");
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(3), null, new ArrayType(DataTypes.UNDEFINED));
-        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(4), new String[]{null}, new ArrayType(DataTypes.STRING));
+        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(4), new BytesRef[]{null}, new ArrayType(DataTypes.STRING));
         ctx.setBulkIdx(1);
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(0), false);
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(1), 2);
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(2), "bar");
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(3), new Object[0], new ArrayType(DataTypes.UNDEFINED));
-        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(4), new String[]{ "foo", "bar" }, new ArrayType(DataTypes.STRING));
+        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(4), new BytesRef[]{ new BytesRef("foo"), new BytesRef("bar") }, new ArrayType(DataTypes.STRING));
     }
 
     @Test
