@@ -254,8 +254,17 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
             return requests;
         }
 
-        int queryLimit = pageInfo.isPresent() ? pageInfo.get().size() + pageInfo.get().position() : this.limit;
-        int queryOffset = pageInfo.isPresent() ? 0 : this.offset;
+        int queryLimit;
+        int queryOffset;
+
+        if (pageInfo.isPresent()) {
+            // fetch all, including all offset stuff
+            queryLimit = this.offset + pageInfo.get().position() + pageInfo.get().size();
+            queryOffset = 0;
+        } else {
+            queryLimit = this.limit;
+            queryOffset = this.offset;
+        }
 
         // only set keepAlive on pages Requests
         Optional<TimeValue> keepAliveValue = Optional.absent();
@@ -297,16 +306,17 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         if (pageInfo.isPresent()) {
             // first sort to determine the lastEmittedDocs
             // no offset and limit should be limit + offset
-            sortedShardList = crateResultSorter.sortDocs(firstResults, 0, pageInfo.get().size() + pageInfo.get().position());
+            int sortLimit = this.offset + pageInfo.get().size() + pageInfo.get().position();
+            sortedShardList = crateResultSorter.sortDocs(firstResults, 0, sortLimit);
             lastEmittedDocs = searchPhaseController.getLastEmittedDocPerShard(
                     sortedShardList,
                     numShards);
 
-            int offset = (pageInfo.isPresent() ? pageInfo.get().position() : this.offset);
+            int fillOffset = pageInfo.get().position() + this.offset;
 
             // create a fetchrequest for all documents even those hit by the offset
             // to set the lastemitteddoc on the shard
-            crateResultSorter.fillDocIdsToLoad(docIdsToLoad, sortedShardList, offset);
+            crateResultSorter.fillDocIdsToLoad(docIdsToLoad, sortedShardList, fillOffset);
         } else {
             sortedShardList = searchPhaseController.sortDocs(false, firstResults);
             searchPhaseController.fillDocIdsToLoad(docIdsToLoad, sortedShardList);
