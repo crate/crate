@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.FullQualifedNameFieldResolver;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.metadata.*;
 import io.crate.metadata.information.MetaDataInformationModule;
@@ -67,7 +68,8 @@ public class ReferenceToTrueVisitorTest {
         expressionAnalyzer = new ExpressionAnalyzer(
                 injector.getInstance(AnalysisMetaData.class),
                 new ParameterContext(new Object[0], new Object[0][]),
-                ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("dummy"), new DummyRelation())
+                new FullQualifedNameFieldResolver(
+                        ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("dummy"), new DummyRelation()))
         );
         expressionAnalysisContext = new ExpressionAnalysisContext();
     }

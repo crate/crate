@@ -77,7 +77,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             throw new UnsupportedOperationException
                     ("Only exactly one table is allowed in the FROM clause, got: " + context.sources().size());
         }
-        expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext, context.sources());
+        FieldResolver sources = new FullQualifedNameFieldResolver(context.sources());
+        expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext, sources);
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
         WhereClause whereClause = analyzeWhere(node.getWhere());

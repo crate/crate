@@ -23,10 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationAnalysisContext;
-import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.analyze.relations.Relations;
+import io.crate.analyze.relations.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
 
@@ -81,7 +78,8 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(parameterContext, analyzedRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources()),
+                new ExpressionAnalyzer(analysisMetaData, parameterContext,
+                        new FullQualifedNameFieldResolver(relationAnalysisContext.sources())),
                 new ExpressionAnalysisContext(),
                 deleteAnalyzedStatement
         );

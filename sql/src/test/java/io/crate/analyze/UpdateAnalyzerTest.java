@@ -399,6 +399,13 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testUpdateWithFQName() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column reference \"users.name\" has too many parts. A column must not have a schema or a table here.");
+        analyze("update users set users.name = 'Ford Mustang'");
+    }
+
+    @Test
     public void testUpdateDynamicInvalidTypeLiteral() throws Exception {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for new: Invalid datatype 'double_array_array'");
