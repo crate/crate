@@ -41,7 +41,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.QueryAndFetchNode;
 import io.crate.planner.node.dql.CollectNode;
@@ -55,6 +54,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -156,70 +156,92 @@ public class QueryAndFetchConsumer implements Consumer {
     }
 
 
-    public static AnalyzedRelation normalSelect(SelectAnalyzedStatement statement, WhereClauseContext whereClauseContext,
-                                                TableRelation tableRelation, ColumnIndexWriterProjection indexWriterProjection, Functions functions){
+    public static AnalyzedRelation normalSelect(SelectAnalyzedStatement statement,
+                                                WhereClauseContext whereClauseContext,
+                                                TableRelation tableRelation,
+                                                @Nullable ColumnIndexWriterProjection indexWriterProjection,
+                                                Functions functions){
         TableInfo tableInfo = tableRelation.tableInfo();
         WhereClause whereClause = whereClauseContext.whereClause();
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .output(tableRelation.resolve(statement.outputSymbols()))
-                .orderBy(tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()));
-        ImmutableList<Projection> projections;
-        if (statement.isLimited()) {
+
+        List<Symbol> outputSymbols;
+        if (tableInfo.schemaInfo().systemSchema()) {
+            outputSymbols = tableRelation.resolve(statement.outputSymbols());
+        } else {
+            outputSymbols = new ArrayList<>(statement.outputSymbols().size());
+            for (Symbol symbol : statement.outputSymbols()) {
+                outputSymbols.add(DocReferenceConverter.convertIfPossible(tableRelation.resolve(symbol), tableInfo));
+            }
+        }
+        CollectNode collectNode;
+        MergeNode mergeNode;
+        if (indexWriterProjection != null) {
+            // insert directly from shards
+            assert !statement.isLimited() : "insert from sub query with limit or order by is not supported. " +
+                    "Analyzer should have thrown an exception already.";
+
+            ImmutableList<Projection> projections = ImmutableList.<Projection>of(indexWriterProjection);
+            collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, projections);
+            // use aggregation projection to merge node results (number of inserted rows)
+            mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection(functions)), collectNode);
+        } else if (statement.isLimited() || statement.orderBy().isSorted()) {
+            /**
+             * select id, name, order by id, date
+             *
+             * toCollect:       [id, name, date]            // includes order by symbols, that aren't already selected
+             * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectNode
+             * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
+             * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
+             */
+            List<Symbol> orderBySymbols = tableRelation.resolve(statement.orderBy().orderBySymbols());
+            List<Symbol> toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
+            toCollect.addAll(outputSymbols);
+
+            // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
+            for (Symbol orderBySymbol : orderBySymbols) {
+                if (!toCollect.contains(orderBySymbol)) {
+                    toCollect.add(orderBySymbol);
+                }
+            }
+            List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
+            for (int i = 0; i < toCollect.size(); i++) {
+                allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
+            }
+            List<Symbol> finalOutputs = new ArrayList<>(outputSymbols.size());  // final outputs on handler after sort
+            for (int i = 0; i < outputSymbols.size(); i++) {
+                finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
+            }
+            List<Symbol> orderByInputColumns = new ArrayList<>();
+            for (Symbol symbol : orderBySymbols) {
+                orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
+            }
+
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
             TopNProjection tnp = new TopNProjection(
-                    statement.offset() + statement.limit(),
+                    statement.offset() + firstNonNull(statement.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     0,
-                    contextBuilder.orderBy(),
+                    orderByInputColumns,
                     statement.orderBy().reverseFlags(),
                     statement.orderBy().nullsFirst()
             );
-            tnp.outputs(contextBuilder.outputs());
-            projections = ImmutableList.<Projection>of(tnp);
-        } else if(indexWriterProjection != null) {
-            // no limit, projection (index writer) will run on shard/CollectNode
-            projections = ImmutableList.<Projection>of(indexWriterProjection);
-        } else {
-            projections = ImmutableList.of();
-        }
+            tnp.outputs(allOutputs);
+            collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
-        List<Symbol> toCollect;
-        if (tableInfo.schemaInfo().systemSchema()) {
-            toCollect = contextBuilder.toCollect();
-        } else {
-            toCollect = new ArrayList<>();
-            for (Symbol symbol : contextBuilder.toCollect()) {
-                toCollect.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
-            }
-        }
-
-        CollectNode collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, projections);
-        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
-
-        if (indexWriterProjection == null || statement.isLimited()) {
-            // limit set, apply topN projection
-            TopNProjection tnp = new TopNProjection(
+            TopNProjection handlerTopN = new TopNProjection(
                     firstNonNull(statement.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     statement.offset(),
-                    contextBuilder.orderBy(),
+                    orderByInputColumns,
                     statement.orderBy().reverseFlags(),
                     statement.orderBy().nullsFirst()
             );
-            tnp.outputs(contextBuilder.outputs());
-            projectionBuilder.add(tnp);
+            handlerTopN.outputs(finalOutputs);
+            mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(handlerTopN), collectNode);
+        } else {
+            collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, ImmutableList.<Projection>of());
+            mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
         }
-        if (indexWriterProjection != null && statement.isLimited()) {
-            // limit set, context projection (index writer) will run on handler
-            projectionBuilder.add(indexWriterProjection);
-        } else if (indexWriterProjection != null && !statement.isLimited()) {
-            // no limit -> no topN projection, use aggregation projection to merge node results
-            projectionBuilder.add(localMergeProjection(functions));
-        }
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projectionBuilder.build(),collectNode);
-        return new QueryAndFetchNode(
-                collectNode,
-                localMergeNode
-        );
+        return new QueryAndFetchNode(collectNode, mergeNode);
     }
 
     public static AggregationProjection localMergeProjection(Functions functions) {
