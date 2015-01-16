@@ -28,6 +28,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.bigarray.IterableBigArray;
+import io.crate.core.bigarray.MultiNativeArrayBigArray;
 import io.crate.executor.*;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -48,6 +50,8 @@ import java.util.List;
 
 
 public class NestedLoopOperation implements ProjectorUpstream {
+
+    public static final int DEFAULT_PAGE_SIZE = 1024;
 
     public static interface RowCombinator {
 
@@ -242,92 +246,111 @@ public class NestedLoopOperation implements ProjectorUpstream {
         this.innerRelationTasks = innerTasks;
     }
 
-    private List<ListenableFuture<TaskResult>> executeChildTasks(List<Task> tasks, Optional<PageInfo> pageInfo) {
+    private List<ListenableFuture<TaskResult>> executeChildTasks(List<Task> tasks, PageInfo pageInfo) {
         assert !tasks.isEmpty() : "nested loop child tasks are empty";
-        if (pageInfo.isPresent() &&
-                tasks.size() == 1 &&
+        if (tasks.size() == 1 &&
                 tasks.get(0) instanceof PageableTask) {
             // one pageable task, page it
             PageableTask task = (PageableTask) tasks.get(0);
-            task.start(pageInfo.get());
+            logger.debug("[NestedLoop] fetching {} rows from source relation", pageInfo.size());
+            task.start(pageInfo);
             return task.result();
         }
         return this.taskExecutor.execute(tasks, null);
     }
 
-    public ListenableFuture<TaskResult> execute() {
+    public ListenableFuture<TaskResult> execute(final Optional<PageInfo> pageInfo) {
         FlatProjectorChain projectorChain = new FlatProjectorChain(projections, projectionToProjectorVisitor, ramAccountingContext);
         downstream(projectorChain.firstProjector());
         projectorChain.startProjections();
 
         if (limit == 0) {
             // shortcut
-            return Futures.<TaskResult>immediateFuture(TaskResult.EMPTY_RESULT);
+            return Futures.immediateFuture(
+                    pageInfo.isPresent()
+                            ? PageableTaskResult.EMPTY_PAGABLE_RESULT
+                            : TaskResult.EMPTY_RESULT);
         }
 
         int rowsToProduce = limit + offset;
-        int outerPageSize = 1;
+        // this size is set arbitrarily to a value between 1 and DEFAULT_PAGE_SIZE
+        // we arbitrarily assume that the inner relation produces around 10 results
+        // and we fetch all that is needed to fetch all others
+        int outerPageSize = Math.max(1, Math.min(rowsToProduce / 10, DEFAULT_PAGE_SIZE));
         final PageInfo outerPageInfo = new PageInfo(0, outerPageSize);
-        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, Optional.of(outerPageInfo));
-        assert outerResults.size() == 1;
-        final PageInfo innerPageInfo = new PageInfo(0, rowsToProduce/outerPageSize);
-        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, Optional.of(innerPageInfo));
-        assert innerResults.size() == 1;
+        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, outerPageInfo);
 
-        Futures.addCallback(Futures.allAsList(ImmutableList.of(outerResults.get(0), innerResults.get(0))), new FutureCallback<List<TaskResult>>() {
-            @Override
-            public void onSuccess(List<TaskResult> results) {
-                assert results.size() == 2;
-                try {
-                    final RelationIterable outerIterable = RelationIterable.forTaskResult(results.get(0), outerPageInfo, false);
-                    final RelationIterable innerIterable = RelationIterable.forTaskResult(results.get(1), innerPageInfo, true);
+        int innerPageSize = rowsToProduce/outerPageSize;
 
-                    final JoinContext joinContext = new JoinContext(
-                            outerIterable,
-                            innerIterable,
-                            false);
-                    joinContext.refreshOuterIteratorIfNeeded(); // initialize outer iterator
-                    executeAsync(joinContext, new FutureCallback<Void>() {
+        final PageInfo innerPageInfo = new PageInfo(0, innerPageSize);
+        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, innerPageInfo);
 
-                        private void close() {
-                            try {
-                                joinContext.close();
-                            } catch (IOException e) {
-                                logger.error("error closing CROSS JOIN source relation resources", e);
-                            }
+        Futures.addCallback(
+                Futures.allAsList(
+                    ImmutableList.of(
+                            outerResults.get(outerResults.size()-1),
+                            innerResults.get(innerResults.size()-1)
+                    )
+                ),
+                new FutureCallback<List<TaskResult>>() {
+                    @Override
+                    public void onSuccess(List<TaskResult> results) {
+                        assert results.size() == 2;
+                        try {
+                            final RelationIterable outerIterable = RelationIterable.forTaskResult(results.get(0), outerPageInfo, false);
+                            final RelationIterable innerIterable = RelationIterable.forTaskResult(results.get(1), innerPageInfo, true);
 
-                        }
+                            final JoinContext joinContext = new JoinContext(
+                                    outerIterable,
+                                    innerIterable,
+                                    false);
+                            joinContext.refreshOuterIteratorIfNeeded(); // initialize outer iterator
+                            executeAsync(joinContext, new FutureCallback<Void>() {
 
-                        @Override
-                        public void onSuccess(@Nullable Void result) {
-                            downstream.upstreamFinished();
-                            close();
-                        }
+                                private void close() {
+                                    try {
+                                        joinContext.close();
+                                    } catch (IOException e) {
+                                        logger.error("error closing CROSS JOIN source relation resources", e);
+                                    }
 
-                        @Override
-                        public void onFailure(Throwable t) {
+                                }
+
+                                @Override
+                                public void onSuccess(@Nullable Void result) {
+                                    downstream.upstreamFinished();
+                                    close();
+                                }
+
+                                @Override
+                                public void onFailure(Throwable t) {
+                                    downstream.upstreamFailed(t);
+                                    close();
+                                }
+                            });
+                        } catch (Throwable t) {
+                            logger.error("Error during execution of CROSS JOIN", t);
                             downstream.upstreamFailed(t);
-                            close();
                         }
-                    });
-                } catch (Throwable t) {
-                    logger.error("Error during execution of CROSS JOIN", t);
-                    downstream.upstreamFailed(t);
-                }
-            }
+                    }
 
-            @Override
-            public void onFailure(Throwable t) {
-                logger.error("Error during resolving the CROSS JOIN source relations", t);
-                downstream.upstreamFailed(t);
-            }
+                    @Override
+                    public void onFailure(Throwable t) {
+                        logger.error("Error during resolving the CROSS JOIN source relations", t);
+                        downstream.upstreamFailed(t);
+                    }
         });
 
         return Futures.transform(projectorChain.result(), new Function<Object[][], TaskResult>() {
             @Nullable
             @Override
             public TaskResult apply(Object[][] rows) {
-                return new QueryResult(rows);
+                if (pageInfo.isPresent()) {
+                    IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
+                    return new FetchedRowsPageableTaskResult(wrappedRows, 0L, pageInfo.get());
+                } else {
+                    return new QueryResult(rows);
+                }
             }
         });
     }

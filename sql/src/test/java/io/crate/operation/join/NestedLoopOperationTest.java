@@ -23,6 +23,7 @@ package io.crate.operation.join;
 
 import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -193,7 +194,7 @@ public class NestedLoopOperationTest {
                 new TestExecutor(),
                 projectionVisitor,
                 mock(RamAccountingContext.class));
-        Object[][] result = nestedLoop.execute().get().rows();
+        Object[][] result = nestedLoop.execute(Optional.<PageInfo>absent()).get().rows();
 
         int i = 0;
         int leftIdx = 0;

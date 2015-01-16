@@ -22,9 +22,9 @@ package io.crate.planner.node.dql.join;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
-import io.crate.planner.node.dql.DQLPlanNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -58,8 +58,8 @@ import java.util.Set;
 public class NestedLoopNode extends AbstractDQLPlanNode {
 
 
-    private final DQLPlanNode left;
-    private final DQLPlanNode right;
+    private final PlanNode left;
+    private final PlanNode right;
     private boolean leftOuterLoop = true;
     private final int limit;
     private final int offset;
@@ -93,8 +93,8 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
      * a | 3
      * b | 3
      */
-    public NestedLoopNode(DQLPlanNode left,
-                           DQLPlanNode right,
+    public NestedLoopNode(PlanNode left,
+                           PlanNode right,
                            boolean leftOuterLoop,
                            int limit,
                            int offset) {
@@ -106,19 +106,19 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
         this.right = right;
     }
 
-    public DQLPlanNode left() {
+    public PlanNode left() {
         return left;
     }
 
-    public DQLPlanNode right() {
+    public PlanNode right() {
         return right;
     }
 
-    public DQLPlanNode inner() {
+    public PlanNode inner() {
         return leftOuterLoop() ? right : left;
     }
 
-    public DQLPlanNode outer() {
+    public PlanNode outer() {
         return leftOuterLoop() ? left : right;
     }
 
