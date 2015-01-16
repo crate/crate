@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.metadata.PartitionName;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
@@ -477,69 +476,86 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     private void normalSelect(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        // node or shard level normal select
+        List<Symbol> outputSymbols;
+        if (analysis.table().schemaInfo().systemSchema()) {
+            outputSymbols = analysis.outputSymbols();
+        } else {
+            outputSymbols = new ArrayList<>(analysis.outputSymbols().size());
+            for (Symbol symbol : analysis.outputSymbols()) {
+                outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
+            }
+        }
+        if (context.indexWriterProjection.isPresent()) {
+            // insert directly from shards
+            assert !analysis.isLimited() : "insert from sub query with limit or order by is not supported. " +
+                    "Analyzer should have thrown an exception already.";
 
-        // TODO: without locations the localMerge node can be removed and the topN projection
-        // added to the collectNode.
+            ImmutableList<Projection> projections = ImmutableList.<Projection>of(context.indexWriterProjection.get());
+            CollectNode collectNode = PlanNodeBuilder.collect(analysis, outputSymbols, projections);
+            plan.add(collectNode);
+            // use aggregation projection to merge node results (number of inserted rows)
+            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection(analysis)), collectNode));
 
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .output(analysis.outputSymbols())
-                .orderBy(analysis.orderBy().orderBySymbols());
+        } else if (analysis.isLimited() || analysis.orderBy().isSorted()) {
+            /**
+             * select id, name, order by id, date
+             *
+             * toCollect:       [id, name, date]            // includes order by symbols, that aren't already selected
+             * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectNode
+             * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
+             * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
+             */
 
-        ImmutableList<Projection> projections;
-        if (analysis.isLimited()) {
+            List<Symbol> toCollect = new ArrayList<>(outputSymbols.size() + analysis.orderBy().orderBySymbols().size());
+            toCollect.addAll(outputSymbols);
+
+            // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
+            for (Symbol orderBySymbol : analysis.orderBy().orderBySymbols()) {
+                if (!toCollect.contains(orderBySymbol)) {
+                    toCollect.add(orderBySymbol);
+                }
+            }
+            List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
+            for (int i = 0; i < toCollect.size(); i++) {
+                allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
+            }
+            List<Symbol> finalOutputs = new ArrayList<>(outputSymbols.size());  // final outputs on handler after sort
+            for (int i = 0; i < outputSymbols.size(); i++) {
+                finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
+            }
+            List<Symbol> orderByInputColumns = new ArrayList<>();
+            for (Symbol symbol : analysis.orderBy().orderBySymbols()) {
+                orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
+            }
+
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
             TopNProjection tnp = new TopNProjection(
-                    analysis.offset() + analysis.limit(),
+                    analysis.offset() + firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     0,
-                    contextBuilder.orderBy(),
+                    orderByInputColumns,
                     analysis.orderBy().reverseFlags(),
                     analysis.orderBy().nullsFirst()
             );
-            tnp.outputs(contextBuilder.outputs());
-            projections = ImmutableList.<Projection>of(tnp);
-        } else if(context.indexWriterProjection.isPresent()) {
-            // no limit, projection (index writer) will run on shard/CollectNode
-            projections = ImmutableList.<Projection>of(context.indexWriterProjection.get());
-        } else {
-            projections = ImmutableList.of();
-        }
+            tnp.outputs(allOutputs);
+            CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, ImmutableList.<Projection>of(tnp));
+            plan.add(collectNode);
 
-        List<Symbol> toCollect;
-        if (analysis.table().schemaInfo().systemSchema()) {
-            toCollect = contextBuilder.toCollect();
-        } else {
-            toCollect = new ArrayList<>();
-            for (Symbol symbol : contextBuilder.toCollect()) {
-                toCollect.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
-            }
-        }
 
-        CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, projections);
-        plan.add(collectNode);
-        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
-
-        if (!context.indexWriterProjection.isPresent() || analysis.isLimited()) {
-            // limit set, apply topN projection
-            TopNProjection tnp = new TopNProjection(
+            TopNProjection handlerTopN = new TopNProjection(
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
-                    contextBuilder.orderBy(),
+                    orderByInputColumns,
                     analysis.orderBy().reverseFlags(),
                     analysis.orderBy().nullsFirst()
             );
-            tnp.outputs(contextBuilder.outputs());
-            projectionBuilder.add(tnp);
+            handlerTopN.outputs(finalOutputs);
+            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(handlerTopN), collectNode));
+        } else {
+            CollectNode collectNode = PlanNodeBuilder.collect(analysis, outputSymbols, ImmutableList.<Projection>of());
+            plan.add(collectNode);
+            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode));
         }
-        if (context.indexWriterProjection.isPresent() && analysis.isLimited()) {
-            // limit set, context projection (index writer) will run on handler
-            projectionBuilder.add(context.indexWriterProjection.get());
-        } else if (context.indexWriterProjection.isPresent() && !analysis.isLimited()) {
-            // no limit -> no topN projection, use aggregation projection to merge node results
-            projectionBuilder.add(localMergeProjection(analysis));
-        }
-        plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), collectNode));
     }
 
     private void queryThenFetch(SelectAnalyzedStatement analysis, Plan plan, Context context) {
