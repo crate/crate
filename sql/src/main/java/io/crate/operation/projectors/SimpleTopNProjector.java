@@ -72,7 +72,9 @@ public class SimpleTopNProjector implements Projector {
 
     @Override
     public synchronized boolean setNextRow(Object[] row) {
-        assert toCollect >= 1;
+        if (toCollect<1){
+            return false;
+        }
         if (remainingOffset > 0) {
             remainingOffset--;
             return true;
