@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Return zero row count instead of an exception if update by id
+   doesn't match any document
+
  - The ``sys.operations`` table has now a ``_nodes`` system column
    which exposes information about the node the operation runs on.
 
