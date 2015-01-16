@@ -8,6 +8,10 @@ Unreleased
  - Fix: Return zero row count instead of an exception if update by id
    doesn't match any document
 
+ - Fixed an issue in the ``sys.shards`` table which caused an
+   exception when the select limit was lower then the number of
+   matching shards on a node.
+
  - Fixed type conversion of bulk parameters
 
  - Updated crate-admin to version 0.11.2 which includes following changes:
