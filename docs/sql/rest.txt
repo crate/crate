@@ -301,9 +301,9 @@ the resulting object may contain an `error_message` depending on
 the resulting error::
 
     sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
-    ... {"stmt": "Update locations set name=? where id=?",
+    ... {"stmt": "INSERT into locations (name, id) values (?,?)",
     ... "bulk_args": [
-    ...     ["Mars", 1337],
+    ...     ["Mars", 1341],
     ...     ["Sun", 1341]
     ... ]
     ... }
@@ -312,10 +312,9 @@ the resulting error::
       "cols" : [ ],
       "duration" : ...,
       "results" : [ {
-        "rowcount" : -2,
-        "error_message" : "[locations][...] [default][1341]: document missing"
-      }, {
         "rowcount" : 1
+      }, {
+        "rowcount" : -2
       } ]
     }
 
