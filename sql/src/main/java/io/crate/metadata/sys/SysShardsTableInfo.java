@@ -75,9 +75,6 @@ public class SysShardsTableInfo extends SysTableInfo {
             columns.add(info);
         }
         INFOS.put(info.ident().columnIdent(), info);
-
-
-
         return info;
     }
 
