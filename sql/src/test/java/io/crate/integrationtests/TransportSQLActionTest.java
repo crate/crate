@@ -5320,6 +5320,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name from locations where substr(name, 1, 1) = substr(name, 1, 1)");
         assertThat(response.rowCount(), is(12L));
     }
+
+    //TODO: remove once branch 'relation' is merged
+    @Test
+    public void testUpdateByPrimaryKeyUnknownDocument() {
+        execute("create table test (id int primary key, message string)");
+        ensureGreen();
+        execute("update test set message='b' where id = 1");
+        assertEquals(0, response.rowCount());
+    }
 }
 
 

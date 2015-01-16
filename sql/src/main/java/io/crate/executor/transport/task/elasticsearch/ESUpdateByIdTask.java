@@ -30,6 +30,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 public class ESUpdateByIdTask extends AbstractESUpdateTask {
@@ -58,7 +59,8 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
         @Override
         public void onFailure(Throwable e) {
             e = Exceptions.unwrap(e);
-            if (e instanceof VersionConflictEngineException) {
+            if (e instanceof VersionConflictEngineException
+                    || e instanceof DocumentMissingException) {
                 future.set(TaskResult.ZERO);
             } else {
                 future.setException(e);
