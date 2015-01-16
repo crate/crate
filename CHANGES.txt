@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - SELECT statements that involved tables from the information_schema schema or
+   from the sys schema could fail if they contained columns in the ORDER BY
+   clause but didn't contain these columns in the result column list.
+
  - Fix: Return zero row count instead of an exception if update by id
    doesn't match any document
 

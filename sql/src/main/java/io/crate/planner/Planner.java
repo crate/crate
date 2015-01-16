@@ -22,8 +22,10 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
-import com.google.common.base.Objects;
-import com.google.common.base.*;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -50,7 +52,6 @@ import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.Function;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 import org.elasticsearch.cluster.ClusterService;
@@ -66,6 +67,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.google.common.base.Objects.firstNonNull;
 
 @Singleton
 public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
@@ -506,69 +509,92 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void normalSelect(SelectAnalysis analysis, Plan plan, Context context) {
-        // node or shard level normal select
+        List<Symbol> outputSymbols;
+        if (analysis.table().schemaInfo().systemSchema()) {
+            outputSymbols = analysis.outputSymbols();
+        } else {
+            outputSymbols = new ArrayList<>(analysis.outputSymbols().size());
+            for (Symbol symbol : analysis.outputSymbols()) {
+                outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
+            }
+        }
+        if (context.indexWriterProjection.isPresent()) {
+            // insert directly from shards
+            assert !analysis.isLimited() : "insert from sub query with limit or order by is not supported. " +
+                    "Analyzer should have thrown an exception already.";
+            ImmutableList<Projection> projections = ImmutableList.<Projection>of(context.indexWriterProjection.get());
+            CollectNode collectNode = PlanNodeBuilder.collect(analysis, outputSymbols, projections);
+            plan.add(collectNode);
+            // use aggregation projection to merge node results (number of inserted rows)
+            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection(analysis)), collectNode));
+        } else if (analysis.isLimited() || analysis.isSorted()) {
+            /**
+             * select id, name, order by id, date
+             *
+             * toCollect:       [id, name, date]            // includes order by symbols, that aren't already selected
+             * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectNode
+             * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
+             * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
+             */
+            int sortSize = 0;
+            if(analysis.sortSymbols() != null){
+                sortSize = analysis.sortSymbols().size();
+            }
 
-        // TODO: without locations the localMerge node can be removed and the topN projection
-        // added to the collectNode.
+            List<Symbol> toCollect = new ArrayList<>(outputSymbols.size() + sortSize);
+            toCollect.addAll(outputSymbols);
+            // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
+            if(analysis.sortSymbols() != null){
+                for (Symbol orderBySymbol : analysis.sortSymbols()) {
+                    if (!toCollect.contains(orderBySymbol)) {
+                        toCollect.add(orderBySymbol);
+                    }
+                }
+            }
+            List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
+            for (int i = 0; i < toCollect.size(); i++) {
+                //allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
+                allOutputs.add(new InputColumn(i));
+            }
+            List<Symbol> finalOutputs = new ArrayList<>(outputSymbols.size());  // final outputs on handler after sort
+            for (int i = 0; i < outputSymbols.size(); i++) {
+                finalOutputs.add(new InputColumn((i)));
+//                finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
+            }
+            List<Symbol> orderByInputColumns = new ArrayList<>();
+            if(analysis.sortSymbols() != null){
+                for (Symbol symbol : analysis.sortSymbols()) {
+                    // orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
+                    orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol)));
 
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
-
-        ImmutableList<Projection> projections;
-        if (analysis.isLimited()) {
+                }
+            }
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
             TopNProjection tnp = new TopNProjection(
-                    analysis.offset() + analysis.limit(),
+                    analysis.offset() + firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     0,
-                    contextBuilder.orderBy(),
+                    orderByInputColumns,
                     analysis.reverseFlags(),
                     analysis.nullsFirst()
             );
-            tnp.outputs(contextBuilder.outputs());
-            projections = ImmutableList.<Projection>of(tnp);
-        } else if(context.indexWriterProjection.isPresent()) {
-            // no limit, projection (index writer) will run on shard/CollectNode
-            projections = ImmutableList.<Projection>of(context.indexWriterProjection.get());
-        } else {
-            projections = ImmutableList.of();
-        }
-
-        List<Symbol> toCollect;
-        if (analysis.schema().systemSchema()) {
-            toCollect = contextBuilder.toCollect();
-        } else {
-            toCollect = new ArrayList<>();
-            for (Symbol symbol : contextBuilder.toCollect()) {
-                toCollect.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
-            }
-        }
-
-        CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, projections);
-        plan.add(collectNode);
-        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
-
-        if (!context.indexWriterProjection.isPresent() || analysis.isLimited()) {
-            // limit set, apply topN projection
-            TopNProjection tnp = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+            tnp.outputs(allOutputs);
+            CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, ImmutableList.<Projection>of(tnp));
+            plan.add(collectNode);
+            TopNProjection handlerTopN = new TopNProjection(
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
-                    contextBuilder.orderBy(),
+                    orderByInputColumns,
                     analysis.reverseFlags(),
                     analysis.nullsFirst()
             );
-            tnp.outputs(contextBuilder.outputs());
-            projectionBuilder.add(tnp);
+            handlerTopN.outputs(finalOutputs);
+            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(handlerTopN), collectNode));
+        } else {
+            CollectNode collectNode = PlanNodeBuilder.collect(analysis, outputSymbols, ImmutableList.<Projection>of());
+            plan.add(collectNode);
+            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode));
         }
-        if (context.indexWriterProjection.isPresent() && analysis.isLimited()) {
-            // limit set, context projection (index writer) will run on handler
-            projectionBuilder.add(context.indexWriterProjection.get());
-        } else if (context.indexWriterProjection.isPresent() && !analysis.isLimited()) {
-            // no limit -> no topN projection, use aggregation projection to merge node results
-            projectionBuilder.add(localMergeProjection(analysis));
-        }
-        plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), collectNode));
     }
 
     private void ESSearch(SelectAnalysis analysis, Plan plan, Context context) {
@@ -619,7 +645,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         // only add projection if we have scalar functions
         if (needsProjection) {
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     TopN.NO_OFFSET
             );
             topN.outputs(contextBuilder.outputs());
@@ -843,7 +869,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             }
 
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     orderBy,
                     analysis.reverseFlags(),
@@ -913,7 +939,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
         if (!ignoreSorting) {
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     contextBuilder.orderBy(),
                     analysis.reverseFlags(),
@@ -942,7 +968,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                                              List<Symbol> outputs) {
         if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                     0,
                     contextBuilder.orderBy(),
                     analysis.reverseFlags(),
@@ -1040,7 +1066,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
         // mergeNode handler
         TopNProjection topN = new TopNProjection(
-                Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
                 orderBy,
                 analysis.reverseFlags(),
@@ -1101,7 +1127,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (analysis.isLimited()) {
             topNDone = true;
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                     0,
                     analysis.sortSymbols(),
                     analysis.reverseFlags(),
@@ -1130,7 +1156,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             }
             // mergeNode handler
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     orderBy,
                     analysis.reverseFlags(),
@@ -1189,7 +1215,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         Projection lastProjection = projections.get(projectionIdx);
         List<DataType> types = new ArrayList<>(lastProjection.outputs().size());
 
-        List<DataType> dataTypes = Objects.firstNonNull(inputTypes, ImmutableList.<DataType>of());
+        List<DataType> dataTypes = firstNonNull(inputTypes, ImmutableList.<DataType>of());
 
         for (int c = 0; c < lastProjection.outputs().size(); c++) {
             types.add(resolveType(projections, projectionIdx, c, dataTypes));

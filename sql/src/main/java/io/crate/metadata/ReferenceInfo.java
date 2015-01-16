@@ -191,8 +191,8 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     @Override
     public String toString() {
         Objects.ToStringHelper helper = Objects.toStringHelper(this)
-                .add("granularity", granularity)
                 .add("ident", ident)
+                .add("granularity", granularity)
                 .add("type", type);
         if (type.equals(DataTypes.OBJECT)) {
             helper.add("object type", objectType.name());

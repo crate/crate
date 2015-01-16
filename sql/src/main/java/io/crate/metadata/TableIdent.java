@@ -97,10 +97,7 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("schema", schema)
-                .add("name", name)
-                .toString();
+        return String.format("%s.%s", schema, name);
     }
 
     @Override

@@ -94,10 +94,7 @@ public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("table", tableIdent)
-                .add("columnIdent", columnIdent)
-                .toString();
+        return String.format("<RefIdent: %s->%s>", tableIdent, columnIdent);
     }
 
     @Override

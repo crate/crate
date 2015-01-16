@@ -189,10 +189,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("name", name)
-                .add("path", path)
-                .toString();
+        return sqlFqn();
     }
 
     @Override
