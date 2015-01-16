@@ -22,7 +22,7 @@
 package io.crate.planner.node.dml;
 
 import io.crate.analyze.WhereClause;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 
 public class ESDeleteByQueryNode extends DMLPlanNode {
 
@@ -44,7 +44,7 @@ public class ESDeleteByQueryNode extends DMLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESDeleteByQueryNode(this, context);
     }
 }

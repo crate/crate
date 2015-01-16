@@ -25,7 +25,7 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.symbol.Field;
 
@@ -66,7 +66,7 @@ public class UpdateNode extends DMLPlanNode implements PlannedAnalyzedRelation {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitUpdateNode(this, context);
     }
 }

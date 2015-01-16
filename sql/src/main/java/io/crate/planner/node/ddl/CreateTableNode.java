@@ -23,7 +23,7 @@ package io.crate.planner.node.ddl;
 
 import com.google.common.base.Optional;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -90,7 +90,7 @@ public class CreateTableNode extends DDLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitCreateTableNode(this, context);
     }
 }

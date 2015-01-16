@@ -32,7 +32,7 @@ import io.crate.planner.symbol.SymbolVisitor;
 
 import static java.lang.String.format;
 
-public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
+public class PlanPrinter extends PlanNodeVisitor<PlanPrinter.PrintContext, Void> {
 
     static class PrintContext {
 

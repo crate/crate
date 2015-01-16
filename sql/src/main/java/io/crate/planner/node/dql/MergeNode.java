@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -85,7 +85,7 @@ public class MergeNode extends AbstractDQLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitMergeNode(this, context);
     }
 

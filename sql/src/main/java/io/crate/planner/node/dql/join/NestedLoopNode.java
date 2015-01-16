@@ -23,7 +23,7 @@ package io.crate.planner.node.dql.join;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -140,7 +140,7 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitNestedLoopNode(this, context);
     }
 

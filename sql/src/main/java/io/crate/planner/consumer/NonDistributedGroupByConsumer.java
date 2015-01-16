@@ -18,7 +18,7 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
-package io.crate.planner.v2;
+package io.crate.planner.consumer;
 
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;

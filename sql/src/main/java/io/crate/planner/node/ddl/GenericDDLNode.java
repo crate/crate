@@ -22,7 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 
 public class GenericDDLNode extends DDLPlanNode {
 
@@ -37,7 +37,7 @@ public class GenericDDLNode extends DDLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitGenericDDLNode(this, context);
     }
 }

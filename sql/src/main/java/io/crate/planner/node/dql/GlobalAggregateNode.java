@@ -26,7 +26,7 @@ import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Field;
 import io.crate.types.DataType;
 
@@ -52,7 +52,7 @@ public class GlobalAggregateNode implements PlannedAnalyzedRelation, PlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitGlobalAggregateNode(this, context);
     }
 
