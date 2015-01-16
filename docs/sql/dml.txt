@@ -163,8 +163,8 @@ Updating nested objects is also supported::
 
     If the same documents are updated concurrently an VersionConflictException
     might occur. Crate contains a retry logic that tries to resolve the
-    conflict automatically. But if it fails more than 3 times the error is
-    returned to the user.
+    conflict automatically. But if it fails more than 3 times the document
+    doesn't get updated and a zero row count is returned.
 
 Deleting Data
 =============
