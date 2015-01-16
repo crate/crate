@@ -25,10 +25,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.PartitionName;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -119,7 +117,7 @@ public class InformationSchemaCollectService implements CollectService {
                     @Override
                     public boolean apply(@Nullable ReferenceInfo input) {
                         return input != null
-                                && !DocSysColumns.COLUMN_IDENTS.containsKey(input.ident().columnIdent())
+                                && !input.ident().columnIdent().isSystemColumn()
                                 && input.type() != DataTypes.NOT_SUPPORTED;
                     }
                 }).iterator();

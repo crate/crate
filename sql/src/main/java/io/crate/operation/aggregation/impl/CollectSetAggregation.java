@@ -30,8 +30,8 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.VariableSizeAggregationState;
 import io.crate.types.DataType;
+import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -42,48 +42,23 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class CollectSetAggregation<T extends Comparable<T>>
-        extends AggregationFunction<CollectSetAggregation.CollectSetAggState> {
+public class CollectSetAggregation extends AggregationFunction<Set<Object>, Set<Object>> {
 
     public static final String NAME = "collect_set";
+    private final SizeEstimator<Object> innerTypeEstimator;
 
-    private final FunctionInfo info;
+    private FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
-            final Streamer<?> setStreamer = new SetType(dataType).streamer();
-
-            mod.register(
-                    new CollectSetAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME,
-                                    ImmutableList.of(dataType)),
-                                    new SetType(dataType), FunctionInfo.Type.AGGREGATE
-                            )
-                    ) {
-                        @Override
-                        public CollectSetAggState newState(RamAccountingContext ramAccountingContext) {
-                            return new CollectSetAggState(ramAccountingContext, SizeEstimatorFactory.create(dataType)) {
-                                @Override
-                                public void readFrom(StreamInput in) throws IOException {
-                                    valueSize(in.readVLong());
-                                    addEstimatedSize(valueSize());
-                                    setValue(setStreamer.readValueFrom(in));
-                                }
-
-                                @Override
-                                public void writeTo(StreamOutput out) throws IOException {
-                                    out.writeVLong(valueSize());
-                                    setStreamer.writeValueTo(out, value());
-                                }
-                            };
-                        }
-                    }
-            );
+            mod.register(new CollectSetAggregation(new FunctionInfo(new FunctionIdent(NAME,
+                    ImmutableList.of(dataType)),
+                    new SetType(dataType), FunctionInfo.Type.AGGREGATE)));
         }
     }
 
-
     CollectSetAggregation(FunctionInfo info) {
+        this.innerTypeEstimator = SizeEstimatorFactory.create(((SetType) info.returnType()).innerType());
         this.info = info;
     }
 
@@ -93,72 +68,40 @@ public abstract class CollectSetAggregation<T extends Comparable<T>>
     }
 
     @Override
-    public boolean iterate(CollectSetAggState state, Input... args) throws CircuitBreakingException {
-        state.add(args[0].value());
-        return true;
+    public Set<Object> iterate(RamAccountingContext ramAccountingContext, Set<Object> state, Input... args) throws CircuitBreakingException {
+        Object value = args[0].value();
+        if (value == null) {
+            return state;
+        }
+        if (state.add(value)) {
+            ramAccountingContext.addBytes(innerTypeEstimator.estimateSize(value));
+        }
+        return state;
     }
 
-    public static abstract class CollectSetAggState extends VariableSizeAggregationState<CollectSetAggState> {
+    @Override
+    public Set<Object> newState(RamAccountingContext ramAccountingContext) {
+        ramAccountingContext.addBytes(36L); // overhead for the HashSet (map ref 8 + 28 for fields inside the map)
+        return new HashSet<>();
+    }
 
-        private Set<Object> value = new HashSet<>();
-        private long valueSize = 0;
+    @Override
+    public DataType partialType() {
+        return info.returnType();
+    }
 
-        public CollectSetAggState(RamAccountingContext ramAccountingContext, SizeEstimator sizeEstimator) {
-            super(ramAccountingContext, sizeEstimator);
-        }
-
-        @Override
-        public Set value() {
-            return value;
-        }
-
-        @Override
-        public void reduce(CollectSetAggState other) throws CircuitBreakingException {
-            for (Object otherValue : other.value()) {
-                if (value.add(otherValue)) {
-                    long otherValueSize = sizeEstimator.estimateSize(otherValue);
-                    addEstimatedSize(otherValueSize);
-                    valueSize += otherValueSize;
-                }
+    @Override
+    public Set<Object> reduce(RamAccountingContext ramAccountingContext, Set<Object> state1, Set<Object> state2) {
+        for (Object newValue : state2) {
+            if (state1.add(newValue)) {
+                ramAccountingContext.addBytes(innerTypeEstimator.estimateSize(newValue));
             }
         }
+        return state1;
+    }
 
-        void add(Object otherValue) throws CircuitBreakingException {
-            // ignore null values? yes
-            if (otherValue != null) {
-                if (value.add(otherValue)) {
-                    long otherValueSize = sizeEstimator.estimateSize(otherValue);
-                    addEstimatedSize(otherValueSize);
-                    valueSize += otherValueSize;
-                }
-            }
-        }
-
-        public void setValue(Object value) {
-            this.value = (Set)value;
-        }
-
-        public long valueSize() {
-            return this.valueSize;
-        }
-
-        public void valueSize(long valueSize) {
-            this.valueSize = valueSize;
-        }
-
-        @Override
-        public int compareTo(CollectSetAggState o) {
-            if (o == null) return -1;
-            return compareValue(o.value);
-        }
-
-        public int compareValue(Set otherValue) {
-            return value.size() < otherValue.size() ? -1 : value.size() == otherValue.size() ? 0 : 1;
-        }
-
-        @Override
-        public String toString() {
-            return "<CollectSetAggState \"" + value + "\"";
-        }
+    @Override
+    public Set<Object> terminatePartial(RamAccountingContext ramAccountingContext, Set<Object> state) {
+        return state;
     }
 }

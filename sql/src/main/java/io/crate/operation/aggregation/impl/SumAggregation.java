@@ -27,17 +27,14 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 
-import java.io.IOException;
-
-public class SumAggregation extends AggregationFunction<SumAggregation.SumAggState> {
+public class SumAggregation extends AggregationFunction<Double, Double> {
 
     public static final String NAME = "sum";
+
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
@@ -52,67 +49,36 @@ public class SumAggregation extends AggregationFunction<SumAggregation.SumAggSta
         this.info = info;
     }
 
-    public static class SumAggState extends AggregationState<SumAggState> {
-
-        private Double value = null; // sum that aggregates nothing returns null, not 0.0
-
-        public SumAggState(RamAccountingContext ramAccountingContext) {
-            super(ramAccountingContext);
-            ramAccountingContext.addBytes(8);
-        }
-
-        @Override
-        public Object value() {
-            return value;
-        }
-
-        @Override
-        public void reduce(SumAggState other) {
-            add(other.value);
-        }
-
-        public void add(Object value) {
-            if (value != null) {
-                this.value = (this.value == null ? 0.0 : this.value) + ((Number)value).doubleValue();
-            }
-        }
-
-        @Override
-        public int compareTo(SumAggState o) {
-            if (o == null) return 1;
-            if (value == null) return o.value == null ? 0 : -1;
-            if (o.value == null) return 1;
-
-            return Double.compare(value, o.value);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public void readFrom(StreamInput in) throws IOException {
-            if (!in.readBoolean()) {
-                value = in.readDouble();
-            }
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeBoolean(value == null);
-            if (value != null) {
-                out.writeDouble(value);
-            }
-        }
-    }
-
-
     @Override
-    public boolean iterate(SumAggState state, Input... args) {
-        state.add(args[0].value());
-        return true;
+    public Double iterate(RamAccountingContext ramAccountingContext, Double state, Input... args) throws CircuitBreakingException {
+        return reduce(ramAccountingContext, state, DataTypes.DOUBLE.value(args[0].value()));
     }
 
     @Override
-    public SumAggState newState(RamAccountingContext ramAccountingContext) {
-        return new SumAggState(ramAccountingContext);
+    public Double reduce(RamAccountingContext ramAccountingContext, Double state1, Double state2) {
+        if (state1 == null) {
+            return state2;
+        }
+        if (state2 == null) {
+            return state1;
+        }
+        return state1 + state2;
+    }
+
+    @Override
+    public Double terminatePartial(RamAccountingContext ramAccountingContext, Double state) {
+        return state;
+    }
+
+    @Override
+    public Double newState(RamAccountingContext ramAccountingContext) {
+        ramAccountingContext.addBytes(DataTypes.DOUBLE.fixedSize());
+        return null;
+    }
+
+    @Override
+    public DataType partialType() {
+        return info.returnType();
     }
 
     @Override

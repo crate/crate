@@ -33,7 +33,6 @@ public class NodeHostnameExpression extends SysNodeExpression<BytesRef> {
 
     @Inject
     public NodeHostnameExpression(NodeService nodeService) {
-        super(NAME);
         this.nodeService = nodeService;
     }
 

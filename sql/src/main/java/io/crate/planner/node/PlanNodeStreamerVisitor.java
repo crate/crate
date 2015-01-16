@@ -83,15 +83,9 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         return context;
     }
 
-    private AggregationStateStreamer getStreamer(AggregationFunction aggregationFunction,
-                                                 RamAccountingContext ramAccountingContext) {
-        return new AggregationStateStreamer(aggregationFunction, ramAccountingContext);
-    }
-
-    private Streamer<?> resolveStreamer(Aggregation aggregation, Aggregation.Step step,
-                                        RamAccountingContext ramAccountingContext) {
+    private Streamer<?> resolveStreamer(Aggregation aggregation, Aggregation.Step step) {
         Streamer<?> streamer;
-        AggregationFunction<?> aggFunction = (AggregationFunction<?>)functions.get(aggregation.functionIdent());
+        AggregationFunction<?, ?> aggFunction = (AggregationFunction<?, ?>)functions.get(aggregation.functionIdent());
         if (aggFunction == null) {
             throw new ResourceUnknownException("unknown aggregation function");
         }
@@ -101,7 +95,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
                 streamer = aggFunction.info().ident().argumentTypes().get(0).streamer();
                 break;
             case PARTIAL:
-                streamer = getStreamer(aggFunction, ramAccountingContext);
+                streamer = aggFunction.partialType().streamer();
                 break;
             case FINAL:
                 streamer = aggFunction.info().returnType().streamer();
@@ -136,8 +130,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
                 try {
                     aggregation = aggregations.get(aggIdx);
                     if (aggregation != null) {
-                        context.outputStreamers.add(resolveStreamer(aggregation,
-                                aggregation.toStep(), context.ramAccountingContext));
+                        context.outputStreamers.add(resolveStreamer(aggregation, aggregation.toStep()));
                     }
                 } catch (IndexOutOfBoundsException e) {
                     // assume this is an unknown column
@@ -212,8 +205,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
             streamers[columnIdx] = symbol.valueType().streamer();
         } else if (symbol.symbolType() == SymbolType.AGGREGATION) {
             Aggregation aggregation = (Aggregation)symbol;
-            streamers[columnIdx] = resolveStreamer(aggregation, aggregation.toStep(),
-                    ramAccountingContext);
+            streamers[columnIdx] = resolveStreamer(aggregation, aggregation.toStep());
         } else if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
             columnIdx = ((InputColumn)symbol).index();
             if (projectionIdx > 0) {
@@ -248,8 +240,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
                 context.inputStreamers.add(inputType.streamer());
             } else {
                 Aggregation aggregation = aggregations.get(idx);
-                context.inputStreamers.add(resolveStreamer(aggregation, aggregation.fromStep(),
-                        context.ramAccountingContext));
+                context.inputStreamers.add(resolveStreamer(aggregation, aggregation.fromStep()));
                 idx++;
             }
         }

@@ -35,23 +35,23 @@ public class SizeEstimatorTest {
         SizeEstimator sizeEstimator = SizeEstimatorFactory.create(DataTypes.STRING);
         assertThat(sizeEstimator.estimateSize(null), is(8L));
         assertThat(sizeEstimator.estimateSize(new BytesRef("hello")), is(69L));
-        assertThat(sizeEstimator.estimateSize(new BytesRef("hello"), new BytesRef("hello world")), is(6L));
+        assertThat(sizeEstimator.estimateSizeDelta(new BytesRef("hello"), new BytesRef("hello world")), is(6L));
     }
 
     @Test
     public void testConstant() throws Exception {
         SizeEstimator sizeEstimator = SizeEstimatorFactory.create(DataTypes.BYTE);
         assertThat(sizeEstimator.estimateSize(null), is(8L));
-        assertThat(sizeEstimator.estimateSize(new Byte("100")), is(8L));
-        assertThat(sizeEstimator.estimateSize(new Byte("100"), new Byte("42")), is(8L));
+        assertThat(sizeEstimator.estimateSize(new Byte("100")), is(16L));
+        assertThat(sizeEstimator.estimateSizeDelta(new Byte("100"), new Byte("42")), is(0L));
     }
 
     @Test
     public void testGeoPoint() throws Exception {
         SizeEstimator sizeEstimator = SizeEstimatorFactory.create(DataTypes.GEO_POINT);
         assertThat(sizeEstimator.estimateSize(null), is(8L));
-        assertThat(sizeEstimator.estimateSize(new Double[]{1.0d, 2.0d}), is(16L));
-        assertThat(sizeEstimator.estimateSize(new Double[]{1.0d, 2.0d}, null), is(8L));
+        assertThat(sizeEstimator.estimateSize(new Double[]{1.0d, 2.0d}), is(40L));
+        assertThat(sizeEstimator.estimateSizeDelta(new Double[]{1.0d, 2.0d}, null), is(-32L));
     }
 
 }

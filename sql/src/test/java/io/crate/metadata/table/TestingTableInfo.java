@@ -42,7 +42,7 @@ import java.util.Map;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestingTableInfo extends AbstractTableInfo {
+public class TestingTableInfo extends AbstractDynamicTableInfo {
 
     private final Routing routing;
     private final ColumnIdent clusteredBy;

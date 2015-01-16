@@ -9,7 +9,6 @@ import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
@@ -24,8 +23,8 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class GroupingProjectorTest {
@@ -76,7 +75,7 @@ public class GroupingProjectorTest {
         projector.upstreamFinished();
         Object[][] rows = collectingProjector.result().get();
         assertThat(rows.length, is(2));
-        assertThat(rows[0][1], instanceOf(CountAggregation.CountAggState.class));
+        assertThat(rows[0][1], instanceOf(Long.class));
     }
 
     class DummyInput implements Input<BytesRef> {

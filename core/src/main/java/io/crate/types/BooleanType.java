@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
-public class BooleanType extends DataType<Boolean> implements DataTypeFactory, Streamer<Boolean> {
+public class BooleanType extends DataType<Boolean> implements DataTypeFactory, Streamer<Boolean>, FixedWithType {
 
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();
@@ -113,5 +113,10 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
         out.writeOptionalBoolean((Boolean)v);
+    }
+
+    @Override
+    public int fixedSize() {
+        return 8;
     }
 }

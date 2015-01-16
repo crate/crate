@@ -29,16 +29,12 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.VariableSizeAggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FixedWithType;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-
-public abstract class MaximumAggregation extends AggregationFunction<MaximumAggregation.MaximumAggState> {
+public abstract class MaximumAggregation extends AggregationFunction<Comparable, Comparable> {
 
     public static final String NAME = "max";
 
@@ -46,36 +42,77 @@ public abstract class MaximumAggregation extends AggregationFunction<MaximumAggr
 
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
-            mod.register(
-                    new MaximumAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME,
-                                    ImmutableList.of(dataType)),
-                                    dataType, FunctionInfo.Type.AGGREGATE
-                            )
-                    ) {
-                        @Override
-                        public MaximumAggState newState(RamAccountingContext ramAccountingContext) {
-                            return new MaximumAggState(ramAccountingContext, SizeEstimatorFactory.create(dataType)) {
+            FunctionInfo functionInfo = new FunctionInfo(
+                    new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE);
 
-                                @Override
-                                public void readFrom(StreamInput in) throws IOException {
-                                    if (!in.readBoolean()) {
-                                        setValue((Comparable) dataType.streamer().readValueFrom(in));
-                                    }
-                                }
+            if (dataType instanceof FixedWithType) {
+                mod.register(new FixedMaximumAggregation(functionInfo));
+            } else {
+                mod.register(new VariableMaximumAggregation(functionInfo));
+            }
+        }
+    }
 
-                                @Override
-                                public void writeTo(StreamOutput out) throws IOException {
-                                    Object value = value();
-                                    out.writeBoolean(value == null);
-                                    if (value != null) {
-                                        dataType.streamer().writeValueTo(out, value);
-                                    }
-                                }
-                            };
-                        }
-                    }
-            );
+    private static class FixedMaximumAggregation extends MaximumAggregation {
+
+        private final int size;
+
+        public FixedMaximumAggregation(FunctionInfo info) {
+            super(info);
+            size = ((FixedWithType) partialType()).fixedSize();
+        }
+
+        @Override
+        public Comparable newState(RamAccountingContext ramAccountingContext) {
+            ramAccountingContext.addBytes(size);
+            return null;
+        }
+
+        @Override
+        public Comparable reduce(RamAccountingContext ramAccountingContext, Comparable state1, Comparable state2) {
+            if (state1 == null) {
+                return state2;
+            }
+            if (state2 == null) {
+                return state1;
+            }
+            if (state1.compareTo(state2) < 0) {
+                return state2;
+            }
+            return state1;
+        }
+    }
+
+    private static class VariableMaximumAggregation extends MaximumAggregation {
+
+        private final SizeEstimator<Object> estimator;
+
+        VariableMaximumAggregation(FunctionInfo info) {
+            super(info);
+            estimator = SizeEstimatorFactory.create(partialType());
+        }
+
+        @Override
+        public Comparable newState(RamAccountingContext ramAccountingContext) {
+            return null;
+        }
+
+        @Override
+        public Comparable reduce(RamAccountingContext ramAccountingContext, Comparable state1, Comparable state2) {
+            if (state1 == null) {
+                if (state2 != null) {
+                    ramAccountingContext.addBytes(estimator.estimateSize(state2));
+                }
+                return state2;
+            }
+            if (state2 == null) {
+                return state1;
+            }
+            if (state1.compareTo(state2) < 0) {
+                ramAccountingContext.addBytes(estimator.estimateSizeDelta(state1, state2));
+                return state2;
+            }
+            return state1;
         }
     }
 
@@ -89,70 +126,18 @@ public abstract class MaximumAggregation extends AggregationFunction<MaximumAggr
     }
 
     @Override
-    public boolean iterate(MaximumAggState state, Input... args) throws CircuitBreakingException {
+    public DataType partialType() {
+        return info().returnType();
+    }
+
+    @Override
+    public Comparable iterate(RamAccountingContext ramAccountingContext, Comparable state, Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
-        assert value == null || value instanceof Comparable;
-        state.add((Comparable) value);
-        return true;
+        return reduce(ramAccountingContext, state, (Comparable) value);
     }
 
-    public static abstract class MaximumAggState extends VariableSizeAggregationState<MaximumAggState> {
-
-        private Comparable value = null;
-
-        public MaximumAggState(RamAccountingContext ramAccountingContext, SizeEstimator sizeEstimator) {
-            super(ramAccountingContext, sizeEstimator);
-        }
-
-        @Override
-        public Object value() {
-            return value;
-        }
-
-        @Override
-        public void reduce(MaximumAggState other) throws CircuitBreakingException {
-            if (other.value == null) {
-                return;
-            }
-            if (value == null || compareTo(other) < 0) {
-                addEstimatedSize(sizeEstimator.estimateSize(value, other.value));
-                value = other.value;
-            }
-        }
-
-        void add(Comparable otherValue) throws CircuitBreakingException {
-            if (otherValue == null) {
-                return;
-            }
-            if (value == null || compareValue(otherValue) < 0) {
-                addEstimatedSize(sizeEstimator.estimateSize(value, otherValue));
-                value = otherValue;
-            }
-        }
-
-        public void setValue(Comparable value) throws CircuitBreakingException {
-            addEstimatedSize(sizeEstimator.estimateSize(this.value, value));
-            this.value = value;
-        }
-
-        @Override
-        public int compareTo(MaximumAggState o) {
-            if (o == null) return -1;
-            return compareValue(o.value);
-        }
-
-        public int compareValue(Object otherValue) {
-            if (value == null) return (otherValue == null ? 0 : -1);
-            if (otherValue == null) return 1;
-
-            return value.compareTo(otherValue);
-        }
-
-        @Override
-        public String toString() {
-            return "<MaximumAggState \"" + value + "\"";
-        }
+    @Override
+    public Comparable terminatePartial(RamAccountingContext ramAccountingContext, Comparable state) {
+        return state;
     }
-
-
 }

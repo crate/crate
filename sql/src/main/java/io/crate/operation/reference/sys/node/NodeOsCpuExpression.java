@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.os.OsStats;
@@ -33,7 +31,6 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
     public static final String NAME = "cpu";
 
     abstract class CpuExpression extends SysNodeExpression<Object> {
-        CpuExpression(String name) {super(new ColumnIdent(NodeOsExpression.NAME, ImmutableList.of(NAME, name))); }
     }
 
     public static final String SYS = "system";
@@ -46,55 +43,64 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
 
     @Inject
     public NodeOsCpuExpression(NodeService nodeService) {
-        super(new ColumnIdent(NodeOsExpression.NAME, NAME));
         this.nodeService = nodeService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(SYS, new CpuExpression(SYS) {
+        childImplementations.put(SYS, new CpuExpression() {
             @Override
             public Short value() {
-               OsStats os = nodeService.stats().getOs();
+                OsStats os = nodeService.stats().getOs();
                 if (os != null) {
                     return os.cpu().sys();
-                } else { return -1; }
+                } else {
+                    return -1;
+                }
             }
         });
-        childImplementations.put(USER, new CpuExpression(USER) {
+        childImplementations.put(USER, new CpuExpression() {
             @Override
             public Short value() {
                 OsStats os = nodeService.stats().getOs();
                 if (os != null) {
                     return os.cpu().user();
-                } else { return -1; }
+                } else {
+                    return -1;
+                }
             }
         });
-        childImplementations.put(IDLE, new CpuExpression(IDLE) {
+        childImplementations.put(IDLE, new CpuExpression() {
             @Override
             public Short value() {
                 OsStats os = nodeService.stats().getOs();
                 if (os != null) {
                     return os.cpu().idle();
-                } else { return -1; }
+                } else {
+                    return -1;
+                }
             }
         });
-        childImplementations.put(USAGE, new CpuExpression(USAGE) {
+        childImplementations.put(USAGE, new CpuExpression() {
             @Override
             public Short value() {
                 OsStats os = nodeService.stats().getOs();
                 if (os != null) {
                     return (short) (os.cpu().sys() + os.cpu().user());
-                } else { return -1; }
+                } else {
+                    return -1;
+                }
             }
         });
-        childImplementations.put(STOLEN, new CpuExpression(STOLEN) {
+        childImplementations.put(STOLEN, new CpuExpression() {
             @Override
             public Short value() {
                 OsStats os = nodeService.stats().getOs();
                 if (os != null) {
                     return os.cpu().stolen();
-                } else { return -1; }
+                } else {
+                    return -1;
+                }
             }
         });
     }

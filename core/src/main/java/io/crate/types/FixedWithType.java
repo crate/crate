@@ -19,19 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.aggregation;
+package io.crate.types;
 
-import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.SizeEstimator;
+/**
+ * A type that has a fixed size for every value
+ */
+public interface FixedWithType {
 
-public abstract class VariableSizeAggregationState<T extends AggregationState> extends AggregationState<T> {
-
-    protected final SizeEstimator sizeEstimator;
-
-    public VariableSizeAggregationState(
-            RamAccountingContext ramAccountingContext,
-            SizeEstimator sizeEstimator) {
-        super(ramAccountingContext);
-        this.sizeEstimator = sizeEstimator;
-    }
+    /**
+     * The fixed amount of memory a value object instance of type t requires.
+     * (t is the type described by our DataType interface or something that implements FixedWithType)
+     *
+     *
+     * Implementations here may not be 100% accurate because sizes may vary between JVM implementations
+     * and then there is also stuff like padding and other JVM magic.
+     *
+     * See also:
+     *  https://blogs.oracle.com/jrose/entry/fixnums_in_the_vm
+     *  http://www.javaworld.com/article/2077496/testing-debugging/java-tip-130--do-you-know-your-data-size-.html
+     */
+    public int fixedSize();
 }

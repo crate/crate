@@ -37,6 +37,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Map;
+
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
@@ -283,5 +285,16 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
                 "group by table_name " +
                 "having table_name = 'quotes'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("10\n"));
+    }
+
+    @Test
+    public void testSelectNodeSysExpression() throws Exception {
+        SQLResponse response = transportExecutor.exec(
+                "select _node, _node['name'], id from sys.shards order by _node['name'], id  limit 1");
+        assertEquals(1L, response.rowCount());
+        Map<String, Object> fullNode = (Map<String, Object>) response.rows()[0][0];
+        String nodeName = response.rows()[0][1].toString();
+        assertEquals("node_0", nodeName);
+        assertEquals("node_0", fullNode.get("name"));
     }
 }

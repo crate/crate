@@ -38,7 +38,7 @@ public abstract class SysClusterObjectReference extends SysObjectReference {
         assert info != null;
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

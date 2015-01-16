@@ -23,7 +23,6 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
@@ -37,7 +36,6 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
@@ -65,18 +63,13 @@ import static org.mockito.Mockito.mock;
 
 public class LocalMergeTaskTest {
 
-    private static final RamAccountingContext ramAccountingContext =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
-
     private ImplementationSymbolVisitor symbolVisitor;
-    private AggregationFunction<MinimumAggregation.MinimumAggState> minAggFunction;
     private GroupProjection groupProjection;
-    private Injector injector;
 
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        injector = new ModulesBuilder()
+        Injector injector = new ModulesBuilder()
                 .add(new AggregationImplModule())
                 .add(new AbstractModule() {
                     @Override
@@ -86,11 +79,12 @@ public class LocalMergeTaskTest {
                 })
                 .createInjector();
         Functions functions = injector.getInstance(Functions.class);
-        ReferenceResolver referenceResolver = new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
+        ReferenceResolver referenceResolver = new GlobalReferenceResolver(
+                Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
 
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));
-        minAggFunction = (AggregationFunction<MinimumAggregation.MinimumAggState>) functions.get(minAggIdent);
+        AggregationFunction<Double, Double> minAggFunction = (AggregationFunction) functions.get(minAggIdent);
 
         groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.INTEGER)));
@@ -103,11 +97,9 @@ public class LocalMergeTaskTest {
         Object[][] rows = new Object[numRows][];
         for (int i=0; i<numRows; i++) {
             double d = (double)numRows*i;
-            MinimumAggregation.MinimumAggState aggState = minAggFunction.newState(ramAccountingContext);
-            aggState.setValue(d);
             rows[i] = new Object[]{
                     d % 4,
-                    aggState
+                    d
             };
         }
         return Futures.<TaskResult>immediateFuture(new QueryResult(rows));
@@ -124,7 +116,7 @@ public class LocalMergeTaskTest {
             topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
             MergeNode mergeNode = new MergeNode("merge", 2);
-            mergeNode.projections(Arrays.<Projection>asList(
+            mergeNode.projections(Arrays.asList(
                     groupProjection,
                     topNProjection
             ));

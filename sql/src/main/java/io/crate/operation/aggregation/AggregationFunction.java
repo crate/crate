@@ -26,31 +26,59 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
-public abstract class AggregationFunction<T extends AggregationState> implements FunctionImplementation<Function> {
+import javax.annotation.Nullable;
+
+/**
+ * A special FunctionImplementation that compute a single result from a set of input values
+ * @param <TPartial> the intermediate type of the value used during aggregation
+ * @param <TFinal> the final type of the value after the aggregation is finished
+ */
+public abstract class AggregationFunction<TPartial, TFinal> implements FunctionImplementation<Function> {
 
     /**
-     * Apply the columnValue to the argument AggState using the logic in this AggFunction
+     * Called once per "aggregation cycle" to create an initial partial-state-value.
      *
-     * @param state the aggregation state for the iteration
-     * @param args  the arguments according to FunctionInfo.argumentTypes
-     * @return false if we do not need any further iteration for this state
+     * @param ramAccountingContext used to account the memory used for the state.
+     * @return a new state instance or null
      */
-    public abstract boolean iterate(T state, Input... args)  throws CircuitBreakingException;
-
+    @Nullable
+    public abstract TPartial newState(RamAccountingContext ramAccountingContext);
 
     /**
-     * Creates a new state for this aggregation
+     * the "aggregate" function.
      *
-     * @return a new state instance
+     * @param ramAccountingContext used to account for additional memory usage if the state grows in size
+     * @param state the previous aggregation state
+     * @param args  arguments / input values matching the types of FunctionInfo.argumentTypes.
+     *              These are usually used to increment/modify the previous state
+     * @return The new/changed state. This might be either a new instance or the same but mutated instance.
+     *         Users of the AggregationFunction should always use the return value, but must be aware that the input state might have changed too.
      */
-    public abstract T newState(RamAccountingContext ramAccountingContext);
+    public abstract TPartial iterate(RamAccountingContext ramAccountingContext, TPartial state, Input... args)
+            throws CircuitBreakingException;
 
+    /**
+     * This function merges two aggregation states together and returns that merged state.
+     *
+     * This is used in a distributed aggregation workflow where 2 partial aggregations are reduced into 1 partial aggregation
+     *
+     * @return the reduced state. This might be a new instance or a mutated state1 or state2.
+     */
+    public abstract TPartial reduce(RamAccountingContext ramAccountingContext, TPartial state1, TPartial state2);
+
+    /**
+     * Called to transform partial states into their final form.
+     * This might result in a loss of "meta data" that was necessary to compute the final value.
+     */
+    public abstract TFinal terminatePartial(RamAccountingContext ramAccountingContext, TPartial state);
+
+    public abstract DataType partialType();
 
     @Override
     public Symbol normalizeSymbol(Function symbol) {
         return symbol;
     }
-
 }

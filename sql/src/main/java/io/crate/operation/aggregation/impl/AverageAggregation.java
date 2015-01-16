@@ -22,20 +22,22 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
 import io.crate.types.DataType;
+import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
+import io.crate.types.FixedWithType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageAggState> {
+public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageState, Double> {
 
     public static final String NAME = "avg";
     private final FunctionInfo info;
@@ -55,21 +57,74 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         this.info = info;
     }
 
-    public static class AverageAggState extends AggregationState<AverageAggState> {
+    public static class AverageStateType extends DataType<AverageState>
+            implements FixedWithType, Streamer<AverageState>, DataTypeFactory {
+
+        public static final int ID = 1024;
+        private static final AverageStateType INSTANCE = new AverageStateType();
+
+        private AverageStateType() {
+            DataTypes.register(ID, this);
+        }
+
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public String getName() {
+            return "average_state";
+        }
+
+        @Override
+        public Streamer<?> streamer() {
+            return this;
+        }
+
+        @Override
+        public AverageState value(Object value) throws IllegalArgumentException, ClassCastException {
+            return (AverageState) value;
+        }
+
+        @Override
+        public int compareValueTo(AverageState val1, AverageState val2) {
+            if (val1 == null) return -1;
+            return val1.compareTo(val2);
+        }
+
+        @Override
+        public AverageState readValueFrom(StreamInput in) throws IOException {
+            AverageState averageState = new AverageState();
+            averageState.sum = in.readDouble();
+            averageState.count = in.readVLong();
+            return averageState;
+        }
+
+        @Override
+        public void writeValueTo(StreamOutput out, Object v) throws IOException {
+            AverageState averageState = (AverageState) v;
+            out.writeDouble(averageState.sum);
+            out.writeVLong(averageState.count);
+        }
+
+        @Override
+        public DataType<?> create() {
+            return INSTANCE;
+        }
+
+        @Override
+        public int fixedSize() {
+            return DataTypes.LONG.fixedSize() + DataTypes.DOUBLE.fixedSize();
+        }
+    }
+
+    public static class AverageState implements Comparable<AverageState> {
 
         private double sum = 0;
         private long count = 0;
 
-        public AverageAggState(RamAccountingContext ramAccountingContext) {
-            super(ramAccountingContext);
-            // double sum
-            ramAccountingContext.addBytes(8);
-            // long count
-            ramAccountingContext.addBytes(8);
-        }
-
-        @Override
-        public Object value() {
+        public Double value() {
             if (count > 0) {
                 return sum / count;
             } else {
@@ -78,41 +133,15 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
 
         @Override
-        public void reduce(AverageAggState other) {
-            if (other != null) {
-                sum += other.sum;
-                count += other.count;
-            }
-        }
-
-        void add(Object otherValue) {
-            if (otherValue != null) {
-                sum += ((Number) otherValue).doubleValue();
-                count++;
-            }
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            sum = in.readDouble();
-            count = in.readVLong();
-        }
-
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeDouble(sum);
-            out.writeVLong(count);
-        }
-
-        @Override
-        public int compareTo(AverageAggState o) {
+        public int compareTo(AverageState o) {
             if (o == null) {
                 return 1;
             } else {
-                Double thisValue = (Double) value();
-                Double other = (Double) o.value();
-                return thisValue.compareTo(other);
+                int compare = Double.compare(sum, o.sum);
+                if (compare == 0) {
+                    return Long.compare(count, o.count);
+                }
+                return compare;
             }
         }
 
@@ -124,14 +153,44 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
 
     @Override
-    public boolean iterate(AverageAggState state, Input... args) {
-        state.add(args[0].value());
-        return true;
+    public AverageState iterate(RamAccountingContext ramAccountingContext, AverageState state, Input... args) {
+        if (state != null) {
+            Number value = (Number) args[0].value();
+            if (value != null) {
+                state.count++;
+                state.sum += value.doubleValue();
+            }
+        }
+        return state;
     }
 
     @Override
-    public AverageAggState newState(RamAccountingContext ramAccountingContext) {
-        return new AverageAggState(ramAccountingContext);
+    public AverageState reduce(RamAccountingContext ramAccountingContext, AverageState state1, AverageState state2) {
+        if (state1 == null) {
+            return state2;
+        }
+        if (state2 == null) {
+            return state1;
+        }
+        state1.count += state2.count;
+        state1.sum += state2.sum;
+        return state1;
+    }
+
+    @Override
+    public Double terminatePartial(RamAccountingContext ramAccountingContext, AverageState state) {
+        return state.value();
+    }
+
+    @Override
+    public AverageState newState(RamAccountingContext ramAccountingContext) {
+        ramAccountingContext.addBytes(AverageStateType.INSTANCE.fixedSize());
+        return new AverageState();
+    }
+
+    @Override
+    public DataType partialType() {
+        return AverageStateType.INSTANCE;
     }
 
     @Override

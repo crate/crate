@@ -119,7 +119,7 @@ public class PlanNodeStreamerVisitorTest {
         assertThat(streamers.length, is(4));
         assertThat(streamers[0], instanceOf(DataTypes.BOOLEAN.streamer().getClass()));
         assertThat(streamers[1], instanceOf(DataTypes.INTEGER.streamer().getClass()));
-        assertThat(streamers[2], instanceOf(AggregationStateStreamer.class));
+        assertThat(streamers[2], instanceOf(DataTypes.INTEGER.streamer().getClass()));
         assertThat(streamers[3], instanceOf(DataTypes.DOUBLE.streamer().getClass()));
     }
 
@@ -173,7 +173,7 @@ public class PlanNodeStreamerVisitorTest {
         PlanNodeStreamerVisitor.Context ctx = visitor.process(mergeNode, ramAccountingContext);
         Streamer<?>[] streamers = ctx.inputStreamers();
         assertThat(streamers.length, is(2));
-        assertThat(streamers[0], instanceOf(AggregationStateStreamer.class));
+        assertThat(streamers[0], instanceOf(DataTypes.INTEGER.streamer().getClass()));
         assertThat(streamers[1], instanceOf(DataTypes.TIMESTAMP.streamer().getClass()));
     }
 

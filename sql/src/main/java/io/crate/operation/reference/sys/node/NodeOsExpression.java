@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.node.service.NodeService;
@@ -33,7 +31,7 @@ public class NodeOsExpression extends SysNodeObjectReference {
     public static final String NAME = "os";
 
     abstract class OsExpression extends SysNodeExpression<Object> {
-        OsExpression(String name) { super(new ColumnIdent(NAME, ImmutableList.of(name))); }
+
     }
 
     public static final String UPTIME = "uptime";
@@ -43,19 +41,18 @@ public class NodeOsExpression extends SysNodeObjectReference {
 
     @Inject
     public NodeOsExpression(NodeService nodeService) {
-        super(new ColumnIdent(NAME));
         this.nodeService = nodeService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(UPTIME, new OsExpression(UPTIME) {
+        childImplementations.put(UPTIME, new OsExpression() {
             @Override
             public Long value() {
                 return nodeService.stats().getOs().uptime().millis();
             }
         });
-        childImplementations.put(TIMESTAMP, new OsExpression(TIMESTAMP) {
+        childImplementations.put(TIMESTAMP, new OsExpression() {
             @Override
             public Long value() {
                 return System.currentTimeMillis();

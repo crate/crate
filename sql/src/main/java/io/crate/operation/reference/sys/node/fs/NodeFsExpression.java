@@ -33,7 +33,6 @@ public class NodeFsExpression extends SysNodeObjectReference {
     @Inject
     public NodeFsExpression(SigarService sigarService,
                             NodeEnvironment nodeEnvironment) {
-        super(NAME);
         childImplementations.put(NodeFsTotalExpression.NAME, new NodeFsTotalExpression(sigarService));
         childImplementations.put(NodeFsDisksExpression.NAME, new NodeFsDisksExpression(sigarService));
         childImplementations.put(NodeFsDataExpression.NAME, new NodeFsDataExpression(sigarService, nodeEnvironment));

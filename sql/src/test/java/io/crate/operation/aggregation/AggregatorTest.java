@@ -44,19 +44,18 @@ import java.util.Arrays;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-public class AggregationCollectorTest {
+public class AggregatorTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
-    private FunctionIdent countAggIdent;
     private AggregationFunction countImpl;
 
     @Before
     public void setUpFunctions() {
         Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
         Functions functions = injector.getInstance(Functions.class);
-        countAggIdent = new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING));
+        FunctionIdent countAggIdent = new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING));
         countImpl = (AggregationFunction) functions.get(countAggIdent);
     }
 
@@ -69,7 +68,7 @@ public class AggregationCollectorTest {
                 Aggregation.Step.FINAL
         );
         Input dummyInput = new Input() {
-            CountAggregation.CountAggState state = new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 10L; }};
+            Long state = 10L;
 
 
             @Override
@@ -78,11 +77,11 @@ public class AggregationCollectorTest {
             }
         };
 
-        AggregationCollector collector = new AggregationCollector(aggregation, countImpl, dummyInput);
-        collector.startCollect(RAM_ACCOUNTING_CONTEXT);
-        collector.processRow();
-        collector.processRow();
-        Object result = collector.finishCollect();
+        Aggregator aggregator = new Aggregator(RAM_ACCOUNTING_CONTEXT, aggregation, countImpl, dummyInput);
+        Object state = aggregator.prepareState();
+        state = aggregator.processRow(state);
+        state = aggregator.processRow(state);
+        Object result = aggregator.finishCollect(state);
 
         assertThat((Long)result, is(20L));
     }
@@ -104,13 +103,13 @@ public class AggregationCollectorTest {
             }
         };
 
-        AggregationCollector collector = new AggregationCollector(aggregation, countImpl, dummyInput);
-        collector.startCollect(RAM_ACCOUNTING_CONTEXT);
+        Aggregator collector = new Aggregator(RAM_ACCOUNTING_CONTEXT, aggregation, countImpl, dummyInput);
+        Object state = collector.prepareState();
         for (int i = 0; i < 5; i++) {
-            collector.processRow();
+            state = collector.processRow(state);
         }
 
-        long result = (Long)collector.finishCollect();
+        long result = (Long)collector.finishCollect(state);
         assertThat(result, is(5L));
     }
 }

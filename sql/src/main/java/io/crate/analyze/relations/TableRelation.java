@@ -89,7 +89,11 @@ public class TableRelation implements AnalyzedRelation {
             referenceInfo = tableInfo.indexColumn(ci);
             if (referenceInfo == null) {
                 DynamicReference dynamic = tableInfo.getDynamic(ci, forWrite);
-                return allocate(ci, dynamic);
+                if (dynamic == null){
+                    return null;
+                } else {
+                    return allocate(ci, dynamic);
+                }
             }
         }
         // TODO: build type correctly as array when the tableInfo is created and remove the conversion here

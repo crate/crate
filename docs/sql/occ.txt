@@ -64,8 +64,9 @@ update and results in 0 affected rows::
 
 .. warning::
 
-    Specifying only the ``_version`` in the ``WHERE`` clause of an UPDATE statement
-    without any other criteria is very expensive and should be avoided.
+    Specifying only the ``_version`` in the ``WHERE`` clause of an
+    UPDATE statement without any other criteria is very expensive and
+    should be avoided.
 
 Optimistic Delete
 =================

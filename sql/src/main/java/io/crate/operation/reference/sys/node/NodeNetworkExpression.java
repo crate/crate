@@ -31,7 +31,6 @@ public class NodeNetworkExpression extends SysNodeObjectReference {
 
     @Inject
     public NodeNetworkExpression(NetworkService networkService) {
-        super(NAME);
         childImplementations.put(NodeNetworkTCPExpression.NAME,
                 new NodeNetworkTCPExpression(networkService));
     }

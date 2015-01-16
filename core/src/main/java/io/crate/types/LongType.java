@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class LongType extends DataType<Long> implements Streamer<Long>, DataTypeFactory {
+public class LongType extends DataType<Long> implements FixedWithType, Streamer<Long>, DataTypeFactory {
 
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;
@@ -86,6 +86,11 @@ public class LongType extends DataType<Long> implements Streamer<Long>, DataType
     @Override
     public DataType<?> create() {
         return INSTANCE;
+    }
+
+    @Override
+    public int fixedSize() {
+        return 16; // 8 object overhead, 8 long
     }
 }
 

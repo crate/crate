@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.process.ProcessInfo;
@@ -34,7 +32,6 @@ public class NodeProcessExpression extends SysNodeObjectReference {
     public static final String NAME = "process";
 
     abstract class ProcessExpression extends SysNodeExpression<Long> {
-        ProcessExpression(String name) { super(new ColumnIdent(NAME, ImmutableList.of(name))); }
     }
 
     public static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
@@ -44,13 +41,12 @@ public class NodeProcessExpression extends SysNodeObjectReference {
 
     @Inject
     protected NodeProcessExpression(final NodeService nodeService) {
-        super(NAME);
         this.nodeService = nodeService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(OPEN_FILE_DESCRIPTORS, new ProcessExpression(OPEN_FILE_DESCRIPTORS) {
+        childImplementations.put(OPEN_FILE_DESCRIPTORS, new ProcessExpression() {
             @Override
             public Long value() {
                 ProcessStats processStats = nodeService.stats().getProcess();
@@ -59,7 +55,7 @@ public class NodeProcessExpression extends SysNodeObjectReference {
                 } else { return -1L; }
             }
         });
-        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new ProcessExpression(MAX_OPEN_FILE_DESCRIPTORS) {
+        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new ProcessExpression() {
             @Override
             public Long value() {
                 ProcessInfo processInfo = nodeService.info().getProcess();

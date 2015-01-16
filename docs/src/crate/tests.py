@@ -9,11 +9,25 @@ import process_test
 from .paths import crate_path, project_path
 from .ports import random_available_port
 from crate.crash.command import CrateCmd
+from crate.client import connect
 cmd = CrateCmd()
 
 
 CRATE_HTTP_PORT = random_available_port()
 CRATE_TRANSPORT_PORT = random_available_port()
+
+
+def wait_for_schema_update(schema, table, column):
+    conn = connect('localhost:' + str(CRATE_HTTP_PORT))
+    c = conn.cursor()
+    count = 0
+    while count == 0:
+        c.execute(('select count(*) from information_schema.columns '
+                    'where schema_name = ? and table_name = ? '
+                    'and column_name = ?'),
+                    (schema, table, column))
+        count = c.fetchone()[0]
+
 
 def bash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
@@ -32,6 +46,8 @@ def crash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
     # Our test suite requires the port to be '44200' to avoid conflicts.
     # Therefore, we need to replace the ports before a test is being run.
+    if s.startswith('_'):
+        return s[1:]
     s = s.replace(':4200', ':{0}'.format(CRATE_HTTP_PORT))
     return ('cmd.onecmd("""{0}""");'.format(s.strip().strip(";")))
 
@@ -101,6 +117,7 @@ def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
 
+
 def setUpTutorials(test):
     setUp(test)
     import_dir = '/tmp/best_practice_data'
@@ -117,9 +134,12 @@ def setUpTutorials(test):
 
 def setUp(test):
     test.globs['cmd'] = cmd
+    test.globs['wait_for_schema_update'] = wait_for_schema_update
+
 
 def tearDownDropQuotes(test):
     cmd.onecmd("drop table quotes")
+
 
 def test_suite():
     suite = unittest.TestSuite()

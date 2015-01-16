@@ -761,6 +761,10 @@ public class LuceneQueryBuilder {
                     context.filteredFieldValues.put(columnName, ((Input) right).value());
                     return true;
                 }
+                String unsupportedMessage = Context.UNSUPPORTED_FIELDS.get(columnName);
+                if (unsupportedMessage != null) {
+                    throw new UnsupportedFeatureException(unsupportedMessage);
+                }
             }
             return false;
         }

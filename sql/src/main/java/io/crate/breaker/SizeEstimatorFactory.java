@@ -25,15 +25,17 @@ import io.crate.types.*;
 
 public class SizeEstimatorFactory {
 
+    @SuppressWarnings("unchecked")
     public static <T> SizeEstimator<T> create(DataType type) {
         switch (type.id()) {
             case StringType.ID:
             case IpType.ID:
                 return (SizeEstimator<T>)new BytesRefSizeEstimator();
-            case GeoPointType.ID:
-                return (SizeEstimator<T>)new ConstSizeEstimator(16);
             default:
-                return (SizeEstimator<T>)new ConstSizeEstimator(8);
+                if (type instanceof FixedWithType) {
+                    return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWithType) type).fixedSize());
+                }
+                throw new UnsupportedOperationException(String.format("Cannot get SizeEstimator for type %s", type));
         }
     }
 }

@@ -24,7 +24,7 @@ package io.crate.operation.projectors;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.ProjectorUpstream;
-import io.crate.operation.aggregation.AggregationCollector;
+import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Set;
@@ -33,9 +33,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class AggregationProjector implements Projector {
 
-    private final AggregationCollector[] aggregationCollectors;
+    private final Aggregator[] aggregators;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] row;
+    private final Object[] states;
     private Projector downstream;
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
@@ -43,19 +44,20 @@ public class AggregationProjector implements Projector {
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
                                 AggregationContext[] aggregations,
                                 RamAccountingContext ramAccountingContext) {
-
         row = new Object[aggregations.length];
+        states = new Object[aggregations.length];
         this.collectExpressions = collectExpressions;
-        aggregationCollectors = new AggregationCollector[aggregations.length];
-        for (int i = 0; i < aggregationCollectors.length; i++) {
-            aggregationCollectors[i] = new AggregationCollector(
+        aggregators = new Aggregator[aggregations.length];
+        for (int i = 0; i < aggregators.length; i++) {
+            aggregators[i] = new Aggregator(
+                    ramAccountingContext,
                     aggregations[i].symbol(),
                     aggregations[i].function(),
                     aggregations[i].inputs()
             );
-            // startCollect creates the aggregationState. In case of the AggregationProjector
+            // prepareState creates the aggregationState. In case of the AggregationProjector
             // we only want to have 1 global state not 1 state per node/shard or even document.
-            aggregationCollectors[i].startCollect(ramAccountingContext);
+            states[i] = aggregators[i].prepareState();
         }
     }
 
@@ -81,9 +83,12 @@ public class AggregationProjector implements Projector {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
-        for (AggregationCollector aggregationCollector : aggregationCollectors) {
-            aggregationCollector.processRow();
+        for (int i = 0; i < aggregators.length; i++) {
+            Aggregator aggregator = aggregators[i];
+            states[i] = aggregator.processRow(states[i]);
+
         }
+        //noinspection ThrowableResultOfMethodCallIgnored
         return upstreamFailure.get() == null;
     }
 
@@ -97,8 +102,8 @@ public class AggregationProjector implements Projector {
         if (remainingUpstreams.decrementAndGet() > 0) {
             return;
         }
-        for (int i = 0; i < aggregationCollectors.length; i++) {
-            row[i] = aggregationCollectors[i].finishCollect();
+        for (int i = 0; i < aggregators.length; i++) {
+            row[i] = aggregators[i].finishCollect(states[i]);
         }
         if (downstream != null) {
             downstream.setNextRow(row);

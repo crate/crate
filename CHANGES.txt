@@ -5,9 +5,20 @@ Changes for Crate
 Unreleased
 ==========
 
- - fix: throw correct exception if `_version` is misused in WHERE clause
+ - Removed undocumented feature: It is no longer possible to use sys
+   expressions in any context.
+
+ - improved speed of bulk inserts in partitioned tables to avoid request
+   timeouts
 
  - don’t allow full qualified names in UPDATE assignments, INSERT and INSERT INTO
+
+ - The ``sys.operations`` table has now a ``_nodes`` system column
+   which exposes information about the node the operation runs on.
+
+ - Fixed an issue in the ``sys.shards`` table which caused an
+   exception when the select limit was lower then the number of
+   matching shards on a node.
 
  - Fixed type conversion of bulk parameters
 
@@ -17,17 +28,35 @@ Unreleased
 
     - fixed a template rendering issue in cluster view in Safari
 
-    - de-register watches to decrease DOM updates and improve performance in cluster view
+    - de-register watches to decrease DOM updates and improve
+      performance in cluster view
 
     - fixed title of `tables` view if no tables exists or connection is down
 
- - Removed undocumented feature: It is no longer possible to use sys
-   expressions in any context.
+2015/01/14 0.46.2
+=================
 
- - improved speed of bulk inserts in partitioned tables to avoid request
-   timeouts
+ - fix: throw correct exception if `_version` is misused in WHERE clause
+
+ - improved string lookup performance for group queries and global aggregates
+
+ - Optimized memory estimates for min()/max() aggregates for the CircuitBreaker
+
+ - improved speed of Alter table settings in partitioned tables
 
  - Restricted allowed characters in column names
+
+2014/12/22 0.46.1
+=================
+
+ - Fixed broken COPY FROM/TO S3 caused by missing depencenies
+
+ - Updated crate-admin to 0.11.1 which includes following changes:
+
+   - Fixed title of `tables` view if no tables exists or connection is
+     down
+
+ - Fixed an issue that could cause bulk inserts to get stalled.
 
 2014/12/17 0.46.0
 =================

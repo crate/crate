@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class IntegerType extends DataType<Integer> implements Streamer<Integer>, DataTypeFactory {
+public class IntegerType extends DataType<Integer> implements Streamer<Integer>, DataTypeFactory, FixedWithType {
 
     public static final IntegerType INSTANCE = new IntegerType();
     public static final int ID = 9;
@@ -94,5 +94,10 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     @Override
     public DataType<?> create() {
         return INSTANCE;
+    }
+
+    @Override
+    public int fixedSize() {
+        return 16; // object overhead + 4 byte for int + 4 byte padding
     }
 }

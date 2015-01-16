@@ -35,7 +35,7 @@ import java.text.ParseException;
 import java.util.Arrays;
 import java.util.List;
 
-public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, DataTypeFactory {
+public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, DataTypeFactory, FixedWithType {
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
@@ -135,5 +135,10 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
             out.writeDouble(point[0]);
             out.writeDouble(point[1]);
         }
+    }
+
+    @Override
+    public int fixedSize() {
+        return 40; // 2x double + array overhead
     }
 }

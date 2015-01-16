@@ -115,6 +115,13 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         this.indexType = indexType;
     }
 
+    /**
+     * Returns a cloned ReferenceInfo with the given ident
+     */
+    public ReferenceInfo getRelocated(ReferenceIdent newIdent){
+        return new ReferenceInfo(newIdent, granularity, type, columnPolicy, indexType);
+    }
+
     public ReferenceIdent ident() {
         return ident;
     }

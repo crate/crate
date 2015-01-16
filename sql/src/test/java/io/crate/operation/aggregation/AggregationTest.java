@@ -65,7 +65,6 @@ public abstract class AggregationTest {
         functions = injector.getInstance(Functions.class);
     }
 
-
     public Object[][] executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
 
         FunctionIdent fi;
@@ -78,16 +77,17 @@ public abstract class AggregationTest {
             inputs = new InputCollectExpression[0];
         }
         AggregationFunction impl = (AggregationFunction) functions.get(fi);
-        AggregationState state = impl.newState(ramAccountingContext);
+        Object state = impl.newState(ramAccountingContext);
 
         for (Object[] row : data) {
             for (InputCollectExpression i : inputs) {
                 i.setNextRow(row);
             }
-            impl.iterate(state, inputs);
+            state = impl.iterate(ramAccountingContext, state, inputs);
 
         }
-        return new Object[][]{{state.value()}};
+        state = impl.terminatePartial(ramAccountingContext, state);
+        return new Object[][]{{state}};
     }
 
 }

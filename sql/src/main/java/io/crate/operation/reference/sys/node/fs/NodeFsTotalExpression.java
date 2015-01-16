@@ -25,7 +25,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -78,7 +77,6 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
             });
 
     protected NodeFsTotalExpression(SigarService sigarService) {
-        super(new ColumnIdent(NodeFsExpression.NAME, ImmutableList.of(NAME)));
         this.sigarService = sigarService;
         addChildImplementations();
     }
@@ -150,7 +148,6 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
         private final String name;
 
         protected NodeFSTotalChildExpression(String name) {
-            super(name);
             this.name = name;
         }
 

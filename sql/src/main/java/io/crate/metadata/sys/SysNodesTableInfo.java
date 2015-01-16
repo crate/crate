@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.types.*;
 import org.elasticsearch.cluster.ClusterService;
@@ -36,8 +37,12 @@ import java.util.*;
 
 public class SysNodesTableInfo extends SysTableInfo {
 
+    public static final String SYS_COL_NAME = "_node";
+    public static final ColumnIdent SYS_COL_IDENT = new ColumnIdent(SYS_COL_NAME);
+
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "nodes");
     private static final String[] PARTITIONS = new String[]{IDENT.name()};
+    private final TableColumn tableColumn;
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
             new ColumnIdent("id"));
@@ -131,11 +136,13 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("fs", objectArrayType, ImmutableList.of("data"));
         register("fs", DataTypes.STRING, ImmutableList.of("data", "dev"));
         register("fs", DataTypes.STRING, ImmutableList.of("data", "path"));
+
     }
 
     @Inject
     public SysNodesTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
         super(service, sysSchemaInfo);
+        this.tableColumn = new TableColumn(this, SYS_COL_NAME);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {
@@ -145,6 +152,16 @@ public class SysNodesTableInfo extends SysTableInfo {
         }
         INFOS.put(info.ident().columnIdent(), info);
         return info;
+    }
+
+    public static ReferenceInfo tableColumnInfo(TableIdent tableIdent){
+        return new ReferenceInfo(new ReferenceIdent(tableIdent, SYS_COL_IDENT),
+                RowGranularity.NODE, ObjectType.INSTANCE, ColumnPolicy.STRICT,
+                ReferenceInfo.IndexType.NOT_ANALYZED);
+    }
+
+    public TableColumn tableColumn(){
+        return tableColumn;
     }
 
     @Override
@@ -193,4 +210,6 @@ public class SysNodesTableInfo extends SysTableInfo {
     public Iterator<ReferenceInfo> iterator() {
         return INFOS.values().iterator();
     }
+
+
 }

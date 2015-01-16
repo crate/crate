@@ -41,7 +41,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -483,25 +482,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     }
 
     @Test
-    public void testQueryNameFromSysOperations() throws Exception {
-        executor.exec("set global stats.enabled = true");
-        SQLResponse resp = executor.exec("select name, job_id from sys.operations order by name asc");
-
-        // usually this should return collect on 2 nodes, localMerge on 1 node
-        // but it could be that the collect is finished before the localMerge task is started in which
-        // case it is missing.
-
-        assertThat(resp.rowCount(), Matchers.greaterThanOrEqualTo(2L));
-        List<String> names = new ArrayList<>();
-        for (Object[] objects : resp.rows()) {
-            names.add((String) objects[0]);
-        }
-        Collections.sort(names);
-        assertTrue(names.contains("collect"));
-        executor.exec("set global stats.enabled = false");
-    }
-
-    @Test
     public void testSetSingleStatement() throws Exception {
         SQLResponse response = executor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
@@ -615,14 +595,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         executor.exec("select * from sys.jobs");
         executor.exec("select * from sys.jobs_log limit 1");
         executor.exec("reset global stats.enabled");
-    }
-
-    @Test
-    public void testDistinctSysOperations() throws Exception {
-        // this tests a distributing collect without shards but DOC level granularity
-        SQLResponse response = executor.exec("select distinct name  from sys.operations");
-        // no data since stats.enabled is disabled
-        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
