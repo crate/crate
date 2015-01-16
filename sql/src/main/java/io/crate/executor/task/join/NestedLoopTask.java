@@ -21,27 +21,24 @@
 
 package io.crate.executor.task.join;
 
-import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.base.Optional;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.JobTask;
-import io.crate.executor.Task;
-import io.crate.executor.TaskExecutor;
-import io.crate.executor.TaskResult;
+import io.crate.core.concurrent.ForwardingFutureCallback;
+import io.crate.executor.*;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-public class NestedLoopTask extends JobTask {
+public class NestedLoopTask extends JobTask implements PageableTask {
 
     private NestedLoopOperation operation;
     private final SettableFuture<TaskResult> result = SettableFuture.create();
@@ -71,19 +68,19 @@ public class NestedLoopTask extends JobTask {
     }
 
     @Override
-    public void start() {
-        ListenableFuture<TaskResult> operationFuture = operation.execute();
-        Futures.addCallback(operationFuture, new FutureCallback<TaskResult>() {
-            @Override
-            public void onSuccess(@Nullable TaskResult taskResult) {
-                result.set(taskResult);
-            }
+    public void start(PageInfo pageInfo) {
+        Futures.addCallback(operation.execute(
+                Optional.of(pageInfo)),
+                new ForwardingFutureCallback<>(result)
+        );
+    }
 
-            @Override
-            public void onFailure(Throwable t) {
-                result.setException(t);
-            }
-        });
+    @Override
+    public void start() {
+        Futures.addCallback(operation.execute(
+                Optional.<PageInfo>absent()),
+                new ForwardingFutureCallback<>(result)
+        );
     }
 
     @Override

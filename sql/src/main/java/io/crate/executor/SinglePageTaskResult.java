@@ -27,16 +27,23 @@ import com.google.common.util.concurrent.ListenableFuture;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
+/**
+ * A pageable task result that consists of one single page only.
+ * Intended use: when this page is the only one returned by a relation
+ *
+ * Ergo further paging is not supported and
+ * {@linkplain #fetch(PageInfo)} returns an empty page.
+ */
 public class SinglePageTaskResult implements PageableTaskResult {
 
     private final Page page;
 
     public SinglePageTaskResult(Object[][] rows) {
-        this.page = new ObjectArrayPage(rows);
+        this(rows, 0, rows.length);
     }
 
-    public SinglePageTaskResult(Object[][] rows, int start, int end) {
-        this.page = new ObjectArrayPage(rows, start, end);
+    public SinglePageTaskResult(Object[][] rows, int start, int size) {
+        this.page = new ObjectArrayPage(rows, start, size);
     }
 
     @Override
