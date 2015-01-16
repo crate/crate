@@ -197,9 +197,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         projection.settings(analysis.settings());
 
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
-        if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
-            List<Symbol> columns = new ArrayList<>(analysis.outputSymbols().size());
-            for (Symbol symbol : analysis.outputSymbols()) {
+        if (analysis.selectedColumns() != null && !analysis.selectedColumns().isEmpty()) {
+            List<Symbol> columns = new ArrayList<>(analysis.selectedColumns().size());
+            for (Symbol symbol : analysis.selectedColumns()) {
                 columns.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
             }
             contextBuilder = contextBuilder.output(columns);
@@ -221,7 +221,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableInfo,
-                analysis.whereClause(),
+                WhereClause.MATCH_ALL,
                 contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(projection),
                 analysis.partitionIdent()

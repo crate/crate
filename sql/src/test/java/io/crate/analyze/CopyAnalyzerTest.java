@@ -146,9 +146,9 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToWithColumnList() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users (id, name) to DIRECTORY '/tmp'");
-        assertThat(analysis.outputSymbols().size(), is(2));
-        assertThat(((Reference)analysis.outputSymbols().get(0)).info().ident().columnIdent().name(), is("id"));
-        assertThat(((Reference)analysis.outputSymbols().get(1)).info().ident().columnIdent().name(), is("name"));
+        assertThat(analysis.selectedColumns().size(), is(2));
+        assertThat(((Reference)analysis.selectedColumns().get(0)).info().ident().columnIdent().name(), is("id"));
+        assertThat(((Reference)analysis.selectedColumns().get(1)).info().ident().columnIdent().name(), is("name"));
     }
 
     @Test

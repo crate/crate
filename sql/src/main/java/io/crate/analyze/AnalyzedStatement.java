@@ -39,10 +39,6 @@ public abstract class AnalyzedStatement {
 
     public abstract void normalize();
 
-    public void outputNames(List<String> outputNames) {
-        this.outputNames = outputNames;
-    }
-
     public List<String> outputNames() {
         return outputNames;
     }

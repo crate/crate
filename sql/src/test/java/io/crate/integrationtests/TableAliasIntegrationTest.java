@@ -182,7 +182,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyFromWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("aliases are read only");
+        expectedException.expectMessage("Cannot COPY FROM '/tmp/file.json' INTO 'doc.mytablealias', table is read-only");
 
         execute(String.format("copy %s from '/tmp/file.json'", tableAlias));
 

@@ -21,11 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -34,25 +30,32 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
+public class CopyAnalyzedStatement extends AnalyzedStatement {
 
     private Settings settings = ImmutableSettings.EMPTY;
-
-    public static enum Mode {
-        FROM,
-        TO
-    }
+    private TableInfo table;
 
     private Symbol uri;
     private Mode mode;
     private boolean directoryUri;
     private String partitionIdent = null;
+    private List<Symbol> selectedColumns;
 
-    public CopyAnalyzedStatement(ReferenceInfos referenceInfos,
-                                 Functions functions,
-                                 ParameterContext parameterContext,
-                                 ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
+    protected CopyAnalyzedStatement(ParameterContext parameterContext) {
+        super(parameterContext);
+    }
+
+    public void selectedColumns(List<Symbol> columns) {
+        this.selectedColumns = columns;
+    }
+
+    public List<Symbol> selectedColumns() {
+        return selectedColumns;
+    }
+
+    public static enum Mode {
+        FROM,
+        TO
     }
 
     @Override
@@ -64,9 +67,26 @@ public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
         return uri;
     }
 
+    public void table(TableInfo tableInfo) {
+        table = tableInfo;
+    }
+
+    public TableInfo table() {
+        return table;
+    }
+
+    @Override
+    public boolean hasNoResult() {
+        return false;
+    }
+
+    @Override
+    public void normalize() {
+    }
+
     @Override
     public List<DataType> outputTypes() {
-        return ImmutableList.of();
+        return outputTypes;
     }
 
     @Nullable
@@ -104,13 +124,6 @@ public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     public Settings settings(){
         return settings;
-    }
-
-    public boolean partitionExists(String partitionIdent){
-        if (table.isPartitioned() && partitionIdent != null ){
-            return table.partitions().contains(PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), partitionIdent));
-        }
-        return false;
     }
 
     @Override

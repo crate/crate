@@ -157,6 +157,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
         SQLResponse response = execute("copy characters (name, details['job']) to DIRECTORY ?", new Object[]{uriTemplate});
+        assertThat(response.cols().length, is(0));
         assertThat(response.rowCount(), is(7L));
         List<String> lines = new ArrayList<>(7);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
