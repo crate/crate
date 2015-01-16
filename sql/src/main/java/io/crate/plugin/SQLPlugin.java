@@ -30,10 +30,10 @@ import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.transport.TransportExecutorModule;
-import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacetParser;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.doc.MetaDataDocModule;
+import io.crate.metadata.doc.array.ArrayMapperIndexModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
@@ -65,11 +65,9 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.metadata.doc.array.ArrayMapperIndexModule;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
 import org.elasticsearch.script.ScriptModule;
-import org.elasticsearch.search.facet.FacetModule;
 
 import java.util.Collection;
 import java.util.List;
@@ -156,10 +154,6 @@ public class SQLPlugin extends AbstractPlugin {
 
     public void onModule(RestModule restModule) {
         restModule.addRestAction(RestSQLAction.class);
-    }
-
-    public void onModule(FacetModule facetModule) {
-        facetModule.addFacetProcessor(UpdateFacetParser.class);
     }
 
     public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
