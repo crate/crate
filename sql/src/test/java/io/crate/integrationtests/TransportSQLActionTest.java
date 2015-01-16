@@ -5329,6 +5329,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("update test set message='b' where id = 1");
         assertEquals(0, response.rowCount());
     }
+
+    //TODO: remove once branch 'relation' is merged
+    @Test
+    public void testUpdateByPrimaryKeyUnknownDocument() {
+        execute("create table test (id int primary key, message string)");
+        ensureGreen();
+        execute("update test set message='b' where id = 1");
+        assertEquals(0, response.rowCount());
+    }
 }
 
 

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Return zero row count instead of an exception if update by id
+   doesn't match any document
+
  - Fixed type conversion of bulk parameters
 
  - Updated crate-admin to version 0.11.2 which includes following changes:
