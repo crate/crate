@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
@@ -158,9 +159,9 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
 
     @Override
     public String toString() {
-        Objects.ToStringHelper helper = Objects.toStringHelper(this)
-                .add("granularity", granularity)
+        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
                 .add("ident", ident)
+                .add("granularity", granularity)
                 .add("type", type);
         if (type.equals(DataTypes.OBJECT)) {
             helper.add("column policy", columnPolicy.name());

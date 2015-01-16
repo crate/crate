@@ -38,6 +38,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class SysShardsTest extends ClassLifecycleIntegrationTest {
@@ -286,6 +287,14 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         expectedException.expectMessage("Column lol unknown");
         transportExecutor.exec(
             "select sum(num_docs) from sys.shards where lol='funky'");
+    }
+
+    @Test
+    public void testSelectWithOrderByColumnNotInOutputs() throws Exception {
+        // regression test... query failed with ArrayOutOfBoundsException due to inputColumn mangling in planner
+        SQLResponse response = transportExecutor.exec("select id from sys.shards order by table_name limit 1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], instanceOf(Integer.class));
     }
 
     @Test
