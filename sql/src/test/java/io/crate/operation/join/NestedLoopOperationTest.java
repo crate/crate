@@ -21,7 +21,8 @@
 
 package io.crate.operation.join;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.generators.RandomInts;
+import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -54,14 +55,18 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class NestedLoopOperationTest extends RandomizedTest {
+@RunWith(Parameterized.class)
+public class NestedLoopOperationTest {
 
     private class ImmediateTestTask extends JobTask {
 
@@ -134,6 +139,22 @@ public class NestedLoopOperationTest extends RandomizedTest {
         }
     }
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[] { true },
+                new Object[] { false }
+        );
+    }
+
+    private final boolean leftOuterNode;
+    private final Random random;
+
+    public NestedLoopOperationTest(boolean leftOuterNode) {
+        this.leftOuterNode = leftOuterNode;
+        this.random = new Random();
+    }
+
     private ProjectionToProjectorVisitor projectionVisitor;
 
     @Before
@@ -151,7 +172,7 @@ public class NestedLoopOperationTest extends RandomizedTest {
     }
 
     private void assertNestedLoop(Object[][] left, Object[][] right, int limit, int offset, int expectedRows) throws Exception {
-        NestedLoopNode node = new NestedLoopNode(new TestDQLNode(left), new TestDQLNode(right), true, limit, offset);
+        NestedLoopNode node = new NestedLoopNode(new TestDQLNode(left), new TestDQLNode(right), leftOuterNode, limit, offset);
         TopNProjection projection = new TopNProjection(limit, offset);
         int numColumns = (left.length > 0 ? left[0].length : 0) + (right.length > 0 ? right[0].length : 0);
         List<Symbol> outputs = new ArrayList<>(numColumns);
@@ -159,9 +180,20 @@ public class NestedLoopOperationTest extends RandomizedTest {
             outputs.add(new InputColumn(i, DataTypes.UNDEFINED));
         }
         projection.outputs(outputs);
+
+        Object[][] outerRows = leftOuterNode ? left : right;
+        Object[][] innerRows = leftOuterNode ? right : left;
+        Task outerTask = new ImmediateTestTask(outerRows, outerRows.length, 0);
+        Task innerTask = new ImmediateTestTask(innerRows, innerRows.length, 0);
         node.projections(ImmutableList.<Projection>of(projection));
-        NestedLoopOperation nestedLoop = new NestedLoopOperation(node, new TestExecutor(), projectionVisitor, mock(RamAccountingContext.class), UUID.randomUUID());
-        Object[][] result = nestedLoop.execute().get();
+        NestedLoopOperation nestedLoop = new NestedLoopOperation(
+                node,
+                Arrays.asList(outerTask),
+                Arrays.asList(innerTask),
+                new TestExecutor(),
+                projectionVisitor,
+                mock(RamAccountingContext.class));
+        Object[][] result = nestedLoop.execute().get().rows();
 
         int i = 0;
         int leftIdx = 0;
@@ -170,10 +202,18 @@ public class NestedLoopOperationTest extends RandomizedTest {
 
         // skip offset
         while (skip > 0) {
-            rightIdx++;
-            if (rightIdx == right.length) {
-                rightIdx = 0;
+            if (leftOuterNode) {
+                rightIdx++;
+                if (rightIdx == right.length) {
+                    rightIdx = 0;
+                    leftIdx++;
+                }
+            } else {
                 leftIdx++;
+                if (leftIdx == left.length) {
+                    leftIdx = 0;
+                    rightIdx++;
+                }
             }
             skip--;
         }
@@ -182,9 +222,16 @@ public class NestedLoopOperationTest extends RandomizedTest {
             int rowIdx = 0;
 
 
-            if (rightIdx == right.length) {
-                rightIdx = 0;
-                leftIdx++;
+            if (leftOuterNode) {
+                if (rightIdx == right.length) {
+                    rightIdx = 0;
+                    leftIdx++;
+                }
+            } else {
+                if (leftIdx == left.length) {
+                    leftIdx = 0;
+                    rightIdx++;
+                }
             }
 
             assertThat(row.length, is(left[leftIdx].length + right[rightIdx].length));
@@ -199,7 +246,11 @@ public class NestedLoopOperationTest extends RandomizedTest {
                 rowIdx++;
             }
             i++;
-            rightIdx++;
+            if (leftOuterNode) {
+                rightIdx++;
+            } else {
+                leftIdx++;
+            }
         }
         assertThat(i, is(expectedRows));
     }
@@ -215,18 +266,18 @@ public class NestedLoopOperationTest extends RandomizedTest {
     private Object[] randomRow(int length) {
         Object[] row = new Object[length];
         for (int i = 0; i < length; i++) {
-            switch (randomByte() % 4) {
+            switch (RandomInts.randomInt(random, Byte.MAX_VALUE) % 4) {
                 case 0:
-                    row[i] = randomInt();
+                    row[i] = RandomInts.randomInt(random, Integer.MAX_VALUE);
                     break;
                 case 1:
-                    row[i] = randomAsciiOfLength(10);
+                    row[i] = RandomStrings.randomAsciiOfLength(random, 10);
                     break;
                 case 2:
                     row[i] = null;
                     break;
                 case 3:
-                    row[i] = (randomBoolean() ? -1 : 1) * randomDouble();
+                    row[i] = (random.nextBoolean() ? -1 : 1) * random.nextDouble();
                     break;
             }
         }

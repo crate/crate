@@ -20,26 +20,31 @@
 */
 package io.crate.operation.join;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.TaskResult;
-import io.crate.executor.Task;
-import io.crate.executor.TaskExecutor;
+import io.crate.executor.*;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.dql.join.NestedLoopNode;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 
 
 public class NestedLoopOperation implements ProjectorUpstream {
@@ -115,31 +120,84 @@ public class NestedLoopOperation implements ProjectorUpstream {
         }
     };
 
-    static interface RelationIterable extends Iterable<Object[]> {
-    }
+    /**
+     * contains state needed during join execution
+     * and must be portable between multiple execution steps
+     */
+    private static class JoinContext implements Closeable {
 
-    private static class FetchedRowsIterable implements RelationIterable {
+        final RelationIterable outerIterable;
+        final RelationIterable innerIterable;
+        final boolean singlePage;
 
-        private final Object[][] rows;
+        Iterator<Object[]> outerIterator;
+        Iterator<Object[]> innerIterator;
 
-        public FetchedRowsIterable(Object[][] rows) {
-            this.rows = rows;
+        private JoinContext(RelationIterable outerIterable,
+                            RelationIterable innerIterable,
+                            boolean singlePage) {
+            this.outerIterable = outerIterable;
+            this.innerIterable = innerIterable;
+            this.singlePage = singlePage;
+        }
+
+        void refreshOuterIteratorIfNeeded() {
+            try {
+                if (outerIterator == null || !outerIterator.hasNext()) {
+                    // outer iterator is iterated pagewise only
+                    outerIterator = outerIterable.forCurrentPage();
+                }
+            } catch (ConcurrentModificationException e) {
+                // underlying list has been changed
+                outerIterator = outerIterable.forCurrentPage();
+            }
+        }
+
+        void refreshInnerIteratorIfNeeded() {
+            try {
+                if (innerIterator == null || !innerIterator.hasNext()) {
+                    innerIterator = innerIterable.iterator();
+                }
+            } catch (ConcurrentModificationException e) {
+                // underlying list has been changed
+                innerIterator = innerIterable.iterator();
+            }
+        }
+
+        ListenableFuture<Void> outerFetchNextPage() {
+            return outerIterable.fetchPage(outerIterable.currentPageInfo().nextPage());
+        }
+
+        ListenableFuture<Void> innerFetchNextPage() {
+            return innerIterable.fetchPage(innerIterable.currentPageInfo().nextPage());
+        }
+
+        boolean innerNeedsToFetchMore() {
+            return innerIterator != null && !innerIterator.hasNext() && !innerIterable.isComplete();
+        }
+
+        boolean outerNeedsToFetchMore() {
+            return outerIterator != null && !outerIterator.hasNext() && !outerIterable.isComplete();
         }
 
         @Override
-        public Iterator<Object[]> iterator() {
-            return Iterators.forArray(rows);
+        public void close() throws IOException {
+            outerIterable.close();
+            innerIterable.close();
         }
     }
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final int limit;
+    private final int offset;
     private final List<Task> outerRelationTasks;
     private final List<Task> innerRelationTasks;
 
-    private final FlatProjectorChain projectorChain;
     private final TaskExecutor taskExecutor;
+    private final ProjectionToProjectorVisitor projectionToProjectorVisitor;
+    private final RamAccountingContext ramAccountingContext;
+    private final List<Projection> projections;
     private Projector downstream;
 
     private RowCombinator rowCombinator;
@@ -151,14 +209,20 @@ public class NestedLoopOperation implements ProjectorUpstream {
      * @param nestedLoopNode               must have outputTypes set
      * @param executor                     the executor to build and execute child-tasks
      * @param projectionToProjectorVisitor used for building the ProjectorChain
-     * @param jobId                        identifies the job this operation is executed in
      */
     public NestedLoopOperation(NestedLoopNode nestedLoopNode,
+                               List<Task> outerTasks,
+                               List<Task> innerTasks,
                                TaskExecutor executor,
                                ProjectionToProjectorVisitor projectionToProjectorVisitor,
-                               RamAccountingContext ramAccountingContext,
-                               UUID jobId) {
-        this.limit = nestedLoopNode.limit();
+                               RamAccountingContext ramAccountingContext) {
+        this.limit = nestedLoopNode.limit() == TopN.NO_LIMIT ? Constants.DEFAULT_SELECT_LIMIT : nestedLoopNode.limit();
+        this.offset = nestedLoopNode.offset();
+
+        this.ramAccountingContext = ramAccountingContext;
+        this.projectionToProjectorVisitor = projectionToProjectorVisitor;
+        this.projections = nestedLoopNode.projections();
+        this.taskExecutor = executor;
 
         int leftNumColumns = nestedLoopNode.left().outputTypes().size();
         int rightNumColumns = nestedLoopNode.right().outputTypes().size();
@@ -173,25 +237,41 @@ public class NestedLoopOperation implements ProjectorUpstream {
         } else if (rightNumColumns == 0) {
             rowCombinator = LEFT_COMBINATOR;
         }
-        this.taskExecutor = executor;
-        // TODO: optimize for outer and inner being the same relation
-        this.outerRelationTasks = this.taskExecutor.newTasks(nestedLoopNode.outer(), jobId);
-        this.innerRelationTasks = this.taskExecutor.newTasks(nestedLoopNode.inner(), jobId);
-        this.projectorChain = new FlatProjectorChain(nestedLoopNode.projections(), projectionToProjectorVisitor, ramAccountingContext);
+
+        this.outerRelationTasks = outerTasks;
+        this.innerRelationTasks = innerTasks;
     }
 
-    public ListenableFuture<Object[][]> execute() {
-        downstream(this.projectorChain.firstProjector());
-        this.projectorChain.startProjections();
+    private List<ListenableFuture<TaskResult>> executeChildTasks(List<Task> tasks, Optional<PageInfo> pageInfo) {
+        assert !tasks.isEmpty() : "nested loop child tasks are empty";
+        if (pageInfo.isPresent() &&
+                tasks.size() == 1 &&
+                tasks.get(0) instanceof PageableTask) {
+            // one pageable task, page it
+            PageableTask task = (PageableTask) tasks.get(0);
+            task.start(pageInfo.get());
+            return task.result();
+        }
+        return this.taskExecutor.execute(tasks, null);
+    }
+
+    public ListenableFuture<TaskResult> execute() {
+        FlatProjectorChain projectorChain = new FlatProjectorChain(projections, projectionToProjectorVisitor, ramAccountingContext);
+        downstream(projectorChain.firstProjector());
+        projectorChain.startProjections();
 
         if (limit == 0) {
             // shortcut
-            return Futures.immediateFuture(TaskResult.EMPTY_ROWS);
+            return Futures.<TaskResult>immediateFuture(TaskResult.EMPTY_RESULT);
         }
 
-        List<ListenableFuture<TaskResult>> outerResults = this.taskExecutor.execute(outerRelationTasks, null);
+        int rowsToProduce = limit + offset;
+        int outerPageSize = 1;
+        final PageInfo outerPageInfo = new PageInfo(0, outerPageSize);
+        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, Optional.of(outerPageInfo));
         assert outerResults.size() == 1;
-        List<ListenableFuture<TaskResult>> innerResults = this.taskExecutor.execute(innerRelationTasks, null);
+        final PageInfo innerPageInfo = new PageInfo(0, rowsToProduce/outerPageSize);
+        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, Optional.of(innerPageInfo));
         assert innerResults.size() == 1;
 
         Futures.addCallback(Futures.allAsList(ImmutableList.of(outerResults.get(0), innerResults.get(0))), new FutureCallback<List<TaskResult>>() {
@@ -199,11 +279,37 @@ public class NestedLoopOperation implements ProjectorUpstream {
             public void onSuccess(List<TaskResult> results) {
                 assert results.size() == 2;
                 try {
-                    RelationIterable outerIterable = new FetchedRowsIterable(results.get(0).rows());
-                    RelationIterable innerIterable = new FetchedRowsIterable(results.get(1).rows());
+                    final RelationIterable outerIterable = RelationIterable.forTaskResult(results.get(0), outerPageInfo, false);
+                    final RelationIterable innerIterable = RelationIterable.forTaskResult(results.get(1), innerPageInfo, true);
 
-                    doExecute(outerIterable, innerIterable);
-                    projectorChain.firstProjector().upstreamFinished();
+                    final JoinContext joinContext = new JoinContext(
+                            outerIterable,
+                            innerIterable,
+                            false);
+                    joinContext.refreshOuterIteratorIfNeeded(); // initialize outer iterator
+                    executeAsync(joinContext, new FutureCallback<Void>() {
+
+                        private void close() {
+                            try {
+                                joinContext.close();
+                            } catch (IOException e) {
+                                logger.error("error closing CROSS JOIN source relation resources", e);
+                            }
+
+                        }
+
+                        @Override
+                        public void onSuccess(@Nullable Void result) {
+                            downstream.upstreamFinished();
+                            close();
+                        }
+
+                        @Override
+                        public void onFailure(Throwable t) {
+                            downstream.upstreamFailed(t);
+                            close();
+                        }
+                    });
                 } catch (Throwable t) {
                     logger.error("Error during execution of CROSS JOIN", t);
                     downstream.upstreamFailed(t);
@@ -216,14 +322,26 @@ public class NestedLoopOperation implements ProjectorUpstream {
                 downstream.upstreamFailed(t);
             }
         });
-        return projectorChain.result();
+
+        return Futures.transform(projectorChain.result(), new Function<Object[][], TaskResult>() {
+            @Nullable
+            @Override
+            public TaskResult apply(Object[][] rows) {
+                return new QueryResult(rows);
+            }
+        });
     }
 
-    private void doExecute(RelationIterable outerIterable, RelationIterable innerIterable) {
-        boolean wantMore;
+    private void executeAsync(final JoinContext ctx, final FutureCallback<Void> callback) {
+        boolean wantMore = true;
+
         Outer:
-        for (Object[] outerRow : outerIterable) {
-            for (Object[] innerRow : innerIterable) {
+        while (ctx.outerIterator.hasNext()) {
+            Object[] outerRow = ctx.outerIterator.next();
+
+            ctx.refreshInnerIteratorIfNeeded();
+            while (ctx.innerIterator.hasNext()) {
+                Object[] innerRow = ctx.innerIterator.next();
                 wantMore = downstream.setNextRow(
                         rowCombinator.combine(outerRow, innerRow)
                 );
@@ -231,6 +349,57 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     break Outer;
                 }
             }
+        }
+        if (!wantMore) {
+            // downstream has enough
+            callback.onSuccess(null);
+            return;
+        }
+
+        // get next pages
+        if (ctx.innerNeedsToFetchMore()) {
+            Futures.addCallback(
+                    ctx.innerFetchNextPage(),
+                    new FutureCallback<Void>() {
+                        @Override
+                        public void onSuccess(@Nullable Void result) {
+                            ctx.refreshInnerIteratorIfNeeded();
+                            executeAsync(
+                                    ctx,
+                                    callback
+                            );
+                        }
+
+                        @Override
+                        public void onFailure(Throwable t) {
+                            callback.onFailure(t);
+                        }
+                    }
+            );
+
+
+        } else if (ctx.outerNeedsToFetchMore()) {
+            Futures.addCallback(
+                    ctx.outerFetchNextPage(),
+                    new FutureCallback<Void>() {
+                        @Override
+                        public void onSuccess(@Nullable Void result) {
+                            ctx.refreshOuterIteratorIfNeeded(); // refresh iterator
+                            executeAsync(
+                                    ctx,
+                                    callback
+                            );
+                        }
+
+                        @Override
+                        public void onFailure(Throwable t) {
+                            callback.onFailure(t);
+                        }
+                    }
+            );
+        } else {
+            // both exhausted and complete
+            callback.onSuccess(null);
         }
     }
 

@@ -26,7 +26,10 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.*;
+import io.crate.executor.JobTask;
+import io.crate.executor.Task;
+import io.crate.executor.TaskExecutor;
+import io.crate.executor.TaskResult;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.join.NestedLoopNode;
@@ -47,6 +50,8 @@ public class NestedLoopTask extends JobTask {
     public NestedLoopTask(UUID jobId,
                           String nodeId,
                           NestedLoopNode nestedLoopNode,
+                          List<Task> outerTasks,
+                          List<Task> innerTasks,
                           TaskExecutor executor,
                           ProjectionToProjectorVisitor projectionToProjectorVisitor,
                           CircuitBreaker circuitBreaker) {
@@ -55,16 +60,23 @@ public class NestedLoopTask extends JobTask {
         RamAccountingContext ramAccountingContext = new RamAccountingContext(
                 ramContextId,
                 circuitBreaker);
-        operation = new NestedLoopOperation(nestedLoopNode, executor, projectionToProjectorVisitor, ramAccountingContext, jobId);
+        operation = new NestedLoopOperation(
+                nestedLoopNode,
+                outerTasks,
+                innerTasks,
+                executor,
+                projectionToProjectorVisitor,
+                ramAccountingContext
+        );
     }
 
     @Override
     public void start() {
-        ListenableFuture<Object[][]> operationFuture = operation.execute();
-        Futures.addCallback(operationFuture, new FutureCallback<Object[][]>() {
+        ListenableFuture<TaskResult> operationFuture = operation.execute();
+        Futures.addCallback(operationFuture, new FutureCallback<TaskResult>() {
             @Override
-            public void onSuccess(@Nullable Object[][] rows) {
-                result.set(new QueryResult(rows));
+            public void onSuccess(@Nullable TaskResult taskResult) {
+                result.set(taskResult);
             }
 
             @Override
@@ -83,5 +95,4 @@ public class NestedLoopTask extends JobTask {
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         // ignore
     }
-
 }

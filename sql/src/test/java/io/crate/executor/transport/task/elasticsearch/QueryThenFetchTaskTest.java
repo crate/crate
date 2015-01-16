@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.action.SearchServiceListener;
@@ -112,6 +113,7 @@ public class QueryThenFetchTaskTest {
                 searchServiceTransportAction,
                 searchPhaseController,
                 new ThreadPool("testpool"),
+                mock(BigArrays.class),
                 crateResultSorter);
     }
 
@@ -139,6 +141,7 @@ public class QueryThenFetchTaskTest {
                 mock(SearchServiceTransportAction.class),
                 mock(SearchPhaseController.class),
                 mock(ThreadPool.class),
+                mock(BigArrays.class),
                 crateResultSorter);
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.testing;
 
+import io.crate.executor.Page;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
@@ -56,9 +57,17 @@ public class TestingHelpers {
      * @return a string representing a table
      */
     public static String printedTable(Object[][] result) {
+        return printRows(Arrays.asList(result));
+    }
+
+    public static String printedPage(Page page) {
+        return printRows(page);
+    }
+
+    public static String printRows(Iterable<Object[]> rows) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
-        for (Object[] row : result) {
+        for (Object[] row : rows) {
             boolean first = true;
             for (Object o : row) {
                 if (!first) {

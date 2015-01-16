@@ -34,17 +34,22 @@ import java.util.NoSuchElementException;
  * asynchronously.
  *
  */
-public interface PagableTaskResult extends TaskResult, Closeable {
+public interface PageableTaskResult extends TaskResult, Closeable {
 
-    public static final PagableTaskResult EMPTY_PAGABLE_RESULT = new PagableTaskResult() {
+    public static final PageableTaskResult EMPTY_PAGABLE_RESULT = new PageableTaskResult() {
         @Override
-        public ListenableFuture<PagableTaskResult> fetch(PageInfo pageInfo) {
+        public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
             return Futures.immediateFailedFuture(new NoSuchElementException());
         }
 
         @Override
+        public Page page() {
+            return Page.EMPTY;
+        }
+
+        @Override
         public Object[][] rows() {
-            return TaskResult.EMPTY_ROWS;
+            throw new UnsupportedOperationException("rows() is not supported on PageableTaskResut");
         }
 
         @Nullable
@@ -65,8 +70,21 @@ public interface PagableTaskResult extends TaskResult, Closeable {
      * @param pageInfo identifying the page to fetch
      * @return a future holding the result of fetching the next page
      */
-    ListenableFuture<PagableTaskResult> fetch(PageInfo pageInfo);
+    ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo);
 
+
+    /**
+     *
+     * <strong>
+     *     Use this instead of {@linkplain #rows()}!
+     * </strong>
+     * <p>
+     *
+     * Get the page that was fetched with this task result.
+     * It might contain less rows than requested.
+     * @return a Page you can iterate over to get the rows it consists of
+     */
+    Page page();
 
     /**
      * Must be called after paging is done

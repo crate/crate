@@ -19,53 +19,50 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.operation.join;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.PageInfo;
+import io.crate.executor.PageableTaskResult;
+import io.crate.executor.TaskResult;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-public class SinglePageTaskResult implements PageableTaskResult {
+class FetchedRowsIterable extends RelationIterable {
 
-    private final Page page;
+    private final Iterable<Object[]> rows;
 
-    public SinglePageTaskResult(Object[][] rows) {
-        this.page = new ObjectArrayPage(rows);
-    }
-
-    public SinglePageTaskResult(Object[][] rows, int start, int end) {
-        this.page = new ObjectArrayPage(rows, start, end);
-    }
-
-    @Override
-    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
-        return Futures.immediateFuture(PageableTaskResult.EMPTY_PAGABLE_RESULT);
-    }
-
-    @Override
-    public Page page() {
-        return page;
+    public FetchedRowsIterable(TaskResult taskResult, PageInfo pageInfo) {
+        super(pageInfo);
+        if (taskResult instanceof PageableTaskResult) {
+            this.rows = ((PageableTaskResult) taskResult).page();
+        } else {
+            this.rows = Arrays.asList(taskResult.rows());
+        }
     }
 
     @Override
-    public Object[][] rows() {
-        throw new UnsupportedOperationException("rows() not supported on SinglePageTaskResult");
+    public Iterator<Object[]> iterator() {
+        return rows.iterator();
     }
 
-    @Nullable
     @Override
-    public String errorMessage() {
-        return null;
+    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
+        this.pageInfo(pageInfo);
+        return Futures.immediateFuture(null);
     }
 
-    public static PageableTaskResult singlePage(Object[][] rows) {
-        return new SinglePageTaskResult(rows);
+    @Override
+    public boolean isComplete() {
+        return true;
     }
 
     @Override
     public void close() throws IOException {
-        // boomshakalakka!
+        // ayayayayayaaaay!
     }
 }

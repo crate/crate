@@ -30,9 +30,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.executor.*;
 import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.elasticsearch.*;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -52,7 +50,6 @@ import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
@@ -65,7 +62,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHits;
@@ -81,8 +77,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
-public class TransportExecutorTest extends SQLTransportIntegrationTest {
+public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -90,110 +85,21 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     private ClusterService clusterService;
     private ClusterName clusterName;
-    private TransportExecutor executor;
-    private DocSchemaInfo docSchemaInfo;
-
-    TableIdent charactersIdent = new TableIdent(null, "characters");
-    TableIdent booksIdent = new TableIdent(null, "books");
-
-    Reference idRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));
-    Reference nameRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(charactersIdent, "name"), RowGranularity.DOC, DataTypes.STRING));
-    Reference femaleRef = TestingHelpers.createReference(charactersIdent.name(), new ColumnIdent("female"), DataTypes.BOOLEAN);
-    Reference versionRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(charactersIdent, "_version"), RowGranularity.DOC, DataTypes.LONG));
-
-    Reference booksIdRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(booksIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));
-    Reference titleRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(booksIdent, "title"), RowGranularity.DOC, DataTypes.STRING));
-    Reference authorRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(booksIdent, "author"), RowGranularity.DOC, DataTypes.STRING));
-
-    TableIdent partedTable = new TableIdent(null, "parted");
-    Reference partedIdRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "id"), RowGranularity.DOC, DataTypes.INTEGER));
-    Reference partedNameRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "name"), RowGranularity.DOC, DataTypes.STRING));
-    Reference partedDateRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "date"), RowGranularity.DOC, DataTypes.TIMESTAMP));
-
-    private static ESGetNode newGetNode(String index, List<Symbol> outputs, String id) {
-        return newGetNode(index, outputs, Arrays.asList(id));
-    }
-
-    private static ESGetNode newGetNode(String index, List<Symbol> outputs, List<String> ids) {
-        return new ESGetNode(
-                index,
-                outputs,
-                Symbols.extractTypes(outputs),
-                ids,
-                ids,
-                ImmutableList.<Symbol>of(),
-                new boolean[0],
-                new Boolean[0],
-                null,
-                0,
-                null
-        );
-    }
 
     @Before
-    public void transportSetUp() {
+    public void setup() {
         CrateTestCluster cluster = cluster();
         clusterService = cluster.getInstance(ClusterService.class);
         clusterName = cluster.getInstance(ClusterName.class);
-        executor = cluster.getInstance(TransportExecutor.class);
-
-        docSchemaInfo = cluster.getInstance(DocSchemaInfo.class);
     }
 
     @After
-    public void transportTearDown() {
+    public void teardown() {
         clusterService = null;
         clusterName = null;
-        executor = null;
-        docSchemaInfo = null;
     }
 
-    private void insertCharacters() {
-        execute("create table characters (id int primary key, name string, female boolean)");
-        ensureGreen();
-        execute("insert into characters (id, name, female) values (?, ?, ?)",
-                new Object[][]{
-                    new Object[] { 1, "Arthur", false},
-                    new Object[] { 2, "Ford", false},
-                    new Object[] { 3, "Trillian", true},
-                    new Object[] { 4, "Arthur", true}
-                }
-        );
-        refresh();
-    }
 
-    private void insertBooks() {
-        execute("create table books (id int primary key, title string, author string)");
-        ensureGreen();
-        execute("insert into books (id, title, author) values (?, ?, ?)", new Object[][]{
-                new Object[] { 1, "The Hitchhiker's Guide to the Galaxy", "Douglas Adams"},
-                new Object[] { 2, "The Restaurant at the End of the Universe", "Douglas Adams"},
-                new Object[] { 3, "Life, the Universe and Everything", "Douglas Adams"}
-        });
-        refresh();
-    }
-
-    private void createPartitionedTable() {
-        execute("create table parted (id int, name string, date timestamp) partitioned by (date)");
-        ensureGreen();
-        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
-                new Object[]{
-                        1, "Trillian", null,
-                        2, null, 0L,
-                        3, "Ford", 1396388720242L
-                });
-        ensureGreen();
-        refresh();
-    }
 
     @Test
     public void testRemoteCollectTask() throws Exception {
@@ -252,7 +158,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESGetTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode node = newGetNode("characters", outputs, "2");
@@ -269,7 +175,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESGetTaskWithDynamicReference() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
@@ -287,7 +193,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESMultiGet() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode node = newGetNode("characters", outputs, asList("1", "2"));
         Plan plan = new Plan();
@@ -301,7 +207,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESSearchTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
@@ -338,7 +244,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESSearchTaskWithFilter() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
@@ -434,7 +340,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESSearchTaskPartitioned() throws Exception {
-        createPartitionedTable();
+        setup.setUpPartitionedTableWithName();
         // get partitions
         ImmutableOpenMap<String, List<AliasMetaData>> aliases =
                 client().admin().indices().prepareGetAliases().addAliases("parted")
@@ -475,7 +381,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESDeleteByQueryTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
@@ -520,7 +426,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESDeleteTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         ESDeleteNode node = new ESDeleteNode("characters", "2", "2", Optional.<Long>absent());
         Plan plan = new Plan();
@@ -644,7 +550,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESCountTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
         Plan plan = new Plan();
         WhereClause whereClause = new WhereClause(null, false);
         plan.add(new ESCountNode(new String[]{"characters"}, whereClause));
@@ -711,7 +617,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESUpdateByIdTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
         WhereClause whereClause = new WhereClause(null, false);
@@ -753,7 +659,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateByQueryTaskWithVersion() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         // do update
         Function whereClauseFunction = new Function(AndOperator.INFO, Arrays.<Symbol>asList(
@@ -807,7 +713,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateByQueryTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         Function whereClause = new Function(OrOperator.INFO, Arrays.<Symbol>asList(
                 new Function(new FunctionInfo(
@@ -876,8 +782,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testNestedLoopTask() throws Exception {
-        insertCharacters();
-        insertBooks();
+        setup.setUpCharacters();
+        setup.setUpBooks();
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
@@ -995,8 +901,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testNestedLoopMixedSorting() throws Exception {
-        insertCharacters();
-        insertBooks();
+        setup.setUpCharacters();
+        setup.setUpBooks();
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
@@ -1069,139 +975,5 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                         "4| Arthur| true| Douglas Adams\n" +
                         "1| Arthur| false| Douglas Adams\n" +
                         "1| Arthur| false| Douglas Adams\n"));
-    }
-
-    @Test
-    public void testPagedQueryThenFetch() throws Exception {
-        insertCharacters();
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
-                Arrays.<Symbol>asList(nameRef, idRef),
-                new boolean[]{false, false},
-                new Boolean[]{null, null},
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
-        assertThat(tasks.size(), is(1));
-        QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
-        PageInfo pageInfo = PageInfo.firstPage(2);
-        qtfTask.setKeepAlive(TimeValue.timeValueSeconds(10));
-
-        qtfTask.start(pageInfo);
-        List<ListenableFuture<TaskResult>> results = qtfTask.result();
-        assertThat(results.size(), is(1));
-        ListenableFuture<TaskResult> resultFuture = results.get(0);
-        TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PagableTaskResult.class));
-        assertThat(TestingHelpers.printedTable(result.rows()), is(
-                "1| Arthur| false\n" +
-                "4| Arthur| true\n"
-                ));
-        ListenableFuture<PagableTaskResult> nextPageResultFuture = ((PagableTaskResult)result).fetch(pageInfo.nextPage(2));
-        PagableTaskResult nextPageResult = nextPageResultFuture.get();
-        assertThat(TestingHelpers.printedTable(nextPageResult.rows()), is(
-                "2| Ford| false\n" +
-                "3| Trillian| true\n"
-        ));
-
-        Object[][] nextRows = nextPageResult.fetch(pageInfo.nextPage(2)).get().rows();
-        assertThat(nextRows.length, is(0));
-
-        // finally close it
-        nextPageResult.close();
-    }
-
-    @Test
-    public void testPagedQueryThenFetchWithOffset() throws Exception {
-        insertCharacters();
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
-                Arrays.<Symbol>asList(nameRef, idRef),
-                new boolean[]{false, false},
-                new Boolean[]{null, null},
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
-        assertThat(tasks.size(), is(1));
-        QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
-        PageInfo pageInfo = new PageInfo(1, 2);
-        qtfTask.setKeepAlive(TimeValue.timeValueSeconds(10));
-        qtfTask.start(pageInfo);
-        List<ListenableFuture<TaskResult>> results = qtfTask.result();
-        assertThat(results.size(), is(1));
-        ListenableFuture<TaskResult> resultFuture = results.get(0);
-        TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PagableTaskResult.class));
-        assertThat(TestingHelpers.printedTable(result.rows()), is(
-                "4| Arthur| true\n" +
-                "2| Ford| false\n"
-        ));
-        ListenableFuture<PagableTaskResult> nextPageResultFuture = ((PagableTaskResult)result).fetch(pageInfo.nextPage(2));
-        PagableTaskResult nextPageResult = nextPageResultFuture.get();
-        assertThat(TestingHelpers.printedTable(nextPageResult.rows()), is(
-                "3| Trillian| true\n"
-        ));
-
-        Object[][] nextRows = nextPageResult.fetch(pageInfo.nextPage(2)).get().rows();
-        assertThat(nextRows.length, is(0));
-
-        // finally close it
-        nextPageResult.close();
-    }
-
-    @Test
-    public void testPagedQueryThenFetchWithoutSorting() throws Exception {
-        insertCharacters();
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
-                null,
-                null,
-                null,
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
-        assertThat(tasks.size(), is(1));
-        QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
-        PageInfo pageInfo = new PageInfo(1, 2);
-        qtfTask.setKeepAlive(TimeValue.timeValueSeconds(10));
-        qtfTask.start(pageInfo);
-        List<ListenableFuture<TaskResult>> results = qtfTask.result();
-        assertThat(results.size(), is(1));
-
-        ListenableFuture<TaskResult> resultFuture = results.get(0);
-        TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PagableTaskResult.class));
-
-        assertThat(result.rows().length, is(2));
-
-        ListenableFuture<PagableTaskResult> nextPageResultFuture = ((PagableTaskResult)result).fetch(pageInfo.nextPage(2));
-        PagableTaskResult nextPageResult = nextPageResultFuture.get();
-        assertThat(nextPageResult.rows().length, is(1));
-
-        PagableTaskResult furtherPageResult = nextPageResult.fetch(pageInfo.nextPage(2)).get();
-        assertThat(furtherPageResult.rows().length, is(0));
-
-        furtherPageResult.close();
     }
 }

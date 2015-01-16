@@ -299,4 +299,42 @@ public class Setup {
                 ") with (number_of_replicas=0)");
         transportExecutor.ensureGreen();
     }
+
+    public void setUpCharacters() {
+        transportExecutor.exec("create table characters (id int primary key, name string, female boolean)");
+        transportExecutor.ensureGreen();
+        transportExecutor.exec("insert into characters (id, name, female) values (?, ?, ?)",
+                new Object[][]{
+                        new Object[] { 1, "Arthur", false},
+                        new Object[] { 2, "Ford", false},
+                        new Object[] { 3, "Trillian", true},
+                        new Object[] { 4, "Arthur", true}
+                }
+        );
+        transportExecutor.refresh("characters");
+    }
+
+    public void setUpBooks() {
+        transportExecutor.exec("create table books (id int primary key, title string, author string)");
+        transportExecutor.ensureGreen();
+        transportExecutor.exec("insert into books (id, title, author) values (?, ?, ?)", new Object[][]{
+                new Object[] { 1, "The Hitchhiker's Guide to the Galaxy", "Douglas Adams"},
+                new Object[] { 2, "The Restaurant at the End of the Universe", "Douglas Adams"},
+                new Object[] { 3, "Life, the Universe and Everything", "Douglas Adams"}
+        });
+        transportExecutor.refresh("books");
+    }
+
+    public void setUpPartitionedTableWithName() {
+        transportExecutor.exec("create table parted (id int, name string, date timestamp) partitioned by (date)");
+        transportExecutor.ensureGreen();
+        transportExecutor.exec("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Trillian", null,
+                        2, null, 0L,
+                        3, "Ford", 1396388720242L
+                });
+        transportExecutor.ensureGreen();
+        transportExecutor.refresh("parted");
+    }
 }

@@ -19,18 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.core.bigarray;
 
-/**
- * A task that is able to return paged results.
- * By contract it should return implementations of
- * {@linkplain io.crate.executor.PagableTaskResult} (nested in futures)
- * on {@linkplain #result()}.
- */
-public interface PagableTask extends Task {
+import org.elasticsearch.common.util.ObjectArray;
 
-    /**
-     * Start a paged execution.
-     */
-    public void start(PageInfo pageInfo);
+public class MultiBigArrayIterator<T> extends AbstractMultiArrayIterator<T, ObjectArray<T>> {
+
+    public MultiBigArrayIterator(MultiObjectArrayBigArray<T> bigArray,
+                                 long offset,
+                                 long size,
+                                 ObjectArray<T>[] backingArrays) {
+        super(bigArray, offset, size, backingArrays);
+
+    }
+
+    @Override
+    public long getArrayLength(long idx) {
+        assertIsInt(idx);
+        return backingArrays[(int)idx].size();
+    }
+
+    @Override
+    public T getValue(long backingArraysIdx, long curArrayIdx) {
+        assertIsInt(backingArraysIdx);
+        return backingArrays[(int)backingArraysIdx].get(curArrayIdx);
+    }
 }

@@ -56,6 +56,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.search.controller.SearchPhaseController;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -85,6 +86,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final CrateResultSorter crateResultSorter;
 
+    private final BigArrays bigArrays;
+
     @Inject
     public TransportExecutor(Settings settings,
                              TransportActionProvider transportActionProvider,
@@ -97,7 +100,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
-                             CrateResultSorter crateResultSorter) {
+                             CrateResultSorter crateResultSorter,
+                             BigArrays bigArrays) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -108,6 +112,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.crateResultSorter = crateResultSorter;
+        this.bigArrays = bigArrays;
         this.visitor = new Visitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -259,18 +264,26 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     transportActionProvider.searchServiceTransportAction(),
                     searchPhaseControllerProvider.get(),
                     threadPool,
+                    bigArrays,
                     crateResultSorter));
         }
 
         @Override
         public ImmutableList<Task> visitNestedLoopNode(NestedLoopNode node, UUID jobId) {
-            return singleTask(new NestedLoopTask(
+            // TODO: optimize for outer and inner being the same relation
+            List<Task> outerTasks = node.outer().accept(this, jobId);
+            List<Task> innerTasks = node.inner().accept(this, jobId);
+            return singleTask(
+                    new NestedLoopTask(
                         jobId,
                         clusterService.localNode().id(),
                         node,
+                        outerTasks,
+                        innerTasks,
                         TransportExecutor.this,
                         globalProjectionToProjectionVisitor,
-                        circuitBreaker));
+                        circuitBreaker)
+            );
         }
 
         @Override

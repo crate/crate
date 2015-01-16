@@ -44,7 +44,7 @@ public class CrateResultSorter {
      * copied from SearchPhaseController, to manually set offset
      *
      * @param resultsArr Shard result holder
-     * @param offset the number of results to skipd
+     * @param offset the number of results to skip
      * @param limit the number of results to return at max
      */
     public ScoreDoc[] sortDocs(AtomicArray<? extends QuerySearchResultProvider> resultsArr, int offset, int limit) throws IOException {

@@ -53,6 +53,10 @@ public class PageInfo {
         return new PageInfo(position+size, nextSize);
     }
 
+    public PageInfo nextPage() {
+        return new PageInfo(position+size, size);
+    }
+
     public static PageInfo fromStream(StreamInput in) throws IOException {
         return new PageInfo(in.readVInt(), in.readVInt());
     }
