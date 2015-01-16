@@ -48,7 +48,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.v2.ConsumingPlanner;
+import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;

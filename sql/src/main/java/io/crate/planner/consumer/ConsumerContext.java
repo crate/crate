@@ -19,11 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.v2;
+package io.crate.planner.consumer;
+
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.exceptions.ValidationException;
+import org.elasticsearch.common.Nullable;
 
-public interface Consumer {
+public class ConsumerContext {
 
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context);
+    private AnalyzedRelation rootRelation;
+
+    private ValidationException validationException;
+
+    public ConsumerContext(AnalyzedRelation rootRelation) {
+        this.rootRelation = rootRelation;
+    }
+
+    public void rootRelation(AnalyzedRelation rootRelation) {
+        this.rootRelation = rootRelation;
+    }
+
+    public AnalyzedRelation rootRelation() {
+        return rootRelation;
+    }
+
+    public void validationException(ValidationException validationException){
+        this.validationException = validationException;
+    }
+
+    @Nullable
+    public ValidationException validationException(){
+        return validationException;
+    }
 }

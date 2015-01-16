@@ -56,7 +56,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import io.crate.planner.v2.ConsumingPlanner;
+import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.TestingHelpers;

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.v2;
+package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalysisMetaData;
