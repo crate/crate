@@ -50,7 +50,7 @@ import java.util.List;
 /**
  * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
  */
-public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor.Context, Void> {
+public class PlanNodeStreamerVisitor extends PlanNodeVisitor<PlanNodeStreamerVisitor.Context, Void> {
 
     public static class Context {
         private List<Streamer<?>> inputStreamers = new ArrayList<>();

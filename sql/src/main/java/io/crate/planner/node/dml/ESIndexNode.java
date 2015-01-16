@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import org.elasticsearch.common.bytes.BytesReference;
 
 import javax.annotation.Nullable;
@@ -75,7 +75,7 @@ public class ESIndexNode extends DMLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESIndexNode(this, context);
     }
 

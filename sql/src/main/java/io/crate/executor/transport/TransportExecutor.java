@@ -42,7 +42,7 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
@@ -156,7 +156,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         return lastTask.result();
     }
 
-    class Visitor extends PlanVisitor<UUID, ImmutableList<Task>> {
+    class Visitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
 
         private ImmutableList<Task> singleTask(Task task) {
             return ImmutableList.of(task);

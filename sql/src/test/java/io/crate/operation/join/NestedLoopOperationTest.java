@@ -40,7 +40,7 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
@@ -117,7 +117,7 @@ public class NestedLoopOperationTest {
         }
 
         @Override
-        public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
             return null;
         }
 

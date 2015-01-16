@@ -24,7 +24,7 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
@@ -76,7 +76,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESGetNode(this, context);
     }
 
