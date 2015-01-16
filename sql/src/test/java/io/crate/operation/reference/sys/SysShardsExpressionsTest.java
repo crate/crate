@@ -153,10 +153,7 @@ public class SysShardsExpressionsTest {
         // Looking up cluster wide expressions must work too
         ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, "name");
         SysExpression<BytesRef> name = (SysExpression<BytesRef>) resolver.getImplementation(ident);
-
-        assertEquals(new ColumnIdent("name"), name.info().ident().columnIdent());
         assertEquals(new BytesRef("crate"), name.value());
-
     }
 
     @Test

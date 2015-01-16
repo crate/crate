@@ -24,7 +24,6 @@ package io.crate.operation.reference.sys;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
 import org.apache.lucene.util.BytesRef;
 
@@ -40,35 +39,24 @@ public abstract class SysObjectArrayReference extends SysExpression<Object[]>
     @Override
     public SysExpression<Object[]> getChildImplementation(String name) {
         List<SysObjectReference> childImplementations = getChildImplementations();
+        assert childImplementations.size() > 0;
         final Object[] values = new Object[childImplementations.size()];
-        ReferenceInfo info = null;
         int i = 0;
         for (SysObjectReference sysObjectReference : childImplementations) {
             SysExpression<?> child = sysObjectReference.getChildImplementation(name);
             if (child != null) {
-                if (info == null) {
-                    info = child.info();
-                }
                 Object value = child.value();
                 values[i++] = value;
             }
         }
-        if (info == null) {
-            return null;
-        } else {
-            final ReferenceInfo infoFinal = info;
-            return new SysExpression<Object[]>() {
-                @Override
-                public Object[] value() {
-                    return values;
-                }
+        return new SysExpression<Object[]>() {
+            @Override
+            public Object[] value() {
+                return values;
+            }
 
-                @Override
-                public ReferenceInfo info() {
-                    return infoFinal;
-                }
-            };
-        }
+        };
+
 
     }
 
@@ -84,7 +72,7 @@ public abstract class SysObjectArrayReference extends SysExpression<Object[]>
                 public Object apply(@Nullable SysExpression input) {
                     Object value = input.value();
                     if (value != null && value instanceof BytesRef) {
-                        return ((BytesRef)value).utf8ToString();
+                        return ((BytesRef) value).utf8ToString();
                     } else {
                         return value;
                     }

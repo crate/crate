@@ -127,11 +127,6 @@ public class LocalDataCollectTest {
         }
 
         @Override
-        public ReferenceInfo info() {
-            return info;
-        }
-
-        @Override
         public ReferenceImplementation getChildImplementation(String name) {
             return null;
         }

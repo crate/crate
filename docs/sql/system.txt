@@ -550,14 +550,14 @@ A ``operation`` is part of a ``job`` but not all jobs list their operations. A
 operation is listed on each node it is being executed on.
 
 In order to see on which nodes the operations are being executed the
-``sys.nodes.name`` expression can be used in the query::
+``_node`` system column can be used in the query::
 
-    cr> select sys.nodes.name, job_id, name, used_bytes from sys.operations order by name limit 1;
-    +----------------+--------...-+---------+------------+
-    | sys.nodes.name | job_id     | name    | used_bytes |
-    +----------------+--------...-+---------+------------+
-    | crate          | ...        | collect | ...        |
-    +----------------+--------...-+---------+------------+
+    cr> select _node['name'], job_id, name, used_bytes from sys.operations order by name limit 1;
+    +---------------+--------...-+---------+------------+
+    | _node['name'] | job_id     | name    | used_bytes |
+    +---------------+--------...-+---------+------------+
+    | crate         | ...        | collect | ...        |
+    +---------------+--------...-+---------+------------+
     SELECT 1 row in set (... sec)
 
 Logs
@@ -573,7 +573,7 @@ limit old entries will be discarded as new entries are added::
     +-...+------------------------------------...-+-...-----+-...---+-------+
     | id | stmt                                   | started | ended | error |
     +-...+------------------------------------...-+-...-----+-...---+-------+
-    | ...| select sys.nodes.name, ...             | ...     | ...   |  NULL |
+    | ...| select _node['name'], ...              | ...     | ...   |  NULL |
     | ...| select stmt, started from sys.jobs ... | ...     | ...   |  NULL |
     +-...+------------------------------------...-+-...-----+-...---+-------+
     SELECT 2 rows in set (... sec)
@@ -648,9 +648,6 @@ Note, that querying a time setting will always return a ``string`` value::
     SELECT 1 row in set (... sec)
 
 ::
-
-    cr> select settings['cluster']['graceful_stop']['not_a_setting'] from sys.cluster;
-    SQLActionException[Unknown Reference sys.cluster.settings['cluster']['graceful_stop']['not_a_setting']]
 
 The default configuration in ``crate.yml`` looks like:
 

@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.sys.shard;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -32,22 +33,32 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 import java.util.Map;
 
 public class SysShardExpressionModule extends AbstractModule {
+
+    static Map<ColumnIdent, Class> SHARD_COLUMNS = ImmutableMap.<ColumnIdent, Class>builder()
+            .put(new ColumnIdent(ShardIdExpression.NAME), ShardIdExpression.class)
+            .put(new ColumnIdent(ShardSizeExpression.NAME), ShardSizeExpression.class)
+            .put(new ColumnIdent(ShardNumDocsExpression.NAME), ShardNumDocsExpression.class)
+            .put(new ColumnIdent(ShardPrimaryExpression.NAME), ShardPrimaryExpression.class)
+            .put(new ColumnIdent(ShardStateExpression.NAME), ShardStateExpression.class)
+            .put(new ColumnIdent(ShardRelocatingNodeExpression.NAME), ShardRelocatingNodeExpression.class)
+            .put(new ColumnIdent(ShardTableNameExpression.NAME), ShardTableNameExpression.class)
+            .put(new ColumnIdent(ShardSchemaNameExpression.NAME), ShardSchemaNameExpression.class)
+            .put(new ColumnIdent(ShardPartitionIdentExpression.NAME), ShardPartitionIdentExpression.class)
+            .put(new ColumnIdent(ShardPartitionOrphanedExpression.NAME), ShardPartitionOrphanedExpression.class)
+            .build();
+
+
     @Override
     protected void configure() {
         MapBinder<ReferenceIdent, ShardReferenceImplementation> b = MapBinder
                 .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
 
         Map<ColumnIdent, ReferenceInfo> infos = SysShardsTableInfo.INFOS;
-        b.addBinding(infos.get(new ColumnIdent(ShardIdExpression.NAME)).ident()).to(ShardIdExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardSizeExpression.NAME)).ident()).to(ShardSizeExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardNumDocsExpression.NAME)).ident()).to(ShardNumDocsExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardPrimaryExpression.NAME)).ident()).to(ShardPrimaryExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardStateExpression.NAME)).ident()).to(ShardStateExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardRelocatingNodeExpression.NAME)).ident()).to(ShardRelocatingNodeExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardTableNameExpression.NAME)).ident()).to(ShardTableNameExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardSchemaNameExpression.NAME)).ident()).to(ShardSchemaNameExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardPartitionIdentExpression.NAME)).ident()).to(ShardPartitionIdentExpression.class).asEagerSingleton();
-        b.addBinding(infos.get(new ColumnIdent(ShardPartitionOrphanedExpression.NAME)).ident()).to(ShardPartitionOrphanedExpression.class).asEagerSingleton();
+
+        for (Map.Entry<ColumnIdent, Class> entry : SHARD_COLUMNS.entrySet()) {
+            b.addBinding(infos.get(entry.getKey()).ident()).to(entry.getValue()).asEagerSingleton();
+        }
+
     }
 
 }

@@ -41,7 +41,7 @@ public class PartitionedColumnExpression implements Input, ShardReferenceImpleme
         }
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

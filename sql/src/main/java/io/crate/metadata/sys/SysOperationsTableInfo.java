@@ -35,6 +35,8 @@ import java.util.*;
 
 public class SysOperationsTableInfo extends SysTableInfo {
 
+    private final TableColumn nodesTableColumn;
+
     public static class ColumnNames {
         public final static String ID = "id";
         public final static String JOB_ID = "job_id";
@@ -46,13 +48,13 @@ public class SysOperationsTableInfo extends SysTableInfo {
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "operations");
     private static final String[] INDICES = new String[] { IDENT.name() };
 
-    private static final Map<ColumnIdent, ReferenceInfo> COLUMNS_INFO = new LinkedHashMap<>();
+    private static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     private static ReferenceInfo register(String column, DataType type) {
         ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
         columns.add(info);
-        COLUMNS_INFO.put(info.ident().columnIdent(), info);
+        INFOS.put(info.ident().columnIdent(), info);
         return info;
     }
 
@@ -62,22 +64,31 @@ public class SysOperationsTableInfo extends SysTableInfo {
         register(ColumnNames.NAME, DataTypes.STRING);
         register(ColumnNames.STARTED, DataTypes.TIMESTAMP);
         register(ColumnNames.USED_BYTES, DataTypes.LONG);
+
+        INFOS.put(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
     }
 
     @Inject
-    public SysOperationsTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
+    public SysOperationsTableInfo(ClusterService clusterService,
+                                  SysSchemaInfo sysSchemaInfo,
+                                  SysNodesTableInfo sysNodesTableInfo) {
         super(clusterService, sysSchemaInfo);
+        nodesTableColumn = sysNodesTableInfo.tableColumn();
     }
 
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return columnInfo(columnIdent);
+        ReferenceInfo info = columnInfo(columnIdent);
+        if (info == null) {
+            return nodesTableColumn.getReferenceInfo(this.ident(), columnIdent);
+        }
+        return info;
     }
 
     @Nullable
     public static ReferenceInfo columnInfo(ColumnIdent ident) {
-        return COLUMNS_INFO.get(ident);
+        return INFOS.get(ident);
     }
 
     @Override
@@ -112,6 +123,6 @@ public class SysOperationsTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return COLUMNS_INFO.values().iterator();
+        return INFOS.values().iterator();
     }
 }

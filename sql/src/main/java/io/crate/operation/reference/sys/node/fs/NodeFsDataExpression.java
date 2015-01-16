@@ -98,14 +98,13 @@ public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
         public static final String PATH = "path";
 
         protected NodeFsDataChildExpression(final BytesRef device, final BytesRef dataPath) {
-            super(NodeFsDataExpression.this.info().ident().columnIdent());
-            childImplementations.put(DEV, new ChildExpression<BytesRef>(DEV) {
+            childImplementations.put(DEV, new ChildExpression<BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return device;
                 }
             });
-            childImplementations.put(PATH, new ChildExpression<BytesRef>(PATH) {
+            childImplementations.put(PATH, new ChildExpression<BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return dataPath;

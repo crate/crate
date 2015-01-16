@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
@@ -36,9 +34,6 @@ public class NodeThreadPoolExpression extends SysNodeObjectReference {
     public static final String NAME = NodeThreadPoolsExpression.NAME;
 
     abstract class ThreadPoolExpression<ChildType> extends SysNodeExpression<ChildType> {
-        ThreadPoolExpression(String name) {
-            super(new ColumnIdent(NAME, ImmutableList.of(name)));
-        }
     }
 
     public static final String POOL_NAME = "name";
@@ -53,26 +48,25 @@ public class NodeThreadPoolExpression extends SysNodeObjectReference {
     private final BytesRef name;
 
     public NodeThreadPoolExpression(ThreadPool threadPool, String name) {
-        super(NAME);
         this.threadPoolExecutor = (ThreadPoolExecutor) threadPool.executor(name);
         this.name = new BytesRef(name);
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(POOL_NAME, new ThreadPoolExpression<BytesRef>(POOL_NAME) {
+        childImplementations.put(POOL_NAME, new ThreadPoolExpression<BytesRef>() {
             @Override
             public BytesRef value() {
                 return name;
             }
         });
-        childImplementations.put(ACTIVE, new ThreadPoolExpression<Integer>(ACTIVE) {
+        childImplementations.put(ACTIVE, new ThreadPoolExpression<Integer>() {
             @Override
             public Integer value() {
                 return threadPoolExecutor.getActiveCount();
             }
         });
-        childImplementations.put(REJECTED, new ThreadPoolExpression<Long>(REJECTED) {
+        childImplementations.put(REJECTED, new ThreadPoolExpression<Long>() {
             @Override
             public Long value() {
                 long rejected = -1;
@@ -83,25 +77,25 @@ public class NodeThreadPoolExpression extends SysNodeObjectReference {
                 return rejected;
             }
         });
-        childImplementations.put(LARGEST, new ThreadPoolExpression<Integer>(LARGEST) {
+        childImplementations.put(LARGEST, new ThreadPoolExpression<Integer>() {
             @Override
             public Integer value() {
                 return threadPoolExecutor.getLargestPoolSize();
             }
         });
-        childImplementations.put(COMPLETED, new ThreadPoolExpression<Long>(COMPLETED) {
+        childImplementations.put(COMPLETED, new ThreadPoolExpression<Long>() {
             @Override
             public Long value() {
                 return threadPoolExecutor.getCompletedTaskCount();
             }
         });
-        childImplementations.put(THREADS, new ThreadPoolExpression<Integer>(THREADS) {
+        childImplementations.put(THREADS, new ThreadPoolExpression<Integer>() {
             @Override
             public Integer value() {
                 return threadPoolExecutor.getPoolSize();
             }
         });
-        childImplementations.put(QUEUE, new ThreadPoolExpression<Integer>(QUEUE) {
+        childImplementations.put(QUEUE, new ThreadPoolExpression<Integer>() {
             @Override
             public Integer value() {
                 return threadPoolExecutor.getQueue().size();

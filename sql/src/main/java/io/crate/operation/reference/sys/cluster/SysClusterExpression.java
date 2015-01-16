@@ -41,7 +41,7 @@ public abstract class SysClusterExpression<T> extends SysExpression<T> implement
         Preconditions.checkNotNull(info, "info");
     }
 
-    @Override
+    @Deprecated
     public ReferenceInfo info() {
         return info;
     }

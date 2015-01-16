@@ -23,13 +23,12 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.metadata.PartitionName;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.*;
-import io.crate.metadata.table.AbstractTableInfo;
+import io.crate.metadata.table.AbstractDynamicTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import org.apache.lucene.util.BytesRef;
@@ -44,7 +43,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 
-public class DocTableInfo extends AbstractTableInfo {
+public class DocTableInfo extends AbstractDynamicTableInfo {
 
     private final List<ReferenceInfo> columns;
     private final List<ReferenceInfo> partitionedByColumns;
@@ -284,4 +283,5 @@ public class DocTableInfo extends AbstractTableInfo {
     public TableParameterInfo tableParameterInfo () {
         return tableParameterInfo;
     }
+
 }

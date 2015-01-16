@@ -21,8 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.monitor.network.NetworkService;
 
@@ -31,7 +29,6 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
     public static final String NAME = "tcp";
 
     public NodeNetworkTCPExpression(NetworkService networkService) {
-        super(new ColumnIdent(NodeNetworkExpression.NAME, ImmutableList.of(NAME)));
         childImplementations.put(TCPConnectionsExpression.NAME, new TCPConnectionsExpression(networkService));
         childImplementations.put(TCPPacketsExpression.NAME, new TCPPacketsExpression(networkService));
     }
@@ -49,38 +46,36 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private final NetworkService networkService;
 
         protected TCPConnectionsExpression(NetworkService networkService) {
-            super(new ColumnIdent(NodeNetworkExpression.NAME,
-                    ImmutableList.of(NodeNetworkTCPExpression.NAME, NAME)));
             this.networkService = networkService;
             addChildImplementations();
         }
 
         private void addChildImplementations() {
-            childImplementations.put(INITIATED, new TCPConnectionsChildExpression(INITIATED) {
+            childImplementations.put(INITIATED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().activeOpens();
                 }
             });
-            childImplementations.put(ACCEPTED, new TCPConnectionsChildExpression(ACCEPTED) {
+            childImplementations.put(ACCEPTED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().passiveOpens();
                 }
             });
-            childImplementations.put(CURR_ESTABLISHED, new TCPConnectionsChildExpression(CURR_ESTABLISHED) {
+            childImplementations.put(CURR_ESTABLISHED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().currEstab();
                 }
             });
-            childImplementations.put(DROPPED, new TCPConnectionsChildExpression(DROPPED) {
+            childImplementations.put(DROPPED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().estabResets();
                 }
             });
-            childImplementations.put(EMBRYONIC_DROPPED, new TCPConnectionsChildExpression(EMBRYONIC_DROPPED) {
+            childImplementations.put(EMBRYONIC_DROPPED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().attemptFails();
@@ -90,10 +85,6 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
         private abstract class TCPConnectionsChildExpression extends SysNodeExpression<Long> {
 
-            protected TCPConnectionsChildExpression(String name) {
-                super(new ColumnIdent(NodeNetworkExpression.NAME,
-                        ImmutableList.of(NodeNetworkTCPExpression.NAME, NAME, name)));
-            }
         }
     }
 
@@ -110,38 +101,36 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private final NetworkService networkService;
 
         protected TCPPacketsExpression(NetworkService networkService) {
-            super(new ColumnIdent(NodeNetworkExpression.NAME,
-                    ImmutableList.of(NodeNetworkTCPExpression.NAME, NAME)));
             this.networkService = networkService;
             addChildImplementations();
         }
 
         private void addChildImplementations() {
-            childImplementations.put(SENT, new TCPPacketsChildExpression(SENT) {
+            childImplementations.put(SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().outSegs();
                 }
             });
-            childImplementations.put(RECEIVED, new TCPPacketsChildExpression(RECEIVED) {
+            childImplementations.put(RECEIVED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().inSegs();
                 }
             });
-            childImplementations.put(RETRANSMITTED, new TCPPacketsChildExpression(RETRANSMITTED) {
+            childImplementations.put(RETRANSMITTED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().retransSegs();
                 }
             });
-            childImplementations.put(ERRORS_RECEIVED, new TCPPacketsChildExpression(ERRORS_RECEIVED) {
+            childImplementations.put(ERRORS_RECEIVED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().inErrs();
                 }
             });
-            childImplementations.put(RST_SENT, new TCPPacketsChildExpression(RST_SENT) {
+            childImplementations.put(RST_SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
                     return networkService.stats().tcp().outRsts();
@@ -151,10 +140,6 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
         private abstract class TCPPacketsChildExpression extends SysNodeExpression<Long> {
 
-            protected TCPPacketsChildExpression(String name) {
-                super(new ColumnIdent(NodeNetworkExpression.NAME,
-                        ImmutableList.of(NodeNetworkTCPExpression.NAME, NAME, name)));
-            }
         }
 
     }

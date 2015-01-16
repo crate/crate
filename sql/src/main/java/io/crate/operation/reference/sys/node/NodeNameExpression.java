@@ -33,7 +33,6 @@ public class NodeNameExpression extends SysNodeExpression<BytesRef> {
 
     @Inject
     public NodeNameExpression(Discovery discovery) {
-        super(NAME);
         this.discovery = discovery;
     }
 

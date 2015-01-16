@@ -44,10 +44,6 @@ public class EvaluatingNormalizerTest {
                 return 0.08;
             }
 
-            @Override
-            public ReferenceInfo info() {
-                return dummyLoadInfo;
-            }
         });
 
         functions = new ModulesBuilder()
