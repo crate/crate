@@ -481,6 +481,12 @@ The table schema is as follows:
 |                  | False on non-partitioned         |             |
 |                  | tables.                          |             |
 +------------------+----------------------------------+-------------+
+| _node            | Information about the node the   | Object      |
+|                  | shard is located at              |             |
+|                  | at. Contains the same            |             |
+|                  | information as the ``sys.nodes`` |             |
+|                  | table.                           |             |
++------------------+----------------------------------+-------------+
 
 For example, you can query shards like this::
 

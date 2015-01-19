@@ -191,7 +191,7 @@ class TestGracefulStopNone(GracefulStopTest):
         os.kill(self.crates[0].process.pid, signal.SIGUSR2)
         self.wait_for_deallocation(self.node_names[0], client2)
         time.sleep(5)  # wait some time for discovery to kick in
-        response = client2.sql("select sys.nodes.id as node_id, id, state from sys.shards "
+        response = client2.sql("select _node['id'] as node_id, id, state from sys.shards "
                                "where state='UNASSIGNED'")
 
         # assert that some shards are not assigned
