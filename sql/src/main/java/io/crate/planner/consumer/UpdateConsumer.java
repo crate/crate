@@ -40,7 +40,7 @@ import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dml.UpdateByIdExecutionNode;
+import io.crate.planner.node.dml.UpdateByIdNode;
 import io.crate.planner.node.dml.UpdateNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
@@ -171,7 +171,7 @@ public class UpdateConsumer implements Consumer {
             assert whereClauseContext.ids().size() == whereClauseContext.routingValues().size();
             List<DQLPlanNode> nodes = new ArrayList<>(whereClauseContext.ids().size());
             for (int i = 0; i < whereClauseContext.ids().size(); i++) {
-                nodes.add(new UpdateByIdExecutionNode(
+                nodes.add(new UpdateByIdNode(
                                 indices[0],
                                 whereClauseContext.ids().get(i),
                                 whereClauseContext.routingValues().get(i),

@@ -2,7 +2,6 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -30,7 +29,6 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -238,27 +236,17 @@ public class PlannerTest {
 
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {
-        Plan plan = plan("select count('foo'), name from users group by name");
-        Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = ((DistributedGroupByNode) iterator.next()).collectNode();
+        CollectNode collectNode = ((DistributedGroupByNode) plan("select count('foo'), name from users group by name")).collectNode();
         // TODO: optimize to not collect literal
         //assertThat(collectNode.toCollect().size(), is(1));
         GroupProjection groupProjection = (GroupProjection) collectNode.projections().get(0);
         Aggregation aggregation = groupProjection.values().get(0);
-        //assertTrue(aggregation.inputs().get(0).symbolType().isValueSymbol());
     }
 
     @Test
     public void testGroupByWithAggregationPlan() throws Exception {
-        Plan plan = plan("select count(*), name from users group by name");
-        PlanPrinter pp = new PlanPrinter();
-        System.out.println(pp.print(plan));
-
-        Iterator<PlanNode> iterator = plan.iterator();
-
-        PlanNode planNode = iterator.next();
-        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) planNode;
-        assertThat(iterator.hasNext(), is(false));
+        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) plan(
+                "select count(*), name from users group by name");
 
         // distributed collect
         CollectNode collectNode = distributedGroupByNode.collectNode();
@@ -309,7 +297,7 @@ public class PlannerTest {
 
     @Test
     public void testGetPlan() throws Exception {
-        Plan plan = plan("select name from users where id = 1");
+        IterablePlan plan = (IterablePlan)  plan("select name from users where id = 1");
         Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("users"));
@@ -327,7 +315,7 @@ public class PlannerTest {
 
     @Test
     public void testGetPlanStringLiteral() throws Exception {
-        Plan plan = plan("select name from characters where id = 'one'");
+        IterablePlan plan = (IterablePlan) plan("select name from characters where id = 'one'");
         Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("characters"));
@@ -338,7 +326,7 @@ public class PlannerTest {
 
     @Test
     public void testGetPlanPartitioned() throws Exception {
-        Plan plan = plan("select name, date from parted where id = 'one' and date = 0");
+        IterablePlan plan = (IterablePlan) plan("select name, date from parted where id = 'one' and date = 0");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode node = iterator.next();
         assertThat(node, instanceOf(ESGetNode.class));
@@ -351,7 +339,7 @@ public class PlannerTest {
 
     @Test
     public void testMultiGetPlan() throws Exception {
-        Plan plan = plan("select name from users where id in (1, 2)");
+        IterablePlan plan = (IterablePlan) plan("select name from users where id in (1, 2)");
         Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("users"));
@@ -362,7 +350,7 @@ public class PlannerTest {
 
     @Test
     public void testDeletePlan() throws Exception {
-        Plan plan = plan("delete from users where id = 1");
+        IterablePlan plan = (IterablePlan) plan("delete from users where id = 1");
         Iterator<PlanNode> iterator = plan.iterator();
         ESDeleteNode node = (ESDeleteNode) iterator.next();
         assertThat(node.index(), is("users"));
@@ -372,20 +360,15 @@ public class PlannerTest {
 
     @Test
     public void testMultiDeletePlan() throws Exception {
-        Plan plan = plan("delete from users where id in (1, 2)");
+        IterablePlan plan = (IterablePlan) plan("delete from users where id in (1, 2)");
         Iterator<PlanNode> iterator = plan.iterator();
         assertThat(iterator.next(), instanceOf(ESDeleteByQueryNode.class));
     }
 
     @Test
     public void testGroupByWithAggregationAndLimit() throws Exception {
-        Plan plan = plan("select count(*), name from users group by name limit 1 offset 1");
-        Iterator<PlanNode> iterator = plan.iterator();
-
-        PlanNode planNode = iterator.next();
-        assertThat(iterator.hasNext(), is(false));
-
-        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) planNode;
+        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) plan(
+                "select count(*), name from users group by name limit 1 offset 1");
 
         // distributed merge
         MergeNode mergeNode = distributedGroupByNode.reducerMergeNode();
@@ -417,17 +400,7 @@ public class PlannerTest {
 
     @Test
     public void testGlobalAggregationPlan() throws Exception {
-        String statementString = "select count(name) from users";
-        Statement statement = SqlParser.createStatement(statementString);
-
-        Analysis analysis = analyzer.analyze(statement);
-        Plan plan = planner.plan(analysis);
-        Iterator<PlanNode> iterator = plan.iterator();
-
-        PlanNode planNode = iterator.next();
-        assertThat(iterator.hasNext(), is(false));
-        assertThat(planNode, instanceOf(GlobalAggregateNode.class));
-        GlobalAggregateNode globalAggregateNode = (GlobalAggregateNode) planNode;
+        GlobalAggregateNode globalAggregateNode = (GlobalAggregateNode) plan("select count(name) from users");
         CollectNode collectNode = globalAggregateNode.collectNode();
 
         assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(0));
@@ -450,13 +423,8 @@ public class PlannerTest {
 
     @Test
     public void testGroupByOnNodeLevel() throws Exception {
-        Plan plan = plan("select count(*), name from sys.nodes group by name");
-
-        Iterator<PlanNode> iterator = plan.iterator();
-
-        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
-
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode) plan(
+                "select count(*), name from sys.nodes group by name");
         CollectNode collectNode = planNode.collectNode();
         assertFalse(collectNode.hasDownstreams());
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
@@ -485,11 +453,7 @@ public class PlannerTest {
 
     @Test
     public void testShardPlan() throws Exception {
-        Plan plan = plan("select id from sys.shards order by id limit 10");
-        // TODO: add where clause
-
-        Iterator<PlanNode> iterator = plan.iterator();
-        QueryAndFetchNode planNode = (QueryAndFetchNode)iterator.next();
+        QueryAndFetchNode planNode = (QueryAndFetchNode) plan("select id from sys.shards order by id limit 10");
         CollectNode collectNode = planNode.collectNode();
 
         assertEquals(DataTypes.INTEGER, collectNode.outputTypes().get(0));
@@ -503,14 +467,11 @@ public class PlannerTest {
         assertEquals(DataTypes.INTEGER, mergeNode.outputTypes().get(0));
 
         assertThat(mergeNode.numUpstreams(), is(2));
-
-        PlanPrinter pp = new PlanPrinter();
-        System.out.println(pp.print(plan));
     }
 
     @Test
     public void testESSearchPlan() throws Exception {
-        Plan plan = plan("select name from users where name = 'x' order by id limit 10");
+        IterablePlan plan = (IterablePlan) plan("select name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(QueryThenFetchNode.class));
@@ -533,7 +494,7 @@ public class PlannerTest {
 
     @Test
     public void testESSearchPlanPartitioned() throws Exception {
-        Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
+        IterablePlan plan = (IterablePlan) plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(QueryThenFetchNode.class));
@@ -556,7 +517,7 @@ public class PlannerTest {
 
     @Test
     public void testESSearchPlanFunction() throws Exception {
-        Plan plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
+        IterablePlan plan = (IterablePlan) plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(QueryThenFetchNode.class));
@@ -577,7 +538,7 @@ public class PlannerTest {
 
     @Test
     public void testESIndexPlan() throws Exception {
-        Plan plan = plan("insert into users (id, name) values (42, 'Deep Thought')");
+        IterablePlan plan = (IterablePlan) plan("insert into users (id, name) values (42, 'Deep Thought')");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESIndexNode.class));
@@ -598,7 +559,7 @@ public class PlannerTest {
 
     @Test
     public void testESIndexPlanMultipleValues() throws Exception {
-        Plan plan = plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
+        IterablePlan plan = (IterablePlan) plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESIndexNode.class));
@@ -624,11 +585,7 @@ public class PlannerTest {
 
     @Test
     public void testCountDistinctPlan() throws Exception {
-        Plan plan = plan("select count(distinct name) from users");
-        Iterator<PlanNode> iterator = plan.iterator();
-
-        GlobalAggregateNode globalAggregateNode = ((GlobalAggregateNode) iterator.next());
-        assertThat(iterator.hasNext(), is(false));
+        GlobalAggregateNode globalAggregateNode = (GlobalAggregateNode) plan("select count(distinct name) from users");
 
         CollectNode collectNode = globalAggregateNode.collectNode();
         Projection projection = collectNode.projections().get(0);
@@ -654,9 +611,8 @@ public class PlannerTest {
 
     @Test
     public void testNonDistributedGroupByOnClusteredColumn() throws Exception {
-        Plan plan = plan("select count(*), id from users group by id limit 20");
-        Iterator<PlanNode> iterator = plan.iterator();
-        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode) plan(
+                "select count(*), id from users group by id limit 20");
         CollectNode collectNode = planNode.collectNode();
         assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(2));
@@ -664,14 +620,12 @@ public class PlannerTest {
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
-        assertFalse(iterator.hasNext());
     }
 
     @Test
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
-        Plan plan = plan("select count(*), id, date from empty_parted group by id, date limit 20");
-        Iterator<PlanNode> iterator = plan.iterator();
-        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode) plan(
+                "select count(*), id, date from empty_parted group by id, date limit 20");
         CollectNode collectNode = planNode.collectNode();
         assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(2));
@@ -681,15 +635,12 @@ public class PlannerTest {
         MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
-        assertFalse(iterator.hasNext());
     }
 
     @Test
     public void testGroupByWithOrderOnAggregate() throws Exception {
-        Plan plan = plan("select count(*), name from users group by name order by count(*)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) plan(
+                "select count(*), name from users group by name order by count(*)");
 
         // sort is on handler because there is no limit/offset
         // handler
@@ -706,19 +657,14 @@ public class PlannerTest {
 
     @Test
     public void testHandlerSideRouting() throws Exception {
-        Plan plan = plan("select * from sys.cluster");
-        Iterator<PlanNode> iterator = plan.iterator();
         // just testing the dispatching here.. making sure it is not a ESSearchNode
-        assertThat(iterator.next(), instanceOf(QueryAndFetchNode.class));
-        assertThat(iterator.hasNext(), is(false));
+        QueryAndFetchNode plan = (QueryAndFetchNode) plan("select * from sys.cluster");
     }
 
     @Test
     public void testHandlerSideRoutingGroupBy() throws Exception {
-        Plan plan = plan("select count(*) from sys.cluster group by name");
-        Iterator<PlanNode> iterator = plan.iterator();
-        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode) plan(
+                "select count(*) from sys.cluster group by name");
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         CollectNode collectNode = planNode.collectNode();
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
@@ -732,12 +678,9 @@ public class PlannerTest {
 
     @Test
     public void testCountDistinctWithGroupBy() throws Exception {
-        Plan plan = plan("select count(distinct id), name from users group by name order by count(distinct id)");
-        Iterator<PlanNode> iterator = plan.iterator();
-
-        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) iterator.next();
+        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) plan(
+                "select count(distinct id), name from users group by name order by count(distinct id)");
         CollectNode collectNode = distributedGroupByNode.collectNode();
-        assertThat(iterator.hasNext(), is(false));
 
         // collect
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
@@ -786,15 +729,16 @@ public class PlannerTest {
 
     @Test
     public void testUpdateByQueryPlan() throws Exception {
-        Plan plan = plan("update users set name='Vogon lyric fan'");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
+        UpdateNode plan = (UpdateNode) plan("update users set name='Vogon lyric fan'");
+        assertThat(plan.nodes().size(), is(1));
+
+        List<DQLPlanNode> childNodes = plan.nodes().get(0);
+
+        PlanNode planNode= childNodes.get(0);
+
         assertThat(planNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.LONG, planNode.outputTypes().get(0));
-        assertThat(planNode, instanceOf(UpdateNode.class));
-        assertThat(((UpdateNode) planNode).nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = ((UpdateNode)planNode).nodes().get(0);
         assertThat(childNodes.size(), is(2));
         assertThat(childNodes.get(0), instanceOf(CollectNode.class));
         assertThat(childNodes.get(1), instanceOf(MergeNode.class));
@@ -823,19 +767,14 @@ public class PlannerTest {
 
     @Test
     public void testUpdateByIdPlan() throws Exception {
-        Plan plan = plan("update users set name='Vogon lyric fan' where id=1");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.LONG, planNode.outputTypes().get(0));
-        assertThat(planNode, instanceOf(UpdateNode.class));
-        assertThat(((UpdateNode) planNode).nodes().size(), is(1));
+        UpdateNode planNode = (UpdateNode) plan("update users set name='Vogon lyric fan' where id=1");
+        assertThat(planNode.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = ((UpdateNode)planNode).nodes().get(0);
+        List<DQLPlanNode> childNodes = planNode.nodes().get(0);
         assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(UpdateByIdExecutionNode.class));
+        assertThat(childNodes.get(0), instanceOf(UpdateByIdNode.class));
 
-        UpdateByIdExecutionNode updateNode = (UpdateByIdExecutionNode)childNodes.get(0);
+        UpdateByIdNode updateNode = (UpdateByIdNode)childNodes.get(0);
         assertThat(updateNode.index(), is("users"));
         assertThat(updateNode.id(), is("1"));
 
@@ -846,19 +785,16 @@ public class PlannerTest {
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
-        Plan plan = plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(UpdateNode.class));
-        assertThat(((UpdateNode) planNode).nodes().size(), is(1));
+        UpdateNode planNode =  (UpdateNode) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");;
+        assertThat(planNode.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = ((UpdateNode)planNode).nodes().get(0);
+        List<DQLPlanNode> childNodes = planNode.nodes().get(0);
         assertThat(childNodes.size(), is(3));
 
         List<String> ids = new ArrayList<>(3);
         for (DQLPlanNode executionNode : childNodes) {
-            assertThat(executionNode, instanceOf(UpdateByIdExecutionNode.class));
-            ids.add(((UpdateByIdExecutionNode)executionNode).id());
+            assertThat(executionNode, instanceOf(UpdateByIdNode.class));
+            ids.add(((UpdateByIdNode)executionNode).id());
         }
 
         assertThat(ids, containsInAnyOrder("1", "2", "3"));
@@ -866,7 +802,7 @@ public class PlannerTest {
 
     @Test
     public void testCopyFromPlan() throws Exception {
-        Plan plan = plan("copy users from '/path/to/file.extension'");
+        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.extension'");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
@@ -878,7 +814,7 @@ public class PlannerTest {
 
     @Test
     public void testCopyFromNumReadersSetting() throws Exception {
-        Plan plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)");
+        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.extension' with (num_readers=1)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
@@ -888,7 +824,7 @@ public class PlannerTest {
 
     @Test
     public void testCopyFromPlanWithParameters() throws Exception {
-        Plan plan = plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
+        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
@@ -899,7 +835,7 @@ public class PlannerTest {
         assertThat(collectNode.sharedStorage(), is(true));
 
         // verify defaults:
-        plan = plan("copy users from '/path/to/file.ext'");
+        plan = (IterablePlan) plan("copy users from '/path/to/file.ext'");
         iterator = plan.iterator();
         collectNode = (FileUriCollectNode)iterator.next();
         assertNull(collectNode.compression());
@@ -908,7 +844,7 @@ public class PlannerTest {
 
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
-        Plan plan = plan("copy users (name) to '/file.ext'");
+        IterablePlan plan = (IterablePlan) plan("copy users (name) to '/file.ext'");
         CollectNode node = (CollectNode)plan.iterator().next();
         Reference nameRef = (Reference)node.toCollect().get(0);
 
@@ -918,7 +854,7 @@ public class PlannerTest {
 
     @Test
     public void testCopyToWithNonExistentPartitionClause() throws Exception {
-        Plan plan = plan("copy parted partition (date=0) to '/foo.txt' ");
+        IterablePlan plan = (IterablePlan) plan("copy parted partition (date=0) to '/foo.txt' ");
         CollectNode collectNode = (CollectNode) plan.iterator().next();
         assertFalse(collectNode.routing().hasLocations());
     }
@@ -930,9 +866,7 @@ public class PlannerTest {
 
     @Test
     public void testShardSelect() throws Exception {
-        Plan plan = plan("select id from sys.shards");
-        Iterator<PlanNode> iterator = plan.iterator();
-        QueryAndFetchNode planNode = (QueryAndFetchNode)iterator.next();
+        QueryAndFetchNode planNode = (QueryAndFetchNode) plan("select id from sys.shards");
         CollectNode collectNode = planNode.collectNode();
         assertTrue(collectNode.isRouted());
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
@@ -940,7 +874,7 @@ public class PlannerTest {
 
     @Test
     public void testDropTable() throws Exception {
-        Plan plan = plan("drop table users");
+        IterablePlan plan = (IterablePlan) plan("drop table users");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(DropTableNode.class));
@@ -951,7 +885,7 @@ public class PlannerTest {
 
     @Test
     public void testDropPartitionedTable() throws Exception {
-        Plan plan = plan("drop table parted");
+        IterablePlan plan = (IterablePlan) plan("drop table parted");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
 
@@ -964,7 +898,7 @@ public class PlannerTest {
 
     @Test
     public void testGlobalCountPlan() throws Exception {
-        Plan plan = plan("select count(*) from users");
+        IterablePlan plan = (IterablePlan) plan("select count(*) from users");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(PlannedAnalyzedRelation.class));
@@ -977,7 +911,7 @@ public class PlannerTest {
 
     @Test
     public void testSetPlan() throws Exception {
-        Plan plan = plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
+        IterablePlan plan = (IterablePlan) plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
@@ -987,7 +921,7 @@ public class PlannerTest {
         assertThat(node.transientSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
         assertThat(node.persistentSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
 
-        plan = plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
+        plan = (IterablePlan)  plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
         iterator = plan.iterator();
         planNode = iterator.next();
         assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
@@ -999,21 +933,18 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
-        Plan plan = plan("insert into users (id, name) (select name, count(*) from sys.nodes where name='Ford' group by name)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode) plan(
+                "insert into users (id, name) (select name, count(*) from sys.nodes where name='Ford' group by name)");
 
         MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
-        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test (expected = UnsupportedFeatureException.class)
     public void testInsertFromSubQueryDistributedGroupByWithLimit() throws Exception {
-        Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name order by name limit 10)");
+        IterablePlan plan = (IterablePlan) plan("insert into users (id, name) (select name, count(*) from users group by name order by name limit 10)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CollectNode.class));
@@ -1038,10 +969,8 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryDistributedGroupByWithoutLimit() throws Exception {
-        Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        DistributedGroupByNode planNode = (DistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        DistributedGroupByNode planNode = (DistributedGroupByNode) plan(
+                "insert into users (id, name) (select name, count(*) from users group by name)");
 
         MergeNode mergeNode = planNode.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
@@ -1063,15 +992,12 @@ public class PlannerTest {
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
 
-        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
     public void testInsertFromSubQueryDistributedGroupByPartitioned() throws Exception {
-        Plan plan = plan("insert into parted (id, date) (select id, date from users group by id, date)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        DistributedGroupByNode planNode = (DistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        DistributedGroupByNode planNode = (DistributedGroupByNode) plan(
+                "insert into parted (id, date) (select id, date from users group by id, date)");
 
         MergeNode mergeNode = planNode.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
@@ -1097,15 +1023,11 @@ public class PlannerTest {
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
 
-        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
     public void testInsertFromSubQueryGlobalAggregate() throws Exception {
-        Plan plan = plan("insert into users (name, id) (select arbitrary(name), count(*) from users)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        GlobalAggregateNode planNode = (GlobalAggregateNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        GlobalAggregateNode planNode = (GlobalAggregateNode) plan("insert into users (name, id) (select arbitrary(name), count(*) from users)");
 
         MergeNode mergeNode = planNode.mergeNode();
         assertThat(mergeNode.projections().size(), is(2));
@@ -1130,10 +1052,8 @@ public class PlannerTest {
     public void testInsertFromSubQueryESGet() throws Exception {
         // doesn't use ESGetNode but CollectNode.
         // Round-trip to handler can be skipped by writing from the shards directly
-        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users where id=1)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        QueryAndFetchNode planNode = (QueryAndFetchNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        QueryAndFetchNode planNode = (QueryAndFetchNode) plan(
+                "insert into users (date, id, name) (select date, id, name from users where id=1)");;
         CollectNode collectNode = planNode.collectNode();
 
         assertThat(collectNode.projections().size(), is(1));
@@ -1153,7 +1073,7 @@ public class PlannerTest {
 
     @Test (expected = UnsupportedFeatureException.class)
     public void testInsertFromSubQueryWithLimit() throws Exception {
-        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
+        IterablePlan plan = (IterablePlan) plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(QueryThenFetchNode.class));
@@ -1178,10 +1098,8 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryWithoutLimit() throws Exception {
-        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        QueryAndFetchNode planNode = (QueryAndFetchNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        QueryAndFetchNode planNode = (QueryAndFetchNode) plan(
+                "insert into users (date, id, name) (select date, id, name from users)");
         CollectNode collectNode = planNode.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
@@ -1201,13 +1119,8 @@ public class PlannerTest {
 
     @Test
     public void testGroupByHaving() throws Exception {
-        Plan plan = plan("select avg(date), name from users group by name having min(date) > '1970-01-01'");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(DistributedGroupByNode.class));
-        assertThat(iterator.hasNext(), is(false));
-
-        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) planNode;
+        DistributedGroupByNode distributedGroupByNode = (DistributedGroupByNode) plan(
+                "select avg(date), name from users group by name having min(date) > '1970-01-01'");
         CollectNode collectNode = distributedGroupByNode.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
@@ -1234,10 +1147,8 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromQueryWithPartitionedColumn() throws Exception {
-        Plan plan = plan("insert into users (id, date) (select id, date from parted)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        QueryAndFetchNode planNode = (QueryAndFetchNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        QueryAndFetchNode planNode = (QueryAndFetchNode) plan(
+                "insert into users (id, date) (select id, date from parted)");
 
         CollectNode collectNode = planNode.collectNode();
         List<Symbol> toCollect = collectNode.toCollect();
@@ -1250,9 +1161,8 @@ public class PlannerTest {
 
     @Test
     public void testGroupByHavingInsertInto() throws Exception {
-        Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        DistributedGroupByNode planNode = (DistributedGroupByNode)iterator.next();
+        DistributedGroupByNode planNode = (DistributedGroupByNode) plan(
+                "insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
         MergeNode mergeNode = planNode.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
@@ -1274,14 +1184,12 @@ public class PlannerTest {
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
 
-        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
     public void testGroupByHavingNonDistributed() throws Exception {
-        Plan plan = plan("select id from users group by id having id > 0");
-        Iterator<PlanNode> iterator = plan.iterator();
-        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode)iterator.next();
+        NonDistributedGroupByNode planNode = (NonDistributedGroupByNode) plan(
+                "select id from users group by id having id > 0");
         CollectNode collectNode = planNode.collectNode();
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
@@ -1298,18 +1206,12 @@ public class PlannerTest {
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(TopNProjection.class));
-
-
     }
 
     @Test
     public void testGlobalAggregationHaving() throws Exception {
-        Plan plan = plan("select avg(date) from users having min(date) > '1970-01-01'");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(iterator.hasNext(), is(false));
-        assertThat(planNode, instanceOf(GlobalAggregateNode.class));
-        GlobalAggregateNode globalAggregateNode = (GlobalAggregateNode) planNode;
+        GlobalAggregateNode globalAggregateNode = (GlobalAggregateNode) plan(
+                "select avg(date) from users having min(date) > '1970-01-01'");
         CollectNode collectNode = globalAggregateNode.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -1336,7 +1238,7 @@ public class PlannerTest {
 
     @Test
     public void testCountOnPartitionedTable() throws Exception {
-        Plan plan = plan("select count(*) from parted");
+        IterablePlan plan = (IterablePlan) plan("select count(*) from parted");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(PlannedAnalyzedRelation.class));
@@ -1375,10 +1277,8 @@ public class PlannerTest {
 
     @Test
     public void testGroupByWithHavingAndLimit() throws Exception {
-        Plan plan = plan("select count(*), name from users group by name having count(*) > 1 limit 100");
-        Iterator<PlanNode> iterator = plan.iterator();
-        DistributedGroupByNode planNode = (DistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        DistributedGroupByNode planNode = (DistributedGroupByNode) plan(
+                "select count(*), name from users group by name having count(*) > 1 limit 100");;
 
         MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
@@ -1419,11 +1319,8 @@ public class PlannerTest {
 
     @Test
     public void testGroupByWithHavingAndNoLimit() throws Exception {
-        Plan plan = plan("select count(*), name from users group by name having count(*) > 1");
-        Iterator<PlanNode> iterator = plan.iterator();
-        DistributedGroupByNode planNode = (DistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
-
+        DistributedGroupByNode planNode = (DistributedGroupByNode) plan(
+                "select count(*), name from users group by name having count(*) > 1");
 
         MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
@@ -1457,11 +1354,8 @@ public class PlannerTest {
 
     @Test
     public void testGroupByWithHavingAndNoSelectListReordering() throws Exception {
-        Plan plan = plan("select name, count(*) from users group by name having count(*) > 1");
-
-        Iterator<PlanNode> iterator = plan.iterator();
-        DistributedGroupByNode planNode = (DistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        DistributedGroupByNode planNode = (DistributedGroupByNode) plan(
+                "select name, count(*) from users group by name having count(*) > 1");
 
         MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
@@ -1492,10 +1386,8 @@ public class PlannerTest {
 
     @Test
     public void testGroupByHavingAndNoSelectListReOrderingWithLimit() throws Exception {
-        Plan plan = plan("select name, count(*) from users group by name having count(*) > 1 limit 100");
-        Iterator<PlanNode> iterator = plan.iterator();
-        DistributedGroupByNode planNode = (DistributedGroupByNode)iterator.next();
-        assertThat(iterator.hasNext(), is(false));
+        DistributedGroupByNode planNode = (DistributedGroupByNode) plan(
+                "select name, count(*) from users group by name having count(*) > 1 limit 100");
 
         MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
@@ -1598,9 +1490,8 @@ public class PlannerTest {
 
     @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
-        Plan plan = plan("select min(name) from parted where date > 0");
-        Iterator<PlanNode> iterator = plan.iterator();
-        GlobalAggregateNode globalAggregateNode = (GlobalAggregateNode) iterator.next();
+        GlobalAggregateNode globalAggregateNode = (GlobalAggregateNode) plan(
+                "select min(name) from parted where date > 0");
 
         WhereClause whereClause = globalAggregateNode.collectNode().whereClause();
         assertThat(whereClause.partitions().size(), is(1));

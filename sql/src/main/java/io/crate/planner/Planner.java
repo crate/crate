@@ -36,6 +36,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.SumAggregation;
+import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
@@ -48,7 +49,6 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
@@ -107,8 +107,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        assert !analyzedStatement.hasNoResult() : "analysis has no result. we're wrong here";
-        return process(analyzedStatement, EMPTY_CONTEXT);
+        if (analyzedStatement.hasNoResult()){
+            return NoopPlan.INSTANCE;
+        }
+        Plan plan = process(analyzedStatement, EMPTY_CONTEXT);
+        return plan;
     }
 
     @Override
@@ -124,9 +127,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
         Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
-        Plan plan = new Plan();
-        ESIndex(analysis, plan);
-        return plan;
+        return new IterablePlan(createESIndexNode(analysis));
     }
 
     @Override
@@ -141,23 +142,26 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
-        Plan plan = new Plan();
+        IterablePlan plan = new IterablePlan();
         TableRelation tableRelation = (TableRelation) analyzedStatement.analyzedRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(whereClause);
             if (whereClauseContext.ids().size() == 1 && whereClauseContext.routingValues().size() == 1) {
-                ESDelete(tableRelation.tableInfo(), whereClauseContext, plan);
+                createESDeleteNode(tableRelation.tableInfo(), whereClauseContext, plan);
             } else {
-                ESDeleteByQuery(tableRelation.tableInfo(), whereClauseContext, plan);
+                createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauseContext, plan);
             }
+        }
+        if (plan.isEmpty()){
+            return NoopPlan.INSTANCE;
         }
         return plan;
     }
 
     @Override
     protected Plan visitCopyStatement(final CopyAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
+        IterablePlan plan = new IterablePlan();
         if (analysis.mode() == CopyAnalyzedStatement.Mode.FROM) {
             copyFromPlan(analysis, plan);
         } else if (analysis.mode() == CopyAnalyzedStatement.Mode.TO) {
@@ -167,7 +171,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return plan;
     }
 
-    private void copyToPlan(CopyAnalyzedStatement analysis, Plan plan) {
+    private void copyToPlan(CopyAnalyzedStatement analysis, IterablePlan plan) {
         TableInfo tableInfo = analysis.table();
         WriterProjection projection = new WriterProjection();
         projection.uri(analysis.uri());
@@ -210,7 +214,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         plan.add(mergeNode);
     }
 
-    private void copyFromPlan(CopyAnalyzedStatement analysis, Plan plan) {
+    private void copyFromPlan(CopyAnalyzedStatement analysis, IterablePlan plan) {
         /**
          * copy from has two "modes":
          *
@@ -319,21 +323,16 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement statement, Context context) {
-        Plan plan = new Plan();
-        plan.add(new GenericDDLNode(statement));
-        return plan;
+        return new IterablePlan(new GenericDDLNode(statement));
     }
 
     @Override
     protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
-        plan.add(new DropTableNode(analysis.table()));
-        return plan;
+        return new IterablePlan(new DropTableNode(analysis.table()));
     }
 
     @Override
     protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
         TableIdent tableIdent = analysis.tableIdent();
 
         CreateTableNode createTableNode;
@@ -352,14 +351,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     analysis.mapping()
             );
         }
-        plan.add(createTableNode);
-        return plan;
+        return new IterablePlan(createTableNode);
     }
 
     @Override
     protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
-
         Settings analyzerSettings;
         try {
             analyzerSettings = analysis.buildSettings();
@@ -368,13 +364,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(analyzerSettings);
-        plan.add(node);
-        return plan;
+        return new IterablePlan(node);
     }
 
     @Override
     public Plan visitSetStatement(SetAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
         ESClusterUpdateSettingsNode node;
         if (analysis.isReset()) {
             // always reset persistent AND transient settings
@@ -386,11 +380,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
             }
         }
-        plan.add(node);
-        return plan;
+        return new IterablePlan(node);
     }
 
-    private void ESDelete(TableInfo tableInfo, WhereClauseContext whereClauseContext, Plan plan) {
+    private void createESDeleteNode(TableInfo tableInfo, WhereClauseContext whereClauseContext, IterablePlan plan) {
         assert whereClauseContext.ids().size() == 1 && whereClauseContext.routingValues().size() == 1;
         plan.add(new ESDeleteNode(
                 indices(tableInfo, whereClauseContext.whereClause())[0],
@@ -399,7 +392,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 whereClauseContext.whereClause().version()));
     }
 
-    private void ESDeleteByQuery(TableInfo tableInfo, WhereClauseContext whereClauseContext, Plan plan) {
+    @Nullable
+    private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClauseContext whereClauseContext, IterablePlan plan) {
         WhereClause whereClause = whereClauseContext.whereClause();
 
         String[] indices = indices(tableInfo, whereClause);
@@ -412,13 +406,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
                 // forbidden through analysis, we must issue deleteByQuery request in addition
                 // to above deleteIndex request(s)
-                ESDeleteByQueryNode node = new ESDeleteByQueryNode(indices, whereClause);
-                plan.add(node);
+                plan.add(new ESDeleteByQueryNode(indices, whereClause));
             }
         }
     }
 
-    private void ESIndex(InsertFromValuesAnalyzedStatement analysis, Plan plan) {
+    private ESIndexNode createESIndexNode(InsertFromValuesAnalyzedStatement analysis) {
         String[] indices;
         if (analysis.tableInfo().isPartitioned()) {
             List<String> partitions = analysis.generatePartitions();
@@ -435,7 +428,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.tableInfo().isPartitioned(),
                 analysis.isBulkRequest()
         );
-        plan.add(indexNode);
+        return indexNode;
     }
 
     static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {

@@ -26,11 +26,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
-import io.crate.executor.TaskResult;
-import io.crate.metadata.PartitionName;
 import io.crate.executor.Job;
+import io.crate.executor.TaskResult;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.CreateTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -116,8 +117,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
-        Plan plan = new Plan();
-        plan.add(createTableNode);
+        Plan plan = new IterablePlan(createTableNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -148,8 +148,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
-        Plan plan = new Plan();
-        plan.add(createTableNode);
+        Plan plan = new IterablePlan(createTableNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -184,8 +183,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
-        Plan plan = new Plan();
-        plan.add(createTableNode);
+        Plan plan = new IterablePlan(createTableNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -218,8 +216,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         ESDeleteIndexNode deleteIndexNode = new ESDeleteIndexNode("t");
-        Plan plan = new Plan();
-        plan.add(deleteIndexNode);
+        Plan plan = new IterablePlan(deleteIndexNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -246,8 +243,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertTrue(client().admin().indices().prepareClose("t").execute().actionGet().isAcknowledged());
 
         ESDeleteIndexNode deleteIndexNode = new ESDeleteIndexNode("t");
-        Plan plan = new Plan();
-        plan.add(deleteIndexNode);
+        Plan plan = new IterablePlan(deleteIndexNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -280,8 +276,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(persistentSettings);
 
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -299,8 +294,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         node = new ESClusterUpdateSettingsNode(EMPTY_SETTINGS, transientSettings);
 
-        plan = new Plan();
-        plan.add(node);
+        plan = new IterablePlan(node);
 
         job = executor.newJob(plan);
         futures = executor.execute(job);
@@ -321,8 +315,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         node = new ESClusterUpdateSettingsNode(persistentSettings, transientSettings);
 
-        plan = new Plan();
-        plan.add(node);
+        plan = new IterablePlan(node);
 
         job = executor.newJob(plan);
         futures = executor.execute(job);
@@ -375,8 +368,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 indexSettings,
                 mapping,
                 alias);
-        Plan plan = new Plan();
-        plan.add(planNode);
+        Plan plan = new IterablePlan(planNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);

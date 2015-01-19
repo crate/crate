@@ -23,7 +23,6 @@ package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.planner.node.PlanNode;
-import org.elasticsearch.common.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -50,9 +49,7 @@ public interface TaskExecutor {
      * task in <code>tasks</code>
      *
      * @param tasks a collection of tasks to be executed
-     * @param upstreamTask a task whose result will be fed to the first task of <code>tasks</code>
-     *                     for support of chaining tasks. can be null.
      * @return a list of futures, from the last task
      */
-    public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks, @Nullable Task upstreamTask);
+    public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks);
 }

@@ -256,7 +256,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
             task.start(pageInfo);
             return task.result();
         }
-        return this.taskExecutor.execute(tasks, null);
+        return this.taskExecutor.execute(tasks);
     }
 
     public ListenableFuture<TaskResult> execute(final Optional<PageInfo> pageInfo) {

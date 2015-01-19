@@ -30,6 +30,7 @@ import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
+import io.crate.executor.task.NoopTask;
 import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
@@ -39,8 +40,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.planner.Plan;
-import io.crate.planner.RowGranularity;
+import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
@@ -48,7 +48,6 @@ import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -66,6 +65,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final Functions functions;
     private final Provider<SearchPhaseController> searchPhaseControllerProvider;
+    private final TaskCollectingVisitor planVisitor;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
     private final StatsTables statsTables;
     private final Visitor visitor;
@@ -112,6 +112,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.crateResultSorter = crateResultSorter;
         this.bigArrays = bigArrays;
         this.visitor = new Visitor();
+        this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.CLUSTER);
@@ -123,16 +124,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
     @Override
     public Job newJob(Plan plan) {
         final Job job = new Job();
-        for (PlanNode planNode : plan) {
-            job.addTasks(planNode.accept(visitor, job.id()));
-        }
+        planVisitor.process(plan, job);
         return job;
     }
 
     @Override
     public List<ListenableFuture<TaskResult>> execute(Job job) {
         assert job.tasks().size() > 0;
-        return execute(job.tasks(), null);
+        return execute(job.tasks());
 
     }
 
@@ -142,8 +141,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks, @Nullable Task upstreamTask) {
-        Task lastTask = upstreamTask;
+    public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
+        Task lastTask = null;
         for (Task task : tasks) {
             // chaining tasks
             if (lastTask != null) {
@@ -152,8 +151,69 @@ public class TransportExecutor implements Executor, TaskExecutor {
             task.start();
             lastTask = task;
         }
-        assert lastTask != upstreamTask;
         return lastTask.result();
+    }
+
+    class TaskCollectingVisitor extends PlanVisitor<Job, Void> {
+
+        @Override
+        public Void visitIterablePlan(IterablePlan plan, Job job) {
+            for (PlanNode planNode : plan) {
+                job.addTasks(planNode.accept(visitor, job.id()));
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitNoopPlan(NoopPlan plan, Job job) {
+            job.addTask(NoopTask.INSTANCE);
+            return null;
+        }
+
+        @Override
+        public Void visitGlobalAggregateNode(GlobalAggregateNode plan, Job job) {
+            job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(visitor.visitMergeNode(plan.mergeNode(), job.id()));
+            return null;
+        }
+
+        @Override
+        public Void visitQueryAndFetchNode(QueryAndFetchNode plan, Job job) {
+            job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            return null;
+        }
+
+        @Override
+        public Void visitNonDistributedGroupByNode(NonDistributedGroupByNode plan, Job job) {
+            job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            return null;
+        }
+
+        @Override
+        public Void visitUpdateNode(UpdateNode plan, Job job) {
+            ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
+            for (List<DQLPlanNode> childNodes : plan.nodes()) {
+                List<Task> subTasks = new ArrayList<>(childNodes.size());
+                for (DQLPlanNode childNode : childNodes) {
+                    subTasks.addAll(childNode.accept(visitor, job.id()));
+                }
+                UpdateTask updateTask = new UpdateTask(TransportExecutor.this, job.id(), subTasks);
+                taskBuilder.add(updateTask);
+            }
+            job.addTasks(taskBuilder.build());
+            return null;
+        }
+
+        @Override
+        public Void visitDistributedGroupByNode(DistributedGroupByNode plan, Job job) {
+            job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(visitor.visitMergeNode(plan.reducerMergeNode(), job.id()));
+            job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            return null;
+        }
+
     }
 
     class Visitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
@@ -210,48 +270,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitGlobalAggregateNode(GlobalAggregateNode node, UUID jobId) {
-            return ImmutableList.<Task>builder()
-                    .addAll(
-                            visitCollectNode(node.collectNode(), jobId))
-                    .addAll(
-                            visitMergeNode(node.mergeNode(), jobId))
-                    .build();
-        }
-
-        @Override
-        public ImmutableList<Task> visitDistributedGroupByNode(DistributedGroupByNode node, UUID jobId) {
-            return ImmutableList.<Task>builder()
-                    .addAll(
-                            visitCollectNode(node.collectNode(), jobId)
-                    ).addAll(
-                            visitMergeNode(node.reducerMergeNode(), jobId)
-                    ).addAll(
-                            visitMergeNode(node.localMergeNode(), jobId)
-                    ).build();
-        }
-
-        @Override
-        public ImmutableList<Task> visitNonDistributedGroupByNode(NonDistributedGroupByNode node, UUID jobId){
-            return ImmutableList.<Task>builder()
-                    .addAll(
-                            visitCollectNode(node.collectNode(), jobId)
-                    ).addAll(
-                            visitMergeNode(node.localMergeNode(), jobId)
-                    ).build();
-        }
-
-        @Override
-        public ImmutableList<Task> visitQueryAndFetchNode(QueryAndFetchNode node, UUID jobId){
-            return ImmutableList.<Task>builder()
-                    .addAll(
-                            visitCollectNode(node.collectNode(), jobId)
-                    ).addAll(
-                            visitMergeNode(node.localMergeNode(), jobId)
-                    ).build();
-        }
-
-        @Override
         public ImmutableList<Task> visitQueryThenFetchNode(QueryThenFetchNode node, UUID jobId) {
             return singleTask(new QueryThenFetchTask(
                     jobId,
@@ -273,14 +291,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
             List<Task> innerTasks = node.inner().accept(this, jobId);
             return singleTask(
                     new NestedLoopTask(
-                        jobId,
-                        clusterService.localNode().id(),
-                        node,
-                        outerTasks,
-                        innerTasks,
-                        TransportExecutor.this,
-                        globalProjectionToProjectionVisitor,
-                        circuitBreaker)
+                            jobId,
+                            clusterService.localNode().id(),
+                            node,
+                            outerTasks,
+                            innerTasks,
+                            TransportExecutor.this,
+                            globalProjectionToProjectionVisitor,
+                            circuitBreaker)
             );
         }
 
@@ -352,21 +370,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitUpdateNode(UpdateNode node, UUID jobId) {
-            ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
-            for (List<DQLPlanNode> childNodes : node.nodes()) {
-                List<Task> subTasks = new ArrayList<>(childNodes.size());
-                for (DQLPlanNode childNode : childNodes) {
-                    subTasks.addAll(childNode.accept(this, jobId));
-                }
-                UpdateTask updateTask = new UpdateTask(TransportExecutor.this, jobId, subTasks);
-                taskBuilder.add(updateTask);
-            }
-            return taskBuilder.build();
-        }
-
-        @Override
-        public ImmutableList<Task> visitUpdateByIdExecutionNode(UpdateByIdExecutionNode node, UUID jobId) {
+        public ImmutableList<Task> visitUpdateByIdNode(UpdateByIdNode node, UUID jobId) {
             return singleTask(new UpdateByIdTask(jobId,
                     transportActionProvider.transportShardUpdateAction(),
                     node));

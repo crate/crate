@@ -59,7 +59,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -135,7 +134,7 @@ public class NestedLoopOperationTest {
         }
 
         @Override
-        public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks, @Nullable Task upstreamTask) {
+        public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
             return Iterables.getLast(tasks).result();
         }
     }

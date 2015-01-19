@@ -21,5 +21,13 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.planner.Plan;
+
 public interface PlannedAnalyzedRelation extends AnalyzedRelation {
+
+    /**
+     * Returns a plan for this relation.
+     */
+    public Plan plan();
+
 }

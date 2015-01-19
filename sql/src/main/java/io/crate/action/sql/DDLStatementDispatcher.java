@@ -28,16 +28,17 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.executor.TaskResult;
-import io.crate.metadata.PartitionName;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
@@ -171,10 +172,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         collectNode.outputTypes(ImmutableList.<DataType>of(DataTypes.UNDEFINED));
         MergeNode mergeNode = new MergeNode("local count merge", collectNode.executionNodes().size());
         mergeNode.projections(ImmutableList.<Projection>of(new AggregationProjection(ImmutableList.of(countAggregationFinal))));
-        Plan plan = new Plan();
-        plan.add(collectNode);
-        plan.add(mergeNode);
-        return plan;
+        return new IterablePlan(collectNode, mergeNode);
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<Long> result) {

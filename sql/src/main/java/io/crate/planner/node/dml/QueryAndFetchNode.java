@@ -5,17 +5,16 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.symbol.Field;
-import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class QueryAndFetchNode implements PlannedAnalyzedRelation, PlanNode {
+public class QueryAndFetchNode implements PlannedAnalyzedRelation, Plan {
 
     private final CollectNode collectNode;
     private final MergeNode localMergeNode;
@@ -47,18 +46,8 @@ public class QueryAndFetchNode implements PlannedAnalyzedRelation, PlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitQueryAndFetchNode(this, context);
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return localMergeNode.outputTypes();
-    }
-
-    @Override
-    public void outputTypes(List<DataType> outputTypes) {
-        throw new UnsupportedOperationException("set outputTypes is not supported");
     }
 
     public CollectNode collectNode() {
@@ -67,5 +56,10 @@ public class QueryAndFetchNode implements PlannedAnalyzedRelation, PlanNode {
 
     public MergeNode localMergeNode(){
         return localMergeNode;
+    }
+
+    @Override
+    public Plan plan() {
+        return this;
     }
 }

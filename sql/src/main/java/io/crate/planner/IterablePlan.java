@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,39 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.planner;
+
+import com.google.common.collect.Lists;
+import io.crate.planner.node.PlanNode;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.Iterator;
 
-public class Job {
+/**
+ * A plan which describes its nodes as an iteration.
+ */
+public class IterablePlan implements Iterable<PlanNode>, Plan {
 
-    private final UUID id;
-    private List<Task> tasks = new ArrayList<>();
+    private ArrayList<PlanNode> nodes;
 
-    public Job() {
-        this(UUID.randomUUID());
+    public IterablePlan(PlanNode... nodes) {
+        this.nodes = Lists.newArrayList(nodes);
     }
 
-    public Job(UUID id) {
-        this.id = id;
+    public void add(PlanNode node) {
+        nodes.add(node);
     }
 
-    public UUID id() {
-        return id;
+    @Override
+    public Iterator<PlanNode> iterator() {
+        return nodes.iterator();
     }
 
-    public void addTask(Task task){
-        tasks.add(task);
+    public boolean isEmpty() {
+        return nodes.isEmpty();
     }
 
-    public void addTasks(Collection<Task> tasks) {
-        this.tasks.addAll(tasks);
-    }
-
-    public List<Task> tasks() {
-        return tasks;
+    @Override
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitIterablePlan(this, context);
     }
 }

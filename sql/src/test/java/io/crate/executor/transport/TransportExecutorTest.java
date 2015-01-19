@@ -43,12 +43,13 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
+import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.UpdateByIdExecutionNode;
+import io.crate.planner.node.dml.UpdateByIdNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
@@ -79,7 +80,6 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
-import static org.junit.Assert.*;
 
 public class TransportExecutorTest extends BaseTransportExecutorTest {
 
@@ -122,8 +122,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.outputTypes(asList(load1.type()));
         collectNode.maxRowGranularity(RowGranularity.NODE);
 
-        Plan plan = new Plan();
-        plan.add(collectNode);
+        Plan plan = new IterablePlan(collectNode);
         Job job = executor.newJob(plan);
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -146,8 +145,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.outputTypes(asList(clusterNameInfo.type()));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
 
-        Plan plan = new Plan();
-        plan.add(collectNode);
+        Plan plan = new IterablePlan(collectNode);
         Job job = executor.newJob(plan);
 
         List<ListenableFuture<TaskResult>> results = executor.execute(job);
@@ -166,8 +164,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode node = newGetNode("characters", outputs, "2");
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -184,8 +181,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
         ESGetNode node = newGetNode("characters", outputs, "2");
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -200,8 +196,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode node = newGetNode("characters", outputs, asList("1", "2"));
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -224,8 +219,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 null, null, WhereClause.MATCH_ALL,
                 null
         );
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
@@ -266,8 +260,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new WhereClause(whereClause),
                 null
         );
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
@@ -327,9 +320,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
         topN.outputs(Arrays.<Symbol>asList(new InputColumn(0), function));
         mergeNode.projections(Arrays.<Projection>asList(topN));
-        Plan plan = new Plan();
-        plan.add(node);
-        plan.add(mergeNode);
+        Plan plan = new IterablePlan(node, mergeNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(2));
 
@@ -361,8 +352,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 WhereClause.MATCH_ALL,
                 Arrays.asList(partedDateRef.info())
         );
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
@@ -395,8 +385,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ESDeleteByQueryNode node = new ESDeleteByQueryNode(
                 new String[]{"characters"},
                 new WhereClause(whereClause));
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         ESDeleteByQueryTask task = (ESDeleteByQueryTask) job.tasks().get(0);
 
@@ -418,8 +407,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new WhereClause(whereClause),
                 null
         );
-        plan = new Plan();
-        plan.add(searchNode);
+        plan = new IterablePlan(searchNode);
         job = executor.newJob(plan);
         QueryThenFetchTask searchTask = (QueryThenFetchTask) job.tasks().get(0);
 
@@ -433,8 +421,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         ESDeleteNode node = new ESDeleteNode("characters", "2", "2", Optional.<Long>absent());
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
@@ -445,8 +432,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify deletion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "2");
-        plan = new Plan();
-        plan.add(getNode);
+        plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -472,8 +458,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 false,
                 false
         );
-        Plan plan = new Plan();
-        plan.add(indexNode);
+        Plan plan = new IterablePlan(indexNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
 
@@ -487,8 +472,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "99");
-        plan = new Plan();
-        plan.add(getNode);
+        plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -520,8 +504,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 true,
                 false
                 );
-        Plan plan = new Plan();
-        plan.add(indexNode);
+        Plan plan = new IterablePlan(indexNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -555,10 +538,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     @Test
     public void testESCountTask() throws Exception {
         setup.setUpCharacters();
-        Plan plan = new Plan();
         WhereClause whereClause = new WhereClause(null, false);
-        plan.add(new ESCountNode(new String[]{"characters"}, whereClause));
-
+        Plan plan = new IterablePlan(new ESCountNode(new String[]{"characters"}, whereClause));
         List<ListenableFuture<TaskResult>> result = executor.execute(executor.newJob(plan));
         Object[][] rows = result.get(0).get().rows();
 
@@ -590,8 +571,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 false
         );
 
-        Plan plan = new Plan();
-        plan.add(indexNode);
+        Plan plan = new IterablePlan(indexNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESBulkIndexTask.class));
 
@@ -605,8 +585,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, Arrays.asList("99", "42"));
-        plan = new Plan();
-        plan.add(getNode);
+        plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -624,7 +603,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
-        UpdateByIdExecutionNode updateNode = new UpdateByIdExecutionNode(
+        UpdateByIdNode updateNode = new UpdateByIdNode(
                 "characters",
                 "1",
                 "1",
@@ -633,8 +612,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 }},
                 Optional.<Long>fromNullable(null)
         );
-        Plan plan = new Plan();
-        plan.add(updateNode);
+        Plan plan = new IterablePlan(updateNode);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
@@ -648,8 +626,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "1");
-        plan = new Plan();
-        plan.add(getNode);
+        plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -723,8 +700,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         node.outputTypes(outputTypes);
         node.projections(ImmutableList.<Projection>of(projection));
 
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(NestedLoopTask.class));
@@ -761,8 +737,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         node2.outputTypes(outputTypes2);
         node2.projections(ImmutableList.<Projection>of(projection2));
 
-        Plan plan2 = new Plan();
-        plan2.add(node2);
+        Plan plan2 = new IterablePlan(node2);
 
         Job job2 = executor.newJob(plan2);
         assertThat(job2.tasks().get(0), instanceOf(NestedLoopTask.class));
@@ -839,8 +814,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(NestedLoopTask.class));
