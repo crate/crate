@@ -23,6 +23,7 @@ package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 
 public class ESDeleteNode extends DMLPlanNode {
 
@@ -53,6 +54,11 @@ public class ESDeleteNode extends DMLPlanNode {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESDeleteNode(this, context);
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
     }
 
     public Optional<Long> version() {

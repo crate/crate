@@ -27,6 +27,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
 import io.crate.types.DataType;
 
@@ -77,6 +78,11 @@ public class NonDistributedGroupByNode implements PlannedAnalyzedRelation, PlanN
     @Override
     public void outputTypes(List<DataType> outputTypes) {
         throw new UnsupportedOperationException("set outputTypes is not supported");
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
     }
 
     public MergeNode localMergeNode() {

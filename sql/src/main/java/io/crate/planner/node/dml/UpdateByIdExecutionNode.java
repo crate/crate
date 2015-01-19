@@ -23,6 +23,7 @@ package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 
 import java.util.Map;
@@ -70,5 +71,10 @@ public class UpdateByIdExecutionNode extends DMLPlanNode {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitUpdateByIdExecutionNode(this, context);
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
     }
 }

@@ -24,6 +24,7 @@ package io.crate.planner.node.ddl;
 import com.google.common.base.Optional;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -92,5 +93,10 @@ public class CreateTableNode extends DDLPlanNode {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitCreateTableNode(this, context);
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
     }
 }

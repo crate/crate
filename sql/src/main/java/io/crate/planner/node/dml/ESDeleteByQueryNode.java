@@ -23,6 +23,7 @@ package io.crate.planner.node.dml;
 
 import io.crate.analyze.WhereClause;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 
 public class ESDeleteByQueryNode extends DMLPlanNode {
 
@@ -47,4 +48,10 @@ public class ESDeleteByQueryNode extends DMLPlanNode {
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESDeleteByQueryNode(this, context);
     }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
+    }
+
 }

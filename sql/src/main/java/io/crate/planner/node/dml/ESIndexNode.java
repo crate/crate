@@ -22,6 +22,7 @@
 package io.crate.planner.node.dml;
 
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.bytes.BytesReference;
 
 import javax.annotation.Nullable;
@@ -77,6 +78,11 @@ public class ESIndexNode extends DMLPlanNode {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESIndexNode(this, context);
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
     }
 
     /**
