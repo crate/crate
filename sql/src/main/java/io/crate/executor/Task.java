@@ -45,11 +45,6 @@ import java.util.UUID;
 public interface Task {
 
     /**
-     * the id of the job this task is executed in
-     */
-    UUID jobId();
-
-    /**
      * start the execution
      */
     void start();

@@ -178,16 +178,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         final Plan plan = planner.plan(analysis);
         tracePlan(plan);
 
-        if (plan.isEmpty()) {
-            assert analyzedStatement.expectsAffectedRows();
+        executePlan(analyzedStatement, plan, outputNames, outputTypes, listener, request);
 
-            UUID jobId = UUID.randomUUID();
-            statsTables.jobStarted(jobId, request.stmt());
-            sendResponse(listener, emptyResponse(request, outputNames, outputTypes));
-            statsTables.jobFinished(jobId, null);
-        } else {
-            executePlan(analyzedStatement, plan, outputNames, outputTypes, listener, request);
-        }
     }
 
     private void executePlan(final AnalyzedStatement analyzedStatement,

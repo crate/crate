@@ -24,9 +24,9 @@ package io.crate.planner.consumer;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.planner.Plan;
-import io.crate.planner.node.PlanNode;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -58,9 +58,9 @@ public class ConsumingPlanner {
         for (int i = 0; i < consumers.size(); i++) {
             Consumer consumer = consumers.get(i);
             if (consumer.consume(consumerContext.rootRelation(), consumerContext)) {
-                if (consumerContext.rootRelation() instanceof PlanNode) {
-                    Plan plan = new Plan();
-                    plan.add((PlanNode) consumerContext.rootRelation());
+                if (consumerContext.rootRelation() instanceof PlannedAnalyzedRelation) {
+                    Plan plan = ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan();
+                    assert plan != null;
                     return plan;
                 } else {
                     i = 0;

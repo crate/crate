@@ -51,7 +51,7 @@ public class UpdateTask extends AsyncChainedTask {
             result.set(RowCountResult.EMPTY_RESULT);
             return;
         }
-        final List<ListenableFuture<TaskResult>> subTasksResult = transportExecutor.execute(subTasks, null);
+        final List<ListenableFuture<TaskResult>> subTasksResult = transportExecutor.execute(subTasks);
         Futures.addCallback(Futures.allAsList(subTasksResult), new FutureCallback<List<TaskResult>>() {
             @Override
             public void onSuccess(@Nullable List<TaskResult> results) {

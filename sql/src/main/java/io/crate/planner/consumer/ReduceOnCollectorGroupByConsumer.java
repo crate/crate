@@ -38,7 +38,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.node.dql.NonDistributedGroupByNode;
+import io.crate.planner.node.dql.NonDistributedGroupBy;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -214,7 +214,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             contextBuilder.addProjection(indexWriterProjection);
         }
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode);
-        return new NonDistributedGroupByNode(collectNode, localMergeNode);
+        return new NonDistributedGroupBy(collectNode, localMergeNode);
     }
 
     /**

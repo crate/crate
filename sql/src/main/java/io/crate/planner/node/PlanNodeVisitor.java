@@ -65,11 +65,7 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitUpdateNode(UpdateNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
-    public R visitUpdateByIdExecutionNode(UpdateByIdExecutionNode node, C context) {
+    public R visitUpdateByIdNode(UpdateByIdNode node, C context) {
         return visitPlanNode(node, context);
     }
 
@@ -105,23 +101,8 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitGlobalAggregateNode(GlobalAggregateNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
-    public R visitDistributedGroupByNode(DistributedGroupByNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
-    public R visitNonDistributedGroupByNode(NonDistributedGroupByNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
     public R visitNestedLoopNode(NestedLoopNode node, C context) {
         return visitPlanNode(node, context);
     }
 
-    public R visitQueryAndFetchNode(QueryAndFetchNode node, C context){
-        return visitPlanNode(node, context);
-    }
 }

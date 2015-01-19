@@ -27,7 +27,7 @@ import io.crate.planner.symbol.Symbol;
 
 import java.util.Map;
 
-public class UpdateByIdExecutionNode extends DMLPlanNode {
+public class UpdateByIdNode extends DMLPlanNode {
 
     private final String index;
     private final String id;
@@ -35,11 +35,11 @@ public class UpdateByIdExecutionNode extends DMLPlanNode {
     private final Map<String, Symbol> assignments;
     private final Optional<Long> version;
 
-    public UpdateByIdExecutionNode(String index,
-                                   String id,
-                                   String routing,
-                                   Map<String, Symbol> assignments,
-                                   Optional<Long> version) {
+    public UpdateByIdNode(String index,
+                          String id,
+                          String routing,
+                          Map<String, Symbol> assignments,
+                          Optional<Long> version) {
         this.index = index;
         this.id = id;
         this.routing = routing;
@@ -69,6 +69,6 @@ public class UpdateByIdExecutionNode extends DMLPlanNode {
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitUpdateByIdExecutionNode(this, context);
+        return visitor.visitUpdateByIdNode(this, context);
     }
 }

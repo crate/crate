@@ -27,7 +27,7 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpdateRequest;
 import io.crate.executor.transport.ShardUpdateResponse;
 import io.crate.executor.transport.TransportShardUpdateAction;
-import io.crate.planner.node.dml.UpdateByIdExecutionNode;
+import io.crate.planner.node.dml.UpdateByIdNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -65,7 +65,7 @@ public class UpdateByIdTask extends AsyncChainedTask {
         }
     }
 
-    public UpdateByIdTask(UUID jobId, TransportShardUpdateAction transport, UpdateByIdExecutionNode node) {
+    public UpdateByIdTask(UUID jobId, TransportShardUpdateAction transport, UpdateByIdNode node) {
         super(jobId);
         this.transport = transport;
 
@@ -78,7 +78,7 @@ public class UpdateByIdTask extends AsyncChainedTask {
         transport.execute(this.request, this.listener);
     }
 
-    protected ShardUpdateRequest buildUpdateRequest(UpdateByIdExecutionNode node) {
+    protected ShardUpdateRequest buildUpdateRequest(UpdateByIdNode node) {
         ShardUpdateRequest request = new ShardUpdateRequest(node.index(), node.id());
         request.routing(node.routing());
         if (node.version().isPresent()) {

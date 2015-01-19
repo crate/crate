@@ -37,7 +37,7 @@ import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.node.dql.NonDistributedGroupByNode;
+import io.crate.planner.node.dql.NonDistributedGroupBy;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
@@ -193,7 +193,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             contextBuilder.addProjection(indexWriterProjection);
         }
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode);
-        return new NonDistributedGroupByNode(collectNode, localMergeNode);
+        return new NonDistributedGroupBy(collectNode, localMergeNode);
     }
 
 
