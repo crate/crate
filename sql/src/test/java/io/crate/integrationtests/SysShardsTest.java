@@ -307,14 +307,21 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectNodeSysExpressionWithUnassignedShards() throws Exception {
-        transportExecutor.exec(
-                "create table users (id integer primary key, name string) with (number_of_replicas=2)");
-        transportExecutor.ensureYellow();
-        SQLResponse response = transportExecutor.exec(
-          "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name']"
-        );
-        String nodeName = response.rows()[0][0].toString();
-        assertEquals("node_0", nodeName);
-        assertThat(response.rows()[8][0], is(nullValue()));
+        try {
+            transportExecutor.exec(
+                    "create table users (id integer primary key, name string) with (number_of_replicas=2)");
+            transportExecutor.ensureYellow();
+            SQLResponse response = transportExecutor.exec(
+                    "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name']"
+            );
+            String nodeName = response.rows()[0][0].toString();
+            assertEquals("node_0", nodeName);
+            assertThat(response.rows()[8][0], is(nullValue()));
+        } finally {
+            transportExecutor.exec(
+                    "drop table users"
+            );
+            transportExecutor.ensureGreen();
+        }
     }
 }
