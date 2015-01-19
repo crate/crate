@@ -68,7 +68,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final TaskCollectingVisitor planVisitor;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
     private final StatsTables statsTables;
-    private final Visitor visitor;
+    private final NodeVisitor nodeVisitor;
     private final ThreadPool threadPool;
 
     private final Settings settings;
@@ -111,7 +111,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.clusterService = clusterService;
         this.crateResultSorter = crateResultSorter;
         this.bigArrays = bigArrays;
-        this.visitor = new Visitor();
+        this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -137,7 +137,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     @Override
     public List<Task> newTasks(PlanNode planNode, UUID jobId) {
-        return planNode.accept(visitor, jobId);
+        return planNode.accept(nodeVisitor, jobId);
     }
 
     @Override
@@ -159,7 +159,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         @Override
         public Void visitIterablePlan(IterablePlan plan, Job job) {
             for (PlanNode planNode : plan) {
-                job.addTasks(planNode.accept(visitor, job.id()));
+                job.addTasks(planNode.accept(nodeVisitor, job.id()));
             }
             return null;
         }
@@ -172,22 +172,22 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitGlobalAggregate(GlobalAggregate plan, Job job) {
-            job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(visitor.visitMergeNode(plan.mergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.mergeNode(), job.id()));
             return null;
         }
 
         @Override
         public Void visitQueryAndFetch(QueryAndFetch plan, Job job) {
-            job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
             return null;
         }
 
         @Override
         public Void visitNonDistributedGroupBy(NonDistributedGroupBy plan, Job job) {
-            job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
             return null;
         }
 
@@ -197,7 +197,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             for (List<DQLPlanNode> childNodes : plan.nodes()) {
                 List<Task> subTasks = new ArrayList<>(childNodes.size());
                 for (DQLPlanNode childNode : childNodes) {
-                    subTasks.addAll(childNode.accept(visitor, job.id()));
+                    subTasks.addAll(childNode.accept(nodeVisitor, job.id()));
                 }
                 UpdateTask updateTask = new UpdateTask(TransportExecutor.this, job.id(), subTasks);
                 taskBuilder.add(updateTask);
@@ -208,15 +208,15 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitDistributedGroupBy(DistributedGroupBy plan, Job job) {
-            job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(visitor.visitMergeNode(plan.reducerMergeNode(), job.id()));
-            job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.reducerMergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
             return null;
         }
 
     }
 
-    class Visitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
+    class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
 
         private ImmutableList<Task> singleTask(Task task) {
             return ImmutableList.of(task);
