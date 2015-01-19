@@ -39,6 +39,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,13 +48,12 @@ import org.junit.rules.ExpectedException;
 import java.io.Closeable;
 import java.util.Arrays;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
+@TestLogging("io.crate.operation.join.NestedLoopOperation:TRACE")
 public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
 
     static {
@@ -620,8 +620,121 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 "3| Trillian| true| The Restaurant at the End of the Universe\n"
         ));
 
-        expectedException.expect(ExecutionException.class);
-        expectedException.expectCause(TestingHelpers.cause(NoSuchElementException.class, "backingArray exceeded"));
-        pageableResult.fetch(pageInfo.nextPage()).get();
+        assertThat(pageableResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
+    }
+
+    @Test
+    public void testPagedNestedLoopOptimizedPaging() throws Exception {
+        // optimized paging conditions:
+        //  * offset = 0
+        //  * no projections
+
+        setup.setUpCharacters();
+        setup.setUpBooks();
+
+        int queryOffset = 0;
+        int queryLimit = 10;
+
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+
+        QueryThenFetchNode leftNode = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
+                Arrays.<Symbol>asList(nameRef, femaleRef),
+                new boolean[]{false, true},
+                new Boolean[]{null, null},
+                5,
+                1,
+                WhereClause.MATCH_ALL,
+                null
+        );
+        leftNode.outputTypes(ImmutableList.of(
+                        idRef.info().type(),
+                        nameRef.info().type(),
+                        femaleRef.info().type())
+        );
+
+        DocTableInfo books = docSchemaInfo.getTableInfo("books");
+        QueryThenFetchNode rightNode = new QueryThenFetchNode(
+                books.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(titleRef),
+                Arrays.<Symbol>asList(titleRef),
+                new boolean[]{false},
+                new Boolean[]{null},
+                null,
+                null,
+                WhereClause.MATCH_ALL,
+                null
+        );
+        rightNode.outputTypes(ImmutableList.of(
+                        authorRef.info().type())
+        );
+
+        List<DataType> outputTypes = ImmutableList.of(
+                idRef.info().type(),
+                nameRef.info().type(),
+                femaleRef.info().type(),
+                titleRef.info().type());
+
+        // SELECT c.id, c.name, c.female, b.title
+        // FROM characters AS c CROSS JOIN books as b
+        // ORDER BY c.name, c.female, b.title
+        // LIMIT 10 OFFSET 1
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, queryLimit, queryOffset);
+        node.outputTypes(outputTypes);
+
+        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
+        assertThat(tasks.size(), is(1));
+        assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
+
+        NestedLoopTask nestedLoopTask = (NestedLoopTask) tasks.get(0);
+
+        List<ListenableFuture<TaskResult>> results = nestedLoopTask.result();
+        assertThat(results.size(), is(1));
+
+        ListenableFuture<TaskResult> nestedLoopResultFuture = results.get(0);
+        PageInfo pageInfo = new PageInfo(1, 2);
+        nestedLoopTask.start(pageInfo);
+
+        TaskResult result = nestedLoopResultFuture.get();
+        assertThat(result, instanceOf(PageableTaskResult.class));
+
+        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        closeMeWhenDone = pageableResult;
+
+        Page firstPage = pageableResult.page();
+        assertThat(firstPage.size(), is(2L));
+
+        assertThat(TestingHelpers.printedPage(firstPage), is(
+                "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
+                "1| Arthur| false| The Restaurant at the End of the Universe\n"));
+
+        pageInfo = pageInfo.nextPage(1);
+        pageableResult = pageableResult.fetch(pageInfo).get();
+        closeMeWhenDone = pageableResult;
+
+        Page secondPage = pageableResult.page();
+        assertThat(secondPage.size(), is(1L));
+
+        assertThat(TestingHelpers.printedPage(secondPage), is(
+                "2| Ford| false| Life, the Universe and Everything\n"));
+
+
+        pageInfo = pageInfo.nextPage(10);
+        pageableResult = pageableResult.fetch(pageInfo).get();
+        closeMeWhenDone = pageableResult;
+
+        Page lastPage = pageableResult.page();
+        assertThat(lastPage.size(), is(5L));
+
+        assertThat(TestingHelpers.printedPage(lastPage), is(
+                "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
+                "2| Ford| false| The Restaurant at the End of the Universe\n" +
+                "3| Trillian| true| Life, the Universe and Everything\n" +
+                "3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
+                "3| Trillian| true| The Restaurant at the End of the Universe\n"
+        ));
+
+        assertThat(pageableResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
     }
 }
