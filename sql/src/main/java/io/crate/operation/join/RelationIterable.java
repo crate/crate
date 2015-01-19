@@ -29,7 +29,6 @@ import io.crate.executor.TaskResult;
 
 import java.io.Closeable;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 abstract class RelationIterable implements Iterable<Object[]>, Closeable {
 
@@ -39,7 +38,7 @@ abstract class RelationIterable implements Iterable<Object[]>, Closeable {
         this.pageInfo = pageInfo;
     }
 
-    public abstract ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException;
+    public abstract ListenableFuture<Void>  fetchPage(PageInfo pageInfo);
 
     public abstract boolean isComplete();
 

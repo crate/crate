@@ -36,6 +36,7 @@ import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -96,6 +97,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         Futures.addCallback(
             operation.execute(searchNode, references, pageInfo),
             new FutureCallback<QueryThenFetchOperation.QueryThenFetchContext>() {
+
                 @Override
                 public void onSuccess(@Nullable final QueryThenFetchOperation.QueryThenFetchContext context) {
                     Futures.addCallback(context.createSearchResponse(), new FutureCallback<InternalSearchResponse>() {
