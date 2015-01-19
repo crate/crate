@@ -21,47 +21,21 @@
 
 package io.crate.executor;
 
-import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.bigarray.IterableBigArray;
-import org.elasticsearch.common.lease.Releasables;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.NoSuchElementException;
 
 /**
  * A PageableTaskResult implementation that has all its rows at its fingertips.
  * Paging is only iterating through the backingArray, if that is exceeded, paging
  * reached the end.
  */
-public class FetchedRowsPageableTaskResult implements PageableTaskResult {
-
-    private final IterableBigArray<Object[]> backingArray;
-    private final long backingArrayStartIdx;
-    private final Page page;
+public class FetchedRowsPageableTaskResult extends AbstractBigArrayPageableTaskResult {
 
     public FetchedRowsPageableTaskResult(IterableBigArray<Object[]> backingArray,
                                          long backingArrayStartIndex,
                                          PageInfo pageInfo) {
-        Preconditions.checkArgument(
-                backingArrayStartIndex + pageInfo.position() < backingArray.size(),
-                "backingArray exceeded");
-        this.backingArray = backingArray;
-        this.backingArrayStartIdx = backingArrayStartIndex;
-        this.page = new BigArrayPage(backingArray, backingArrayStartIndex+pageInfo.position(), pageInfo.size());
-    }
-
-    @Override
-    public Object[][] rows() {
-        throw new UnsupportedOperationException("FetchedRowsPageableTaskResult does not support rows()");
-    }
-
-    @Nullable
-    @Override
-    public String errorMessage() {
-        return null;
+        super(backingArray, backingArrayStartIndex, pageInfo);
     }
 
     /**
@@ -69,21 +43,12 @@ public class FetchedRowsPageableTaskResult implements PageableTaskResult {
      */
     @Override
     public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo){
-        if (backingArrayStartIdx + pageInfo.position() > backingArray.size()) {
-            return Futures.immediateFailedFuture(new NoSuchElementException("backingArray exceeded"));
+        PageableTaskResult result;
+        if (backingArrayStartIdx + pageInfo.position() >= backingArray.size()) {
+            result = PageableTaskResult.EMPTY_PAGEABLE_RESULT;
+        } else {
+            result = new FetchedRowsPageableTaskResult(backingArray, backingArrayStartIdx, pageInfo);
         }
-        return Futures.<PageableTaskResult>immediateFuture(
-                new FetchedRowsPageableTaskResult(backingArray, backingArrayStartIdx, pageInfo)
-        );
-    }
-
-    @Override
-    public Page page() {
-        return page;
-    }
-
-    @Override
-    public void close() throws IOException {
-        Releasables.close(backingArray);
+        return Futures.immediateFuture(result);
     }
 }
