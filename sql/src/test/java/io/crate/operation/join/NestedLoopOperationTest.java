@@ -29,7 +29,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Constants;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.bigarray.IterableBigArray;
+import io.crate.core.bigarray.MultiNativeArrayBigArray;
 import io.crate.executor.*;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -37,6 +41,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
@@ -100,6 +105,37 @@ public class NestedLoopOperationTest {
         }
     }
 
+    private class PageableTestTask extends JobTask implements PageableTask {
+
+        private IterableBigArray<Object[]> backingArray;
+        private SettableFuture<TaskResult> result;
+
+        protected PageableTestTask(Object[][] rows, int limit, int offset) {
+            super(UUID.randomUUID());
+            backingArray = new MultiNativeArrayBigArray<Object[]>(offset, limit, rows);
+            result = SettableFuture.create();
+        }
+
+        @Override
+        public void start(PageInfo pageInfo) {
+            result.set(new FetchedRowsPageableTaskResult(backingArray, 0, pageInfo));
+        }
+
+        @Override
+        public void start() {
+            // ignore
+        }
+
+        @Override
+        public List<ListenableFuture<TaskResult>> result() {
+            return ImmutableList.<ListenableFuture<TaskResult>>of(result);
+        }
+
+        @Override
+        public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+            // ignore
+        }
+    }
     private class TestDQLNode extends AbstractDQLPlanNode {
 
         private final Object[][] rows;
@@ -122,7 +158,11 @@ public class NestedLoopOperationTest {
         }
 
         public Task task() {
-            return new ImmediateTestTask(rows, rows.length, 0);
+            if (pagedSources) {
+                return new PageableTestTask(rows, rows.length, 0);
+            } else {
+                return new ImmediateTestTask(rows, rows.length, 0);
+            }
         }
     }
 
@@ -140,19 +180,38 @@ public class NestedLoopOperationTest {
         }
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{index}: leftOuterLoop={0}, sourcesPaged={1}, nestedLoopPaged={2}, withTopN={3}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[] { true },
-                new Object[] { false }
-        );
+        boolean[] trueFalse = new boolean[]{true, false};
+        List<Object[]> data = new ArrayList<>((int)Math.pow(4, 2));
+
+        // build cross product
+        for (boolean leftOuterLoop : trueFalse) {
+            for (boolean pagedSources : trueFalse) {
+                for (boolean nlPaged : trueFalse) {
+                    for (boolean withTopN : trueFalse) {
+                        data.add(new Object[]{leftOuterLoop, pagedSources, nlPaged, withTopN});
+                    }
+                }
+            }
+        }
+        return data;
     }
 
     private final boolean leftOuterNode;
+    private final boolean pagedSources;
+    private final boolean nestedLoopPaged;
+    private final boolean withTopN;
     private final Random random;
 
-    public NestedLoopOperationTest(boolean leftOuterNode) {
+    public NestedLoopOperationTest(boolean leftOuterNode,
+                                   boolean pagedSources,
+                                   boolean nestedLoopPaged,
+                                   boolean withTopN) {
         this.leftOuterNode = leftOuterNode;
+        this.pagedSources = pagedSources;
+        this.nestedLoopPaged = nestedLoopPaged;
+        this.withTopN = withTopN;
         this.random = new Random();
     }
 
@@ -173,20 +232,26 @@ public class NestedLoopOperationTest {
     }
 
     private void assertNestedLoop(Object[][] left, Object[][] right, int limit, int offset, int expectedRows) throws Exception {
-        NestedLoopNode node = new NestedLoopNode(new TestDQLNode(left), new TestDQLNode(right), leftOuterNode, limit, offset);
-        TopNProjection projection = new TopNProjection(limit, offset);
-        int numColumns = (left.length > 0 ? left[0].length : 0) + (right.length > 0 ? right[0].length : 0);
-        List<Symbol> outputs = new ArrayList<>(numColumns);
-        for (int i = 0; i< numColumns ; i++) {
-            outputs.add(new InputColumn(i, DataTypes.UNDEFINED));
-        }
-        projection.outputs(outputs);
+        PlanNode leftNode = new TestDQLNode(left);
+        PlanNode rightNode = new TestDQLNode(right);
 
-        Object[][] outerRows = leftOuterNode ? left : right;
-        Object[][] innerRows = leftOuterNode ? right : left;
-        Task outerTask = new ImmediateTestTask(outerRows, outerRows.length, 0);
-        Task innerTask = new ImmediateTestTask(innerRows, innerRows.length, 0);
-        node.projections(ImmutableList.<Projection>of(projection));
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, leftOuterNode, limit, offset);
+        int numColumns = (left.length > 0 ? left[0].length : 0) + (right.length > 0 ? right[0].length : 0);
+
+        if (withTopN || !nestedLoopPaged) {
+            TopNProjection projection = new TopNProjection(limit, offset);
+            List<Symbol> outputs = new ArrayList<>(numColumns);
+            for (int i = 0; i < numColumns; i++) {
+                outputs.add(new InputColumn(i, DataTypes.UNDEFINED));
+            }
+            projection.outputs(outputs);
+            node.projections(ImmutableList.<Projection>of(projection));
+        }
+        TaskExecutor taskExecutor = new TestExecutor();
+        UUID jobId = UUID.randomUUID();
+        Task outerTask = taskExecutor.newTasks((leftOuterNode ? leftNode : rightNode), jobId).get(0);
+        Task innerTask = taskExecutor.newTasks((leftOuterNode ? rightNode : leftNode), jobId).get(0);
+
         NestedLoopOperation nestedLoop = new NestedLoopOperation(
                 node,
                 Arrays.asList(outerTask),
@@ -194,7 +259,10 @@ public class NestedLoopOperationTest {
                 new TestExecutor(),
                 projectionVisitor,
                 mock(RamAccountingContext.class));
-        Object[][] result = nestedLoop.execute(Optional.<PageInfo>absent()).get().rows();
+
+
+
+        Object[][] result = executeNestedLoop(nestedLoop, limit);
 
         int i = 0;
         int leftIdx = 0;
@@ -256,6 +324,28 @@ public class NestedLoopOperationTest {
         assertThat(i, is(expectedRows));
     }
 
+    private Object[][] executeNestedLoop(NestedLoopOperation nestedLoop, int limit) throws Exception {
+        if (nestedLoopPaged) {
+            int actualLimit = (limit == TopN.NO_LIMIT ? Constants.DEFAULT_SELECT_LIMIT : limit);
+            int pageSize = actualLimit >= 10 ? actualLimit/10 : Math.max(actualLimit, 1);
+            PageInfo pageInfo = new PageInfo(0, pageSize);
+            PageableTaskResult pageableTaskResult = (PageableTaskResult)nestedLoop.execute(Optional.of(pageInfo)).get();
+            List<Object[]> rows = new ArrayList<>();
+
+            while (pageableTaskResult.page().size() > 0L) {
+                for (Object[] row : pageableTaskResult.page()) {
+                    rows.add(row);
+                }
+                pageInfo = pageInfo.nextPage();
+                pageableTaskResult = pageableTaskResult.fetch(pageInfo).get();
+            }
+            return rows.toArray(new Object[rows.size()][]);
+
+        } else {
+            return nestedLoop.execute(Optional.<PageInfo>absent()).get().rows();
+        }
+    }
+
     private Object[][] randomRows(int numRows, int rowLength) {
         Object[][] rows = new Object[numRows][];
         for (int i = 0; i < numRows; i++) {
@@ -312,7 +402,7 @@ public class NestedLoopOperationTest {
         Object[][] left = randomRows(10, 4);
         Object[][] right = randomRows(0, 2);
 
-        assertNestedLoop(left, right, -1, 0, 0);
+        assertNestedLoop(left, right, TopN.NO_LIMIT, 0, 0);
     }
 
     @Test
@@ -320,7 +410,7 @@ public class NestedLoopOperationTest {
         Object[][] left = randomRows(0, 4);
         Object[][] right = randomRows(4, 2);
 
-        assertNestedLoop(left, right, -1, 0, 0);
+        assertNestedLoop(left, right, TopN.NO_LIMIT, 0, 0);
     }
 
     @Test
@@ -346,6 +436,17 @@ public class NestedLoopOperationTest {
     }
 
     @Test
+    public void testLeftEmptyRows() throws Exception {
+        Object[][] left = new Object[][]{
+                new Object[0],
+                new Object[0],
+                new Object[0]
+        };
+        Object[][] right = randomRows(2, 1);
+        assertNestedLoop(left, right, 10, 0, 6);
+    }
+
+    @Test
     public void testLimitBetween() throws Exception {
         Object[][] left = randomRows(10, 4);
         Object[][] right = randomRows(3, 2);
@@ -366,7 +467,7 @@ public class NestedLoopOperationTest {
         Object[][] left = randomRows(10, 4);
         Object[][] right = randomRows(3, 2);
 
-        assertNestedLoop(left, right, -1, 0, 30);
+        assertNestedLoop(left, right, TopN.NO_LIMIT, 0, 30);
     }
 
     @Test
@@ -374,7 +475,7 @@ public class NestedLoopOperationTest {
         Object[][] left = new Object[][]{ new Object[]{1}, new Object[]{2}, new Object[]{3}, new Object[]{4} };
         Object[][] right = new Object[][]{ new Object[]{"a"}, new Object[]{"b"} };
 
-        assertNestedLoop(left, right, -1, 2, 6);
+        assertNestedLoop(left, right, TopN.NO_LIMIT, 2, 6);
     }
 
     @Test

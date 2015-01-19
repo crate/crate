@@ -30,7 +30,6 @@ import io.crate.executor.TaskResult;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 class FetchedRowsIterable extends RelationIterable {
 
@@ -51,7 +50,7 @@ class FetchedRowsIterable extends RelationIterable {
     }
 
     @Override
-    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
+    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) {
         this.pageInfo(pageInfo);
         return Futures.immediateFuture(null);
     }
