@@ -23,8 +23,10 @@ package io.crate.planner;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
-import io.crate.planner.node.*;
+import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
@@ -204,6 +206,33 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             processProjections(node, context);
             context.dedent();
 
+            return null;
+        }
+
+
+        public Void visitNestedLoopNode(NestedLoopNode node, PrintContext context) {
+            context.print(node.getClass().getSimpleName());
+            context.indent();
+            context.print("limit: %s", node.limit());
+            context.print("offset: %s", node.offset());
+
+            context.print("left");
+            context.indent();
+            planNodePrinter.process(node.left(), context);
+            context.dedent();
+
+            context.print("right");
+            context.indent();
+            planNodePrinter.process(node.right(), context);
+            context.dedent();
+
+            context.print("outputTypes: %s", node.outputTypes());
+
+            context.print("projections: ");
+            for (Projection projection : node.projections()) {
+                projectionPrinter.process(projection, context);
+            }
+            context.dedent();
             return null;
         }
     }

@@ -713,10 +713,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void test2From() throws Exception {
+    public void testInnerJoin() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Only exactly one table is allowed in the FROM clause, got: 2");
-        analyze("select name from users a, users b");
+        expectedException.expectMessage("JOIN Criteria are not supported");
+        analyze("select name from users a inner join users b on a.id = b.id");
     }
 
     @Test
