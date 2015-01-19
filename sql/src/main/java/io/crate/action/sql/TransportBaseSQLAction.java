@@ -222,7 +222,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                         );
                     }
                 } catch (Throwable e) {
-                    sendResponse(listener, e);
+                    sendResponse(listener, buildSQLActionException(e));
                     return;
                 }
 
