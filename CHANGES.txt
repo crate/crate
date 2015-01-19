@@ -5,15 +5,19 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The ``sys.operations`` table has now a ``_nodes`` system column
+   which exposes information about the node the operation runs on.
+
+2015/01/19 0.46.3
+2015/01/19 0.45.7
+=================
+
  - SELECT statements that involved tables from the information_schema schema or
    from the sys schema could fail if they contained columns in the ORDER BY
    clause but didn't contain these columns in the result column list.
 
  - Fix: Return zero row count instead of an exception if update by id
    doesn't match any document
-
- - The ``sys.operations`` table has now a ``_nodes`` system column
-   which exposes information about the node the operation runs on.
 
  - Fixed an issue in the ``sys.shards`` table which caused an
    exception when the select limit was lower then the number of
@@ -34,11 +38,15 @@ Unreleased
 2015/01/14 0.46.2
 =================
 
- - fix: throw correct exception if `_version` is misused in WHERE clause
-
  - improved string lookup performance for group queries and global aggregates
 
  - Optimized memory estimates for min()/max() aggregates for the CircuitBreaker
+
+2015/01/14 0.46.2
+2015/01/19 0.45.7
+=================
+
+ - fix: throw correct exception if `_version` is misused in WHERE clause
 
  - improved speed of Alter table settings in partitioned tables
 
