@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/01/19 0.45.7
+=================
+
  - SELECT statements that involved tables from the information_schema schema or
    from the sys schema could fail if they contained columns in the ORDER BY
    clause but didn't contain these columns in the result column list.
