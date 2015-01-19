@@ -39,6 +39,7 @@ public class ConsumingPlanner {
     private final List<Consumer> consumers = new ArrayList<>();
 
     public ConsumingPlanner(AnalysisMetaData analysisMetaData) {
+        consumers.add(new CrossJoinConsumer(analysisMetaData));
         consumers.add(new NonDistributedGroupByConsumer(analysisMetaData));
         consumers.add(new ReduceOnCollectorGroupByConsumer(analysisMetaData));
         consumers.add(new DistributedGroupByConsumer(analysisMetaData));
