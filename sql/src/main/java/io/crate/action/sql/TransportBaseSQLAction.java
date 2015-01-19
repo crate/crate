@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
@@ -35,7 +36,6 @@ import io.crate.analyze.Analyzer;
 import io.crate.exceptions.*;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
-import io.crate.executor.TaskResult;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
@@ -178,16 +178,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         final Plan plan = planner.plan(analysis);
         tracePlan(plan);
 
-        if (plan.isEmpty()) {
-            assert analyzedStatement.expectsAffectedRows();
+        executePlan(analyzedStatement, plan, outputNames, outputTypes, listener, request);
 
-            UUID jobId = UUID.randomUUID();
-            statsTables.jobStarted(jobId, request.stmt());
-            sendResponse(listener, emptyResponse(request, outputNames, outputTypes));
-            statsTables.jobFinished(jobId, null);
-        } else {
-            executePlan(analyzedStatement, plan, outputNames, outputTypes, listener, request);
-        }
     }
 
     private void executePlan(final AnalyzedStatement analyzedStatement,

@@ -30,9 +30,7 @@ import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import org.elasticsearch.action.search.SearchAction;
 import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -133,15 +131,6 @@ public class UpdateBenchmark extends BenchmarkBase {
                     1,
                     response.rowCount()
             );
-        }
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testUpdateApi() throws IOException {
-        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiUpdateRequest()).actionGet();
-            assertEquals(1, response.getHits().totalHits());
         }
     }
 

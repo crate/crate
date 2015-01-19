@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 
 public class ESDeleteIndexNode extends DDLPlanNode {
 
@@ -47,7 +47,7 @@ public class ESDeleteIndexNode extends DDLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESDeleteIndexNode(this, context);
     }
 }

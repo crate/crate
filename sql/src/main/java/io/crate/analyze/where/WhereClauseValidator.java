@@ -5,8 +5,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.GteOperator;
 import io.crate.operation.predicate.NotPredicate;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
 import io.crate.sql.tree.ComparisonExpression;
@@ -40,14 +40,14 @@ public class WhereClauseValidator {
                 _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue());
 
         @Override
-        public Symbol visitReference(Reference reference, Context context) {
-            String columnName = reference.info().ident().columnIdent().name();
+        public Symbol visitField(Field field, Context context) {
+            String columnName = field.path().outputName();
             if(columnName.equalsIgnoreCase(_VERSION)){
                 validateSysReference(context, EqOperator.NAME, VERSION_ERROR);
             } else if(columnName.equalsIgnoreCase(_SCORE)){
                 validateSysReference(context, GteOperator.NAME, SCORE_ERROR);
             }
-            return super.visitReference(reference, context);
+            return super.visitField(field, context);
         }
 
         @Override

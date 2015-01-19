@@ -21,25 +21,8 @@
 
 package io.crate.planner;
 
-import io.crate.planner.node.PlanNode;
+public interface Plan {
 
-import java.util.ArrayList;
-import java.util.Iterator;
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context);
 
-public class Plan implements Iterable<PlanNode> {
-
-    private ArrayList<PlanNode> nodes = new ArrayList<>();
-
-    public void add(PlanNode node) {
-        nodes.add(node);
-    }
-
-    @Override
-    public Iterator<PlanNode> iterator() {
-        return nodes.iterator();
-    }
-
-    public boolean isEmpty() {
-        return nodes.isEmpty();
-    }
 }

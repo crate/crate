@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfo;

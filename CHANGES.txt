@@ -5,6 +5,15 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Support column referencing in ``Update`` statement assignment
+   expression
+
+ - Removed undocumented feature: It is no longer possible to use sys
+   expressions in any context.
+
+ - don’t allow full qualified names in UPDATE assignments, INSERT and
+   INSERT INTO
+
  - The ``sys.operations`` table has now a ``_nodes`` system column
    which exposes information about the node the operation runs on.
 
@@ -31,7 +40,8 @@ Unreleased
 
     - fixed a template rendering issue in cluster view in Safari
 
-    - de-register watches to decrease DOM updates and improve performance in cluster view
+    - de-register watches to decrease DOM updates and improve
+      performance in cluster view
 
     - fixed title of `tables` view if no tables exists or connection is down
 

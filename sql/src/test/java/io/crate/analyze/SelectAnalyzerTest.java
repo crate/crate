@@ -23,18 +23,23 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
-import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.predicate.IsNullPredicate;
@@ -42,7 +47,6 @@ import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
-import io.crate.operation.scalar.CollectionCountFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.AddFunction;
@@ -52,6 +56,9 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.planner.consumer.ConsumingPlanner;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -66,7 +73,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
@@ -126,7 +136,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule(),
                 new OperatorModule(),
@@ -145,6 +155,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Override
     protected SelectAnalyzedStatement analyze(String statement, Object[] arguments) {
         return (SelectAnalyzedStatement) super.analyze(statement, arguments);
+    }
+
+    private Symbol unwrap(Map<QualifiedName, AnalyzedRelation> sources, Symbol symbol) {
+        return ((TableRelation) Iterables.getOnlyElement(sources.values())).resolve(symbol);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -167,18 +181,31 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testOrderedSelect() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select load['1'] from sys.nodes order by load['5'] desc");
-        assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
+        assertSourceIsTable(analysis.sources(), SysNodesTableInfo.IDENT, RowGranularity.NODE);
         assertNull(analysis.limit());
 
         assertFalse(analysis.hasGroupBy());
         assertTrue(analysis.orderBy().isSorted());
-        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
 
         assertEquals(1, analysis.outputSymbols().size());
         assertEquals(1, analysis.orderBy().orderBySymbols().size());
         assertEquals(1, analysis.orderBy().reverseFlags().length);
 
-        assertEquals(LOAD5_INFO, ((Reference) analysis.orderBy().orderBySymbols().get(0)).info());
+        Reference ref = (Reference) unwrap(analysis.sources(), analysis.orderBy().orderBySymbols().get(0));
+        assert ref != null;
+        assertThat(ref.info(), equalTo(LOAD5_INFO));
+    }
+
+
+    private void assertSourceIsTable(Map<QualifiedName, AnalyzedRelation> sources,
+                                     TableIdent expectedTable,
+                                     RowGranularity expectedRowGranularity) {
+        assertThat(sources.size(), is(1));
+        AnalyzedRelation relation = Iterables.getOnlyElement(sources.values());
+        assertThat(relation, instanceOf(TableRelation.class));
+        TableInfo tableInfo = ((TableRelation) relation).tableInfo();
+        assertThat(tableInfo.ident(), equalTo(expectedTable));
+        assertThat(tableInfo.rowGranularity(), equalTo(expectedRowGranularity));
     }
 
     @Test
@@ -228,41 +255,34 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupedSelect() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select load['1'], count(*) from sys.nodes group by load['1']");
-        assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
+        assertSourceIsTable(analysis.sources(), SysNodesTableInfo.IDENT, RowGranularity.NODE);
         assertNull(analysis.limit());
 
-        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
         assertTrue(analysis.hasGroupBy());
         assertEquals(2, analysis.outputSymbols().size());
         assertEquals(1, analysis.groupBy().size());
-        assertEquals(LOAD1_INFO, ((Reference) analysis.groupBy().get(0)).info());
+        assertEquals(LOAD1_INFO, ((Reference) unwrap(analysis.sources(), analysis.groupBy().get(0))).info());
 
     }
-
 
     @Test
     public void testSimpleSelect() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select load['5'] from sys.nodes limit 2");
-        assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
+        assertSourceIsTable(analysis.sources(), SysNodesTableInfo.IDENT, RowGranularity.NODE);
         assertEquals(new Integer(2), analysis.limit());
 
         assertFalse(analysis.hasGroupBy());
 
-        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
-
-        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
         assertEquals(1, analysis.outputSymbols().size());
-        Reference col1 = (Reference) analysis.outputSymbols().get(0);
+        Reference col1 = (Reference) unwrap(analysis.sources(), analysis.outputSymbols().get(0));
+        assert col1 != null;
         assertEquals(LOAD5_INFO, col1.info());
-
     }
 
     @Test
     public void testAggregationSelect() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select avg(load['5']) from sys.nodes");
-        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
-
-        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
+        assertSourceIsTable(analysis.sources(), SysNodesTableInfo.IDENT, RowGranularity.NODE);
 
         assertFalse(analysis.hasGroupBy());
         assertEquals(1, analysis.outputSymbols().size());
@@ -292,10 +312,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testWhereSelect() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select load from sys.nodes " +
                 "where load['1'] = 1.2 or 1 >= load['5']");
-        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
-        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
-
+        assertSourceIsTable(analysis.sources(), SysNodesTableInfo.IDENT, RowGranularity.NODE);
         assertFalse(analysis.hasGroupBy());
 
         Function whereClause = (Function)analysis.whereClause().query();
@@ -304,20 +322,20 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         Function left = (Function) whereClause.arguments().get(0);
         assertEquals(EqOperator.NAME, left.info().ident().name());
-        assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(unwrap(analysis.sources(), left.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
         assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        assertSame(((Literal)left.arguments().get(1)).valueType(), DataTypes.DOUBLE);
+        assertSame(left.arguments().get(1).valueType(), DataTypes.DOUBLE);
 
         Function right = (Function) whereClause.arguments().get(1);
         assertEquals(LteOperator.NAME, right.info().ident().name());
-        assertThat(right.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(unwrap(analysis.sources(), right.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
         assertThat(right.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        assertSame(((Literal) left.arguments().get(1)).valueType(), DataTypes.DOUBLE);
+        assertSame(left.arguments().get(1).valueType(), DataTypes.DOUBLE);
     }
 
     @Test
     public void testSelectWithParameters() throws Exception {
-        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement) analyze("select load from sys.nodes " +
+        SelectAnalyzedStatement analysis = analyze("select load from sys.nodes " +
                 "where load['1'] = ? or load['5'] <= ? or load['15'] >= ? or load['1'] = ? " +
                 "or load['1'] = ? or name = ?", new Object[]{
                 1.2d,
@@ -335,15 +353,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(OrOperator.NAME, function.info().ident().name());
         function = (Function) function.arguments().get(1);
         assertEquals(EqOperator.NAME, function.info().ident().name());
-        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(unwrap(analysis.sources(), function.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
         assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        assertEquals(DataTypes.DOUBLE, ((Literal) function.arguments().get(1)).valueType());
+        assertEquals(DataTypes.DOUBLE, function.arguments().get(1).valueType());
 
         function = (Function) whereClause.arguments().get(1);
         assertEquals(EqOperator.NAME, function.info().ident().name());
-        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(unwrap(analysis.sources(), function.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
         assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        assertEquals(DataTypes.STRING, ((Literal) function.arguments().get(1)).valueType());
+        assertEquals(DataTypes.STRING, function.arguments().get(1).valueType());
     }
 
     @Test
@@ -390,19 +408,18 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testNoMatchStatement() throws Exception {
         for (String stmt : ImmutableList.of(
                 "select id from sys.nodes where false",
-                "select id from sys.nodes where 1=0",
-                "select id from sys.nodes where sys.cluster.name = 'something'"
+                "select id from sys.nodes where 1=0"
         )) {
             SelectAnalyzedStatement analysis = analyze(stmt);
-            assertTrue(stmt, analysis.noMatch());
+            assertTrue(stmt, analysis.whereClause().noMatch());
             assertFalse(stmt, analysis.whereClause().hasQuery());
         }
     }
 
     @Test
     public void testEvaluatingMatchAllStatement() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select id from sys.nodes where sys.cluster.name = 'testcluster'");
-        assertFalse(analysis.noMatch());
+        SelectAnalyzedStatement analysis = analyze("select id from sys.nodes where 1 = 1");
+        assertFalse(analysis.whereClause().noMatch());
         assertFalse(analysis.whereClause().hasQuery());
     }
 
@@ -415,7 +432,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         )) {
             System.out.println(stmt);
             SelectAnalyzedStatement analysis = analyze(stmt);
-            assertFalse(stmt, analysis.noMatch());
+            assertFalse(stmt, analysis.whereClause().noMatch());
             assertFalse(stmt, analysis.whereClause().hasQuery());
         }
     }
@@ -441,10 +458,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             assertThat(eqFunction.arguments().size(), is(2));
 
             List<Symbol> eqArguments = eqFunction.arguments();
-            assertThat(eqArguments.get(0), instanceOf(Reference.class));
+            assertThat(unwrap(analysis.sources(), eqArguments.get(0)), instanceOf(Reference.class));
             assertLiteralSymbol(eqArguments.get(1), "something");
         }
     }
+
 
     @Test
     public void testRewriteRegexpNoMatch() throws Exception {
@@ -461,202 +479,21 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(eqFunction.arguments().size(), is(2));
 
         List<Symbol> eqArguments = eqFunction.arguments();
-        assertThat(eqArguments.get(0), instanceOf(Reference.class));
+        assertThat(unwrap(analysis.sources(), eqArguments.get(0)), isReference("name"));
         assertLiteralSymbol(eqArguments.get(1), "[sS]omething");
 
     }
 
     @Test
-    public void testClusteredBy() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select name from users where id=1");
-        assertEquals(ImmutableList.of("1"), analysis.routingValues());
-        assertEquals("1", analysis.whereClause().clusteredBy().get());
-
-        analysis = analyze("select name from users where id=1 or id=2");
-        assertEquals(ImmutableList.of("1", "2"), analysis.routingValues());
-        assertFalse(analysis.whereClause().clusteredBy().isPresent());
-    }
-
-    @Test
-    public void testClusteredByOnly() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select name from users_clustered_by_only where id=1");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertEquals(ImmutableList.of("1"), analysis.routingValues());
-        assertEquals("1", analysis.whereClause().clusteredBy().get());
-
-        analysis = analyze("select name from users_clustered_by_only where id=1 or id=2");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertEquals(ImmutableList.of(), analysis.routingValues());
-        assertFalse(analysis.whereClause().clusteredBy().isPresent());
-
-        analysis = analyze("select name from users_clustered_by_only where id=1 and id=2");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertEquals(ImmutableList.of(), analysis.routingValues());
-        assertFalse(analysis.whereClause().clusteredBy().isPresent());
-    }
-
-    @Test
-    public void testCompositePrimaryKey() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select name from users_multi_pk where id=1");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertEquals(ImmutableList.of(), analysis.routingValues());
-        assertEquals("1", analysis.whereClause().clusteredBy().get());
-
-        analysis = analyze("select name from users_multi_pk where id=1 and name='Douglas'");
-        assertEquals(ImmutableList.of("AgExB0RvdWdsYXM="), analysis.ids());
-        assertEquals(ImmutableList.of("1"), analysis.routingValues());
-        assertEquals("1", analysis.whereClause().clusteredBy().get());
-
-        analysis = analyze("select name from users_multi_pk where id=1 or id=2 and name='Douglas'");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertEquals(ImmutableList.of(), analysis.routingValues());
-        assertFalse(analysis.whereClause().clusteredBy().isPresent());
-
-        analysis = analyze("select name from users_multi_pk where id=1 and name='Douglas' or name='Arthur'");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertEquals(ImmutableList.of(), analysis.routingValues());
-        assertFalse(analysis.whereClause().clusteredBy().isPresent());
-    }
-
-    @Test
-    public void testVersion() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
-        analyze("select name from users where id = 2 and \"_version\" = 1");
-    }
-
-    @Test
-    public void testMultiplePrimaryKeys() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-            "select name from users where id = 2 or id = 1");
-
-        assertEquals(ImmutableList.of("1", "2"), analysis.ids());
-        assertEquals(ImmutableList.of("1", "2"), analysis.routingValues());
-    }
-
-    @Test
-    public void testMultiplePrimaryKeysAndInvalidColumn() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-            "select name from users where id = 2 or id = 1 and name = 'foo'");
-        assertEquals(0, analysis.ids().size());
-    }
-
-    @Test
-    public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select name from users where id != 1");
-        assertEquals(0, analysis.ids().size());
-        assertEquals(0, analysis.routingValues().size());
-    }
-
-    @Test
-    public void testMultipleCompoundPrimaryKeys() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-            "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo' and partition_ident='') " +
-                    "or (schema_name='doc' and id = 2 and table_name = 'bla' and partition_ident='')");
-        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), analysis.ids());
-        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), analysis.routingValues());
-        assertFalse(analysis.whereClause().clusteredBy().isPresent());
-
-        analysis = analyze(
-            "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo') " +
-                    "or (schema_name='doc' and id = 2 and table_name = 'bla') or id = 1");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertEquals(ImmutableList.of(), analysis.routingValues());
-        assertFalse(analysis.whereClause().clusteredBy().isPresent());
-    }
-
-    @Test
-    public void test1ColPrimaryKey() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select name from sys.nodes where id='jalla'");
-        assertEquals(ImmutableList.of("jalla"), analysis.ids());
-        assertEquals(ImmutableList.of("jalla"), analysis.routingValues());
-
-        analysis = analyze("select name from sys.nodes where 'jalla'=id");
-        assertEquals(ImmutableList.of("jalla"), analysis.ids());
-
-        analysis = analyze("select name from sys.nodes where id='jalla' and id='jalla'");
-        assertEquals(ImmutableList.of("jalla"), analysis.ids());
-
-        analysis = analyze("select name from sys.nodes where id='jalla' and (id='jalla' or 1=1)");
-        assertEquals(ImmutableList.of("jalla"), analysis.ids());
-
-        // a no match results in undefined key literals, since those are ambiguous
-        analysis = analyze("select name from sys.nodes where id='jalla' and id='kelle'");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertTrue(analysis.noMatch());
-
-        analysis = analyze("select name from sys.nodes where id='jalla' or name = 'something'");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select name from sys.nodes where name = 'something'");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertFalse(analysis.noMatch());
-
-    }
-
-    @Test
-    public void test3ColPrimaryKey() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
-        // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.ids());
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.routingValues());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc' and partition_ident=''");
-        // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.ids());
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.routingValues());
-        assertFalse(analysis.noMatch());
-
-
-        analysis = analyze("select id from sys.shards where id=1");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2 and partition_ident=''");
-        assertEquals(ImmutableList.of(), analysis.ids());
-        assertTrue(analysis.noMatch());
-    }
-
-    @Test
-    public void test1ColPrimaryKeySetLiteralDiffMatches() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-                "select name from sys.nodes where id in ('jalla', 'kelle') and id in ('jalla', 'something')");
-        assertFalse(analysis.noMatch());
-        assertEquals(1, analysis.ids().size());
-        assertEquals("jalla", analysis.ids().get(0));
-    }
-
-
-    @Test
-    public void test1ColPrimaryKeySetLiteral() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select name from sys.nodes where id in ('jalla', 'kelle')");
-        assertFalse(analysis.noMatch());
-        assertEquals(2, analysis.ids().size());
-        assertThat(analysis.ids(), Matchers.containsInAnyOrder("jalla", "kelle"));
-    }
-
-    @Test
-    public void test3ColPrimaryKeySetLiteral() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
-        assertEquals(2, analysis.ids().size());
-        // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
-
-        assertThat(analysis.ids(), Matchers.containsInAnyOrder("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="));
-        assertThat(analysis.routingValues(), Matchers.containsInAnyOrder("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="));
-    }
-
-    @Test
     public void testGranularityWithSingleAggregation() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select count(*) from sys.nodes");
-        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
+        assertSourceIsTable(analysis.sources(), SysNodesTableInfo.IDENT, RowGranularity.NODE);
     }
 
     @Test
     public void testRewriteCountStringLiteral() {
         SelectAnalyzedStatement analysis = analyze("select count('id') from sys.nodes");
-        List<Symbol> outputSymbols = analysis.outputSymbols;
+        List<Symbol> outputSymbols = analysis.outputSymbols();
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(Function.class));
         assertThat(((Function) outputSymbols.get(0)).arguments().size(), is(0));
@@ -665,7 +502,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRewriteCountNull() {
         SelectAnalyzedStatement analysis = analyze("select count(null) from sys.nodes");
-        List<Symbol> outputSymbols = analysis.outputSymbols;
+        List<Symbol> outputSymbols = analysis.outputSymbols();
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(Literal.class));
         assertThat((Long) ((Literal) outputSymbols.get(0)).value(), is(0L));
@@ -677,7 +514,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
-        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(unwrap(analysis.sources(), whereClause.arguments().get(0)), isReference("load.1"));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
 
         Literal setLiteral = (Literal)whereClause.arguments().get(1);
@@ -695,7 +532,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testWhereInSelectDifferentDataTypeValue() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1.2 in (1, 2)");
         assertFalse(analysis.whereClause().hasQuery()); // already normalized from 1.2 in (1.0, 2.0) --> false
-        assertTrue(analysis.noMatch());
+        assertTrue(analysis.whereClause().noMatch());
         assertTrue(analysis.hasNoResult());
     }
 
@@ -709,26 +546,19 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis =  analyze("select count(distinct load['1']) from sys.nodes");
 
         assertTrue(analysis.hasAggregates());
-        assertEquals(2, analysis.functions().size());
+        Symbol output = analysis.outputSymbols().get(0);
+        assertThat(output, isFunction("collection_count"));
 
-        Function collectionCount = getFunctionByName(CollectionCountFunction.NAME, analysis.functions());
-        Function collectSet = getFunctionByName(CollectSetAggregation.NAME, analysis.functions());
-        assertNotNull(collectionCount);
-        assertNotNull(collectSet);
+        Function collectionCount = (Function) output;
+        assertThat(collectionCount.arguments().size(), is(1));
+        Symbol symbol = collectionCount.arguments().get(0);
+        assertThat(symbol, isFunction("collect_set"));
 
-        List<Symbol> args = collectionCount.arguments();
-        assertEquals(1, args.size());
-        Function innerFunction = (Function) args.get(0);
-        assertTrue(innerFunction.info().type() == FunctionInfo.Type.AGGREGATE);
-        assertEquals(innerFunction.info().ident().name(), CollectSetAggregation.NAME);
-        List<Symbol> innerArguments = innerFunction.arguments();
-        assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(((Reference) innerArguments.get(0)).info(), IsInstanceOf.instanceOf(ReferenceInfo.class));
-        ReferenceInfo refInfo = ((Reference) innerArguments.get(0)).info();
-        assertThat(refInfo.ident().columnIdent().name(), is("load"));
-        assertThat(refInfo.ident().columnIdent().path().get(0), is("1"));
+        Function collectSet = (Function) symbol;
+        assertThat(collectSet.info().type(), equalTo(FunctionInfo.Type.AGGREGATE));
 
-        assertSame(collectSet, innerFunction);
+        assertThat(collectSet.arguments().size(), is(1));
+        assertThat(unwrap(analysis.sources(), collectSet.arguments().get(0)), isReference("load.1"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -781,11 +611,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         map.put("1", 1.0);
         map.put("5", 2.5);
         map.put("15", 8.0);
-        SelectAnalyzedStatement analysis =  (SelectAnalyzedStatement) analyze("select id from sys.nodes where load=?",
+        SelectAnalyzedStatement analysis =  analyze("select id from sys.nodes where load=?",
                 new Object[]{map});
         Function whereClause = (Function)analysis.whereClause().query();
         assertThat(whereClause.arguments().get(1), instanceOf(Literal.class));
-        assertTrue(((Object) ((Literal) whereClause.arguments().get(1)).value()).equals(map));
+        assertTrue(((Literal) whereClause.arguments().get(1)).value().equals(map));
     }
 
     @Test
@@ -798,16 +628,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING);
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
 
-        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        Literal stringLiteral = (Literal) whereClause.arguments().get(1);
-        assertThat((BytesRef) stringLiteral.value(), is(new BytesRef(("foo"))));
+        assertThat(unwrap(analysis.sources(), whereClause.arguments().get(0)), isReference("name"));
+        assertLiteralSymbol(whereClause.arguments().get(1), "foo");
     }
 
     @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
     public void testLikeEscapeInWhereQuery() {
         analyze("select * from sys.nodes where name like 'foo' escape 'o'");
     }
+
 
     @Test
     public void testLikeNoStringDataTypeInWhereQuery() {
@@ -822,6 +651,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat((BytesRef) stringLiteral.value(), is(new BytesRef("1")));
     }
 
+
     @Test(expected = UnsupportedOperationException.class)
     public void testLikeReferenceInPatternInWhereQuery() {
         analyze("select * from sys.nodes where 1 like name");
@@ -830,60 +660,44 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testLikeLongDataTypeInWhereQuery() {
         SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where 1 like 2");
-
-        // check if implicit cast worked of both, expression and pattern.
-        Function function = (Function) analysis.functions().toArray()[0];
-        assertEquals(LikeOperator.NAME, function.info().ident().name());
-        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING);
-        assertEquals(argumentTypes, function.info().ident().argumentTypes());
-
-        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Literal.class));
-        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        Literal expressionLiteral = (Literal) function.arguments().get(0);
-        Literal patternLiteral = (Literal) function.arguments().get(1);
-        assertThat((BytesRef)expressionLiteral.value(), is(new BytesRef("1")));
-        assertThat((BytesRef) patternLiteral.value(), is(new BytesRef("2")));
+        assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
     @Test
     public void testIsNullInWhereQuery() {
         SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where name is null");
-        Function isNullFunction = (Function) analysis.functions().toArray()[0];
+        Function isNullFunction = (Function) analysis.whereClause().query();
 
         assertThat(isNullFunction.info().ident().name(), is(IsNullPredicate.NAME));
         assertThat(isNullFunction.arguments().size(), is(1));
-        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(unwrap(analysis.sources(), isNullFunction.arguments().get(0)), isReference("name"));
         assertNotNull(analysis.whereClause());
     }
 
     @Test
     public void testNullIsNullInWhereQuery() {
         SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where null is null");
-        Function isNullFunction = (Function) analysis.functions().toArray()[0];
-        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Literal.class));
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
+        assertThat(analysis.whereClause(), is(WhereClause.MATCH_ALL));
     }
 
     @Test
     public void testLongIsNullInWhereQuery() {
         SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where 1 is null");
-        Function isNullFunction = (Function) analysis.functions().toArray()[0];
-        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Literal.class));
-        assertTrue(analysis.noMatch());
+        assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
     @Test
     public void testIsNullOnDynamicReference() {
         SelectAnalyzedStatement analysis = analyze("select \"_id\" from users where details['invalid'] is null");
-        assertTrue(analysis.noMatch());
+        assertTrue(analysis.whereClause().noMatch());
     }
 
     @Test
     public void testNotPredicate() {
         SelectAnalyzedStatement analysis = analyze("select * from users where name not like 'foo%'");
-        assertThat(((Function)analysis.whereClause.query()).info().ident().name(), is(NotPredicate.NAME));
+        assertThat(((Function)analysis.whereClause().query()).info().ident().name(), is(NotPredicate.NAME));
     }
+
 
     @Test
     public void testFilterByLiteralBoolean() throws Exception {
@@ -891,16 +705,19 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(((Function) analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.LITERAL));
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test
     public void testNoFrom() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("FROM clause is missing.");
         analyze("select name");
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test
     public void test2From() throws Exception {
-        analyze("select name from a, b");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Only exactly one table is allowed in the FROM clause, got: 2");
+        analyze("select name from users a, users b");
     }
-
 
     @Test
     public void testHasNoResult() {
@@ -926,43 +743,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertFalse(analyzedStatement.hasNoResult());
     }
 
-    @Test(expected = UnsupportedFeatureException.class)
-    public void testQueryRequiresScalar() throws Exception {
-        // only scalar functions are allowed on system tables because we have no lucene queries
-        analyze("select * from sys.shards where match(table_name, 'characters')");
-    }
-
     @Test (expected = IllegalArgumentException.class)
     public void testLimitWithWrongArgument() throws Exception {
         analyze("select * from sys.shards limit ?", new Object[] { "invalid" });
     }
 
-    @Test (expected = UnsupportedOperationException.class)
-    public void testSelectSysExpressionWithoutGroupBy() throws Exception {
-        analyze("select sys.cluster.name, id from users");
-    }
-
-    @Test (expected = UnsupportedOperationException.class)
-    public void testWhereSysExpressionWithoutGroupBy() throws Exception {
-        analyze("select id from users where sys.cluster.name ='crate'");
-    }
-
-    @Test (expected = UnsupportedOperationException.class)
-    public void testSelectFunctionWithSysExpressionWithoutGroupBy() throws Exception {
-        analyze("select format('%s', sys.nodes.id), id from users");
-    }
-
-    @Test (expected = UnsupportedOperationException.class)
-    public void testWhereFunctionWithSysExpressionWithoutGroupBy() throws Exception {
-        analyze("select id from users where format('%s', sys.nodes.id) = 'foo'");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testOrderByQualifiedName() throws Exception {
-        // caused by:
-        // select * from tweets order by user.id
-        // table tweets has fields "id" and user['id']
-        // this order by clause referenced id, not user['id']
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot resolve relation 'friends'");
         analyze("select * from users order by friends.id");
     }
 
@@ -974,167 +763,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         analyze("select id, name from parted where not date");
     }
-
-    @Test
-    public void testSelectFromPartitionedTable() throws Exception {
-        String partition1 = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue();
-        String partition2 = new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue();
-        String partition3 = new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue();
-
-        SelectAnalyzedStatement analysis = analyze("select id, name from parted where date = 1395874800000");
-        assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date = 1395874800000 " +
-            "and substr(name, 0, 4) = 'this'");
-        assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());
-        assertThat(analysis.whereClause().hasQuery(), is(true));
-        assertThat(analysis.noMatch(), is(false));
-
-        analysis = analyze("select id, name from parted where date >= 1395874800000");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date < 1395874800000");
-        assertEquals(ImmutableList.of(), analysis.whereClause().partitions());
-        assertTrue(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date = 1395874800000 and date = 1395961200000");
-        assertEquals(ImmutableList.of(), analysis.whereClause().partitions());
-        assertTrue(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date = 1395874800000 or date = 1395961200000");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date < 1395874800000 or date > 1395874800000");
-        assertEquals(ImmutableList.of(partition2), analysis.whereClause().partitions());
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date in (1395874800000, 1395961200000)");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date in (1395874800000, 1395961200000) and id = 1");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertTrue(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        /**
-         * col = 'undefined' -> null as col doesn't exist
-         * ->
-         *  not (true  and null) -> not (null)  -> no match
-         *  not (null  and null) -> not (null)  -> no match
-         *  not (false and null) -> not (false) -> match
-         */
-        analysis = analyze("select id, name from parted where not (date = 1395874800000 and obj['col'] = 'undefined')");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition2));
-        assertThat(analysis.whereClause().hasQuery(), is(false));
-        assertThat(analysis.noMatch(), is(false));
-
-        analysis = analyze("select id, name from parted where date in (1395874800000) or date in (1395961200000)");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date = 1395961200000 and id = 1");
-        assertEquals(ImmutableList.of(partition2), analysis.whereClause().partitions());
-        assertTrue(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertTrue(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date = 1395874800000 and id is null");
-        assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());
-        assertTrue(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where date is null and id = 1");
-        assertEquals(ImmutableList.of(partition3), analysis.whereClause().partitions());
-        assertTrue(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where 1395874700000 < date and date < 1395961200001");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-
-        analysis = analyze("select id, name from parted where '2014-03-16T22:58:20' < date and date < '2014-03-27T23:00:01'");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(analysis.whereClause().hasQuery());
-        assertFalse(analysis.noMatch());
-    }
-
-    @Test
-    public void testSelectFromPartitionedTableUnsupported() throws Exception {
-        // these queries won't work because we would have to execute 2 separate ESSearch tasks
-        // and merge results which is not supported right now and maybe never will be
-        try {
-            analyze("select id, name from parted where date = 1395961200000 or id = 1");
-            fail("Expected UnsupportedOperationException");
-        } catch (UnsupportedOperationException e) {
-            assertThat(e.getMessage(),
-                is("logical conjunction of the conditions in the WHERE clause which involve " +
-                    "partitioned columns led to a query that can't be executed."));
-        }
-
-        try {
-            analyze("select id, name from parted where id = 1 or date = 1395961200000");
-            fail("Expected UnsupportedOperationException");
-        } catch (UnsupportedOperationException e) {
-            assertThat(e.getMessage(),
-                is("logical conjunction of the conditions in the WHERE clause which involve " +
-                    "partitioned columns led to a query that can't be executed."));
-        }
-    }
-
-    @Test
-    public void testSelectPartitionedTableOrderBy() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-                "select id from multi_parted order by id, abs(num)");
-        List<Symbol> symbols = analysis.orderBy().orderBySymbols();
-        assert symbols != null;
-        assertThat(symbols.size(), is(2));
-        assertThat(symbols.get(0), Matchers.instanceOf(Reference.class));
-        assertThat(symbols.get(1), Matchers.instanceOf(Function.class));
-    }
-
-    @Test
-    public void testSortOnUnknownColumn() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot order by \"users.o['unknown_column']\". The column doesn't exist.");
-        analyze("select name from users order by o['unknown_column']");
-
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testSelectPartitionedTableOrderByPartitionedColumn() throws Exception {
-        analyze("select name from parted order by date");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
-        analyze("select name from parted order by year(date)");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testSelectOrderByPartitionedNestedColumn() throws Exception {
-        analyze("select id from multi_parted order by obj['name']");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testSelectOrderByPartitionedNestedColumnInFunction() throws Exception {
-        analyze("select id from multi_parted order by format('abc %s', obj['name'])");
-    }
-
 
     @Test(expected = UnsupportedOperationException.class)
     public void testJoin() throws Exception {
@@ -1209,7 +837,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Function anyFunction = (Function)analysis.whereClause().query();
         assertThat(anyFunction.info().ident().name(), is(AnyEqOperator.NAME));
 
-        Reference ref = (Reference) anyFunction.arguments().get(0);
+        Reference ref = (Reference) unwrap(analysis.sources(), anyFunction.arguments().get(0));
+        assert ref != null;
         assertThat(ref.info().type().id(), is(ArrayType.ID));
         assertEquals(DataTypes.LONG, ((ArrayType)ref.info().type()).innerType());
         assertLiteralSymbol(anyFunction.arguments().get(1), 5L);
@@ -1219,6 +848,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testAnyOnArrayInObjectArray() throws Exception {
         analyze("select * from users where 'vogon lyric lovers' = ANY (friends['groups'])");
     }
+
+    /*
 
     @Test
     public void testTableAlias() throws Exception {
@@ -1248,14 +879,21 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 ((Function) actualAnalysisOptionalAs.whereClause().query()).arguments().get(0)
         );
     }
+    */
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testTableAliasWrongUse() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        // caused by where users.awesome, would have to use where u.awesome = true instead
+        expectedException.expectMessage("Cannot resolve relation 'users'");
         analyze("select * from users as u where users.awesome = true");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testTableAliasFullQualifiedName() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        // caused by where users.awesome, would have to use where u.awesome = true instead
+        expectedException.expectMessage("Cannot resolve relation 'users'");
         analyze("select * from users as u where doc.users.awesome = true");
     }
 
@@ -1264,11 +902,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis =  analyze(
                 "select u.details['foo'] from users as u");
         assertThat(analysis.outputSymbols().size(), is(1));
-        Symbol s = analysis.outputSymbols().get(0);
-        assertThat(s, Matchers.instanceOf(Reference.class));
+        Symbol s = unwrap(analysis.sources(), analysis.outputSymbols().get(0));
+        assertThat(s, isReference("details.foo"));
         Reference r = (Reference)s;
+        assert r != null;
         assertThat(r.info().ident().tableIdent().name(), is("users"));
-        assertThat(r.info().ident().columnIdent().fqn(), is("details.foo"));
     }
 
     @Test
@@ -1303,33 +941,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from sys.nodes order by load");
     }
 
-    @Test
-    public void testGroupByOnAnalyzed() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select analyzed column 'users.text' within grouping or aggregations");
-        analyze("select text from users u group by 1");
-    }
-
-    @Test
-    public void testGroupByOnIndexOff() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select non-indexed column 'users.no_index' within grouping or aggregations");
-        analyze("select no_index from users u group by 1");
-    }
-
-    @Test
-    public void testOrderByOnAnalyzed() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'users.text': sorting on analyzed/fulltext columns is not possible");
-        analyze("select text from users u order by 1");
-    }
-
-    @Test
-    public void testOrderByOnIndexOff() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'users.no_index': sorting on non-indexed columns is not possible");
-        analyze("select no_index from users u order by 1");
-    }
 
     @Test
     public void testArithmeticPlus() throws Exception {
@@ -1344,8 +955,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Function query = (Function)analysis.whereClause().query();
         assertThat(query.info().ident().name(), is("any_like"));
         assertThat(query.arguments().size(), is(2));
-        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
-        assertThat(((Reference) query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
+        assertThat(unwrap(analysis.sources(), query.arguments().get(0)), isReference("tags"));
         assertThat(query.arguments().get(1), instanceOf(Literal.class));
         assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
@@ -1372,8 +982,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(query.info().ident().name(), is("any_not_like"));
 
         assertThat(query.arguments().size(), is(2));
-        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
-        assertThat(((Reference) query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
+        assertThat(unwrap(analysis.sources(), query.arguments().get(0)), isReference("tags"));
         assertThat(query.arguments().get(1), instanceOf(Literal.class));
         assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
@@ -1431,44 +1040,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DistanceFunction.NAME, ((Function) analysis.orderBy().orderBySymbols().get(0)).info().ident().name());
     }
 
-    @Test
-    public void testSelectAnalyzedReferenceInFunction() throws Exception {
-        SelectAnalyzedStatement analysis =  analyze("select substr(text, 0, 2) from users u");
-        assertFalse(analysis.selectFromFieldCache);
-    }
-
-    @Test
-    public void testSelectAnalyzedReferenceInFunctionGroupBy() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select analyzed column 'users.text' within grouping or aggregations");
-        analyze("select substr(text, 0, 2) from users u group by 1");
-    }
-
-    @Test
-    public void testSelectAnalyzedReferenceInFunctionAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select analyzed column 'users.text' within grouping or aggregations");
-        analyze("select min(substr(text, 0, 2)) from users");
-    }
-
-    @Test
-    public void testSelectNonIndexedReferenceInFunctionGroupBy() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select non-indexed column 'users.no_index' within grouping or aggregations");
-        analyze("select substr(no_index, 0, 2) from users u group by 1");
-    }
-
-    @Test
-    public void testSelectNonIndexedReferenceInFunctionAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select non-indexed column 'users.no_index' within grouping or aggregations");
-        analyze("select min(substr(no_index, 0, 2)) from users");
-    }
 
     @Test
     public void testWhereMatchOnColumn() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users where match(name, 'Arthur Dent')");
-        Function query = (Function)analysis.whereClause.query();
+        Function query = retrieveMatchFunction(analysis);
         assertThat(query.info().ident().name(), is("match"));
         assertThat(query.arguments().size(), is(4));
         assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
@@ -1489,7 +1065,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMatchOnIndex() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select * from users where match(name_text_ft, 'Arthur Dent')");
-        Function query = (Function) analysis.whereClause.query();
+        Function query = retrieveMatchFunction(analysis);
         assertThat(query.info().ident().name(), is("match"));
         assertThat(query.arguments().size(), is(4));
         assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
@@ -1510,7 +1086,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMatchOnDynamicColumn() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot MATCH on non existing column users.details['me_not_exizzt']");
+        expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
 
         analyze("select * from users where match(details['me_not_exizzt'], 'Arthur Dent')");
     }
@@ -1540,7 +1116,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testSelectWhereSimpleMatchPredicate() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select * from users where match (text, 'awesome')");
         assertThat(analysis.whereClause().hasQuery(), is(true));
-        Function query = (Function)analysis.whereClause().query();
+        Function query = retrieveMatchFunction(analysis);
+
         assertThat(query.info().ident().name(), is(MatchPredicate.NAME));
         assertThat(query.arguments().size(), is(4));
         assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
@@ -1552,12 +1129,18 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
 
+    private Function retrieveMatchFunction(SelectAnalyzedStatement analysis) {
+        TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(analysis.sources());
+        io.crate.planner.symbol.MatchPredicate matchPredicate = (io.crate.planner.symbol.MatchPredicate)analysis.whereClause().query();
+        return (Function) tableRelation.resolve(matchPredicate);
+    }
+
     @Test
     public void testSelectWhereFullMatchPredicate() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using best_fields with (analyzer='german')");
         assertThat(analysis.whereClause().hasQuery(), is(true));
-        Function query = (Function)analysis.whereClause().query();
+        Function query = retrieveMatchFunction(analysis);
         assertThat(query.info().ident().name(), is(MatchPredicate.NAME));
         assertThat(query.arguments().size(), is(4));
         assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
@@ -1624,17 +1207,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement phrase_prefix_analysis = analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using phrase_prefix");
 
-
-        assertThat(getMatchType((Function)best_fields_analysis.whereClause.query()),
-                is("best_fields"));
-        assertThat(getMatchType((Function)most_fields_analysis.whereClause.query()),
-                is("most_fields"));
-        assertThat(getMatchType((Function) cross_fields_analysis.whereClause.query()),
-                is("cross_fields"));
-        assertThat(getMatchType((Function) phrase_analysis.whereClause.query()),
-                is("phrase"));
-        assertThat(getMatchType((Function) phrase_prefix_analysis.whereClause.query()),
-                is("phrase_prefix"));
+        assertThat(getMatchType(retrieveMatchFunction(best_fields_analysis)), is("best_fields"));
+        assertThat(getMatchType(retrieveMatchFunction(most_fields_analysis)), is("most_fields"));
+        assertThat(getMatchType(retrieveMatchFunction(cross_fields_analysis)), is("cross_fields"));
+        assertThat(getMatchType(retrieveMatchFunction(phrase_analysis)), is("phrase"));
+        assertThat(getMatchType(retrieveMatchFunction(phrase_prefix_analysis)), is("phrase_prefix"));
     }
 
     @Test
@@ -1656,7 +1233,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 "  cutoff_frequency=5," +
                 "  slop=3" +
                 ")");
-        Function match = (Function)analysis.whereClause.query();
+        Function match = retrieveMatchFunction(analysis);
         Map<String, Object> options = ((Literal<Map<String, Object>>)match.arguments().get(3)).value();
         assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(options),
                 is("zero_terms_query:all, cutoff_frequency:5, minimum_should_match:4, " +
@@ -1677,7 +1254,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.havingClause(), isFunction("op_like"));
         Function havingFunction = (Function)analysis.havingClause();
         assertThat(havingFunction.arguments().size(), is(2));
-        assertThat(havingFunction.arguments().get(0), isReference("name"));
+        assertThat(unwrap(analysis.sources(), havingFunction.arguments().get(0)), isReference("name"));
         TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
     }
 
@@ -1696,14 +1273,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(havingFunction.arguments().get(0), isFunction("max"));
         Function maxFunction = (Function)havingFunction.arguments().get(0);
 
-        assertThat(maxFunction.arguments().get(0), isReference("bytes"));
+        assertThat(unwrap(analysis.sources(), maxFunction.arguments().get(0)), isReference("bytes"));
         TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), (byte) 4, DataTypes.BYTE);
     }
 
     @Test
     public void testGroupByHavingOtherColumnOutsideAggregate() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause");
+        expectedException.expectMessage("Cannot use column bytes outside of an Aggregation in HAVING clause");
 
         analyze("select sum(floats) from users group by name having bytes = 4");
     }
@@ -1711,10 +1288,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupByHavingOtherColumnOutsideAggregateInFunction() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause");
+        expectedException.expectMessage("Cannot use column bytes outside of an Aggregation in HAVING clause");
 
         analyze("select sum(floats), name from users group by name having (bytes + 1)  = 4");
     }
+
 
     @Test
     public void testGroupByHavingByGroupKey() throws Exception {
@@ -1723,9 +1301,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.havingClause(), isFunction("op_like"));
         Function havingFunction = (Function)analysis.havingClause();
         assertThat(havingFunction.arguments().size(), is(2));
-        assertThat(havingFunction.arguments().get(0), TestingHelpers.isReference("name"));
+        assertThat(unwrap(analysis.sources(), havingFunction.arguments().get(0)), TestingHelpers.isReference("name"));
         TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
     }
+
 
     @Test
     public void testGroupByHavingComplex() throws Exception {
@@ -1759,7 +1338,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(havingFunction.arguments().get(0), isFunction("sum"));
         TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), Sets.newHashSet(42.0D, 43.0D, 44.0D), new SetType(DataTypes.DOUBLE));
-
     }
 
     @Test
@@ -1772,10 +1350,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGlobalAggregateReference() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause. Only GROUP BY keys allowed here.");
-
+        expectedException.expectMessage("Cannot use column bytes outside of an Aggregation in HAVING clause. Only GROUP BY keys allowed here.");
         analyze("select sum(floats) from users having bytes in (42, 43, 44)");
     }
+
 
     @Test
     public void testScoreReferenceInvalidComparison() throws Exception {
@@ -1819,10 +1397,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from users where \"_score\" is not null");
     }
 
+
     @Test
     public void testRegexpMatchInvalidArg() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type of \"users.floats\" doesn't match type of \"'foo'\" and cannot be cast implicitly");
+        expectedException.expectMessage("'foo' cannot be cast to type float");
         analyze("select * from users where floats ~ 'foo'");
     }
 
@@ -1846,7 +1425,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
         assertThat(arguments.size(), is(2));
-        assertThat(arguments.get(0), isReference("tags"));
+        assertThat(unwrap(analysis.sources(), arguments.get(0)), isReference("tags"));
         assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
     }
 
@@ -1870,7 +1449,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
         assertThat(arguments.size(), is(2));
-        assertThat(arguments.get(0), isReference("tags.name"));
+        assertThat(unwrap(analysis.sources(), arguments.get(0)), isReference("tags.name"));
         assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
     }
 
@@ -1887,7 +1466,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
         assertThat(arguments.size(), is(2));
-        assertThat(arguments.get(0), isReference("tags"));
+        assertThat(unwrap(analysis.sources(), arguments.get(0)), isReference("tags"));
         assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
     }
 
@@ -1904,14 +1483,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         List<Symbol> scalarArguments = ((Function) arguments.get(0)).arguments();
         assertThat(scalarArguments.size(), is(2));
-        assertThat(scalarArguments.get(0), isReference("name"));
+        assertThat(unwrap(analysis.sources(), scalarArguments.get(0)), isReference("name"));
         assertThat(scalarArguments.get(1), isLiteral(".*", DataTypes.STRING));
     }
+
 
     @Test
     public void testNormalizedSubscriptOnArrayLiteral() throws Exception {
         SelectAnalyzedStatement analysis;
-        for (long l = 1L; l<4; l++) {
+        for (long l = 1L; l < 4; l++) {
             analysis = analyze("select [1,2,3][?] from sys.cluster", new Object[]{l});
             assertThat(analysis.outputSymbols().get(0), isLiteral(l, DataTypes.LONG));
         }
@@ -1921,21 +1501,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testParameterSubcript() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select friends[?], counters[?], ['a','b','c'][?] from users",
                 new Object[]{"id",2,3});
-        assertThat(analysis.outputSymbols().get(0), isReference("friends.id", new ArrayType(DataTypes.LONG)));
+        assertThat(unwrap(analysis.sources(), analysis.outputSymbols().get(0)),
+                isReference("friends.id", new ArrayType(DataTypes.LONG)));
         assertThat(analysis.outputSymbols().get(1), isFunction(SubscriptFunction.NAME,
                 Arrays.<DataType>asList(new ArrayType(DataTypes.LONG), DataTypes.INTEGER)));
         assertThat(analysis.outputSymbols().get(2), isLiteral("c", DataTypes.STRING));
     }
 
-
-    @Test
-    public void testClusterRefAndPartitionInWhereClause() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(
-                "Selecting system columns from regular tables is currently only supported by queries using group-by or global aggregates.");
-        analyze("select * from parted " +
-                "where sys.cluster.name = 'foo' and date = 1395874800000");
-    }
 
     @Test
     public void testCastExpression() throws Exception {
@@ -1962,8 +1534,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testSelectWithAliasRenaming() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select text as name, name as n from users");
 
-        Symbol text = analysis.outputSymbols().get(0);
-        Symbol name = analysis.outputSymbols().get(1);
+        Symbol text = unwrap(analysis.sources(), analysis.outputSymbols().get(0));
+        Symbol name = unwrap(analysis.sources(), analysis.outputSymbols().get(1));
 
         assertThat(text, isReference("text"));
         assertThat(name, isReference("name"));
@@ -1986,7 +1558,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCanSelectColumnWithAndWithoutSubscript() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select counters, counters[1] from users");
-        Symbol counters = analysis.outputSymbols().get(0);
+        Symbol counters = unwrap(analysis.sources(), analysis.outputSymbols().get(0));
         Symbol countersSubscript = analysis.outputSymbols().get(1);
 
         assertThat(counters, isReference("counters"));
@@ -1997,32 +1569,20 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testOrderByOnAliasWithSameColumnNameInSchema() throws Exception {
         // name exists in the table but isn't selected so not ambiguous
         SelectAnalyzedStatement analysis = analyze("select other_id as name from users order by name");
-        assertThat(analysis.outputSymbols().get(0), isReference("other_id"));
+        assertThat(unwrap(analysis.sources(), analysis.outputSymbols().get(0)), isReference("other_id"));
         List<Symbol> sortSymbols = analysis.orderBy().orderBySymbols();
         assert sortSymbols != null;
-        assertThat(sortSymbols.get(0), isReference("other_id"));
+        assertThat(unwrap(analysis.sources(), sortSymbols.get(0)), isReference("other_id"));
     }
 
     @Test
-    public void testEmptyClusteredByValue() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select * from bystring where name = ''");
-        assertThat(analysis.whereClause().clusteredBy().get(), is(""));
-        assertThat(analysis.ids().size(), is(1));
-        assertThat(analysis.ids().get(0), is(""));
-    }
-
-    @Test
-    public void testClusteredByValueContainsComma() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select * from bystring where name = 'a,b,c'");
-        assertThat(analysis.whereClause().clusteredBy().get(), is("a,b,c"));
-        assertThat(analysis.ids().size(), is(1));
-        assertThat(analysis.ids().get(0), is("a,b,c"));
-    }
-
-    @Test
-    public void testShardGranularityFromNodeGranularityTable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot resolve reference sys.shards.id, reason: finer granularity than table 'sys.nodes'");
-        analyze("select sys.shards.id from sys.nodes");
+    public void testSelectPartitionedTableOrderBy() throws Exception {
+        SelectAnalyzedStatement analysis = analyze(
+                "select id from multi_parted order by id, abs(num)");
+        List<Symbol> symbols = analysis.orderBy().orderBySymbols();
+        assert symbols != null;
+        assertThat(symbols.size(), is(2));
+        assertThat(unwrap(analysis.sources(), symbols.get(0)), isReference("id"));
+        assertThat(symbols.get(1), isFunction("abs"));
     }
 }

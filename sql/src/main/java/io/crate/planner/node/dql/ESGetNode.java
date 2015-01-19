@@ -21,10 +21,10 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
@@ -63,12 +63,12 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         outputTypes(outputTypes);
         this.ids = ids;
         this.routingValues = routingValues;
-        this.sortSymbols = Objects.firstNonNull(sortSymbols, ImmutableList.<Symbol>of());
-        this.reverseFlags = Objects.firstNonNull(reverseFlags, EMPTY_REVERSE_FLAGS);
-        this.nullsFirst = Objects.firstNonNull(nullsFirst, EMPTY_NULLS_FIRST);
+        this.sortSymbols = MoreObjects.firstNonNull(sortSymbols, ImmutableList.<Symbol>of());
+        this.reverseFlags = MoreObjects.firstNonNull(reverseFlags, EMPTY_REVERSE_FLAGS);
+        this.nullsFirst = MoreObjects.firstNonNull(nullsFirst, EMPTY_NULLS_FIRST);
         this.limit = limit;
         this.offset = offset;
-        this.partitionBy = Objects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
+        this.partitionBy = MoreObjects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
     }
 
     public String index() {
@@ -76,7 +76,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESGetNode(this, context);
     }
 
@@ -116,7 +116,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("index", index)
                 .add("ids", ids)
                 .add("outputs", outputs)

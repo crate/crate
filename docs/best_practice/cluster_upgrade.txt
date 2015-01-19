@@ -184,7 +184,7 @@ Get the number of shards remaining on your deallocating node:
 .. code-block:: psql
 
   cr> SELECT count(*) as remaining_shards from sys.shards
-  ... where sys.nodes.name = 'your_node_name';
+  ... where _node['name'] = 'your_node_name';
   +------------------+
   | remaining_shards |
   +------------------+
@@ -199,7 +199,7 @@ Get some more detail about what shards are remaining on your node:
 
   cr> SELECT schema_name as schema, table_name as "table", id, "primary", state
   ... FROM sys.shards
-  ... WHERE sys.nodes.name = 'your_node_name' AND schema_name IN ('blob', 'doc')
+  ... WHERE _node['name'] = 'your_node_name' AND schema_name IN ('blob', 'doc')
   ... ORDER BY schema, "table", id, "primary", state;
   +--------+-------+----+---------+-------+
   | schema | table | id | primary | state |

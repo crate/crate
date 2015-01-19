@@ -73,7 +73,7 @@ public class IsNullPredicateTest {
         DynamicReference name_ref = new DynamicReference(new ReferenceInfo(
                 new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
                 RowGranularity.DOC,
-                DataTypes.STRING));
+                DataTypes.UNDEFINED));
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
         Symbol symbol = predicate.normalizeSymbol(isNull);
         assertLiteralSymbol(symbol, true);

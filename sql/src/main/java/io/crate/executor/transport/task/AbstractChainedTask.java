@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.TaskExecutionException;
-import io.crate.executor.Task;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -35,8 +35,9 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.UUID;
 
-public abstract class AbstractChainedTask implements Task<TaskResult> {
+public abstract class AbstractChainedTask extends JobTask {
 
     protected List<ListenableFuture<TaskResult>> upstreamResult = ImmutableList.of();
     protected final List<ListenableFuture<TaskResult>> resultList;
@@ -44,7 +45,8 @@ public abstract class AbstractChainedTask implements Task<TaskResult> {
 
     protected final ESLogger logger = Loggers.getLogger(getClass());
 
-    protected AbstractChainedTask() {
+    protected AbstractChainedTask(UUID jobId) {
+        super(jobId);
         this.result = SettableFuture.create();
         this.resultList = ImmutableList.<ListenableFuture<TaskResult>>of(this.result);
     }

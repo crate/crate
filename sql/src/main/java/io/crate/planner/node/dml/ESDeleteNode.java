@@ -22,7 +22,7 @@
 package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 
 public class ESDeleteNode extends DMLPlanNode {
 
@@ -51,7 +51,7 @@ public class ESDeleteNode extends DMLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESDeleteNode(this, context);
     }
 

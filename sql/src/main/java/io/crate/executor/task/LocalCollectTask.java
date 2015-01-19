@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.node.dql.CollectNode;
@@ -37,21 +37,24 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 /**
  * A collect task which returns one future and runs a  collectOperation locally and synchronous
  */
-public class LocalCollectTask implements Task<QueryResult> {
+public class LocalCollectTask extends JobTask {
 
     private final CollectNode collectNode;
     private final CollectOperation collectOperation;
-    private final List<ListenableFuture<QueryResult>> resultList;
-    private final SettableFuture<QueryResult> result;
+    private final List<ListenableFuture<TaskResult>> resultList;
+    private final SettableFuture<TaskResult> result;
     private final RamAccountingContext ramAccountingContext;
 
-    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode,
+    public LocalCollectTask(UUID jobId,
+                            CollectOperation<Object[][]> collectOperation, CollectNode collectNode,
                             CircuitBreaker circuitBreaker) {
+        super(jobId);
         this.collectNode = collectNode;
         this.collectOperation = collectOperation;
         this.resultList = new ArrayList<>(1);
@@ -78,7 +81,7 @@ public class LocalCollectTask implements Task<QueryResult> {
     }
 
     @Override
-    public List<ListenableFuture<QueryResult>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return resultList;
     }
 

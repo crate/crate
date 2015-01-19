@@ -452,7 +452,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testUnknownTypesSelectGroupBy() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("unknown column 'ut.o['location']' not allowed in GROUP BY");
+        expectedException.expectMessage("Cannot GROUP BY 'o['location']': invalid data type 'null'");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
         execute("select count(*) from ut group by o['location']");

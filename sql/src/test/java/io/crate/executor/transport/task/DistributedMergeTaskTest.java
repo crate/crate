@@ -76,8 +76,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
         NoopListener noopListener = new NoopListener();
 
-
-        DistributedMergeTask task = new DistributedMergeTask(transportMergeNodeAction, mergeNode);
+        DistributedMergeTask task = new DistributedMergeTask(UUID.randomUUID(), transportMergeNodeAction, mergeNode);
         task.start();
 
         Iterator<String> iterator = nodes.iterator();

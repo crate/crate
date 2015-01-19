@@ -23,36 +23,40 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
-import io.crate.metadata.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
+import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.elasticsearch.*;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.executor.task.join.NestedLoopTask;
+import io.crate.executor.transport.task.UpdateByIdTask;
+import io.crate.executor.transport.task.elasticsearch.ESBulkIndexTask;
+import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
+import io.crate.executor.transport.task.elasticsearch.ESIndexTask;
+import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.OrOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
+import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dml.UpdateByIdNode;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateTestCluster;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -74,12 +78,10 @@ import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
-public class TransportExecutorTest extends SQLTransportIntegrationTest {
+public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -87,84 +89,21 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     private ClusterService clusterService;
     private ClusterName clusterName;
-    private TransportExecutor executor;
-    private DocSchemaInfo docSchemaInfo;
-
-    TableIdent table = new TableIdent(null, "characters");
-    Reference id_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "id"), RowGranularity.DOC, DataTypes.INTEGER));
-    Reference name_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "name"), RowGranularity.DOC, DataTypes.STRING));
-    Reference version_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "_version"), RowGranularity.DOC, DataTypes.LONG));
-
-    TableIdent partedTable = new TableIdent(null, "parted");
-    Reference parted_id_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "id"), RowGranularity.DOC, DataTypes.INTEGER));
-    Reference parted_name_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "name"), RowGranularity.DOC, DataTypes.STRING));
-    Reference parted_date_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "date"), RowGranularity.DOC, DataTypes.TIMESTAMP));
-
-    private static ESGetNode newGetNode(String index, List<Symbol> outputs, String id) {
-        return newGetNode(index, outputs, Arrays.asList(id));
-    }
-
-    private static ESGetNode newGetNode(String index, List<Symbol> outputs, List<String> ids) {
-        return new ESGetNode(
-                index,
-                outputs,
-                Symbols.extractTypes(outputs),
-                ids,
-                ids,
-                ImmutableList.<Symbol>of(),
-                new boolean[0],
-                new Boolean[0],
-                null,
-                0,
-                null
-        );
-    }
 
     @Before
-    public void transportSetUp() {
+    public void setup() {
         CrateTestCluster cluster = cluster();
         clusterService = cluster.getInstance(ClusterService.class);
         clusterName = cluster.getInstance(ClusterName.class);
-        executor = cluster.getInstance(TransportExecutor.class);
-
-        docSchemaInfo = cluster.getInstance(DocSchemaInfo.class);
     }
 
     @After
-    public void transportTearDown() {
+    public void teardown() {
         clusterService = null;
         clusterName = null;
-        executor = null;
-        docSchemaInfo = null;
     }
 
-    private void insertCharacters() {
-        execute("create table characters (id int primary key, name string)");
-        ensureGreen();
-        execute("insert into characters (id, name) values (1, 'Arthur')");
-        execute("insert into characters (id, name) values (2, 'Ford')");
-        execute("insert into characters (id, name) values (3, 'Trillian')");
-        refresh();
-    }
 
-    private void createPartitionedTable() {
-        execute("create table parted (id int, name string, date timestamp) partitioned by (date)");
-        ensureGreen();
-        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
-                new Object[]{
-                        1, "Trillian", null,
-                        2, null, 0L,
-                        3, "Ford", 1396388720242L
-                });
-        ensureGreen();
-        refresh();
-    }
 
     @Test
     public void testRemoteCollectTask() throws Exception {
@@ -183,8 +122,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         collectNode.outputTypes(asList(load1.type()));
         collectNode.maxRowGranularity(RowGranularity.NODE);
 
-        Plan plan = new Plan();
-        plan.add(collectNode);
+        Plan plan = new IterablePlan(collectNode);
         Job job = executor.newJob(plan);
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -207,8 +145,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         collectNode.outputTypes(asList(clusterNameInfo.type()));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
 
-        Plan plan = new Plan();
-        plan.add(collectNode);
+        Plan plan = new IterablePlan(collectNode);
         Job job = executor.newJob(plan);
 
         List<ListenableFuture<TaskResult>> results = executor.execute(job);
@@ -217,18 +154,17 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(result.length, is(1));
         assertThat(result[0].length, is(2));
 
-        assertThat(((BytesRef)result[0][0]).utf8ToString(), is(clusterName.value()));
-        assertThat((Float)result[0][1], is(2.3f));
+        assertThat(((BytesRef) result[0][0]).utf8ToString(), is(clusterName.value()));
+        assertThat((Float) result[0][1], is(2.3f));
     }
 
     @Test
     public void testESGetTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, name_ref);
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode node = newGetNode("characters", outputs, "2");
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -240,13 +176,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESGetTaskWithDynamicReference() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, new DynamicReference(
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
         ESGetNode node = newGetNode("characters", outputs, "2");
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -258,11 +193,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESMultiGet() throws Exception {
-        insertCharacters();
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, name_ref);
+        setup.setUpCharacters();
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode node = newGetNode("characters", outputs, asList("1", "2"));
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -272,60 +206,61 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESSearchTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
         QueryThenFetchNode node = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(id_ref, name_ref),
-                Arrays.<Symbol>asList(name_ref),
-                new boolean[]{false},
-                new Boolean[] { null },
+                characters.getRouting(WhereClause.MATCH_ALL, null),
+                Arrays.<Symbol>asList(idRef, nameRef),
+                Arrays.<Symbol>asList(nameRef, idRef),
+                new boolean[]{false, false},
+                new Boolean[] { null, null },
                 null, null, WhereClause.MATCH_ALL,
                 null
         );
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get().rows();
-        assertThat(rows.length, is(3));
+        assertThat(rows.length, is(4));
 
         assertThat((Integer) rows[0][0], is(1));
         assertThat((String) rows[0][1], is("Arthur"));
 
-        assertThat((Integer) rows[1][0], is(2));
-        assertThat((String) rows[1][1], is("Ford"));
+        assertThat((Integer) rows[1][0], is(4));
+        assertThat((String) rows[1][1], is("Arthur"));
 
-        assertThat((Integer) rows[2][0], is(3));
-        assertThat((String) rows[2][1], is("Trillian"));
+        assertThat((Integer) rows[2][0], is(2));
+        assertThat((String) rows[2][1], is("Ford"));
+
+        assertThat((Integer) rows[3][0], is(3));
+        assertThat((String) rows[3][1], is("Trillian"));
     }
 
     @Test
     public void testESSearchTaskWithFilter() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
                 DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Ford")));
+                Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
         QueryThenFetchNode node = new QueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(id_ref, name_ref),
-                Arrays.<Symbol>asList(name_ref),
+                Arrays.<Symbol>asList(idRef, nameRef),
+                Arrays.<Symbol>asList(nameRef),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null,
                 new WhereClause(whereClause),
                 null
         );
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
@@ -385,9 +320,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
         topN.outputs(Arrays.<Symbol>asList(new InputColumn(0), function));
         mergeNode.projections(Arrays.<Projection>asList(topN));
-        Plan plan = new Plan();
-        plan.add(node);
-        plan.add(mergeNode);
+        Plan plan = new IterablePlan(node, mergeNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(2));
 
@@ -402,7 +335,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESSearchTaskPartitioned() throws Exception {
-        createPartitionedTable();
+        setup.setUpPartitionedTableWithName();
         // get partitions
         ImmutableOpenMap<String, List<AliasMetaData>> aliases =
                 client().admin().indices().prepareGetAliases().addAliases("parted")
@@ -411,16 +344,15 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
         QueryThenFetchNode node = new QueryThenFetchNode(
                 parted.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(parted_id_ref, parted_name_ref, parted_date_ref),
-                Arrays.<Symbol>asList(name_ref),
+                Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef),
+                Arrays.<Symbol>asList(nameRef),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null,
                 WhereClause.MATCH_ALL,
-                Arrays.asList(parted_date_ref.info())
+                Arrays.asList(partedDateRef.info())
         );
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
@@ -443,18 +375,17 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESDeleteByQueryTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
                 DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(id_ref, Literal.newLiteral(2)));
+                Arrays.<Symbol>asList(idRef, Literal.newLiteral(2)));
 
         ESDeleteByQueryNode node = new ESDeleteByQueryNode(
                 new String[]{"characters"},
                 new WhereClause(whereClause));
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         ESDeleteByQueryTask task = (ESDeleteByQueryTask) job.tasks().get(0);
 
@@ -468,16 +399,15 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
         QueryThenFetchNode searchNode = new QueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(id_ref, name_ref),
-                Arrays.<Symbol>asList(name_ref),
+                Arrays.<Symbol>asList(idRef, nameRef),
+                Arrays.<Symbol>asList(nameRef),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null,
                 new WhereClause(whereClause),
                 null
         );
-        plan = new Plan();
-        plan.add(searchNode);
+        plan = new IterablePlan(searchNode);
         job = executor.newJob(plan);
         QueryThenFetchTask searchTask = (QueryThenFetchTask) job.tasks().get(0);
 
@@ -488,11 +418,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESDeleteTask() throws Exception {
-        insertCharacters();
+        setup.setUpCharacters();
 
         ESDeleteNode node = new ESDeleteNode("characters", "2", "2", Optional.<Long>absent());
-        Plan plan = new Plan();
-        plan.add(node);
+        Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
@@ -501,10 +430,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(((Long) rows[0][0]), is(1L));
 
         // verify deletion
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, name_ref);
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "2");
-        plan = new Plan();
-        plan.add(getNode);
+        plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -519,8 +447,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
 
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
-        builder.field(id_ref.info().ident().columnIdent().name(), 99);
-        builder.field(name_ref.info().ident().columnIdent().name(), "Marvin");
+        builder.field(idRef.info().ident().columnIdent().name(), 99);
+        builder.field(nameRef.info().ident().columnIdent().name(), "Marvin");
 
         ESIndexNode indexNode = new ESIndexNode(
                 new String[]{"characters"},
@@ -530,8 +458,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 false,
                 false
         );
-        Plan plan = new Plan();
-        plan.add(indexNode);
+        Plan plan = new IterablePlan(indexNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
 
@@ -543,16 +470,15 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
 
         // verify insertion
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, name_ref);
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "99");
-        plan = new Plan();
-        plan.add(getNode);
+        plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(1));
-        assertThat((Integer)objects[0][0], is(99));
+        assertThat((Integer) objects[0][0], is(99));
         assertThat((String)objects[0][1], is("Marvin"));
     }
 
@@ -578,8 +504,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 true,
                 false
                 );
-        Plan plan = new Plan();
-        plan.add(indexNode);
+        Plan plan = new IterablePlan(indexNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -612,16 +537,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESCountTask() throws Exception {
-        insertCharacters();
-        Plan plan = new Plan();
+        setup.setUpCharacters();
         WhereClause whereClause = new WhereClause(null, false);
-        plan.add(new ESCountNode(new String[]{"characters"}, whereClause));
-
+        Plan plan = new IterablePlan(new ESCountNode(new String[]{"characters"}, whereClause));
         List<ListenableFuture<TaskResult>> result = executor.execute(executor.newJob(plan));
         Object[][] rows = result.get(0).get().rows();
 
         assertThat(rows.length, is(1));
-        assertThat((Long)rows[0][0], is(3L));
+        assertThat((Long)rows[0][0], is(4L));
     }
 
     @Test
@@ -630,13 +553,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         Map<String, Object> sourceMap1 = new HashMap<>();
-        sourceMap1.put(id_ref.info().ident().columnIdent().name(), 99);
-        sourceMap1.put(name_ref.info().ident().columnIdent().name(), "Marvin");
+        sourceMap1.put(idRef.info().ident().columnIdent().name(), 99);
+        sourceMap1.put(nameRef.info().ident().columnIdent().name(), "Marvin");
         BytesReference source1 = XContentFactory.jsonBuilder().map(sourceMap1).bytes();
 
         Map<String, Object> sourceMap2 = new HashMap<>();
-        sourceMap2.put(id_ref.info().ident().columnIdent().name(), 42);
-        sourceMap2.put(name_ref.info().ident().columnIdent().name(), "Deep Thought");
+        sourceMap2.put(idRef.info().ident().columnIdent().name(), 42);
+        sourceMap2.put(nameRef.info().ident().columnIdent().name(), "Deep Thought");
         BytesReference source2 = XContentFactory.jsonBuilder().map(sourceMap2).bytes();
 
         ESIndexNode indexNode = new ESIndexNode(
@@ -648,8 +571,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 false
         );
 
-        Plan plan = new Plan();
-        plan.add(indexNode);
+        Plan plan = new IterablePlan(indexNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESBulkIndexTask.class));
 
@@ -661,10 +583,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         // verify insertion
 
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, name_ref);
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, Arrays.asList("99", "42"));
-        plan = new Plan();
-        plan.add(getNode);
+        plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -678,26 +599,23 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testESUpdateByIdTask() throws Exception {
-        insertCharacters();
+    public void testUpdateByIdTask() throws Exception {
+        setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
-        WhereClause whereClause = new WhereClause(null, false);
-        whereClause.clusteredByLiteral(Literal.newLiteral("1"));
-        ESUpdateNode updateNode = new ESUpdateNode(
-                new String[]{"characters"},
-                new HashMap<Reference, Symbol>(){{
-                    put(name_ref, Literal.newLiteral("Vogon lyric fan"));
+        UpdateByIdNode updateNode = new UpdateByIdNode(
+                "characters",
+                "1",
+                "1",
+                new HashMap<String, Symbol>(){{
+                    put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Vogon lyric fan"));
                 }},
-                whereClause,
-                asList("1"),
-                asList("1")
+                Optional.<Long>fromNullable(null)
         );
-        Plan plan = new Plan();
-        plan.add(updateNode);
+        Plan plan = new IterablePlan(updateNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESUpdateByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
@@ -706,10 +624,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(((Long) rows[0][0]), is(1L));
 
         // verify update
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, name_ref);
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "1");
-        plan = new Plan();
-        plan.add(getNode);
+        plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Object[][] objects = result.get(0).get().rows();
@@ -720,125 +637,196 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUpdateByQueryTaskWithVersion() throws Exception {
-        insertCharacters();
+    public void testNestedLoopTask() throws Exception {
+        setup.setUpCharacters();
+        setup.setUpBooks();
 
-        // do update
-        Function whereClauseFunction = new Function(AndOperator.INFO, Arrays.<Symbol>asList(
-                new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)),
-                        DataTypes.BOOLEAN),
-                        Arrays.<Symbol>asList(version_ref, Literal.newLiteral(1L))
-                ),
-                new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME,
-                                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                        DataTypes.BOOLEAN),
-                        Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Arthur"))
-                )));
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        // update characters set name='mostly harmless' where name='Arthur' and "_version"=?
-        WhereClause whereClause = new WhereClause(whereClauseFunction);
-        whereClause.version(1L);
-        ESUpdateNode updateNode = new ESUpdateNode(
-                new String[]{"characters"},
-                new HashMap<Reference, Symbol>(){{
-                    put(name_ref, Literal.newLiteral("mostly harmless"));
-                }},
-                whereClause,
-                ImmutableList.<String>of(),
-                ImmutableList.<String>of()
+        QueryThenFetchNode leftNode = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(idRef, nameRef),
+                Arrays.<Symbol>asList(nameRef, idRef),
+                new boolean[]{false, true},
+                new Boolean[] { null, null },
+                5,
+                0,
+                WhereClause.MATCH_ALL,
+                null
         );
-        Plan plan = new Plan();
-        plan.add(updateNode);
+        leftNode.outputTypes(ImmutableList.of(
+                        idRef.info().type(),
+                        nameRef.info().type())
+        );
+
+        DocTableInfo books = docSchemaInfo.getTableInfo("books");
+        QueryThenFetchNode rightNode = new QueryThenFetchNode(
+                books.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(booksIdRef, titleRef, authorRef),
+                Arrays.<Symbol>asList(titleRef),
+                new boolean[]{false},
+                new Boolean[] { null },
+                5,
+                0,
+                WhereClause.MATCH_ALL,
+                null
+        );
+        rightNode.outputTypes(ImmutableList.of(
+                        booksIdRef.info().type(),
+                        titleRef.info().type(),
+                        authorRef.info().type())
+        );
+
+        // SELECT c.id, c.name, b.id, b.title, b.author
+        // FROM characters as c CROSS JOIN books as b
+        // ORDER BY c.name, c.id, b.title
+
+        TopNProjection projection = new TopNProjection(5, 3);
+        projection.outputs(ImmutableList.<Symbol>of(
+                new InputColumn(0, DataTypes.INTEGER),
+                new InputColumn(1, DataTypes.STRING),
+                new InputColumn(2, DataTypes.INTEGER),
+                new InputColumn(3, DataTypes.STRING),
+                new InputColumn(4, DataTypes.STRING)
+        ));
+        List<DataType> outputTypes = ImmutableList.of(
+                idRef.info().type(),
+                nameRef.info().type(),
+                booksIdRef.info().type(),
+                titleRef.info().type(),
+                authorRef.info().type());
+
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 3);
+        node.outputTypes(outputTypes);
+        node.projections(ImmutableList.<Projection>of(projection));
+
+        Plan plan = new IterablePlan(node);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        assertThat(result.get(0).get().errorMessage(), is(nullValue()));
-        assertThat(((Long) result.get(0).get().rows()[0][0]), is(1L));
+        assertThat(job.tasks().get(0), instanceOf(NestedLoopTask.class));
+        List<TaskResult> results = Futures.allAsList(executor.execute(job)).get();
+        assertThat(results.size(), is(1));
+        assertThat(results.get(0), instanceOf(QueryResult.class));
+        QueryResult result = (QueryResult)results.get(0);
+        assertThat(TestingHelpers.printedTable(result.rows()), is(
+                        "1| Arthur| 3| Life, the Universe and Everything| Douglas Adams\n" +
+                        "1| Arthur| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams\n" +
+                        "1| Arthur| 2| The Restaurant at the End of the Universe| Douglas Adams\n" +
+                        "2| Ford| 3| Life, the Universe and Everything| Douglas Adams\n" +
+                        "2| Ford| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams\n"));
 
-        List<Symbol> outputs = Arrays.<Symbol>asList(id_ref, name_ref, version_ref);
-        ESGetNode getNode = newGetNode("characters", outputs, "1");
-        plan = new Plan();
-        plan.add(getNode);
 
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Object[][] rows = result.get(0).get().rows();
+        // SELECT c.id, b.id, b.title, b.author, c.name
+        // FROM characters as c CROSS JOIN books as b
+        // ORDER BY b.title, c.name, c.id
+        TopNProjection projection2 = new TopNProjection(5, 0);
+        projection2.outputs(ImmutableList.<Symbol>of(
+                new InputColumn(0, DataTypes.INTEGER),
+                new InputColumn(2, DataTypes.INTEGER),
+                new InputColumn(3, DataTypes.STRING),
+                new InputColumn(4, DataTypes.STRING),
+                new InputColumn(1, DataTypes.STRING)
+        ));
+        List<DataType> outputTypes2 = ImmutableList.of(
+                idRef.info().type(),
+                booksIdRef.info().type(),
+                titleRef.info().type(),
+                authorRef.info().type(),
+                nameRef.info().type());
+        NestedLoopNode node2 = new NestedLoopNode(leftNode, rightNode, false, 5, 0);
+        node2.outputTypes(outputTypes2);
+        node2.projections(ImmutableList.<Projection>of(projection2));
 
-        assertThat(rows.length, is(1));
-        assertThat((Integer)rows[0][0], is(1));
-        assertThat((String)rows[0][1], is("mostly harmless"));
-        assertThat((Long)rows[0][2], is(2L));
+        Plan plan2 = new IterablePlan(node2);
+
+        Job job2 = executor.newJob(plan2);
+        assertThat(job2.tasks().get(0), instanceOf(NestedLoopTask.class));
+        List<TaskResult> results2 = Futures.allAsList(executor.execute(job2)).get();
+        assertThat(results2.size(), is(1));
+        assertThat(results2.get(0), instanceOf(QueryResult.class));
+        QueryResult result2 = (QueryResult)results2.get(0);
+        assertThat(TestingHelpers.printedTable(result2.rows()), is(
+                        "4| 3| Life, the Universe and Everything| Douglas Adams| Arthur\n" +
+                        "1| 3| Life, the Universe and Everything| Douglas Adams| Arthur\n" +
+                        "2| 3| Life, the Universe and Everything| Douglas Adams| Ford\n" +
+                        "3| 3| Life, the Universe and Everything| Douglas Adams| Trillian\n" +
+                        "4| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams| Arthur\n"));
     }
 
     @Test
-    public void testUpdateByQueryTask() throws Exception {
-        insertCharacters();
-
-        Function whereClause = new Function(OrOperator.INFO, Arrays.<Symbol>asList(
-                new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                        DataTypes.BOOLEAN),
-                        Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Trillian"))
-                ),
-                new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME,
-                                Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)), DataTypes.BOOLEAN),
-                        Arrays.<Symbol>asList(id_ref, Literal.newLiteral(1))
-                )));
-
-        // update characters set name='mostly harmless' where id=1 or name='Trillian'
-        ESUpdateNode updateNode = new ESUpdateNode(
-                new String[]{"characters"},
-                new HashMap<Reference, Symbol>(){{
-                    put(name_ref, Literal.newLiteral("mostly harmless"));
-                }},
-                new WhereClause(whereClause),
-                new ArrayList<String>(0),
-                new ArrayList<String>(0)
-        );
-        Plan plan = new Plan();
-        plan.add(updateNode);
-
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        assertThat(((Long) result.get(0).get().rows()[0][0]), is(2L));
-
-        refresh();
-
-        // verify update
-        Function searchWhereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(name_ref, Literal.newLiteral("mostly harmless")));
+    public void testNestedLoopMixedSorting() throws Exception {
+        setup.setUpCharacters();
+        setup.setUpBooks();
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        QueryThenFetchNode node = new QueryThenFetchNode(
+
+        QueryThenFetchNode leftNode = new QueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(id_ref, name_ref),
-                ImmutableList.<Symbol>of(id_ref),
-                new boolean[]{false},
-                new Boolean[] { null },
-                null, null, new WhereClause(searchWhereClause),
+                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
+                Arrays.<Symbol>asList(nameRef, femaleRef),
+                new boolean[]{false, true},
+                new Boolean[]{null, null},
+                5,
+                0,
+                WhereClause.MATCH_ALL,
                 null
         );
-        node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type()));
-        plan = new Plan();
-        plan.add(node);
+        leftNode.outputTypes(ImmutableList.of(
+                        idRef.info().type(),
+                        nameRef.info().type(),
+                        femaleRef.info().type())
+        );
 
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Object[][] rows = result.get(0).get().rows();
+        DocTableInfo books = docSchemaInfo.getTableInfo("books");
+        QueryThenFetchNode rightNode = new QueryThenFetchNode(
+                books.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(authorRef),
+                Arrays.<Symbol>asList(authorRef),
+                new boolean[]{false},
+                new Boolean[]{null},
+                5,
+                0,
+                WhereClause.MATCH_ALL,
+                null
+        );
+        rightNode.outputTypes(ImmutableList.of(
+                        authorRef.info().type())
+        );
 
-        assertThat(rows.length, is(2));
-        assertThat((Integer)rows[0][0], is(1));
-        assertThat((String)rows[0][1], is("mostly harmless"));
+        // SELECT c.id, c.name, c.female, b.author
+        // FROM characters as c CROSS JOIN books as b
+        // ORDER BY c.name, b.author, c.female
 
-        assertThat((Integer)rows[1][0], is(3));
-        assertThat((String)rows[1][1], is("mostly harmless"));
+        TopNProjection projection = new TopNProjection(5, 0);
+        projection.outputs(ImmutableList.<Symbol>of(
+                new InputColumn(0, DataTypes.INTEGER),
+                new InputColumn(1, DataTypes.STRING),
+                new InputColumn(2, DataTypes.BOOLEAN),
+                new InputColumn(3, DataTypes.STRING)
+        ));
+        List<DataType> outputTypes = ImmutableList.of(
+                idRef.info().type(),
+                nameRef.info().type(),
+                femaleRef.info().type(),
+                authorRef.info().type());
 
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 0);
+        node.projections(ImmutableList.<Projection>of(projection));
+        node.outputTypes(outputTypes);
+
+        Plan plan = new IterablePlan(node);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(NestedLoopTask.class));
+        List<TaskResult> results = Futures.allAsList(executor.execute(job)).get();
+        assertThat(results.size(), is(1));
+        assertThat(results.get(0), instanceOf(QueryResult.class));
+        QueryResult result = (QueryResult) results.get(0);
+        assertThat(TestingHelpers.printedTable(result.rows()), is(
+                        "4| Arthur| true| Douglas Adams\n" +
+                        "4| Arthur| true| Douglas Adams\n" +
+                        "4| Arthur| true| Douglas Adams\n" +
+                        "1| Arthur| false| Douglas Adams\n" +
+                        "1| Arthur| false| Douglas Adams\n"));
     }
 }

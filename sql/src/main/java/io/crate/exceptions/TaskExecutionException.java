@@ -22,6 +22,7 @@
 package io.crate.exceptions;
 
 import io.crate.executor.Task;
+
 import java.util.Locale;
 
 public class TaskExecutionException extends UnhandledServerException {

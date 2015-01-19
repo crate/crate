@@ -69,10 +69,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLAnalyzedStatement(analysis, context);
     }
 
-    protected R visitDataAnalyzedStatement(AbstractDataAnalyzedStatement analysis, C context) {
-        return visitAnalyzedStatement(analysis, context);
-    }
-
     protected R visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }

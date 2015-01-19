@@ -52,7 +52,6 @@ public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         }
     }
 
-    @Override
     public TableInfo table() {
         return tableInfo;
     }

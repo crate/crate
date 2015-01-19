@@ -21,6 +21,7 @@
 
 package io.crate.action.sql.query;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.core.StringUtils;
@@ -43,7 +44,6 @@ import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
@@ -67,10 +67,10 @@ import org.elasticsearch.search.MultiValueMode;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.dfs.DfsPhase;
 import org.elasticsearch.search.fetch.FetchPhase;
+import org.elasticsearch.search.fetch.QueryFetchSearchResult;
+import org.elasticsearch.search.fetch.ScrollQueryFetchSearchResult;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
-import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.internal.ShardSearchLocalRequest;
 import org.elasticsearch.search.query.QueryPhase;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.search.sort.SortParseElement;
@@ -117,6 +117,65 @@ public class CrateSearchService extends InternalSearchService {
         sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
     }
 
+
+    public ScrollQueryFetchSearchResult executeScrollPhase(QueryShardScrollRequest request) {
+        final SearchContext context = findContext(request.id());
+        contextProcessing(context);
+        try {
+            processScroll(request, context);
+            context.indexShard().searchService().onPreQueryPhase(context);
+            long time = System.nanoTime();
+            try {
+                queryPhase.execute(context);
+            } catch (Throwable e) {
+                context.indexShard().searchService().onFailedQueryPhase(context);
+                throw Throwables.propagate(e);
+            }
+
+            // set lastEmittedDoc
+            int size = context.queryResult().topDocs().scoreDocs.length;
+            if (size > 0) {
+                context.lastEmittedDoc(context.queryResult().topDocs().scoreDocs[size - 1]);
+            }
+
+            long time2 = System.nanoTime();
+            context.indexShard().searchService().onQueryPhase(context, time2 - time);
+            context.indexShard().searchService().onPreFetchPhase(context);
+            try {
+                shortcutDocIdsToLoad(context);
+                fetchPhase.execute(context);
+                if (context.scroll() == null) {
+                    freeContext(request.id());
+                } else {
+                    contextProcessedSuccessfully(context);
+                }
+            } catch (Throwable e) {
+                context.indexShard().searchService().onFailedFetchPhase(context);
+                throw Throwables.propagate(e);
+            }
+            context.indexShard().searchService().onFetchPhase(context, System.nanoTime() - time2);
+            return new ScrollQueryFetchSearchResult(new QueryFetchSearchResult(context.queryResult(), context.fetchResult()), context.shardTarget());
+        } catch (Throwable e) {
+            logger.trace("Fetch phase failed", e);
+            freeContext(context.id());
+            throw Throwables.propagate(e);
+        } finally {
+            cleanContext(context);
+        }
+    }
+
+    private void processScroll(QueryShardScrollRequest request, SearchContext context) {
+        // process scroll
+        context.size(request.limit());
+        context.from(context.from() + context.size());
+
+        context.scroll(request.scroll());
+        // update the context keep alive based on the new scroll value
+        if (request.scroll() != null && request.scroll().keepAlive() != null) {
+            context.keepAlive(request.scroll().keepAlive().millis());
+        }
+    }
+
     public QuerySearchResult executeQueryPhase(QueryShardRequest request) {
         SearchContext context = createAndPutContext(request);
         try {
@@ -134,11 +193,13 @@ public class CrateSearchService extends InternalSearchService {
             context.indexShard().searchService().onFailedQueryPhase(context);
             logger.trace("Query phase failed", e);
             freeContext(context.id());
-            throw ExceptionsHelper.convertToRuntime(e);
+            throw Throwables.propagate(e);
         } finally {
             cleanContext(context);
         }
     }
+
+
 
     private SearchContext createAndPutContext(QueryShardRequest request) {
         SearchContext context = createContext(request, null);
@@ -163,9 +224,6 @@ public class CrateSearchService extends InternalSearchService {
      * but uses Symbols to create the lucene query / sorting.
      * </p>
      *
-     * <p>
-     * Note: Scrolling isn't supported.
-     * </p>
      */
     private SearchContext createContext(QueryShardRequest request, @Nullable Engine.Searcher searcher) {
         IndexService indexService = indicesService.indexServiceSafe(request.index());
@@ -176,17 +234,16 @@ public class CrateSearchService extends InternalSearchService {
                 request.index(),
                 request.shardId()
         );
-
         Engine.Searcher engineSearcher = searcher == null ? indexShard.acquireSearcher("search") : searcher;
-
-        ShardSearchLocalRequest shardRequest = new ShardSearchLocalRequest(
-                new String[] { Constants.DEFAULT_MAPPING_TYPE },
-                System.currentTimeMillis()
-        );
-        // TODO: use own CrateSearchContext that doesn't require ShardSearchRequest
-        SearchContext context = new DefaultSearchContext(
+        long keepAlive = defaultKeepAlive;
+        if (request.scroll().isPresent() && request.scroll().get().keepAlive() != null) {
+            keepAlive = request.scroll().get().keepAlive().millis();
+        }
+        SearchContext context = new CrateSearchContext(
                 idGenerator.incrementAndGet(),
-                shardRequest,
+                0, // TODO: is this necessary? seems not, wasn't set before
+                new String[] { Constants.DEFAULT_MAPPING_TYPE },
+                System.currentTimeMillis(),
                 searchShardTarget,
                 engineSearcher,
                 indexService,
@@ -195,7 +252,9 @@ public class CrateSearchService extends InternalSearchService {
                 cacheRecycler,
                 pageCacheRecycler,
                 bigArrays,
-                threadPool.estimatedTimeInMillisCounter()
+                threadPool.estimatedTimeInMillisCounter(),
+                request.scroll(),
+                keepAlive
         );
         SearchContext.setCurrent(context);
 
@@ -217,18 +276,15 @@ public class CrateSearchService extends InternalSearchService {
 
             context.from(request.offset());
             context.size(request.limit());
-
             // pre process
             dfsPhase.preProcess(context);
             queryPhase.preProcess(context);
             fetchPhase.preProcess(context);
 
-            // compute the context keep alive
-            long keepAlive = defaultKeepAlive;
-            context.keepAlive(keepAlive);
+
         } catch (Throwable e) {
             context.close();
-            throw ExceptionsHelper.convertToRuntime(e);
+            throw Throwables.propagate(e);
         }
         return context;
     }

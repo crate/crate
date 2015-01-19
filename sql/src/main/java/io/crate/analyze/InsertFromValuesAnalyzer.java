@@ -21,13 +21,17 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldResolver;
+import io.crate.analyze.relations.NameFieldResolver;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -36,7 +40,6 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.text.BytesText;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -48,45 +51,63 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromValuesAnalyzedStatement> {
+public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
 
-    private final ReferenceInfos referenceInfos;
-    private final Functions functions;
-    private final ReferenceResolver globalReferenceResolver;
+    private final AnalysisMetaData analysisMetaData;
+    private final ParameterContext parameterContext;
 
-    @Inject
-    public InsertFromValuesAnalyzer(ReferenceInfos referenceInfos,
-                                    Functions functions,
-                                    ReferenceResolver globalReferenceResolver) {
-        this.referenceInfos = referenceInfos;
-        this.functions = functions;
-        this.globalReferenceResolver = globalReferenceResolver;
+    private ExpressionAnalyzer expressionAnalyzer;
+    private ExpressionAnalysisContext expressionAnalysisContext;
+
+    public InsertFromValuesAnalyzer(AnalysisMetaData analysisMetaData, ParameterContext parameterContext) {
+        this.analysisMetaData = analysisMetaData;
+        this.parameterContext = parameterContext;
     }
 
     @Override
-    public Symbol visitInsertFromValues(InsertFromValues node, InsertFromValuesAnalyzedStatement context) {
-        node.table().accept(this, context);
+    public AnalyzedStatement visitInsertFromValues(InsertFromValues node, Void context) {
+        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
+        TableRelation tableRelation = new TableRelation(tableInfo);
+        validateTable(tableInfo);
 
-        handleInsertColumns(node, node.maxValuesLength(), context);
+        FieldResolver fieldResolver = new NameFieldResolver(tableRelation);
+        expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData,
+                parameterContext,
+                fieldResolver
+                );
+        expressionAnalyzer.resolveWritableFields(true);
+        expressionAnalysisContext = new ExpressionAnalysisContext();
+
+        InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(tableInfo, parameterContext.hasBulkParams());
+        handleInsertColumns(node, node.maxValuesLength(), statement);
 
         for (ValuesList valuesList : node.valuesLists()) {
-            process(valuesList, context);
+            analyzeValues(valuesList, statement);
         }
-        return null;
+        return statement;
     }
 
-    @Override
-    public Symbol visitValuesList(ValuesList node, InsertFromValuesAnalyzedStatement context) {
+    private void validateTable(TableInfo tableInfo) throws UnsupportedOperationException, IllegalArgumentException {
+        if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
+            throw new UnsupportedOperationException("aliases are read only.");
+        }
+        if (tableInfo.schemaInfo().systemSchema()) {
+            throw new UnsupportedOperationException("Can't insert into system tables, they are read only");
+        }
+    }
+
+    private void analyzeValues(ValuesList node, InsertFromValuesAnalyzedStatement context) {
         if (node.values().size() != context.columns().size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Invalid number of values: Got %d columns specified but %d values",
                     context.columns().size(), node.values().size()));
         }
         try {
-            int numPks = context.table().primaryKey().size();
-            if (context.parameterContext().bulkParameters.length > 0) {
-                for (int i = 0; i < context.parameterContext().bulkParameters.length; i++) {
-                    context.parameterContext().setBulkIdx(i);
+            int numPks = context.tableInfo().primaryKey().size();
+            if (parameterContext.bulkParameters.length > 0) {
+                for (int i = 0; i < parameterContext.bulkParameters.length; i++) {
+                    parameterContext.setBulkIdx(i);
                     addValues(node, context, numPks);
                 }
             } else {
@@ -95,30 +116,29 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         } catch (IOException e) {
             throw new RuntimeException(e); // can't throw IOException directly because of visitor interface
         }
-        return null;
     }
 
     private void addValues(ValuesList node,
                            InsertFromValuesAnalyzedStatement context,
                            int numPrimaryKeys) throws IOException {
-        if (context.table().isPartitioned()) {
+        if (context.tableInfo().isPartitioned()) {
             context.newPartitionMap();
         }
         List<BytesRef> primaryKeyValues = new ArrayList<>(numPrimaryKeys);
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
         String routingValue = null;
         List<Expression> values = node.values();
-        List<ColumnIdent> primaryKey = context.table().primaryKey();
+        List<ColumnIdent> primaryKey = context.tableInfo().primaryKey();
 
         for (int i = 0, valuesSize = values.size(); i < valuesSize; i++) {
             Expression expression = values.get(i);
-            Symbol valuesSymbol = process(expression, context);
+            Symbol valuesSymbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
 
             // implicit type conversion
             Reference column = context.columns().get(i);
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
             try {
-                valuesSymbol = context.normalizeInputForReference(valuesSymbol, column, true);
+                valuesSymbol = expressionAnalyzer.normalizeInputForReference(valuesSymbol, column, true);
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(column.info().ident().columnIdent().sqlFqn(), e);
             }
@@ -158,7 +178,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
             } catch (ClassCastException e) {
                 // symbol is no input
                 throw new ColumnValidationException(columnIdent.name(),
-                        String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
+                        String.format("Invalid value of type '%s' in insert statement", valuesSymbol.symbolType().name()));
             }
         }
         context.sourceMaps().add(builder.bytes());
@@ -178,7 +198,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
 
     private String extractRoutingValue(ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
         Object clusteredByValue = columnValue;
-        ColumnIdent clusteredByIdent = context.table().clusteredBy();
+        ColumnIdent clusteredByIdent = context.tableInfo().clusteredBy();
         if (!columnIdent.equals(clusteredByIdent)) {
             // oh my gosh! A nested clustered by value!!!
             assert clusteredByValue instanceof Map;
@@ -191,14 +211,14 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     }
 
     private Object processPartitionedByValues(final ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
-        int idx = context.table().partitionedBy().indexOf(columnIdent);
+        int idx = context.tableInfo().partitionedBy().indexOf(columnIdent);
         Map<String, String> partitionMap = context.currentPartitionMap();
         if (idx < 0) {
             assert columnValue instanceof Map;
             Map<String, Object> mapValue = (Map<String, Object>) columnValue;
             // hmpf, one or more nested partitioned by columns
 
-            for (ColumnIdent partitionIdent : context.table().partitionedBy()) {
+            for (ColumnIdent partitionIdent : context.tableInfo().partitionedBy()) {
                 if (partitionIdent.getRoot().equals(columnIdent)) {
                     Object nestedValue = mapValue.remove(StringUtils.PATH_JOINER.join(partitionIdent.path()));
                     if (nestedValue instanceof BytesRef) {
@@ -216,10 +236,5 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
             partitionMap.put(columnIdent.name(), BytesRefs.toString(columnValue));
         }
         return null;
-    }
-
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new InsertFromValuesAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

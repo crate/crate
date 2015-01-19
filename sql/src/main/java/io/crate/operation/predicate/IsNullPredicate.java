@@ -27,11 +27,11 @@ import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+
 
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
@@ -62,7 +62,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         assert (symbol.arguments().size() == 1);
 
         Symbol arg = symbol.arguments().get(0);
-        if (arg.equals(Literal.NULL) || arg.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
+        if (arg.equals(Literal.NULL) || arg.valueType().equals(DataTypes.UNDEFINED)) {
             return Literal.newLiteral(true);
         } else if (arg.symbolType().isValueSymbol()) {
             return Literal.newLiteral(((Input) arg).value() == null);

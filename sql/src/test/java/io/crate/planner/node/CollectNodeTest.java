@@ -81,6 +81,6 @@ public class CollectNodeTest {
 
         assertEquals(cn.toCollect(), cn2.toCollect());
         assertEquals(cn.downStreamNodes(), cn2.downStreamNodes());
-        assertEquals(cn.maxRowGranularity(), cn.maxRowGranularity());
+        assertEquals(cn.maxRowGranularity(), cn2.maxRowGranularity());
     }
 }

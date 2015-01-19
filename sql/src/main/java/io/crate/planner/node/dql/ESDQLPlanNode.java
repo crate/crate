@@ -23,14 +23,21 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.Path;
+import io.crate.planner.IterablePlan;
+import io.crate.planner.Plan;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 
 import java.util.List;
 import java.util.Set;
 
-public abstract class ESDQLPlanNode implements DQLPlanNode {
+public abstract class ESDQLPlanNode implements DQLPlanNode, PlannedAnalyzedRelation {
 
     protected List<Symbol> outputs;
     private List<DataType> inputTypes;
@@ -73,5 +80,31 @@ public abstract class ESDQLPlanNode implements DQLPlanNode {
     @Override
     public List<DataType> outputTypes() {
         return outputTypes;
+    }
+
+    @Override
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+        return visitor.visitPlanedAnalyzedRelation(this, context);
+    }
+
+    @javax.annotation.Nullable
+    @Override
+    public Field getField(Path path) {
+        throw new UnsupportedOperationException("getField is not supported on ESDQLPlanNode");
+    }
+
+    @Override
+    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getWritableField is not supported on ESDQLPlanNode");
+    }
+
+    @Override
+    public List<Field> fields() {
+        throw new UnsupportedOperationException("fields is not supported on ESDQLPlanNode");
+    }
+
+    @Override
+    public Plan plan() {
+        return new IterablePlan(this);
     }
 }

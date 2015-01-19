@@ -23,10 +23,10 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Joiner;
 import io.crate.Constants;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TaskExecutionException;
-import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.CreateTableNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -43,6 +43,7 @@ import org.elasticsearch.cluster.ClusterService;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public class CreateTableTask extends AbstractChainedTask {
 
@@ -54,10 +55,12 @@ public class CreateTableTask extends AbstractChainedTask {
     private final TransportPutIndexTemplateAction putIndexTemplateAction;
     private final CreateTableNode planNode;
 
-    public CreateTableTask(ClusterService clusterService,
+    public CreateTableTask(UUID jobId,
+                           ClusterService clusterService,
                            TransportCreateIndexAction createIndexAction,
                            TransportDeleteIndexAction deleteIndexAction, TransportPutIndexTemplateAction putIndexTemplateAction,
                            CreateTableNode node) {
+        super(jobId);
         this.clusterService = clusterService;
         this.createIndexAction = createIndexAction;
         this.deleteIndexAction = deleteIndexAction;

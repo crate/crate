@@ -55,10 +55,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -105,7 +102,7 @@ public class LocalMergeTaskTest {
                     d
             };
         }
-        return Futures.immediateFuture((TaskResult) new QueryResult(rows));
+        return Futures.<TaskResult>immediateFuture(new QueryResult(rows));
     }
 
     @Test
@@ -131,6 +128,7 @@ public class LocalMergeTaskTest {
             ThreadPool threadPool = new ThreadPool(getClass().getSimpleName());
 
             LocalMergeTask localMergeTask = new LocalMergeTask(
+                    UUID.randomUUID(),
                     threadPool,
                     mock(ClusterService.class),
                     ImmutableSettings.EMPTY,

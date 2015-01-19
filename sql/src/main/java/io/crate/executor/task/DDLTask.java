@@ -28,24 +28,26 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.executor.RowCountResult;
-import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
-import io.crate.planner.node.ddl.GenericDDLPlanNode;
+import io.crate.planner.node.ddl.GenericDDLNode;
+import io.crate.executor.RowCountResult;
+import io.crate.executor.JobTask;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.UUID;
 
-public class DDLTask implements Task<RowCountResult> {
+public class DDLTask extends JobTask {
 
     private final AnalyzedStatement analyzedStatement;
     private DDLStatementDispatcher ddlStatementDispatcher;
-    private SettableFuture<RowCountResult> result = SettableFuture.create();
-    private List<ListenableFuture<RowCountResult>> results = ImmutableList.<ListenableFuture<RowCountResult>>of(result);
+    private SettableFuture<TaskResult> result = SettableFuture.create();
+    private List<ListenableFuture<TaskResult>> results = ImmutableList.<ListenableFuture<TaskResult>>of(result);
 
-    public DDLTask(DDLStatementDispatcher ddlStatementDispatcher, GenericDDLPlanNode genericDDLPlanNode) {
+    public DDLTask(UUID jobId, DDLStatementDispatcher ddlStatementDispatcher, GenericDDLNode genericDDLNode) {
+        super(jobId);
         this.ddlStatementDispatcher = ddlStatementDispatcher;
-        analyzedStatement = genericDDLPlanNode.analyzedStatement();
+        analyzedStatement = genericDDLNode.analyzedStatement();
     }
 
     @Override
@@ -69,7 +71,7 @@ public class DDLTask implements Task<RowCountResult> {
     }
 
     @Override
-    public List<ListenableFuture<RowCountResult>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return results;
     }
 

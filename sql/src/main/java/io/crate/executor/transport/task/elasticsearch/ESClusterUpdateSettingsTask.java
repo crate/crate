@@ -23,8 +23,8 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.executor.JobTask;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -34,16 +34,19 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
-public class ESClusterUpdateSettingsTask implements Task<TaskResult> {
+public class ESClusterUpdateSettingsTask extends JobTask {
 
     private final List<ListenableFuture<TaskResult>> results;
     private final TransportClusterUpdateSettingsAction transport;
     private final ClusterUpdateSettingsRequest request;
     private final ActionListener<ClusterUpdateSettingsResponse> listener;
 
-    public ESClusterUpdateSettingsTask(TransportClusterUpdateSettingsAction transport,
+    public ESClusterUpdateSettingsTask(UUID jobId,
+                                       TransportClusterUpdateSettingsAction transport,
                                        ESClusterUpdateSettingsNode node) {
+        super(jobId);
         this.transport = transport;
 
         final SettableFuture<TaskResult> result = SettableFuture.create();

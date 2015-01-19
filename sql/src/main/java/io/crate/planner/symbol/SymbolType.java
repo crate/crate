@@ -25,11 +25,13 @@ public enum SymbolType {
 
     AGGREGATION(Aggregation.FACTORY),
     REFERENCE(Reference.FACTORY),
+    RELATION_OUTPUT(Field.FACTORY),
     FUNCTION(Function.FACTORY),
     LITERAL(Literal.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),
     DYNAMIC_REFERENCE(DynamicReference.FACTORY),
-    VALUE(Value.FACTORY);
+    VALUE(Value.FACTORY),
+    MATCH_PREDICATE(MatchPredicate.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

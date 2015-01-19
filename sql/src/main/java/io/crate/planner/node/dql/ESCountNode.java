@@ -22,7 +22,7 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 
@@ -41,7 +41,7 @@ public class ESCountNode extends ESDQLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESCountNode(this, context);
     }
 
@@ -57,4 +57,5 @@ public class ESCountNode extends ESDQLPlanNode {
     public List<DataType> outputTypes() {
         return outputTypes;
     }
+
 }

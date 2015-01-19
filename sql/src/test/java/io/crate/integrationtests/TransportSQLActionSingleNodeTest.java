@@ -62,12 +62,6 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat(response.rowCount(), is(1L));
         assertEquals(1, response.cols().length);
         assertThat((Long) response.rows()[0][0], is(expectedUnassignedShards));
-
-
-        // test that cluster and node expressions are also available for unassigned shards
-        execute("select sys.cluster.name, sys.nodes.name, sys.nodes.port['http'] from sys.shards where table_name = 'locations'");
-        assertThat(response.rowCount(), is(20L));
-        assertThat((String)response.rows()[0][0], is(cluster().clusterName()));
     }
 
     @Test

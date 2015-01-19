@@ -25,10 +25,11 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.action.sql.query.QueryShardRequest;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
-import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -41,6 +42,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.action.SearchServiceListener;
@@ -53,10 +55,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Answers;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -75,8 +74,8 @@ public class QueryThenFetchTaskTest {
     private QueryThenFetchTask queryThenFetchTask;
     private TransportQueryShardAction transportQueryShardAction;
     private SearchServiceTransportAction searchServiceTransportAction;
-    private SearchPhaseController searchPhaseController;
-
+    private CrateResultSorter crateResultSorter;
+    private SearchPhaseController searchPhaseController = mock(SearchPhaseController.class);
     private DiscoveryNodes nodes = mock(DiscoveryNodes.class);
 
 
@@ -91,7 +90,7 @@ public class QueryThenFetchTaskTest {
         MockitoAnnotations.initMocks(this);
         QueryThenFetchNode searchNode = mock(QueryThenFetchNode.class);
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
-        HashMap<String, Set<Integer>> location1 = new HashMap<String, Set<Integer>>();
+        HashMap<String, Set<Integer>> location1 = new HashMap<>();
         location1.put("loc1", new HashSet<>(Arrays.asList(1)));
         locations.put("node_1", location1);
         Routing routing = new Routing(locations);
@@ -104,22 +103,26 @@ public class QueryThenFetchTaskTest {
 
         transportQueryShardAction = mock(TransportQueryShardAction.class);
         searchServiceTransportAction = mock(SearchServiceTransportAction.class);
-        searchPhaseController = mock(SearchPhaseController.class);
+        crateResultSorter = mock(CrateResultSorter.class);
         queryThenFetchTask = new QueryThenFetchTask(
+                UUID.randomUUID(),
                 mock(Functions.class),
                 searchNode,
                 clusterService,
                 transportQueryShardAction,
                 searchServiceTransportAction,
                 searchPhaseController,
-                new ThreadPool("testpool"));
+                new ThreadPool("testpool"),
+                mock(BigArrays.class),
+                crateResultSorter);
     }
 
     @Test
     public void testAggregationInOutputs() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("QueryThenFetch doesn't support \"count()\" in outputs");
+        expectedException.expectMessage("Operation not supported with symbol count()");
         new QueryThenFetchTask(
+                UUID.randomUUID(),
                 mock(Functions.class),
                 new QueryThenFetchNode(
                         new Routing(),
@@ -137,8 +140,9 @@ public class QueryThenFetchTaskTest {
                 mock(TransportQueryShardAction.class),
                 mock(SearchServiceTransportAction.class),
                 mock(SearchPhaseController.class),
-                mock(ThreadPool.class)
-        );
+                mock(ThreadPool.class),
+                mock(BigArrays.class),
+                crateResultSorter);
     }
 
     @Test
@@ -151,7 +155,7 @@ public class QueryThenFetchTaskTest {
                 docIdsToLoad.set(0, IntArrayList.from(1));
                 return null;
             }
-        }).when(searchPhaseController).fillDocIdsToLoad(any(AtomicArray.class), any(ScoreDoc[].class));
+        }).when(searchPhaseController).fillDocIdsToLoad(Matchers.any(AtomicArray.class), any(ScoreDoc[].class));
 
         QuerySearchResult queryResult = mock(QuerySearchResult.class, Answers.RETURNS_DEEP_STUBS.get());
 
@@ -160,7 +164,7 @@ public class QueryThenFetchTaskTest {
         when(queryResult.shardTarget()).thenReturn(target);
 
         queryThenFetchTask.start();
-        verify(transportQueryShardAction).execute(anyString(), any(QueryShardRequest.class), responseListener.capture());
+        verify(transportQueryShardAction).executeQuery(anyString(), any(QueryShardRequest.class), responseListener.capture());
         responseListener.getValue().onResponse(queryResult);
 
         ArgumentCaptor<SearchServiceListener> searchServiceListenerArgumentCaptor = ArgumentCaptor.forClass(SearchServiceListener.class);
@@ -171,11 +175,11 @@ public class QueryThenFetchTaskTest {
 
         OutOfMemoryError oom = new OutOfMemoryError();
         searchServiceListenerArgumentCaptor.getValue().onFailure(oom);
-        List<ListenableFuture<QueryResult>> result = queryThenFetchTask.result();
+        List<ListenableFuture<TaskResult>> result = queryThenFetchTask.result();
 
-        Futures.addCallback(Futures.allAsList(result), new FutureCallback<List<QueryResult>>() {
+        Futures.addCallback(Futures.allAsList(result), new FutureCallback<List<TaskResult>>() {
             @Override
-            public void onSuccess(@Nullable List<QueryResult> result) {
+            public void onSuccess(@Nullable List<TaskResult> result) {
                 fail();
             }
 
@@ -199,14 +203,14 @@ public class QueryThenFetchTaskTest {
         }).when(searchPhaseController).fillDocIdsToLoad(any(AtomicArray.class), any(ScoreDoc[].class));
 
         queryThenFetchTask.start();
-        verify(transportQueryShardAction).execute(anyString(), any(QueryShardRequest.class), responseListener.capture());
+        verify(transportQueryShardAction).executeQuery(anyString(), any(QueryShardRequest.class), responseListener.capture());
 
         responseListener.getValue().onFailure(new OutOfMemoryError("no more memory"));
-        List<ListenableFuture<QueryResult>> result = queryThenFetchTask.result();
+        List<ListenableFuture<TaskResult>> result = queryThenFetchTask.result();
 
-        Futures.addCallback(Futures.allAsList(result), new FutureCallback<List<QueryResult>>() {
+        Futures.addCallback(Futures.allAsList(result), new FutureCallback<List<TaskResult>>() {
             @Override
-            public void onSuccess(@Nullable List<QueryResult> result) {
+            public void onSuccess(@Nullable List<TaskResult> result) {
                 fail();
             }
 

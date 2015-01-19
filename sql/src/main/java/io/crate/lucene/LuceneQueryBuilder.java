@@ -108,6 +108,7 @@ public class LuceneQueryBuilder {
 
     public static class Context {
         Query query;
+
         final Map<String, Object> filteredFieldValues = new HashMap<>();
 
         public Query query() {
@@ -121,6 +122,11 @@ public class LuceneQueryBuilder {
                 return null;
             }
             return ((Number) score).floatValue();
+        }
+
+        @Nullable
+        public String unsupportedMessage(String field){
+            return UNSUPPORTED_FIELDS.get(field);
         }
 
         /**
@@ -138,7 +144,7 @@ public class LuceneQueryBuilder {
          * the LuceneQueryBuilder is never used)
          */
         final static Map<String, String> UNSUPPORTED_FIELDS = ImmutableMap.<String, String>builder()
-                .put("_version", "\"_version\" column is only valid in the WHERE clause if the primary key column is also present")
+                .put("_version", "\"_version\" column is not valid in the WHERE clause")
                 .build();
     }
 
@@ -698,6 +704,8 @@ public class LuceneQueryBuilder {
             if (fieldIgnored(function, context)) {
                 return Queries.newMatchAllQuery();
             }
+            validateNoUnsupportedFields(function, context);
+
             FunctionToQuery toQuery = functions.get(function.info().ident().name());
             if (toQuery == null) {
                 return genericFunctionQuery(function);
@@ -759,6 +767,23 @@ public class LuceneQueryBuilder {
                 }
             }
             return false;
+        }
+
+        @Nullable
+        private String validateNoUnsupportedFields(Function function, Context context){
+            if(function.arguments().size() != 2){
+                return null;
+            }
+            Symbol left = function.arguments().get(0);
+            Symbol right = function.arguments().get(1);
+            if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
+                String columnName = ((Reference) left).info().ident().columnIdent().name();
+                String unsupportedMessage = context.unsupportedMessage(columnName);
+                if(unsupportedMessage != null){
+                    throw new UnsupportedFeatureException(unsupportedMessage);
+                }
+            }
+            return null;
         }
 
         private Query genericFunctionQuery(Function function) {

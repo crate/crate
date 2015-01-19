@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -41,29 +40,13 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.monitor.os.OsStats;
 import org.joda.time.DateTime;
 import org.junit.Before;
 
 import java.util.*;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public abstract class BaseAnalyzerTest {
 
@@ -71,7 +54,7 @@ public abstract class BaseAnalyzerTest {
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
             .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
             .build());
-    static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(null, "users");
+    static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "users");
     static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("other_id", DataTypes.LONG, null)
@@ -93,7 +76,7 @@ public abstract class BaseAnalyzerTest {
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();
-    static final TableIdent TEST_DOC_TABLE_IDENT_MULTI_PK = new TableIdent(null, "users_multi_pk");
+    static final TableIdent TEST_DOC_TABLE_IDENT_MULTI_PK = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "users_multi_pk");
     static final TableInfo userTableInfoMultiPk = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_MULTI_PK, RowGranularity.DOC, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
@@ -104,7 +87,7 @@ public abstract class BaseAnalyzerTest {
             .addPrimaryKey("name")
             .clusteredBy("id")
             .build();
-    static final TableIdent TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY = new TableIdent(null, "users_clustered_by_only");
+    static final TableIdent TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "users_clustered_by_only");
     static final TableInfo userTableInfoClusteredByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY, RowGranularity.DOC, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
@@ -113,13 +96,13 @@ public abstract class BaseAnalyzerTest {
             .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
             .clusteredBy("id")
             .build();
-    static final TableIdent TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY = new TableIdent(null, "user_refresh_interval");
+    static final TableIdent TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "user_refresh_interval");
     static final TableInfo userTableInfoRefreshIntervalByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY, RowGranularity.DOC, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("content", DataTypes.STRING, null)
             .clusteredBy("id")
             .build();
-    static final TableIdent NESTED_PK_TABLE_IDENT = new TableIdent(null, "nested_pk");
+    static final TableIdent NESTED_PK_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "nested_pk");
     static final TableInfo nestedPkTableInfo = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("o", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
@@ -128,7 +111,7 @@ public abstract class BaseAnalyzerTest {
             .addPrimaryKey("o.b")
             .clusteredBy("o.b")
             .build();
-    static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(null, "parted");
+    static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "parted");
     static final TableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("id", DataTypes.INTEGER, null)
@@ -141,7 +124,7 @@ public abstract class BaseAnalyzerTest {
                     new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue(),
                     new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue())
             .build();
-    static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(null, "multi_parted");
+    static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "multi_parted");
     static final TableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("id", DataTypes.INTEGER, null)
@@ -155,7 +138,7 @@ public abstract class BaseAnalyzerTest {
                     new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).stringValue(),
                     new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).stringValue())
             .build();
-    static final TableIdent TEST_NESTED_PARTITIONED_TABLE_IDENT = new TableIdent(null, "nested_parted");
+    static final TableIdent TEST_NESTED_PARTITIONED_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "nested_parted");
     static final TableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_NESTED_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("id", DataTypes.INTEGER, null)
@@ -168,7 +151,7 @@ public abstract class BaseAnalyzerTest {
                     new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("Ford"))).stringValue(),
                     new PartitionName("nested_parted", Arrays.asList(null, new BytesRef("Zaphod"))).stringValue())
             .build();
-    static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(null, "transactions");
+    static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "transactions");
     static final TableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_DOC_TRANSACTIONS_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("id", DataTypes.LONG, null)
@@ -177,7 +160,7 @@ public abstract class BaseAnalyzerTest {
             .add("amount", DataTypes.DOUBLE, null)
             .add("timestamp", DataTypes.TIMESTAMP, null)
             .build();
-    static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(null, "deeply_nested");
+    static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "deeply_nested");
     static final TableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
             DEEPLY_NESTED_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("details", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
@@ -193,25 +176,28 @@ public abstract class BaseAnalyzerTest {
             .add("tags", DataTypes.LONG, Arrays.asList("metadata", "id"))
             .build();
 
-    static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(null, "locations");
+    static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "locations");
     static final TableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("loc", DataTypes.GEO_POINT, null)
             .build();
 
-    static final TableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new TableIdent(null, "bystring"), RowGranularity.DOC, shardRouting)
+    static final TableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "bystring"), RowGranularity.DOC, shardRouting)
             .add("name", DataTypes.STRING, null)
             .add("score", DataTypes.DOUBLE, null)
             .addPrimaryKey("name")
             .clusteredBy("name")
             .build();
 
-    static final TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent(null, "myblobs");
+    static final TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "myblobs");
     static final TableInfo TEST_BLOB_TABLE_TABLE_INFO = TestingTableInfo.builder(TEST_BLOB_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .build();
 
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.<DataType>asList(DataTypes.LONG)),
+            DataTypes.LONG);
+    static final FunctionInfo ADD_FUNCTION_INFO = new FunctionInfo(
+            new FunctionIdent("add", Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)),
             DataTypes.LONG);
     static final FunctionInfo YEAR_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("year", Arrays.<DataType>asList(DataTypes.TIMESTAMP)),
@@ -263,6 +249,33 @@ public abstract class BaseAnalyzerTest {
         }
     }
 
+    static class AddTestFunction extends Scalar<Long, Number> {
+
+        @Override
+        public Long evaluate(Input<Number>... args) {
+            assert args.length == 2;
+            if (args[0].value() == null || args[1].value() == null) {
+                return null;
+            }
+            return args[0].value().longValue() + args[1].value().longValue();
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return ADD_FUNCTION_INFO;
+        }
+
+
+        @Override
+        public Symbol normalizeSymbol(Function symbol) {
+            assert symbol.arguments().size() == 2;
+            if (symbol.arguments().get(0) instanceof Input && symbol.arguments().get(1) instanceof Input) {
+                return Literal.newLiteral(evaluate((Input<Number>) symbol.arguments().get(0), (Input<Number>) symbol.arguments().get(1)));
+            }
+            return symbol;
+        }
+    }
+
     static class YearFunction extends Scalar<String, Long> {
 
         @Override
@@ -284,43 +297,6 @@ public abstract class BaseAnalyzerTest {
                 return Literal.newLiteral(evaluate((Input<Long>) symbol.arguments().get(0)));
             }
             return symbol;
-        }
-    }
-
-    /**
-     * borrowed from {@link io.crate.operation.reference.sys.TestGlobalSysExpressions}
-     * // TODO share it
-     */
-    static class TestModule extends AbstractModule {
-
-        @Override
-        protected void configure() {
-            ClusterService clusterService = mock(ClusterService.class);
-            ClusterState state = mock(ClusterState.class);
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
-            when(metaData.persistentSettings()).thenReturn(ImmutableSettings.EMPTY);
-            when(metaData.transientSettings()).thenReturn(ImmutableSettings.EMPTY);
-            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-            when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            when(state.metaData()).thenReturn(metaData);
-            when(clusterService.state()).thenReturn(state);
-            bind(ClusterService.class).toInstance(clusterService);
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
-            OsService osService = mock(OsService.class);
-            OsStats osStats = mock(OsStats.class);
-            when(osService.stats()).thenReturn(osStats);
-            when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
-            bind(OsService.class).toInstance(osService);
-            Discovery discovery = mock(Discovery.class);
-            bind(Discovery.class).toInstance(discovery);
-            DiscoveryNode node = mock(DiscoveryNode.class);
-            when(discovery.localNode()).thenReturn(node);
-            when(node.getId()).thenReturn("node-id-1");
-            when(node.getName()).thenReturn("node 1");
-
-            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
         }
     }
 

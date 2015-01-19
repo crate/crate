@@ -21,6 +21,7 @@
 
 package io.crate.action.sql.query;
 
+import com.google.common.base.Optional;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Symbol;
@@ -28,6 +29,8 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.search.Scroll;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,6 +50,9 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
     private WhereClause whereClause;
     private List<ReferenceInfo> partitionBy;
 
+    // used for paged QTF queries
+    private Optional<Scroll> scroll;
+
     public QueryShardRequest() {}
 
     public QueryShardRequest(String index,
@@ -58,7 +64,9 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
                              int limit,
                              int offset,
                              WhereClause whereClause,
-                             List<ReferenceInfo> partitionBy) {
+                             List<ReferenceInfo> partitionBy,
+                             Optional<TimeValue> keepAlive
+    ) {
         this.index = index;
         this.shard = shard;
         this.outputs = outputs;
@@ -69,6 +77,12 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
         this.offset = offset;
         this.whereClause = whereClause;
         this.partitionBy = partitionBy;
+
+        if (keepAlive.isPresent()) {
+            this.scroll = Optional.of(new Scroll(keepAlive.get()));
+        } else {
+            this.scroll = Optional.absent();
+        }
     }
 
 
@@ -120,6 +134,11 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
             referenceInfo.readFrom(in);
             partitionBy.add(referenceInfo);
         }
+        if (in.readBoolean()) {
+            scroll = Optional.of(Scroll.readScroll(in));
+        } else {
+            scroll = Optional.absent();
+        }
     }
 
     @Override
@@ -156,6 +175,11 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
         out.writeVInt(partitionBy.size());
         for (ReferenceInfo referenceInfo : partitionBy) {
             referenceInfo.writeTo(out);
+        }
+
+        out.writeBoolean(scroll.isPresent());
+        if (scroll.isPresent()) {
+            scroll.get().writeTo(out);
         }
     }
 
@@ -199,6 +223,10 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
         return partitionBy;
     }
 
+    public Optional<Scroll> scroll() {
+        return scroll;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -217,6 +245,13 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
         if (!shard.equals(request.shard)) return false;
         if (!whereClause.equals(request.whereClause)) return false;
 
+        if (scroll.isPresent() && request.scroll.isPresent()) {
+            if (!scroll.get().keepAlive().equals(request.scroll.get().keepAlive())) {
+                return false;
+            }
+        } else if (scroll.isPresent() || request.scroll.isPresent()) {
+            return false;
+        }
         return true;
     }
 
@@ -232,6 +267,7 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
         result = 31 * result + offset;
         result = 31 * result + whereClause.hashCode();
         result = 31 * result + partitionBy.hashCode();
+        result = 31 * result + scroll.hashCode(); // delegated by Optional
         return result;
     }
 }

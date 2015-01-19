@@ -101,7 +101,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("suess.cluster");
+        expectedException.expectMessage("Cannot resolve relation 'suess.cluster'");
         executor.exec("select count(race), suess.cluster.name from characters");
     }
 
@@ -147,16 +147,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     }
 
     @Test
-    public void testSelectOrderByGlobalExpression() throws Exception {
-        SQLResponse response = executor.exec(
-            "select count(*), sys.cluster.name from characters group by sys.cluster.name order by sys.cluster.name");
-        assertEquals(1, response.rowCount());
-        assertEquals(7L, response.rows()[0][0]);
-
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[0][1]);
-    }
-
-    @Test
     public void testSelectOrderByNullSortingDESC() throws Exception {
         SQLResponse response = executor.exec("select age from characters order by age desc");
         assertEquals(null, response.rows()[0][0]);
@@ -166,40 +156,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertEquals(43, response.rows()[4][0]);
         assertEquals(34, response.rows()[5][0]);
         assertEquals(32, response.rows()[6][0]);
-    }
-
-
-    @Test
-    public void testSelectGlobalExpressionGroupBy() throws Exception {
-        SQLResponse response = executor.exec(
-            "select count(distinct race), sys.cluster.name from characters group by sys.cluster.name");
-        assertEquals(1, response.rowCount());
-        for (int i=0; i<response.rowCount();i++) {
-            assertEquals(3L, response.rows()[i][0]);
-            assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[i][1]);
-        }
-    }
-
-    @Test
-    public void testSelectGlobalExpressionGroupByWith2GroupByKeys() throws Exception {
-        SQLResponse response = executor.exec(
-            "select count(name), sys.cluster.name from characters " +
-                "group by race, sys.cluster.name order by count(name) desc");
-        assertEquals(3, response.rowCount());
-        assertEquals(4L, response.rows()[0][0]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[0][1]);
-        assertEquals(response.rows()[0][1], response.rows()[1][1]);
-        assertEquals(response.rows()[0][1], response.rows()[2][1]);
-    }
-
-    @Test
-    public void testSelectGlobalExpressionGlobalAggregate() throws Exception {
-        SQLResponse response = executor.exec("select count(distinct race), sys.cluster.name " +
-                "from characters group by sys.cluster.name");
-        assertEquals(1, response.rowCount());
-        assertArrayEquals(new String[]{"count(DISTINCT race)", "sys.cluster.name"}, response.cols());
-        assertEquals(3L, response.rows()[0][0]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[0][1]);
     }
 
     @Test
@@ -221,33 +177,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertEquals(34, response.rows()[3][0]);
         assertEquals(32, response.rows()[4][0]);
     }
-
-    @Test
-    public void testSelectAggregateOnGlobalExpression() throws Exception {
-        SQLResponse response = executor.exec("select count(sys.cluster.name) from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals(7L, response.rows()[0][0]);
-
-        response = executor.exec("select count(distinct sys.cluster.name) from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-    }
-
-    @Test
-    public void testSelectGlobalExpressionWithAlias() throws Exception {
-        SQLResponse response = executor.exec("select sys.cluster.name as cluster_name, race from characters " +
-            "group by sys.cluster.name, race " +
-            "order by cluster_name, race");
-        assertEquals(3L, response.rowCount());
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[0][0]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[1][0]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[2][0]);
-
-        assertEquals("Android", response.rows()[0][1]);
-        assertEquals("Human", response.rows()[1][1]);
-        assertEquals("Vogon", response.rows()[2][1]);
-    }
-
 
     @Test
     public void testGlobalAggregateSimple() throws Exception {

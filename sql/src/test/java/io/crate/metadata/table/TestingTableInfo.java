@@ -23,7 +23,6 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.PartitionName;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -35,6 +34,7 @@ import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
 import org.mockito.Answers;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -69,6 +69,7 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
         private final Routing routing;
         private boolean isAlias = false;
         private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
+
         private SchemaInfo schemaInfo = mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get());
 
         public Builder(TableIdent ident, RowGranularity granularity, Routing routing) {
@@ -151,16 +152,16 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
             return this;
         }
 
+        public Builder schemaInfo(SchemaInfo schemaInfo) {
+            this.schemaInfo = schemaInfo;
+            return this;
+        }
+
         public Builder addPartitions(String... partitionNames) {
             for (String partitionName : partitionNames) {
                 PartitionName partition = PartitionName.fromString(partitionName, ident.schema(), ident.name());
                 partitions.add(partition);
             }
-            return this;
-        }
-
-        public Builder schemaInfo(SchemaInfo schemaInfo) {
-            this.schemaInfo = schemaInfo;
             return this;
         }
 
@@ -274,7 +275,7 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return routing;
     }
 

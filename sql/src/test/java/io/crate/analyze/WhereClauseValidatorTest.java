@@ -29,6 +29,7 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Rule;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class WhereClauseValidatorTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule(),
                 new OperatorModule(),
@@ -81,7 +82,7 @@ public class WhereClauseValidatorTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
                 "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
-        analyze("update users set col2 = ? where col2 = ? and \"_version\" >= ?",
+        analyze("update users set text = ? where text = ? and \"_version\" >= ?",
                 new Object[]{"already in panic", "don't panic", 3});
     }
 
@@ -125,8 +126,8 @@ public class WhereClauseValidatorTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
                 "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
-        analyze("update users set col2 = ? where not (_version = 1 and col1 = 1)",
-                new Object[]{1});
+        analyze("update users set text = ? where not (_version = 1 and id = 1)",
+                new Object[]{"Hello"});
     }
 
     @Test
@@ -135,6 +136,15 @@ public class WhereClauseValidatorTest extends BaseAnalyzerTest {
         expectedException.expectMessage(
                 "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
         analyze("update users set col2 = ? where _version is null",
+                new Object[]{1});
+    }
+
+    @Test
+    public void testDeleteWhereVersionIsNullPredicate() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(
+                "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
+        analyze("delete from users where _version is null",
                 new Object[]{1});
     }
 }

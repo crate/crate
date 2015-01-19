@@ -152,75 +152,81 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
         }
     }
 
+
+    class PlanNodePrinter extends PlanNodeVisitor<PlanPrinter.PrintContext, Void> {
+
+        @Override
+        public Void visitMergeNode(MergeNode node, PrintContext context) {
+            context.print("Merge");
+            context.indent();
+            context.print("executionNodes: %s", node.executionNodes());
+            processProjections(node, context);
+            context.dedent();
+            return null;
+        }
+
+        @Override
+        public Void visitESGetNode(ESGetNode node, PrintContext context) {
+            context.print(node.toString());
+            context.indent();
+            context.print("outputs:");
+            for (Symbol symbol : node.outputs()) {
+                symbolPrinter.process(symbol, context);
+            }
+            context.dedent();
+            return null;
+        }
+
+        @Override
+        public Void visitQueryThenFetchNode(QueryThenFetchNode node, PrintContext context) {
+            context.print(node.toString());
+            context.indent();
+            context.print("outputs:");
+            for (Symbol symbol : node.outputs()) {
+                symbolPrinter.process(symbol, context);
+            }
+
+            context.dedent();
+            return null;
+        }
+
+        @Override
+        public Void visitCollectNode(CollectNode node, PrintContext context) {
+            context.print("Collect");
+            context.indent();
+            context.print("routing: %s", node.routing());
+            context.print("toCollect:");
+            for (Symbol symbol : node.toCollect()) {
+                symbolPrinter.process(symbol, context);
+            }
+            context.print("whereClause %s", node.whereClause().toString());
+
+            processProjections(node, context);
+            context.dedent();
+
+            return null;
+        }
+    }
+
     private ProjectionPrinter projectionPrinter;
     private SymbolPrinter symbolPrinter;
+    private final PlanNodePrinter planNodePrinter;
+
 
 
     public PlanPrinter() {
         projectionPrinter = new ProjectionPrinter();
         symbolPrinter = new SymbolPrinter();
+        planNodePrinter = new PlanNodePrinter();
     }
 
     public String print(Plan plan) {
         StringBuilder output = new StringBuilder();
         PrintContext context = new PrintContext(output);
-        for (PlanNode node : plan) {
-            process(node, context);
-        }
+        process(plan, context);
         return output.toString();
     }
 
-    @Override
-    public Void visitMergeNode(MergeNode node, PrintContext context) {
-        context.print("Merge");
-        context.indent();
-        context.print("executionNodes: %s", node.executionNodes());
-        processProjections(node, context);
-        context.dedent();
-        return null;
-    }
-
-    @Override
-    public Void visitESGetNode(ESGetNode node, PrintContext context) {
-        context.print(node.toString());
-        context.indent();
-        context.print("outputs:");
-        for (Symbol symbol : node.outputs()) {
-            symbolPrinter.process(symbol, context);
-        }
-        context.dedent();
-        return null;
-    }
-
-    @Override
-    public Void visitQueryThenFetchNode(QueryThenFetchNode node, PrintContext context) {
-        context.print(node.toString());
-        context.indent();
-        context.print("outputs:");
-        for (Symbol symbol : node.outputs()) {
-            symbolPrinter.process(symbol, context);
-        }
-
-        context.dedent();
-        return null;
-    }
-
-    @Override
-    public Void visitCollectNode(CollectNode node, PrintContext context) {
-        context.print("Collect");
-        context.indent();
-        context.print("routing: %s", node.routing());
-        context.print("toCollect:");
-        for (Symbol symbol : node.toCollect()) {
-            symbolPrinter.process(symbol, context);
-        }
-        context.print("whereClause %s", node.whereClause().toString());
-
-        processProjections(node, context);
-        context.dedent();
-
-        return null;
-    }
 
     private void processProjections(DQLPlanNode node, PrintContext context) {
         if (node.hasProjections()) {
@@ -232,5 +238,22 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             }
             context.dedent();
         }
+    }
+
+    @Override
+    protected Void visitPlan(Plan plan, PrintContext context) {
+        context.print("Plan: " + plan.getClass().getCanonicalName());
+        return null;
+    }
+
+    @Override
+    public Void visitIterablePlan(IterablePlan plan, PrintContext context) {
+        visitPlan(plan, context);
+        context.indent();
+        for (PlanNode node : plan) {
+            planNodePrinter.process(node, context);
+        }
+        context.dedent();
+        return null;
     }
 }

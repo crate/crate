@@ -39,9 +39,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
@@ -133,7 +131,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     @Test
     public void testSelectWhereTable() throws Exception {
         SQLResponse response = transportExecutor.exec(
-            "select id, sys.nodes.name, size from sys.shards " +
+            "select id, size from sys.shards " +
             "where table_name = 'characters'");
         assertEquals(10L, response.rowCount());
     }
@@ -181,9 +179,8 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectStarMatch() throws Exception {
-
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("function not supported on system tables: FunctionIdent{name=match, argumentTypes=[object, string, string, object]}");
+        expectedException.expectMessage("Cannot use match predicate on system tables");
         transportExecutor.exec("select * from sys.shards where match(table_name, 'characters')");
     }
 
@@ -238,24 +235,6 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     }
 
     @Test
-    public void testSelectGlobalExpressionGroupBy() throws Exception {
-        SQLResponse response = transportExecutor.exec("select count(*), table_name, sys.cluster.name from sys.shards " +
-            "group by sys.cluster.name, table_name order by table_name");
-        assertEquals(3, response.rowCount());
-        assertEquals(10L, response.rows()[0][0]);
-        assertEquals("blobs", response.rows()[0][1]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[0][2]);
-
-        assertEquals(10L, response.rows()[1][0]);
-        assertEquals("characters", response.rows()[1][1]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[1][2]);
-
-        assertEquals(10L, response.rows()[2][0]);
-        assertEquals("quotes", response.rows()[2][1]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[2][2]);
-    }
-
-    @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         expectedException.expect(SQLActionException.class);
         transportExecutor.exec("select lol from sys.shards group by table_name");
@@ -292,6 +271,13 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     }
 
     @Test
+    public void testSelectShardIdFromSysNodes() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot resolve relation 'shards'");
+        transportExecutor.exec("select sys.shards.id from sys.nodes");
+    }
+
+    @Test
     public void testSelectWithOrderByColumnNotInOutputs() throws Exception {
         // regression test... query failed with ArrayOutOfBoundsException due to inputColumn mangling in planner
         SQLResponse response = transportExecutor.exec("select id from sys.shards order by table_name limit 1");
@@ -317,5 +303,25 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         String nodeName = response.rows()[0][1].toString();
         assertEquals("node_0", nodeName);
         assertEquals("node_0", fullNode.get("name"));
+    }
+
+    @Test
+    public void testSelectNodeSysExpressionWithUnassignedShards() throws Exception {
+        try {
+            transportExecutor.exec(
+                    "create table users (id integer primary key, name string) with (number_of_replicas=2)");
+            transportExecutor.ensureYellow();
+            SQLResponse response = transportExecutor.exec(
+                    "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name']"
+            );
+            String nodeName = response.rows()[0][0].toString();
+            assertEquals("node_0", nodeName);
+            assertThat(response.rows()[8][0], is(nullValue()));
+        } finally {
+            transportExecutor.exec(
+                    "drop table users"
+            );
+            transportExecutor.ensureGreen();
+        }
     }
 }

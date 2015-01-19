@@ -22,14 +22,14 @@
 package io.crate.planner.node.dql;
 
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.Nullable;
@@ -71,19 +71,19 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
         assert routing != null;
         assert outputs != null;
         assert whereClause != null;
-        this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
-        this.reverseFlags = Objects.firstNonNull(reverseFlags, EMPTY_VALUE_BOOLEAN_ARR);
-        this.nullsFirst = Objects.firstNonNull(nullsFirst, EMPTY_OBJ_BOOLEAN_ARR);
+        this.orderBy = MoreObjects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
+        this.reverseFlags = MoreObjects.firstNonNull(reverseFlags, EMPTY_VALUE_BOOLEAN_ARR);
+        this.nullsFirst = MoreObjects.firstNonNull(nullsFirst, EMPTY_OBJ_BOOLEAN_ARR);
         Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
                 "orderBy size doesn't match with reverseFlag length");
 
         this.whereClause = whereClause;
         this.outputs = outputs;
 
-        this.limit = Objects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
-        this.offset = Objects.firstNonNull(offset, 0);
+        this.limit = MoreObjects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
+        this.offset = MoreObjects.firstNonNull(offset, 0);
 
-        this.partitionBy = Objects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
+        this.partitionBy = MoreObjects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
         outputTypes(Symbols.extractTypes(outputs));
     }
 
@@ -120,13 +120,13 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitQueryThenFetchNode(this, context);
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("offset", offset())
                 .add("limit", limit())
                 .add("orderBy", orderBy())
@@ -136,4 +136,3 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
                 .toString();
     }
 }
-

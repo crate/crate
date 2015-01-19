@@ -26,12 +26,13 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.RowCountResult;
-import io.crate.executor.Task;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Provides basic upstreamResult/result handling for tasks that return the number of affected rows in their result.
@@ -39,17 +40,18 @@ import java.util.List;
  *
  * Implementations have to set the result on {@link #result} and just have to implement {@link #start()}.
  */
-public abstract class AsyncChainedTask implements Task<TaskResult> {
+public abstract class AsyncChainedTask extends JobTask {
 
     protected final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> resultList;
 
-    protected AsyncChainedTask() {
+    protected AsyncChainedTask(UUID jobId) {
+        super(jobId);
         result = SettableFuture.create();
         ListenableFuture<TaskResult> resultFallback = Futures.withFallback(result, new FutureFallback<TaskResult>() {
             @Override
             public ListenableFuture<TaskResult> create(@Nonnull Throwable t) throws Exception {
-                return Futures.immediateFuture((TaskResult) RowCountResult.error(t));
+                return Futures.<TaskResult>immediateFuture(RowCountResult.error(t));
             }
         });
         resultList = new ArrayList<>();

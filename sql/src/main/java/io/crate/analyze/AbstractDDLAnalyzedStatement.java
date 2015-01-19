@@ -35,7 +35,6 @@ public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
         super(parameterContext);
     }
 
-    @Override
     public void table(TableIdent tableIdent) {
         if (tableIdent.schema() != null && !isValidTableOrSchemaName(tableIdent.schema())) {
             throw new InvalidSchemaNameException(tableIdent.schema());

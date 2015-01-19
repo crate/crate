@@ -31,7 +31,6 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
 import io.crate.core.StringUtils;
-import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
@@ -45,7 +44,6 @@ import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
@@ -205,30 +203,6 @@ public class ESQueryBuilder {
         whereClause(context, node.whereClause());
 
         builder.endObject();
-        return builder.bytes();
-    }
-
-    public BytesReference convert(ESUpdateNode node) throws IOException {
-        assert node != null;
-
-        Context context = new Context();
-        context.filteredFields.add("_version"); // will be handled by to UpdateFacet
-        context.builder = XContentFactory.jsonBuilder().startObject();
-        XContentBuilder builder = context.builder;
-
-        whereClause(context, node.whereClause());
-
-        if (node.version().isPresent()) {
-            builder.field("version", true);
-        }
-        builder.startObject("facets").startObject(UpdateFacet.TYPE).startObject(UpdateFacet.TYPE);
-
-        builder.field("doc", node.updateDoc());
-        if (node.version().isPresent()) {
-            builder.field("version", node.version().get());
-        }
-
-        builder.endObject().endObject().endObject();
         return builder.bytes();
     }
 

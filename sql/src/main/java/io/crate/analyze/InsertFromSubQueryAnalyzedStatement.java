@@ -21,29 +21,74 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.Path;
+import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.Field;
+import io.crate.types.DataType;
 
-public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement {
+import javax.annotation.Nullable;
+import java.util.List;
 
-    private final AnalyzedRelation subQueryAnalysis;
+public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement implements AnalyzedRelation {
 
-    public InsertFromSubQueryAnalyzedStatement(ReferenceInfos referenceInfos,
-                                               Functions functions,
-                                               ParameterContext parameterContext,
-                                               ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
-        this.subQueryAnalysis = new SelectAnalyzedStatement(referenceInfos, functions, parameterContext, referenceResolver);
+    private final AnalyzedRelation subQueryRelation;
+
+    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation, TableInfo targetTableInfo) {
+        tableInfo(targetTableInfo);
+        this.subQueryRelation = subQueryRelation;
     }
 
     public AnalyzedRelation subQueryRelation() {
-        return this.subQueryAnalysis;
+        return this.subQueryRelation;
+    }
+
+    @Override
+    public boolean hasNoResult() {
+        return false;
+    }
+
+    @Override
+    public void normalize() {
+    }
+
+    @Override
+    public List<String> outputNames() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<DataType> outputTypes() {
+        return ImmutableList.of();
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitInsertFromSubQueryStatement(this, context);
+    }
+
+    @Override
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+        return visitor.visitInsertFromQuery(this, context);
+    }
+
+    @Nullable
+    @Override
+    public Field getField(Path path) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
+        return null;
+    }
+
+    @Override
+    public List<Field> fields() {
+        return ImmutableList.of();
     }
 }

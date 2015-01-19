@@ -21,8 +21,10 @@
 
 package io.crate.metadata;
 
+import io.crate.exceptions.Exceptions;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -100,7 +102,11 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
                 throw new TableUnknownException(ident.name());
             }
         } catch (Exception e) {
-            throw new TableUnknownException(ident.name(), e);
+            Throwable throwable = Exceptions.unwrap(e);
+            if (throwable instanceof TableAliasSchemaException) {
+                throw (TableAliasSchemaException) throwable;
+            }
+            throw new TableUnknownException(ident.name(), throwable);
         }
         return info;
     }

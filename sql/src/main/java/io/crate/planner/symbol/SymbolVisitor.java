@@ -61,5 +61,13 @@ public class SymbolVisitor<C, R> {
     public R visitValue(Value symbol, C context) {
         return visitSymbol(symbol, context);
     }
+
+    public R visitField(Field field, C context) {
+        return visitSymbol(field, context);
+    }
+
+    public R visitMatchPredicate(MatchPredicate matchPredicate, C context) {
+        return visitSymbol(matchPredicate, context);
+    }
 }
 

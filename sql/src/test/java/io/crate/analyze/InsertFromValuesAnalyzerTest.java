@@ -21,16 +21,17 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.metadata.*;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -88,7 +89,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule(),
                 new PredicateModule()
@@ -99,7 +100,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (id, name) values (1, 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -118,7 +119,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithTwistedColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (name, id) values ('Trillian', 2)");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("name"));
@@ -184,7 +185,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithFunction() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (id, name) values (ABS(-1), 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -203,7 +204,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithoutColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users values (1, 1, 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(3));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -226,7 +227,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithoutColumnsAndOnlyOneColumn() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users values (1)");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(1));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -243,8 +244,10 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
 
-    @Test (expected = UnsupportedOperationException.class)
+    @Test
     public void testInsertIntoAliasTable() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("aliases are read only");
         analyze("insert into alias (bla) values ('blubb')");
     }
 
@@ -526,7 +529,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithMatchPredicateInValues() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Invalid value of type 'FUNCTION'");
+        expectedException.expectMessage("Validation failed for awesome: Invalid value of type 'MATCH_PREDICATE' in insert statement");
         analyze("insert into users (id, awesome) values (1, match(name, 'bar'))");
     }
 

@@ -27,6 +27,7 @@ import io.crate.planner.symbol.*;
 import javax.annotation.Nullable;
 import java.util.List;
 
+
 public class HavingSymbolValidator {
 
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
@@ -36,6 +37,7 @@ public class HavingSymbolValidator {
     }
 
     static class HavingContext {
+
         @Nullable
         private final List<Symbol> groupBySymbols;
 
@@ -49,11 +51,11 @@ public class HavingSymbolValidator {
     private static class InnerValidator extends SymbolVisitor<HavingContext, Void> {
 
         @Override
-        public Void visitReference(Reference symbol, HavingContext context) {
-            if (!context.insideAggregation && (context.groupBySymbols == null || !context.groupBySymbols.contains(symbol))) {
+        public Void visitField(Field field, HavingContext context) {
+            if (!context.insideAggregation && (context.groupBySymbols == null || !context.groupBySymbols.contains(field))) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.format("Cannot use reference %s outside of an Aggregation in HAVING clause. " +
-                                "Only GROUP BY keys allowed here.", symbol));
+                        SymbolFormatter.format("Cannot use column %s outside of an Aggregation in HAVING clause. " +
+                                "Only GROUP BY keys allowed here.", field));
             }
             return null;
         }

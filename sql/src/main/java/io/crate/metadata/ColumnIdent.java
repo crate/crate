@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
+public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
 
     public static final Function<ColumnIdent, String> GET_FQN_NAME_FUNCTION = new com.google.common.base.Function<ColumnIdent, String>() {
         @Nullable
@@ -150,6 +150,11 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
             return name;
         }
         return StringUtils.PATH_JOINER.join(name, StringUtils.PATH_JOINER.join(path));
+    }
+
+    @Override
+    public String outputName() {
+        return sqlFqn();
     }
 
     public String sqlFqn() {

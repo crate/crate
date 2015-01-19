@@ -27,25 +27,28 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.crate.Constants;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
-import io.crate.operation.projectors.TopN;
+import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.FileUriCollectNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
@@ -53,8 +56,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -70,9 +71,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
-    private final RelationPlanner relationPlanner = new RelationPlanner();
+    private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
+    private Functions functions;
+    private AnalysisMetaData analysisMetaData;
     private AggregationProjection localMergeProjection;
 
     protected static class Context {
@@ -90,8 +92,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private static final Context EMPTY_CONTEXT = new Context();
 
     @Inject
-    public Planner(ClusterService clusterService) {
+    public Planner(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
         this.clusterService = clusterService;
+        this.functions = analysisMetaData.functions();
+        this.analysisMetaData = analysisMetaData;
+        this.consumingPlanner = new ConsumingPlanner(analysisMetaData);
     }
 
     /**
@@ -102,8 +107,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        assert !analyzedStatement.hasNoResult() : "analysis has no result. we're wrong here";
-        return process(analyzedStatement, EMPTY_CONTEXT);
+        if (analyzedStatement.hasNoResult()){
+            return NoopPlan.INSTANCE;
+        }
+        Plan plan = process(analyzedStatement, EMPTY_CONTEXT);
+        return plan;
     }
 
     @Override
@@ -113,78 +121,47 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitSelectStatement(SelectAnalyzedStatement statement, Context context) {
-        return relationPlanner.process(statement, context);
+        return consumingPlanner.plan(statement);
     }
 
     @Override
     protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
         Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
-        Plan plan = new Plan();
-        ESIndex(analysis, plan);
-        return plan;
+        return new IterablePlan(createESIndexNode(analysis));
     }
 
     @Override
     protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement analysis, Context context) {
-        List<ColumnIdent> columns = Lists.transform(analysis.columns(), new com.google.common.base.Function<Reference, ColumnIdent>() {
-            @Nullable
-            @Override
-            public ColumnIdent apply(@Nullable Reference input) {
-                if (input == null) {
-                    return null;
-                }
-                return input.info().ident().columnIdent();
-            }
-        });
-        ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
-                analysis.table().ident().esName(),
-                analysis.table().primaryKey(),
-                columns,
-                analysis.primaryKeyColumnIndices(),
-                analysis.partitionedByIndices(),
-                analysis.routingColumn(),
-                analysis.routingColumnIndex(),
-                ImmutableSettings.EMPTY, // TODO: define reasonable writersettings
-                analysis.table().isPartitioned()
-        );
-        return relationPlanner.process(analysis.subQueryRelation(), new Context(indexWriterProjection));
+        return consumingPlanner.plan(analysis);
     }
 
     @Override
-    protected Plan visitUpdateStatement(UpdateAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
-        for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : analysis.nestedAnalysis()) {
-            if (!nestedAnalysis.hasNoResult()) {
-                ESUpdateNode node = new ESUpdateNode(
-                        indices(nestedAnalysis),
-                        nestedAnalysis.assignments(),
-                        nestedAnalysis.whereClause(),
-                        nestedAnalysis.ids(),
-                        nestedAnalysis.routingValues()
-                );
-                plan.add(node);
+    protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
+        return consumingPlanner.plan(statement);
+    }
+
+    @Override
+    protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
+        IterablePlan plan = new IterablePlan();
+        TableRelation tableRelation = (TableRelation) analyzedStatement.analyzedRelation();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+        for (WhereClause whereClause : analyzedStatement.whereClauses()) {
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(whereClause);
+            if (whereClauseContext.ids().size() == 1 && whereClauseContext.routingValues().size() == 1) {
+                createESDeleteNode(tableRelation.tableInfo(), whereClauseContext, plan);
+            } else {
+                createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauseContext, plan);
             }
         }
-        return plan;
-    }
-
-    @Override
-    protected Plan visitDeleteStatement(DeleteAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
-        for (DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement nestedDeleteAnalysis : analysis.nestedStatements()) {
-            if (nestedDeleteAnalysis.ids().size() == 1 &&
-                    nestedDeleteAnalysis.routingValues().size() == 1) {
-                ESDelete(nestedDeleteAnalysis, plan);
-            } else {
-                ESDeleteByQuery(nestedDeleteAnalysis, plan);
-            }
+        if (plan.isEmpty()){
+            return NoopPlan.INSTANCE;
         }
         return plan;
     }
 
     @Override
     protected Plan visitCopyStatement(final CopyAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
+        IterablePlan plan = new IterablePlan();
         if (analysis.mode() == CopyAnalyzedStatement.Mode.FROM) {
             copyFromPlan(analysis, plan);
         } else if (analysis.mode() == CopyAnalyzedStatement.Mode.TO) {
@@ -194,16 +171,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return plan;
     }
 
-    private void copyToPlan(CopyAnalyzedStatement analysis, Plan plan) {
+    private void copyToPlan(CopyAnalyzedStatement analysis, IterablePlan plan) {
+        TableInfo tableInfo = analysis.table();
         WriterProjection projection = new WriterProjection();
         projection.uri(analysis.uri());
         projection.isDirectoryUri(analysis.directoryUri());
         projection.settings(analysis.settings());
 
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
-        if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
-            List<Symbol> columns = new ArrayList<>(analysis.outputSymbols().size());
-            for (Symbol symbol : analysis.outputSymbols()) {
+        if (analysis.selectedColumns() != null && !analysis.selectedColumns().isEmpty()) {
+            List<Symbol> columns = new ArrayList<>(analysis.selectedColumns().size());
+            for (Symbol symbol : analysis.selectedColumns()) {
                 columns.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
             }
             contextBuilder = contextBuilder.output(columns);
@@ -224,18 +202,19 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(sourceRef));
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
-                analysis,
+                tableInfo,
+                WhereClause.MATCH_ALL,
                 contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(projection),
                 analysis.partitionIdent()
         );
         plan.add(collectNode);
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection(analysis)), collectNode);
+                ImmutableList.<Projection>of(localMergeProjection()), collectNode);
         plan.add(mergeNode);
     }
 
-    private void copyFromPlan(CopyAnalyzedStatement analysis, Plan plan) {
+    private void copyFromPlan(CopyAnalyzedStatement analysis, IterablePlan plan) {
         /**
          * copy from has two "modes":
          *
@@ -325,7 +304,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         PlanNodeBuilder.setOutputTypes(collectNode);
         plan.add(collectNode);
         plan.add(PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection(analysis)), collectNode));
+                ImmutableList.<Projection>of(localMergeProjection()), collectNode));
     }
 
     private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {
@@ -344,21 +323,16 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement statement, Context context) {
-        Plan plan = new Plan();
-        plan.add(new GenericDDLPlanNode(statement));
-        return plan;
+        return new IterablePlan(new GenericDDLNode(statement));
     }
 
     @Override
     protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
-        plan.add(new DropTableNode(analysis.table()));
-        return plan;
+        return new IterablePlan(new DropTableNode(analysis.table()));
     }
 
     @Override
     protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
         TableIdent tableIdent = analysis.tableIdent();
 
         CreateTableNode createTableNode;
@@ -377,14 +351,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     analysis.mapping()
             );
         }
-        plan.add(createTableNode);
-        return plan;
+        return new IterablePlan(createTableNode);
     }
 
     @Override
     protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
-
         Settings analyzerSettings;
         try {
             analyzerSettings = analysis.buildSettings();
@@ -393,18 +364,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(analyzerSettings);
-        plan.add(node);
-        return plan;
+        return new IterablePlan(node);
     }
 
     @Override
     public Plan visitSetStatement(SetAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
         ESClusterUpdateSettingsNode node;
         if (analysis.isReset()) {
             // always reset persistent AND transient settings
-            node = new ESClusterUpdateSettingsNode(
-                    analysis.settingsToRemove(), analysis.settingsToRemove());
+            node = new ESClusterUpdateSettingsNode(analysis.settingsToRemove(), analysis.settingsToRemove());
         } else {
             if (analysis.isPersistent()) {
                 node = new ESClusterUpdateSettingsNode(analysis.settings());
@@ -412,691 +380,44 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
             }
         }
-        plan.add(node);
-        return plan;
+        return new IterablePlan(node);
     }
 
-    private void ESDelete(DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analysis, Plan plan) {
-        WhereClause whereClause = analysis.whereClause();
-        if (analysis.ids().size() == 1 && analysis.routingValues().size() == 1) {
-            plan.add(new ESDeleteNode(
-                    indices(analysis)[0],
-                    analysis.ids().get(0),
-                    analysis.routingValues().get(0),
-                    whereClause.version()));
-        } else {
-            // TODO: implement bulk delete task / node
-            ESDeleteByQuery(analysis, plan);
-        }
+    private void createESDeleteNode(TableInfo tableInfo, WhereClauseContext whereClauseContext, IterablePlan plan) {
+        assert whereClauseContext.ids().size() == 1 && whereClauseContext.routingValues().size() == 1;
+        plan.add(new ESDeleteNode(
+                indices(tableInfo, whereClauseContext.whereClause())[0],
+                whereClauseContext.ids().get(0),
+                whereClauseContext.routingValues().get(0),
+                whereClauseContext.whereClause().version()));
     }
 
-    private void ESDeleteByQuery(DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analysis, Plan plan) {
-        String[] indices = indices(analysis);
+    @Nullable
+    private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClauseContext whereClauseContext, IterablePlan plan) {
+        WhereClause whereClause = whereClauseContext.whereClause();
 
-        if (indices.length > 0 && !analysis.whereClause().noMatch()) {
-            if (!analysis.whereClause().hasQuery() && analysis.table().isPartitioned()) {
+        String[] indices = indices(tableInfo, whereClause);
+        if (indices.length > 0 && !whereClause.noMatch()) {
+            if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
                 for (String index : indices) {
                     plan.add(new ESDeleteIndexNode(index, true));
                 }
-
             } else {
                 // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
                 // forbidden through analysis, we must issue deleteByQuery request in addition
                 // to above deleteIndex request(s)
-                ESDeleteByQueryNode node = new ESDeleteByQueryNode(
-                        indices,
-                        analysis.whereClause());
-                plan.add(node);
+                plan.add(new ESDeleteByQueryNode(indices, whereClause));
             }
         }
     }
 
-    private void ESGet(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        assert !context.indexWriterProjection.isPresent() : "shouldn't use ESGet with indexWriterProjection";
-        String indexName;
-        if (analysis.table().isPartitioned()) {
-            assert analysis.whereClause().partitions().size() == 1 : "ambiguous partitions for ESGet";
-            indexName = analysis.whereClause().partitions().get(0);
-        } else {
-            indexName = analysis.table().ident().esName();
-        }
-        ESGetNode getNode = new ESGetNode(
-                indexName,
-                analysis.outputSymbols(),
-                Symbols.extractTypes(analysis.outputSymbols()),
-                analysis.ids(),
-                analysis.routingValues(),
-                analysis.orderBy().orderBySymbols(),
-                analysis.orderBy().reverseFlags(),
-                analysis.orderBy().nullsFirst(),
-                analysis.limit(),
-                analysis.offset(),
-                analysis.table().partitionedByColumns());
-        plan.add(getNode);
-    }
-
-    private void normalSelect(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        List<Symbol> outputSymbols;
-        if (analysis.table().schemaInfo().systemSchema()) {
-            outputSymbols = analysis.outputSymbols();
-        } else {
-            outputSymbols = new ArrayList<>(analysis.outputSymbols().size());
-            for (Symbol symbol : analysis.outputSymbols()) {
-                outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
-            }
-        }
-        if (context.indexWriterProjection.isPresent()) {
-            // insert directly from shards
-            assert !analysis.isLimited() : "insert from sub query with limit or order by is not supported. " +
-                    "Analyzer should have thrown an exception already.";
-
-            ImmutableList<Projection> projections = ImmutableList.<Projection>of(context.indexWriterProjection.get());
-            CollectNode collectNode = PlanNodeBuilder.collect(analysis, outputSymbols, projections);
-            plan.add(collectNode);
-            // use aggregation projection to merge node results (number of inserted rows)
-            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection(analysis)), collectNode));
-
-        } else if (analysis.isLimited() || analysis.orderBy().isSorted()) {
-            /**
-             * select id, name, order by id, date
-             *
-             * toCollect:       [id, name, date]            // includes order by symbols, that aren't already selected
-             * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectNode
-             * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
-             * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
-             */
-
-            List<Symbol> toCollect = new ArrayList<>(outputSymbols.size() + analysis.orderBy().orderBySymbols().size());
-            toCollect.addAll(outputSymbols);
-
-            // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
-            for (Symbol orderBySymbol : analysis.orderBy().orderBySymbols()) {
-                if (!toCollect.contains(orderBySymbol)) {
-                    toCollect.add(orderBySymbol);
-                }
-            }
-            List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
-            for (int i = 0; i < toCollect.size(); i++) {
-                allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
-            }
-            List<Symbol> finalOutputs = new ArrayList<>(outputSymbols.size());  // final outputs on handler after sort
-            for (int i = 0; i < outputSymbols.size(); i++) {
-                finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
-            }
-            List<Symbol> orderByInputColumns = new ArrayList<>();
-            for (Symbol symbol : analysis.orderBy().orderBySymbols()) {
-                orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
-            }
-
-            // if we have an offset we have to get as much docs from every node as we have offset+limit
-            // otherwise results will be wrong
-            TopNProjection tnp = new TopNProjection(
-                    analysis.offset() + firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    0,
-                    orderByInputColumns,
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            tnp.outputs(allOutputs);
-            CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, ImmutableList.<Projection>of(tnp));
-            plan.add(collectNode);
-
-
-            TopNProjection handlerTopN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    orderByInputColumns,
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            handlerTopN.outputs(finalOutputs);
-            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(handlerTopN), collectNode));
-        } else {
-            CollectNode collectNode = PlanNodeBuilder.collect(analysis, outputSymbols, ImmutableList.<Projection>of());
-            plan.add(collectNode);
-            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode));
-        }
-    }
-
-    private void queryThenFetch(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        Preconditions.checkArgument(!context.indexWriterProjection.isPresent(),
-                "Must use QueryAndFetch with indexWriterProjection.");
-
-        plan.add(new QueryThenFetchNode(
-                analysis.table().getRouting(analysis.whereClause()),
-                analysis.outputSymbols(),
-                analysis.orderBy().orderBySymbols(),
-                analysis.orderBy().reverseFlags(),
-                analysis.orderBy().nullsFirst(),
-                analysis.limit(),
-                analysis.offset(),
-                analysis.whereClause(),
-                analysis.table().partitionedByColumns()
-        ));
-    }
-
-    private void globalAggregates(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        String schema = analysis.table().ident().schema();
-
-        if ((schema == null || !analysis.table().schemaInfo().systemSchema())
-                && hasOnlyGlobalCount(analysis.outputSymbols())
-                && !analysis.hasSysExpressions()
-                && !context.indexWriterProjection.isPresent()) {
-            plan.add(new ESCountNode(indices(analysis), analysis.whereClause()));
-            return;
-        }
-        // global aggregate: collect and partial aggregate on C and final agg on H
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(analysis.outputSymbols());
-
-        // havingClause could be a Literal or Function.
-        // if its a Literal and value is false, we'll never reach this point (no match),
-        // otherwise (true value) having can be ignored
-        Symbol havingClause = null;
-        if (analysis.havingClause() != null
-                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(analysis.havingClause());
-        }
-
-        AggregationProjection ap = new AggregationProjection();
-        ap.aggregations(contextBuilder.aggregations());
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                analysis,
-                contextBuilder.toCollect(),
-                ImmutableList.<Projection>of(ap)
-        );
-        plan.add(collectNode);
-
-        contextBuilder.nextStep();
-
-        //// the handler stuff
-        List<Projection> projections = new ArrayList<>();
-
-        projections.add(new AggregationProjection(contextBuilder.aggregations()));
-
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.passThroughOutputs());
-            projections.add(fp);
-        }
-
-        if (contextBuilder.aggregationsWrappedInScalar || havingClause != null) {
-            // will filter out optional having symbols which are not selected
-            TopNProjection topNProjection = new TopNProjection(1, 0);
-            topNProjection.outputs(contextBuilder.outputs());
-            projections.add(topNProjection);
-        }
-        if (context.indexWriterProjection.isPresent()) {
-            projections.add(context.indexWriterProjection.get());
-        }
-        plan.add(PlanNodeBuilder.localMerge(projections, collectNode));
-    }
-
-    private boolean hasOnlyGlobalCount(List<Symbol> symbols) {
-        if (symbols.size() != 1) {
-            return false;
-        }
-
-        Symbol symbol = symbols.get(0);
-        if (symbol.symbolType() != SymbolType.FUNCTION) {
-            return false;
-        }
-
-        Function function = (Function)symbol;
-        return (function.info().type() == FunctionInfo.Type.AGGREGATE
-                && function.arguments().size() == 0
-                && function.info().ident().name().equalsIgnoreCase(CountAggregation.NAME));
-    }
-
-    private void groupBy(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        if (analysis.table().schemaInfo().systemSchema() || !requiresDistribution(analysis)) {
-            logger.debug("choosing non distributed group by plan for {}", analysis);
-            nonDistributedGroupBy(analysis, plan, context);
-        } else if (groupedByClusteredColumnOrPrimaryKeys(analysis)) {
-            logger.debug("choosing optimized reduce on collect group by plan for {}", analysis);
-            optimizedReduceOnCollectorGroupBy(analysis, plan, context);
-        } else if (context.indexWriterProjection.isPresent()) {
-            distributedWriterGroupBy(analysis, plan, context.indexWriterProjection.get());
-        } else {
-            logger.debug("choosing distributed group by for {}", analysis);
-            distributedGroupBy(analysis, plan);
-        }
-    }
-
-    private boolean requiresDistribution(SelectAnalyzedStatement analysis) {
-        Routing routing = analysis.table().getRouting(analysis.whereClause());
-        if (!routing.hasLocations()) return false;
-        Map<String, Map<String, Set<Integer>>> locations = routing.locations();
-        if (locations != null && locations.size() > 1) {
-            return true;
-        }
-        return false;
-    }
-
-    private boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis) {
-        List<Symbol> groupBy = analysis.groupBy();
-        assert groupBy != null;
-        if (groupBy.size() > 1) {
-            return groupedByPrimaryKeys(groupBy, analysis.table().primaryKey());
-        }
-
-        // this also handles the case if there is only one primary key.
-        // as clustered by column == pk column  in that case
-        Symbol groupByKey = groupBy.get(0);
-        return (groupByKey instanceof Reference
-                && ((Reference) groupByKey).info().ident().columnIdent().equals(analysis.table().clusteredBy()));
-    }
-
-    private boolean groupedByPrimaryKeys(List<Symbol> groupBy, List<ColumnIdent> primaryKeys) {
-        if (groupBy.size() != primaryKeys.size()) {
-            return false;
-        }
-        for (int i = 0, groupBySize = groupBy.size(); i < groupBySize; i++) {
-            Symbol groupBySymbol = groupBy.get(i);
-            if (groupBySymbol instanceof Reference) {
-                ColumnIdent pkIdent = primaryKeys.get(i);
-                if (!pkIdent.equals(((Reference) groupBySymbol).info().ident().columnIdent())) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * grouping on doc tables by clustered column or primary keys, no distribution needed
-     * only one aggregation step as the mappers (shards) have row-authority
-     *
-     * produces:
-     *
-     * SELECT:
-     *  CollectNode ( GroupProjection, [FilterProjection], [TopN] )
-     *  LocalMergeNode ( TopN )
-     *
-     * INSERT FROM QUERY:
-     *  CollectNode ( GroupProjection, [FilterProjection], [TopN] )
-     *  LocalMergeNode ( [TopN], IndexWriterProjection )
-     */
-    public void optimizedReduceOnCollectorGroupBy(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        assert groupedByClusteredColumnOrPrimaryKeys(analysis) : "not grouped by clustered column or primary keys";
-        boolean ignoreSorting = context.indexWriterProjection.isPresent()
-                && analysis.limit() == null
-                && analysis.offset() == TopN.NO_OFFSET;
-        int numAggregationSteps = 1;
-        PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, analysis.groupBy(), ignoreSorting)
-                        .output(analysis.outputSymbols())
-                        .orderBy(analysis.orderBy().orderBySymbols());
-        Symbol havingClause = null;
-        Symbol having = analysis.havingClause();
-        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
-            // extract collect symbols and such from having clause
-            havingClause = contextBuilder.having(having);
-        }
-
-        // mapper / collect
-        List<Symbol> toCollect = contextBuilder.toCollect();
-
-        // grouping
-        GroupProjection groupProjection =
-                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        groupProjection.setRequiredGranularity(RowGranularity.SHARD);
-        contextBuilder.addProjection(groupProjection);
-
-        // optional having
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(groupProjection.outputs(), groupProjection.outputs().size()));
-            fp.requiredGranularity(RowGranularity.SHARD); // running on every shard
-            contextBuilder.addProjection(fp);
-        }
-
-        // use topN on collector if needed
-        TopNProjection topNReducer = getTopNForReducer(
-                analysis,
-                contextBuilder,
-                contextBuilder.outputs());
-        if (topNReducer != null) {
-            contextBuilder.addProjection(topNReducer);
-        }
-
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                analysis,
-                toCollect,
-                contextBuilder.getAndClearProjections()
-        );
-        plan.add(collectNode);
-
-        // handler
-        if (!ignoreSorting) {
-            List<Symbol> orderBy;
-            List<Symbol> outputs;
-            if (topNReducer == null) {
-                orderBy = contextBuilder.orderBy();
-                outputs = contextBuilder.outputs();
-            } else {
-                orderBy = contextBuilder.passThroughOrderBy();
-                outputs = contextBuilder.passThroughOutputs();
-            }
-
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    orderBy,
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(outputs);
-            contextBuilder.addProjection(topN);
-        }
-        if (context.indexWriterProjection.isPresent()) {
-            contextBuilder.addProjection(context.indexWriterProjection.get());
-        }
-        plan.add(PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode));
-    }
-
-    /**
-     * Group by on System Tables (never needs distribution)
-     * or Group by on user tables (RowGranulariy.DOC) with only one node.
-     *
-     * produces:
-     *
-     * SELECT:
-     *  Collect ( GroupProjection ITER -> PARTIAL )
-     *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
-     *
-     * INSERT FROM QUERY:
-     *  Collect ( GroupProjection ITER -> PARTIAL )
-     *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], [TopN], IndexWriterProjection )
-     */
-    private void nonDistributedGroupBy(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        boolean ignoreSorting = context.indexWriterProjection.isPresent()
-                && analysis.limit() == null
-                && analysis.offset() == TopN.NO_OFFSET;
-
-        int numAggregationSteps = 2;
-
-        PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, analysis.groupBy(), ignoreSorting)
-                .output(analysis.outputSymbols())
-                .orderBy(analysis.orderBy().orderBySymbols());
-
-        Symbol havingClause = null;
-        Symbol having = analysis.havingClause();
-        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
-            // extract collect symbols and such from having clause
-            havingClause = contextBuilder.having(having);
-        }
-
-        // mapper / collect
-        GroupProjection groupProjection =
-                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        contextBuilder.addProjection(groupProjection);
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                analysis,
-                contextBuilder.toCollect(),
-                contextBuilder.getAndClearProjections()
-        );
-        plan.add(collectNode);
-
-        // handler
-        contextBuilder.nextStep();
-        Projection handlerGroupProjection = new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        contextBuilder.addProjection(handlerGroupProjection);
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(handlerGroupProjection.outputs(), handlerGroupProjection.outputs().size()));
-            contextBuilder.addProjection(fp);
-        }
-        if (!ignoreSorting) {
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(contextBuilder.outputs());
-            contextBuilder.addProjection(topN);
-        }
-        if (context.indexWriterProjection.isPresent()) {
-            contextBuilder.addProjection(context.indexWriterProjection.get());
-        }
-        plan.add(PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode));
-    }
-
-    /**
-     * returns a topNProjection intended for the reducer in a group by query.
-     *
-     * result will be null if topN on reducer is not needed or possible.
-     *
-     * the limit given to the topN projection will be limit + offset because there will be another
-     * @param outputs list of outputs to add to the topNProjection if applicable.
-     */
-    @Nullable
-    private TopNProjection getTopNForReducer(SelectAnalyzedStatement analysis,
-                                             PlannerContextBuilder contextBuilder,
-                                             List<Symbol> outputs) {
-        if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
-                    0,
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(outputs);
-            return topN;
-        }
-        return null;
-    }
-
-    private boolean requireLimitOnReducer(SelectAnalyzedStatement analysis, boolean aggregationsWrappedInScalar) {
-        return (analysis.limit() != null
-                || analysis.offset() > 0
-                || aggregationsWrappedInScalar);
-    }
-
-    /**
-     * distributed collect on mapper nodes
-     * with merge on reducer to final (they have row authority)
-     * <p/>
-     * final merge on handler
-     */
-    private void distributedGroupBy(SelectAnalyzedStatement analysis, Plan plan) {
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy())
-                .output(analysis.outputSymbols())
-                .orderBy(analysis.orderBy().orderBySymbols());
-
-        Symbol havingClause = null;
-        if (analysis.havingClause() != null
-                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(analysis.havingClause());
-        }
-
-        // collector
-        contextBuilder.addProjection(new GroupProjection(
-                contextBuilder.groupBy(), contextBuilder.aggregations()));
-        CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                analysis,
-                contextBuilder.toCollect(),
-                nodesFromTable(analysis),
-                contextBuilder.getAndClearProjections()
-        );
-        plan.add(collectNode);
-
-        contextBuilder.nextStep();
-
-        // mergeNode for reducer
-        contextBuilder.addProjection(new GroupProjection(
-                contextBuilder.groupBy(),
-                contextBuilder.aggregations()));
-
-
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            /**
-             * Pass through outputs from previous group by projection as-is.
-             * In case group by has more outputs than the select statement strip those outputs away.
-             *
-             * E.g.
-             *      select count(*), name from t having avg(y) > 10
-             *
-             * output from group by projection:
-             *      name, count(*), avg(y)
-             *
-             * outputs from fp:
-             *      name, count(*)
-             *
-             * Any additional aggregations in the having clause that are not part of the selectList must come
-             * AFTER the selectList aggregations
-             */
-            fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.outputSymbols().size()));
-            contextBuilder.addProjection(fp);
-        }
-        TopNProjection topNForReducer = getTopNForReducer(analysis, contextBuilder, contextBuilder.outputs());
-        if (topNForReducer != null) {
-            contextBuilder.addProjection(topNForReducer);
-        }
-
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
-                collectNode,
-                contextBuilder.getAndClearProjections());
-        plan.add(mergeNode);
-
-
-        List<Symbol> outputs;
-        List<Symbol> orderBy;
-        if (topNForReducer == null) {
-            orderBy = contextBuilder.orderBy();
-            outputs = contextBuilder.outputs();
-        } else {
-            orderBy = contextBuilder.passThroughOrderBy();
-            outputs = contextBuilder.passThroughOutputs();
-        }
-        // mergeNode handler
-        TopNProjection topN = new TopNProjection(
-                firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                analysis.offset(),
-                orderBy,
-                analysis.orderBy().reverseFlags(),
-                analysis.orderBy().nullsFirst()
-        );
-        topN.outputs(outputs);
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
-        plan.add(localMergeNode);
-    }
-
-    /**
-     * distributed collect on mapper nodes
-     * with merge on reducer to final (they have row authority) and index write
-     * if no limit and not offset is set
-     * <p/>
-     * final merge + index write on handler if limit or offset is set
-     */
-    private void distributedWriterGroupBy(SelectAnalyzedStatement analysis, Plan plan, Projection writerProjection) {
-        boolean ignoreSorting = !analysis.isLimited();
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy(), ignoreSorting)
-                .output(analysis.outputSymbols())
-                .orderBy(analysis.orderBy().orderBySymbols());
-
-        Symbol havingClause = null;
-        if (analysis.havingClause() != null
-                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(analysis.havingClause());
-        }
-
-        // collector
-        contextBuilder.addProjection(new GroupProjection(
-                contextBuilder.groupBy(), contextBuilder.aggregations()));
-        CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                analysis,
-                contextBuilder.toCollect(),
-                nodesFromTable(analysis),
-                contextBuilder.getAndClearProjections()
-        );
-        plan.add(collectNode);
-
-        contextBuilder.nextStep();
-
-        // mergeNode for reducer
-
-        contextBuilder.addProjection(new GroupProjection(
-                contextBuilder.groupBy(),
-                contextBuilder.aggregations()));
-
-
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.outputSymbols().size()));
-            contextBuilder.addProjection(fp);
-        }
-
-        boolean topNDone = false;
-        if (analysis.isLimited()) {
-            topNDone = true;
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
-                    0,
-                    analysis.orderBy().orderBySymbols(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(contextBuilder.outputs());
-            contextBuilder.addProjection((topN));
-        } else {
-            contextBuilder.addProjection((writerProjection));
-        }
-
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, contextBuilder.getAndClearProjections());
-        plan.add(mergeNode);
-
-
-        // local merge on handler
-        if (analysis.isLimited()) {
-            List<Symbol> outputs;
-            List<Symbol> orderBy;
-            if (topNDone) {
-                orderBy = contextBuilder.passThroughOrderBy();
-                outputs = contextBuilder.passThroughOutputs();
-            } else {
-                orderBy = contextBuilder.orderBy();
-                outputs = contextBuilder.outputs();
-            }
-            // mergeNode handler
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    orderBy,
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            topN.outputs(outputs);
-            contextBuilder.addProjection(topN);
-            contextBuilder.addProjection(writerProjection);
-        } else {
-            // sum up distributed indexWriter results
-            contextBuilder.addProjection(localMergeProjection(analysis));
-        }
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), mergeNode);
-        plan.add(localMergeNode);
-    }
-
-    private List<String> nodesFromTable(SelectAnalyzedStatement analysis) {
-        return Lists.newArrayList(analysis.table().getRouting(analysis.whereClause()).nodes());
-    }
-
-    private void ESIndex(InsertFromValuesAnalyzedStatement analysis, Plan plan) {
+    private ESIndexNode createESIndexNode(InsertFromValuesAnalyzedStatement analysis) {
         String[] indices;
-        if (analysis.table().isPartitioned()) {
+        if (analysis.tableInfo().isPartitioned()) {
             List<String> partitions = analysis.generatePartitions();
             indices = partitions.toArray(new String[partitions.size()]);
         } else {
-            indices = new String[]{ analysis.table().ident().esName() };
+            indices = new String[]{ analysis.tableInfo().ident().esName() };
         }
 
         ESIndexNode indexNode = new ESIndexNode(
@@ -1104,10 +425,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.sourceMaps(),
                 analysis.ids(),
                 analysis.routingValues(),
-                analysis.table().isPartitioned(),
-                analysis.parameterContext().hasBulkParams()
-                );
-        plan.add(indexNode);
+                analysis.tableInfo().isPartitioned(),
+                analysis.isBulkRequest()
+        );
+        return indexNode;
     }
 
     static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
@@ -1117,13 +438,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         int projectionIdx = projections.size() - 1;
         Projection lastProjection = projections.get(projectionIdx);
         List<DataType> types = new ArrayList<>(lastProjection.outputs().size());
-
         List<DataType> dataTypes = firstNonNull(inputTypes, ImmutableList.<DataType>of());
 
         for (int c = 0; c < lastProjection.outputs().size(); c++) {
             types.add(resolveType(projections, projectionIdx, c, dataTypes));
         }
-
         return types;
     }
 
@@ -1146,37 +465,41 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return type;
     }
 
+
     /**
      * return the ES index names the query should go to
      */
-    private String[] indices(AbstractDataAnalyzedStatement analysis) {
+    public static String[] indices(TableInfo tableInfo, WhereClause whereClause) {
         String[] indices;
 
-        if (analysis.noMatch()) {
+        if (whereClause.noMatch()) {
             indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
-        } else if (!analysis.table().isPartitioned()) {
+        } else if (!tableInfo.isPartitioned()) {
             // table name for non-partitioned tables
-            indices = new String[]{ analysis.table().ident().esName() };
-        } else if (analysis.whereClause().partitions().size() == 0) {
+            indices = new String[]{ tableInfo.ident().name() };
+        } else if (whereClause.partitions().isEmpty()) {
+            if (whereClause.noMatch()) {
+                return new String[0];
+            }
+
             // all partitions
-            indices = new String[analysis.table().partitions().size()];
-            for (int i = 0; i < analysis.table().partitions().size(); i++) {
-                indices[i] = analysis.table().partitions().get(i).stringValue();
+            indices = new String[tableInfo.partitions().size()];
+            for (int i = 0; i < tableInfo.partitions().size(); i++) {
+                indices[i] = tableInfo.partitions().get(i).stringValue();
             }
         } else {
-            indices = analysis.whereClause().partitions().toArray(
-                    new String[analysis.whereClause().partitions().size()]);
+            indices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
         }
         return indices;
     }
 
-    private AggregationProjection localMergeProjection(AbstractDataAnalyzedStatement analysis) {
+    private AggregationProjection localMergeProjection() {
         if (localMergeProjection == null) {
             localMergeProjection = new AggregationProjection(
                     Arrays.asList(new Aggregation(
-                                    analysis.getFunctionInfo(
+                                    functions.getSafe(
                                             new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
-                                    ),
+                                    ).info(),
                                     Arrays.<Symbol>asList(new InputColumn(0, DataTypes.LONG)),
                                     Aggregation.Step.ITER,
                                     Aggregation.Step.FINAL
@@ -1186,41 +509,5 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
         return localMergeProjection;
     }
-
-    private class RelationPlanner extends RelationVisitor<Context, Plan> {
-
-        @Override
-        public Plan visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
-            Plan plan = new Plan();
-            if (statement.hasGroupBy()) {
-                groupBy(statement, plan, context);
-            } else if (statement.hasAggregates()) {
-                globalAggregates(statement, plan, context);
-            } else {
-
-                WhereClause whereClause = statement.whereClause();
-                if (!context.indexWriterProjection.isPresent()
-                        && statement.table().rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
-                        statement.table().getRouting(whereClause).hasLocations() &&
-                        !statement.table().schemaInfo().systemSchema()) {
-
-                    if (statement.ids().size() > 0
-                            && statement.routingValues().size() > 0
-                            && !statement.table().isAlias()) {
-                        ESGet(statement, plan, context);
-                    } else {
-                        queryThenFetch(statement, plan, context);
-                    }
-                } else {
-                    normalSelect(statement, plan, context);
-                }
-            }
-            return plan;
-        }
-
-        @Override
-        public Plan visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            throw new UnsupportedOperationException(String.format("relation \"%s\" can't be planned", relation));
-        }
-    }
 }
+

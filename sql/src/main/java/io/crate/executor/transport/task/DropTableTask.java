@@ -21,8 +21,8 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.metadata.PartitionName;
 import io.crate.executor.TaskResult;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.ddl.DropTableNode;
 import org.elasticsearch.action.ActionListener;
@@ -37,6 +37,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public class DropTableTask extends AbstractChainedTask {
 
@@ -48,10 +49,11 @@ public class DropTableTask extends AbstractChainedTask {
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
     private final TransportDeleteIndexAction deleteIndexAction;
 
-    public DropTableTask(TransportDeleteIndexTemplateAction deleteTemplateAction,
+    public DropTableTask(UUID jobId,
+                         TransportDeleteIndexTemplateAction deleteTemplateAction,
                          TransportDeleteIndexAction deleteIndexAction,
                          DropTableNode node) {
-        super();
+        super(jobId);
         this.tableInfo = node.tableInfo();
         this.deleteTemplateAction = deleteTemplateAction;
         this.deleteIndexAction = deleteIndexAction;

@@ -30,8 +30,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
-import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * merging rows locally on the handler
  */
-public class LocalMergeTask implements Task<TaskResult> {
+public class LocalMergeTask extends JobTask {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -76,7 +76,8 @@ public class LocalMergeTask implements Task<TaskResult> {
      *
      * @param implementationSymbolVisitor symbol visitor (on cluster level)
      */
-    public LocalMergeTask(ThreadPool threadPool,
+    public LocalMergeTask(UUID jobId,
+                          ThreadPool threadPool,
                           ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
@@ -84,6 +85,7 @@ public class LocalMergeTask implements Task<TaskResult> {
                           MergeNode mergeNode,
                           StatsTables statsTables,
                           CircuitBreaker circuitBreaker) {
+        super(jobId);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.settings = settings;
