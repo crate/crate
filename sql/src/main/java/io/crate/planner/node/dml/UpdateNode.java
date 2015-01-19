@@ -27,6 +27,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
@@ -68,5 +69,10 @@ public class UpdateNode extends DMLPlanNode implements PlannedAnalyzedRelation {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitUpdateNode(this, context);
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
     }
 }

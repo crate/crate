@@ -22,6 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -79,5 +80,10 @@ public class ESCreateTemplateNode extends DDLPlanNode {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESCreateTemplateNode(this, context);
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
     }
 }

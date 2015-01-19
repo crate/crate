@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
@@ -123,4 +124,10 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
                 .add("partitionBy", partitionBy)
                 .toString();
     }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
+    }
+
 }

@@ -23,6 +23,7 @@ package io.crate.planner.node.ddl;
 
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 
 public class DropTableNode extends DDLPlanNode {
 
@@ -40,5 +41,10 @@ public class DropTableNode extends DDLPlanNode {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitDropTableNode(this, context);
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
     }
 }

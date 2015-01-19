@@ -23,6 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 
@@ -58,4 +59,8 @@ public class ESCountNode extends ESDQLPlanNode {
         return outputTypes;
     }
 
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported");
+    }
 }

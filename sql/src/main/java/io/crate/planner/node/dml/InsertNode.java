@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dql;
+package io.crate.planner.node.dml;
 
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
@@ -29,42 +29,27 @@ import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
-import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class GlobalAggregateNode implements PlannedAnalyzedRelation, PlanNode {
+public class InsertNode extends DMLPlanNode implements PlannedAnalyzedRelation {
 
-    private final CollectNode collectNode;
-    private final MergeNode mergeNode;
+    private final List<PlanNode> nodes;
 
-    public GlobalAggregateNode(CollectNode collectNode, MergeNode mergeNode) {
-        this.collectNode = collectNode;
-        this.mergeNode = mergeNode;
+    public InsertNode(List<PlanNode> nodes) {
+        this.nodes = nodes;
     }
 
-    public CollectNode collectNode() {
-        return collectNode;
-    }
-
-    public MergeNode mergeNode() {
-        return mergeNode;
+    public List<PlanNode> nodes() {
+        return nodes;
     }
 
     @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitGlobalAggregateNode(this, context);
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return mergeNode.outputTypes();
-    }
-
-    @Override
-    public void outputTypes(List<DataType> outputTypes) {
-        throw new UnsupportedOperationException("outputTypes(outputTypes) not supported on GlobalAggregateNode");
+    public void addProjection(Projection projection) {
+        if (!nodes.isEmpty()) {
+            nodes.get(nodes.size() - 1).addProjection(projection);
+        }
     }
 
     @Override
@@ -75,21 +60,21 @@ public class GlobalAggregateNode implements PlannedAnalyzedRelation, PlanNode {
     @Nullable
     @Override
     public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField not supported on GlobalAggregateNode");
+        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override
     public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField not supported on GlobalAggregateNode");
+        throw new UnsupportedOperationException("getWritableField is not supported");
     }
 
     @Override
     public List<Field> fields() {
-        throw new UnsupportedOperationException("fields not supported on GlobalAggregateNode");
+        throw new UnsupportedOperationException("fields is not supported");
     }
 
     @Override
-    public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("addProjection not supported");
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
+        return visitor.visitInsertNode(this, context);
     }
 }

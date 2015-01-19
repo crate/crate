@@ -438,7 +438,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         plan.add(indexNode);
     }
 
-    static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
+    public static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
         if (projections.size() == 0){
             return inputTypes;
         }

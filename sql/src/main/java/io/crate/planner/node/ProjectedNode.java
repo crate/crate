@@ -19,31 +19,50 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.ddl;
+package io.crate.planner.node;
 
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.planner.node.PlanNodeVisitor;
+import com.google.common.collect.ImmutableList;
+import io.crate.planner.Planner;
 import io.crate.planner.projection.Projection;
+import io.crate.types.DataType;
 
-public class GenericDDLNode extends DDLPlanNode {
+import java.util.List;
 
-    private AnalyzedStatement analyzedStatement;
+public class ProjectedNode implements PlanNode {
 
-    public GenericDDLNode(AnalyzedStatement analyzedStatement) {
-        this.analyzedStatement = analyzedStatement;
+    private final PlanNode node;
+    private final Projection projection;
+
+    public ProjectedNode(PlanNode node, Projection projection) {
+        this.node = node;
+        this.projection = projection;
     }
 
-    public AnalyzedStatement analyzedStatement() {
-        return analyzedStatement;
+    public PlanNode node() {
+        return node;
     }
 
-    @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitGenericDDLNode(this, context);
+    public Projection projection() {
+        return projection;
     }
 
     @Override
     public void addProjection(Projection projection) {
         throw new UnsupportedOperationException("addProjection not supported");
+    }
+
+    @Override
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
+        return visitor.visitProjectedNode(this, context);
+    }
+
+    @Override
+    public List<DataType> outputTypes() {
+        return Planner.extractDataTypes(ImmutableList.of(projection), node.outputTypes());
+    }
+
+    @Override
+    public void outputTypes(List<DataType> outputTypes) {
+        throw new UnsupportedOperationException("outputTypes cannot be modified on a ProjectedNode");
     }
 }

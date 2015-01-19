@@ -9,6 +9,7 @@ import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
 import io.crate.types.DataType;
 
@@ -18,11 +19,16 @@ import java.util.List;
 public class QueryAndFetchNode implements PlannedAnalyzedRelation, PlanNode {
 
     private final CollectNode collectNode;
+    @Nullable
     private final MergeNode localMergeNode;
 
-    public QueryAndFetchNode(CollectNode collectNode, MergeNode localMergeNode){
+    public QueryAndFetchNode(CollectNode collectNode, @Nullable MergeNode localMergeNode){
         this.collectNode = collectNode;
         this.localMergeNode = localMergeNode;
+    }
+
+    public QueryAndFetchNode(CollectNode collectNode) {
+        this(collectNode, null);
     }
 
     @Override
@@ -61,10 +67,16 @@ public class QueryAndFetchNode implements PlannedAnalyzedRelation, PlanNode {
         throw new UnsupportedOperationException("set outputTypes is not supported");
     }
 
+    @Override
+    public void addProjection(Projection projection) {
+        collectNode.addProjection(projection);
+    }
+
     public CollectNode collectNode() {
         return collectNode;
     }
 
+    @Nullable
     public MergeNode localMergeNode(){
         return localMergeNode;
     }

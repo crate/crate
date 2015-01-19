@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import io.crate.planner.Planner;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -60,6 +61,12 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
 
     public List<Projection> projections() {
         return projections;
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        projections.add(projection);
+        outputTypes(Planner.extractDataTypes(projections, outputTypes()));
     }
 
     public Optional<Projection> finalProjection() {

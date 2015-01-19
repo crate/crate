@@ -124,4 +124,12 @@ public class PlanNodeVisitor<C, R> {
     public R visitQueryAndFetchNode(QueryAndFetchNode node, C context){
         return visitPlanNode(node, context);
     }
+
+    public R visitInsertNode(InsertNode node, C context){
+        return visitPlanNode(node, context);
+    }
+
+    public R visitProjectedNode(ProjectedNode node, C context){
+        return visitPlanNode(node, context);
+    }
 }
