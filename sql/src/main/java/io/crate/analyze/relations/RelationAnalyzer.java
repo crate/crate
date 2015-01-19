@@ -63,16 +63,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
+    protected AnalyzedRelation visitJoin(Join node, RelationAnalysisContext context) {
+        process(node.getLeft(), context);
+        process(node.getRight(), context);
+
+        if (node.getCriteria().isPresent()) {
+            throw new UnsupportedOperationException("JOIN Criteria are not supported");
+        }
+        return null;
+    }
+
+    @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, RelationAnalysisContext context) {
         if (node.getFrom() == null) {
             throw new IllegalArgumentException("FROM clause is missing.");
         }
         for (Relation relation : node.getFrom()) {
             process(relation, context);
-        }
-        if (context.sources().size() != 1) {
-            throw new UnsupportedOperationException
-                    ("Only exactly one table is allowed in the FROM clause, got: " + context.sources().size());
         }
         FieldResolver fieldResolver = new FullQualifedNameFieldResolver(context.sources());
         expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext, fieldResolver);
