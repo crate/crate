@@ -39,9 +39,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
@@ -305,5 +303,18 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         String nodeName = response.rows()[0][1].toString();
         assertEquals("node_0", nodeName);
         assertEquals("node_0", fullNode.get("name"));
+    }
+
+    @Test
+    public void testSelectNodeSysExpressionWithUnassignedShards() throws Exception {
+        transportExecutor.exec(
+                "create table users (id integer primary key, name string) with (number_of_replicas=2)");
+        transportExecutor.ensureYellow();
+        SQLResponse response = transportExecutor.exec(
+          "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name']"
+        );
+        String nodeName = response.rows()[0][0].toString();
+        assertEquals("node_0", nodeName);
+        assertThat(response.rows()[8][0], is(nullValue()));
     }
 }

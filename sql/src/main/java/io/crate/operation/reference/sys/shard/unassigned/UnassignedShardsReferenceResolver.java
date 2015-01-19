@@ -86,6 +86,12 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
                 return this.row.orphanedPartition();
             }
         });
+        register(new UnassignedShardCollectorExpression(SysNodesTableInfo.SYS_COL_NAME) {
+            @Override
+            public Object value() {
+                return null;
+            }
+        });
 
         for (ReferenceInfo referenceInfo : SysNodesTableInfo.INFOS.values()) {
             register(nullExpression(referenceInfo));
@@ -101,19 +107,22 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
     @Override
     public UnassignedShardCollectorExpression<?> getImplementation(ReferenceInfo info) {
         UnassignedShardCollectorExpression<?> expression = IMPLEMENTATIONS.get(info);
-        if (expression == null
-            && info.ident().tableIdent().equals(SysClusterTableInfo.IDENT)) {
-            final ReferenceImplementation referenceImplementation = referenceImplementations.get(info.ident());
-            if (referenceImplementation == null) {
-                return null;
-            }
-            assert referenceImplementation instanceof SysClusterExpression;
-            return new UnassignedShardCollectorExpression<Object>(info) {
-                @Override
-                public Object value() {
-                    return ((SysClusterExpression)referenceImplementation).value();
+        if (expression == null) {
+            if (info.ident().tableIdent().equals(SysClusterTableInfo.IDENT)) {
+                final ReferenceImplementation referenceImplementation = referenceImplementations.get(info.ident());
+                if (referenceImplementation == null) {
+                    return null;
                 }
-            };
+                assert referenceImplementation instanceof SysClusterExpression;
+                return new UnassignedShardCollectorExpression<Object>(info) {
+                    @Override
+                    public Object value() {
+                        return ((SysClusterExpression)referenceImplementation).value();
+                    }
+                };
+            } else if (info.ident().columnIdent().name().equals(SysNodesTableInfo.SYS_COL_NAME)) {
+                return nullExpression(info);
+            }
         }
         return expression;
     }
