@@ -32,10 +32,9 @@ import io.crate.executor.SinglePageTaskResult;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /**
- *
+ * An iterable that only keeps the current page.
  */
 public class SinglePagePageableTaskIterable extends RelationIterable {
 
@@ -47,7 +46,7 @@ public class SinglePagePageableTaskIterable extends RelationIterable {
     }
 
     @Override
-    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
+    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) {
         this.pageInfo(pageInfo);
 
         final SettableFuture<Void> future = SettableFuture.create();

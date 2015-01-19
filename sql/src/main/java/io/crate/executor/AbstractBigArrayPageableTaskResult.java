@@ -21,44 +21,33 @@
 
 package io.crate.executor;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.base.Preconditions;
+import io.crate.core.bigarray.IterableBigArray;
+import org.elasticsearch.common.lease.Releasables;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-/**
- * A pageable task result that consists of one single page only.
- * Intended use: when this page is the only one returned by a relation
- *
- * Ergo further paging is not supported and
- * {@linkplain #fetch(PageInfo)} returns an empty page.
- */
-public class SinglePageTaskResult implements PageableTaskResult {
+public abstract class AbstractBigArrayPageableTaskResult implements PageableTaskResult {
 
-    private final Page page;
+    protected final IterableBigArray<Object[]> backingArray;
+    protected final long backingArrayStartIdx;
+    protected final Page page;
 
-    public SinglePageTaskResult(Object[][] rows) {
-        this(rows, 0, rows.length);
-    }
-
-    public SinglePageTaskResult(Object[][] rows, int start, int size) {
-        this.page = new ObjectArrayPage(rows, start, size);
-    }
-
-    @Override
-    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
-        return Futures.immediateFuture(PageableTaskResult.EMPTY_PAGEABLE_RESULT);
-    }
-
-    @Override
-    public Page page() {
-        return page;
+    public AbstractBigArrayPageableTaskResult(IterableBigArray<Object[]> backingArray,
+                                         long backingArrayStartIndex,
+                                         PageInfo pageInfo) {
+        Preconditions.checkArgument(
+                backingArrayStartIndex + pageInfo.position() <= backingArray.size(),
+                "backingArray exceeded");
+        this.backingArray = backingArray;
+        this.backingArrayStartIdx = backingArrayStartIndex;
+        this.page = new BigArrayPage(backingArray, backingArrayStartIndex+pageInfo.position(), pageInfo.size());
     }
 
     @Override
     public Object[][] rows() {
-        throw new UnsupportedOperationException("rows() not supported on SinglePageTaskResult");
+        throw new UnsupportedOperationException("FetchedRowsPageableTaskResult does not support rows()");
     }
 
     @Nullable
@@ -67,12 +56,14 @@ public class SinglePageTaskResult implements PageableTaskResult {
         return null;
     }
 
-    public static PageableTaskResult singlePage(Object[][] rows) {
-        return new SinglePageTaskResult(rows);
+
+    @Override
+    public Page page() {
+        return page;
     }
 
     @Override
     public void close() throws IOException {
-        // boomshakalakka!
+        Releasables.close(backingArray);
     }
 }
