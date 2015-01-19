@@ -185,7 +185,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         if (!routing.hasLocations() || requests.size() == 0) {
             result.set(
                     pageInfo.isPresent()
-                            ? PageableTaskResult.EMPTY_PAGABLE_RESULT
+                            ? PageableTaskResult.EMPTY_PAGEABLE_RESULT
                             : TaskResult.EMPTY_RESULT
             );
         }
@@ -502,7 +502,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
             } else if (restSize < 0) {
                 // if restSize is less than 0, we got less than requested
                 // and in that can safely assume that we're exhausted
-                future.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+                future.set(PageableTaskResult.EMPTY_PAGEABLE_RESULT);
                 try {
                     close();
                 } catch (IOException e) {
@@ -513,7 +513,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                     @Override
                     public void onSuccess(@Nullable ObjectArray<Object[]> result) {
                         if (result.size() == 0) {
-                            future.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+                            future.set(PageableTaskResult.EMPTY_PAGEABLE_RESULT);
                             try {
                                 close();
                             } catch (IOException e) {
