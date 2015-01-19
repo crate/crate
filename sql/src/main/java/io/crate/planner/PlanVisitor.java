@@ -21,11 +21,11 @@
 
 package io.crate.planner;
 
-import io.crate.planner.node.dml.QueryAndFetchNode;
-import io.crate.planner.node.dml.UpdateNode;
-import io.crate.planner.node.dql.DistributedGroupByNode;
-import io.crate.planner.node.dql.GlobalAggregateNode;
-import io.crate.planner.node.dql.NonDistributedGroupByNode;
+import io.crate.planner.node.dml.QueryAndFetch;
+import io.crate.planner.node.dml.Update;
+import io.crate.planner.node.dql.DistributedGroupBy;
+import io.crate.planner.node.dql.GlobalAggregate;
+import io.crate.planner.node.dql.NonDistributedGroupBy;
 import org.elasticsearch.common.Nullable;
 
 public class PlanVisitor<C, R> {
@@ -46,23 +46,23 @@ public class PlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
-    public R visitGlobalAggregateNode(GlobalAggregateNode plan, C context) {
+    public R visitGlobalAggregate(GlobalAggregate plan, C context) {
         return visitPlan(plan, context);
     }
 
-    public R visitQueryAndFetchNode(QueryAndFetchNode node, C context){
+    public R visitQueryAndFetch(QueryAndFetch node, C context){
         return visitPlan(node, context);
     }
 
-    public R visitNonDistributedGroupByNode(NonDistributedGroupByNode node, C context) {
+    public R visitNonDistributedGroupBy(NonDistributedGroupBy node, C context) {
         return visitPlan(node, context);
     }
 
-    public R visitUpdateNode(UpdateNode node, C context) {
+    public R visitUpdate(Update node, C context) {
         return visitPlan(node, context);
     }
 
-    public R visitDistributedGroupByNode(DistributedGroupByNode node, C context) {
+    public R visitDistributedGroupBy(DistributedGroupBy node, C context) {
         return visitPlan(node, context);
     }
 }

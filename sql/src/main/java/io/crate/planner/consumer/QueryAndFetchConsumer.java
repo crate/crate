@@ -42,7 +42,7 @@ import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dml.QueryAndFetchNode;
+import io.crate.planner.node.dml.QueryAndFetch;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
@@ -241,7 +241,7 @@ public class QueryAndFetchConsumer implements Consumer {
             collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, ImmutableList.<Projection>of());
             mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
         }
-        return new QueryAndFetchNode(collectNode, mergeNode);
+        return new QueryAndFetch(collectNode, mergeNode);
     }
 
     public static AggregationProjection localMergeProjection(Functions functions) {

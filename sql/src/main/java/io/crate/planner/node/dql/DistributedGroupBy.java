@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dml;
+package io.crate.planner.node.dql;
 
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
@@ -27,22 +27,21 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class UpdateNode implements PlannedAnalyzedRelation, Plan {
+public class DistributedGroupBy implements PlannedAnalyzedRelation, Plan {
 
-    private final List<List<DQLPlanNode>> nodes;
+    private final CollectNode collectNode;
+    private final MergeNode reducerMergeNode;
+    private final MergeNode localMergeNode;
 
-    public UpdateNode(List<List<DQLPlanNode>> nodes) {
-        this.nodes = nodes;
-    }
-
-    public List<List<DQLPlanNode>> nodes() {
-        return nodes;
+    public DistributedGroupBy(CollectNode collectNode, MergeNode reducerMergeNode, MergeNode localMergeNode) {
+        this.collectNode = collectNode;
+        this.reducerMergeNode = reducerMergeNode;
+        this.localMergeNode = localMergeNode;
     }
 
     @Override
@@ -68,7 +67,19 @@ public class UpdateNode implements PlannedAnalyzedRelation, Plan {
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitUpdateNode(this, context);
+        return visitor.visitDistributedGroupBy(this, context);
+    }
+
+    public CollectNode collectNode() {
+        return collectNode;
+    }
+
+    public MergeNode reducerMergeNode() {
+        return reducerMergeNode;
+    }
+
+    public MergeNode localMergeNode() {
+        return localMergeNode;
     }
 
     @Override

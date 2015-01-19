@@ -37,7 +37,7 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.GlobalAggregateNode;
+import io.crate.planner.node.dql.GlobalAggregate;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
@@ -146,7 +146,7 @@ public class GlobalAggregateConsumer implements Consumer {
             projections.add(indexWriterProjection);
         }
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
-        return new GlobalAggregateNode(collectNode, localMergeNode);
+        return new GlobalAggregate(collectNode, localMergeNode);
     }
 
     private static void validateAggregationOutputs(TableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {

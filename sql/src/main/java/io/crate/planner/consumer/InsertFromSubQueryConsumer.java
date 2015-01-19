@@ -40,7 +40,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.DistributedGroupByNode;
+import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
@@ -273,7 +273,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 contextBuilder.addProjection(QueryAndFetchConsumer.localMergeProjection(functions));
             }
             MergeNode localMergeNode = PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), mergeNode);
-            return new DistributedGroupByNode(
+            return new DistributedGroupBy(
                     collectNode,
                     mergeNode,
                     localMergeNode

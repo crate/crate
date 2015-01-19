@@ -41,7 +41,7 @@ import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.UpdateByIdNode;
-import io.crate.planner.node.dml.UpdateNode;
+import io.crate.planner.node.dml.Update;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -120,7 +120,7 @@ public class UpdateConsumer implements Consumer {
                 }
             }
 
-            return new UpdateNode(childNodes);
+            return new Update(childNodes);
         }
 
         private List<DQLPlanNode> updateByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,

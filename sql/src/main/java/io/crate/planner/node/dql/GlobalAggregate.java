@@ -32,16 +32,27 @@ import io.crate.planner.symbol.Field;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class DistributedGroupByNode implements PlannedAnalyzedRelation, Plan {
+public class GlobalAggregate implements PlannedAnalyzedRelation, Plan {
 
     private final CollectNode collectNode;
-    private final MergeNode reducerMergeNode;
-    private final MergeNode localMergeNode;
+    private final MergeNode mergeNode;
 
-    public DistributedGroupByNode(CollectNode collectNode, MergeNode reducerMergeNode, MergeNode localMergeNode) {
+    public GlobalAggregate(CollectNode collectNode, MergeNode mergeNode) {
         this.collectNode = collectNode;
-        this.reducerMergeNode = reducerMergeNode;
-        this.localMergeNode = localMergeNode;
+        this.mergeNode = mergeNode;
+    }
+
+    public CollectNode collectNode() {
+        return collectNode;
+    }
+
+    public MergeNode mergeNode() {
+        return mergeNode;
+    }
+
+    @Override
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitGlobalAggregate(this, context);
     }
 
     @Override
@@ -52,34 +63,17 @@ public class DistributedGroupByNode implements PlannedAnalyzedRelation, Plan {
     @Nullable
     @Override
     public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField is not supported");
+        throw new UnsupportedOperationException("getField not supported on GlobalAggregateNode");
     }
 
     @Override
     public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField is not supported");
+        throw new UnsupportedOperationException("getWritableField not supported on GlobalAggregateNode");
     }
 
     @Override
     public List<Field> fields() {
-        throw new UnsupportedOperationException("fields is not supported");
-    }
-
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitDistributedGroupByNode(this, context);
-    }
-
-    public CollectNode collectNode() {
-        return collectNode;
-    }
-
-    public MergeNode reducerMergeNode() {
-        return reducerMergeNode;
-    }
-
-    public MergeNode localMergeNode() {
-        return localMergeNode;
+        throw new UnsupportedOperationException("fields not supported on GlobalAggregateNode");
     }
 
     @Override

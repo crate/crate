@@ -171,28 +171,28 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public Void visitGlobalAggregateNode(GlobalAggregateNode plan, Job job) {
+        public Void visitGlobalAggregate(GlobalAggregate plan, Job job) {
             job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
             job.addTasks(visitor.visitMergeNode(plan.mergeNode(), job.id()));
             return null;
         }
 
         @Override
-        public Void visitQueryAndFetchNode(QueryAndFetchNode plan, Job job) {
+        public Void visitQueryAndFetch(QueryAndFetch plan, Job job) {
             job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
             job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));
             return null;
         }
 
         @Override
-        public Void visitNonDistributedGroupByNode(NonDistributedGroupByNode plan, Job job) {
+        public Void visitNonDistributedGroupBy(NonDistributedGroupBy plan, Job job) {
             job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
             job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));
             return null;
         }
 
         @Override
-        public Void visitUpdateNode(UpdateNode plan, Job job) {
+        public Void visitUpdate(Update plan, Job job) {
             ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
             for (List<DQLPlanNode> childNodes : plan.nodes()) {
                 List<Task> subTasks = new ArrayList<>(childNodes.size());
@@ -207,7 +207,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public Void visitDistributedGroupByNode(DistributedGroupByNode plan, Job job) {
+        public Void visitDistributedGroupBy(DistributedGroupBy plan, Job job) {
             job.addTasks(visitor.visitCollectNode(plan.collectNode(), job.id()));
             job.addTasks(visitor.visitMergeNode(plan.reducerMergeNode(), job.id()));
             job.addTasks(visitor.visitMergeNode(plan.localMergeNode(), job.id()));

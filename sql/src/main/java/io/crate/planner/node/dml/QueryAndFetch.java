@@ -14,12 +14,12 @@ import io.crate.planner.symbol.Field;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class QueryAndFetchNode implements PlannedAnalyzedRelation, Plan {
+public class QueryAndFetch implements PlannedAnalyzedRelation, Plan {
 
     private final CollectNode collectNode;
     private final MergeNode localMergeNode;
 
-    public QueryAndFetchNode(CollectNode collectNode, MergeNode localMergeNode){
+    public QueryAndFetch(CollectNode collectNode, MergeNode localMergeNode){
         this.collectNode = collectNode;
         this.localMergeNode = localMergeNode;
     }
@@ -47,7 +47,7 @@ public class QueryAndFetchNode implements PlannedAnalyzedRelation, Plan {
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitQueryAndFetchNode(this, context);
+        return visitor.visitQueryAndFetch(this, context);
     }
 
     public CollectNode collectNode() {

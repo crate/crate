@@ -32,12 +32,12 @@ import io.crate.planner.symbol.Field;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class NonDistributedGroupByNode implements PlannedAnalyzedRelation, Plan {
+public class NonDistributedGroupBy implements PlannedAnalyzedRelation, Plan {
 
     private final CollectNode collectNode;
     private final MergeNode localMergeNode;
 
-    public NonDistributedGroupByNode(CollectNode collectNode, MergeNode localMergeNode){
+    public NonDistributedGroupBy(CollectNode collectNode, MergeNode localMergeNode){
         this.collectNode = collectNode;
         this.localMergeNode = localMergeNode;
     }
@@ -65,7 +65,7 @@ public class NonDistributedGroupByNode implements PlannedAnalyzedRelation, Plan 
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitNonDistributedGroupByNode(this, context);
+        return visitor.visitNonDistributedGroupBy(this, context);
     }
 
     public MergeNode localMergeNode() {
