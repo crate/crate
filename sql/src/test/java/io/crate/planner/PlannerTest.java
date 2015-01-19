@@ -73,23 +73,27 @@ public class PlannerTest {
 
     private Analyzer analyzer;
     private Planner planner;
-    Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+    static final Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
             .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
             .build());
 
-    Routing nodesRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+    static final Routing nodesRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
             .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
 
-    final Routing partedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+    static final Routing partedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.parted.04232chj", ImmutableSet.of(1, 2)))
             .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
 
 
-    class TestModule extends MetaDataModule {
+    public static TestModule plannerTestModule() {
+        return new TestModule();
+    }
+
+    public static class TestModule extends MetaDataModule {
 
         @Override
         protected void configure() {
