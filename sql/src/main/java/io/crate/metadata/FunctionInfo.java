@@ -72,6 +72,9 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         return type;
     }
 
+    public boolean deterministic() {
+        return deterministic;
+    }
 
     public DataType returnType() {
         return returnType;

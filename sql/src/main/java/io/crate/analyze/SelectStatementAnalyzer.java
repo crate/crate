@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Query;
@@ -41,7 +42,11 @@ public class SelectStatementAnalyzer extends DefaultTraversalVisitor<SelectAnaly
     @Override
     protected SelectAnalyzedStatement visitQuery(Query node, Analysis analysis) {
         // TODO: make RelationAnalyzer a singleton
-        QueriedRelation relation = (QueriedRelation) relationAnalyzer.analyze(node.getQueryBody(), analysis);
+        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(analysis.parameterContext());
+        QueriedRelation relation = (QueriedRelation) relationAnalyzer.process(node.getQueryBody(), relationAnalysisContext);
+        if (relation == null) {
+            throw new UnsupportedOperationException(String.format("Unsupported SELECT statement %s", node));
+        }
         analysis.rootRelation(relation);
         return new SelectAnalyzedStatement(relation);
     }

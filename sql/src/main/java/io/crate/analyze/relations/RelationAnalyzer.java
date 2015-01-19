@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
@@ -75,6 +76,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
+    protected AnalyzedRelation visitJoin(Join node, RelationAnalysisContext context) {
+        process(node.getLeft(), context);
+        process(node.getRight(), context);
+
+        if (node.getCriteria().isPresent()) {
+            throw new UnsupportedOperationException("JOIN Criteria are not supported");
+        }
+        return null;
+    }
+
+    @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, RelationAnalysisContext context) {
         if (node.getFrom() == null) {
             throw new IllegalArgumentException("FROM clause is missing.");
@@ -82,11 +94,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (Relation relation : node.getFrom()) {
             process(relation, context);
         }
-        if (context.sources().size() != 1) {
-            throw new UnsupportedOperationException
-                    ("Only exactly one table is allowed in the FROM clause, got: " + context.sources().size());
-        }
-        ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
+        FieldProvider fieldProvider = new FullQualifedNameFieldProvider(context.sources());
+        expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, context.parameterContext(), fieldProvider);
+        expressionAnalysisContext = new ExpressionAnalysisContext();
 
         WhereClause whereClause = analyzeWhere(node.getWhere(), context);
         if (whereClause.hasQuery()) {
