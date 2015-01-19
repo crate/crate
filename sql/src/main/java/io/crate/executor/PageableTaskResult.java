@@ -36,7 +36,7 @@ import java.util.NoSuchElementException;
  */
 public interface PageableTaskResult extends TaskResult, Closeable {
 
-    public static final PageableTaskResult EMPTY_PAGABLE_RESULT = new PageableTaskResult() {
+    public static final PageableTaskResult EMPTY_PAGEABLE_RESULT = new PageableTaskResult() {
         @Override
         public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
             return Futures.immediateFailedFuture(new NoSuchElementException());
