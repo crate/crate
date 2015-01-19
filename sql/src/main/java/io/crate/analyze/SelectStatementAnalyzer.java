@@ -44,6 +44,9 @@ public class SelectStatementAnalyzer extends DefaultTraversalVisitor<SelectAnaly
         // TODO: make RelationAnalyzer a singleton
         RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(analysis.parameterContext());
         QueriedRelation relation = (QueriedRelation) relationAnalyzer.process(node.getQueryBody(), relationAnalysisContext);
+        if (relation == null) {
+            throw new UnsupportedOperationException(String.format("Unsupported SELECT statement %s", node));
+        }
         analysis.rootRelation(relation);
         return new SelectAnalyzedStatement(relation);
     }
