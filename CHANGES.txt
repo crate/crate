@@ -18,6 +18,8 @@ Unreleased
 
  - Fixed type conversion of bulk parameters
 
+ - Fixed an issue that could cause bulk inserts to get stalled.
+
  - Updated crate-admin to version 0.11.2 which includes following changes:
 
     - removed usage of sys expressions in wrong context
@@ -28,19 +30,11 @@ Unreleased
 
     - fixed title of `tables` view if no tables exists or connection is down
 
- - fix: throw correct exception if `_version` is misused in WHERE clause
+ - Fix: throw correct exception if `_version` is misused in WHERE clause
 
  - improved speed of Alter table settings in partitioned tables
 
  - Restricted allowed characters in column names
-
- - Fix: Return zero row count instead of an exception if update by id
-   doesn't match any document
-
- - fix: throw correct exception if one uses `_version` in a select statements
-   where clause
-
- - Fixed an issue that could cause bulk inserts to get stalled.
 
 2014/12/16 0.45.6
 =================
