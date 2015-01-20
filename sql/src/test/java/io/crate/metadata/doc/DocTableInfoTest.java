@@ -45,6 +45,8 @@ public class DocTableInfoTest {
         ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("o", ImmutableList.of("foobar")));
         assertNull(foobar);
         DynamicReference reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")));
+        assertNull(reference);
+        reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")), true);
         assertNotNull(reference);
         assertSame(reference.valueType(), DataTypes.UNDEFINED);
     }

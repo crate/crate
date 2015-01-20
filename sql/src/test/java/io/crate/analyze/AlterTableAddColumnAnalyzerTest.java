@@ -198,7 +198,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddNewNestedColumnToObjectColumn() throws Exception {
-        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze("alter table users add column details['foo'] object as (score float, name string)");
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze("alter table users add column details['foobar'] object as (score float, name string)");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
 
@@ -209,18 +209,18 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         assertThat(details.children().size(), is(1));
 
         AnalyzedColumnDefinition foo = details.children().get(0);
-        assertThat(foo.ident(), is(ColumnIdent.fromPath("details.foo")));
+        assertThat(foo.ident(), is(ColumnIdent.fromPath("details.foobar")));
         assertThat(foo.dataType(), is("object"));
         assertThat(foo.isParentColumn(), is(false));
 
         assertThat(columns.get(0).children().get(0).children().size(), is(2));
 
         AnalyzedColumnDefinition score = columns.get(0).children().get(0).children().get(0);
-        assertThat(score.ident(), is(ColumnIdent.fromPath("details.foo.score")));
+        assertThat(score.ident(), is(ColumnIdent.fromPath("details.foobar.score")));
         assertThat(score.dataType(), is("float"));
 
         AnalyzedColumnDefinition name = columns.get(0).children().get(0).children().get(1);
-        assertThat(name.ident(), is(ColumnIdent.fromPath("details.foo.name")));
+        assertThat(name.ident(), is(ColumnIdent.fromPath("details.foobar.name")));
         assertThat(name.dataType(), is("string"));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
@@ -228,7 +228,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
                 "properties:{" +
                 "id={index=not_analyzed, store=false, doc_values=true, type=long}, " +
                 "details={dynamic=true, index=not_analyzed, store=false, properties={" +
-                  "foo={dynamic=true, index=not_analyzed, store=false, properties={" +
+                  "foobar={dynamic=true, index=not_analyzed, store=false, properties={" +
                     "name={index=not_analyzed, store=false, doc_values=true, type=string}, " +
                     "score={index=not_analyzed, store=false, doc_values=true, type=float}}, doc_values=false, type=object}}, doc_values=false, type=object}}, " +
                 "_all:{enabled=false}"));

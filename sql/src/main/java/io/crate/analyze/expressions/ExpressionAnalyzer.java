@@ -206,7 +206,7 @@ public class ExpressionAnalyzer {
                 }
                 literal = Literal.newLiteral(
                         reference.info().type(),
-                        normalizeObjectArrayValue(value, reference.info())
+                        normalizeObjectArrayValue(value, reference.info(), forWrite)
                 );
             }
         } catch (ClassCastException | NumberFormatException e) {
