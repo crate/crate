@@ -109,12 +109,11 @@ public class DocReferenceConverter {
 
         @Override
         public Symbol visitFunction(Function symbol, Predicate<Reference> predicate) {
-            int idx = 0;
+            List<Symbol> arguments = new ArrayList<>(symbol.arguments().size());
             for (Symbol argument : symbol.arguments()) {
-                symbol.setArgument(idx, process(argument, predicate));
-                idx++;
+                arguments.add(process(argument, predicate));
             }
-            return symbol;
+            return new Function(symbol.info(), arguments);
         }
 
         @Override

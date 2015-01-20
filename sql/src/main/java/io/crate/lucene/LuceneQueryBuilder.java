@@ -794,7 +794,7 @@ public class LuceneQueryBuilder {
             // reason1: analyzed columns or columns with index off wouldn't work
             //   substr(n, 1, 1) in the case of n => analyzed would throw an error because n would be an array
             // reason2: would have to load each value into the field cache
-            DocReferenceConverter.convertIf(function, Predicates.<Reference>alwaysTrue());
+            function = (Function)DocReferenceConverter.convertIf(function, Predicates.<Reference>alwaysTrue());
 
             final CollectInputSymbolVisitor.Context ctx = inputSymbolVisitor.process(function);
             assert ctx.topLevelInputs().size() == 1;
