@@ -29,6 +29,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.TableOrAliasAlreadyInUseException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
@@ -1565,5 +1566,19 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         Symbol currentTime = stmt.relation().querySpec().outputs().get(0);
         assertThat(currentTime, instanceOf(Literal.class));
         assertThat(currentTime.valueType(), is((DataType) DataTypes.TIMESTAMP));
+    }
+
+    @Test
+    public void testSelectWithMultipleTablesAndReuseSameAlias() throws Exception {
+        expectedException.expect(TableOrAliasAlreadyInUseException.class);
+        expectedException.expectMessage("The table or alias 'a' is specified more than once");
+        analyze("select * from users a, users a");
+    }
+
+    @Test
+    public void testSelectWithSameTableUsedTwiceWithoutAlias() throws Exception {
+        expectedException.expect(TableOrAliasAlreadyInUseException.class);
+        expectedException.expectMessage("The table or alias 'users' is specified more than once");
+        analyze("select * from users, users");
     }
 }
