@@ -19,35 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.relations;
+package io.crate.exceptions;
 
-import io.crate.exceptions.TableOrAliasAlreadyInUseException;
-import io.crate.sql.tree.QualifiedName;
+public class TableOrAliasAlreadyInUseException extends ValidationException {
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-
-public class RelationAnalysisContext {
-
-    private Map<QualifiedName, AnalyzedRelation> sources = new HashMap<>();
-
-    public RelationAnalysisContext() {
-    }
-
-    public void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
-        if (sources.put(new QualifiedName(nameOrAlias), relation) != null) {
-            throw new TableOrAliasAlreadyInUseException(nameOrAlias);
-        };
-    }
-
-    public void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
-        if (sources.put(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation) != null) {
-            throw new TableOrAliasAlreadyInUseException(nameOrAlias);
-        };
-    }
-
-    public Map<QualifiedName, AnalyzedRelation> sources() {
-        return sources;
+    public TableOrAliasAlreadyInUseException(String tableOrAlias) {
+        super(String.format("The table or alias '%s' is specified more than once", tableOrAlias));
     }
 }
