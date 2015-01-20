@@ -25,6 +25,7 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.exceptions.TableOrAliasAlreadyInUseException;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.Arrays;
@@ -51,11 +52,15 @@ public class RelationAnalysisContext {
     }
 
     public void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
-        sources.put(new QualifiedName(nameOrAlias), relation);
+        if (sources.put(new QualifiedName(nameOrAlias), relation) != null) {
+            throw new TableOrAliasAlreadyInUseException(nameOrAlias);
+        }
     }
 
     public void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
-        sources.put(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
+        if (sources.put(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation) != null) {
+            throw new TableOrAliasAlreadyInUseException(nameOrAlias);
+        };
     }
 
     public Map<QualifiedName, AnalyzedRelation> sources() {
