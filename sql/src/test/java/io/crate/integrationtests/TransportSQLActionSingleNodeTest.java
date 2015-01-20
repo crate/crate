@@ -157,7 +157,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
     @Test
     public void testSelectUnknownNoResultWithTypes() throws Exception {
-        execute("create table unknown (id integer primary key, name object as (surname string)) " +
+        execute("create table unknown (id integer primary key, name object(ignored)) " +
                 "clustered into 2 shards with (number_of_replicas=0)");
         ensureGreen();
 

@@ -178,7 +178,7 @@ public class ExpressionAnalyzerNormalizeTest {
         map.put("time", "2014-02-16T00:00:01");
         map.put("false", true);
         Literal<Map<String, Object>> normalized = (Literal)expressionAnalyzer.normalizeInputForReference(
-                Literal.newLiteral(map), new Reference(objInfo));
+                Literal.newLiteral(map), new Reference(objInfo), true);
         assertThat((Long) normalized.value().get("time"), is(1392508801000l));
         assertThat((Boolean)normalized.value().get("false"), is(true));
     }
@@ -229,7 +229,7 @@ public class ExpressionAnalyzerNormalizeTest {
         Map<String, Object> map = new HashMap<>();
         map.put("d", 2.9d);
         map.put("half", "1.45");
-        Symbol normalized = expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo));
+        Symbol normalized = expressionAnalyzer.normalizeInputForReference(Literal.newLiteral(map), new Reference(objInfo), true);
         assertThat(normalized, instanceOf(Literal.class));
         assertThat(((Literal)normalized).value(), Matchers.<Object>is(map)); // stays the same
     }
@@ -276,7 +276,8 @@ public class ExpressionAnalyzerNormalizeTest {
         }};
         Literal<Map<String, Object>> literal = (Literal)expressionAnalyzer.normalizeInputForReference(
                 Literal.newLiteral(map),
-                new Reference(objInfo)
+                new Reference(objInfo),
+                true
         );
         assertThat((Long) literal.value().get("time"), is(0l));
     }

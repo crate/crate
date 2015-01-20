@@ -102,6 +102,7 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                             .add("id", DataTypes.INTEGER, null)
                             .add("name", DataTypes.STRING, null)
                             .add("date", DataTypes.TIMESTAMP, null, true)
+                            .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
                             .addPartitions(
                                     new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
                                     new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue(),

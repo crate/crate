@@ -58,10 +58,17 @@ public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
                     case IGNORED:
                         parentIsIgnored = true;
                         break;
+                    case DYNAMIC:
+                        if (forWrite == false) {
+                            return null;
+                        }
+                        break;
                 }
+            } else if (forWrite == false && columnPolicy() != ColumnPolicy.IGNORED) {
+                return null;
             }
         } else if (forWrite == false && columnPolicy() != ColumnPolicy.IGNORED) {
-            return unknownColumnExceptionOrNull(ident, forWrite);
+            return null;
         } else {
             switch (columnPolicy()) {
                 case STRICT:
