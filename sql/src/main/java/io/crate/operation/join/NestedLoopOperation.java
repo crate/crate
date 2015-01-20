@@ -175,10 +175,10 @@ public class NestedLoopOperation implements ProjectorUpstream {
             if (!hasOffset() && !needsToFetchAllForPaging()){
                 strategy = new PagingNestedLoopStrategy();
             } else {
-                strategy = new FakePagingNestedLoopStrategy();
+                strategy = new FetchedPagingNestedLoopStrategy();
             }
         } else {
-            strategy = new DefaultNestedLoopStrategy();
+            strategy = new OneShotNestedLoopStrategy();
         }
     }
 
@@ -571,7 +571,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
         @Override
         public boolean executeNestedLoop(JoinContext ctx, Optional<PageInfo> pageInfo) {
-            assert pageInfo.isPresent() : "pageInfo is not present for paged nested loop execution";
+            assert pageInfo.isPresent() : "pageInfo is not present for " + name() + " nested loop execution";
             boolean wantMore = true;
             int rowsLeft = pageInfo.get().position() + pageInfo.get().size();
             Object[] outerRow, innerRow;
@@ -617,7 +617,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
         @Override
         public TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext) {
-            assert pageInfo.isPresent() : "pageInfo is not present for optimized paging";
+            assert pageInfo.isPresent() : "pageInfo is not present for " + name();
             IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
             return new NestedLoopPageableTaskResult(wrappedRows, 0L, pageInfo.get(), joinContext);
         }
@@ -629,10 +629,10 @@ public class NestedLoopOperation implements ProjectorUpstream {
     }
 
     /**
-     * fake paging that loads both relations to ram and pages through the
-     * projection results.
+     * paging that loads both relations to ram and pages through the
+     * fetched projection results.
      */
-    private class FakePagingNestedLoopStrategy extends DefaultNestedLoopStrategy {
+    private class FetchedPagingNestedLoopStrategy extends OneShotNestedLoopStrategy {
 
         @Override
         public TaskResult emptyResult() {
@@ -650,25 +650,30 @@ public class NestedLoopOperation implements ProjectorUpstream {
             try {
                 joinContext.close();
             } catch (IOException e) {
-                logger.error("error closing joinContext after NestedLoop execution", e);
+                logger.error("error closing joinContext after {} NestedLoop execution", e, name());
             }
         }
 
         @Override
         public TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext) {
-            assert pageInfo.isPresent() : "pageInfo is not present for fake paging";
+            assert pageInfo.isPresent() : "pageInfo is not present for " + name();
             IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
             return new FetchedRowsPageableTaskResult(wrappedRows, 0L, pageInfo.get());
         }
 
         @Override
         public String name() {
-            return "default paging";
+            return "fetched paging";
         }
     }
 
-
-    private class DefaultNestedLoopStrategy implements NestedLoopStrategy {
+    /**
+     * nestedloop execution that produces all rows at once and returns them as
+     * one single instance of {@linkplain io.crate.executor.QueryResult}.
+     *
+     * This is used, when NestedLoop is not paged.
+     */
+    private class OneShotNestedLoopStrategy implements NestedLoopStrategy {
 
         @Override
         public boolean executeNestedLoop(JoinContext ctx, Optional<PageInfo> pageInfo) {
@@ -709,7 +714,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
             try {
                 joinContext.close();
             } catch (IOException e) {
-                logger.error("error closing joinContext after NestedLoop execution", e);
+                logger.error("error closing joinContext after {} NestedLoop execution", e, name());
             }
         }
 
@@ -720,7 +725,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
         @Override
         public String name() {
-            return "nestedloop execution";
+            return "one shot";
         }
     }
 }
