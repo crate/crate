@@ -595,29 +595,29 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("column 'details['lol']' must appear in the GROUP BY clause or be used in an aggregation function");
-        execute("select details['lol'] from characters group by race");
+        expectedException.expectMessage("column 'details_ignored['lol']' must appear in the GROUP BY clause or be used in an aggregation function");
+        execute("select details_ignored['lol'] from characters group by race");
     }
 
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'details['lol']': invalid data type 'null'");
-        execute("select max(birthdate) from characters group by details['lol']");
+        expectedException.expectMessage("Cannot GROUP BY 'details_ignored['lol']': invalid data type 'null'");
+        execute("select max(birthdate) from characters group by details_ignored['lol']");
     }
 
     @Test
     public void testGroupByUnknownWhere() throws Exception {
         this.setup.groupBySetup();
-        execute("select max(birthdate), race from characters where details['lol']='funky' group by race");
+        execute("select max(birthdate), race from characters where details_ignored['lol']='funky' group by race");
         assertEquals(0, response.rowCount());
     }
 
     @Test
     public void testGlobalAggregateUnknownWhere() throws Exception {
         this.setup.groupBySetup();
-        execute("select max(birthdate) from characters where details['lol']='funky'");
+        execute("select max(birthdate) from characters where details_ignored['lol']='funky'");
         assertEquals(1, response.rowCount());
         assertNull(response.rows()[0][0]);
     }
@@ -627,7 +627,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         this.setup.groupBySetup();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("unknown function: max(null)"); // TODO: better exception
-        execute("select max(details['lol']), race from characters group by race");
+        execute("select max(details_ignored['lol']), race from characters group by race");
     }
 
     @Test

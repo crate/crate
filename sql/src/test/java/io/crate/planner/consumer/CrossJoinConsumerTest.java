@@ -41,6 +41,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -97,7 +98,7 @@ public class CrossJoinConsumerTest {
         NestedLoopNode nestedLoopNode = (NestedLoopNode) next;
         assertThat(nestedLoopNode.limit(), is(TopN.NO_LIMIT));
         assertThat(nestedLoopNode.offset(), is(0));
-        assertThat(nestedLoopNode.outputTypes().size(), is(8));
+        assertThat(nestedLoopNode.outputTypes().size(), is(9));
 
         PlanNode left = nestedLoopNode.left();
         assertThat(left, instanceOf(QueryThenFetchNode.class));
@@ -149,7 +150,7 @@ public class CrossJoinConsumerTest {
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
 
-        assertThat(nl.outputTypes().size(), is(15));
+        assertThat(nl.outputTypes().size(), is(18));
     }
 
     @Test
@@ -221,4 +222,18 @@ public class CrossJoinConsumerTest {
         Symbol castFunction = allOutputs.get(inputCol3.index());
         assertThat(castFunction, isFunction("toInt"));
     }
+
+    @Test
+    public void testCrossJoinsWithSubscript() throws Exception {
+        IterablePlan plan = plan("select address['street'], details['no_such_column'] from users cross join ignored_nested");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(NestedLoopNode.class));
+        NestedLoopNode nl = (NestedLoopNode) planNode;
+
+        assertThat(nl.outputTypes().size(), is(2));
+        assertThat(nl.outputTypes().get(0).id(), is(DataTypes.STRING.id()));
+        assertThat(nl.outputTypes().get(1).id(), is(DataTypes.UNDEFINED.id()));
+    }
+
 }
