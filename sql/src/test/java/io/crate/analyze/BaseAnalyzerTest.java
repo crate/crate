@@ -62,6 +62,7 @@ public abstract class BaseAnalyzerTest {
             .add("text", DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED)
             .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
             .add("details", DataTypes.OBJECT, null)
+            .add("details", DataTypes.STRING, Arrays.asList("foo"))
             .add("awesome", DataTypes.BOOLEAN, null)
             .add("counters", new ArrayType(DataTypes.LONG), null)
             .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
@@ -178,9 +179,9 @@ public abstract class BaseAnalyzerTest {
 
     public static final TableIdent IGNORED_NESTED_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "ignored_nested");
     public static final TableInfo IGNORED_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-                IGNORED_NESTED_TABLE_IDENT, RowGranularity.DOC, new Routing())
-                .add("details", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
-                .build();
+            IGNORED_NESTED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("details", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
+            .build();
 
     static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "locations");
     static final TableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, RowGranularity.DOC, shardRouting)
