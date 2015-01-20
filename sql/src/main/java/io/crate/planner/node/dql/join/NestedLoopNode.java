@@ -33,6 +33,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
+import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.symbol.Field;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -204,5 +205,15 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
     @Override
     public Plan plan() {
         return new IterablePlan(this);
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        throw new UnsupportedOperationException("resultIsDistributed is not supported on ESDQLPlanNode");
+    }
+
+    @Override
+    public DQLPlanNode resultNode() {
+        throw new UnsupportedOperationException("resultNode is not supported on ESDQLPLanNode");
     }
 }

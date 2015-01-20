@@ -194,6 +194,15 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
         return result;
     }
 
+    @Deprecated
+    public List<Symbol> resolveCopy(Collection<? extends Symbol> symbols) {
+        List<Symbol> result = new ArrayList<>(symbols.size());
+        for (Symbol symbol : symbols) {
+            result.add(resolveCopy(symbol));
+        }
+        return result;
+    }
+
     @Override
     @Nullable
     public Reference resolveField(Field field) {
@@ -206,7 +215,12 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
     @Deprecated
     public Symbol resolve(Symbol symbol) {
         assert symbol != null : "can't resolve symbol that is null";
-        return FIELD_UNWRAPPING_VISITOR.process(symbol, this);
+        return FIELD_UNWRAPPING_VISITOR.process(symbol, new FieldUnwrappingContext(this, false));
+    }
+
+    public Symbol resolveCopy(Symbol symbol) {
+        assert symbol != null : "can't resolve symbol that is null";
+        return FIELD_UNWRAPPING_VISITOR.process(symbol, new FieldUnwrappingContext(this, true));
     }
 
     public void validateOrderBy(@Nullable OrderBy orderBy) {
@@ -217,28 +231,46 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
         }
     }
 
-    @Deprecated
-    private static class FieldUnwrappingVisitor extends SymbolVisitor<TableRelation, Symbol> {
+    private static class FieldUnwrappingContext {
+        TableRelation tableRelation;
+        boolean copy;
 
-        private Reference resolveField(Field field, TableRelation relation) {
-            return relation.resolveField(field);
+        public FieldUnwrappingContext(TableRelation tableRelation, boolean copy) {
+            this.tableRelation = tableRelation;
+            this.copy = copy;
+        }
+    }
+
+    @Deprecated
+    private static class FieldUnwrappingVisitor extends SymbolVisitor<FieldUnwrappingContext, Symbol> {
+
+        private Reference resolveField(Field field, FieldUnwrappingContext context) {
+            return context.tableRelation.resolveField(field);
         }
 
         @Override
-        public Symbol visitField(Field field, TableRelation context) {
+        public Symbol visitField(Field field, FieldUnwrappingContext context) {
             return resolveField(field, context);
         }
 
         @Override
-        public Symbol visitFunction(Function symbol, TableRelation context) {
-            for (int i = 0; i < symbol.arguments().size(); i++) {
-                symbol.setArgument(i, process(symbol.arguments().get(i), context));
+        public Symbol visitFunction(Function symbol, FieldUnwrappingContext context) {
+            if (context.copy) {
+                List<Symbol> newArgs = new ArrayList<>(symbol.arguments().size());
+                for (Symbol argument : symbol.arguments()) {
+                    newArgs.add(process(argument, context));
+                }
+                return new Function(symbol.info(), newArgs);
+            } else {
+                for (int i = 0; i < symbol.arguments().size(); i++) {
+                    symbol.setArgument(i, process(symbol.arguments().get(i), context));
+                }
+                return symbol;
             }
-            return symbol;
         }
 
         @Override
-        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, TableRelation context) {
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, FieldUnwrappingContext context) {
             Map<Field, Double> fieldBoostMap = matchPredicate.identBoostMap();
             Map<String, Object> fqnBoostMap = new HashMap<>(fieldBoostMap.size());
 
@@ -256,7 +288,7 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, TableRelation context) {
+        protected Symbol visitSymbol(Symbol symbol, FieldUnwrappingContext context) {
             return symbol;
         }
     }
