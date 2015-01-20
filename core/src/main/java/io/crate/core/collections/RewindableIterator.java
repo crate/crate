@@ -19,32 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
-
-import io.crate.core.collections.EmptyRewindableIterator;
+package io.crate.core.collections;
 
 import java.util.Iterator;
 
-/**
- * a Page represents a couple of rows
- */
-public interface Page extends Iterable<Object[]> {
+public interface RewindableIterator<T> extends Iterator<T> {
 
     /**
-     * The number of rows that this page actually contains.
-     * Might be less that the requested size
+     * rewind this iterator by <code>positions</code>
+     * the iterator will only be rewind until the beginning, not further.
+     * @param positions the number of positions to rewind
+     * @return true the number of positions this iterator was actually rewinded.
      */
-    public long size();
-
-    public static final Page EMPTY = new Page() {
-        @Override
-        public long size() {
-            return 0;
-        }
-
-        @Override
-        public Iterator<Object[]> iterator() {
-            return EmptyRewindableIterator.empty();
-        }
-    };
+    public int rewind(int positions);
 }

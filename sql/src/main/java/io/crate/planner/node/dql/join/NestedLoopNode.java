@@ -74,6 +74,7 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
     private boolean leftOuterLoop = true;
     private final int limit;
     private final int offset;
+    private final boolean sorted;
 
     /**
      * create a new NestedLoopNode
@@ -103,18 +104,26 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
      * b | 2
      * a | 3
      * b | 3
+     *
+     * @param sorted true if the statement this NestedLoop belongs to is sorted
+     *               i.e. has an order by clause. In case of subselects with a NestedLoop
+     *               the value of <code>sorted</code> depends on the ordering of
+     *               the subselect not the whole statement.
+     *
      */
     public NestedLoopNode(PlanNode left,
                            PlanNode right,
                            boolean leftOuterLoop,
                            int limit,
-                           int offset) {
+                           int offset,
+                           boolean sorted) {
         super("nestedLoop");
         this.limit = limit;
         this.offset = offset;
         this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;
+        this.sorted = sorted;
         // fallback
         this.outputTypes(Lists.newArrayList(FluentIterable.from(left.outputTypes()).append(right.outputTypes())));
     }
@@ -137,6 +146,10 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
 
     public boolean leftOuterLoop() {
         return leftOuterLoop;
+    }
+
+    public boolean sorted() {
+        return sorted;
     }
 
     @Override
@@ -178,6 +191,7 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
                 .add("offset", offset())
                 .add("limit", limit())
                 .add("leftOuterLoop", leftOuterLoop)
+                .add("sorted", sorted)
                 .toString();
     }
 

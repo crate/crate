@@ -81,6 +81,10 @@ public class BigArrayPageTest {
         assertThat(page.size(), is(90L));
         assertThat(Iterators.size(page.iterator()), is(90));
 
+        page = new BigArrayPage(pageSource, 10, 101);
+        assertThat(page.size(), is(90L));
+        assertThat(Iterators.size(page.iterator()), is(90));
+
         page = new BigArrayPage(pageSource);
         assertThat(page.size(), is(100L));
         assertThat(Iterators.size(page.iterator()), is(100));

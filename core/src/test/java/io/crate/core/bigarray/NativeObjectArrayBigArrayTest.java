@@ -21,12 +21,17 @@
 
 package io.crate.core.bigarray;
 
+import com.google.common.collect.Iterators;
+import io.crate.core.collections.RewindableIterator;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Iterator;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class NativeObjectArrayBigArrayTest {
@@ -240,6 +245,30 @@ public class NativeObjectArrayBigArrayTest {
             i++;
         }
         assertThat(i, is(20));
+
+        Iterator<Object[]> iter = bigArray.iterator();
+        assertThat(iter, instanceOf(RewindableIterator.class));
+        RewindableIterator<Object[]> rewindIter = (RewindableIterator<Object[]>)iter;
+
+        i = 0;
+        while (rewindIter.hasNext()) {
+            rewindIter.next();
+            i++;
+        }
+        assertThat(i, is(20));
+
+        assertThat(rewindIter.rewind(0), is(0));
+        assertThat(rewindIter.hasNext(), is(false));
+        assertThat(rewindIter.rewind(1), is(1));
+        assertThat(rewindIter.hasNext(), is(true));
+        Object[] lastRow = rewindIter.next();
+
+        assertThat(rewindIter.hasNext(), is(false));
+        assertThat(rewindIter.rewind(4), is(4));
+        assertThat(rewindIter.hasNext(), is(true));
+        assertThat(Iterators.advance(rewindIter, 3), is(3));
+        assertThat(rewindIter.next(), is(lastRow));
+
     }
 
 }

@@ -78,10 +78,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class CrateSearchService extends InternalSearchService {
 
@@ -126,6 +123,9 @@ public class CrateSearchService extends InternalSearchService {
             context.indexShard().searchService().onPreQueryPhase(context);
             long time = System.nanoTime();
             try {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("execute scroll from doc {} on shard {}", context.lastEmittedDoc(), context.shardTarget());
+                }
                 queryPhase.execute(context);
             } catch (Throwable e) {
                 context.indexShard().searchService().onFailedQueryPhase(context);

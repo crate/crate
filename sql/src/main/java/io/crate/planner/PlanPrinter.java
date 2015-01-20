@@ -216,12 +216,12 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             context.print("limit: %s", node.limit());
             context.print("offset: %s", node.offset());
 
-            context.print("left");
+            context.print("left (%s)", node.leftOuterLoop() ? "outer": "inner");
             context.indent();
             planNodePrinter.process(node.left(), context);
             context.dedent();
 
-            context.print("right");
+            context.print("right (%s)", node.leftOuterLoop() ? "inner" : "outer");
             context.indent();
             planNodePrinter.process(node.right(), context);
             context.dedent();

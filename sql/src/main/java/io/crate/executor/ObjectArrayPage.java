@@ -45,7 +45,7 @@ public class ObjectArrayPage implements Page {
 
     @Override
     public Iterator<Object[]> iterator() {
-        return new ArrayIterator(pageSource, start, start +  size);
+        return new ArrayIterator<>(pageSource, start, start +  size);
     }
 
     @Override

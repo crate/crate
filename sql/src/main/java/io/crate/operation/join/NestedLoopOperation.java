@@ -78,6 +78,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
     private final int limit;
     private final int offset;
+    private final boolean inSortedQuery;
     private final List<Task> outerRelationTasks;
     private final List<Task> innerRelationTasks;
 
@@ -106,6 +107,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
                                RamAccountingContext ramAccountingContext) {
         this.limit = nestedLoopNode.limit();
         this.offset = nestedLoopNode.offset();
+        this.inSortedQuery = nestedLoopNode.sorted();
 
         this.ramAccountingContext = ramAccountingContext;
         this.projectionToProjectorVisitor = projectionToProjectorVisitor;
@@ -160,12 +162,12 @@ public class NestedLoopOperation implements ProjectorUpstream {
             // one pageable task, page it
             PageableTask task = (PageableTask) tasks.get(0);
             if (logger.isTraceEnabled()) {
-                logger.trace("fetching page {} from source relation", pageInfo);
+                logger.trace("fetching page {} from source relation: {}", pageInfo, task);
             }
             task.start(pageInfo);
             return task.result();
         } else {
-            logger.trace("fetching from source relation");
+            logger.trace("fetching from source relation: {}", tasks);
             return this.taskExecutor.execute(tasks);
         }
     }
@@ -226,14 +228,13 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     public void onSuccess(List<TaskResult> results) {
                         assert results.size() == 2;
                         try {
-                            // TODO: no sorting + real paging Optimization: use SinglePageIterables for both
-                            final RelationIterable outerIterable = RelationIterable.forTaskResult(results.get(0), outerPageInfo, false);
-                            final RelationIterable innerIterable = RelationIterable.forTaskResult(results.get(1), innerPageInfo, true);
+                            final RelationIterable outerIterable = strategy.getRelationIterable(results.get(0), outerPageInfo, true);
+                            final RelationIterable innerIterable = strategy.getRelationIterable(results.get(1), innerPageInfo, false);
 
                             final JoinContext joinContext = new JoinContext(
                                     outerIterable,
                                     innerIterable);
-                            joinContext.refreshOuterIteratorIfNeeded(); // initialize outer iterator
+                            joinContext.refreshOuterIteratorIfNeeded(false); // initialize outer iterator
                             joinContextFuture.set(joinContext);
 
                             FutureCallback<Void> callback = new FutureCallback<Void>() {
@@ -324,12 +325,15 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
         // get next pages
         if (ctx.innerNeedsToFetchMore()) {
+            logger.trace("fetching more rows from inner relation for page {}", pageInfo);
             Futures.addCallback(
                     ctx.innerFetchNextPage(pageInfo),
-                    new FutureCallback<Void>() {
+                    new FutureCallback<Long>() {
                         @Override
-                        public void onSuccess(@Nullable Void result) {
-                            ctx.refreshInnerIteratorIfNeeded();
+                        public void onSuccess(@Nullable Long result) {
+                            // if outer is exhausted but iterable is not complete
+                            // rewind last state
+                            strategy.onInnerRelationFetched(ctx, result);
                             executeAsync(
                                     ctx,
                                     pageInfo,
@@ -344,14 +348,14 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     }
             );
 
-
         } else if (ctx.outerNeedsToFetchMore()) {
+            logger.trace("fetching more rows from outer relation for page {}", pageInfo);
             Futures.addCallback(
                     ctx.outerFetchNextPage(pageInfo),
-                    new FutureCallback<Void>() {
+                    new FutureCallback<Long>() {
                         @Override
-                        public void onSuccess(@Nullable Void result) {
-                            ctx.refreshOuterIteratorIfNeeded(); // refresh iterator
+                        public void onSuccess(@Nullable Long result) {
+                            ctx.refreshOuterIteratorIfNeeded(false); // refresh iterator
                             executeAsync(
                                     ctx,
                                     pageInfo,
@@ -377,11 +381,26 @@ public class NestedLoopOperation implements ProjectorUpstream {
         this.downstream.registerUpstream(this);
     }
 
-    private class NestedLoopPageableTaskResult extends AbstractBigArrayPageableTaskResult {
+    class NestedLoopPageableTaskResult extends AbstractBigArrayPageableTaskResult {
 
         private final JoinContext joinContext;
         private final PageInfo currentPageInfo;
 
+        /**
+         *
+         *
+         * @param backingArray the array backing the page of this taskResult
+         * @param backingArrayStartIndex the index of the element in the
+         *                               backingArray considered as first element
+         *                               of the page of this taskResult
+         * @param pageInfo the pageInfo for the current page. The pageInfo position
+         *                 is not equal to the start position in the backingArray.
+         *                 This TaskResult represents the elements from
+         *                 backingArrayStartIndex to backingArrayStartIndex + pageInfo.size()
+         *                 from the backingArray.
+         * @param joinContext the context holding the current state of the join
+         *                    execution
+         */
         public NestedLoopPageableTaskResult(IterableBigArray<Object[]> backingArray,
                                             long backingArrayStartIndex,
                                             PageInfo pageInfo,
@@ -395,9 +414,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
             final SettableFuture<PageableTaskResult> future = SettableFuture.create();
             final FlatProjectorChain projectorChain = initializeProjectors();
 
-            joinContext.refreshOuterIteratorIfNeeded();
             executeAsync(joinContext, Optional.of(pageInfo), new FutureCallback<Void>() {
-
                 @Override
                 public void onSuccess(@Nullable Void result) {
                     downstream.upstreamFinished();
@@ -409,15 +426,17 @@ public class NestedLoopOperation implements ProjectorUpstream {
                             } else {
                                 if (logger.isTraceEnabled()) {
                                     logger.trace("fetched {} new rows from NestedLoop, " +
-                                            "use {} already produced rows for page {}.",
+                                                    "use {} already produced rows for page {}.",
                                             result.length, restSize, pageInfo);
                                 }
                                 IterableBigArray<Object[]> resultArray;
                                 long startIdx = 0L;
+                                long positionIncrement = pageInfo.position() - currentPageInfo.position();
+
                                 if (restSize > 0) {
                                     if (result.length == 0) {
                                         resultArray = backingArray;
-                                        startIdx = backingArrayStartIdx;
+                                        startIdx = backingArrayStartIdx + positionIncrement;
                                     } else {
                                         IterableBigArray<Object[]> wrapped = new MultiNativeArrayBigArray<Object[]>(0, result.length, result);
                                         resultArray = new MultiObjectArrayBigArray<>(
@@ -425,6 +444,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
                                                 restSize + result.length,
                                                 backingArray,
                                                 wrapped);
+                                        startIdx = positionIncrement;
                                     }
                                 } else {
                                     resultArray = new MultiNativeArrayBigArray<Object[]>(0, result.length, result);
@@ -468,14 +488,15 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     pageInfo.position() == (this.currentPageInfo.size() + this.currentPageInfo.position()),
                     "NestedLoopTask can only page forward without gaps");
 
-            long restSize = backingArray.size() - backingArrayStartIdx - (this.currentPageInfo.position() + this.currentPageInfo.size());
+            long restSize = backingArray.size() - backingArrayStartIdx - this.currentPageInfo.size();
+            long positionIncrement = pageInfo.position() - this.currentPageInfo.position();
             if (restSize >= pageInfo.size()) {
                 // no need to fetch from source
                 logger.trace("already fetched next {} rows for page {}", pageInfo.size(), pageInfo);
                 return Futures.<PageableTaskResult>immediateFuture(
                         new NestedLoopPageableTaskResult(
                             backingArray,
-                            backingArrayStartIdx + this.currentPageInfo.size(),
+                            backingArrayStartIdx + positionIncrement,
                             pageInfo,
                             joinContext)
                 );
@@ -556,6 +577,22 @@ public class NestedLoopOperation implements ProjectorUpstream {
         TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext);
 
         String name();
+
+        /**
+         * get a RelationIterable given the <code>taskResult</code>,
+         * the pageInfo for the execution with the <code>taskResult</code> result
+         * and a flag indicating that we got the outer relation which might get some
+         * special treatment.
+         * @param taskResult the result to wrap into a {@linkplain io.crate.operation.join.RelationIterable}
+         *                   for joining
+         * @param pageInfo the pageInfo used for getting the taskResult
+         * @param outerRelation if true we produce a {@linkplain io.crate.operation.join.RelationIterable}
+         *                      for an outer relation, if false we have an inner one
+         * @return a RelationIterable suitable for joining with this strategy.
+         */
+        RelationIterable getRelationIterable(TaskResult taskResult, PageInfo pageInfo, boolean outerRelation);
+
+        void onInnerRelationFetched(JoinContext ctx, Long result);
     }
 
     /**
@@ -566,14 +603,21 @@ public class NestedLoopOperation implements ProjectorUpstream {
      *
      *  * offset is 0
      *  * NestedLoopNode has no projections
+     *
+     *  TODO: further optimize paging without sorting to only load a single page
+     *  from every source relation at a time
      */
     private class PagingNestedLoopStrategy implements NestedLoopStrategy {
 
+        /**
+         * keep track of the state of the inner Iterator as we might need to
+         * restore it, when we want to carry on where we left of with some more
+         * rows from a new page.
+         *
+         */
         @Override
         public boolean executeNestedLoop(JoinContext ctx, Optional<PageInfo> pageInfo) {
-            assert pageInfo.isPresent() : "pageInfo is not present for " + name() + " nested loop execution";
             boolean wantMore = true;
-            int rowsLeft = pageInfo.get().position() + pageInfo.get().size();
             Object[] outerRow, innerRow;
 
             Outer:
@@ -586,11 +630,13 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     wantMore = downstream.setNextRow(
                             rowCombinator.combine(outerRow, innerRow)
                     );
-                    rowsLeft--;
-                    wantMore = wantMore && rowsLeft > 0;
                     if (!wantMore) {
                         break Outer;
                     }
+                }
+                if (!ctx.innerIterable.isComplete()) {
+                    // if we are sorted and need some more from inner, get it
+                    break;
                 }
             }
             return wantMore;
@@ -601,13 +647,24 @@ public class NestedLoopOperation implements ProjectorUpstream {
             return PageableTaskResult.EMPTY_PAGEABLE_RESULT;
         }
 
+        /**
+         * always make sure, we get as much as we need to fulfil the page
+         * if we have a sorted query, in which case we keep all da shit
+         * from the inner page.
+         *
+         * if we have no sorted query, we have to get all the query rows
+         * in order to produce correct results under all circumstances
+         *
+         */
         @Override
         public int rowsToProduce(Optional<PageInfo> pageInfo) {
-            if (pageInfo.isPresent()) {
+            assert pageInfo.isPresent() : "pageInfo is not present for " + name();
+            if (inSortedQuery) {
                 return pageInfo.get().position() + pageInfo.get().size();
             } else {
                 return limit() + offset;
             }
+
         }
 
         @Override
@@ -618,13 +675,48 @@ public class NestedLoopOperation implements ProjectorUpstream {
         @Override
         public TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext) {
             assert pageInfo.isPresent() : "pageInfo is not present for " + name();
-            IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
-            return new NestedLoopPageableTaskResult(wrappedRows, 0L, pageInfo.get(), joinContext);
+            PageInfo actualPageInfo = pageInfo.get();
+
+            if (actualPageInfo.position() >= rows.length) {
+                // first pageInfo offset exceeds results
+                return emptyResult();
+            } else {
+                IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
+                return new NestedLoopPageableTaskResult(wrappedRows, actualPageInfo.position(), actualPageInfo, joinContext);
+            }
         }
 
         @Override
         public String name() {
             return "optimized paging";
+        }
+
+        @Override
+        public RelationIterable getRelationIterable(TaskResult taskResult, PageInfo pageInfo, boolean outerRelation) {
+            if (taskResult instanceof PageableTaskResult) {
+                if (outerRelation) {
+                    return new SinglePagePageableTaskIterable((PageableTaskResult)taskResult, pageInfo);
+                } else {
+                    return new CollectingPageableTaskIterable((PageableTaskResult)taskResult, pageInfo);
+                }
+            } else {
+                return new FetchedRowsIterable(taskResult, pageInfo);
+            }
+        }
+
+        @Override
+        public void onInnerRelationFetched(JoinContext ctx, Long result) {
+            // we fetched new stuff from the inner relation
+            // if the outerIterator is exhausted and we got here, we
+            // need to restore the inner and outer iterator
+            //
+            // if we can restore the state of its iterator
+            // to keep on where we left of with it, do it
+            if (result > 0L) {
+                // we got some new stuff
+                ctx.refreshInnerIteratorToCurrentPage();
+                ctx.outerIterator.rewind(1); // rewind by one
+            }
         }
     }
 
@@ -657,8 +749,13 @@ public class NestedLoopOperation implements ProjectorUpstream {
         @Override
         public TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext) {
             assert pageInfo.isPresent() : "pageInfo is not present for " + name();
-            IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
-            return new FetchedRowsPageableTaskResult(wrappedRows, 0L, pageInfo.get());
+            PageInfo actualPageInfo = pageInfo.get();
+            if (actualPageInfo.position() >= rows.length) {
+                return emptyResult();
+            } else {
+                IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
+                return new FetchedRowsPageableTaskResult(wrappedRows, pageInfo.get().position(), pageInfo.get());
+            }
         }
 
         @Override
@@ -683,7 +780,6 @@ public class NestedLoopOperation implements ProjectorUpstream {
             Outer:
             while (ctx.outerIterator.hasNext()) {
                 outerRow = ctx.outerIterator.next();
-
                 ctx.refreshInnerIteratorIfNeeded();
                 while (ctx.innerIterator.hasNext()) {
                     innerRow = ctx.innerIterator.next();
@@ -693,6 +789,10 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     if (!wantMore) {
                         break Outer;
                     }
+                }
+                if (!ctx.innerIterable.isComplete()) {
+                    // if we are sorted and need some more from inner, get it
+                    break;
                 }
             }
             return wantMore;
@@ -726,6 +826,28 @@ public class NestedLoopOperation implements ProjectorUpstream {
         @Override
         public String name() {
             return "one shot";
+        }
+
+        @Override
+        public RelationIterable getRelationIterable(TaskResult taskResult, PageInfo pageInfo, boolean outerRelation) {
+            if (taskResult instanceof PageableTaskResult) {
+                if (outerRelation) {
+                    return new SinglePagePageableTaskIterable((PageableTaskResult)taskResult, pageInfo);
+                } else {
+                    return new CollectingPageableTaskIterable((PageableTaskResult)taskResult, pageInfo);
+                }
+            } else {
+                return new FetchedRowsIterable(taskResult, pageInfo);
+            }
+        }
+
+        @Override
+        public void onInnerRelationFetched(JoinContext ctx, Long result) {
+            // if we fetched some new shit, refresh to it
+            if (result > 0L) {
+                ctx.refreshInnerIteratorToCurrentPage();
+                ctx.outerIterator.rewind(1); // rewind by one
+            }
         }
     }
 }

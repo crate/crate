@@ -29,6 +29,7 @@ import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.QueryResult;
+import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.UpdateByIdTask;
@@ -70,6 +71,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,6 +83,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
+@TestLogging("io.crate.operation.join:TRACE")
 public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     static {
@@ -696,7 +699,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 titleRef.info().type(),
                 authorRef.info().type());
 
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 3);
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 3, true);
         node.outputTypes(outputTypes);
         node.projections(ImmutableList.<Projection>of(projection));
 
@@ -733,7 +736,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 titleRef.info().type(),
                 authorRef.info().type(),
                 nameRef.info().type());
-        NestedLoopNode node2 = new NestedLoopNode(leftNode, rightNode, false, 5, 0);
+        NestedLoopNode node2 = new NestedLoopNode(leftNode, rightNode, false, 5, 0, true);
         node2.outputTypes(outputTypes2);
         node2.projections(ImmutableList.<Projection>of(projection2));
 
@@ -810,7 +813,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 femaleRef.info().type(),
                 authorRef.info().type());
 
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 0);
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 0, true);
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
@@ -828,5 +831,118 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                         "4| Arthur| true| Douglas Adams\n" +
                         "1| Arthur| false| Douglas Adams\n" +
                         "1| Arthur| false| Douglas Adams\n"));
+    }
+
+    @Test
+    public void testNestedLoopNestedCrossJoinBigLimit() throws Exception {
+        setup.setUpCharacters();
+        setup.setUpBooks();
+
+        int queryOffset = 0;
+        int queryLimit = 40;
+
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+
+        QueryThenFetchNode leftQtfNode = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
+                Arrays.<Symbol>asList(nameRef, femaleRef),
+                new boolean[]{false, true},
+                new Boolean[]{null, null},
+                queryOffset + queryLimit,
+                0,
+                WhereClause.MATCH_ALL,
+                null
+        );
+        leftQtfNode.outputTypes(ImmutableList.of(
+                        idRef.info().type(),
+                        nameRef.info().type(),
+                        femaleRef.info().type())
+        );
+
+        DocTableInfo books = docSchemaInfo.getTableInfo("books");
+        QueryThenFetchNode rightQtfNode = new QueryThenFetchNode(
+                books.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(titleRef),
+                Arrays.<Symbol>asList(titleRef),
+                new boolean[]{false},
+                new Boolean[]{null},
+                queryOffset + queryLimit,
+                0,
+                WhereClause.MATCH_ALL,
+                null
+        );
+        rightQtfNode.outputTypes(ImmutableList.of(
+                        authorRef.info().type())
+        );
+
+        // self join :)
+        NestedLoopNode leftNestedLoopNode = new NestedLoopNode(
+                leftQtfNode,
+                leftQtfNode,
+                true,
+                TopN.NO_LIMIT,
+                TopN.NO_OFFSET,
+                true  // we are in a sorted query
+        );
+        leftNestedLoopNode.outputTypes(
+                ImmutableList.<DataType>builder()
+                        .addAll(leftQtfNode.outputTypes())
+                        .addAll(leftQtfNode.outputTypes())
+                        .build()
+        );
+
+        // SELECT c1.id, c1.name, c1.female, c2.id, c2.name, c2.female, b.title
+        // FROM characters c1 CROSS JOIN characters c2 CROSS JOIN books b
+        // ORDER BY c1.name, c1.female, c2.name, c2.female, b.title
+        // LIMIT 40;
+        NestedLoopNode node = new NestedLoopNode(leftNestedLoopNode, rightQtfNode, true, queryLimit, queryOffset, true);
+        TopNProjection projection = new TopNProjection(queryLimit, queryOffset);
+        projection.outputs(ImmutableList.<Symbol>of(
+                new InputColumn(0, DataTypes.INTEGER),
+                new InputColumn(1, DataTypes.STRING),
+                new InputColumn(2, DataTypes.BOOLEAN),
+                new InputColumn(3, DataTypes.INTEGER),
+                new InputColumn(4, DataTypes.STRING),
+                new InputColumn(5, DataTypes.BOOLEAN),
+                new InputColumn(6, DataTypes.STRING)
+        ));
+        List<DataType> outputTypes = ImmutableList.<DataType>builder()
+                .addAll(leftQtfNode.outputTypes())
+                .addAll(leftQtfNode.outputTypes())
+                .addAll(rightQtfNode.outputTypes())
+                .build();
+        node.projections(ImmutableList.<Projection>of(projection));
+        node.outputTypes(outputTypes);
+
+        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
+        assertThat(tasks.size(), is(1));
+        assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
+
+
+        NestedLoopTask nestedLoopTask = (NestedLoopTask) tasks.get(0);
+
+        List<ListenableFuture<TaskResult>> results = nestedLoopTask.result();
+        assertThat(results.size(), is(1));
+
+        ListenableFuture<TaskResult> nestedLoopResultFuture = results.get(0);
+        nestedLoopTask.start();
+
+        TaskResult result = nestedLoopResultFuture.get();
+        assertThat(result, instanceOf(QueryResult.class));
+
+        assertThat(result.rows().length, is(queryLimit));
+        assertThat(TestingHelpers.printedTable(Arrays.copyOfRange(result.rows(), 0, 10)), is(
+                "4| Arthur| true| 4| Arthur| true| Life, the Universe and Everything\n" +
+                "4| Arthur| true| 4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
+                "4| Arthur| true| 4| Arthur| true| The Restaurant at the End of the Universe\n" +
+                "4| Arthur| true| 1| Arthur| false| Life, the Universe and Everything\n" +
+                "4| Arthur| true| 1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
+                "4| Arthur| true| 1| Arthur| false| The Restaurant at the End of the Universe\n" +
+                "4| Arthur| true| 2| Ford| false| Life, the Universe and Everything\n" +
+                "4| Arthur| true| 2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
+                "4| Arthur| true| 2| Ford| false| The Restaurant at the End of the Universe\n" +
+                "4| Arthur| true| 3| Trillian| true| Life, the Universe and Everything\n"));
+
     }
 }

@@ -21,43 +21,27 @@
 
 package io.crate.operation.join;
 
-import com.google.common.collect.Iterators;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.RewindableIterator;
-import io.crate.executor.PageInfo;
+import io.crate.executor.Task;
+import io.crate.executor.TaskExecutor;
+import io.crate.executor.TaskResult;
+import io.crate.planner.node.PlanNode;
 
-import java.io.Closeable;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
-/**
- * a thingy to iterate over the result tuples/rows of a relation
- * in a paged fashion.
- */
-abstract class RelationIterable implements Closeable {
+class TestExecutor implements TaskExecutor {
 
-    private PageInfo pageInfo;
-
-    protected RelationIterable(PageInfo pageInfo) {
-        this.pageInfo = pageInfo;
+    @Override
+    public List<Task> newTasks(PlanNode planNode, UUID jobId) {
+        return ImmutableList.of(((TestDQLNode) planNode).task());
     }
 
-
-    public abstract ListenableFuture<Long> fetchPage(PageInfo pageInfo);
-
-    public abstract boolean isComplete();
-
-    public PageInfo currentPageInfo() {
-        return pageInfo;
-    }
-
-    protected void pageInfo(PageInfo pageInfo) {
-        this.pageInfo = pageInfo;
-    }
-
-    public abstract RewindableIterator<Object[]> rewindableIterator();
-
-    public RewindableIterator<Object[]> forCurrentPage() {
-        RewindableIterator<Object[]> iter = rewindableIterator();
-        Iterators.advance(iter, currentPageInfo().position());
-        return iter;
+    @Override
+    public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
+        return Iterables.getLast(tasks).result();
     }
 }

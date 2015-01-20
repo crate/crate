@@ -21,9 +21,12 @@
 
 package io.crate.core.bigarray;
 
-import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.UnmodifiableIterator;
+import io.crate.core.collections.RewindableIterator;
 
-public abstract class AbstractMultiArrayIterator<T, ArrayType> extends AbstractIterator<T> {
+import java.util.NoSuchElementException;
+
+public abstract class AbstractMultiArrayIterator<T, ArrayType> extends UnmodifiableIterator<T> implements RewindableIterator<T> {
 
     protected final ArrayType[] backingArrays;
     protected final long endOffset;
@@ -72,21 +75,45 @@ public abstract class AbstractMultiArrayIterator<T, ArrayType> extends AbstractI
     public abstract T getValue(long backingArraysIdx, long curArrayIdx);
 
     @Override
-    protected T computeNext() {
-        T value;
+    public boolean hasNext() {
         if (backingArraysIdx < arraysLen && curArrayIdx >= getArrayLength(backingArraysIdx)) {
             if (!switchArray()) {
-                endOfData();
-                return null;
+                return false;
             }
         }
         if (curOffset >= endOffset) {
-            endOfData();
-            return null;
+            return false;
         }
-        value = getValue(backingArraysIdx, curArrayIdx);
+        return true;
+    }
+
+    @Override
+    public T next() {
+        T value;
+        try {
+            value = getValue(backingArraysIdx, curArrayIdx);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new NoSuchElementException();
+        }
         curArrayIdx++;
         curOffset++;
         return value;
+    }
+
+    @Override
+    public int rewind(int positions) {
+        int rewinded = 0;
+        long furtherRewind = curArrayIdx - positions;
+
+        while (furtherRewind < 0 && backingArraysIdx > 0) {
+            rewinded += (int)curArrayIdx;
+            backingArraysIdx--;
+            curArrayIdx = getArrayLength(backingArraysIdx)-1;
+            furtherRewind = furtherRewind + curArrayIdx;
+        }
+        rewinded += curArrayIdx - furtherRewind;
+        curArrayIdx = furtherRewind;
+        curOffset = curOffset - positions;
+        return rewinded;
     }
 }

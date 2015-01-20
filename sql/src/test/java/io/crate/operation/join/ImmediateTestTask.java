@@ -21,50 +21,44 @@
 
 package io.crate.operation.join;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.bigarray.MultiNativeArrayBigArray;
-import io.crate.core.collections.RewindableIterator;
-import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
+import io.crate.executor.JobTask;
+import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
-class FetchedRowsIterable extends RelationIterable {
+class ImmediateTestTask extends JobTask {
 
-    private final Iterable<Object[]> rows;
+    private final List<ListenableFuture<TaskResult>> result;
 
-    public FetchedRowsIterable(TaskResult taskResult, PageInfo pageInfo) {
-        super(pageInfo);
-        if (taskResult instanceof PageableTaskResult) {
-            this.rows = ((PageableTaskResult) taskResult).page();
-        } else {
-            Object[][] rows = taskResult.rows();
-            this.rows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
-        }
+    public ImmediateTestTask(Object[][] rows, int limit, int offset) {
+        super(UUID.randomUUID());
+        Object[][] limitedRows = Arrays.copyOfRange(rows,
+                Math.min(offset, rows.length),
+                limit < 0 ? rows.length : Math.min(limit, rows.length)
+        );
+        this.result = ImmutableList.of(
+                Futures.<TaskResult>immediateFuture(new QueryResult(limitedRows)));
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public RewindableIterator<Object[]> rewindableIterator() {
-        // all Page instances and MultiNativeArrayBigArray instances return RewindableIterator
-        return (RewindableIterator)rows.iterator();
-    }
 
     @Override
-    public ListenableFuture<Long> fetchPage(PageInfo pageInfo) {
-        pageInfo(pageInfo);
-        return Futures.immediateFuture(0L);
+    public void start() {
+        // ignore
     }
 
     @Override
-    public boolean isComplete() {
-        return true;
+    public List<ListenableFuture<TaskResult>> result() {
+        return result;
     }
 
     @Override
-    public void close() throws IOException {
-        // ayayayayayaaaay!
+    public void upstreamResult(List result) {
+        // ignore
     }
 }

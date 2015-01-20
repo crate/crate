@@ -51,7 +51,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.Closeable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -263,10 +266,11 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         assertThat(nextPageResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
     }
 
-    private Reference ref(TableInfo tableInfo, String colName) {
-        return new Reference(tableInfo.getReferenceInfo(ColumnIdent.fromPath(colName)));
+    private Reference ref(TableInfo info, String columnName) {
+        return new Reference(info.getReferenceInfo(ColumnIdent.fromPath(columnName)));
     }
 
+    @TestLogging("io.crate.action.sql.query:TRACE,io.crate.executor.transport.task.elasticsearch:TRACE")
     @Test
     public void testPartitionedPagedQueryThenFetch1RowPages() throws Exception {
         setup.setUpPartitionedTableWithName();
@@ -301,15 +305,18 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         closeMeWhenDone = pageableResult;
         assertThat(TestingHelpers.printedPage(pageableResult.page()), is("1| Trillian| NULL\n"));
 
-        List<String> pages = new ArrayList<>();
-
         PageableTaskResult nextPageResult = (PageableTaskResult)result;
-        while (nextPageResult.page().size() > 0) {
+        List<String> pages = new ArrayList<>();
+        while (true) {
             pageInfo = pageInfo.nextPage();
             ListenableFuture<PageableTaskResult> nextPageResultFuture = nextPageResult.fetch(pageInfo);
             nextPageResult = nextPageResultFuture.get();
             closeMeWhenDone = nextPageResult;
-            pages.add(TestingHelpers.printedPage(nextPageResult.page()));
+            if (nextPageResult.page().size() > 0) {
+                pages.add(TestingHelpers.printedPage(nextPageResult.page()));
+            } else {
+                break;
+            }
         }
 
         assertThat(Joiner.on("").join(pages), is(
@@ -447,7 +454,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // SELECT characters.id, characters.name, characters.female, books.title
         // FROM characters CROSS JOIN books
         // ORDER BY character.name, character.female, books.title
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, Constants.DEFAULT_SELECT_LIMIT, 0);
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, Constants.DEFAULT_SELECT_LIMIT, 0, true);
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
@@ -535,7 +542,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // FROM characters CROSS JOIN books
         // ORDER BY character.name, character.female, books.title
         // limit 10 offset 1
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 10, 1);
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 10, 1, true);
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
@@ -623,7 +630,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // FROM characters AS c CROSS JOIN books as b
         // ORDER BY c.name, c.female, b.title
         // LIMIT 10 OFFSET 1
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, queryLimit, queryOffset);
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, queryLimit, queryOffset, true);
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
@@ -720,8 +727,8 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(titleRef),
                 new boolean[]{false},
                 new Boolean[]{null},
-                null,
-                null,
+                queryLimit + queryOffset,
+                0,
                 WhereClause.MATCH_ALL,
                 null
         );
@@ -739,7 +746,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // FROM characters AS c CROSS JOIN books as b
         // ORDER BY c.name, c.female, b.title
         // LIMIT 10 OFFSET 1
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, queryLimit, queryOffset);
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, queryLimit, queryOffset, true);
         node.outputTypes(outputTypes);
 
         List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
@@ -813,7 +820,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(nameRef, femaleRef),
                 new boolean[]{false, true},
                 new Boolean[]{null, null},
-                20,
+                queryLimit + queryOffset,
                 0,
                 WhereClause.MATCH_ALL,
                 null
@@ -841,7 +848,14 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         );
 
         // self join :)
-        NestedLoopNode leftNestedLoopNode = new NestedLoopNode(leftQtfNode, leftQtfNode, true, TopN.NO_LIMIT, TopN.NO_OFFSET);
+        NestedLoopNode leftNestedLoopNode = new NestedLoopNode(
+                leftQtfNode,
+                leftQtfNode,
+                true,
+                TopN.NO_LIMIT,
+                TopN.NO_OFFSET,
+                true  // we are in a sorted query
+        );
         leftNestedLoopNode.outputTypes(
                 ImmutableList.<DataType>builder()
                         .addAll(leftQtfNode.outputTypes())
@@ -853,7 +867,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // FROM characters c1 CROSS JOIN characters c2 CROSS JOIN books b
         // ORDER BY c1.name, c1.female, c2.name, c2.female, b.title
         // LIMIT 20 OFFSET 1;
-        NestedLoopNode node = new NestedLoopNode(leftNestedLoopNode, rightQtfNode, true, queryLimit, queryOffset);
+        NestedLoopNode node = new NestedLoopNode(leftNestedLoopNode, rightQtfNode, true, queryLimit, queryOffset, true);
         TopNProjection projection = new TopNProjection(queryLimit, queryOffset);
         projection.outputs(ImmutableList.<Symbol>of(
                 new InputColumn(0, DataTypes.INTEGER),
@@ -900,7 +914,8 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 "4| Arthur| true| 1| Arthur| false| Life, the Universe and Everything\n" +
                 "4| Arthur| true| 1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
                 "4| Arthur| true| 1| Arthur| false| The Restaurant at the End of the Universe\n" +
-                "1| Arthur| false| 4| Arthur| true| Life, the Universe and Everything\n"));
+                "4| Arthur| true| 2| Ford| false| Life, the Universe and Everything\n"
+        ));
 
         pageInfo = pageInfo.nextPage(100);
         pageableResult = pageableResult.fetch(pageInfo).get();
@@ -910,6 +925,12 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         assertThat(secondPage.size(), is(14L));
 
         assertThat(TestingHelpers.printedPage(secondPage), is(
+                "4| Arthur| true| 2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
+                "4| Arthur| true| 2| Ford| false| The Restaurant at the End of the Universe\n" +
+                "4| Arthur| true| 3| Trillian| true| Life, the Universe and Everything\n" +
+                "4| Arthur| true| 3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
+                "4| Arthur| true| 3| Trillian| true| The Restaurant at the End of the Universe\n" +
+                "1| Arthur| false| 4| Arthur| true| Life, the Universe and Everything\n" +
                 "1| Arthur| false| 4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
                 "1| Arthur| false| 4| Arthur| true| The Restaurant at the End of the Universe\n" +
                 "1| Arthur| false| 1| Arthur| false| Life, the Universe and Everything\n" +
@@ -917,15 +938,8 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 "1| Arthur| false| 1| Arthur| false| The Restaurant at the End of the Universe\n" +
                 "1| Arthur| false| 2| Ford| false| Life, the Universe and Everything\n" +
                 "1| Arthur| false| 2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
-                "1| Arthur| false| 2| Ford| false| The Restaurant at the End of the Universe\n" +
-                "1| Arthur| false| 3| Trillian| true| Life, the Universe and Everything\n" +
-                "1| Arthur| false| 3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
-                "1| Arthur| false| 3| Trillian| true| The Restaurant at the End of the Universe\n" +
-                "2| Ford| false| 4| Arthur| true| Life, the Universe and Everything\n" +
-                "2| Ford| false| 4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
-                "2| Ford| false| 4| Arthur| true| The Restaurant at the End of the Universe\n"
+                "1| Arthur| false| 2| Ford| false| The Restaurant at the End of the Universe\n"
         ));
-
         assertThat(pageableResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
     }
 }

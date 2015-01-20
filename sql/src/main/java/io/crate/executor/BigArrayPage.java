@@ -22,37 +22,50 @@
 package io.crate.executor;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.AbstractIterator;
+import io.crate.core.collections.RewindableIterator;
 import org.elasticsearch.common.util.ObjectArray;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 public class BigArrayPage implements Page {
 
-    private class ObjectArrayIterator<T> extends AbstractIterator<T>{
+    private class ObjectArrayIterator<T> implements RewindableIterator<T> {
 
         private final ObjectArray<T> array;
-        private final long limit;
+        private final long endPos;
         private long position;
 
         ObjectArrayIterator(ObjectArray<T> array, long start, long limit) {
             this.array = array;
-            this.limit = start+limit;
+            this.endPos = Math.min(array.size(), start+limit);
             this.position = start;
         }
 
         @Override
-        protected T computeNext() {
-            if (position > limit-1) {
-                endOfData();
-                return null;
-            }
+        public int rewind(int positions) {
+            int rewinded = (int)Math.min(positions, position);
+            position = Math.max(0, position-positions);
+            return rewinded;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return position < endPos;
+        }
+
+        @Override
+        public T next() {
             try {
                 return this.array.get(position++);
             } catch (ArrayIndexOutOfBoundsException e) {
-                endOfData();
-                return null;
+                throw new NoSuchElementException();
             }
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove not supported");
         }
     }
 

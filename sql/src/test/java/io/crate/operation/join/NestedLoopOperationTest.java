@@ -25,16 +25,12 @@ import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.bigarray.IterableBigArray;
-import io.crate.core.bigarray.MultiNativeArrayBigArray;
-import io.crate.executor.*;
+import io.crate.executor.PageInfo;
+import io.crate.executor.PageableTaskResult;
+import io.crate.executor.Task;
+import io.crate.executor.TaskExecutor;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
@@ -45,19 +41,17 @@ import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,87 +67,15 @@ import static org.mockito.Mockito.mock;
 @RunWith(Parameterized.class)
 public class NestedLoopOperationTest {
 
-    private class ImmediateTestTask extends JobTask {
-
-        private final List<ListenableFuture<TaskResult>> result;
-
-        public ImmediateTestTask(Object[][] rows, int limit, int offset) {
-            super(UUID.randomUUID());
-            Object[][] limitedRows = Arrays.copyOfRange(rows,
-                    Math.min(offset, rows.length),
-                    limit < 0 ? rows.length : Math.min(limit, rows.length)
-            );
-            this.result = ImmutableList.of(
-                    Futures.<TaskResult>immediateFuture(new QueryResult(limitedRows)));
-        }
-
-
-        @Override
-        public void start() {
-            // ignore
-        }
-
-        @Override
-        public List<ListenableFuture<TaskResult>> result() {
-            return result;
-        }
-
-        @Override
-        public void upstreamResult(List result) {
-            // ignore
-        }
+    static {
+        Loggers.getLogger(NestedLoopOperation.class).setLevel("TRACE");
+        Loggers.getLogger(JoinContext.class).setLevel("TRACE");
     }
 
-    private class PageableTestTask extends JobTask implements PageableTask {
+    class TestPlanNode extends TestDQLNode {
 
-        private IterableBigArray<Object[]> backingArray;
-        private SettableFuture<TaskResult> result;
-
-        protected PageableTestTask(Object[][] rows, int limit, int offset) {
-            super(UUID.randomUUID());
-            backingArray = new MultiNativeArrayBigArray<Object[]>(offset, limit, rows);
-            result = SettableFuture.create();
-        }
-
-        @Override
-        public void start(PageInfo pageInfo) {
-            result.set(new FetchedRowsPageableTaskResult(backingArray, 0, pageInfo));
-        }
-
-        @Override
-        public void start() {
-            // ignore
-        }
-
-        @Override
-        public List<ListenableFuture<TaskResult>> result() {
-            return ImmutableList.<ListenableFuture<TaskResult>>of(result);
-        }
-
-        @Override
-        public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
-            // ignore
-        }
-    }
-    private class TestDQLNode extends AbstractDQLPlanNode {
-
-        private final Object[][] rows;
-
-        private TestDQLNode(Object[][] rows) {
-            this.rows = rows;
-            if (rows.length > 0) {
-                this.outputTypes(Collections.<DataType>nCopies(rows[0].length, DataTypes.UNDEFINED)); // could be any type
-            }
-        }
-
-        @Override
-        public Set<String> executionNodes() {
-            return ImmutableSet.of();
-        }
-
-        @Override
-        public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-            return null;
+        private TestPlanNode(Object[][] rows) {
+            super(rows);
         }
 
         public Task task() {
@@ -165,19 +87,6 @@ public class NestedLoopOperationTest {
         }
     }
 
-
-    private class TestExecutor implements TaskExecutor {
-
-        @Override
-        public List<Task> newTasks(PlanNode planNode, UUID jobId) {
-            return ImmutableList.of(((TestDQLNode) planNode).task());
-        }
-
-        @Override
-        public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
-            return Iterables.getLast(tasks).result();
-        }
-    }
 
     @Parameterized.Parameters(name="{index}: leftOuterLoop={0}, sourcesPaged={1}, nestedLoopPaged={2}")
     public static Collection<Object[]> data() {
@@ -230,10 +139,10 @@ public class NestedLoopOperationTest {
     }
 
     private void assertNestedLoop(Object[][] left, Object[][] right, int limit, int offset, int expectedRows, boolean applyTopN) throws Exception {
-        PlanNode leftNode = new TestDQLNode(left);
-        PlanNode rightNode = new TestDQLNode(right);
+        PlanNode leftNode = new TestPlanNode(left);
+        PlanNode rightNode = new TestPlanNode(right);
 
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, leftOuterNode, limit, offset);
+        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, leftOuterNode, limit, offset, applyTopN);
         int numColumns = (left.length > 0 ? left[0].length : 0) + (right.length > 0 ? right[0].length : 0);
 
         if (applyTopN) {
@@ -258,9 +167,11 @@ public class NestedLoopOperationTest {
                 projectionVisitor,
                 mock(RamAccountingContext.class));
 
-
-
         Object[][] result = executeNestedLoop(nestedLoop, limit);
+
+        //System.out.println("left:\n" + TestingHelpers.printedTable(left));
+        //System.out.println("right:\n" + TestingHelpers.printedTable(right));
+        //System.out.println("result:\n" + TestingHelpers.printedTable(result));
 
         int i = 0;
         int leftIdx = 0;

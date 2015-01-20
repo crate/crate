@@ -21,43 +21,36 @@
 
 package io.crate.operation.join;
 
-import com.google.common.collect.Iterators;
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.RewindableIterator;
-import io.crate.executor.PageInfo;
+import com.google.common.collect.ImmutableSet;
+import io.crate.executor.Task;
+import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.node.dql.AbstractDQLPlanNode;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-import java.io.Closeable;
+import java.util.Collections;
+import java.util.Set;
 
-/**
- * a thingy to iterate over the result tuples/rows of a relation
- * in a paged fashion.
- */
-abstract class RelationIterable implements Closeable {
+public abstract class TestDQLNode extends AbstractDQLPlanNode {
 
-    private PageInfo pageInfo;
+    protected final Object[][] rows;
 
-    protected RelationIterable(PageInfo pageInfo) {
-        this.pageInfo = pageInfo;
+    public TestDQLNode(Object[][] rows) {
+        this.rows = rows;
+        if (rows.length > 0) {
+            this.outputTypes(Collections.<DataType>nCopies(rows[0].length, DataTypes.UNDEFINED)); // could be any type
+        }
     }
 
-
-    public abstract ListenableFuture<Long> fetchPage(PageInfo pageInfo);
-
-    public abstract boolean isComplete();
-
-    public PageInfo currentPageInfo() {
-        return pageInfo;
+    @Override
+    public Set<String> executionNodes() {
+        return ImmutableSet.of();
     }
 
-    protected void pageInfo(PageInfo pageInfo) {
-        this.pageInfo = pageInfo;
+    @Override
+    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
+        return null;
     }
 
-    public abstract RewindableIterator<Object[]> rewindableIterator();
-
-    public RewindableIterator<Object[]> forCurrentPage() {
-        RewindableIterator<Object[]> iter = rewindableIterator();
-        Iterators.advance(iter, currentPageInfo().position());
-        return iter;
-    }
+    public abstract Task task();
 }
