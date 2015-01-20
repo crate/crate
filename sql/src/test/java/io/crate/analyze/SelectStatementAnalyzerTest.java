@@ -113,6 +113,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(userTableInfoMultiPk);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(IGNORED_NESTED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name()))
@@ -688,8 +689,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testIsNullOnDynamicReference() {
-        SelectAnalyzedStatement analysis = analyze("select \"_id\" from users where details['invalid'] is null");
+    public void testIsNullOnIngoredReference() {
+        SelectAnalyzedStatement analysis = analyze("select \"_id\" from ignored_nested where details['invalid'] is null");
         assertTrue(analysis.whereClause().noMatch());
     }
 
@@ -1089,7 +1090,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
 
-        analyze("select * from users where match(details['me_not_exizzt'], 'Arthur Dent')");
+        analyze("select * from ignored_nested where match(details['me_not_exizzt'], 'Arthur Dent')");
     }
 
     @Test
@@ -1244,9 +1245,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testIsNotNullDynamic() {
-         SelectAnalyzedStatement analysis = analyze("select * from users where o['no_such_column'] is not null");
-         assertTrue(analysis.hasNoResult());
+    public void testWhereSubscriptDynamic() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column details['no_such_column'] unknown");
+        analyze("select * from users where details['no_such_column'] is null");
     }
 
     @Test
