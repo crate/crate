@@ -49,7 +49,7 @@ public class CrossJoinConsumer implements Consumer {
 
     private final CrossJoinVisitor visitor;
     private final static FilteringVisitor FILTERING_VISITOR = new FilteringVisitor();
-    private final static PostOutputGenerator POST_OUTPUT_GENERATOR = new PostOutputGenerator();
+    private final static InputColumnProducer INPUT_COLUMN_PRODUCER = new InputColumnProducer();
 
     public CrossJoinConsumer(AnalysisMetaData analysisMetaData) {
         visitor = new CrossJoinVisitor(analysisMetaData);
@@ -170,8 +170,8 @@ public class CrossJoinConsumer implements Consumer {
                 Routing routing = tableRelation.tableInfo().getRouting(whereClause, null);
                 QueryThenFetchNode qtf = new QueryThenFetchNode(
                         routing,
-                        relationContext.outputs,
-                        relationContext.orderBy,
+                        tableRelation.resolveCopy(relationContext.outputs),
+                        tableRelation.resolveCopy(relationContext.orderBy),
                         new boolean[0],
                         new Boolean[0],
                         qtfLimit,
@@ -185,33 +185,35 @@ public class CrossJoinConsumer implements Consumer {
             NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, limit, statement.querySpec().offset());
 
             if (hasMixedOutputs || statement.querySpec().isLimited()) {
-                List<Symbol> postOutputs = generatePostOutputs(statement.querySpec().outputs(), relations);
+                List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), relations);
                 TopNProjection topNProjection = new TopNProjection(limit, statement.querySpec().offset());
                 topNProjection.outputs(postOutputs);
                 nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
             }
-
             return nestedLoopNode;
         }
 
         /**
-         * generates new outputs that can be used in the first projection of the NestedLoopNode which has functions
-         * re-written - Example:
+         * generates new symbols that will use InputColumn symbols to point to the output of the given relations
          *
          * @param statementOutputs: [ u1.id,  add(u1.id, u2.id) ]
          * @param relations:
          * {
-         *     u1: [ id ],
-         *     u2: [ id ]
+         *     u1: [ u1.id ],
+         *     u2: [ u2.id ]
          * }
          *
          * @return [ in(0), add( in(0), in(1) ) ]
          */
-        private List<Symbol> generatePostOutputs(List<Symbol> statementOutputs,
-                                                 Map<TableRelation, RelationContext> relations) {
+        private List<Symbol> replaceFieldsWithInputColumns(List<Symbol> statementOutputs,
+                                                           Map<TableRelation, RelationContext> relations) {
             List<Symbol> result = new ArrayList<>();
+            List<Symbol> inputs = new ArrayList<>();
+            for (RelationContext relationContext : relations.values()) {
+                inputs.addAll(relationContext.outputs);
+            }
             for (Symbol statementOutput : statementOutputs) {
-                result.add(POST_OUTPUT_GENERATOR.process(statementOutput, new PostOutputContext(relations)));
+                result.add(INPUT_COLUMN_PRODUCER.process(statementOutput, new InputColumnProducerContext(inputs)));
             }
             return result;
         }
@@ -252,7 +254,7 @@ public class CrossJoinConsumer implements Consumer {
 
     private static class RelationContext {
         List<Symbol> outputs;
-        List<Symbol> orderBy;
+        List<Symbol> orderBy = new ArrayList<>();
 
         public RelationContext(List<Symbol> outputs) {
             this.outputs = outputs;
@@ -338,39 +340,34 @@ public class CrossJoinConsumer implements Consumer {
         @Override
         public Symbol visitField(Field field, FilteringContext context) {
             if (field.relation() == context.tableRelation) {
-                Reference reference = context.tableRelation.resolveField(field);
                 if (context.parents.isEmpty()) {
-                    context.directOutputs.add(reference);
+                    context.directOutputs.add(field);
                 }
-                return reference;
+                return field;
             }
             return null;
         }
     }
 
-    private static class PostOutputContext {
+    private static class InputColumnProducerContext {
 
-        private final Map<TableRelation, RelationContext> relations;
+        private List<Symbol> inputs;
 
-        public PostOutputContext(Map<TableRelation, RelationContext> relations) {
-            this.relations = relations;
+        public InputColumnProducerContext(List<Symbol> inputs) {
+            this.inputs = inputs;
         }
     }
 
-    private static class PostOutputGenerator extends SymbolVisitor<PostOutputContext, Symbol> {
+    private static class InputColumnProducer extends SymbolVisitor<InputColumnProducerContext, Symbol> {
 
         @Override
-        public Symbol visitFunction(Function function, PostOutputContext context) {
+        public Symbol visitFunction(Function function, InputColumnProducerContext context) {
             int idx = 0;
-            for (Map.Entry<TableRelation, RelationContext> entry : context.relations.entrySet()) {
-                RelationContext relationContext = entry.getValue();
-                for (Symbol output : relationContext.outputs) {
-                    if (output.equals(function)) {
-                        return new InputColumn(idx, output.valueType());
-                    }
-
-                    idx++;
+            for (Symbol input : context.inputs) {
+                if (input.equals(function)) {
+                    return new InputColumn(idx, input.valueType());
                 }
+                idx++;
             }
             List<Symbol> newArgs = new ArrayList<>(function.arguments().size());
             for (Symbol argument : function.arguments()) {
@@ -380,29 +377,19 @@ public class CrossJoinConsumer implements Consumer {
         }
 
         @Override
-        public Symbol visitField(Field field, PostOutputContext context) {
+        public Symbol visitField(Field field, InputColumnProducerContext context) {
             int idx = 0;
-            for (Map.Entry<TableRelation, RelationContext> entry : context.relations.entrySet()) {
-                TableRelation tableRelation = entry.getKey();
-                RelationContext relationContext = entry.getValue();
-                if (field.relation() != tableRelation) {
-                    idx += relationContext.outputs.size();
-                    continue;
+            for (Symbol input : context.inputs) {
+                if (input.equals(field)) {
+                    return new InputColumn(idx, input.valueType());
                 }
-
-                Reference reference = tableRelation.resolveField(field);
-                for (Symbol output : relationContext.outputs) {
-                    if (output.equals(reference)) {
-                        return new InputColumn(idx, output.valueType());
-                    }
-                    idx++;
-                }
+                idx++;
             }
             return field;
         }
 
         @Override
-        public Symbol visitLiteral(Literal literal, PostOutputContext context) {
+        public Symbol visitLiteral(Literal literal, InputColumnProducerContext context) {
             return literal;
         }
     }
