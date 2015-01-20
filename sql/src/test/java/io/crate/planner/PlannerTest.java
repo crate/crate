@@ -1,5 +1,6 @@
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
@@ -129,6 +130,8 @@ public class PlannerTest {
                     .add("date", DataTypes.TIMESTAMP, null)
                     .add("text", DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED)
                     .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
+                    .add("address", DataTypes.OBJECT, null)
+                    .add("address", DataTypes.STRING, ImmutableList.of("street"))
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
