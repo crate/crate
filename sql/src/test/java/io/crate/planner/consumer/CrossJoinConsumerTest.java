@@ -23,6 +23,7 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.Analyzer;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
+import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.projectors.TopN;
@@ -31,6 +32,7 @@ import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
@@ -48,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isFunction;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
@@ -134,6 +137,21 @@ public class CrossJoinConsumerTest {
     }
 
     @Test
+    public void testAddLiteralIsEvaluatedEarlyInQTF() throws Exception {
+        IterablePlan plan = plan("select t1.id * (t2.id + 2) from users t1, users t2 limit 1");
+        PlanNode planNode = plan.iterator().next();
+        assertThat(planNode, instanceOf(NestedLoopNode.class));
+        NestedLoopNode nl = (NestedLoopNode) planNode;
+
+        TopNProjection topN = (TopNProjection) nl.projections().get(0);
+
+        Function multiply = (Function) topN.outputs().get(0);
+        for (Symbol symbol : multiply.arguments()) {
+            assertThat(symbol, instanceOf(InputColumn.class));
+        }
+    }
+
+    @Test
     public void testCrossJoinWithTwoColumnsAndAddSubtractInResultColumns() throws Exception {
         IterablePlan plan = plan("select t1.id, t2.id, t1.id + cast(t2.id as integer) from users t1, characters t2");
 
@@ -144,14 +162,19 @@ public class CrossJoinConsumerTest {
         QueryThenFetchNode left = (QueryThenFetchNode) nl.left();
         QueryThenFetchNode right = (QueryThenFetchNode) nl.right();
 
+        // t1 outputs: [ id ]
+        // t2 outputs: [ id, cast(id as int) ]
+
         TopNProjection topNProjection = (TopNProjection) nl.projections().get(0);
         InputColumn inputCol1 = (InputColumn) topNProjection.outputs().get(0);
         InputColumn inputCol2 = (InputColumn) topNProjection.outputs().get(1);
         Function add = (Function) topNProjection.outputs().get(2);
 
         assertThat((InputColumn) add.arguments().get(0), equalTo(inputCol1));
-        assertThat(((Function) add.arguments().get(1)).info().ident().name(), equalTo("toInt"));
 
+        InputColumn inputCol3 = (InputColumn) add.arguments().get(1);
+
+        // topN projection outputs: [ {point to t1.id}, {point to t2.id}, add( {point to t2.id}, {point to cast(t2.id) }]
         List<Symbol> allOutputs = new ArrayList<>(left.outputs());
         allOutputs.addAll(right.outputs());
 
@@ -162,5 +185,8 @@ public class CrossJoinConsumerTest {
         Reference ref2 = (Reference) allOutputs.get(inputCol2.index());
         assertThat(ref2.ident().columnIdent().name(), is("id"));
         assertThat(ref2.ident().tableIdent().name(), is("characters"));
+
+        Symbol castFunction = allOutputs.get(inputCol3.index());
+        assertThat(castFunction, isFunction("toInt"));
     }
 }
