@@ -109,6 +109,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(userTableInfoMultiPk);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(IGNORED_NESTED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name()))
@@ -669,6 +670,12 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testIsNullOnDynamicReference() {
+        SelectAnalyzedStatement analysis = analyze("select \"_id\" from ignored_nested where details['invalid'] is null");
+        assertTrue(analysis.relation().querySpec().where().noMatch());
+    }
+
+    @Test
     public void testNotPredicate() {
         SelectAnalyzedStatement analysis = analyze("select * from users where name not like 'foo%'");
         assertThat(((Function) analysis.relation().querySpec().where().query()).info().ident().name(), is(NotPredicate.NAME));
@@ -1033,9 +1040,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testMatchOnDynamicColumn() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column details['me_not_exizzt'] unknown");
-        analyze("select * from users where match(details['me_not_exizzt'], 'Arthur Dent')");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
+
+        analyze("select * from ignored_nested where match(details['me_not_exizzt'], 'Arthur Dent')");
     }
 
     @Test
@@ -1196,6 +1204,13 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                         "rewrite:constant_score_boolean, prefix_length:4, tie_breaker:0.75, " +
                         "slop:3, analyzer:german, boost:4.6, max_expansions:3, fuzzy_rewrite:top_terms_20, " +
                         "fuzziness:12, operator:or"));
+    }
+
+    @Test
+    public void testWhereSubscriptDynamic() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column details['no_such_column'] unknown");
+        analyze("select * from users where details['no_such_column'] is null");
     }
 
     @Test

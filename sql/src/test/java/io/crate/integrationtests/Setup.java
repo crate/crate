@@ -131,6 +131,7 @@ public class Setup {
                 }
         };
         transportExecutor.exec(insertStmt, rows);
+        transportExecutor.refresh("locations");
     }
 
     public void groupBySetup() throws Exception {
@@ -243,6 +244,7 @@ public class Setup {
                         }});
                         put("o", new HashMap<String, Object>(){{
                             put("type", "object");
+                            put("dynamic", false);
                         }});
                         put("population", new HashMap<String, Object>(){{
                             put("type", "long");
