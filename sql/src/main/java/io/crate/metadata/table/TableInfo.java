@@ -103,6 +103,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      * return a Dynamic Reference used when a column does not exist in the table mapping
      * but we need a reference
      */
+    @Nullable
     DynamicReference getDynamic(ColumnIdent ident, boolean forWrite);
 
     /**

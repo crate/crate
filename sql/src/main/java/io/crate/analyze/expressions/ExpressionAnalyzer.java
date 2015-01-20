@@ -30,6 +30,7 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseValidator;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -263,6 +264,9 @@ public class ExpressionAnalyzer {
                     continue;
                 }
                 DynamicReference dynamicReference = tableInfo.getDynamic(nestedIdent, forWrite);
+                if (dynamicReference == null) {
+                    throw new ColumnUnknownException(nestedIdent.sqlFqn());
+                }
                 DataType type = DataTypes.guessType(entry.getValue(), false);
                 if (type == null) {
                     throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(), "Invalid value");

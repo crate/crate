@@ -194,6 +194,17 @@ public class FieldResolverTest {
     }
 
     @Test
+    public void testRelationFromTwoTables() throws Exception {
+        // select name from doc.t, custom.t
+        FieldResolver resolver = new FullQualifedNameFieldResolver(
+                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                        new QualifiedName(Arrays.asList("custom", "t")), new DummyRelation(new TableIdent("custom", "t"), "address"),
+                        new QualifiedName(Arrays.asList("doc", "t")), new DummyRelation(new TableIdent("doc", "t"), "name"))
+        );
+        resolver.resolveField(new QualifiedName(Arrays.asList("t", "name")), false);
+    }
+
+    @Test
     public void testSimpleFieldResolver() throws Exception {
         // select name from doc.t
         AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");

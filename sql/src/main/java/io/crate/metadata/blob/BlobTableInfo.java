@@ -213,6 +213,7 @@ public class BlobTableInfo implements TableInfo {
         return ImmutableList.of();
     }
 
+    @Nullable
     @Override
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         return null;

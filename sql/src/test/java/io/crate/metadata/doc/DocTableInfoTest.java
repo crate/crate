@@ -2,8 +2,6 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.PartitionName;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
@@ -88,22 +86,14 @@ public class DocTableInfoTest {
                 ColumnPolicy.DYNAMIC);
 
 
-        try {
-            ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
-            assertNull(info.getReferenceInfo(columnIdent));
-            info.getDynamic(columnIdent);
-            fail();
-        } catch (ColumnUnknownException e) {
+        ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
+        assertNull(info.getReferenceInfo(columnIdent));
+        assertNull(info.getDynamic(columnIdent));
 
-        }
-        try {
-            ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
-            assertNull(info.getReferenceInfo(columnIdent));
-            info.getDynamic(columnIdent);
-            fail();
-        } catch (ColumnUnknownException e) {
+        columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
+        assertNull(info.getReferenceInfo(columnIdent));
+        assertNull(info.getDynamic(columnIdent));
 
-        }
         ReferenceInfo colInfo = info.getReferenceInfo(new ColumnIdent("foobar"));
         assertNotNull(colInfo);
     }

@@ -71,10 +71,12 @@ public abstract class AbstractTableInfo implements TableInfo {
         return null;
     }
 
+    @Nullable
     public DynamicReference getDynamic(ColumnIdent ident) {
         return getDynamic(ident, false);
     }
 
+    @Nullable
     @Override
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         return null;

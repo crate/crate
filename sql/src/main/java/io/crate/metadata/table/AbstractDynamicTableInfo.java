@@ -26,6 +26,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.DynamicReference;
+import org.elasticsearch.common.Nullable;
 
 public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
 
@@ -33,6 +34,7 @@ public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
         super(schemaInfo);
     }
 
+    @Nullable
     @Override
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         boolean parentIsIgnored = false;
@@ -52,18 +54,18 @@ public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
             if (parentInfo != null) {
                 switch (parentInfo.columnPolicy()) {
                     case STRICT:
-                        throw new ColumnUnknownException(ident.sqlFqn());
+                        return unknownColumnExceptionOrNull(ident, forWrite);
                     case IGNORED:
                         parentIsIgnored = true;
                         break;
                 }
             }
         } else if (forWrite == false && columnPolicy() != ColumnPolicy.IGNORED) {
-            throw new ColumnUnknownException(ident.sqlFqn());
+            return unknownColumnExceptionOrNull(ident, forWrite);
         } else {
             switch (columnPolicy()) {
                 case STRICT:
-                    throw new ColumnUnknownException(ident.sqlFqn());
+                    return unknownColumnExceptionOrNull(ident, forWrite);
                 case IGNORED:
                     parentIsIgnored = true;
                     break;
@@ -78,5 +80,12 @@ public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
         return reference;
     }
 
+    @Nullable
+    private DynamicReference unknownColumnExceptionOrNull(ColumnIdent ident, boolean forWrite){
+        if (forWrite) {
+            throw new ColumnUnknownException(ident.sqlFqn());
+        }
+        return null;
+    }
 
 }
