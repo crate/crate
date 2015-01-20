@@ -21,6 +21,8 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
 import io.crate.analyze.Analyzer;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.InputCollectExpression;
@@ -51,6 +53,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
@@ -92,7 +95,6 @@ public class CrossJoinConsumerTest {
         assertThat(next, instanceOf(NestedLoopNode.class));
 
         NestedLoopNode nestedLoopNode = (NestedLoopNode) next;
-        assertThat(nestedLoopNode.projections().isEmpty(), is(true));
         assertThat(nestedLoopNode.limit(), is(TopN.NO_LIMIT));
         assertThat(nestedLoopNode.offset(), is(0));
         assertThat(nestedLoopNode.outputTypes().size(), is(8));
@@ -107,6 +109,36 @@ public class CrossJoinConsumerTest {
 
         // what's left and right changes per test run... so just make sure the outputs are different
         assertNotEquals(leftQtf.outputs().size(), rightQtf.outputs().size());
+    }
+
+    @Test
+    public void testOrderOfColumnsInOutputIsCorrect() throws Exception {
+        IterablePlan plan = plan("select t1.name, t2.name, t1.id from users t1 cross join characters t2");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(NestedLoopNode.class));
+        NestedLoopNode nl = (NestedLoopNode) planNode;
+        QueryThenFetchNode left = (QueryThenFetchNode) nl.left();
+        QueryThenFetchNode right = (QueryThenFetchNode) nl.right();
+
+        List<Symbol> leftAndRightOutputs = Lists.newArrayList(FluentIterable.from(left.outputs()).append(right.outputs()));
+
+        TopNProjection topNProjection = (TopNProjection) nl.projections().get(0);
+        InputColumn in1 = (InputColumn) topNProjection.outputs().get(0);
+        InputColumn in2 = (InputColumn) topNProjection.outputs().get(1);
+        InputColumn in3 = (InputColumn) topNProjection.outputs().get(2);
+
+        Reference t1Name = (Reference) leftAndRightOutputs.get(in1.index());
+        assertThat(t1Name.ident().columnIdent().name(), is("name"));
+        assertThat(t1Name.ident().tableIdent().name(), is("users"));
+
+        Reference t2Name = (Reference) leftAndRightOutputs.get(in2.index());
+        assertThat(t2Name.ident().columnIdent().name(), is("name"));
+        assertThat(t2Name.ident().tableIdent().name(), is("characters"));
+
+        Reference t1Id = (Reference) leftAndRightOutputs.get(in3.index());
+        assertThat(t1Id.ident().columnIdent().name(), is("id"));
+        assertThat(t1Id.ident().tableIdent().name(), is("users"));
     }
 
     @Test

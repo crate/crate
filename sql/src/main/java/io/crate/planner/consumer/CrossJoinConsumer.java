@@ -135,9 +135,6 @@ public class CrossJoinConsumer implements Consumer {
              *
              * postOutputs: [in(0), subtract( add( in(1), in(3)), in(1) ]
              */
-
-            boolean hasMixedOutputs = false;
-
             Map<TableRelation, RelationContext> relations = new IdentityHashMap<>(statement.sources().size());
             for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
                 if (!(analyzedRelation instanceof TableRelation)) {
@@ -151,7 +148,6 @@ public class CrossJoinConsumer implements Consumer {
                 }
 
                 FilteringContext filteringContext = filterOutputForRelation(statement.querySpec().outputs(), tableRelation);
-                hasMixedOutputs = hasMixedOutputs || filteringContext.hasMixedOutputs;
                 relations.put(tableRelation, new RelationContext(Lists.newArrayList(filteringContext.allOutputs())));
             }
 
@@ -184,12 +180,41 @@ public class CrossJoinConsumer implements Consumer {
             int limit = MoreObjects.firstNonNull(statement.querySpec().limit(), TopN.NO_LIMIT);
             NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, limit, statement.querySpec().offset());
 
-            if (hasMixedOutputs || statement.querySpec().isLimited()) {
-                List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), relations);
-                TopNProjection topNProjection = new TopNProjection(limit, statement.querySpec().offset());
-                topNProjection.outputs(postOutputs);
-                nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
-            }
+            /**
+             * TopN for:
+             *
+             * #1 Reorder
+             *      need to always use topN to re-order outputs,
+             *
+             *      e.g. select t1.name, t2.name, t1.id
+             *
+             *      left outputs:
+             *          [ t1.name, t1.id ]
+             *
+             *      right outputs:
+             *          [ t2.name ]
+             *
+             *      left + right outputs:
+             *          [ t1.name, t1.id, t2.name]
+             *
+             *      final outputs (topN):
+             *          [ in(0), in(2), in(1)]
+             *
+             * #2 Execute functions that reference more than 1 relations
+             *
+             *      select t1.x + t2.x
+             *
+             *      left: x
+             *      right: x
+             *
+             *      topN:  add(in(0), in(1))
+             *
+             * #3 Apply Limit (and Order by once supported..)
+             */
+            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), relations);
+            TopNProjection topNProjection = new TopNProjection(limit, statement.querySpec().offset());
+            topNProjection.outputs(postOutputs);
+            nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
             return nestedLoopNode;
         }
 
@@ -267,14 +292,6 @@ public class CrossJoinConsumer implements Consumer {
         TableRelation tableRelation;
 
         /**
-         * need to track this separate as mixedOutputs might be empty if all columns that are "mixed" are already selected on top level
-         *
-         * e.g.   select t1.x, t2.x, t1.x + t2.x
-         */
-        boolean hasMixedOutputs = false;
-
-
-        /**
          * symbols that belong to tableRelation but are inside a function that contains fields from another relation
          */
         List<Symbol> mixedOutputs = new ArrayList<>();
@@ -315,8 +332,6 @@ public class CrossJoinConsumer implements Consumer {
                 }
                 return newFunction;
             } else {
-                context.hasMixedOutputs = context.hasMixedOutputs || newArgs.size() > 0;
-
                 newArg:
                 for (Symbol newArg : newArgs) {
                     if ( !(newArg instanceof Function) || ((Function) newArg).info().deterministic()) {
