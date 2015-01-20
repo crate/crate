@@ -86,7 +86,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-public class SelectAnalyzerTest extends BaseAnalyzerTest {
+public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);

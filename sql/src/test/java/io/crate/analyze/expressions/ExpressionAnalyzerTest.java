@@ -38,7 +38,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * Additional tests for the ExpressionAnalyzer.
- * Most of the remaining stuff is tested via {@link io.crate.analyze.SelectAnalyzerTest} and other *AnalyzerTest classes.
+ * Most of the remaining stuff is tested via {@link io.crate.analyze.SelectStatementAnalyzerTest} and other *AnalyzerTest classes.
  */
 public class ExpressionAnalyzerTest {
 
