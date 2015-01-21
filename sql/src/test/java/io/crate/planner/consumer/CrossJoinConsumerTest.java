@@ -24,9 +24,11 @@ package io.crate.planner.consumer;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.WhereClause;
+import io.crate.exceptions.ValidationException;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.operator.OrOperator;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -34,7 +36,6 @@ import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
@@ -54,7 +55,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isFunction;
-import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
@@ -98,7 +98,7 @@ public class CrossJoinConsumerTest {
         NestedLoopNode nestedLoopNode = (NestedLoopNode) next;
         assertThat(nestedLoopNode.limit(), is(TopN.NO_LIMIT));
         assertThat(nestedLoopNode.offset(), is(0));
-        assertThat(nestedLoopNode.outputTypes().size(), is(9));
+        assertThat(nestedLoopNode.outputTypes().size(), is(10));
 
         PlanNode left = nestedLoopNode.left();
         assertThat(left, instanceOf(QueryThenFetchNode.class));
@@ -150,7 +150,7 @@ public class CrossJoinConsumerTest {
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
 
-        assertThat(nl.outputTypes().size(), is(18));
+        assertThat(nl.outputTypes().size(), is(21));
     }
 
     @Test
@@ -236,4 +236,43 @@ public class CrossJoinConsumerTest {
         assertThat(nl.outputTypes().get(1).id(), is(DataTypes.UNDEFINED.id()));
     }
 
+    @Test
+    public void testCrossJoinWithWhere() throws Exception {
+        IterablePlan plan = plan("select * from users t1 cross join users t2 where (t1.id = 1 or t1.id = 2) and (t2.id = 3 or t2.id = 4)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(NestedLoopNode.class));
+        NestedLoopNode nl = (NestedLoopNode) planNode;
+
+        WhereClause leftWhereClause = ((QueryThenFetchNode)nl.left()).whereClause();
+        WhereClause rightWhereClause = ((QueryThenFetchNode)nl.right()).whereClause();
+
+        assertThat(leftWhereClause.query(), isFunction(OrOperator.NAME));
+        assertThat(rightWhereClause.query(), isFunction(OrOperator.NAME));
+    }
+
+    @Test
+    public void testCrossJoinWhereWithJoinCondition() throws Exception {
+        expectedException.expect(ValidationException.class);
+        expectedException.expectMessage("WhereClause contains a function or operator that involves more than 1 relation. This is not supported");
+        plan("select * from users t1 cross join users t2 where t1.id = 1 or t2.id = 2");
+    }
+
+    @Test
+    public void testCrossJoinWhereSingleBooleanField() throws Exception {
+        IterablePlan plan = plan("select * from users t1 cross join users t2 where t1.is_awesome");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(NestedLoopNode.class));
+        NestedLoopNode nl = (NestedLoopNode) planNode;
+
+        WhereClause leftWhereClause = ((QueryThenFetchNode)nl.left()).whereClause();
+        WhereClause rightWhereClause = ((QueryThenFetchNode)nl.right()).whereClause();
+        // left and right isn't deterministic... but one needs to have a query and the other shouldn't have one
+        if (leftWhereClause.hasQuery()) {
+            assertThat(rightWhereClause.hasQuery(), is(false));
+        } else {
+            assertThat(rightWhereClause.hasQuery(), is(true));
+        }
+    }
 }

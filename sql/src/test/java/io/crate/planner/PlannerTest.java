@@ -129,6 +129,7 @@ public class PlannerTest {
                     .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
                     .add("address", DataTypes.OBJECT, null)
                     .add("address", DataTypes.STRING, ImmutableList.of("street"))
+                    .add("is_awesome", DataTypes.BOOLEAN, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
