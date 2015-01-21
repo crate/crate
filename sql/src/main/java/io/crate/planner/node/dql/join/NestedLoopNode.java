@@ -21,9 +21,7 @@
 package io.crate.planner.node.dql.join;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
@@ -115,7 +113,6 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
         this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;
-        outputTypes(Lists.newArrayList(FluentIterable.from(left.outputTypes()).append(right.outputTypes())));
     }
 
     public PlanNode left() {
