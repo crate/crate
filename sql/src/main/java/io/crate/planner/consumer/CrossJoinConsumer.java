@@ -28,14 +28,18 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Routing;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
@@ -52,7 +56,9 @@ public class CrossJoinConsumer implements Consumer {
     private final static InputColumnProducer INPUT_COLUMN_PRODUCER = new InputColumnProducer();
 
     public CrossJoinConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new CrossJoinVisitor(analysisMetaData);
+        visitor = new CrossJoinVisitor(
+                analysisMetaData,
+                new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver()));
     }
 
     @Override
@@ -68,9 +74,11 @@ public class CrossJoinConsumer implements Consumer {
     private static class CrossJoinVisitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
+        private final EvaluatingNormalizer normalizer;
 
-        public CrossJoinVisitor(AnalysisMetaData analysisMetaData) {
+        public CrossJoinVisitor(AnalysisMetaData analysisMetaData, EvaluatingNormalizer normalizer) {
             this.analysisMetaData = analysisMetaData;
+            this.normalizer = normalizer;
         }
 
         @Override
@@ -97,12 +105,6 @@ public class CrossJoinConsumer implements Consumer {
             OrderBy orderBy = statement.querySpec().orderBy();
             if (orderBy != null && orderBy.isSorted()) {
                 context.validationException(new ValidationException("Query with CROSS JOIN doesn't support ORDER BY"));
-                return null;
-            }
-
-            WhereClause where = MoreObjects.firstNonNull(statement.querySpec().where(), WhereClause.MATCH_ALL);
-            if (!where.equals(WhereClause.MATCH_ALL)) {
-                context.validationException(new ValidationException("Filtering on CROSS JOIN is not supported"));
                 return null;
             }
 
@@ -136,6 +138,8 @@ public class CrossJoinConsumer implements Consumer {
              * postOutputs: [in(0), subtract( add( in(1), in(3)), in(1) ]
              */
             Map<TableRelation, RelationContext> relations = new IdentityHashMap<>(statement.sources().size());
+            WhereClause where = MoreObjects.firstNonNull(statement.querySpec().where(), WhereClause.MATCH_ALL);
+            Symbol query = where.query();
             for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
                 if (!(analyzedRelation instanceof TableRelation)) {
                     context.validationException(new ValidationException("CROSS JOIN with sub queries is not supported"));
@@ -147,8 +151,27 @@ public class CrossJoinConsumer implements Consumer {
                     return null;
                 }
 
+                RelationContext relationContext = new RelationContext();
+                if (where.hasQuery()) {
+                    QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(query, analyzedRelation);
+                    if (splitQueries.relationQuery() == null) {
+                        relationContext.whereClause = WhereClause.MATCH_ALL;
+                    } else {
+                        relationContext.whereClause = new WhereClause(splitQueries.relationQuery());
+                        relationContext.whereClause = relationContext.whereClause.normalize(normalizer);
+                    }
+                    query = splitQueries.remainingQuery();
+                } else {
+                    relationContext.whereClause = WhereClause.MATCH_ALL;
+                }
                 FilteringContext filteringContext = filterOutputForRelation(statement.querySpec().outputs(), tableRelation);
-                relations.put(tableRelation, new RelationContext(Lists.newArrayList(filteringContext.allOutputs())));
+                relationContext.outputs = Lists.newArrayList(filteringContext.allOutputs());
+                relations.put(tableRelation, relationContext);
+            }
+            if (where.hasQuery() && !(query instanceof Literal)) {
+                context.validationException(new ValidationException(
+                        "WhereClause contains a function or operator that involves more than 1 relation. This is not supported"));
+                return null;
             }
 
             Integer qtfLimit = null;
@@ -162,8 +185,9 @@ public class CrossJoinConsumer implements Consumer {
                 RelationContext relationContext = entry.getValue();
                 TableRelation tableRelation = entry.getKey();
 
-                WhereClause whereClause = WhereClause.MATCH_ALL;
-                Routing routing = tableRelation.tableInfo().getRouting(whereClause, null);
+                WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+                WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(relationContext.whereClause);
+                Routing routing = tableRelation.tableInfo().getRouting(whereClauseContext.whereClause(), null);
                 QueryThenFetchNode qtf = new QueryThenFetchNode(
                         routing,
                         tableRelation.resolveCopy(relationContext.outputs),
@@ -172,7 +196,7 @@ public class CrossJoinConsumer implements Consumer {
                         new Boolean[0],
                         qtfLimit,
                         0,
-                        whereClause,
+                        whereClauseContext.whereClause(),
                         tableRelation.tableInfo().partitionedByColumns()
                 );
                 queryThenFetchNodes.add(qtf);
@@ -215,6 +239,7 @@ public class CrossJoinConsumer implements Consumer {
             TopNProjection topNProjection = new TopNProjection(limit, statement.querySpec().offset());
             topNProjection.outputs(postOutputs);
             nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
+            nestedLoopNode.outputTypes(Symbols.extractTypes(postOutputs));
             return nestedLoopNode;
         }
 
@@ -280,10 +305,9 @@ public class CrossJoinConsumer implements Consumer {
     private static class RelationContext {
         List<Symbol> outputs;
         List<Symbol> orderBy = new ArrayList<>();
+        public WhereClause whereClause;
 
-        public RelationContext(List<Symbol> outputs) {
-            this.outputs = outputs;
-        }
+        public RelationContext() {}
     }
 
     private static class FilteringContext {
@@ -408,4 +432,5 @@ public class CrossJoinConsumer implements Consumer {
             return literal;
         }
     }
+
 }
