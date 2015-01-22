@@ -12,9 +12,7 @@ Synopsis
 ::
 
     UPDATE table_ident [ [AS] table_alias ] SET
-        { column_ident = expression |
-          ( column_ident [, ...] ) = ( expression [, ...] )
-        } [, ...]
+        { column_ident = expression } [, ...]
       [ WHERE condition ]
 
 Description
