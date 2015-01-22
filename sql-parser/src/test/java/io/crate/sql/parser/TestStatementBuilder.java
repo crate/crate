@@ -227,6 +227,11 @@ public class TestStatementBuilder
         printStatement("select * from t where 'source' !~ 'pattern'");
         printStatement("select * from t where source_column ~ pattern_column");
         printStatement("select * from t where ? !~ ?");
+
+        printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1");
+        printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1, b = 3");
+        printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
+        printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
     }
 
     @Test

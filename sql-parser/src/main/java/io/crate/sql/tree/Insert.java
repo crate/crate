@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 
@@ -31,12 +32,14 @@ public abstract class Insert extends Statement {
 
     protected final Table table;
 
+    protected final List<Assignment> onDuplicateKeyAssignments;
     protected final List<String> columns;
 
 
-    public Insert(Table table, @Nullable List<String> columns) {
+    public Insert(Table table, @Nullable List<String> columns, @Nullable List<Assignment> onDuplicateKeyAssignments) {
         this.table = table;
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<String>of());
+        this.onDuplicateKeyAssignments = MoreObjects.firstNonNull(onDuplicateKeyAssignments, ImmutableList.<Assignment>of());
+        this.columns = MoreObjects.firstNonNull(columns, ImmutableList.<String>of());
     }
 
     public Table table() {
@@ -45,6 +48,10 @@ public abstract class Insert extends Statement {
 
     public List<String> columns() {
         return columns;
+    }
+
+    public List<Assignment> onDuplicateKeyAssignments() {
+        return onDuplicateKeyAssignments;
     }
 
     @Override

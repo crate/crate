@@ -115,6 +115,7 @@ tokens {
     ARRAY_NOT_LIKE;
     ARRAY_LITERAL;
     OBJECT_LITERAL;
+    ON_DUP_KEY;
     KEY_VALUE;
     MATCH;
     MATCH_PREDICATE_IDENT;
@@ -586,7 +587,7 @@ specialFunction
     | CURRENT_TIMESTAMP ('(' integer ')')?         -> ^(CURRENT_TIMESTAMP integer?)
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')' -> ^(FUNCTION_CALL ^(QNAME IDENT["substr"]) expr expr expr?)
     | EXTRACT '(' ident FROM expr ')'              -> ^(EXTRACT ident expr)
-    | CAST '(' expr AS dataType ')'                    -> ^(CAST expr dataType)
+    | CAST '(' expr AS dataType ')'                -> ^(CAST expr dataType)
     ;
 
 
@@ -745,7 +746,11 @@ objectKeyValue
     ;
 
 insertStmt
-    : INSERT INTO table identList? insertSource -> ^(INSERT insertSource table identList?)
+    : INSERT INTO table identList? insertSource onDuplicateKey? -> ^(INSERT insertSource table identList? onDuplicateKey?)
+    ;
+
+onDuplicateKey
+    : ON DUPLICATE KEY UPDATE assignmentList -> ^(ON_DUP_KEY assignmentList)
     ;
 
 insertSource
@@ -1021,6 +1026,7 @@ nonReserved
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VIEW | YEAR
+    | DUPLICATE | KEY | VALUES
     ;
 
 SELECT: 'SELECT';
@@ -1157,6 +1163,8 @@ INTO: 'INTO';
 VALUES: 'VALUES';
 DELETE: 'DELETE';
 UPDATE: 'UPDATE';
+KEY: 'KEY';
+DUPLICATE: 'DUPLICATE';
 SET: 'SET';
 RESET: 'RESET';
 COPY: 'COPY';
