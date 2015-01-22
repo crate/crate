@@ -1497,4 +1497,11 @@ public class PlannerTest {
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.noMatch(), is(false));
     }
+
+    @Test
+    public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("ON DUPLICATE KEY UPDATE is not supported");
+        plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
+    }
 }

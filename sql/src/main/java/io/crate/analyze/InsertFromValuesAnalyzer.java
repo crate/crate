@@ -33,11 +33,11 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.InsertFromValues;
-import io.crate.sql.tree.ValuesList;
+import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Literal;
+import io.crate.sql.tree.*;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -46,10 +46,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
 
@@ -59,6 +56,49 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
     private ExpressionAnalyzer expressionAnalyzer;
     private ExpressionAnalysisContext expressionAnalysisContext;
 
+    private ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer;
+
+    private static class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
+
+        private final ExpressionAnalyzer expressionAnalyzer;
+        public Map<String, Object> insertValues;
+
+        public ValuesAwareExpressionAnalyzer(AnalysisMetaData analysisMetaData,
+                                             ParameterContext parameterContext,
+                                             FieldResolver fieldResolver,
+                                             ExpressionAnalyzer expressionAnalyzer) {
+            super(analysisMetaData, parameterContext, fieldResolver);
+            this.expressionAnalyzer = expressionAnalyzer;
+        }
+
+        @Override
+        protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
+            List<String> parts = node.getName().getParts();
+            if (parts.get(0).equals("values")) {
+                Expression expression = node.getArguments().get(0);
+                Symbol argumentColumn = expressionAnalyzer.convert(expression, context);
+                if (argumentColumn.valueType().equals(DataTypes.UNDEFINED)) {
+                    throw new IllegalArgumentException(
+                            SymbolFormatter.format("Referenced column '%s' in VALUES expression not found", argumentColumn));
+                }
+                if (!(argumentColumn instanceof Field)) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "Argument to VALUES expression must reference a column that " +
+                                    "is part of the INSERT statement. %s is invalid", argumentColumn));
+                }
+                String outputName = ((ColumnIdent) ((Field) argumentColumn).path()).fqn();
+                DataType returnType = argumentColumn.valueType();
+                // use containsKey instead of checking result .get() for null because inserted value might actually be null
+                if (!insertValues.containsKey(outputName)) {
+                    throw new IllegalArgumentException(String.format(
+                            "Referenced column '%s' isn't part of the column list of the INSERT statement", outputName));
+                }
+                return Literal.newLiteral(returnType, returnType.value(insertValues.get(outputName)));
+            }
+            return super.convertFunctionCall(node, context);
+        }
+    }
+
     public InsertFromValuesAnalyzer(AnalysisMetaData analysisMetaData, ParameterContext parameterContext) {
         this.analysisMetaData = analysisMetaData;
         this.parameterContext = parameterContext;
@@ -66,9 +106,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
 
     @Override
     public AnalyzedStatement visitInsertFromValues(InsertFromValues node, Void context) {
-        if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            throw new UnsupportedOperationException("ON DUPLICATE KEY UPDATE clause is not supported");
-        }
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
         TableRelation tableRelation = new TableRelation(tableInfo);
         validateTable(tableInfo);
@@ -82,11 +119,14 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
         expressionAnalyzer.resolveWritableFields(true);
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
+        valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
+                analysisMetaData, parameterContext, fieldResolver, expressionAnalyzer);
+
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(tableInfo, parameterContext.hasBulkParams());
         handleInsertColumns(node, node.maxValuesLength(), statement);
 
         for (ValuesList valuesList : node.valuesLists()) {
-            analyzeValues(valuesList, statement);
+            analyzeValues(valuesList, node.onDuplicateKeyAssignments(), statement);
         }
         return statement;
     }
@@ -100,7 +140,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
         }
     }
 
-    private void analyzeValues(ValuesList node, InsertFromValuesAnalyzedStatement context) {
+    private void analyzeValues(ValuesList node, List<Assignment> assignments, InsertFromValuesAnalyzedStatement context) {
         if (node.values().size() != context.columns().size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Invalid number of values: Got %d columns specified but %d values",
@@ -111,10 +151,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
             if (parameterContext.bulkParameters.length > 0) {
                 for (int i = 0; i < parameterContext.bulkParameters.length; i++) {
                     parameterContext.setBulkIdx(i);
-                    addValues(node, context, numPks);
+                    addValues(node, assignments, context, numPks);
                 }
             } else {
-                addValues(node, context, numPks);
+                addValues(node, assignments, context, numPks);
             }
         } catch (IOException e) {
             throw new RuntimeException(e); // can't throw IOException directly because of visitor interface
@@ -122,6 +162,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
     }
 
     private void addValues(ValuesList node,
+                           List<Assignment> assignments,
                            InsertFromValuesAnalyzedStatement context,
                            int numPrimaryKeys) throws IOException {
         if (context.tableInfo().isPartitioned()) {
@@ -132,6 +173,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
         String routingValue = null;
         List<Expression> values = node.values();
         List<ColumnIdent> primaryKey = context.tableInfo().primaryKey();
+
+        Map<String, Object> insertValues = new HashMap<>();
 
         for (int i = 0, valuesSize = values.size(); i < valuesSize; i++) {
             Expression expression = values.get(i);
@@ -145,6 +188,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(column.info().ident().columnIdent().sqlFqn(), e);
             }
+
             try {
                 Object value = ((Input) valuesSymbol).value();
                 if (context.primaryKeyColumnIndices().contains(i)) {
@@ -171,18 +215,38 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
                     Object rest = processPartitionedByValues(columnIdent, value, context);
                     if (rest != null) {
                         builder.field(columnIdent.name(), rest);
+                        if (!assignments.isEmpty()) {
+                            insertValues.put(columnIdent.name(), rest);
+                        }
                     }
                 } else {
                     if (value instanceof BytesRef) {
                         value = new BytesText(new BytesArray((BytesRef) value));
                     }
                     builder.field(columnIdent.name(), value);
+                    if (!assignments.isEmpty()) {
+                        insertValues.put(columnIdent.name(), value);
+                    }
                 }
             } catch (ClassCastException e) {
                 // symbol is no input
                 throw new ColumnValidationException(columnIdent.name(),
                         String.format("Invalid value of type '%s' in insert statement", valuesSymbol.symbolType().name()));
             }
+        }
+
+        if (!assignments.isEmpty()) {
+            Map<String, Symbol> onDupKeyAssignments = new HashMap<>();
+            valuesAwareExpressionAnalyzer.insertValues = insertValues;
+            for (Assignment assignment : assignments) {
+                Symbol columnName = expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext);
+                assert columnName instanceof Field : "columnName must be a field"; // ensured by parser
+
+                Symbol assignmentExpression = valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext);
+                assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression);
+                onDupKeyAssignments.put(((ColumnIdent) ((Field) columnName).path()).fqn(), assignmentExpression);
+            }
+            context.addOnDuplicateKeyAssignments(onDupKeyAssignments);
         }
         context.sourceMaps().add(builder.bytes());
         context.addIdAndRouting(primaryKeyValues, routingValue);

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.Iterables;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.ValidationException;
@@ -30,7 +31,10 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -44,6 +48,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -92,6 +97,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new MockedClusterServiceModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule(),
+                new ScalarFunctionModule(),
                 new PredicateModule()
         ));
         return modules;
@@ -789,8 +795,90 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        analyze("insert into users (id, name) values (1, 'Arthur') on duplicate key update name = substr(values (name), 1, 1)");
+        InsertFromValuesAnalyzedStatement statement = (InsertFromValuesAnalyzedStatement) analyze(
+                "insert into users (id, name) values (1, 'Arthur') " +
+                "on duplicate key update name = substr(values (name), 1, 2)");
+        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+
+        Map<String, Symbol> map = statement.onDuplicateKeyAssignments().get(0);
+        Symbol assignmentToName = Iterables.getOnlyElement(map.values());
+        assertLiteralSymbol(assignmentToName, "Ar");
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnDuplicateKeyInvalidColumnInValues() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Referenced column 'does_not_exist' in VALUES expression not found");
+        analyze("insert into users (id, name) values (1, 'Arthur') " +
+                "on duplicate key update name = values (does_not_exist)");
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnDuplicateKeyFunctionInValues() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+                "Argument to VALUES expression must reference a column that is part of the INSERT statement. random() is invalid");
+        analyze("insert into users (id, name) values (1, 'Arthur') " +
+                "on duplicate key update name = values (random())");
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnDupKeyValuesWithNotInsertedColumnRef() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Referenced column 'name' isn't part of the column list of the INSERT statement");
+        analyze("insert into users (id) values (1) on duplicate key update name = values(name)");
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnDupKeyValuesWithReferenceToNull() throws Exception {
+        InsertFromValuesAnalyzedStatement statement = (InsertFromValuesAnalyzedStatement) analyze(
+            "insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
+        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        Map<String, Symbol> map = statement.onDuplicateKeyAssignments().get(0);
+        Literal assignmentToName = (Literal) Iterables.getOnlyElement(map.values());
+        assertThat(assignmentToName.value(), nullValue());
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnDupKeyValuesWithParams() throws Exception {
+        InsertFromValuesAnalyzedStatement statement = (InsertFromValuesAnalyzedStatement) analyze(
+                "insert into users (id, name) values (1, ?) on duplicate key update name = values(name)",
+                new Object[] { "foobar"});
+        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        Map<String, Symbol> map = statement.onDuplicateKeyAssignments().get(0);
+        assertLiteralSymbol(map.get("name"), "foobar");
+    }
+
+    @Test
+    public void testInsertFromMultipleValuesWithOnDuplicateKey() throws Exception {
+        InsertFromValuesAnalyzedStatement statement = (InsertFromValuesAnalyzedStatement) analyze(
+                "insert into users (id, name) values (1, 'Arthur'), (2, 'Trillian') " +
+                "on duplicate key update name = substr(values (name), 1, 1)");
+        assertThat(statement.onDuplicateKeyAssignments().size(), is(2));
+
+        Map<String, Symbol> map = statement.onDuplicateKeyAssignments().get(0);
+        Symbol assignmentToName = Iterables.getOnlyElement(map.values());
+        assertLiteralSymbol(assignmentToName, "A");
+
+        map = statement.onDuplicateKeyAssignments().get(1);
+        assignmentToName = Iterables.getOnlyElement(map.values());
+        assertLiteralSymbol(assignmentToName, "T");
+    }
+
+    @Test
+    public void testOnDuplicateKeyUpdateOnObjectColumn() throws Exception {
+        InsertFromValuesAnalyzedStatement statement = (InsertFromValuesAnalyzedStatement) analyze(
+                "insert into users (id) values (1) on duplicate key update details['foo'] = 'foobar'");
+        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        Map<String, Symbol> map = statement.onDuplicateKeyAssignments().get(0);
+        Symbol assignmentToName = map.get("details.foo");
+        assertLiteralSymbol(assignmentToName, "foobar");
+    }
+
+    @Test
+    public void testInvalidLeftSideExpressionInOnDuplicateKey() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        analyze("insert into users (id, name) values (1, 'Arthur') on duplicate key update [1, 2] = 1");
     }
 }
 

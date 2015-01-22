@@ -319,6 +319,43 @@ public class ExpressionAnalyzer {
         }
     }
 
+    protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
+        List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
+        List<DataType> argumentTypes = new ArrayList<>(node.getArguments().size());
+        for (Expression expression : node.getArguments()) {
+            Symbol argSymbol = expression.accept(innerAnalyzer, context);
+
+            argumentTypes.add(argSymbol.valueType());
+            arguments.add(argSymbol);
+        }
+
+        FunctionInfo functionInfo;
+        if (node.isDistinct()) {
+            if (argumentTypes.size() > 1) {
+                throw new UnsupportedOperationException("Function(DISTINCT x) does not accept more than one argument");
+            }
+            // define the inner function. use the arguments/argumentTypes from above
+            FunctionIdent innerIdent = new FunctionIdent(CollectSetAggregation.NAME, argumentTypes);
+            FunctionInfo innerInfo = getFunctionInfo(innerIdent);
+            Symbol innerFunction = context.allocateFunction(innerInfo, arguments);
+
+            // define the outer function which contains the inner function as argument.
+            String nodeName = "collection_" + node.getName().toString();
+            List<Symbol> outerArguments = Arrays.<Symbol>asList(innerFunction);
+            ImmutableList<DataType> outerArgumentTypes =
+                    ImmutableList.<DataType>of(new SetType(argumentTypes.get(0)));
+
+            FunctionIdent ident = new FunctionIdent(nodeName, outerArgumentTypes);
+            functionInfo = getFunctionInfo(ident);
+            arguments = outerArguments;
+        } else {
+            FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
+            functionInfo = getFunctionInfo(ident);
+        }
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
+
     public Symbol normalizeInputForReference(Symbol inputValue, Reference reference) {
         return normalizeInputForReference(inputValue, reference, false);
     }
@@ -366,40 +403,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
-            List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
-            List<DataType> argumentTypes = new ArrayList<>(node.getArguments().size());
-            for (Expression expression : node.getArguments()) {
-                Symbol argSymbol = expression.accept(this, context);
-
-                argumentTypes.add(argSymbol.valueType());
-                arguments.add(argSymbol);
-            }
-
-            FunctionInfo functionInfo;
-            if (node.isDistinct()) {
-                if (argumentTypes.size() > 1) {
-                    throw new UnsupportedOperationException("Function(DISTINCT x) does not accept more than one argument");
-                }
-                // define the inner function. use the arguments/argumentTypes from above
-                FunctionIdent innerIdent = new FunctionIdent(CollectSetAggregation.NAME, argumentTypes);
-                FunctionInfo innerInfo = getFunctionInfo(innerIdent);
-                Function innerFunction = context.allocateFunction(innerInfo, arguments);
-
-                // define the outer function which contains the inner function as argument.
-                String nodeName = "collection_" + node.getName().toString();
-                List<Symbol> outerArguments = Arrays.<Symbol>asList(innerFunction);
-                ImmutableList<DataType> outerArgumentTypes =
-                        ImmutableList.<DataType>of(new SetType(argumentTypes.get(0)));
-
-                FunctionIdent ident = new FunctionIdent(nodeName, outerArgumentTypes);
-                functionInfo = getFunctionInfo(ident);
-                arguments = outerArguments;
-            } else {
-                FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
-                functionInfo = getFunctionInfo(ident);
-            }
-
-            return context.allocateFunction(functionInfo, arguments);
+            return convertFunctionCall(node, context);
         }
 
         @Override
