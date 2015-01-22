@@ -85,7 +85,7 @@ public class UpdateByIdTask extends AsyncChainedTask {
             request.version(node.version().get());
         }
         request.assignments(node.assignments());
-
+        request.missingAssignments(node.missingAssignments());
         return request;
     }
 }
