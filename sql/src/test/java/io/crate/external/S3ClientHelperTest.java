@@ -58,23 +58,11 @@ public class S3ClientHelperTest {
         s3ClientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testNoCredentials() throws Exception {
-        AmazonS3 s3Client = s3ClientHelper.client(new URI("s3://host/path/to/file"));
-
-        // use this method without accessing the internet
-        // should throw
-        //     IllegalArgumentException: Access key cannot be null.
-        // in BasicAWSCredentials
-        s3Client.generatePresignedUrl("bucket", "key", new Date());
-    }
-
     @Test
     public void testWithCredentials() throws Exception {
         AmazonS3 s3Client = s3ClientHelper.client(new URI("s3://user:password@host/path"));
         URL url = s3Client.generatePresignedUrl("bucket", "key", new Date(0L));
         assertThat(url.toString(), is("http://bucket.s3.amazonaws.com/key?AWSAccessKeyId=user&Expires=0&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
     }
-
 
 }
