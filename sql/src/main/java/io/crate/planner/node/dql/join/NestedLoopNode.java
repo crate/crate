@@ -22,8 +22,8 @@ package io.crate.planner.node.dql.join;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.IterablePlan;
@@ -178,7 +178,7 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
     }
 
     @Override
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitPlanedAnalyzedRelation(this, context);
     }
 
