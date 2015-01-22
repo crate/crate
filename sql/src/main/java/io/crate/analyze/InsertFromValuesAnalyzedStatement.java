@@ -25,6 +25,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -37,6 +38,7 @@ import java.util.Map;
 
 public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedStatement {
 
+    private final List<Map<String, Symbol>> onDuplicateKeyAssignments = new ArrayList<>();
     private final List<BytesReference> sourceMaps = new ArrayList<>();
     private final List<Map<String, String>> partitionMaps = new ArrayList<>();
 
@@ -108,6 +110,15 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         if (clusteredByValue != null) {
             routingValues.add(clusteredByValue);
         }
+    }
+
+    public void addOnDuplicateKeyAssignments(Map<String, Symbol> assignments) {
+        assert assignments != null && !assignments.isEmpty() : "must have assignments!";
+        onDuplicateKeyAssignments.add(assignments);
+    }
+
+    public List<Map<String, Symbol>> onDuplicateKeyAssignments() {
+        return onDuplicateKeyAssignments;
     }
 
     public List<String> ids() {
