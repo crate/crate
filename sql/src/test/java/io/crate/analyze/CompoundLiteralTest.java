@@ -26,7 +26,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifedNameFieldResolver;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.planner.symbol.Field;
@@ -98,7 +98,7 @@ public class CompoundLiteralTest extends AbstractRandomizedTest {
     private static class DummyRelation implements AnalyzedRelation {
 
         @Override
-        public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+        public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
             return null;
         }
 

@@ -31,7 +31,7 @@ public class Relations {
         return IS_READ_ONLY_VISITOR.process(relation, null);
     }
 
-    private static class IsReadOnlyVisitor extends RelationVisitor<Void, Boolean> {
+    private static class IsReadOnlyVisitor extends AnalyzedRelationVisitor<Void, Boolean> {
 
         @Override
         protected Boolean visitAnalyzedRelation(AnalyzedRelation relation, Void context) {

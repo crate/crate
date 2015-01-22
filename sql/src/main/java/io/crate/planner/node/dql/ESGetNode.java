@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Symbol;
-import io.crate.types.DataType;
+import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.Nullable;
 
 import java.util.List;
@@ -49,7 +49,6 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     public ESGetNode(String index,
                      List<Symbol> outputs,
-                     List<DataType> outputTypes,
                      List<String> ids,
                      List<String> routingValues,
                      @Nullable List<Symbol> sortSymbols,
@@ -60,7 +59,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
                      @Nullable List<ReferenceInfo> partitionBy) {
         this.index = index;
         this.outputs = outputs;
-        outputTypes(outputTypes);
+        outputTypes(Symbols.extractTypes(outputs));
         this.ids = ids;
         this.routingValues = routingValues;
         this.sortSymbols = MoreObjects.firstNonNull(sortSymbols, ImmutableList.<Symbol>of());

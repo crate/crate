@@ -22,7 +22,9 @@
 package io.crate.planner.symbol;
 
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.*;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 

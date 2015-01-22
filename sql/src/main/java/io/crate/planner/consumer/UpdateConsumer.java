@@ -28,7 +28,7 @@ import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
@@ -88,7 +88,7 @@ public class UpdateConsumer implements Consumer {
         return true;
     }
 
-    class Visitor extends RelationVisitor<Void, PlannedAnalyzedRelation> {
+    class Visitor extends AnalyzedRelationVisitor<Void, PlannedAnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
 

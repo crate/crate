@@ -25,7 +25,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.symbol.Field;
@@ -67,11 +67,6 @@ public class UpdateAnalyzedStatement extends AnalyzedStatement implements Analyz
     }
 
     @Override
-    public boolean expectsAffectedRows() {
-        return true;
-    }
-
-    @Override
     public boolean hasNoResult() {
         return Iterables.all(nestedStatements, HAS_NO_RESULT_PREDICATE);
     }
@@ -110,7 +105,7 @@ public class UpdateAnalyzedStatement extends AnalyzedStatement implements Analyz
     }
 
     @Override
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitUpdateAnalyzedStatement(this, context);
     }
 

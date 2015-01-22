@@ -22,12 +22,14 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -43,7 +45,6 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
     private final Symbol having;
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final List<Field> fields;
-    private final List<String> outputNames;
     private final List<Symbol> outputSymbols;
     private WhereClause whereClause;
     private final Integer limit;
@@ -63,7 +64,6 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
                                    boolean hasSysExpressions,
                                    boolean hasAggregates) {
         super(null);
-        this.outputNames = outputNames;
         this.outputSymbols = outputSymbols;
         this.sources = sources;
         this.whereClause = whereClause;
@@ -155,17 +155,12 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
         return analyzedStatementVisitor.visitSelectStatement(this, context);
     }
 
-    @Override
-    public boolean expectsAffectedRows() {
-        return false;
-    }
-
     public OrderBy orderBy() {
         return orderBy;
     }
 
     @Override
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitSelectAnalyzedStatement(this, context);
     }
 
@@ -177,16 +172,6 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
     @Override
     public Field getWritableField(Path path) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("SelectAnalyzedStatement is not writable");
-    }
-
-    @Override
-    public List<String> outputNames() {
-        return outputNames;
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return Symbols.extractTypes(outputSymbols);
     }
 
     public List<Symbol> outputSymbols() {

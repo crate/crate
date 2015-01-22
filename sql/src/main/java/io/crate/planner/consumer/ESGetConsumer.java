@@ -24,8 +24,8 @@ package io.crate.planner.consumer;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
@@ -52,7 +52,7 @@ public class ESGetConsumer implements Consumer {
         return true;
     }
 
-    private static class Visitor extends RelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
 
@@ -106,7 +106,6 @@ public class ESGetConsumer implements Consumer {
             return new ESGetNode(
                     indexName,
                     tableRelation.resolve(statement.outputSymbols()),
-                    statement.outputTypes(),
                     whereClauseContext.ids(),
                     whereClauseContext.routingValues(),
                     tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()),

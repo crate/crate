@@ -23,12 +23,11 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Field;
-import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -56,22 +55,12 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
     }
 
     @Override
-    public List<String> outputNames() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return ImmutableList.of();
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitInsertFromSubQueryStatement(this, context);
     }
 
     @Override
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitInsertFromQuery(this, context);
     }
 

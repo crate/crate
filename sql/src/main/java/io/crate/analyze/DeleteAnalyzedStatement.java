@@ -50,11 +50,6 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
         return analyzedRelation;
     }
 
-    @Override
-    public boolean expectsAffectedRows() {
-        return true;
-    }
-
     public List<WhereClause> whereClauses() {
         return whereClauses;
     }
