@@ -43,6 +43,8 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
     private String routing;
     private long version = Versions.MATCH_ANY;
     private Map<String, Symbol> assignments;
+    @Nullable
+    private Map<String, Symbol> missingAssignments;
 
     public ShardUpdateRequest() {
     }
@@ -117,6 +119,15 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
         return assignments;
     }
 
+    @Nullable
+    public Map<String, Symbol> missingAssignments() {
+        return missingAssignments;
+    }
+
+    public void missingAssignments(@Nullable Map<String, Symbol> missingAssignments) {
+        this.missingAssignments = missingAssignments;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -127,6 +138,13 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
         assignments = new HashMap<>(mapSize);
         for (int i = 0; i < mapSize; i++) {
             assignments.put(in.readString(), Symbol.fromStream(in));
+        }
+        if (in.readBoolean()){
+            mapSize = in.readVInt();
+            missingAssignments = new HashMap<>(mapSize);
+            for (int i = 0; i < mapSize; i++) {
+                missingAssignments.put(in.readString(), Symbol.fromStream(in));
+            }
         }
     }
 
@@ -140,6 +158,16 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
         for (Map.Entry<String, Symbol> entry : assignments.entrySet()) {
             out.writeString(entry.getKey());
             Symbol.toStream(entry.getValue(), out);
+        }
+        if (missingAssignments != null){
+            out.writeBoolean(true);
+            out.writeVInt(missingAssignments().size());
+            for (Map.Entry<String, Symbol> entry : missingAssignments.entrySet()){
+                out.writeString(entry.getKey());
+                Symbol.toStream(entry.getValue(), out);
+            }
+        } else {
+            out.writeBoolean(false);
         }
     }
 

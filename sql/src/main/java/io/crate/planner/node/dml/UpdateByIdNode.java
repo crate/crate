@@ -24,6 +24,7 @@ package io.crate.planner.node.dml;
 import com.google.common.base.Optional;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.Nullable;
 
 import java.util.Map;
 
@@ -34,17 +35,20 @@ public class UpdateByIdNode extends DMLPlanNode {
     private final String routing;
     private final Map<String, Symbol> assignments;
     private final Optional<Long> version;
+    private final Map<String, Symbol> missingAssignments;
 
     public UpdateByIdNode(String index,
                           String id,
                           String routing,
                           Map<String, Symbol> assignments,
-                          Optional<Long> version) {
+                          Optional<Long> version,
+                          @Nullable Map<String, Symbol> missingAssignments) {
         this.index = index;
         this.id = id;
         this.routing = routing;
         this.assignments = assignments;
         this.version = version;
+        this.missingAssignments = missingAssignments;
     }
 
     public String index() {
@@ -65,6 +69,11 @@ public class UpdateByIdNode extends DMLPlanNode {
 
     public Optional<Long> version() {
         return version;
+    }
+
+    @Nullable
+    public Map<String, Symbol> missingAssignments() {
+        return missingAssignments;
     }
 
     @Override
