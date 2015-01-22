@@ -30,8 +30,8 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
@@ -70,7 +70,7 @@ public class CrossJoinConsumer implements Consumer {
         return false;
     }
 
-    private static class CrossJoinVisitor extends RelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class CrossJoinVisitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
         private final EvaluatingNormalizer normalizer;
