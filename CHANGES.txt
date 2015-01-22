@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: removed unsupported syntax from ``Update`` synposis
+
  - Support column referencing in ``Update`` statement assignment
    expression
 
