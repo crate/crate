@@ -71,6 +71,7 @@ empty_layer = ConnectingCrateLayer('crate',
                          port=CRATE_HTTP_PORT,
                          transport_port=CRATE_TRANSPORT_PORT)
 
+
 def setUpLocations(test):
     test.globs['cmd'] = cmd
 
@@ -97,6 +98,23 @@ def setUpLocations(test):
     cmd.onecmd("""copy locations from '{0}'""".format(locations_file))
     cmd.onecmd("""refresh table locations""")
 
+
+def setUpUserVisits(test):
+    test.globs['cmd'] = cmd
+    cmd.onecmd("""
+        create table uservisits(
+          id integer primary key,
+          name string,
+          visits integer,
+          last_visit timestamp
+        )
+    """.strip())
+    cmd.onecmd("delete from uservisists")
+    uservisits_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "uservisits.json"))
+    cmd.onecmd("""copy uservisits from '{0}'""".format(uservisits_file))
+    cmd.onecmd("""refresh table uservisits""")
+
+
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
     cmd.onecmd("""
@@ -116,6 +134,11 @@ def setUpQuotes(test):
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
+
+
+def setUpLocationsQuotesAndUserVisits(test):
+    setUpLocationsAndQuotes(test)
+    setUpUserVisits(test)
 
 
 def setUpTutorials(test):
@@ -162,7 +185,6 @@ def test_suite():
         s.layer = empty_layer
         suite.addTest(s)
     for fn in ('sql/ddl.txt',
-               'sql/dml.txt',
                'sql/dql.txt',
                'sql/refresh.txt',
                'sql/fulltext.txt',
@@ -182,6 +204,13 @@ def test_suite():
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
         suite.addTest(s)
+    for fn in ('sql/dml.txt',):
+        s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
+                                 setUp=setUpLocationsQuotesAndUserVisits,
+                                 optionflags=doctest.NORMALIZE_WHITESPACE |
+                                 doctest.ELLIPSIS)
+        s.layer = empty_layer
+        suite.addTest(s)
     for fn in ('best_practice/migrating_from_mongodb.txt',):
         path = os.path.join('..', '..', fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
@@ -191,7 +220,7 @@ def test_suite():
         s.layer = empty_layer
         suite.addTest(s)
     for fn in ('data_import.txt', 'cluster_upgrade.txt'):
-        path = os.path.join('..','..','best_practice',fn)
+        path = os.path.join('..', '..', 'best_practice', fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
                                  setUp=setUpTutorials,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
