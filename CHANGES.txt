@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: removed unsupported syntax from ``Update`` synposis
+
 2015/01/19 0.46.3
 =================
 
