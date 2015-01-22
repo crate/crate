@@ -657,14 +657,26 @@ dropTable returns [Statement value]
     ;
 
 insert returns [Statement value]
-    : ^(INSERT values=insertValues namedTable cols=columnIdentList?)
+    : ^(INSERT values=insertValues namedTable cols=columnIdentList? onDuplicateKey?)
         {
-            $value = new InsertFromValues($namedTable.value, $values.value, $cols.value);
+            $value = new InsertFromValues(
+                $namedTable.value,
+                $values.value,
+                $cols.value,
+                $onDuplicateKey.value);
         }
-    | ^(INSERT subQuery=query namedTable cols=columnIdentList?)
+    | ^(INSERT subQuery=query namedTable cols=columnIdentList? onDuplicateKey?)
         {
-            $value = new InsertFromSubquery($namedTable.value, $subQuery.value, $cols.value);
+            $value = new InsertFromSubquery(
+                $namedTable.value,
+                $subQuery.value,
+                $cols.value,
+                $onDuplicateKey.value);
         }
+    ;
+
+onDuplicateKey returns [List<Assignment> value]
+    : ^(ON_DUP_KEY assignmentList) { $value = $assignmentList.value; }
     ;
 
 insertValues returns [List<ValuesList> value = new ArrayList<>()]
