@@ -43,6 +43,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
+import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
@@ -610,7 +611,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new HashMap<String, Symbol>(){{
                     put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Vogon lyric fan"));
                 }},
-                Optional.<Long>fromNullable(null)
+                Optional.<Long>absent(),
+                null
         );
         Plan plan = new IterablePlan(updateNode);
 
@@ -634,6 +636,99 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(1));
         assertThat((String)objects[0][1], is("Vogon lyric fan"));
+    }
+
+    @Test
+    public void testUpdateByIdTaskMissingAssignmentsNewDocument() throws Exception {
+        setup.setUpCharacters();
+        /* insert into characters (id, name, female) values (2+3, 'Zaphod Beeblebrox', false);
+           on duplicate key update
+            set name = 'Zaphod Beeblebrox' */
+        final Function addFunction = new Function(new FunctionInfo(
+                new FunctionIdent(AddFunction.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
+                DataTypes.INTEGER
+        ), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(3)));
+
+        Map<String, Symbol> missingAssignments = new HashMap<String, Symbol>(){{
+            put(idRef.info().ident().columnIdent().fqn(), addFunction);
+            put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Zaphod Beeblebrox"));
+            put(femaleRef.ident().columnIdent().fqn(), Literal.newLiteral(false));
+        }};
+        UpdateByIdNode updateNode = new UpdateByIdNode(
+                "characters",
+                "5",
+                "5",
+                new HashMap<String, Symbol>(){{
+                    put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Zaphod Beeblebrox"));
+                }},
+                Optional.<Long>fromNullable(null),
+                missingAssignments
+        );
+        Plan plan = new IterablePlan(updateNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
+
+        // verify insert
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
+        ESGetNode getNode = newGetNode("characters", outputs, "5");
+        plan = new IterablePlan(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(5));
+        assertThat((String)objects[0][1], is("Zaphod Beeblebrox"));
+        assertThat((boolean)objects[0][2], is(false));
+    }
+
+    @Test
+    public void testUpdateByIdTaskMissingAssignmentsExistingDoc() throws Exception {
+        setup.setUpCharacters();
+        Map<String, Symbol> missingAssignments = new HashMap<String, Symbol>(){{
+            put(idRef.info().ident().columnIdent().fqn(), Literal.newLiteral(1));
+            put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Zaphod Beeblebrox"));
+            put(femaleRef.ident().columnIdent().fqn(), Literal.newLiteral(true));
+        }};
+        UpdateByIdNode updateNode = new UpdateByIdNode(
+                "characters",
+                "1",
+                "1",
+                new HashMap<String, Symbol>(){{
+                    put(femaleRef.info().ident().columnIdent().fqn(), Literal.newLiteral(true));
+                }},
+                Optional.<Long>fromNullable(null),
+                missingAssignments
+        );
+        Plan plan = new IterablePlan(updateNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
+
+        // verify update
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
+        ESGetNode getNode = newGetNode("characters", outputs, "1");
+        plan = new IterablePlan(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(1));
+        assertThat((String)objects[0][1], is("Arthur"));
+        // Existing document is updated
+        assertThat((boolean)objects[0][2], is(true));
     }
 
     @Test
