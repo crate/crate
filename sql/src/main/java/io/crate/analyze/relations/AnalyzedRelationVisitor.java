@@ -27,7 +27,7 @@ import io.crate.analyze.UpdateAnalyzedStatement;
 
 import javax.annotation.Nullable;
 
-public abstract class RelationVisitor<C, R> {
+public abstract class AnalyzedRelationVisitor<C, R> {
 
     public R process(AnalyzedRelation relation, @Nullable C context) {
         return relation.accept(this, context);

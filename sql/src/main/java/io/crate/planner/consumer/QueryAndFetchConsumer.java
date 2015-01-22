@@ -28,7 +28,7 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
@@ -86,7 +86,7 @@ public class QueryAndFetchConsumer implements Consumer {
         }
     }
 
-    private static class Visitor extends RelationVisitor<Context, AnalyzedRelation> {
+    private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
 

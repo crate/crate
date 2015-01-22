@@ -26,7 +26,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifedNameFieldResolver;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Path;
 import io.crate.metadata.information.MetaDataInformationModule;
@@ -83,7 +83,7 @@ public class ReferenceToTrueVisitorTest {
     private static class DummyRelation implements AnalyzedRelation {
 
         @Override
-        public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+        public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
             return null;
         }
 

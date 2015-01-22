@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.TableInfo;
@@ -71,7 +71,7 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
     }
 
     @Override
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitInsertFromQuery(this, context);
     }
 

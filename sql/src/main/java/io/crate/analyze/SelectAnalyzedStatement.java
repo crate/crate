@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.planner.symbol.*;
@@ -160,7 +160,7 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
     }
 
     @Override
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitSelectAnalyzedStatement(this, context);
     }
 
