@@ -21,11 +21,14 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
+
 public class Analysis {
 
     private final ParameterContext parameterContext;
     private AnalyzedStatement analyzedStatement;
     private boolean expectsAffectedRows = false;
+    private AnalyzedRelation rootRelation;
 
     public Analysis(ParameterContext parameterContext) {
         this.parameterContext = parameterContext;
@@ -51,5 +54,12 @@ public class Analysis {
         return expectsAffectedRows;
     }
 
+    public void rootRelation(AnalyzedRelation rootRelation) {
+        this.rootRelation = rootRelation;
+    }
+
+    public AnalyzedRelation rootRelation(){
+        return rootRelation;
+    }
 
 }

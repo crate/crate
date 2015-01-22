@@ -86,8 +86,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                                                    DataType[] outputTypes,
                                                    List<TaskResult> result,
                                                    boolean expectsAffectedRows,
-                                                   long requestCreationTime,
-                                                   boolean includeTypesOnResponse) {
+                                                   SQLRequest request) {
         assert result.size() == 1;
         TaskResult taskResult = result.get(0);
         Object[][] rows = taskResult.rows();
@@ -106,8 +105,8 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                 rows,
                 outputTypes,
                 rowCount,
-                requestCreationTime,
-                includeTypesOnResponse
+                request.creationTime(),
+                request.includeTypesOnResponse()
         );
     }
 

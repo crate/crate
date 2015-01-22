@@ -101,6 +101,7 @@ public class Analyzer {
         protected AnalyzedStatement visitQuery(Query node, Analysis context) {
             SelectStatementAnalyzer analyzer = new SelectStatementAnalyzer(analysisMetaData, context.parameterContext());
             SelectAnalyzedStatement statement = (SelectAnalyzedStatement )analyzer.process(node, null);
+            context.rootRelation(statement);
             statement.normalize(normalizer);
             return statement;
         }
