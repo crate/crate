@@ -21,18 +21,24 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.collect.Lists;
 import io.crate.types.DataType;
 
-import java.util.ArrayList;
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class Symbols {
 
+    public static final com.google.common.base.Function<Symbol, DataType> TYPES_FUNCTION =
+            new com.google.common.base.Function<Symbol, DataType>() {
+                @Nullable
+                @Override
+                public DataType apply(Symbol input) {
+                    return input.valueType();
+                }
+            };
+
     public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
-        List<DataType> result = new ArrayList<>(symbols.size());
-        for (Symbol symbol : symbols) {
-            result.add(symbol.valueType());
-        }
-        return result;
+        return Lists.transform(symbols, TYPES_FUNCTION);
     }
 }

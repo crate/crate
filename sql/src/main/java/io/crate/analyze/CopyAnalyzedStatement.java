@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Symbol;
-import io.crate.types.DataType;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -77,11 +76,6 @@ public class CopyAnalyzedStatement extends AnalyzedStatement {
 
     @Override
     public void normalize() {
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return outputTypes;
     }
 
     @Nullable

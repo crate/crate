@@ -21,9 +21,10 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
+import com.google.common.base.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
@@ -57,6 +58,7 @@ import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.consumer.ConsumingPlanner;
+import io.crate.planner.symbol.Function;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.TestingHelpers;
@@ -73,6 +75,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -213,15 +216,15 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis =  analyze("select count(*) from sys.nodes group by name");
 
         assertThat(analysis.groupBy().size(), is(1));
-        assertThat(analysis.outputNames().get(0), is("count(*)"));
+        assertThat(analysis.fields().get(0).path().outputName(), is("count(*)"));
     }
 
     @Test
     public void testGroupByOnAlias() throws Exception {
         SelectAnalyzedStatement analysis =  analyze("select count(*), name as n from sys.nodes group by n");
         assertThat(analysis.groupBy().size(), is(1));
-        assertThat(analysis.outputNames().get(0), is("count(*)"));
-        assertThat(analysis.outputNames().get(1), is("n"));
+        assertThat(analysis.fields().get(0).path().outputName(), is("count(*)"));
+        assertThat(analysis.fields().get(1).path().outputName(), is("n"));
 
         assertEquals(analysis.groupBy().get(0), analysis.outputSymbols().get(1));
     }
@@ -291,21 +294,33 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(AverageAggregation.NAME, col1.info().ident().name());
     }
 
+
+    private List<String> outputNames(AnalyzedRelation relation){
+        return Lists.transform(relation.fields(), new com.google.common.base.Function<Field, String>() {
+            @Nullable
+            @Override
+            public String apply(Field input) {
+                return input.path().outputName();
+            }
+        });
+    }
+
     @Test
     public void testAllColumnCluster() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from sys.cluster");
-        assertThat(analysis.outputNames().size(), is(4));
-        assertThat(analysis.outputNames(), containsInAnyOrder("id", "master_node", "name", "settings"));
+        assertThat(analysis.fields().size(), is(4));
+        assertThat(outputNames(analysis), containsInAnyOrder("id", "master_node", "name", "settings"));
         assertThat(analysis.outputSymbols().size(), is(4));
     }
 
     @Test
     public void testAllColumnNodes() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select id, * from sys.nodes");
-        assertThat(analysis.outputNames().get(0), is("id"));
-        assertThat(analysis.outputNames().get(1), is("id"));
-        assertThat(analysis.outputNames().size(), is(14));
-        assertEquals(analysis.outputNames().size(), analysis.outputSymbols().size());
+        List<String> outputNames = outputNames(analysis);
+        assertThat(outputNames.get(0), is("id"));
+        assertThat(outputNames.get(1), is("id"));
+        assertThat(outputNames.size(), is(14));
+        assertThat(analysis.outputSymbols().size(), is(14));
     }
 
     @Test
@@ -367,26 +382,29 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testOutputNames() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select load as l, id, load['1'] from sys.nodes");
-        assertThat(analysis.outputNames().size(), is(3));
-        assertThat(analysis.outputNames().get(0), is("l"));
-        assertThat(analysis.outputNames().get(1), is("id"));
-        assertThat(analysis.outputNames().get(2), is("load['1']"));
+        List<String> outputNames = outputNames(analysis);
+        assertThat(outputNames.size(), is(3));
+        assertThat(outputNames.get(0), is("l"));
+        assertThat(outputNames.get(1), is("id"));
+        assertThat(outputNames.get(2), is("load['1']"));
     }
 
     @Test
     public void testDuplicateOutputNames() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select load as l, load['1'] as l from sys.nodes");
-        assertThat(analysis.outputNames().size(), is(2));
-        assertThat(analysis.outputNames().get(0), is("l"));
-        assertThat(analysis.outputNames().get(1), is("l"));
+        List<String> outputNames = outputNames(analysis);
+        assertThat(outputNames.size(), is(2));
+        assertThat(outputNames.get(0), is("l"));
+        assertThat(outputNames.get(1), is("l"));
     }
 
     @Test
     public void testOrderByOnAlias() throws Exception {
         SelectAnalyzedStatement analyze =  analyze(
                 "select name as cluster_name from sys.cluster order by cluster_name");
-        assertThat(analyze.outputNames().size(), is(1));
-        assertThat(analyze.outputNames().get(0), is("cluster_name"));
+        List<String> outputNames = outputNames(analyze);
+        assertThat(outputNames.size(), is(1));
+        assertThat(outputNames.get(0), is("cluster_name"));
 
         assertTrue(analyze.orderBy().isSorted());
         assertThat(analyze.orderBy().orderBySymbols().size(), is(1));

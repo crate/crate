@@ -216,9 +216,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
         final UUID jobId = job.id();
         assert jobId != null;
-        if (jobId != null) {
-            statsTables.jobStarted(jobId, request.stmt());
-        }
+        statsTables.jobStarted(jobId, request.stmt());
         List<ListenableFuture<TaskResult>> resultFutureList = executor.execute(job);
         Futures.addCallback(Futures.allAsList(resultFutureList), new FutureCallback<List<TaskResult>>() {
                     @Override
@@ -231,10 +229,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                             return;
                         }
                         assert (jobId != null);
-                        if (jobId != null) {
-                            statsTables.jobFinished(jobId, null);
-                        }
-
+                        statsTables.jobFinished(jobId, null);
                         sendResponse(listener, response);
                     }
 

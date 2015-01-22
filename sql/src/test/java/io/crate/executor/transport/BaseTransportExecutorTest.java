@@ -33,7 +33,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Symbols;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.testing.TestingHelpers;
@@ -94,7 +93,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         return new ESGetNode(
                 index,
                 outputs,
-                Symbols.extractTypes(outputs),
                 ids,
                 ids,
                 ImmutableList.<Symbol>of(),

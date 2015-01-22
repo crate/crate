@@ -21,16 +21,9 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.types.DataType;
-
-import java.util.List;
-
 public abstract class AnalyzedStatement {
 
     private final ParameterContext parameterContext;
-    private List<String> outputNames = ImmutableList.of();
-    protected List<DataType> outputTypes = ImmutableList.of();
 
     protected AnalyzedStatement(ParameterContext parameterContext) {
         this.parameterContext = parameterContext;
@@ -38,14 +31,6 @@ public abstract class AnalyzedStatement {
     public abstract boolean hasNoResult();
 
     public abstract void normalize();
-
-    public List<String> outputNames() {
-        return outputNames;
-    }
-
-    public List<DataType> outputTypes() {
-        return outputTypes;
-    }
 
     public ParameterContext parameterContext() {
         return parameterContext;
