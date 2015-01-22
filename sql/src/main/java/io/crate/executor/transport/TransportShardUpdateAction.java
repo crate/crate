@@ -25,10 +25,14 @@ package io.crate.executor.transport;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceResolver;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.ElasticsearchException;
@@ -85,6 +89,8 @@ public class TransportShardUpdateAction extends TransportInstanceSingleOperation
     private final TransportUpdateAction updateAction;
     private final IndicesService indicesService;
     private final Functions functions;
+    private final EvaluatingNormalizer evaluatingNormalizer;
+
 
     @Inject
     public TransportShardUpdateAction(Settings settings,
@@ -95,12 +101,14 @@ public class TransportShardUpdateAction extends TransportInstanceSingleOperation
                                       TransportIndexAction indexAction,
                                       TransportUpdateAction updateAction,
                                       IndicesService indicesService,
-                                      Functions functions) {
+                                      Functions functions,
+                                      ReferenceResolver referenceResolver) {
         super(settings, ACTION_NAME, threadPool, clusterService, transportService, actionFilters);
         this.indexAction = indexAction;
         this.updateAction = updateAction;
         this.indicesService = indicesService;
         this.functions = functions;
+        this.evaluatingNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
     }
 
     @Override
@@ -197,17 +205,14 @@ public class TransportShardUpdateAction extends TransportInstanceSingleOperation
      */
     @SuppressWarnings("unchecked")
     public IndexRequest prepare(ShardUpdateRequest request, IndexShard indexShard) {
-        final SymbolToFieldExtractor.Context ctx = new SymbolToFieldExtractor.Context(functions, request.assignments().size());
-        Map<String, FieldExtractor> extractors = new HashMap<>(request.assignments().size());
-        for (Map.Entry<String, Symbol> entry : request.assignments().entrySet()) {
-            extractors.put(entry.getKey(), SYMBOL_TO_FIELD_EXTRACTOR.convert(entry.getValue(), ctx));
-        }
-
         final GetResult getResult = indexShard.getService().get(request.type(), request.id(),
                 new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
                 true, request.version(), VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
 
         if (!getResult.isExists()) {
+            if(request.missingAssignments() != null){
+                return prepareMissingAssignmentsIndexRequest(request);
+            }
             throw new DocumentMissingException(new ShardId(indexShard.indexService().index().name(), request.shardId()), request.type(), request.id());
         }
 
@@ -224,6 +229,12 @@ public class TransportShardUpdateAction extends TransportInstanceSingleOperation
 
         updatedSourceAsMap = sourceAndContent.v2();
 
+        final SymbolToFieldExtractor.Context ctx = new SymbolToFieldExtractor.Context(functions, request.assignments().size());
+        Map<String, FieldExtractor> extractors = new HashMap<>(request.assignments().size());
+        for (Map.Entry<String, Symbol> entry : request.assignments().entrySet()) {
+            extractors.put(entry.getKey(), SYMBOL_TO_FIELD_EXTRACTOR.convert(entry.getValue(), ctx));
+        }
+
         Map<String, Object> pathsToUpdate = new HashMap<>(extractors.size());
         for (Map.Entry<String, FieldExtractor> entry : extractors.entrySet()) {
             /**
@@ -239,6 +250,17 @@ public class TransportShardUpdateAction extends TransportInstanceSingleOperation
                 .source(updatedSourceAsMap, updateSourceContentType)
                 .version(getResult.getVersion());
         indexRequest.operationThreaded(false);
+        return indexRequest;
+    }
+
+    private IndexRequest prepareMissingAssignmentsIndexRequest(ShardUpdateRequest request) {
+        Map<String, Object> changes = new HashMap<>(request.missingAssignments().size());
+        for(Map.Entry<String, Symbol> entry : request.missingAssignments().entrySet()){
+            Literal value = (Literal) evaluatingNormalizer.normalize(entry.getValue());
+            changes.put(entry.getKey(), value.value());
+        }
+        IndexRequest indexRequest = Requests.indexRequest(request.index()).type(request.type()).id(request.id()).routing(request.routing())
+                .source(changes).create(true).operationThreaded(false);
         return indexRequest;
     }
 
