@@ -35,7 +35,9 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -47,6 +49,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -115,19 +120,21 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         assertCompatibleColumns(analysis);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testFromQueryWithMissingSubQueryColumn() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
         analyze("insert into users (" +
-                        "  select id, other_id, name, details, awesome, counters, " +
-                        "       friends " +
-                        "  from users " +
-                        "  where name = 'Trillian'" +
-                        ")");
+                "  select id, other_id, name, details, awesome, counters, " +
+                "       friends " +
+                "  from users " +
+                "  where name = 'Trillian'" +
+                ")");
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testFromQueryWithMissingInsertColumn() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
         analyze("insert into users (id, other_id, name, details, awesome, counters, friends) (" +
                 "  select * from users " +
                 "  where name = 'Trillian'" +
@@ -145,8 +152,9 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         assertCompatibleColumns(analysis);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testFromQueryWithWrongColumnTypes() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
         analyze("insert into users (id, details, name) (" +
                 "  select id, name, details from users " +
                 "  where name = 'Trillian'" +
@@ -187,5 +195,11 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         assertThat(outputSymbols.get(1), instanceOf(Function.class));
         Function castFunction = (Function)outputSymbols.get(1);
         assertThat(castFunction.info().ident().name(), is(ToStringFunction.NAME));
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("insert into users (id, name) (select id, name from users) on duplicate key update name = substr(values (name), 1, 1)");
     }
 }

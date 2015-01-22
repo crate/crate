@@ -48,7 +48,9 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<Void> {
 
     @Override
     public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Void context) {
-
+        if (!node.onDuplicateKeyAssignments().isEmpty()) {
+            throw new UnsupportedOperationException("ON DUPLICATE KEY UPDATE clause is not supported");
+        }
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
 
         SelectStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer(analysisMetaData, parameterContext);
