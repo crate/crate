@@ -8,28 +8,28 @@ Third party dependencies:
 
 Lucene
 http://lucene.apache.org/
-Developed by The Apache Software Foundation.
+developed by The Apache Software Foundation
 License: Apache License v2 (http://www.apache.org/licenses)
 
 =========================================================================
 
 Elasticsearch
 http://www.elasticsearch.org/
-developed by Elasticsearch and Shay Banon.
+developed by Elasticsearch and Shay Banon
 License: Apache License v2 (http://www.apache.org/licenses)
 
 =========================================================================
 
-elasticsearch-head
-https://github.com/mobz/elasticsearch-head
-developed by Ben Birch (http://mobz.org/).
+Presto (SQL Parser)
+http://prestodb.io
+developed by Facebook (https://github.com/facebook/presto)
 License: Apache License v2 (http://www.apache.org/licenses)
 
 =========================================================================
 
-Bigdesk
-https://github.com/lukas-vlcek/bigdesk
-developed by Lukáš Vlček (http://cz.linkedin.com/in/lukasvlcek)
+Netty
+http://netty.io
+developed by The Netty Project
 License: Apache License v2 (http://www.apache.org/licenses)
 
 =========================================================================
@@ -44,27 +44,6 @@ normalize.css
 http://github.com/necolas/normalize.css
 Copyright (c) Nicolas Gallagher and Jonathan Neal
 License: https://github.com/necolas/normalize.css/blob/master/LICENSE.md
-
-=========================================================================
-
-CssGrid
-http://cssgrid.net
-Copyright (c) Andy Taylor
-License: http://creativecommons.org/licenses/by/3.0/au/
-
-=========================================================================
-
-D3.js
-http://d3js.org
-Copyright (c) 2012, Michael Bostock
-License: http://opensource.org/licenses/BSD-3-Clause
-
-=========================================================================
-
-Backbone.js
-http://backbonejs.org
-Copyright (c) 2010-2012 Jeremy Ashkenas, DocumentCloud
-License: MIT License, https://github.com/documentcloud/backbone/blob/master/LICENSE
 
 =========================================================================
 
@@ -86,27 +65,6 @@ Copyright (c) 2009 Chris Wanstrath (Ruby)
 Copyright (c) 2010 Jan Lehnardt (JavaScript)
 http://mustache.github.com
 License: MIT License
-
-=========================================================================
-
-Tinysort.js
-http://code.google.com/p/tinysort/
-http://tinysort.sjeiti.com/
-License: MIT License
-
-=========================================================================
-
-Underscore.js
-http://underscorejs.org
-Copyright (c) 2009-2012 Jeremy Ashkenas, DocumentCloud
-License: MIT License, https://github.com/documentcloud/underscore/blob/master/LICENSE
-
-=========================================================================
-
-Segmentspy
-https://github.com/polyfractal/elasticsearch-segmentspy
-developed by Zachary Tong (http://www.euphonious-intuition.com/)
-License: MIT (https://raw.github.com/polyfractal/elasticsearch-segmentspy/master/LICENSE)
 
 =========================================================================
 
@@ -145,29 +103,8 @@ License: MIT (https://github.com/angular/angular.js/blob/master/LICENSE)
 
 =========================================================================
 
-Handlebars
-http://github.com/danharper
-Copyright Dan Harper
-License: Do What The Fuck You Want To Public License, Version 2 (http://sam.zoy.org/wtfpl/COPYING)
-
-=========================================================================
-
-Sammy.js
-http://sammyjs.org
-Copyright (c) 2008 Aaron Quint, Quirkey NYC, LLC
-License: MIT (https://github.com/quirkey/sammy/blob/master/LICENSE)
-
-=========================================================================
-
 Various Components of Lovely Systems GmbH
 http://www.lovelysystems.com
 Copyright Lovely Systems GmbH
 License: Apache 2.0 (http://www.apache.org/licenses)
-
-=========================================================================
-
-SQL-Parser (Presto)
-https://github.com/facebook/presto
-developed by Facebook (http://www.facebook.com)
-License: Apache License v2 (http://www.apache.org/licenses)
 
