@@ -155,11 +155,6 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
         return analyzedStatementVisitor.visitSelectStatement(this, context);
     }
 
-    @Override
-    public boolean expectsAffectedRows() {
-        return false;
-    }
-
     public OrderBy orderBy() {
         return orderBy;
     }

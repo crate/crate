@@ -67,11 +67,6 @@ public class UpdateAnalyzedStatement extends AnalyzedStatement implements Analyz
     }
 
     @Override
-    public boolean expectsAffectedRows() {
-        return true;
-    }
-
-    @Override
     public boolean hasNoResult() {
         return Iterables.all(nestedStatements, HAS_NO_RESULT_PREDICATE);
     }

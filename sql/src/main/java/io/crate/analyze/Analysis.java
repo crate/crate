@@ -21,18 +21,35 @@
 
 package io.crate.analyze;
 
-import javax.annotation.concurrent.Immutable;
-
-@Immutable
 public class Analysis {
 
-    private final AnalyzedStatement analyzedStatement;
+    private final ParameterContext parameterContext;
+    private AnalyzedStatement analyzedStatement;
+    private boolean expectsAffectedRows = false;
 
-    public Analysis(AnalyzedStatement analyzedStatement) {
+    public Analysis(ParameterContext parameterContext) {
+        this.parameterContext = parameterContext;
+    }
+
+    public void analyzedStatement(AnalyzedStatement analyzedStatement) {
         this.analyzedStatement = analyzedStatement;
     }
 
     public AnalyzedStatement analyzedStatement() {
         return analyzedStatement;
     }
+
+    public ParameterContext parameterContext() {
+        return parameterContext;
+    }
+
+    public void expectsAffectedRows(boolean expectsAffectedRows) {
+        this.expectsAffectedRows = expectsAffectedRows;
+    }
+
+    public boolean expectsAffectedRows() {
+        return expectsAffectedRows;
+    }
+
+
 }

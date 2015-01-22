@@ -55,11 +55,6 @@ public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
         return analyzedStatementVisitor.visitDDLAnalyzedStatement(this, context);
     }
 
-    @Override
-    public boolean expectsAffectedRows() {
-        return true;
-    }
-
     public boolean isValidTableOrSchemaName(String name) {
         for (String illegalCharacter: Constants.INVALID_TABLE_NAME_CHARACTERS) {
             if (name.contains(illegalCharacter) || name.length() == 0) {

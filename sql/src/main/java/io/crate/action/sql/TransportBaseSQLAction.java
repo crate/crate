@@ -171,18 +171,14 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         final String[] outputNames = analyzedStatement.outputNames().toArray(new String[analyzedStatement.outputNames().size()]);
         DataType[] outputTypes = analyzedStatement.outputTypes().toArray(new DataType[analyzedStatement.outputTypes().size()]);
 
-        if (analyzedStatement.hasNoResult()) {
-            listener.onResponse(emptyResponse(request, outputNames, outputTypes));
-            return;
-        }
         final Plan plan = planner.plan(analysis);
         tracePlan(plan);
 
-        executePlan(analyzedStatement, plan, outputNames, outputTypes, listener, request);
+        executePlan(analysis, plan, outputNames, outputTypes, listener, request);
 
     }
 
-    private void executePlan(final AnalyzedStatement analyzedStatement,
+    private void executePlan(final Analysis analysis,
                              final Plan plan,
                              final String[] outputNames,
                              final DataType[] outputTypes,
@@ -208,7 +204,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                 outputNames,
                                 outputTypes,
                                 result,
-                                analyzedStatement.expectsAffectedRows(),
+                                analysis.expectsAffectedRows(),
                                 request.creationTime(),
                                 request.includeTypesOnResponse()
                         );

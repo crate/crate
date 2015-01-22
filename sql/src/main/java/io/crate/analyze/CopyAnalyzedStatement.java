@@ -58,11 +58,6 @@ public class CopyAnalyzedStatement extends AnalyzedStatement {
         TO
     }
 
-    @Override
-    public boolean expectsAffectedRows() {
-        return true;
-    }
-
     public Symbol uri() {
         return uri;
     }

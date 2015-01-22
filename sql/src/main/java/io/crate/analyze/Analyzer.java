@@ -41,14 +41,14 @@ public class Analyzer {
     }
 
     public Analysis analyze(Statement statement, Object[] parameters, Object[][] bulkParams) {
-        ParameterContext parameterContext = new ParameterContext(parameters, bulkParams);
-        AnalyzedStatement analyzedStatement = dispatcher.process(statement, parameterContext);
+        Analysis analysis = new Analysis(new ParameterContext(parameters, bulkParams));
+        AnalyzedStatement analyzedStatement = dispatcher.process(statement, analysis);
         assert analyzedStatement != null : "analyzed statement must not be null";
-        return new Analysis(analyzedStatement);
+        analysis.analyzedStatement(analyzedStatement);
+        return analysis;
     }
 
-
-    public static class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, ParameterContext> {
+    public static class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
         private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
@@ -90,112 +90,132 @@ public class Analyzer {
                     analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver());
         }
 
-        private AnalyzedStatement analyze(Node node, AbstractStatementAnalyzer statementAnalyzer, ParameterContext parameterContext) {
-            AnalyzedStatement analyzedStatement = statementAnalyzer.newAnalysis(parameterContext);
+        private AnalyzedStatement analyze(Node node, AbstractStatementAnalyzer statementAnalyzer, Analysis analysis) {
+            AnalyzedStatement analyzedStatement = statementAnalyzer.newAnalysis(analysis.parameterContext());
             node.accept(statementAnalyzer, analyzedStatement);
             analyzedStatement.normalize();
             return analyzedStatement;
         }
 
         @Override
-        protected AnalyzedStatement visitQuery(Query node, ParameterContext context) {
-            SelectStatementAnalyzer analyzer = new SelectStatementAnalyzer(analysisMetaData, context);
+        protected AnalyzedStatement visitQuery(Query node, Analysis context) {
+            SelectStatementAnalyzer analyzer = new SelectStatementAnalyzer(analysisMetaData, context.parameterContext());
             SelectAnalyzedStatement statement = (SelectAnalyzedStatement )analyzer.process(node, null);
             statement.normalize(normalizer);
             return statement;
         }
 
         @Override
-        public AnalyzedStatement visitDelete(Delete node, ParameterContext context) {
-            DeleteStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer(analysisMetaData, context);
+        public AnalyzedStatement visitDelete(Delete node, Analysis context) {
+            DeleteStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer(analysisMetaData, context.parameterContext());
+            context.expectsAffectedRows(true);
             return deleteStatementAnalyzer.process(node, null);
         }
 
         @Override
-        public AnalyzedStatement visitInsertFromValues(InsertFromValues node, ParameterContext context) {
-            InsertFromValuesAnalyzer analyzer = new InsertFromValuesAnalyzer(analysisMetaData, context);
+        public AnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis context) {
+            InsertFromValuesAnalyzer analyzer = new InsertFromValuesAnalyzer(
+                    analysisMetaData, context.parameterContext());
+            context.expectsAffectedRows(true);
             return analyzer.process(node, null);
         }
 
         @Override
-        public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, ParameterContext context) {
-            InsertFromSubQueryAnalyzer analyzer = new InsertFromSubQueryAnalyzer(analysisMetaData, context);
+        public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis context) {
+            InsertFromSubQueryAnalyzer analyzer = new InsertFromSubQueryAnalyzer(
+                    analysisMetaData, context.parameterContext());
+            context.expectsAffectedRows(true);
             return analyzer.process(node, null);
         }
 
         @Override
-        public AnalyzedStatement visitUpdate(Update node, ParameterContext context) {
-            UpdateStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer(analysisMetaData, context);
+        public AnalyzedStatement visitUpdate(Update node, Analysis context) {
+            UpdateStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer(
+                    analysisMetaData, context.parameterContext());
+            context.expectsAffectedRows(true);
             return updateStatementAnalyzer.process(node, null);
         }
 
         @Override
-        public AnalyzedStatement visitCopyFromStatement(CopyFromStatement node, ParameterContext context) {
+        public AnalyzedStatement visitCopyFromStatement(CopyFromStatement node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, new CopyStatementAnalyzer(analysisMetaData), context);
         }
 
         @Override
-        public AnalyzedStatement visitCopyTo(CopyTo node, ParameterContext context) {
+        public AnalyzedStatement visitCopyTo(CopyTo node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, new CopyStatementAnalyzer(analysisMetaData), context);
         }
 
         @Override
-        public AnalyzedStatement visitDropTable(DropTable node, ParameterContext context) {
+        public AnalyzedStatement visitDropTable(DropTable node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, dropTableStatementAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitCreateTable(CreateTable node, ParameterContext context) {
+        public AnalyzedStatement visitCreateTable(CreateTable node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, createTableStatementAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, ParameterContext context) {
+        public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, createAnalyzerStatementAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable node, ParameterContext context) {
+        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, createBlobTableStatementAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitDropBlobTable(DropBlobTable node, ParameterContext context) {
+        public AnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, dropBlobTableStatementAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, ParameterContext context) {
+        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, alterBlobTableAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitRefreshStatement(RefreshStatement node, ParameterContext context) {
+        public AnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, refreshTableAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitAlterTable(AlterTable node, ParameterContext context) {
+        public AnalyzedStatement visitAlterTable(AlterTable node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, alterTableAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, ParameterContext context) {
+        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, alterTableAddColumnAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitSetStatement(SetStatement node, ParameterContext context) {
+        public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, setStatementAnalyzer, context);
         }
 
         @Override
-        public AnalyzedStatement visitResetStatement(ResetStatement node, ParameterContext context) {
+        public AnalyzedStatement visitResetStatement(ResetStatement node, Analysis context) {
+            context.expectsAffectedRows(true);
             return analyze(node, setStatementAnalyzer, context);
         }
 
         @Override
-        protected AnalyzedStatement visitNode(Node node, ParameterContext context) {
+        protected AnalyzedStatement visitNode(Node node, Analysis context) {
             throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", node));
         }
     }

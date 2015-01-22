@@ -59,7 +59,4 @@ public abstract class AnalyzedStatement {
         return analyzedStatementVisitor.visitAnalyzedStatement(this, context);
     }
 
-    public boolean expectsAffectedRows() {
-        return false;
-    }
 }
