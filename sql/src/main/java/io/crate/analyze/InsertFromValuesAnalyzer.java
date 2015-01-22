@@ -66,6 +66,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     @Override
     public AbstractInsertAnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis analysis) {
+        if (!node.onDuplicateKeyAssignments().isEmpty()) {
+            throw new UnsupportedOperationException("ON DUPLICATE KEY UPDATE clause is not supported");
+        }
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
         TableRelation tableRelation = new TableRelation(tableInfo);
         validateTable(tableInfo);

@@ -833,5 +833,11 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.partitionMaps().get(0).containsKey("obj.name"), is(true));
         assertThat(statement.partitionMaps().get(0).get("obj.name"), nullValue());
     }
+
+    @Test
+    public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("insert into users (id, name) values (1, 'Arthur') on duplicate key update name = substr(values (name), 1, 1)");
+    }
 }
 
