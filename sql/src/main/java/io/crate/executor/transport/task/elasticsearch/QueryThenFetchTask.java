@@ -444,9 +444,10 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                     public void onResponse(ScrollQueryFetchSearchResult scrollQueryFetchSearchResult) {
                         QueryFetchSearchResult qfsResult = scrollQueryFetchSearchResult.result();
                         qfsResult.shardTarget(entry.getKey());
-                        queryFetchResults.set(entry.getKey().getShardId(), qfsResult);
 
-                        if (numOps.decrementAndGet() == 0) {
+                        int opNum = numOps.decrementAndGet();
+                        queryFetchResults.set(opNum, qfsResult);
+                        if (opNum == 0) {
                             try {
                                 threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
                                     @Override

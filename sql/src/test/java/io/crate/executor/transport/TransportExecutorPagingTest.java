@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
@@ -28,12 +29,15 @@ import io.crate.analyze.WhereClause;
 import io.crate.executor.*;
 import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
@@ -45,10 +49,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.Closeable;
-import java.util.Arrays;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -258,6 +259,62 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         }
         // no further pages
         assertThat(nextPageResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
+    }
+
+    private Reference ref(TableInfo tableInfo, String colName) {
+        return new Reference(tableInfo.getReferenceInfo(ColumnIdent.fromPath(colName)));
+    }
+
+    @Test
+    public void testPartitionedPagedQueryThenFetch1RowPages() throws Exception {
+        setup.setUpPartitionedTableWithName();
+        DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
+
+        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+                parted.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(ref(parted, "id"), ref(parted, "name"), ref(parted, "date")),
+                Arrays.<Symbol>asList(ref(parted, "id")),
+                new boolean[]{false},
+                new Boolean[]{false},
+                null,
+                null,
+                WhereClause.MATCH_ALL,
+                parted.partitionedByColumns()
+        );
+
+        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        assertThat(tasks.size(), is(1));
+        QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
+        PageInfo pageInfo = new PageInfo(0, 1);
+        qtfTask.setKeepAlive(TimeValue.timeValueSeconds(10));
+        qtfTask.start(pageInfo);
+        List<ListenableFuture<TaskResult>> results = qtfTask.result();
+        assertThat(results.size(), is(1));
+
+        // first page
+        ListenableFuture<TaskResult> resultFuture = results.get(0);
+        TaskResult result = resultFuture.get();
+        assertThat(result, instanceOf(PageableTaskResult.class));
+        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        closeMeWhenDone = pageableResult;
+        assertThat(TestingHelpers.printedPage(pageableResult.page()), is("1| Trillian| NULL\n"));
+
+        List<String> pages = new ArrayList<>();
+
+        PageableTaskResult nextPageResult = (PageableTaskResult)result;
+        while (nextPageResult.page().size() > 0) {
+            pageInfo = pageInfo.nextPage();
+            ListenableFuture<PageableTaskResult> nextPageResultFuture = nextPageResult.fetch(pageInfo);
+            nextPageResult = nextPageResultFuture.get();
+            closeMeWhenDone = nextPageResult;
+            pages.add(TestingHelpers.printedPage(nextPageResult.page()));
+        }
+
+        assertThat(Joiner.on("").join(pages), is(
+                "2| NULL| 0\n" +
+                "3| Ford| 1396388720242\n"));
+        // no further pages
+        assertThat(nextPageResult.page().size(), is(0L));
     }
 
     @Test
