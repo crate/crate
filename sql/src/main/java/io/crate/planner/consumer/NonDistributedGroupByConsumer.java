@@ -85,7 +85,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             if(context.consumerContext.rootRelation() != statement){
                 return statement;
             }
-            if(!statement.hasGroupBy()){
+            if(statement.querySpec().groupBy()==null){
                 return statement;
             }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
@@ -95,7 +95,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             TableInfo tableInfo = tableRelation.tableInfo();
 
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
             WhereClause whereClause = whereClauseContext.whereClause();
             if(whereClause.version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
@@ -139,18 +139,18 @@ public class NonDistributedGroupByConsumer implements Consumer {
         boolean ignoreSorting = indexWriterProjection != null;
         TableInfo tableInfo = tableRelation.tableInfo();
 
-        GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.groupBy());
-        List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
+        GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.querySpec().groupBy());
+        List<Symbol> groupBy = tableRelation.resolve(analysis.querySpec().groupBy());
         int numAggregationSteps = 2;
 
         PlannerContextBuilder contextBuilder =
                 new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
-                        .output(tableRelation.resolve(analysis.outputSymbols()))
-                        .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.orderBy().orderBySymbols()));
+                        .output(tableRelation.resolve(analysis.querySpec().outputs()))
+                        .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy().orderBySymbols()));
 
         Symbol havingClause = null;
-        if(analysis.havingClause() != null){
-            havingClause = tableRelation.resolveHaving(analysis.havingClause());
+        if(analysis.querySpec().having() != null){
+            havingClause = tableRelation.resolveHaving(analysis.querySpec().having());
         }
         if (havingClause != null && havingClause instanceof Function) {
             // extract collect symbols and such from having clause
@@ -180,11 +180,11 @@ public class NonDistributedGroupByConsumer implements Consumer {
         }
         if (!ignoreSorting) {
             TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
+                    firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    analysis.querySpec().offset(),
                     contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
+                    analysis.querySpec().orderBy().reverseFlags(),
+                    analysis.querySpec().orderBy().nullsFirst()
             );
             topN.outputs(contextBuilder.outputs());
             contextBuilder.addProjection(topN);

@@ -92,16 +92,16 @@ public class CrossJoinConsumer implements Consumer {
             }
 
             // TODO:
-            if (statement.hasGroupBy()) {
+            if (statement.querySpec().groupBy()!=null) {
                 context.validationException(new ValidationException("GROUP BY on CROSS JOIN is not supported"));
                 return null;
             }
-            if (statement.hasAggregates()) {
+            if (statement.querySpec().hasAggregates()) {
                 context.validationException(new ValidationException("AGGREGATIONS on CROSS JOIN is not supported"));
                 return null;
             }
 
-            if (statement.orderBy().isSorted()) {
+            if (statement.querySpec().orderBy().isSorted()) {
                 context.validationException(new ValidationException("Query with CROSS JOIN doesn't support ORDER BY"));
                 return null;
             }
@@ -136,7 +136,7 @@ public class CrossJoinConsumer implements Consumer {
              * postOutputs: [in(0), subtract( add( in(1), in(3)), in(1) ]
              */
             Map<TableRelation, RelationContext> relations = new IdentityHashMap<>(statement.sources().size());
-            Symbol query = statement.whereClause().query();
+            Symbol query = statement.querySpec().where().query();
             for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
                 if (!(analyzedRelation instanceof TableRelation)) {
                     context.validationException(new ValidationException("CROSS JOIN with sub queries is not supported"));
@@ -149,7 +149,7 @@ public class CrossJoinConsumer implements Consumer {
                 }
 
                 RelationContext relationContext = new RelationContext();
-                if (statement.whereClause().hasQuery()) {
+                if (statement.querySpec().where().hasQuery()) {
                     QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(query, analyzedRelation);
                     if (splitQueries.relationQuery() == null) {
                         relationContext.whereClause = WhereClause.MATCH_ALL;
@@ -161,19 +161,19 @@ public class CrossJoinConsumer implements Consumer {
                 } else {
                     relationContext.whereClause = WhereClause.MATCH_ALL;
                 }
-                FilteringContext filteringContext = filterOutputForRelation(statement.outputSymbols(), tableRelation);
+                FilteringContext filteringContext = filterOutputForRelation(statement.querySpec().outputs(), tableRelation);
                 relationContext.outputs = Lists.newArrayList(filteringContext.allOutputs());
                 relations.put(tableRelation, relationContext);
             }
-            if (statement.whereClause().hasQuery() && !(query instanceof Literal)) {
+            if (statement.querySpec().where().hasQuery() && !(query instanceof Literal)) {
                 context.validationException(new ValidationException(
                         "WhereClause contains a function or operator that involves more than 1 relation. This is not supported"));
                 return null;
             }
 
             Integer qtfLimit = null;
-            if (statement.limit() != null) {
-                qtfLimit = statement.limit() + statement.offset();
+            if (statement.querySpec().limit() != null) {
+                qtfLimit = statement.querySpec().limit() + statement.querySpec().offset();
             }
             List<QueryThenFetchNode> queryThenFetchNodes = new ArrayList<>(relations.size());
 
@@ -197,8 +197,8 @@ public class CrossJoinConsumer implements Consumer {
                 );
                 queryThenFetchNodes.add(qtf);
             }
-            int limit = MoreObjects.firstNonNull(statement.limit(), TopN.NO_LIMIT);
-            NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, limit, statement.offset());
+            int limit = MoreObjects.firstNonNull(statement.querySpec().limit(), TopN.NO_LIMIT);
+            NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, limit, statement.querySpec().offset());
 
             /**
              * TopN for:
@@ -231,8 +231,8 @@ public class CrossJoinConsumer implements Consumer {
              *
              * #3 Apply Limit (and Order by once supported..)
              */
-            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.outputSymbols(), relations);
-            TopNProjection topNProjection = new TopNProjection(limit, statement.offset());
+            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), relations);
+            TopNProjection topNProjection = new TopNProjection(limit, statement.querySpec().offset());
             topNProjection.outputs(postOutputs);
             nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
             nestedLoopNode.outputTypes(Symbols.extractTypes(postOutputs));
