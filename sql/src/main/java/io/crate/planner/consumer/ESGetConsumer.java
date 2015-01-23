@@ -62,7 +62,7 @@ public class ESGetConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
-            if (statement.hasAggregates() || statement.hasGroupBy()) {
+            if (statement.querySpec().hasAggregates() || statement.querySpec().groupBy()!=null) {
                 return null;
             }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
@@ -77,7 +77,7 @@ public class ESGetConsumer implements Consumer {
             }
 
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
 
             if(whereClauseContext.whereClause().version().isPresent()){
                 context.validationException(new VersionInvalidException());
@@ -105,14 +105,14 @@ public class ESGetConsumer implements Consumer {
             }
             return new ESGetNode(
                     indexName,
-                    tableRelation.resolve(statement.outputSymbols()),
+                    tableRelation.resolve(statement.querySpec().outputs()),
                     whereClauseContext.ids(),
                     whereClauseContext.routingValues(),
-                    tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()),
-                    statement.orderBy().reverseFlags(),
-                    statement.orderBy().nullsFirst(),
-                    statement.limit(),
-                    statement.offset(),
+                    tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy().orderBySymbols()),
+                    statement.querySpec().orderBy().reverseFlags(),
+                    statement.querySpec().orderBy().nullsFirst(),
+                    statement.querySpec().limit(),
+                    statement.querySpec().offset(),
                     tableInfo.partitionedByColumns()
             );
         }

@@ -25,6 +25,8 @@ settings like the ``number of shards`` or ``number of replicas``::
     | schema_name        | table_name        | number_of_shards | number_of_replicas |
     +--------------------+-------------------+------------------+--------------------+
     | blob               | myblobs           |                3 |                  1 |
+    | doc                | articles          |                2 |                  0 |
+    | doc                | colors            |                5 |                  0 |
     | doc                | documents         |                5 |                  1 |
     | doc                | locations         |                2 |                  0 |
     | doc                | partitioned_table |                5 |                  1 |
@@ -43,7 +45,7 @@ settings like the ``number of shards`` or ``number of replicas``::
     | sys                | operations_log    |                1 |                  0 |
     | sys                | shards            |                1 |                  0 |
     +--------------------+-------------------+------------------+--------------------+
-    SELECT 18 rows in set (... sec)
+    SELECT 20 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`sql_ddl_partitioned_by`)
@@ -58,12 +60,14 @@ columns::
     | table_name        | clustered_by | partitioned_by | blobs_path |
     +-------------------+--------------+----------------+--------...-+
     | myblobs           | digest       | NULL           | ...        |
+    | articles          | id           | NULL           | NULL       |
+    | colors            | id           | NULL           | NULL       |
     | documents         | _id          | NULL           | NULL       |
     | locations         | id           | NULL           | NULL       |
     | partitioned_table | _id          | ["date"]       | NULL       |
     | quotes            | id           | NULL           | NULL       |
     +-------------------+--------------+----------------+--------...-+
-    SELECT 5 rows in set (... sec)
+    SELECT 7 rows in set (... sec)
 
 
 Columns
@@ -79,6 +83,13 @@ definition like data type and ordinal position inside the table::
     +-------------------+--------------------------------+-----+--------------+
     | table_name        | column_name                    | pos | data_type    |
     +-------------------+--------------------------------+-----+--------------+
+    | articles          | id                             |   1 | integer      |
+    | articles          | name                           |   2 | string       |
+    | articles          | price                          |   3 | float        |
+    | colors            | coolness                       |   1 | float        |
+    | colors            | id                             |   2 | integer      |
+    | colors            | name                           |   3 | string       |
+    | colors            | rgb                            |   4 | string       |
     | documents         | body                           |   1 | string       |
     | documents         | title                          |   2 | string       |
     | locations         | date                           |   1 | timestamp    |
@@ -100,7 +111,7 @@ definition like data type and ordinal position inside the table::
     | quotes            | id                             |   1 | integer      |
     | quotes            | quote                          |   2 | string       |
     +-------------------+--------------------------------+-----+--------------+
-    SELECT 20 rows in set (... sec)
+    SELECT 27 rows in set (... sec)
 
 
 You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::

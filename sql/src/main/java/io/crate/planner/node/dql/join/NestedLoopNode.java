@@ -22,13 +22,22 @@ package io.crate.planner.node.dql.join;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.Path;
+import io.crate.planner.IterablePlan;
+import io.crate.planner.Plan;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
+import io.crate.planner.symbol.Field;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -55,7 +64,7 @@ import java.util.Set;
  *      If sth. else is selected a projection has to reorder those.
  *
  */
-public class NestedLoopNode extends AbstractDQLPlanNode {
+public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyzedRelation {
 
 
     private final PlanNode left;
@@ -166,5 +175,31 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
                 .add("limit", limit())
                 .add("leftOuterLoop", leftOuterLoop)
                 .toString();
+    }
+
+    @Override
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+        return visitor.visitPlanedAnalyzedRelation(this, context);
+    }
+
+    @Nullable
+    @Override
+    public Field getField(Path path) {
+        return null;
+    }
+
+    @Override
+    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
+        return null;
+    }
+
+    @Override
+    public List<Field> fields() {
+        return null;
+    }
+
+    @Override
+    public Plan plan() {
+        return new IterablePlan(this);
     }
 }

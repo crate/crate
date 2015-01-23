@@ -46,8 +46,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, RelationAnalysisContext> {
 
     private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
@@ -65,6 +63,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
+    protected AnalyzedRelation visitJoin(Join node, RelationAnalysisContext context) {
+        process(node.getLeft(), context);
+        process(node.getRight(), context);
+
+        if (node.getCriteria().isPresent()) {
+            throw new UnsupportedOperationException("JOIN Criteria are not supported");
+        }
+        return null;
+    }
+
+    @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, RelationAnalysisContext context) {
         if (node.getFrom() == null) {
             throw new IllegalArgumentException("FROM clause is missing.");
@@ -72,16 +81,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (Relation relation : node.getFrom()) {
             process(relation, context);
         }
-        if (context.sources().size() != 1) {
-            throw new UnsupportedOperationException
-                    ("Only exactly one table is allowed in the FROM clause, got: " + context.sources().size());
-        }
         FieldResolver fieldResolver = new FullQualifedNameFieldResolver(context.sources());
         expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext, fieldResolver);
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
         WhereClause whereClause = analyzeWhere(node.getWhere());
-        if(whereClause.hasQuery()){
+        if (whereClause.hasQuery()) {
             WhereClauseValidator whereClauseValidator = new WhereClauseValidator();
             whereClauseValidator.validate(whereClause);
         }
@@ -101,23 +106,21 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             groupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
         }
 
-        OrderBy orderBy = analyzeOrderBy(selectAnalysis, node.getOrderBy());
-        Symbol having = analyzeHaving(node.getHaving(), groupBy, expressionAnalysisContext.hasAggregates);
-        Integer limit = expressionAnalyzer.integerFromExpression(node.getLimit());
-        int offset = firstNonNull(expressionAnalyzer.integerFromExpression(node.getOffset()), 0);
+        QuerySpec querySpec = new QuerySpec()
+                .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy()))
+                .having(analyzeHaving(node.getHaving(), groupBy, expressionAnalysisContext.hasAggregates))
+                .limit(expressionAnalyzer.integerFromExpression(node.getLimit()))
+                .offset(expressionAnalyzer.integerFromExpression(node.getOffset()))
+                .outputs(selectAnalysis.outputSymbols())
+                .where(whereClause)
+                .groupBy(groupBy)
+                .hasAggregates(expressionAnalysisContext.hasAggregates);
 
         return new SelectAnalyzedStatement(
-                selectAnalysis.outputNames(),
-                selectAnalysis.outputSymbols(),
                 context.sources(),
-                whereClause,
-                groupBy,
-                orderBy,
-                having,
-                limit,
-                offset,
-                expressionAnalysisContext.hasSysExpressions,
-                expressionAnalysisContext.hasAggregates
+                selectAnalysis.outputNames(),
+                querySpec,
+                expressionAnalysisContext.hasSysExpressions
         );
     }
 
@@ -141,7 +144,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 if (!isAggregate(output)) {
                     throw new IllegalArgumentException(
                             SymbolFormatter.format("column '%s' must appear in the GROUP BY clause " +
-                                            "or be used in an aggregation function", output));
+                                    "or be used in an aggregation function", output));
                 }
             }
         }
@@ -247,8 +250,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
      * <h2>resolve expression by also taking alias and ordinal-reference into account</h2>
      *
      * <p>
-     *     in group by or order by clauses it is possible to reference anything in the
-     *     select list by using a number or alias
+     * in group by or order by clauses it is possible to reference anything in the
+     * select list by using a number or alias
      * </p>
      *
      * These are allowed:

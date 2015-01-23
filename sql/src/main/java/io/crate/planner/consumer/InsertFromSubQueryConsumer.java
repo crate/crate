@@ -130,15 +130,15 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 return statement;
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
             if(whereClauseContext.whereClause().version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
                 return statement;
             }
             context.result = true;
-            if(statement.hasGroupBy()){
+            if(statement.querySpec().groupBy()!=null){
                 return groupBy(statement, tableRelation, whereClauseContext, context.indexWriterProjection, analysisMetaData.functions());
-            } else if(statement.hasAggregates()){
+            } else if(statement.querySpec().hasAggregates()){
                 return GlobalAggregateConsumer.globalAggregates(statement, tableRelation, whereClauseContext, context.indexWriterProjection);
             } else {
                 return QueryAndFetchConsumer.normalSelect(statement, whereClauseContext, tableRelation,
@@ -154,7 +154,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
         private AnalyzedRelation groupBy(SelectAnalyzedStatement statement, TableRelation tableRelation, WhereClauseContext whereClauseContext,
                                                @Nullable ColumnIndexWriterProjection indexWriterProjection, @Nullable Functions functions){
             TableInfo tableInfo = tableRelation.tableInfo();
-            if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(statement.whereClause(), null))) {
+            if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(statement.querySpec().where(), null))) {
                 return NonDistributedGroupByConsumer.nonDistributedGroupBy(statement, tableRelation, whereClauseContext, indexWriterProjection);
             } else if (groupedByClusteredColumnOrPrimaryKeys(statement, tableRelation)) {
                 return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(statement, tableRelation, whereClauseContext, indexWriterProjection);
@@ -167,8 +167,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
         }
 
         private static boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis, TableRelation tableRelation) {
-            assert analysis.groupBy() != null;
-            return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, analysis.groupBy());
+            assert analysis.querySpec().groupBy() != null;
+            return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, analysis.querySpec().groupBy());
         }
 
         /**
@@ -183,16 +183,16 @@ public class InsertFromSubQueryConsumer implements Consumer {
                                                                  WhereClauseContext whereClauseContext,
                                                                  Projection writerProjection,
                                                                  Functions functions) {
-            boolean ignoreSorting = !analysis.isLimited();
-            GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.groupBy());
-            List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
+            boolean ignoreSorting = !analysis.querySpec().isLimited();
+            GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.querySpec().groupBy());
+            List<Symbol> groupBy = tableRelation.resolve(analysis.querySpec().groupBy());
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, groupBy, ignoreSorting)
-                    .output(tableRelation.resolve(analysis.outputSymbols()))
-                    .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.orderBy().orderBySymbols()));
+                    .output(tableRelation.resolve(analysis.querySpec().outputs()))
+                    .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy().orderBySymbols()));
 
             Symbol havingClause = null;
-            if(analysis.havingClause() != null){
-                havingClause = tableRelation.resolveHaving(analysis.havingClause());
+            if(analysis.querySpec().having() != null){
+                havingClause = tableRelation.resolveHaving(analysis.querySpec().having());
             }
             if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
                 // replace aggregation symbols with input columns from previous projection
@@ -224,19 +224,19 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
             if (havingClause != null) {
                 FilterProjection fp = new FilterProjection((Function)havingClause);
-                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.outputSymbols().size()));
+                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.querySpec().outputs().size()));
                 contextBuilder.addProjection(fp);
             }
 
             boolean topNDone = false;
-            if (analysis.isLimited()) {
+            if (analysis.querySpec().isLimited()) {
                 topNDone = true;
                 TopNProjection topN = new TopNProjection(
-                        firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                        firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset(),
                         0,
-                        tableRelation.resolveAndValidateOrderBy(analysis.orderBy().orderBySymbols()),
-                        analysis.orderBy().reverseFlags(),
-                        analysis.orderBy().nullsFirst()
+                        tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy().orderBySymbols()),
+                        analysis.querySpec().orderBy().reverseFlags(),
+                        analysis.querySpec().orderBy().nullsFirst()
                 );
                 topN.outputs(contextBuilder.outputs());
                 contextBuilder.addProjection((topN));
@@ -247,7 +247,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, contextBuilder.getAndClearProjections());
 
             // local merge on handler
-            if (analysis.isLimited()) {
+            if (analysis.querySpec().isLimited()) {
                 List<Symbol> outputs;
                 List<Symbol> orderBy;
                 if (topNDone) {
@@ -259,11 +259,11 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 }
                 // mergeNode handler
                 TopNProjection topN = new TopNProjection(
-                        firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                        analysis.offset(),
+                        firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                        analysis.querySpec().offset(),
                         orderBy,
-                        analysis.orderBy().reverseFlags(),
-                        analysis.orderBy().nullsFirst()
+                        analysis.querySpec().orderBy().reverseFlags(),
+                        analysis.querySpec().orderBy().nullsFirst()
                 );
                 topN.outputs(outputs);
                 contextBuilder.addProjection(topN);

@@ -518,7 +518,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
     @Test
     public void testUpdatePartitionedUnknownColumn() throws Exception {
-        execute("create table quotes (id integer, quote string, timestamp timestamp, o object) " +
+        execute("create table quotes (id integer, quote string, timestamp timestamp, o object(ignored)) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -686,7 +686,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
     @Test
     public void testDeleteFromPartitionedTableDeleteByPartitionAndByQuery() throws Exception {
-        execute("create table quotes (id integer, quote string, timestamp timestamp, o object) " +
+        execute("create table quotes (id integer, quote string, timestamp timestamp, o object(ignored)) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
