@@ -70,8 +70,6 @@ import static io.crate.planner.symbol.Literal.newLiteral;
  */
 public class ExpressionAnalyzer {
 
-    private final static String _SCORE = "_score";
-
     private final static Map<ComparisonExpression.Type, ComparisonExpression.Type> SWAP_OPERATOR_TABLE =
             ImmutableMap.<ComparisonExpression.Type, ComparisonExpression.Type>builder()
             .put(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN)
@@ -300,7 +298,8 @@ public class ExpressionAnalyzer {
     private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo, boolean forWrite) {
         for (Object arrayItem : value) {
             Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
-            arrayItem = normalizeObjectValue((Map<String, Object>)arrayItem, arrayInfo, forWrite);
+            // return value not used and replaced in value as arrayItem is a map that is mutated
+            normalizeObjectValue((Map<String, Object>)arrayItem, arrayInfo, forWrite);
         }
         return value;
     }
@@ -358,8 +357,6 @@ public class ExpressionAnalyzer {
     }
 
     class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
-
-        private boolean insideNotPredicate;
 
         @Override
         protected Symbol visitExpression(Expression node, ExpressionAnalysisContext context) {
@@ -506,9 +503,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitNotExpression(NotExpression node, ExpressionAnalysisContext context) {
-            insideNotPredicate = true;
             Symbol argument = process(node.getValue(), context);
-            insideNotPredicate = false;
 
             DataType dataType = argument.valueType();
             if (!dataType.equals(DataTypes.BOOLEAN) && !dataType.equals(DataTypes.UNDEFINED)) {
