@@ -119,13 +119,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
-            if (symbol.symbolType().equals(DataTypes.UNDEFINED)) {
-                throw new IllegalArgumentException(
-                        SymbolFormatter.format("unknown column '%s' not allowed in a global DISTINCT", symbol));
-            } else if (isAggregate(symbol)) {
-                continue; // do not add aggregates
+            if (!isAggregate(symbol)) {
+                groupBy.add(symbol);
             }
-            groupBy.add(symbol);
         }
         return groupBy;
     }
