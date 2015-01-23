@@ -28,13 +28,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldResolver;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
@@ -664,10 +662,6 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
             Field field = fieldResolver.resolveField(node.getName(), forWrite);
-            if (field.relation() instanceof TableRelation) {
-                context.hasSysExpressions = context.hasSysExpressions
-                        || SysSchemaInfo.NAME.equals(((TableRelation) field.relation()).tableInfo().schemaInfo().name());
-            }
             return field;
         }
 

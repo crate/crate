@@ -105,10 +105,6 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             }
             nestedAnalyzedStatements.add(nestedAnalyzedStatement);
         }
-        if (expressionAnalysisContext.hasSysExpressions) {
-            throw new UnsupportedOperationException("Cannot use sys expressions in UPDATE statements");
-        }
-
         return new UpdateAnalyzedStatement(analyzedRelation, nestedAnalyzedStatements);
     }
 

@@ -70,9 +70,6 @@ public class ESCountConsumer implements Consumer {
             if (!selectAnalyzedStatement.querySpec().hasAggregates() || selectAnalyzedStatement.querySpec().groupBy()!=null) {
                 return null;
             }
-            if (selectAnalyzedStatement.hasSysExpressions()) {
-                return null;
-            }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(selectAnalyzedStatement.sources());
             if (tableRelation == null) {
                 return null;

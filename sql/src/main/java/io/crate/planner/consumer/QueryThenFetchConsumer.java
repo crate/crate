@@ -63,7 +63,7 @@ public class QueryThenFetchConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
-            if (statement.querySpec().hasAggregates() || statement.querySpec().groupBy()!=null || statement.hasSysExpressions()) {
+            if (statement.querySpec().hasAggregates() || statement.querySpec().groupBy()!=null) {
                 return null;
             }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());

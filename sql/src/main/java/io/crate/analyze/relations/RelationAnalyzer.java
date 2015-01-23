@@ -112,8 +112,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return new SelectAnalyzedStatement(
                 context.sources(),
                 selectAnalysis.outputNames(),
-                querySpec,
-                expressionAnalysisContext.hasSysExpressions
+                querySpec
         );
     }
 

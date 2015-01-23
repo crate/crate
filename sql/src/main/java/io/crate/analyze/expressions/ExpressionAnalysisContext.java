@@ -33,7 +33,6 @@ public class ExpressionAnalysisContext {
 
     private final Map<Function, Function> functionSymbols = new HashMap<>();
     public boolean hasAggregates = false;
-    public boolean hasSysExpressions = false;
 
     public ExpressionAnalysisContext() {
     }
