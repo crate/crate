@@ -228,7 +228,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                             sendResponse(listener, buildSQLActionException(e));
                             return;
                         }
-                        assert (jobId != null);
                         statsTables.jobFinished(jobId, null);
                         sendResponse(listener, response);
                     }
@@ -236,9 +235,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     @Override
                     public void onFailure(@Nonnull Throwable t) {
                         logger.debug("Error processing SQLRequest", t);
-                        if (jobId != null) {
-                            statsTables.jobFinished(jobId, Exceptions.messageOf(t));
-                        }
+                        statsTables.jobFinished(jobId, Exceptions.messageOf(t));
                         sendResponse(listener, buildSQLActionException(t));
                     }
                 }

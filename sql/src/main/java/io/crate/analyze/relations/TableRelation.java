@@ -23,6 +23,7 @@ package io.crate.analyze.relations;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
@@ -206,9 +207,13 @@ public class TableRelation implements AnalyzedRelation {
         return FIELD_UNWRAPPING_VISITOR.process(symbol, this);
     }
 
-    public List<Symbol> resolveAndValidateOrderBy(List<Symbol> orderBySymbols) {
-        List<Symbol> result = new ArrayList<>(orderBySymbols.size());
-        for (Symbol symbol : orderBySymbols) {
+    @Nullable
+    public List<Symbol> resolveAndValidateOrderBy(@Nullable OrderBy orderBy) {
+        if (orderBy==null){
+            return null;
+        }
+        List<Symbol> result = new ArrayList<>(orderBy.orderBySymbols().size());
+        for (Symbol symbol : orderBy.orderBySymbols()) {
             Symbol resolved = resolve(symbol);
             SORT_VALIDATOR.process(resolved, this);
             result.add(resolved);

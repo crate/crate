@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -91,7 +92,7 @@ public class DistributedGroupByConsumer implements Consumer {
             if (context.consumerContext.rootRelation() != statement) {
                 return statement;
             }
-            if (!statement.hasGroupBy()) {
+            if (statement.querySpec().groupBy()==null) {
                 return statement;
             }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
@@ -100,7 +101,7 @@ public class DistributedGroupByConsumer implements Consumer {
             }
             TableInfo tableInfo = tableRelation.tableInfo();
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
             WhereClause whereClause = whereClauseContext.whereClause();
             if(whereClause.version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
@@ -113,14 +114,19 @@ public class DistributedGroupByConsumer implements Consumer {
                 return statement;
             }
 
-            GroupByConsumer.validateGroupBySymbols(tableRelation, statement.groupBy());
-            PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, tableRelation.resolve(statement.groupBy()))
-                    .output(tableRelation.resolve(statement.outputSymbols()))
-                    .orderBy(tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()));
+            GroupByConsumer.validateGroupBySymbols(tableRelation, statement.querySpec().groupBy());
+            PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, tableRelation.resolve(statement.querySpec().groupBy()))
+                    .output(tableRelation.resolve(statement.querySpec().outputs())
+                    );
+
+            OrderBy orderBy = statement.querySpec().orderBy();
+            if (orderBy != null){
+                contextBuilder.orderBy(tableRelation.resolveAndValidateOrderBy(orderBy));
+            }
 
             Symbol havingClause = null;
-            if(statement.havingClause() != null){
-                havingClause = tableRelation.resolveHaving(statement.havingClause());
+            if(statement.querySpec().having() != null){
+                havingClause = tableRelation.resolveHaving(statement.querySpec().having());
             }
             if (havingClause != null && havingClause instanceof Function) {
                 // replace aggregation symbols with input columns from previous projection
@@ -165,7 +171,7 @@ public class DistributedGroupByConsumer implements Consumer {
                  * Any additional aggregations in the having clause that are not part of the selectList must come
                  * AFTER the selectList aggregations
                  */
-                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), statement.outputSymbols().size()));
+                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), statement.querySpec().outputs().size()));
                 contextBuilder.addProjection(fp);
             }
             TopNProjection topNForReducer = getTopNForReducer(statement, contextBuilder, contextBuilder.outputs());
@@ -178,22 +184,26 @@ public class DistributedGroupByConsumer implements Consumer {
                     contextBuilder.getAndClearProjections());
 
             List<Symbol> outputs;
-            List<Symbol> orderBy;
+            List<Symbol> orderBySymbols;
             if (topNForReducer == null) {
-                orderBy = contextBuilder.orderBy();
+                orderBySymbols = contextBuilder.orderBy();
                 outputs = contextBuilder.outputs();
             } else {
-                orderBy = contextBuilder.passThroughOrderBy();
+                orderBySymbols = contextBuilder.passThroughOrderBy();
                 outputs = contextBuilder.passThroughOutputs();
             }
             // mergeNode handler
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(statement.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    statement.offset(),
-                    orderBy,
-                    statement.orderBy().reverseFlags(),
-                    statement.orderBy().nullsFirst()
-            );
+            int limit = firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            TopNProjection topN;
+            if (orderBy == null){
+                topN = new TopNProjection(limit, statement.querySpec().offset());
+            } else {
+                topN = new TopNProjection(limit, statement.querySpec().offset(),
+                        orderBySymbols,
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst()
+                );
+            }
             topN.outputs(outputs);
             MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
 
@@ -223,13 +233,17 @@ public class DistributedGroupByConsumer implements Consumer {
                                                  PlannerContextBuilder contextBuilder,
                                                  List<Symbol> outputs) {
             if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
-                TopNProjection topN = new TopNProjection(
-                        firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
-                        0,
-                        contextBuilder.orderBy(),
-                        analysis.orderBy().reverseFlags(),
-                        analysis.orderBy().nullsFirst()
-                );
+                OrderBy orderBy = analysis.querySpec().orderBy();
+                int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset();
+                TopNProjection topN;
+                if (orderBy==null){
+                    topN = new TopNProjection(limit, 0);
+                } else {
+                    topN = new TopNProjection(limit, 0,
+                            contextBuilder.orderBy(),
+                            orderBy.reverseFlags(),
+                            orderBy.nullsFirst());
+                }
                 topN.outputs(outputs);
                 return topN;
             }
@@ -237,8 +251,8 @@ public class DistributedGroupByConsumer implements Consumer {
         }
 
         private boolean requireLimitOnReducer(SelectAnalyzedStatement analysis, boolean aggregationsWrappedInScalar) {
-            return (analysis.limit() != null
-                    || analysis.offset() > 0
+            return (analysis.querySpec().limit() != null
+                    || analysis.querySpec().offset() > 0
                     || aggregationsWrappedInScalar);
         }
     }

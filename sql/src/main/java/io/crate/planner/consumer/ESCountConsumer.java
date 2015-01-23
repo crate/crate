@@ -67,7 +67,7 @@ public class ESCountConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, ConsumerContext context) {
-            if (!selectAnalyzedStatement.hasAggregates() || selectAnalyzedStatement.hasGroupBy()) {
+            if (!selectAnalyzedStatement.querySpec().hasAggregates() || selectAnalyzedStatement.querySpec().groupBy()!=null) {
                 return null;
             }
             if (selectAnalyzedStatement.hasSysExpressions()) {
@@ -81,11 +81,11 @@ public class ESCountConsumer implements Consumer {
             if (tableInfo.schemaInfo().systemSchema()) {
                 return null;
             }
-            if (!hasOnlyGlobalCount(selectAnalyzedStatement.outputSymbols())) {
+            if (!hasOnlyGlobalCount(selectAnalyzedStatement.querySpec().outputs())) {
                 return null;
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(selectAnalyzedStatement.whereClause());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(selectAnalyzedStatement.querySpec().where());
             if(whereClauseContext.whereClause().version().isPresent()){
                 context.validationException(new VersionInvalidException());
                 return null;

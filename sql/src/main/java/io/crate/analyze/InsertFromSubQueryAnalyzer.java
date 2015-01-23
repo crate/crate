@@ -60,13 +60,13 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<Void> {
                 new InsertFromSubQueryAnalyzedStatement(selectAnalyzedStatement, tableInfo);
 
         // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
-        if (selectAnalyzedStatement.isLimited() || selectAnalyzedStatement.orderBy().isSorted()) {
+        if (selectAnalyzedStatement.querySpec().isLimited() || selectAnalyzedStatement.querySpec().orderBy() != null) {
             throw new UnsupportedFeatureException("Using limit, offset or order by is not" +
                     "supported on insert using a sub-query");
         }
 
         int numInsertColumns = node.columns().size() == 0 ? tableInfo.columns().size() : node.columns().size();
-        int maxInsertValues = Math.max(numInsertColumns, selectAnalyzedStatement.outputSymbols().size());
+        int maxInsertValues = Math.max(numInsertColumns, selectAnalyzedStatement.querySpec().outputs().size());
         handleInsertColumns(node, maxInsertValues, insertStatement);
 
         validateMatchingColumns(insertStatement, selectAnalyzedStatement);
@@ -80,11 +80,11 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<Void> {
      */
     private void validateMatchingColumns(InsertFromSubQueryAnalyzedStatement context, SelectAnalyzedStatement selectAnalyzedStatement) {
         List<Reference> insertColumns = context.columns();
-        List<Symbol> sourceSymbols = selectAnalyzedStatement.outputSymbols();
+        List<Symbol> sourceSymbols = selectAnalyzedStatement.querySpec().outputs();
         if (insertColumns.size() != sourceSymbols.size()) {
             throw new IllegalArgumentException("Number of columns in insert statement and subquery differ");
         }
-        
+
         for (int i = 0; i < sourceSymbols.size(); i++) {
             Reference insertColumn = insertColumns.get(i);
             DataType targetType = insertColumn.valueType();
@@ -96,11 +96,12 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<Void> {
                     Function castFunction = new Function(
                             CastFunctionResolver.functionInfo(sourceType, targetType),
                             Arrays.asList(sourceColumn));
-                    if (selectAnalyzedStatement.hasGroupBy()) {
-                        replaceIfPresent(selectAnalyzedStatement.groupBy(), sourceColumn, castFunction);
+                    if (selectAnalyzedStatement.querySpec().groupBy() != null) {
+                        replaceIfPresent(selectAnalyzedStatement.querySpec().groupBy(), sourceColumn, castFunction);
                     }
-                    if (selectAnalyzedStatement.orderBy().isSorted()) {
-                        replaceIfPresent(selectAnalyzedStatement.orderBy().orderBySymbols(), sourceColumn, castFunction);
+                    if (selectAnalyzedStatement.querySpec().orderBy() != null) {
+                        //noinspection ConstantConditions
+                        replaceIfPresent(selectAnalyzedStatement.querySpec().orderBy().orderBySymbols(), sourceColumn, castFunction);
                     }
                     sourceSymbols.set(i, castFunction);
                 } else {

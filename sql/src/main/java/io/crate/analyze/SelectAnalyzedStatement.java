@@ -26,59 +26,34 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 public class SelectAnalyzedStatement extends AnalyzedStatement implements AnalyzedRelation {
 
-    private final List<Symbol> groupBy;
-    private final OrderBy orderBy;
-    private final Symbol having;
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final List<Field> fields;
-    private final List<Symbol> outputSymbols;
-    private WhereClause whereClause;
-    private final Integer limit;
-    private final int offset;
+    private final QuerySpec querySpec;
     private boolean hasSysExpressions;
-    private boolean hasAggregates;
 
-    public SelectAnalyzedStatement(List<String> outputNames,
-                                   List<Symbol> outputSymbols,
-                                   Map<QualifiedName, AnalyzedRelation> sources,
-                                   WhereClause whereClause,
-                                   List<Symbol> groupBy,
-                                   OrderBy orderBy,
-                                   Symbol having,
-                                   Integer limit,
-                                   int offset,
-                                   boolean hasSysExpressions,
-                                   boolean hasAggregates) {
+    public SelectAnalyzedStatement(
+            Map<QualifiedName, AnalyzedRelation> sources,
+            List<String> outputNames,
+            QuerySpec querySpec,
+            boolean hasSysExpressions){
+
         super(null);
-        this.outputSymbols = outputSymbols;
+        this.querySpec = querySpec;
         this.sources = sources;
-        this.whereClause = whereClause;
-        this.groupBy = groupBy;
-        this.orderBy = orderBy;
-        this.having = having;
-        this.limit = limit;
-        this.offset = offset;
         this.hasSysExpressions = hasSysExpressions;
-        this.hasAggregates = hasAggregates;
 
-        assert outputNames.size() == outputSymbols.size() : "size of outputNames and outputSymbols must match";
+        assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
         fields = new ArrayList<>(outputNames.size());
         for (int i = 0; i < outputNames.size(); i++) {
-            fields.add(new Field(this, new OutputName(outputNames.get(i)), outputSymbols.get(i).valueType()));
+            fields.add(new Field(this, new OutputName(outputNames.get(i)), querySpec.outputs().get(i).valueType()));
         }
     }
 
@@ -86,77 +61,21 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
         return sources;
     }
 
-    public WhereClause whereClause() {
-        return whereClause;
-    }
-
-    public Integer limit() {
-        return limit;
-    }
-
-    public int offset() {
-        return offset;
-    }
-
-    public boolean isLimited() {
-        return limit != null || offset > 0;
-    }
-
-    @Nullable
-    public List<Symbol> groupBy() {
-        return groupBy;
-    }
-
-    public boolean hasGroupBy() {
-        return groupBy != null && groupBy.size() > 0;
-    }
-
-    @Nullable
-    public Symbol havingClause() {
-        return having;
+    public void normalize(EvaluatingNormalizer normalizer) {
+        querySpec.normalize(normalizer);
     }
 
     @Override
     public boolean hasNoResult() {
-        if (having != null && having.symbolType() == SymbolType.LITERAL) {
-            Literal havingLiteral = (Literal) having;
-            if (havingLiteral.value() == false) {
-                return true;
-            }
-        }
-
-        if (globalAggregate()) {
-            return firstNonNull(limit(), 1) < 1 || offset() > 0;
-        }
-        return whereClause.noMatch() || limit != null && limit == 0;
+        return querySpec.hasNoResult();
     }
 
-    private boolean globalAggregate() {
-        return hasAggregates() && !hasGroupBy();
-    }
-
-    public boolean hasAggregates() {
-        return hasAggregates;
-    }
-
-    public void normalize(EvaluatingNormalizer normalizer) {
-        normalizer.normalizeInplace(groupBy);
-        orderBy.normalize(normalizer);
-        normalizer.normalizeInplace(outputSymbols);
-        whereClause = whereClause.normalize(normalizer);
-    }
-
-    @Override
     public void normalize() {
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitSelectStatement(this, context);
-    }
-
-    public OrderBy orderBy() {
-        return orderBy;
     }
 
     @Override
@@ -174,10 +93,6 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
         throw new UnsupportedOperationException("SelectAnalyzedStatement is not writable");
     }
 
-    public List<Symbol> outputSymbols() {
-        return outputSymbols;
-    }
-
     @Override
     public List<Field> fields() {
         return fields;
@@ -185,5 +100,9 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
 
     public boolean hasSysExpressions() {
         return hasSysExpressions;
+    }
+
+    public QuerySpec querySpec() {
+        return querySpec;
     }
 }

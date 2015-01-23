@@ -22,6 +22,7 @@ package io.crate.planner.consumer;
 
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -85,7 +86,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             if(context.consumerContext.rootRelation() != statement){
                 return statement;
             }
-            if(!statement.hasGroupBy()){
+            if(statement.querySpec().groupBy()==null){
                 return statement;
             }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
@@ -95,7 +96,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             TableInfo tableInfo = tableRelation.tableInfo();
 
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
             WhereClause whereClause = whereClauseContext.whereClause();
             if(whereClause.version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
@@ -139,18 +140,18 @@ public class NonDistributedGroupByConsumer implements Consumer {
         boolean ignoreSorting = indexWriterProjection != null;
         TableInfo tableInfo = tableRelation.tableInfo();
 
-        GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.groupBy());
-        List<Symbol> groupBy = tableRelation.resolve(analysis.groupBy());
+        GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.querySpec().groupBy());
+        List<Symbol> groupBy = tableRelation.resolve(analysis.querySpec().groupBy());
         int numAggregationSteps = 2;
 
         PlannerContextBuilder contextBuilder =
                 new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
-                        .output(tableRelation.resolve(analysis.outputSymbols()))
-                        .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.orderBy().orderBySymbols()));
+                        .output(tableRelation.resolve(analysis.querySpec().outputs()))
+                        .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy()));
 
         Symbol havingClause = null;
-        if(analysis.havingClause() != null){
-            havingClause = tableRelation.resolveHaving(analysis.havingClause());
+        if(analysis.querySpec().having() != null){
+            havingClause = tableRelation.resolveHaving(analysis.querySpec().having());
         }
         if (havingClause != null && havingClause instanceof Function) {
             // extract collect symbols and such from having clause
@@ -179,13 +180,18 @@ public class NonDistributedGroupByConsumer implements Consumer {
             contextBuilder.addProjection(fp);
         }
         if (!ignoreSorting) {
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
+            OrderBy orderBy = analysis.querySpec().orderBy();
+            int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            TopNProjection topN;
+            if (orderBy == null){
+                topN = new TopNProjection(limit, analysis.querySpec().offset());
+
+            } else {
+                topN = new TopNProjection(limit, analysis.querySpec().offset(),
+                        contextBuilder.orderBy(),
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst());
+            }
             topN.outputs(contextBuilder.outputs());
             contextBuilder.addProjection(topN);
         }

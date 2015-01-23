@@ -28,7 +28,11 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.*;
 
-import java.util.*;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.ListIterator;
 
 public class PlannerContextBuilder {
 
@@ -145,7 +149,7 @@ public class PlannerContextBuilder {
         return ignoreOrderBy ? ImmutableList.<Symbol>of() : Lists.newArrayList(context.orderBy);
     }
 
-    public PlannerContextBuilder orderBy(List<Symbol> symbols) {
+    public PlannerContextBuilder orderBy(@Nullable List<Symbol> symbols) {
         if (symbols == null || ignoreOrderBy) {
             return this;
         }
