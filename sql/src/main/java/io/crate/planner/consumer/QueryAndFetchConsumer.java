@@ -106,7 +106,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
             TableRelation tableRelation = (TableRelation) sourceRelation;
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(tableRelation.resolve(statement.whereClause()));
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(tableRelation.resolve(statement.querySpec().where()));
             if(whereClauseContext.whereClause().version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
                 return statement;
@@ -116,7 +116,7 @@ public class QueryAndFetchConsumer implements Consumer {
             if (tableInfo.schemaInfo().systemSchema() && whereClauseContext.whereClause().hasQuery()) {
                 ensureNoLuceneOnlyPredicates(whereClauseContext.whereClause().query());
             }
-            if (statement.hasAggregates()) {
+            if (statement.querySpec().hasAggregates()) {
                 context.result = true;
                 return GlobalAggregateConsumer.globalAggregates(statement, tableRelation, whereClauseContext, null);
             } else {
@@ -166,10 +166,10 @@ public class QueryAndFetchConsumer implements Consumer {
 
         List<Symbol> outputSymbols;
         if (tableInfo.schemaInfo().systemSchema()) {
-            outputSymbols = tableRelation.resolve(statement.outputSymbols());
+            outputSymbols = tableRelation.resolve(statement.querySpec().outputs());
         } else {
-            outputSymbols = new ArrayList<>(statement.outputSymbols().size());
-            for (Symbol symbol : statement.outputSymbols()) {
+            outputSymbols = new ArrayList<>(statement.querySpec().outputs().size());
+            for (Symbol symbol : statement.querySpec().outputs()) {
                 outputSymbols.add(DocReferenceConverter.convertIfPossible(tableRelation.resolve(symbol), tableInfo));
             }
         }
@@ -177,14 +177,14 @@ public class QueryAndFetchConsumer implements Consumer {
         MergeNode mergeNode;
         if (indexWriterProjection != null) {
             // insert directly from shards
-            assert !statement.isLimited() : "insert from sub query with limit or order by is not supported. " +
+            assert !statement.querySpec().isLimited() : "insert from sub query with limit or order by is not supported. " +
                     "Analyzer should have thrown an exception already.";
 
             ImmutableList<Projection> projections = ImmutableList.<Projection>of(indexWriterProjection);
             collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, projections);
             // use aggregation projection to merge node results (number of inserted rows)
             mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection(functions)), collectNode);
-        } else if (statement.isLimited() || statement.orderBy().isSorted()) {
+        } else if (statement.querySpec().isLimited() || statement.querySpec().orderBy().isSorted()) {
             /**
              * select id, name, order by id, date
              *
@@ -193,7 +193,7 @@ public class QueryAndFetchConsumer implements Consumer {
              * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
              * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
              */
-            List<Symbol> orderBySymbols = tableRelation.resolve(statement.orderBy().orderBySymbols());
+            List<Symbol> orderBySymbols = tableRelation.resolve(statement.querySpec().orderBy().orderBySymbols());
             List<Symbol> toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
             toCollect.addAll(outputSymbols);
 
@@ -219,21 +219,21 @@ public class QueryAndFetchConsumer implements Consumer {
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
             TopNProjection tnp = new TopNProjection(
-                    statement.offset() + firstNonNull(statement.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    statement.querySpec().offset() + firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
                     0,
                     orderByInputColumns,
-                    statement.orderBy().reverseFlags(),
-                    statement.orderBy().nullsFirst()
+                    statement.querySpec().orderBy().reverseFlags(),
+                    statement.querySpec().orderBy().nullsFirst()
             );
             tnp.outputs(allOutputs);
             collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
             TopNProjection handlerTopN = new TopNProjection(
-                    firstNonNull(statement.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    statement.offset(),
+                    firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    statement.querySpec().offset(),
                     orderByInputColumns,
-                    statement.orderBy().reverseFlags(),
-                    statement.orderBy().nullsFirst()
+                    statement.querySpec().orderBy().reverseFlags(),
+                    statement.querySpec().orderBy().nullsFirst()
             );
             handlerTopN.outputs(finalOutputs);
             mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(handlerTopN), collectNode);

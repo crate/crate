@@ -62,7 +62,7 @@ public class QueryThenFetchConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
-            if (statement.hasAggregates() || statement.hasGroupBy() || statement.hasSysExpressions()) {
+            if (statement.querySpec().hasAggregates() || statement.querySpec().groupBy()!=null || statement.hasSysExpressions()) {
                 return null;
             }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
@@ -74,19 +74,19 @@ public class QueryThenFetchConsumer implements Consumer {
                 return null;
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
             if(whereClauseContext.whereClause().version().isPresent()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
             return new QueryThenFetchNode(
                     tableInfo.getRouting(whereClauseContext.whereClause(), null),
-                    tableRelation.resolve(statement.outputSymbols()),
-                    tableRelation.resolveAndValidateOrderBy(statement.orderBy().orderBySymbols()),
-                    statement.orderBy().reverseFlags(),
-                    statement.orderBy().nullsFirst(),
-                    statement.limit(),
-                    statement.offset(),
+                    tableRelation.resolve(statement.querySpec().outputs()),
+                    tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy()),
+                    statement.querySpec().orderBy().reverseFlags(),
+                    statement.querySpec().orderBy().nullsFirst(),
+                    statement.querySpec().limit(),
+                    statement.querySpec().offset(),
                     whereClauseContext.whereClause(),
                     tableInfo.partitionedByColumns()
             );

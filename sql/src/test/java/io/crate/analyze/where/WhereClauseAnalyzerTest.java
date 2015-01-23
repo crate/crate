@@ -162,7 +162,7 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         TableRelation tableRelation = (TableRelation) sourceRelation;
         TableInfo tableInfo = tableRelation.tableInfo();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        return whereClauseAnalyzer.analyze(statement.whereClause());
+        return whereClauseAnalyzer.analyze(statement.querySpec().where());
     }
 
     @Test

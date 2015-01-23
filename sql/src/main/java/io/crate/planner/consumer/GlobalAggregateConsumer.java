@@ -76,7 +76,7 @@ public class GlobalAggregateConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
-            if (statement.hasGroupBy() || !statement.hasAggregates()) {
+            if (statement.querySpec().groupBy()!=null || !statement.querySpec().hasAggregates()) {
                 return null;
             }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
@@ -84,7 +84,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 return null;
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
             WhereClause whereClause = whereClauseContext.whereClause();
             if(whereClause.version().isPresent()){
                 context.validationException(new VersionInvalidException());
@@ -103,15 +103,16 @@ public class GlobalAggregateConsumer implements Consumer {
                                                            TableRelation tableRelation,
                                                            WhereClauseContext whereClauseContext,
                                                            ColumnIndexWriterProjection indexWriterProjection){
-        validateAggregationOutputs(tableRelation, statement.outputSymbols());
+        validateAggregationOutputs(tableRelation, statement.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(tableRelation.resolve(statement.outputSymbols()));
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(
+                tableRelation.resolve(statement.querySpec().outputs()));
 
         // havingClause could be a Literal or Function.
         // if its a Literal and value is false, we'll never reach this point (no match),
         // otherwise (true value) having can be ignored
         Symbol havingClause = null;
-        Symbol having = statement.havingClause();
+        Symbol having = statement.querySpec().having();
         if (having != null && having instanceof Function) {
             havingClause = contextBuilder.having(tableRelation.resolveHaving(having));
         }
