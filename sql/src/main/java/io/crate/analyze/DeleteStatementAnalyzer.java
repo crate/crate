@@ -91,10 +91,6 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             parameterContext.setBulkIdx(i);
             innerAnalyzer.process(node, innerAnalysisContext);
         }
-        if (innerAnalysisContext.expressionAnalysisContext.hasSysExpressions) {
-            throw new UnsupportedOperationException("Cannot use sys expressions in DELETE statements");
-        }
-
         return deleteAnalyzedStatement;
     }
 }

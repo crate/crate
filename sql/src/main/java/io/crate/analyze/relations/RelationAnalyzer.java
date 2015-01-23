@@ -112,21 +112,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return new SelectAnalyzedStatement(
                 context.sources(),
                 selectAnalysis.outputNames(),
-                querySpec,
-                expressionAnalysisContext.hasSysExpressions
+                querySpec
         );
     }
 
     private List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
-            if (symbol.symbolType().equals(DataTypes.UNDEFINED)) {
-                throw new IllegalArgumentException(
-                        SymbolFormatter.format("unknown column '%s' not allowed in a global DISTINCT", symbol));
-            } else if (isAggregate(symbol)) {
-                continue; // do not add aggregates
+            if (!isAggregate(symbol)) {
+                groupBy.add(symbol);
             }
-            groupBy.add(symbol);
         }
         return groupBy;
     }
@@ -144,39 +139,33 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private boolean isAggregate(Symbol s) {
-        if (s.symbolType() == SymbolType.FUNCTION) {
-            if (((Function) s).info().type() == FunctionInfo.Type.AGGREGATE) {
-                return true;
-            }
-            AggregationSearcherContext searcherContext = new AggregationSearcherContext();
-            AGGREGATION_SEARCHER.process(s, searcherContext);
-            return searcherContext.found;
-        }
-        return false;
+        return AGGREGATION_SEARCHER.process(s, null);
     }
 
-    static class AggregationSearcherContext {
-        boolean found = false;
-    }
-
-    static class AggregationSearcher extends SymbolVisitor<AggregationSearcherContext, Void> {
+    static class AggregationSearcher extends SymbolVisitor<Void, Boolean> {
 
         @Override
-        public Void visitFunction(Function symbol, AggregationSearcherContext context) {
+        protected Boolean visitSymbol(Symbol symbol, Void context) {
+            return false;
+        }
+
+        @Override
+        public Boolean visitFunction(Function symbol, Void context) {
             if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
-                context.found = true;
+                return true;
             } else {
                 for (Symbol argument : symbol.arguments()) {
-                    process(argument, context);
+                    if (process(argument, context)){
+                        return true;
+                    }
                 }
             }
-            return null;
+            return false;
         }
 
         @Override
-        public Void visitAggregation(Aggregation symbol, AggregationSearcherContext context) {
-            context.found = true;
-            return null;
+        public Boolean visitAggregation(Aggregation symbol, Void context) {
+            return true;
         }
     }
 

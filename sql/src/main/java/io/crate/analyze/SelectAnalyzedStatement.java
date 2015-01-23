@@ -37,18 +37,15 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final List<Field> fields;
     private final QuerySpec querySpec;
-    private boolean hasSysExpressions;
 
     public SelectAnalyzedStatement(
             Map<QualifiedName, AnalyzedRelation> sources,
             List<String> outputNames,
-            QuerySpec querySpec,
-            boolean hasSysExpressions){
+            QuerySpec querySpec){
 
         super(null);
         this.querySpec = querySpec;
         this.sources = sources;
-        this.hasSysExpressions = hasSysExpressions;
 
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
         fields = new ArrayList<>(outputNames.size());
@@ -96,10 +93,6 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
     @Override
     public List<Field> fields() {
         return fields;
-    }
-
-    public boolean hasSysExpressions() {
-        return hasSysExpressions;
     }
 
     public QuerySpec querySpec() {
