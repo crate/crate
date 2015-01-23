@@ -23,6 +23,7 @@ package io.crate.planner.consumer;
 
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -190,23 +191,27 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
         // handler
 
         if (!ignoreSorting) {
-            List<Symbol> orderBy;
+            List<Symbol> orderBySymbols;
             List<Symbol> outputs;
             if (topNReducer == null) {
-                orderBy = contextBuilder.orderBy();
+                orderBySymbols = contextBuilder.orderBy();
                 outputs = contextBuilder.outputs();
             } else {
-                orderBy = contextBuilder.passThroughOrderBy();
+                orderBySymbols = contextBuilder.passThroughOrderBy();
                 outputs = contextBuilder.passThroughOutputs();
             }
-
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.querySpec().offset(),
-                    orderBy,
-                    analysis.querySpec().orderBy().reverseFlags(),
-                    analysis.querySpec().orderBy().nullsFirst()
-            );
+            TopNProjection topN;
+            int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            OrderBy orderBy = analysis.querySpec().orderBy();
+            if (orderBy == null){
+                topN = new TopNProjection(limit, analysis.querySpec().offset());
+            } else {
+                topN = new TopNProjection(limit, analysis.querySpec().offset(),
+                        orderBySymbols,
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst()
+                );
+            }
             topN.outputs(outputs);
             contextBuilder.addProjection(topN);
         }
@@ -231,13 +236,18 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                                                     PlannerContextBuilder contextBuilder,
                                                     List<Symbol> outputs) {
         if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset(),
-                    0,
-                    contextBuilder.orderBy(),
-                    analysis.querySpec().orderBy().reverseFlags(),
-                    analysis.querySpec().orderBy().nullsFirst()
-            );
+            OrderBy orderBy = analysis.querySpec().orderBy();
+            TopNProjection topN;
+            int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset();
+            if (orderBy == null) {
+                topN = new TopNProjection(limit, 0);
+            } else {
+                topN = new TopNProjection(limit, 0,
+                        contextBuilder.orderBy(),
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst()
+                );
+            }
             topN.outputs(outputs);
             return topN;
         }

@@ -22,6 +22,7 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -103,18 +104,32 @@ public class ESGetConsumer implements Consumer {
             } else {
                 indexName = tableInfo.ident().name();
             }
-            return new ESGetNode(
-                    indexName,
-                    tableRelation.resolve(statement.querySpec().outputs()),
-                    whereClauseContext.ids(),
-                    whereClauseContext.routingValues(),
-                    tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy()),
-                    statement.querySpec().orderBy().reverseFlags(),
-                    statement.querySpec().orderBy().nullsFirst(),
-                    statement.querySpec().limit(),
-                    statement.querySpec().offset(),
-                    tableInfo.partitionedByColumns()
-            );
+            OrderBy orderBy = statement.querySpec().orderBy();
+            if (orderBy == null){
+                return new ESGetNode(
+                        indexName,
+                        tableRelation.resolve(statement.querySpec().outputs()),
+                        whereClauseContext.ids(),
+                        whereClauseContext.routingValues(),
+                        null, null, null,
+                        statement.querySpec().limit(),
+                        statement.querySpec().offset(),
+                        tableInfo.partitionedByColumns()
+                );
+            } else {
+                return new ESGetNode(
+                        indexName,
+                        tableRelation.resolve(statement.querySpec().outputs()),
+                        whereClauseContext.ids(),
+                        whereClauseContext.routingValues(),
+                        tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy()),
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst(),
+                        statement.querySpec().limit(),
+                        statement.querySpec().offset(),
+                        tableInfo.partitionedByColumns()
+                );
+            }
         }
 
         @Override

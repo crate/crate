@@ -22,6 +22,7 @@ package io.crate.planner.consumer;
 
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -179,13 +180,18 @@ public class NonDistributedGroupByConsumer implements Consumer {
             contextBuilder.addProjection(fp);
         }
         if (!ignoreSorting) {
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.querySpec().offset(),
-                    contextBuilder.orderBy(),
-                    analysis.querySpec().orderBy().reverseFlags(),
-                    analysis.querySpec().orderBy().nullsFirst()
-            );
+            OrderBy orderBy = analysis.querySpec().orderBy();
+            int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            TopNProjection topN;
+            if (orderBy == null){
+                topN = new TopNProjection(limit, analysis.querySpec().offset());
+
+            } else {
+                topN = new TopNProjection(limit, analysis.querySpec().offset(),
+                        contextBuilder.orderBy(),
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst());
+            }
             topN.outputs(contextBuilder.outputs());
             contextBuilder.addProjection(topN);
         }

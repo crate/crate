@@ -180,8 +180,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
     }
 
+    @Nullable
     private OrderBy analyzeOrderBy(SelectAnalyzer.SelectAnalysis selectAnalysis, List<SortItem> orderBy) {
         int size = orderBy.size();
+        if (size==0){
+            return null;
+        }
         List<Symbol> symbols = new ArrayList<>(size);
         boolean[] reverseFlags = new boolean[size];
         Boolean[] nullsFirst = new Boolean[size];

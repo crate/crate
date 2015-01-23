@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -229,15 +230,20 @@ public class InsertFromSubQueryConsumer implements Consumer {
             }
 
             boolean topNDone = false;
+            OrderBy orderBy = analysis.querySpec().orderBy();
             if (analysis.querySpec().isLimited()) {
                 topNDone = true;
-                TopNProjection topN = new TopNProjection(
-                        firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset(),
-                        0,
-                        tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy()),
-                        analysis.querySpec().orderBy().reverseFlags(),
-                        analysis.querySpec().orderBy().nullsFirst()
-                );
+                TopNProjection topN;
+                int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset();
+                if (orderBy == null) {
+                    topN = new TopNProjection(limit, 0);
+                } else {
+                    topN = new TopNProjection(limit, 0,
+                            tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy()),
+                            orderBy.reverseFlags(),
+                            orderBy.nullsFirst()
+                    );
+                }
                 topN.outputs(contextBuilder.outputs());
                 contextBuilder.addProjection((topN));
             } else {
@@ -249,22 +255,26 @@ public class InsertFromSubQueryConsumer implements Consumer {
             // local merge on handler
             if (analysis.querySpec().isLimited()) {
                 List<Symbol> outputs;
-                List<Symbol> orderBy;
+                List<Symbol> orderBySymbols;
                 if (topNDone) {
-                    orderBy = contextBuilder.passThroughOrderBy();
+                    orderBySymbols = contextBuilder.passThroughOrderBy();
                     outputs = contextBuilder.passThroughOutputs();
                 } else {
-                    orderBy = contextBuilder.orderBy();
+                    orderBySymbols = contextBuilder.orderBy();
                     outputs = contextBuilder.outputs();
                 }
                 // mergeNode handler
-                TopNProjection topN = new TopNProjection(
-                        firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                        analysis.querySpec().offset(),
-                        orderBy,
-                        analysis.querySpec().orderBy().reverseFlags(),
-                        analysis.querySpec().orderBy().nullsFirst()
-                );
+                TopNProjection topN;
+                int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+                if (orderBy == null) {
+                    topN = new TopNProjection(limit, analysis.querySpec().offset());
+                } else {
+                    topN = new TopNProjection(limit, analysis.querySpec().offset(),
+                            orderBySymbols,
+                            orderBy.reverseFlags(),
+                            orderBy.nullsFirst()
+                    );
+                }
                 topN.outputs(outputs);
                 contextBuilder.addProjection(topN);
                 contextBuilder.addProjection(writerProjection);

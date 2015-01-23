@@ -96,7 +96,11 @@ public class QuerySpec {
     }
 
     public QuerySpec orderBy(@Nullable OrderBy orderBy) {
-        this.orderBy = orderBy;
+        if (orderBy== null || !orderBy.isSorted()){
+            this.orderBy = null;
+        } else{
+            this.orderBy = orderBy;
+        }
         return this;
     }
 
@@ -123,10 +127,18 @@ public class QuerySpec {
     }
 
     public void normalize(EvaluatingNormalizer normalizer) {
-        normalizer.normalizeInplace(groupBy);
-        orderBy.normalize(normalizer);
-        normalizer.normalizeInplace(outputs);
-        where = where.normalize(normalizer);
+        if (groupBy != null){
+            normalizer.normalizeInplace(groupBy);
+        }
+        if (orderBy != null){
+            orderBy.normalize(normalizer);
+        }
+        if (outputs != null){
+            normalizer.normalizeInplace(outputs);
+        }
+        if (where != null){
+            where = where.normalize(normalizer);
+        }
     }
 
     public boolean hasNoResult() {

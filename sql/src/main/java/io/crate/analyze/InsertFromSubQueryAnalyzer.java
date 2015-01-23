@@ -60,7 +60,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<Void> {
                 new InsertFromSubQueryAnalyzedStatement(selectAnalyzedStatement, tableInfo);
 
         // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
-        if (selectAnalyzedStatement.querySpec().isLimited() || selectAnalyzedStatement.querySpec().orderBy().isSorted()) {
+        if (selectAnalyzedStatement.querySpec().isLimited() || selectAnalyzedStatement.querySpec().orderBy() != null) {
             throw new UnsupportedFeatureException("Using limit, offset or order by is not" +
                     "supported on insert using a sub-query");
         }
@@ -84,7 +84,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<Void> {
         if (insertColumns.size() != sourceSymbols.size()) {
             throw new IllegalArgumentException("Number of columns in insert statement and subquery differ");
         }
-        
+
         for (int i = 0; i < sourceSymbols.size(); i++) {
             Reference insertColumn = insertColumns.get(i);
             DataType targetType = insertColumn.valueType();
@@ -96,10 +96,11 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<Void> {
                     Function castFunction = new Function(
                             CastFunctionResolver.functionInfo(sourceType, targetType),
                             Arrays.asList(sourceColumn));
-                    if (selectAnalyzedStatement.querySpec().groupBy()!=null) {
+                    if (selectAnalyzedStatement.querySpec().groupBy() != null) {
                         replaceIfPresent(selectAnalyzedStatement.querySpec().groupBy(), sourceColumn, castFunction);
                     }
-                    if (selectAnalyzedStatement.querySpec().orderBy().isSorted()) {
+                    if (selectAnalyzedStatement.querySpec().orderBy() != null) {
+                        //noinspection ConstantConditions
                         replaceIfPresent(selectAnalyzedStatement.querySpec().orderBy().orderBySymbols(), sourceColumn, castFunction);
                     }
                     sourceSymbols.set(i, castFunction);

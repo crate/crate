@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -115,9 +116,13 @@ public class DistributedGroupByConsumer implements Consumer {
 
             GroupByConsumer.validateGroupBySymbols(tableRelation, statement.querySpec().groupBy());
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, tableRelation.resolve(statement.querySpec().groupBy()))
-                    .output(tableRelation.resolve(statement.querySpec().outputs()))
-                    .orderBy(tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy())
+                    .output(tableRelation.resolve(statement.querySpec().outputs())
                     );
+
+            OrderBy orderBy = statement.querySpec().orderBy();
+            if (orderBy != null){
+                contextBuilder.orderBy(tableRelation.resolveAndValidateOrderBy(orderBy));
+            }
 
             Symbol havingClause = null;
             if(statement.querySpec().having() != null){
@@ -179,22 +184,26 @@ public class DistributedGroupByConsumer implements Consumer {
                     contextBuilder.getAndClearProjections());
 
             List<Symbol> outputs;
-            List<Symbol> orderBy;
+            List<Symbol> orderBySymbols;
             if (topNForReducer == null) {
-                orderBy = contextBuilder.orderBy();
+                orderBySymbols = contextBuilder.orderBy();
                 outputs = contextBuilder.outputs();
             } else {
-                orderBy = contextBuilder.passThroughOrderBy();
+                orderBySymbols = contextBuilder.passThroughOrderBy();
                 outputs = contextBuilder.passThroughOutputs();
             }
             // mergeNode handler
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    statement.querySpec().offset(),
-                    orderBy,
-                    statement.querySpec().orderBy().reverseFlags(),
-                    statement.querySpec().orderBy().nullsFirst()
-            );
+            int limit = firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            TopNProjection topN;
+            if (orderBy == null){
+                topN = new TopNProjection(limit, statement.querySpec().offset());
+            } else {
+                topN = new TopNProjection(limit, statement.querySpec().offset(),
+                        orderBySymbols,
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst()
+                );
+            }
             topN.outputs(outputs);
             MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
 
@@ -224,13 +233,17 @@ public class DistributedGroupByConsumer implements Consumer {
                                                  PlannerContextBuilder contextBuilder,
                                                  List<Symbol> outputs) {
             if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
-                TopNProjection topN = new TopNProjection(
-                        firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset(),
-                        0,
-                        contextBuilder.orderBy(),
-                        analysis.querySpec().orderBy().reverseFlags(),
-                        analysis.querySpec().orderBy().nullsFirst()
-                );
+                OrderBy orderBy = analysis.querySpec().orderBy();
+                int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset();
+                TopNProjection topN;
+                if (orderBy==null){
+                    topN = new TopNProjection(limit, 0);
+                } else {
+                    topN = new TopNProjection(limit, 0,
+                            contextBuilder.orderBy(),
+                            orderBy.reverseFlags(),
+                            orderBy.nullsFirst());
+                }
                 topN.outputs(outputs);
                 return topN;
             }

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -175,6 +176,7 @@ public class QueryAndFetchConsumer implements Consumer {
         }
         CollectNode collectNode;
         MergeNode mergeNode;
+        OrderBy orderBy = statement.querySpec().orderBy();
         if (indexWriterProjection != null) {
             // insert directly from shards
             assert !statement.querySpec().isLimited() : "insert from sub query with limit or order by is not supported. " +
@@ -184,7 +186,7 @@ public class QueryAndFetchConsumer implements Consumer {
             collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, projections);
             // use aggregation projection to merge node results (number of inserted rows)
             mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection(functions)), collectNode);
-        } else if (statement.querySpec().isLimited() || statement.querySpec().orderBy().isSorted()) {
+        } else if (statement.querySpec().isLimited() || orderBy != null) {
             /**
              * select id, name, order by id, date
              *
@@ -193,16 +195,27 @@ public class QueryAndFetchConsumer implements Consumer {
              * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
              * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
              */
-            List<Symbol> orderBySymbols = tableRelation.resolve(statement.querySpec().orderBy().orderBySymbols());
-            List<Symbol> toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
-            toCollect.addAll(outputSymbols);
-
-            // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
-            for (Symbol orderBySymbol : orderBySymbols) {
-                if (!toCollect.contains(orderBySymbol)) {
-                    toCollect.add(orderBySymbol);
+            List<Symbol> toCollect;
+            List<Symbol> orderByInputColumns = null;
+            if (orderBy != null){
+                List<Symbol> orderBySymbols = tableRelation.resolve(orderBy.orderBySymbols());
+                toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
+                toCollect.addAll(outputSymbols);
+                // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
+                for (Symbol orderBySymbol : orderBySymbols) {
+                    if (!toCollect.contains(orderBySymbol)) {
+                        toCollect.add(orderBySymbol);
+                    }
                 }
+                orderByInputColumns = new ArrayList<>();
+                for (Symbol symbol : orderBySymbols) {
+                    orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
+                }
+            } else {
+                toCollect = new ArrayList<>(outputSymbols.size());
+                toCollect.addAll(outputSymbols);
             }
+
             List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
             for (int i = 0; i < toCollect.size(); i++) {
                 allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
@@ -211,32 +224,33 @@ public class QueryAndFetchConsumer implements Consumer {
             for (int i = 0; i < outputSymbols.size(); i++) {
                 finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
             }
-            List<Symbol> orderByInputColumns = new ArrayList<>();
-            for (Symbol symbol : orderBySymbols) {
-                orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
-            }
 
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
-            TopNProjection tnp = new TopNProjection(
-                    statement.querySpec().offset() + firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    0,
-                    orderByInputColumns,
-                    statement.querySpec().orderBy().reverseFlags(),
-                    statement.querySpec().orderBy().nullsFirst()
-            );
+            TopNProjection tnp;
+            int limit = firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            if (orderBy == null){
+                tnp = new TopNProjection(statement.querySpec().offset() + limit, 0);
+            } else {
+                tnp = new TopNProjection(statement.querySpec().offset() + limit, 0,
+                        orderByInputColumns,
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst()
+                );
+            }
             tnp.outputs(allOutputs);
             collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
-            TopNProjection handlerTopN = new TopNProjection(
-                    firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    statement.querySpec().offset(),
-                    orderByInputColumns,
-                    statement.querySpec().orderBy().reverseFlags(),
-                    statement.querySpec().orderBy().nullsFirst()
-            );
-            handlerTopN.outputs(finalOutputs);
-            mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(handlerTopN), collectNode);
+            if (orderBy == null) {
+                tnp = new TopNProjection(limit, statement.querySpec().offset());
+            } else {
+                tnp = new TopNProjection(limit, statement.querySpec().offset(),
+                        orderByInputColumns,
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst());
+            }
+            tnp.outputs(finalOutputs);
+            mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode);
         } else {
             collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, ImmutableList.<Projection>of());
             mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
