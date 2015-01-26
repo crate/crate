@@ -23,6 +23,7 @@ package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
@@ -35,20 +36,25 @@ public class UpdateByIdNode extends DMLPlanNode {
     private final String routing;
     private final Map<String, Symbol> assignments;
     private final Optional<Long> version;
-    private final Map<String, Symbol> missingAssignments;
+    @Nullable
+    private final Reference[] missingAssignmentsColumns;
+    @Nullable
+    private final Object[] missingAssignments;
 
     public UpdateByIdNode(String index,
                           String id,
                           String routing,
                           Map<String, Symbol> assignments,
                           Optional<Long> version,
-                          @Nullable Map<String, Symbol> missingAssignments) {
+                          @Nullable Object[] missingAssignments,
+                          @Nullable Reference[] missingAssignmentsColumns) {
         this.index = index;
         this.id = id;
         this.routing = routing;
         this.assignments = assignments;
         this.version = version;
         this.missingAssignments = missingAssignments;
+        this.missingAssignmentsColumns = missingAssignmentsColumns;
     }
 
     public String index() {
@@ -72,8 +78,13 @@ public class UpdateByIdNode extends DMLPlanNode {
     }
 
     @Nullable
-    public Map<String, Symbol> missingAssignments() {
+    public Object[] missingAssignments() {
         return missingAssignments;
+    }
+
+    @Nullable
+    public Reference[] missingAssignmentsColumns() {
+        return missingAssignmentsColumns;
     }
 
     @Override
