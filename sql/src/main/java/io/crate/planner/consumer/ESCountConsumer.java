@@ -33,11 +33,14 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.ESCountNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 
 import java.util.List;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class ESCountConsumer implements Consumer {
 
@@ -87,6 +90,13 @@ public class ESCountConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
+
+            if (firstNonNull(selectAnalyzedStatement.querySpec().limit(), 1) < 1 ||
+                    selectAnalyzedStatement.querySpec().offset() > 0){
+                return new NoopPlannedAnalyzedRelation(selectAnalyzedStatement);
+            }
+
+
             return new ESCountNode(Planner.indices(tableInfo, whereClauseContext.whereClause()),
                     whereClauseContext.whereClause());
         }

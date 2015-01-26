@@ -62,11 +62,6 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
         querySpec.normalize(normalizer);
     }
 
-    @Override
-    public boolean hasNoResult() {
-        return querySpec.hasNoResult();
-    }
-
     public void normalize() {
     }
 

@@ -1013,7 +1013,7 @@ public class PlannerTest {
         assertThat(projection.columnIdents().get(0).fqn(), is("id"));
 
         assertThat(projection.partitionedBySymbols().size(), is(1));
-        assertThat(((InputColumn)projection.partitionedBySymbols().get(0)).index(), is(1));
+        assertThat(((InputColumn) projection.partitionedBySymbols().get(0)).index(), is(1));
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
@@ -1499,4 +1499,28 @@ public class PlannerTest {
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.noMatch(), is(false));
     }
+
+    private void assertNoop(Plan plan){
+        assertThat(plan, instanceOf(NoopPlan.class));
+    }
+
+    @Test
+    public void testHasNoResultFromHaving() throws Exception {
+        assertNoop(plan("select min(name) from users having 1 = 2"));
+    }
+
+    @Test
+    public void testHasNoResultFromLimit() {
+        assertNoop(plan("select count(*) from users limit 1 offset 1"));
+        assertNoop(plan("select count(*) from users limit 5 offset 1"));
+        assertNoop(plan("select count(*) from users limit 0"));
+    }
+
+    @Test
+    public void testHasNoResultFromQuery() {
+        assertNoop(plan("select name from users where false"));
+    }
+
+
+
 }

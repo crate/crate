@@ -36,6 +36,14 @@ import static org.hamcrest.Matchers.is;
 public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
+    public void testSelectZeroLimit() throws Exception {
+        execute("create table test (col1 int) clustered into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("select * from sys.shards limit 0");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
     public void testShardSelect() throws Exception {
         execute("create table test (col1 int) clustered into 3 shards with (number_of_replicas=0)");
         ensureGreen();

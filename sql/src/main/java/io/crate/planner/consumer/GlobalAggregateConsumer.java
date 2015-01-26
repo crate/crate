@@ -36,6 +36,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GlobalAggregate;
 import io.crate.planner.node.dql.MergeNode;
@@ -45,6 +46,8 @@ import io.crate.planner.symbol.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 
 public class GlobalAggregateConsumer implements Consumer {
@@ -79,6 +82,10 @@ public class GlobalAggregateConsumer implements Consumer {
             if (statement.querySpec().groupBy()!=null || !statement.querySpec().hasAggregates()) {
                 return null;
             }
+            if (firstNonNull(statement.querySpec().limit(), 1) < 1 || statement.querySpec().offset() > 0){
+                return new NoopPlannedAnalyzedRelation(statement);
+            }
+
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
             if (tableRelation == null) {
                 return null;
@@ -113,8 +120,11 @@ public class GlobalAggregateConsumer implements Consumer {
         // otherwise (true value) having can be ignored
         Symbol havingClause = null;
         Symbol having = statement.querySpec().having();
-        if (having != null && having instanceof Function) {
+        if (having != null) {
             havingClause = contextBuilder.having(tableRelation.resolveHaving(having));
+            if (!WhereClause.canMatch(havingClause)) {
+                return new NoopPlannedAnalyzedRelation(statement);
+            };
         }
 
         AggregationProjection ap = new AggregationProjection();

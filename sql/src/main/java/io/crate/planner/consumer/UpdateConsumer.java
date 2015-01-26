@@ -40,6 +40,7 @@ import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.UpdateByIdNode;
 import io.crate.planner.node.dml.Update;
 import io.crate.planner.node.dql.CollectNode;
@@ -111,7 +112,9 @@ public class UpdateConsumer implements Consumer {
                 WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
                 WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
                 WhereClause whereClause = whereClauseContext.whereClause();
-
+                if (whereClause.noMatch()){
+                    continue;
+                }
                 if (whereClauseContext.ids().size() >= 1
                         && whereClauseContext.routingValues().size() == whereClauseContext.ids().size()) {
                     childNodes.add(updateById(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
@@ -119,8 +122,11 @@ public class UpdateConsumer implements Consumer {
                     childNodes.add(updateByQuery(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
                 }
             }
-
-            return new Update(childNodes);
+            if (childNodes.size()>0){
+                return new Update(childNodes);
+            } else {
+                return new NoopPlannedAnalyzedRelation(statement);
+            }
         }
 
         private List<DQLPlanNode> updateByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,

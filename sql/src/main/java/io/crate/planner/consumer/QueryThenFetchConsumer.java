@@ -24,6 +24,7 @@ package io.crate.planner.consumer;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -33,6 +34,7 @@ import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 
 public class QueryThenFetchConsumer implements Consumer {
@@ -74,33 +76,41 @@ public class QueryThenFetchConsumer implements Consumer {
             if (tableInfo.schemaInfo().systemSchema() || tableInfo.rowGranularity() != RowGranularity.DOC) {
                 return null;
             }
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
-            if(whereClauseContext.whereClause().version().isPresent()){
-                context.validationException(new VersionInvalidException());
-                return null;
+
+            WhereClause where = statement.querySpec().where();
+            if (where != null){
+                WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+                WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(where);
+                if(whereClauseContext.whereClause().version().isPresent()){
+                    context.validationException(new VersionInvalidException());
+                    return null;
+                }
+                where = whereClauseContext.whereClause();
+                if (where.noMatch()){
+                    return new NoopPlannedAnalyzedRelation(statement);
+                }
             }
             OrderBy orderBy = statement.querySpec().orderBy();
             if (orderBy == null){
                 return new QueryThenFetchNode(
-                        tableInfo.getRouting(whereClauseContext.whereClause(), null),
+                        tableInfo.getRouting(where, null),
                         tableRelation.resolve(statement.querySpec().outputs()),
                         null, null, null,
                         statement.querySpec().limit(),
                         statement.querySpec().offset(),
-                        whereClauseContext.whereClause(),
+                        where,
                         tableInfo.partitionedByColumns()
                 );
             } else {
                 return new QueryThenFetchNode(
-                        tableInfo.getRouting(whereClauseContext.whereClause(), null),
+                        tableInfo.getRouting(where, null),
                         tableRelation.resolve(statement.querySpec().outputs()),
                         tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy()),
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst(),
                         statement.querySpec().limit(),
                         statement.querySpec().offset(),
-                        whereClauseContext.whereClause(),
+                        where,
                         tableInfo.partitionedByColumns()
                 );
             }

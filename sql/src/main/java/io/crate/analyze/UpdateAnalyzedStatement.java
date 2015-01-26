@@ -21,9 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
@@ -39,14 +37,6 @@ import java.util.Locale;
 import java.util.Map;
 
 public class UpdateAnalyzedStatement extends AnalyzedStatement implements AnalyzedRelation {
-
-    private static final Predicate<NestedAnalyzedStatement> HAS_NO_RESULT_PREDICATE = new Predicate<NestedAnalyzedStatement>() {
-        @Override
-        public boolean apply(@Nullable NestedAnalyzedStatement input) {
-            return input != null && input.whereClause.noMatch();
-        }
-    };
-
 
     private final List<NestedAnalyzedStatement> nestedStatements;
     private final AnalyzedRelation sourceRelation;
@@ -64,11 +54,6 @@ public class UpdateAnalyzedStatement extends AnalyzedStatement implements Analyz
 
     public List<NestedAnalyzedStatement> nestedStatements() {
         return nestedStatements;
-    }
-
-    @Override
-    public boolean hasNoResult() {
-        return Iterables.all(nestedStatements, HAS_NO_RESULT_PREDICATE);
     }
 
     @Override

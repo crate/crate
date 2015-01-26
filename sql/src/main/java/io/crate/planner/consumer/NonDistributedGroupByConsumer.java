@@ -35,6 +35,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
@@ -152,6 +153,9 @@ public class NonDistributedGroupByConsumer implements Consumer {
         Symbol havingClause = null;
         if(analysis.querySpec().having() != null){
             havingClause = tableRelation.resolveHaving(analysis.querySpec().having());
+            if (!WhereClause.canMatch(havingClause)) {
+                return new NoopPlannedAnalyzedRelation(analysis);
+            };
         }
         if (havingClause != null && havingClause instanceof Function) {
             // extract collect symbols and such from having clause

@@ -46,11 +46,6 @@ public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
     }
 
     @Override
-    public boolean hasNoResult() {
-        return false;
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDDLAnalyzedStatement(this, context);
     }

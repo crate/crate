@@ -107,11 +107,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        if (analyzedStatement.hasNoResult()){
-            return NoopPlan.INSTANCE;
-        }
-        Plan plan = process(analyzedStatement, EMPTY_CONTEXT);
-        return plan;
+        return process(analyzedStatement, EMPTY_CONTEXT);
     }
 
     @Override
@@ -146,6 +142,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         TableRelation tableRelation = (TableRelation) analyzedStatement.analyzedRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
+            if (whereClause.noMatch()){
+                continue;
+            }
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(whereClause);
             if (whereClauseContext.ids().size() == 1 && whereClauseContext.routingValues().size() == 1) {
                 createESDeleteNode(tableRelation.tableInfo(), whereClauseContext, plan);
@@ -153,7 +152,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauseContext, plan);
             }
         }
-        if (plan.isEmpty()){
+        if (plan.isEmpty()) {
             return NoopPlan.INSTANCE;
         }
         return plan;
@@ -369,18 +368,22 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     public Plan visitSetStatement(SetAnalyzedStatement analysis, Context context) {
-        ESClusterUpdateSettingsNode node;
+        ESClusterUpdateSettingsNode node = null;
         if (analysis.isReset()) {
             // always reset persistent AND transient settings
-            node = new ESClusterUpdateSettingsNode(analysis.settingsToRemove(), analysis.settingsToRemove());
+            if (analysis.settingsToRemove() != null) {
+                node = new ESClusterUpdateSettingsNode(analysis.settingsToRemove(), analysis.settingsToRemove());
+            }
         } else {
-            if (analysis.isPersistent()) {
-                node = new ESClusterUpdateSettingsNode(analysis.settings());
-            } else {
-                node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
+            if (analysis.settings() != null) {
+                if (analysis.isPersistent()) {
+                    node = new ESClusterUpdateSettingsNode(analysis.settings());
+                } else {
+                    node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
+                }
             }
         }
-        return new IterablePlan(node);
+        return node != null ? new IterablePlan(node) : NoopPlan.INSTANCE;
     }
 
     private void createESDeleteNode(TableInfo tableInfo, WhereClauseContext whereClauseContext, IterablePlan plan) {
@@ -417,7 +420,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             List<String> partitions = analysis.generatePartitions();
             indices = partitions.toArray(new String[partitions.size()]);
         } else {
-            indices = new String[]{ analysis.tableInfo().ident().esName() };
+            indices = new String[]{analysis.tableInfo().ident().esName()};
         }
 
         ESIndexNode indexNode = new ESIndexNode(
@@ -432,7 +435,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
-        if (projections.size() == 0){
+        if (projections.size() == 0) {
             return inputTypes;
         }
         int projectionIdx = projections.size() - 1;
@@ -476,7 +479,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
         } else if (!tableInfo.isPartitioned()) {
             // table name for non-partitioned tables
-            indices = new String[]{ tableInfo.ident().name() };
+            indices = new String[]{tableInfo.ident().name()};
         } else if (whereClause.partitions().isEmpty()) {
             if (whereClause.noMatch()) {
                 return new String[0];

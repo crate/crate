@@ -24,10 +24,7 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
@@ -40,6 +37,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -194,6 +192,9 @@ public class InsertFromSubQueryConsumer implements Consumer {
             Symbol havingClause = null;
             if(analysis.querySpec().having() != null){
                 havingClause = tableRelation.resolveHaving(analysis.querySpec().having());
+                if (!WhereClause.canMatch(havingClause)) {
+                    return new NoopPlannedAnalyzedRelation(analysis);
+                };
             }
             if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
                 // replace aggregation symbols with input columns from previous projection

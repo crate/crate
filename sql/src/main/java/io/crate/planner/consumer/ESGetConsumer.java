@@ -33,6 +33,7 @@ import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.ESGetNode;
 
 public class ESGetConsumer implements Consumer {
@@ -104,6 +105,14 @@ public class ESGetConsumer implements Consumer {
             } else {
                 indexName = tableInfo.ident().name();
             }
+
+            Integer limit = statement.querySpec().limit();
+            if (limit != null){
+                if (limit == 0){
+                    return new NoopPlannedAnalyzedRelation(statement);
+                }
+            }
+
             OrderBy orderBy = statement.querySpec().orderBy();
             if (orderBy == null){
                 return new ESGetNode(
@@ -112,7 +121,7 @@ public class ESGetConsumer implements Consumer {
                         whereClauseContext.ids(),
                         whereClauseContext.routingValues(),
                         null, null, null,
-                        statement.querySpec().limit(),
+                        limit,
                         statement.querySpec().offset(),
                         tableInfo.partitionedByColumns()
                 );
@@ -125,7 +134,7 @@ public class ESGetConsumer implements Consumer {
                         tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy()),
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst(),
-                        statement.querySpec().limit(),
+                        limit,
                         statement.querySpec().offset(),
                         tableInfo.partitionedByColumns()
                 );

@@ -70,11 +70,6 @@ public class CopyAnalyzedStatement extends AnalyzedStatement {
     }
 
     @Override
-    public boolean hasNoResult() {
-        return false;
-    }
-
-    @Override
     public void normalize() {
     }
 

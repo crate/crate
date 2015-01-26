@@ -28,8 +28,6 @@ public abstract class AnalyzedStatement {
     protected AnalyzedStatement(ParameterContext parameterContext) {
         this.parameterContext = parameterContext;
     }
-    public abstract boolean hasNoResult();
-
     public abstract void normalize();
 
     public ParameterContext parameterContext() {

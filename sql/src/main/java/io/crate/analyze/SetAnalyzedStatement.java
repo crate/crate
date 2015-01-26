@@ -70,17 +70,6 @@ public class SetAnalyzedStatement extends AnalyzedStatement {
     }
 
     @Override
-    public boolean hasNoResult() {
-        if (settings != null) {
-            return settings.getAsMap().isEmpty();
-        }
-        if (settingsToRemove != null) {
-            return settingsToRemove.size() == 0;
-        }
-        return true;
-    }
-
-    @Override
     public void normalize() {
 
     }
