@@ -25,11 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -86,6 +82,7 @@ public class CrossJoinConsumer implements Consumer {
             return null;
         }
 
+        @SuppressWarnings("ConstantConditions")
         @Override
         public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect statement, ConsumerContext context) {
             if (statement.sources().size() < 2) {
@@ -173,6 +170,7 @@ public class CrossJoinConsumer implements Consumer {
                         "WhereClause contains a function or operator that involves more than 1 relation. This is not supported"));
                 return null;
             }
+
 
             Integer qtfLimit = null;
             Integer querySpecLimit = statement.querySpec().limit();
