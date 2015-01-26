@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.Constants;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.DocumentRequest;
 import org.elasticsearch.action.support.single.instance.InstanceShardOperationRequest;
@@ -43,8 +44,11 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
     private String routing;
     private long version = Versions.MATCH_ANY;
     private Map<String, Symbol> assignments;
+
     @Nullable
-    private Map<String, Symbol> missingAssignments;
+    private Reference[] missingAssignmentsColumns;
+    @Nullable
+    private Object[] missingAssignments;
 
     public ShardUpdateRequest() {
     }
@@ -120,12 +124,20 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
     }
 
     @Nullable
-    public Map<String, Symbol> missingAssignments() {
+    public Object[] missingAssignments() {
         return missingAssignments;
     }
 
-    public void missingAssignments(@Nullable Map<String, Symbol> missingAssignments) {
+    public void missingAssignments(@Nullable Object[] missingAssignments) {
         this.missingAssignments = missingAssignments;
+    }
+
+    public Reference[] missingAssignmentsColumns() {
+        return missingAssignmentsColumns;
+    }
+
+    public void missingAssignmentsColumns(Reference[] missingAssignmentsColumns) {
+        this.missingAssignmentsColumns = missingAssignmentsColumns;
     }
 
     @Override
@@ -139,12 +151,17 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
         for (int i = 0; i < mapSize; i++) {
             assignments.put(in.readString(), Symbol.fromStream(in));
         }
-        if (in.readBoolean()){
-            mapSize = in.readVInt();
-            missingAssignments = new HashMap<>(mapSize);
-            for (int i = 0; i < mapSize; i++) {
-                missingAssignments.put(in.readString(), Symbol.fromStream(in));
-            }
+        int missingAssignmentsColumnsSize = in.readVInt();
+        missingAssignmentsColumns = new Reference[missingAssignmentsColumnsSize];
+        for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
+            missingAssignmentsColumns[i] = (Reference)Reference.fromStream(in);
+        }
+
+        int missingAssignmentsSize = in.readVInt();
+        this.missingAssignments = new Object[missingAssignmentsSize];
+        for (int i = 0; i < missingAssignmentsSize; i++) {
+            Reference ref = missingAssignmentsColumns[i];
+            missingAssignments[i] = ref.valueType().streamer().readValueFrom(in);
         }
     }
 
@@ -159,15 +176,23 @@ public class ShardUpdateRequest extends InstanceShardOperationRequest<ShardUpdat
             out.writeString(entry.getKey());
             Symbol.toStream(entry.getValue(), out);
         }
-        if (missingAssignments != null){
-            out.writeBoolean(true);
-            out.writeVInt(missingAssignments().size());
-            for (Map.Entry<String, Symbol> entry : missingAssignments.entrySet()){
-                out.writeString(entry.getKey());
-                Symbol.toStream(entry.getValue(), out);
+        // Stream References
+        if (missingAssignmentsColumns != null) {
+            out.writeVInt(missingAssignmentsColumns.length);
+            for(Reference reference : missingAssignmentsColumns) {
+                Reference.toStream(reference, out);
             }
         } else {
-            out.writeBoolean(false);
+            out.writeVInt(0);
+        }
+        if (missingAssignments != null) {
+            out.writeVInt(missingAssignments.length);
+            for (int i = 0; i < missingAssignments.length; i++) {
+                Reference reference = missingAssignmentsColumns[i];
+                reference.valueType().streamer().writeValueTo(out, missingAssignments[i]);
+            }
+        } else {
+            out.writeVInt(0);
         }
     }
 
