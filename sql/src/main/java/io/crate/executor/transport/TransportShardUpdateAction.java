@@ -25,14 +25,10 @@ package io.crate.executor.transport;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.ElasticsearchException;
@@ -46,7 +42,6 @@ import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.action.support.single.instance.TransportInstanceSingleOperationAction;
-import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -86,10 +81,8 @@ public class TransportShardUpdateAction extends TransportInstanceSingleOperation
     private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR = new SymbolToFieldExtractor(new GetResultFieldExtractorFactory());
 
     private final TransportIndexAction indexAction;
-    private final TransportUpdateAction updateAction;
     private final IndicesService indicesService;
     private final Functions functions;
-    private final EvaluatingNormalizer evaluatingNormalizer;
 
 
     @Inject
@@ -99,16 +92,12 @@ public class TransportShardUpdateAction extends TransportInstanceSingleOperation
                                       TransportService transportService,
                                       ActionFilters actionFilters,
                                       TransportIndexAction indexAction,
-                                      TransportUpdateAction updateAction,
                                       IndicesService indicesService,
-                                      Functions functions,
-                                      ReferenceResolver referenceResolver) {
+                                      Functions functions) {
         super(settings, ACTION_NAME, threadPool, clusterService, transportService, actionFilters);
         this.indexAction = indexAction;
-        this.updateAction = updateAction;
         this.indicesService = indicesService;
         this.functions = functions;
-        this.evaluatingNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
     }
 
     @Override
@@ -254,10 +243,10 @@ public class TransportShardUpdateAction extends TransportInstanceSingleOperation
     }
 
     private IndexRequest prepareMissingAssignmentsIndexRequest(ShardUpdateRequest request) {
-        Map<String, Object> changes = new HashMap<>(request.missingAssignments().size());
-        for(Map.Entry<String, Symbol> entry : request.missingAssignments().entrySet()){
-            Literal value = (Literal) evaluatingNormalizer.normalize(entry.getValue());
-            changes.put(entry.getKey(), value.value());
+        Map<String, Object> changes = new HashMap<>(request.missingAssignments().length);
+        for (int i = 0; i < request.missingAssignments().length; i++) {
+            Reference ref = request.missingAssignmentsColumns()[i];
+            changes.put(ref.ident().columnIdent().fqn(), request.missingAssignments()[i]);
         }
         IndexRequest indexRequest = Requests.indexRequest(request.index()).type(request.type()).id(request.id()).routing(request.routing())
                 .source(changes).create(true).operationThreaded(false);

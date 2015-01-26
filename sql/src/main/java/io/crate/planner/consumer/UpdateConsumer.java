@@ -183,6 +183,7 @@ public class UpdateConsumer implements Consumer {
                                 whereClauseContext.routingValues().get(i),
                                 convertAssignments(nestedAnalysis.assignments()),
                                 whereClause.version(),
+                                null,
                                 null));
             }
             return nodes;

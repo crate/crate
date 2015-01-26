@@ -43,7 +43,6 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
-import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
@@ -616,6 +615,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                     put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Vogon lyric fan"));
                 }},
                 Optional.<Long>absent(),
+                null,
                 null
         );
         Plan plan = new IterablePlan(updateNode);
@@ -648,16 +648,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name, female) values (2+3, 'Zaphod Beeblebrox', false);
            on duplicate key update
             set name = 'Zaphod Beeblebrox' */
-        final Function addFunction = new Function(new FunctionInfo(
-                new FunctionIdent(AddFunction.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
-                DataTypes.INTEGER
-        ), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(3)));
-
-        Map<String, Symbol> missingAssignments = new HashMap<String, Symbol>(){{
-            put(idRef.info().ident().columnIdent().fqn(), addFunction);
-            put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Zaphod Beeblebrox"));
-            put(femaleRef.ident().columnIdent().fqn(), Literal.newLiteral(false));
-        }};
+        Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
         UpdateByIdNode updateNode = new UpdateByIdNode(
                 "characters",
                 "5",
@@ -666,7 +657,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                     put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Zaphod Beeblebrox"));
                 }},
                 Optional.<Long>fromNullable(null),
-                missingAssignments
+                missingAssignments,
+                new Reference[]{idRef, nameRef, femaleRef}
         );
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
@@ -695,11 +687,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     @Test
     public void testUpdateByIdTaskMissingAssignmentsExistingDoc() throws Exception {
         setup.setUpCharacters();
-        Map<String, Symbol> missingAssignments = new HashMap<String, Symbol>(){{
-            put(idRef.info().ident().columnIdent().fqn(), Literal.newLiteral(1));
-            put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Zaphod Beeblebrox"));
-            put(femaleRef.ident().columnIdent().fqn(), Literal.newLiteral(true));
-        }};
+        Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
         UpdateByIdNode updateNode = new UpdateByIdNode(
                 "characters",
                 "1",
@@ -708,7 +696,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                     put(femaleRef.info().ident().columnIdent().fqn(), Literal.newLiteral(true));
                 }},
                 Optional.<Long>fromNullable(null),
-                missingAssignments
+                missingAssignments,
+                new Reference[]{idRef, nameRef, femaleRef}
         );
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
