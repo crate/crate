@@ -3,6 +3,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -177,6 +178,7 @@ public class PlannerTest {
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
             when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
+            when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
             schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
         }
@@ -1011,7 +1013,7 @@ public class PlannerTest {
         assertThat(projection.columnIdents().get(0).fqn(), is("id"));
 
         assertThat(projection.partitionedBySymbols().size(), is(1));
-        assertThat(((InputColumn)projection.partitionedBySymbols().get(0)).index(), is(1));
+        assertThat(((InputColumn) projection.partitionedBySymbols().get(0)).index(), is(1));
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
@@ -1435,8 +1437,8 @@ public class PlannerTest {
     @Test
     public void testSortOnUnknownColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'o['unknown_column']': invalid data type 'null'.");
-        plan("select name from users order by o['unknown_column']");
+        expectedException.expectMessage("Cannot ORDER BY 'details['unknown_column']': invalid data type 'null'.");
+        plan("select details from ignored_nested order by details['unknown_column']");
     }
 
     @Test
@@ -1497,4 +1499,28 @@ public class PlannerTest {
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.noMatch(), is(false));
     }
+
+    private void assertNoop(Plan plan){
+        assertThat(plan, instanceOf(NoopPlan.class));
+    }
+
+    @Test
+    public void testHasNoResultFromHaving() throws Exception {
+        assertNoop(plan("select min(name) from users having 1 = 2"));
+    }
+
+    @Test
+    public void testHasNoResultFromLimit() {
+        assertNoop(plan("select count(*) from users limit 1 offset 1"));
+        assertNoop(plan("select count(*) from users limit 5 offset 1"));
+        assertNoop(plan("select count(*) from users limit 0"));
+    }
+
+    @Test
+    public void testHasNoResultFromQuery() {
+        assertNoop(plan("select name from users where false"));
+    }
+
+
+
 }

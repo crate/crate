@@ -21,22 +21,12 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.relations.AnalyzedRelation;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DeleteAnalyzedStatement extends AnalyzedStatement {
-
-    private static final Predicate<WhereClause> HAS_NO_RESULT_PREDICATE = new Predicate<WhereClause>() {
-        @Override
-        public boolean apply(@Nullable WhereClause input) {
-            return input != null && input.noMatch();
-        }
-    };
 
     final List<WhereClause> whereClauses = new ArrayList<>();
     final AnalyzedRelation analyzedRelation;
@@ -52,11 +42,6 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
 
     public List<WhereClause> whereClauses() {
         return whereClauses;
-    }
-
-    @Override
-    public boolean hasNoResult() {
-        return Iterables.all(whereClauses, HAS_NO_RESULT_PREDICATE);
     }
 
     @Override

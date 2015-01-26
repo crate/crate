@@ -64,6 +64,12 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectZeroLimit() throws Exception {
+        exec("select * from information_schema.columns limit 0");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");

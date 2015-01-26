@@ -145,7 +145,8 @@ public class Setup {
             " age %s," +
             " birthdate timestamp," +
             " name string," +
-            " details object" +
+            " details object," +
+            " details_ignored object(ignored)" +
             ")", numericType));
         transportExecutor.ensureGreen();
 
@@ -281,7 +282,7 @@ public class Setup {
         transportExecutor.exec("create table parted (" +
                 "id int primary key," +
                 "date timestamp primary key," +
-                "o object" +
+                "o object(ignored)" +
                 ") partitioned by (date) with (number_of_replicas=0)");
         transportExecutor.ensureGreen();
         transportExecutor.exec("insert into parted (id, date) values (1, '2014-01-01')");

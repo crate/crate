@@ -119,11 +119,6 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     }
 
     @Override
-    public boolean hasNoResult() {
-        return false;
-    }
-
-    @Override
     public void normalize() {
 
     }

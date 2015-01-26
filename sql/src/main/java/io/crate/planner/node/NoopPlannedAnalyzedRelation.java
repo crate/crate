@@ -19,60 +19,53 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.planner.node;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.metadata.table.TableInfo;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement implements AnalyzedRelation {
+public class NoopPlannedAnalyzedRelation implements PlannedAnalyzedRelation {
 
-    private final AnalyzedRelation subQueryRelation;
+    private final AnalyzedRelation relation;
 
-    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation, TableInfo targetTableInfo) {
-        tableInfo(targetTableInfo);
-        this.subQueryRelation = subQueryRelation;
-    }
-
-    public AnalyzedRelation subQueryRelation() {
-        return this.subQueryRelation;
+    public NoopPlannedAnalyzedRelation(AnalyzedRelation relation) {
+        this.relation = relation;
     }
 
     @Override
-    public void normalize() {
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitInsertFromSubQueryStatement(this, context);
+    public Plan plan() {
+        return NoopPlan.INSTANCE;
     }
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitInsertFromQuery(this, context);
+        return visitor.visitPlanedAnalyzedRelation(this, context);
     }
 
     @Nullable
     @Override
     public Field getField(Path path) {
-        return null;
+        return relation.getField(path);
     }
 
-    @Nullable
     @Override
     public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        return null;
+        return relation.getWritableField(path);
     }
 
     @Override
     public List<Field> fields() {
-        return ImmutableList.of();
+        return relation.fields();
     }
+
+
 }

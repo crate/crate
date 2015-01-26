@@ -93,6 +93,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectZeroLimit() throws Exception {
+        execute("create table test (\"type\" string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (name) values (?)", new Object[]{"Arthur"});
+        execute("insert into test (name) values (?)", new Object[]{"Trillian"});
+        refresh();
+        execute("select * from test limit 0");
+        assertEquals(0L, response.rowCount());
+    }
+
+
+    @Test
     public void testSelectCountStarWithWhereClause() throws Exception {
         execute("create table test (name string) with (number_of_replicas=0)");
         ensureGreen();
@@ -222,7 +234,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testFilterByNull() throws Exception {
-        execute("create table test (name string, o object)");
+        execute("create table test (name string, o object(ignored))");
         ensureGreen();
 
         client().prepareIndex("test", "default", "id1").setRefresh(true)
@@ -243,7 +255,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rowCount());
         assertEquals("id2", response.rows()[0][0]);
 
-        // missing field is null returns no match, since we cannot filter by it
+        // missing field of ignored object is null returns no match, so we cannot filter by it
         execute("select \"_id\" from test where o['invalid'] is null");
         assertEquals(0, response.rowCount());
 
@@ -1250,6 +1262,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (" +
                 "id integer primary key, " +
                 "quote string index off, " +
+                "o object(ignored), " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
                 ") clustered by (id) into 3 shards with (number_of_replicas = 0)");
         ensureGreen();
@@ -1293,7 +1306,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void selectWhereDynamicColumnIsNull() throws Exception {
         nonExistingColumnSetup();
-        // dynamic fields are not indexed, so we just don't know if it matches
+        // dynamic references type is undefined, so we just don't know if it matches
         execute("select * from quotes where o['something'] IS NULL");
         assertEquals(0, response.rowCount());
     }
@@ -2260,14 +2273,14 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-
     public void testMatchNotOnSubColumn() throws Exception {
         execute("create table matchbox (" +
                 "  s string index using fulltext with (analyzer='german')," +
                 "  o object as (" +
                 "    s string index using fulltext with (analyzer='german')," +
                 "    m string index using fulltext with (analyzer='german')" +
-                "  )" +
+                "  )," +
+                "  o_ignored object(ignored)" +
                 ") with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into matchbox (s, o) values ('Arthur Dent', {s='Zaphod Beeblebroox', m='Ford Prefect'})");
@@ -2290,7 +2303,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
 
-        execute("select * from matchbox where match(o['a'], 'Ford')");
+        execute("select * from matchbox where match(o_ignored['a'], 'Ford')");
         assertThat(response.rowCount(), is(0L));
     }
 

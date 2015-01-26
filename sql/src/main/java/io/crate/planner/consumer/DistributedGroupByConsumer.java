@@ -38,6 +38,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -127,6 +128,9 @@ public class DistributedGroupByConsumer implements Consumer {
             Symbol havingClause = null;
             if(statement.querySpec().having() != null){
                 havingClause = tableRelation.resolveHaving(statement.querySpec().having());
+                if (!WhereClause.canMatch(havingClause)) {
+                    return new NoopPlannedAnalyzedRelation(statement);
+                };
             }
             if (havingClause != null && havingClause instanceof Function) {
                 // replace aggregation symbols with input columns from previous projection

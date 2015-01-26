@@ -25,6 +25,7 @@ import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
@@ -36,6 +37,7 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
@@ -46,7 +48,6 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 
 import java.util.List;
 
@@ -149,13 +150,11 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy()));
         Symbol havingClause = null;
         if (analysis.querySpec().having() != null) {
-            havingClause = tableRelation.resolveHaving(analysis.querySpec().having());
+            havingClause = contextBuilder.having(tableRelation.resolveHaving(analysis.querySpec().having()));
+            if (!WhereClause.canMatch(havingClause)) {
+                return new NoopPlannedAnalyzedRelation(analysis);
+            };
         }
-        if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(havingClause);
-        }
-
         // mapper / collect
         List<Symbol> toCollect = contextBuilder.toCollect();
 

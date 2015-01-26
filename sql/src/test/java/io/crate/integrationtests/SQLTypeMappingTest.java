@@ -441,25 +441,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     } */
 
     @Test
-    public void testUnknownTypesSelectGlobalAggregate() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("unknown function: arbitrary(null)");
-
-        this.setup.setUpObjectMappingWithUnknownTypes();
-        execute("select arbitrary(o['foo']) from ut");
-    }
-
-    @Test
-    public void testUnknownTypesSelectGroupBy() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'o['location']': invalid data type 'null'");
-
-        this.setup.setUpObjectMappingWithUnknownTypes();
-        execute("select count(*) from ut group by o['location']");
-    }
-
-
-    @Test
     public void testDynamicEmptyArray() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
         ensureGreen();

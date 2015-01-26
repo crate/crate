@@ -21,14 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 
 import javax.annotation.Nullable;
 import java.util.List;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class QuerySpec {
 
@@ -139,19 +135,6 @@ public class QuerySpec {
         if (where != null){
             where = where.normalize(normalizer);
         }
-    }
-
-    public boolean hasNoResult() {
-        if (having != null && having.symbolType() == SymbolType.LITERAL) {
-            Literal havingLiteral = (Literal) having;
-            if (havingLiteral.value() == false) {
-                return true;
-            }
-        }
-        if (hasAggregates() && groupBy() == null) {
-            return firstNonNull(limit(), 1) < 1 || offset() > 0;
-        }
-        return where.noMatch() || limit != null && limit == 0;
     }
 
 }

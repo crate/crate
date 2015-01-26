@@ -552,7 +552,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1.2 in (1, 2)");
         assertFalse(analysis.querySpec().where().hasQuery()); // already normalized from 1.2 in (1.0, 2.0) --> false
         assertTrue(analysis.querySpec().where().noMatch());
-        assertTrue(analysis.hasNoResult());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -706,12 +705,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testIsNullOnDynamicReference() {
-        SelectAnalyzedStatement analysis = analyze("select \"_id\" from users where details['invalid'] is null");
-        assertTrue(analysis.querySpec().where().noMatch());
-    }
-
-    @Test
     public void testNotPredicate() {
         SelectAnalyzedStatement analysis = analyze("select * from users where name not like 'foo%'");
         assertThat(((Function)analysis.querySpec().where().query()).info().ident().name(), is(NotPredicate.NAME));
@@ -736,30 +729,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Only exactly one table is allowed in the FROM clause, got: 2");
         analyze("select name from users a, users b");
-    }
-
-    @Test
-    public void testHasNoResult() {
-        AnalyzedStatement analyzedStatement = analyze("select count(*) from users limit 1 offset 1");
-        assertTrue(analyzedStatement.hasNoResult());
-
-        analyzedStatement = analyze("select count(*) from users limit 5 offset 1");
-        assertTrue(analyzedStatement.hasNoResult());
-
-        analyzedStatement = analyze("select count(*) from users limit 1");
-        assertFalse(analyzedStatement.hasNoResult());
-
-        analyzedStatement = analyze("select count(*) from users limit 0");
-        assertTrue(analyzedStatement.hasNoResult());
-
-        analyzedStatement = analyze("select name from users limit 0");
-        assertTrue(analyzedStatement.hasNoResult());
-
-        analyzedStatement = analyze("select name from users where false");
-        assertTrue(analyzedStatement.hasNoResult());
-
-        analyzedStatement = analyze("select name from users limit 10 offset 10");
-        assertFalse(analyzedStatement.hasNoResult());
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -825,7 +794,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testArrayCompareAnyNeq() throws Exception {
-        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement) analyze("select * from users where ? != ANY (counters)",
+        SelectAnalyzedStatement analysis = analyze("select * from users where ? != ANY (counters)",
                 new Object[]{ 4.3F });
         assertThat(analysis.querySpec().where().hasQuery(), is(true));
 
@@ -850,7 +819,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAnyOnObjectArrayField() throws Exception {
-        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement) analyze(
+        SelectAnalyzedStatement analysis = analyze(
                 "select * from users where 5 = ANY (friends['id'])");
         assertThat(analysis.querySpec().where().hasQuery(), is(true));
         Function anyFunction = (Function)analysis.querySpec().where().query();
@@ -919,10 +888,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAliasSubscript() throws Exception {
         SelectAnalyzedStatement analysis =  analyze(
-                "select u.details['foo'] from users as u");
+                "select u.friends['id'] from users as u");
         assertThat(analysis.querySpec().outputs().size(), is(1));
         Symbol s = unwrap(analysis.sources(), analysis.querySpec().outputs().get(0));
-        assertThat(s, isReference("details.foo"));
+        assertThat(s, isReference("friends.id"));
         Reference r = (Reference)s;
         assert r != null;
         assertThat(r.info().ident().tableIdent().name(), is("users"));
@@ -1104,9 +1073,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testMatchOnDynamicColumn() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
-
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column details['me_not_exizzt'] unknown");
         analyze("select * from users where match(details['me_not_exizzt'], 'Arthur Dent')");
     }
 
@@ -1194,6 +1162,22 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testUnknownSubscriptInSelectList() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column o['no_such_column'] unknown");
+        SelectAnalyzedStatement analysis = analyze("select o['no_such_column'] from users");
+    }
+
+    @Test
+    public void testUnknownSubscriptInQuery() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column o['no_such_column'] unknown");
+        SelectAnalyzedStatement analysis = analyze("select * from users where o['no_such_column'] is not null");
+    }
+
+
+
+    @Test
     public void testWhereMatchUnknownOption() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("unknown match option 'oh'");
@@ -1259,12 +1243,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                         "rewrite:constant_score_boolean, prefix_length:4, tie_breaker:0.75, " +
                         "slop:3, analyzer:german, boost:4.6, max_expansions:3, fuzzy_rewrite:top_terms_20, " +
                         "fuzziness:12, operator:or"));
-    }
-
-    @Test
-    public void testIsNotNullDynamic() {
-         SelectAnalyzedStatement analysis = analyze("select * from users where o['no_such_column'] is not null");
-         assertTrue(analysis.hasNoResult());
     }
 
     @Test
@@ -1357,13 +1335,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(havingFunction.arguments().get(0), isFunction("sum"));
         TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), Sets.newHashSet(42.0D, 43.0D, 44.0D), new SetType(DataTypes.DOUBLE));
-    }
-
-    @Test
-    public void testHavingNoResult() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats) from users having 1 = 2");
-        assertThat(analysis.querySpec().having(), isLiteral(false, DataTypes.BOOLEAN));
-        assertThat(analysis.hasNoResult(), is(true));
     }
 
     @Test
