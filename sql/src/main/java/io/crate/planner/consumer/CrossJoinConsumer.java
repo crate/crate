@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -47,6 +46,8 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 
 import java.util.*;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class CrossJoinConsumer implements Consumer {
 
@@ -85,6 +86,7 @@ public class CrossJoinConsumer implements Consumer {
             return null;
         }
 
+        @SuppressWarnings("ConstantConditions")
         @Override
         public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
             if (statement.sources().size() < 2) {
@@ -92,16 +94,16 @@ public class CrossJoinConsumer implements Consumer {
             }
 
             // TODO:
-            if (statement.hasGroupBy()) {
+            if (statement.querySpec().groupBy() != null) {
                 context.validationException(new ValidationException("GROUP BY on CROSS JOIN is not supported"));
                 return null;
             }
-            if (statement.hasAggregates()) {
+            if (statement.querySpec().hasAggregates()) {
                 context.validationException(new ValidationException("AGGREGATIONS on CROSS JOIN is not supported"));
                 return null;
             }
 
-            if (statement.orderBy().isSorted()) {
+            if (statement.querySpec().orderBy() != null && statement.querySpec().orderBy().isSorted()) {
                 context.validationException(new ValidationException("Query with CROSS JOIN doesn't support ORDER BY"));
                 return null;
             }
@@ -136,7 +138,8 @@ public class CrossJoinConsumer implements Consumer {
              * postOutputs: [in(0), subtract( add( in(1), in(3)), in(1) ]
              */
             Map<TableRelation, RelationContext> relations = new IdentityHashMap<>(statement.sources().size());
-            Symbol query = statement.whereClause().query();
+            WhereClause whereClause = statement.querySpec().where();
+            Symbol query = null;
             for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
                 if (!(analyzedRelation instanceof TableRelation)) {
                     context.validationException(new ValidationException("CROSS JOIN with sub queries is not supported"));
@@ -149,7 +152,9 @@ public class CrossJoinConsumer implements Consumer {
                 }
 
                 RelationContext relationContext = new RelationContext();
-                if (statement.whereClause().hasQuery()) {
+
+                if (whereClause != null && whereClause.hasQuery()) {
+                    query = whereClause.query();
                     QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(query, analyzedRelation);
                     if (splitQueries.relationQuery() == null) {
                         relationContext.whereClause = WhereClause.MATCH_ALL;
@@ -161,19 +166,22 @@ public class CrossJoinConsumer implements Consumer {
                 } else {
                     relationContext.whereClause = WhereClause.MATCH_ALL;
                 }
-                FilteringContext filteringContext = filterOutputForRelation(statement.outputSymbols(), tableRelation);
+                FilteringContext filteringContext = filterOutputForRelation(statement.querySpec().outputs(), tableRelation);
                 relationContext.outputs = Lists.newArrayList(filteringContext.allOutputs());
                 relations.put(tableRelation, relationContext);
             }
-            if (statement.whereClause().hasQuery() && !(query instanceof Literal)) {
+            if (query != null && !(query instanceof Literal)) {
                 context.validationException(new ValidationException(
                         "WhereClause contains a function or operator that involves more than 1 relation. This is not supported"));
                 return null;
             }
 
+
             Integer qtfLimit = null;
-            if (statement.limit() != null) {
-                qtfLimit = statement.limit() + statement.offset();
+            int queryLimit = firstNonNull(statement.querySpec().limit(), TopN.NO_LIMIT);
+            int queryOffset = firstNonNull(statement.querySpec().offset(), TopN.NO_OFFSET);
+            if (statement.querySpec().limit() != null) {
+                qtfLimit = queryOffset + queryLimit;
             }
             List<QueryThenFetchNode> queryThenFetchNodes = new ArrayList<>(relations.size());
 
@@ -197,8 +205,7 @@ public class CrossJoinConsumer implements Consumer {
                 );
                 queryThenFetchNodes.add(qtf);
             }
-            int limit = MoreObjects.firstNonNull(statement.limit(), TopN.NO_LIMIT);
-            NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, limit, statement.offset());
+            NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, queryLimit, queryOffset);
 
             /**
              * TopN for:
@@ -231,8 +238,8 @@ public class CrossJoinConsumer implements Consumer {
              *
              * #3 Apply Limit (and Order by once supported..)
              */
-            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.outputSymbols(), relations);
-            TopNProjection topNProjection = new TopNProjection(limit, statement.offset());
+            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), relations);
+            TopNProjection topNProjection = new TopNProjection(queryLimit, queryOffset);
             topNProjection.outputs(postOutputs);
             nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
             nestedLoopNode.outputTypes(Symbols.extractTypes(postOutputs));
