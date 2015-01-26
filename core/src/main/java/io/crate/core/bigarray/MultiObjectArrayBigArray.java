@@ -48,7 +48,9 @@ public class MultiObjectArrayBigArray<T> extends AbstractMultiArrayBigArray<T, O
     @Override
     protected T setValue(long backingArraysIdx, long curArrayIdx, T value) {
         assertIsInt(backingArraysIdx);
-        return backingArrays[(int)backingArraysIdx].set(curArrayIdx, value);
+        synchronized (backingArrays) {
+            return backingArrays[(int) backingArraysIdx].set(curArrayIdx, value);
+        } 
     }
 
     @Override

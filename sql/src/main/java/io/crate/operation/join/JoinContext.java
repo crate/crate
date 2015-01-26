@@ -23,12 +23,14 @@ package io.crate.operation.join;
 
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.RewindableIterator;
 import io.crate.executor.PageInfo;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ConcurrentModificationException;
-import java.util.Iterator;
 
 /**
  * contains state needed during join execution
@@ -36,11 +38,13 @@ import java.util.Iterator;
  */
 class JoinContext implements Closeable {
 
+    private final ESLogger logger = Loggers.getLogger(getClass());
+
     final RelationIterable outerIterable;
     final RelationIterable innerIterable;
 
-    Iterator<Object[]> outerIterator;
-    Iterator<Object[]> innerIterator;
+    RewindableIterator<Object[]> outerIterator;
+    RewindableIterator<Object[]> innerIterator;
 
     JoinContext(RelationIterable outerIterable,
                 RelationIterable innerIterable) {
@@ -48,9 +52,9 @@ class JoinContext implements Closeable {
         this.innerIterable = innerIterable;
     }
 
-    void refreshOuterIteratorIfNeeded() {
+    void refreshOuterIteratorIfNeeded(boolean force) {
         try {
-            if (outerIterator == null || !outerIterator.hasNext()) {
+            if (force || outerIterator == null || !outerIterator.hasNext()) {
                 // outer iterator is iterated pagewise only
                 outerIterator = outerIterable.forCurrentPage();
             }
@@ -63,23 +67,29 @@ class JoinContext implements Closeable {
     void refreshInnerIteratorIfNeeded() {
         try {
             if (innerIterator == null || !innerIterator.hasNext()) {
-                innerIterator = innerIterable.iterator();
+                innerIterator = innerIterable.rewindableIterator();
             }
         } catch (ConcurrentModificationException e) {
             // underlying list has been changed
-            innerIterator = innerIterable.iterator();
+            innerIterator = innerIterable.rewindableIterator();
         }
     }
 
-    ListenableFuture<Void> outerFetchNextPage(Optional<PageInfo> pageInfo) {
+    void refreshInnerIteratorToCurrentPage() {
+        innerIterator = innerIterable.forCurrentPage();
+    }
+
+    ListenableFuture<Long> outerFetchNextPage(Optional<PageInfo> pageInfo) {
+        logger.trace("fetching next {} rows from outer relation", pageInfo.or(outerIterable.currentPageInfo()).size());
         return fetchNextPage(pageInfo, outerIterable);
     }
 
-    ListenableFuture<Void> innerFetchNextPage(Optional<PageInfo> pageInfo) {
+    ListenableFuture<Long> innerFetchNextPage(Optional<PageInfo> pageInfo) {
+        logger.trace("fetching next {} rows from inner relation", pageInfo.or(innerIterable.currentPageInfo()).size());
         return fetchNextPage(pageInfo, innerIterable);
     }
 
-    static ListenableFuture<Void> fetchNextPage(Optional<PageInfo> pageInfo, RelationIterable iterable) {
+    static ListenableFuture<Long> fetchNextPage(Optional<PageInfo> pageInfo, RelationIterable iterable) {
         PageInfo nextPage;
         if (pageInfo.isPresent()) {
             // TODO: optimize/shrink nextPage size
@@ -91,7 +101,8 @@ class JoinContext implements Closeable {
     }
 
     boolean innerNeedsToFetchMore() {
-        return innerIterator != null && !innerIterator.hasNext() && !innerIterable.isComplete();
+        return !innerIterable.isComplete();
+        //return innerIterator != null && !innerIterator.hasNext() && !innerIterable.isComplete();
     }
 
     boolean outerNeedsToFetchMore() {

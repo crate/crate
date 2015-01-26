@@ -32,10 +32,13 @@ import io.crate.core.bigarray.IterableBigArray;
  */
 public class FetchedRowsPageableTaskResult extends AbstractBigArrayPageableTaskResult {
 
+    private final long currentPosition;
+
     public FetchedRowsPageableTaskResult(IterableBigArray<Object[]> backingArray,
                                          long backingArrayStartIndex,
                                          PageInfo pageInfo) {
         super(backingArray, backingArrayStartIndex, pageInfo);
+        this.currentPosition = pageInfo.position();
     }
 
     /**
@@ -44,10 +47,11 @@ public class FetchedRowsPageableTaskResult extends AbstractBigArrayPageableTaskR
     @Override
     public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo){
         PageableTaskResult result;
-        if (backingArrayStartIdx + pageInfo.position() >= backingArray.size()) {
+        long pageInfoPositionIncrement = pageInfo.position() - currentPosition;
+        if (backingArrayStartIdx + pageInfoPositionIncrement >= backingArray.size()) {
             result = PageableTaskResult.EMPTY_PAGEABLE_RESULT;
         } else {
-            result = new FetchedRowsPageableTaskResult(backingArray, backingArrayStartIdx, pageInfo);
+            result = new FetchedRowsPageableTaskResult(backingArray, backingArrayStartIdx + pageInfoPositionIncrement, pageInfo);
         }
         return Futures.immediateFuture(result);
     }

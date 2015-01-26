@@ -67,10 +67,6 @@ public class SinglePageTaskResult implements PageableTaskResult {
         return null;
     }
 
-    public static PageableTaskResult singlePage(Object[][] rows) {
-        return new SinglePageTaskResult(rows);
-    }
-
     @Override
     public void close() throws IOException {
         // boomshakalakka!

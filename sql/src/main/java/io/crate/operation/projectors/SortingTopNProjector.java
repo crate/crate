@@ -215,7 +215,7 @@ public class SortingTopNProjector implements Projector, ResultProvider {
             throw new IllegalStateException("result not ready.");
         }
         try {
-            return new ArrayIterator(result.get(), 0, result.get().length);
+            return new ArrayIterator<>(result.get(), 0, result.get().length);
         } catch (InterruptedException | ExecutionException e) {
             throw new IllegalStateException(e);
         }

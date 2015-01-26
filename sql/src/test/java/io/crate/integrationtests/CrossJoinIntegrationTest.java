@@ -23,13 +23,15 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
+@TestLogging("io.crate.operation.join:TRACE")
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -60,10 +62,29 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testThreeTableJoinWithLimit() throws Exception {
+        setup.setUpBooks();
+        setup.setUpCharacters();
+        setup.setUpLocations();
+        execute("select title, characters.name, locations.name from books, characters, locations limit 155");
+        assertThat(response.rowCount(), is(155L));
+    }
+
+    @Test
+    public void testThreeTableJoinWithLimitAndOffset() throws Exception {
+        setup.setUpBooks();
+        setup.setUpCharacters();
+        setup.setUpLocations();
+        execute("select title, characters.name, locations.name from books, characters, locations limit 100 offset 100");
+        assertThat(response.rowCount(), is(56L));
+    }
+
+    @Test
     public void testCrossJoinWithFunction() throws Exception {
         setup.setUpEmployees();
         setup.setUpBooks();
         execute("select income * 2 from employees, books limit 1");
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test
@@ -92,7 +113,7 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         Object[] row = response.rows()[0];
         assertThat(row[0], is(instanceOf(String.class)));
         assertThat(row[1], is(instanceOf(Long.class)));
-        assertThat(row[2], is(instanceOf(Integer.class)));
+        assertThat(row[2], anyOf(nullValue(), instanceOf(Integer.class)));
     }
 
     @Test
@@ -132,10 +153,30 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testJoinWithPartitionedSmallLimitAtTheEnd() throws Exception {
+        execute("create table t1 (id int, name string) partitioned by (name) with (number_of_replicas=0)");
+        execute("create table t2 (id int, s string, t timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t1 values (?, ?)", new Object[][]{
+                new Object[]{1, "Ford"},
+                new Object[]{2, "Trillian"},
+                new Object[]{3, "Trillian"},
+                new Object[]{4, "Ford"}
+        });
+        execute("insert into t2 values (?, ?)", new Object[][]{
+                new Object[]{1, "Bla", "2015-01-23"},
+                new Object[]{2, "Blubb", "2015-01-01"},
+        });
+        refresh();
+        execute("select * from t1, t2 limit 1 offset 7");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
     public void testJoinHighLimitAndOffset() throws Exception {
         setup.setUpCharacters();
         setup.setUpLocations();
         execute("select * from locations, characters limit 300 offset 200");
-        assertThat(response.rowCount(), is(52L));
+        assertThat(response.rowCount(), is(0L));
     }
 }

@@ -232,6 +232,7 @@ public class CrossJoinConsumerTest {
         NestedLoopNode nl = (NestedLoopNode) planNode;
 
         assertThat(nl.outputTypes().size(), is(2));
+        assertThat(nl.leftOuterLoop(), is(false));
         assertThat(nl.outputTypes().get(0).id(), is(DataTypes.STRING.id()));
         assertThat(nl.outputTypes().get(1).id(), is(DataTypes.UNDEFINED.id()));
     }

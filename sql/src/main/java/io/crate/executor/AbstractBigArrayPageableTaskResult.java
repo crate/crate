@@ -38,11 +38,11 @@ public abstract class AbstractBigArrayPageableTaskResult implements PageableTask
                                          long backingArrayStartIndex,
                                          PageInfo pageInfo) {
         Preconditions.checkArgument(
-                backingArrayStartIndex + pageInfo.position() <= backingArray.size(),
+                backingArrayStartIndex <= backingArray.size(),
                 "backingArray exceeded");
         this.backingArray = backingArray;
         this.backingArrayStartIdx = backingArrayStartIndex;
-        this.page = new BigArrayPage(backingArray, backingArrayStartIndex+pageInfo.position(), pageInfo.size());
+        this.page = new BigArrayPage(backingArray, backingArrayStartIndex, pageInfo.size());
     }
 
     @Override

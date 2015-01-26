@@ -58,8 +58,11 @@ public class MultiNativeArrayBigArray<T> extends AbstractMultiArrayBigArray<T, T
     protected T setValue(long backingArraysIdx, long curArrayIdx, T value) {
         assertIsInt(backingArraysIdx);
         assertIsInt(curArrayIdx);
-        T old = backingArrays[(int)backingArraysIdx][(int)curArrayIdx];
-        backingArrays[(int)backingArraysIdx][(int)curArrayIdx] = value;
+        T old;
+        synchronized (backingArrays) {
+            old = backingArrays[(int) backingArraysIdx][(int) curArrayIdx];
+            backingArrays[(int) backingArraysIdx][(int) curArrayIdx] = value;
+        }
         return old;
     }
 

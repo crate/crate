@@ -22,12 +22,14 @@
 package io.crate.operation.join;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.core.collections.EmptyRewindableIterator;
+import io.crate.core.collections.RewindableIterator;
 import io.crate.executor.Page;
 import io.crate.executor.PageInfo;
 import io.crate.executor.PageableTaskResult;
@@ -35,7 +37,11 @@ import io.crate.executor.SinglePageTaskResult;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicReference;
+
 
 /**
  * iterable over a PageableTask
@@ -45,12 +51,12 @@ import java.util.*;
  */
 public class CollectingPageableTaskIterable extends RelationIterable {
 
-    private PageableTaskResult currentTaskResult;
+    private AtomicReference<PageableTaskResult> currentTaskResult;
     private List<Page> pages;
 
     public CollectingPageableTaskIterable(PageableTaskResult taskResult, PageInfo pageInfo) {
         super(pageInfo);
-        this.currentTaskResult = taskResult;
+        this.currentTaskResult = new AtomicReference<>(taskResult);
         this.pages = new LinkedList<>();
         this.pages.add(
                 taskResult.page()
@@ -58,33 +64,19 @@ public class CollectingPageableTaskIterable extends RelationIterable {
     }
 
     @Override
-    public Iterator<Object[]> iterator() {
-        return Iterators.concat(Lists.transform(pages, new Function<Page, Iterator<Object[]>>() {
-            @Nullable
-            @Override
-            public Iterator<Object[]> apply(@Nullable Page input) {
-                if (input == null) {
-                    return Collections.emptyIterator();
-                } else {
-                    return input.iterator();
-                }
-            }
-        }).iterator());
-    }
-
-    @Override
-    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
+    public ListenableFuture<Long> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
         this.pageInfo(pageInfo);
 
-        final SettableFuture<Void> future = SettableFuture.create();
-        Futures.addCallback(currentTaskResult.fetch(pageInfo), new FutureCallback<PageableTaskResult>() {
+        final SettableFuture<Long> future = SettableFuture.create();
+        Futures.addCallback(currentTaskResult.get().fetch(pageInfo), new FutureCallback<PageableTaskResult>() {
             @Override
             public void onSuccess(@Nullable PageableTaskResult result) {
                 if (result == null) {
                     future.setException(new IllegalArgumentException("PageableTaskResult is null"));
                 } else {
+                    currentTaskResult.set(result);
                     pages.add(result.page());
-                    future.set(null);
+                    future.set(result.page().size());
                 }
             }
 
@@ -100,11 +92,91 @@ public class CollectingPageableTaskIterable extends RelationIterable {
     public boolean isComplete() {
         // last page length is 0
         return pages.get(pages.size()-1).size() < currentPageInfo().size()      // we fetched less than requested
-                || currentTaskResult instanceof SinglePageTaskResult;           // we only have this single page, nothing more
+                || currentTaskResult.get() instanceof SinglePageTaskResult;           // we only have this single page, nothing more
+    }
+
+    @Override
+    public RewindableIterator<Object[]> forCurrentPage() {
+        return (RewindableIterator<Object[]>)currentTaskResult.get().page().iterator();
+    }
+
+    @Override
+    public RewindableIterator<Object[]> rewindableIterator() {
+        List<RewindableIterator<Object[]>> transformed = Lists.transform(pages, new Function<Page, RewindableIterator<Object[]>>() {
+            @Nullable
+            @Override
+            public RewindableIterator<Object[]> apply(@Nullable Page input) {
+                Preconditions.checkNotNull(input);
+                return (RewindableIterator<Object[]>)input.iterator();
+            }
+        });
+        return new MultiRewindableIterator<>(transformed);
     }
 
     @Override
     public void close() throws IOException {
-        currentTaskResult.close();
+        currentTaskResult.get().close();
+    }
+
+    private static class MultiRewindableIterator<T> implements RewindableIterator<T> {
+
+        private final List<RewindableIterator<T>> iters;
+        private int pos;
+        private RewindableIterator<T> currentIterator;
+
+        private MultiRewindableIterator(List<RewindableIterator<T>> iterList) {
+            this.iters = iterList;
+            this.pos = 0;
+            if (iters.isEmpty()) {
+                this.currentIterator = EmptyRewindableIterator.empty();
+            } else {
+                this.currentIterator = iters.get(pos);
+            }
+        }
+
+
+        @Override
+        public int rewind(int positions) {
+            int left = positions - currentIterator.rewind(positions);
+            while (left > 0 && pos > 0) {
+                pos--;
+                currentIterator = iters.get(pos);
+                left = left - currentIterator.rewind(left);
+            }
+            return positions - left;
+        }
+
+        private boolean switchIterators() {
+            pos++;
+            if (pos >= iters.size()) {
+                return false;
+            }
+
+            currentIterator = iters.get(pos);
+            // advance through 0 length iters
+            while (!currentIterator.hasNext()) {
+                pos++;
+                if (pos >= iters.size()) {
+                    return false;
+                }
+                currentIterator = iters.get(pos);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return currentIterator.hasNext() || switchIterators();
+        }
+
+        @Override
+        public T next() {
+            return currentIterator.next();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove not supported");
+        }
     }
 }

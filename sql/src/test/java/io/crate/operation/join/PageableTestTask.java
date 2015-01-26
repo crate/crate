@@ -21,50 +21,44 @@
 
 package io.crate.operation.join;
 
-import com.google.common.util.concurrent.Futures;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.core.bigarray.IterableBigArray;
 import io.crate.core.bigarray.MultiNativeArrayBigArray;
-import io.crate.core.collections.RewindableIterator;
-import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
-import io.crate.executor.TaskResult;
+import io.crate.executor.*;
 
-import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
 
-class FetchedRowsIterable extends RelationIterable {
+class PageableTestTask extends JobTask implements PageableTask {
 
-    private final Iterable<Object[]> rows;
+    private IterableBigArray<Object[]> backingArray;
+    private SettableFuture<TaskResult> result;
 
-    public FetchedRowsIterable(TaskResult taskResult, PageInfo pageInfo) {
-        super(pageInfo);
-        if (taskResult instanceof PageableTaskResult) {
-            this.rows = ((PageableTaskResult) taskResult).page();
-        } else {
-            Object[][] rows = taskResult.rows();
-            this.rows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public RewindableIterator<Object[]> rewindableIterator() {
-        // all Page instances and MultiNativeArrayBigArray instances return RewindableIterator
-        return (RewindableIterator)rows.iterator();
+    protected PageableTestTask(Object[][] rows, int limit, int offset) {
+        super(UUID.randomUUID());
+        backingArray = new MultiNativeArrayBigArray<Object[]>(offset, limit, rows);
+        result = SettableFuture.create();
     }
 
     @Override
-    public ListenableFuture<Long> fetchPage(PageInfo pageInfo) {
-        pageInfo(pageInfo);
-        return Futures.immediateFuture(0L);
+    public void start(PageInfo pageInfo) {
+        result.set(new FetchedRowsPageableTaskResult(backingArray, 0, pageInfo));
     }
 
     @Override
-    public boolean isComplete() {
-        return true;
+    public void start() {
+        // ignore
     }
 
     @Override
-    public void close() throws IOException {
-        // ayayayayayaaaay!
+    public List<ListenableFuture<TaskResult>> result() {
+        return ImmutableList.<ListenableFuture<TaskResult>>of(result);
+    }
+
+    @Override
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+        // ignore
     }
 }
