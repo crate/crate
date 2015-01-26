@@ -3,6 +3,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -177,6 +178,7 @@ public class PlannerTest {
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
             when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
+            when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
             schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
         }
@@ -1435,8 +1437,8 @@ public class PlannerTest {
     @Test
     public void testSortOnUnknownColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'o['unknown_column']': invalid data type 'null'.");
-        plan("select name from users order by o['unknown_column']");
+        expectedException.expectMessage("Cannot ORDER BY 'details['unknown_column']': invalid data type 'null'.");
+        plan("select details from ignored_nested order by details['unknown_column']");
     }
 
     @Test

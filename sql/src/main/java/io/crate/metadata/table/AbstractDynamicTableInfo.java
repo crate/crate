@@ -38,6 +38,7 @@ public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
     @Override
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         boolean parentIsIgnored = false;
+        ColumnPolicy parentPolicy = columnPolicy();
         if (!ident.isColumn()) {
             // see if parent is strict object
             ColumnIdent parentIdent = ident.getParent();
@@ -52,40 +53,28 @@ public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
             }
 
             if (parentInfo != null) {
-                switch (parentInfo.columnPolicy()) {
-                    case STRICT:
-                        return unknownColumnExceptionOrNull(ident, forWrite);
-                    case IGNORED:
-                        parentIsIgnored = true;
-                        break;
-                }
+                parentPolicy = parentInfo.columnPolicy();
             }
-        } else if (forWrite == false && columnPolicy() != ColumnPolicy.IGNORED) {
-            return unknownColumnExceptionOrNull(ident, forWrite);
-        } else {
-            switch (columnPolicy()) {
-                case STRICT:
-                    return unknownColumnExceptionOrNull(ident, forWrite);
-                case IGNORED:
-                    parentIsIgnored = true;
-                    break;
-                default:
-                    break;
-            }
+        }
+
+        switch (parentPolicy) {
+            case DYNAMIC:
+                if (!forWrite) return null;
+                break;
+            case STRICT:
+                if (forWrite) throw new ColumnUnknownException(ident.sqlFqn());
+                return null;
+            case IGNORED:
+                parentIsIgnored = true;
+                break;
+            default:
+                break;
         }
         DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
         if (parentIsIgnored) {
             reference.columnPolicy(ColumnPolicy.IGNORED);
         }
         return reference;
-    }
-
-    @Nullable
-    private DynamicReference unknownColumnExceptionOrNull(ColumnIdent ident, boolean forWrite){
-        if (forWrite) {
-            throw new ColumnUnknownException(ident.sqlFqn());
-        }
-        return null;
     }
 
 }

@@ -176,6 +176,12 @@ public abstract class BaseAnalyzerTest {
             .add("tags", DataTypes.LONG, Arrays.asList("metadata", "id"))
             .build();
 
+    public static final TableIdent IGNORED_NESTED_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "ignored_nested");
+    public static final TableInfo IGNORED_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
+                IGNORED_NESTED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+                .add("details", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
+                .build();
+
     static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "locations");
     static final TableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .add("id", DataTypes.LONG, null)
