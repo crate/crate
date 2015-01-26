@@ -30,7 +30,6 @@ dependencies {
 task generateWithANTLR3(type:Exec) {
     String outputPath = '.';
     if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-        logger.info("*** WINDOWS ");
         outputPath = 'src/main/java/io/crate/sql/parser';
     }
 
