@@ -2,6 +2,8 @@ apply plugin: 'java'
 
 archivesBaseName = 'crate-sql-parser'
 
+import org.apache.tools.ant.taskdefs.condition.Os
+
 repositories {
     mavenCentral()
 }
@@ -25,8 +27,14 @@ dependencies {
     testCompile 'junit:junit:4.11'
 }
 
-task generateWithANTLR3(type:Exec) { 
-    commandLine = ['java', '-cp',  configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-o', '.', 'src/main/java/io/crate/sql/parser/Statement.g', 'src/main/java/io/crate/sql/parser/StatementBuilder.g']
+task generateWithANTLR3(type:Exec) {
+    String outputPath = '.';
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        logger.info("*** WINDOWS ");
+        outputPath = 'src/main/java/io/crate/sql/parser';
+    }
+
+    commandLine = ['java', '-cp',  configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-o', outputPath, 'src/main/java/io/crate/sql/parser/Statement.g', 'src/main/java/io/crate/sql/parser/StatementBuilder.g']
 }
 
 compileJava {
