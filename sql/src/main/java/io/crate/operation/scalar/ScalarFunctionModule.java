@@ -30,6 +30,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.operation.scalar.regex.ReplaceFunction;
+import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -100,5 +101,6 @@ public class ScalarFunctionModule extends AbstractModule {
         ToNullFunction.register(this);
 
         ExtractFunctions.register(this);
+        CurrentTimestampFunction.register(this);
     }
 }

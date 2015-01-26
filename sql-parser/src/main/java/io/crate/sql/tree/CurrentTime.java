@@ -21,13 +21,17 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.Optional;
+
+import javax.annotation.Nullable;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class CurrentTime
         extends Expression
 {
     private final Type type;
-    private final Integer precision;
+    private final Optional<Integer> precision;
 
     public enum Type
     {
@@ -53,11 +57,11 @@ public class CurrentTime
         this(type, null);
     }
 
-    public CurrentTime(Type type, Integer precision)
+    public CurrentTime(Type type, @Nullable Integer precision)
     {
         checkNotNull(type, "type is null");
         this.type = type;
-        this.precision = precision;
+        this.precision = Optional.fromNullable(precision);
     }
 
     public Type getType()
@@ -65,7 +69,7 @@ public class CurrentTime
         return type;
     }
 
-    public Integer getPrecision()
+    public Optional<Integer> getPrecision()
     {
         return precision;
     }
@@ -88,7 +92,7 @@ public class CurrentTime
 
         CurrentTime that = (CurrentTime) o;
 
-        if (precision != null ? !precision.equals(that.precision) : that.precision != null) {
+        if (!precision.equals(that.precision)) {
             return false;
         }
         if (type != that.type) {
@@ -102,7 +106,7 @@ public class CurrentTime
     public int hashCode()
     {
         int result = type.hashCode();
-        result = 31 * result + (precision != null ? precision.hashCode() : 0);
+        result = 31 * result + precision.hashCode();
         return result;
     }
 }

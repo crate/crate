@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.where.WhereClauseValidator;
@@ -44,6 +45,7 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -364,6 +366,17 @@ public class ExpressionAnalyzer {
         }
 
         @Override
+        protected Symbol visitCurrentTime(CurrentTime node, ExpressionAnalysisContext context) {
+            if (!node.getType().equals(CurrentTime.Type.TIMESTAMP)) {
+                visitExpression(node, context);
+            }
+            List<Symbol> args = Lists.<Symbol>newArrayList(
+                    Literal.newLiteral(node.getPrecision().or(CurrentTimestampFunction.DEFAULT_PRECISION))
+            );
+            return context.allocateFunction(CurrentTimestampFunction.INFO, args);
+        }
+
+        @Override
         protected Symbol visitFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
             List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
             List<DataType> argumentTypes = new ArrayList<>(node.getArguments().size());
@@ -669,8 +682,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            Field field = fieldResolver.resolveField(node.getName(), forWrite);
-            return field;
+            return fieldResolver.resolveField(node.getName(), forWrite);
         }
 
         @Override

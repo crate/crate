@@ -95,9 +95,9 @@ public final class ExpressionFormatter {
                     throw new UnsupportedOperationException("not yet implemented: " + node.getType());
             }
 
-            if (node.getPrecision() != null) {
+            if (node.getPrecision().isPresent()) {
                 builder.append('(')
-                        .append(node.getPrecision())
+                        .append(node.getPrecision().get())
                         .append(')');
             }
 
