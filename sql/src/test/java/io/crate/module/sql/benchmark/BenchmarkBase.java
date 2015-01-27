@@ -65,6 +65,7 @@ public class BenchmarkBase {
         new CrateTestCluster(
             System.nanoTime(),
             0,
+            "local",
             CrateTestCluster.clusterName("benchmark",
                     Integer.toString(AbstractRandomizedTest.CHILD_JVM_ID), System.nanoTime()),
             NodeSettingsSource.EMPTY

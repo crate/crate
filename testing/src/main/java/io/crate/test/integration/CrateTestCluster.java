@@ -109,10 +109,10 @@ public class CrateTestCluster implements Iterable<Client> {
     private Path tmpDataDir = null;
 
     public CrateTestCluster(long clusterSeed, String clusterName) {
-        this(clusterSeed, 2, clusterName, NodeSettingsSource.EMPTY);
+        this(clusterSeed, 2, "network", clusterName, NodeSettingsSource.EMPTY);
     }
 
-    public CrateTestCluster(long clusterSeed, int numNodes, String clusterName, NodeSettingsSource nodeSettingsSource) {
+    public CrateTestCluster(long clusterSeed, int numNodes, String mode, String clusterName, NodeSettingsSource nodeSettingsSource) {
         this.clusterName = clusterName;
         random = new Random(clusterSeed);
         numSharedNodes = numNodes < 0 ? 2 : numNodes;
@@ -138,6 +138,7 @@ public class CrateTestCluster implements Iterable<Client> {
             .put("http.port", "44200-44300")
             .put("transport.tcp.port", "44300-44400");
 
+        builder.put("node.mode", mode);
         if (tmpDataDir != null) {
             builder.put("path.data", tmpDataDir.toAbsolutePath());
         }

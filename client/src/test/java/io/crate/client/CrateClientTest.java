@@ -21,7 +21,6 @@
 
 package io.crate.client;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLBulkResponse;

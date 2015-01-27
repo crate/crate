@@ -24,7 +24,6 @@ package io.crate.test.integration;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 import com.google.common.base.Joiner;
-import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -79,9 +78,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.*;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.core.IsEqual.equalTo;
 
@@ -801,10 +798,14 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
                 }
             };
         }
-
+        String mode = "network";
+        if (scope == Scope.TEST || scope == Scope.SUITE) {
+            mode = "local";
+        }
         return new CrateTestCluster(
             currentClusterSeed,
             numNodes,
+            mode,
             CrateTestCluster.clusterName(scope.name(), Integer.toString(CHILD_JVM_ID), currentClusterSeed),
             nodeSettingsSource);
     }
