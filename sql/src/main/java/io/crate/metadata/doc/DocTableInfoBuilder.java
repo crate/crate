@@ -49,11 +49,11 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 public class DocTableInfoBuilder {
 
     private final TableIdent ident;
-    private final MetaData metaData;
     private final boolean checkAliasSchema;
     private final DocSchemaInfo docSchemaInfo;
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final MetaData metaData;
     private String[] concreteIndices;
     ESLogger logger = ESLoggerFactory.getLogger(FileSystemUtils.class.getName());
 
@@ -65,8 +65,8 @@ public class DocTableInfoBuilder {
         this.docSchemaInfo = docSchemaInfo;
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.metaData = clusterService.state().metaData();
         this.ident = ident;
+        this.metaData = clusterService.state().metaData();
         this.checkAliasSchema = checkAliasSchema;
     }
 

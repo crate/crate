@@ -55,7 +55,7 @@ public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.fqn());
-        } else if (tableInfo.isAlias()) {
+        } else if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
             throw new UnsupportedOperationException("Table alias not allowed in DROP TABLE statement.");
         }
         this.tableIdent = tableIdent;
