@@ -47,6 +47,7 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.engine.IndexEngineModule;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.internal.InternalNode;
+import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.engine.MockEngineModule;
 import org.elasticsearch.test.store.MockFSIndexStoreModule;
 import org.elasticsearch.test.transport.AssertingLocalTransport;
@@ -138,6 +139,7 @@ public class CrateTestCluster implements Iterable<Client> {
             .put("http.port", "44200-44300")
             .put("transport.tcp.port", "44300-44400");
 
+        builder.put("node.mode", InternalTestCluster.nodeMode());
         if (tmpDataDir != null) {
             builder.put("path.data", tmpDataDir.toAbsolutePath());
         }
