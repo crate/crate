@@ -21,60 +21,22 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.CrateIntegrationTest;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.TEST)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class SysClusterTest extends SQLTransportIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
 
     @Test
     public void testSysCluster() throws Exception {
         execute("select id from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat(((String) response.rows()[0][0]).length(), is(36)); // looks like a uuid
-    }
-
-    @Test
-    public void testSetResetGlobalSetting() throws Exception {
-        execute("set global persistent stats.enabled = true");
-        execute("select settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), Matchers.is(1L));
-        assertThat((Boolean)response.rows()[0][0], Matchers.is(true));
-
-        execute("reset global stats.enabled");
-        execute("select settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), Matchers.is(1L));
-        assertThat((Boolean)response.rows()[0][0], Matchers.is(false));
-
-        execute("set global transient stats = { enabled = true, jobs_log_size = 3, operations_log_size = 4 }");
-        execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
-                "settings['stats']['operations_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), Matchers.is(1L));
-        assertThat((Boolean)response.rows()[0][0], Matchers.is(true));
-        assertThat((Integer)response.rows()[0][1], Matchers.is(3));
-        assertThat((Integer)response.rows()[0][2], Matchers.is(4));
-
-        execute("reset global stats");
-        execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
-                "settings['stats']['operations_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), Matchers.is(1L));
-        assertThat((Boolean)response.rows()[0][0], Matchers.is(false));
-        assertThat((Integer)response.rows()[0][1], Matchers.is(10_000));
-        assertThat((Integer)response.rows()[0][2], Matchers.is(10_000));
     }
 
     public void testSysClusterMasterNode() throws Exception {
@@ -89,64 +51,4 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
         String node = (String) response.rows()[0][0];
         assertTrue(nodes.contains(node));
     }
-
-    @Test
-    public void testDynamicTransientSettings() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
-                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 2)
-                .put(CrateSettings.STATS_ENABLED.settingName(), false);
-        client().admin().cluster().prepareUpdateSettings().setTransientSettings(builder.build()).execute().actionGet();
-
-        execute("select settings from sys.cluster");
-        assertEquals(1L, response.rowCount());
-        Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
-        Map stats = settings.get(CrateSettings.STATS.name());
-        assertEquals(1, stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
-        assertEquals(2, stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
-        assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
-
-        cluster().fullRestart();
-        ensureGreen();
-
-        execute("select settings from sys.cluster");
-        assertEquals(1L, response.rowCount());
-        settings = (Map<String, Map>)response.rows()[0][0];
-        stats = settings.get(CrateSettings.STATS.name());
-        assertEquals(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue(),
-                stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
-        assertEquals(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue(),
-                stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
-        assertEquals(CrateSettings.STATS_ENABLED.defaultValue(),
-                stats.get(CrateSettings.STATS_ENABLED.name()));
-    }
-
-    @Test
-    public void testDynamicPersistentSettings() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
-                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 2)
-                .put(CrateSettings.STATS_ENABLED.settingName(), false);
-        client().admin().cluster().prepareUpdateSettings().setPersistentSettings(builder.build()).execute().actionGet();
-
-        execute("select settings from sys.cluster");
-        assertEquals(1L, response.rowCount());
-        Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
-        Map stats = settings.get(CrateSettings.STATS.name());
-        assertEquals(1, stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
-        assertEquals(2, stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
-        assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
-
-        cluster().fullRestart();
-        ensureGreen();
-
-        execute("select settings from sys.cluster");
-        assertEquals(1L, response.rowCount());
-        settings = (Map<String, Map>)response.rows()[0][0];
-        stats = settings.get(CrateSettings.STATS.name());
-        assertEquals(1, stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
-        assertEquals(2, stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
-        assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
-    }
-
 }
