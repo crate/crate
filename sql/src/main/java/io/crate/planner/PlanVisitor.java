@@ -22,7 +22,7 @@
 package io.crate.planner;
 
 import io.crate.planner.node.dml.QueryAndFetch;
-import io.crate.planner.node.dml.Update;
+import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GlobalAggregate;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
@@ -58,7 +58,7 @@ public class PlanVisitor<C, R> {
         return visitPlan(node, context);
     }
 
-    public R visitUpdate(Update node, C context) {
+    public R visitUpsert(Upsert node, C context) {
         return visitPlan(node, context);
     }
 

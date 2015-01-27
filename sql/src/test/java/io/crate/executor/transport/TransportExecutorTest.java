@@ -31,7 +31,7 @@ import io.crate.executor.Job;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.join.NestedLoopTask;
-import io.crate.executor.transport.task.UpdateByIdTask;
+import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESBulkIndexTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESIndexTask;
@@ -49,7 +49,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.UpdateByIdNode;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
@@ -603,21 +603,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
-        UpdateByIdNode updateNode = new UpdateByIdNode(
-                "characters",
-                "1",
-                "1",
-                new HashMap<String, Symbol>(){{
-                    put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Vogon lyric fan"));
-                }},
-                Optional.<Long>absent(),
-                null,
-                null
-        );
+        UpsertByIdNode updateNode = new UpsertByIdNode("characters", false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
+        updateNode.add("1", "1", new Symbol[]{ Literal.newLiteral("Vogon lyric fan")}, null);
         Plan plan = new IterablePlan(updateNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
@@ -645,20 +636,17 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
            on duplicate key update
             set name = 'Zaphod Beeblebrox' */
         Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
-        UpdateByIdNode updateNode = new UpdateByIdNode(
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 "characters",
-                "5",
-                "5",
-                new HashMap<String, Symbol>(){{
-                    put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Zaphod Beeblebrox"));
-                }},
-                Optional.<Long>fromNullable(null),
-                missingAssignments,
-                new Reference[]{idRef, nameRef, femaleRef}
-        );
+                false,
+                false,
+                new String[]{nameRef.ident().columnIdent().fqn()},
+                new Reference[]{idRef, nameRef, femaleRef});
+
+        updateNode.add("5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
@@ -684,20 +672,16 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testUpdateByIdTaskMissingAssignmentsExistingDoc() throws Exception {
         setup.setUpCharacters();
         Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
-        UpdateByIdNode updateNode = new UpdateByIdNode(
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 "characters",
-                "1",
-                "1",
-                new HashMap<String, Symbol>(){{
-                    put(femaleRef.info().ident().columnIdent().fqn(), Literal.newLiteral(true));
-                }},
-                Optional.<Long>fromNullable(null),
-                missingAssignments,
-                new Reference[]{idRef, nameRef, femaleRef}
-        );
+                false,
+                false,
+                new String[]{femaleRef.ident().columnIdent().fqn()},
+                new Reference[]{idRef, nameRef, femaleRef});
+        updateNode.add("1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();

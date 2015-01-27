@@ -27,7 +27,6 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
@@ -38,8 +37,9 @@ import java.util.Map;
 
 public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedStatement {
 
-    private final List<Map<String, Symbol>> onDuplicateKeyAssignments = new ArrayList<>();
-    private final List<BytesReference> sourceMaps = new ArrayList<>();
+    private final List<Symbol[]> onDuplicateKeyAssignments = new ArrayList<>();
+    private final List<String[]> onDuplicateKeyAssignmentsColumns = new ArrayList<>();
+    private final List<Object[]> sourceMaps = new ArrayList<>();
     private final List<Map<String, String>> partitionMaps = new ArrayList<>();
 
     private final List<String> ids = new ArrayList<>();
@@ -93,7 +93,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         return partitionValues;
     }
 
-    public List<BytesReference> sourceMaps() {
+    public List<Object[]> sourceMaps() {
         return sourceMaps;
     }
 
@@ -112,13 +112,22 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         }
     }
 
-    public void addOnDuplicateKeyAssignments(Map<String, Symbol> assignments) {
-        assert assignments != null && !assignments.isEmpty() : "must have assignments!";
+    public void addOnDuplicateKeyAssignments(Symbol[] assignments) {
+        assert assignments != null && assignments.length != 0 : "must have assignments!";
         onDuplicateKeyAssignments.add(assignments);
     }
 
-    public List<Map<String, Symbol>> onDuplicateKeyAssignments() {
+    public List<Symbol[]> onDuplicateKeyAssignments() {
         return onDuplicateKeyAssignments;
+    }
+
+    public void addOnDuplicateKeyAssignmentsColumns(String[] assignmentsColumns) {
+        assert assignmentsColumns != null && assignmentsColumns.length != 0 : "must have assignments columns!";
+        onDuplicateKeyAssignmentsColumns.add(assignmentsColumns);
+    }
+
+    public List<String[]> onDuplicateKeyAssignmentsColumns() {
+        return onDuplicateKeyAssignmentsColumns;
     }
 
     public List<String> ids() {

@@ -729,7 +729,7 @@ public class PlannerTest {
 
     @Test
     public void testUpdateByQueryPlan() throws Exception {
-        Update plan = (Update) plan("update users set name='Vogon lyric fan'");
+        Upsert plan = (Upsert) plan("update users set name='Vogon lyric fan'");
         assertThat(plan.nodes().size(), is(1));
 
         List<DQLPlanNode> childNodes = plan.nodes().get(0);
@@ -756,9 +756,9 @@ public class PlannerTest {
         UpdateProjection updateProjection = (UpdateProjection)collectNode.projections().get(0);
         assertThat(updateProjection.uidSymbol(), instanceOf(InputColumn.class));
 
-        Map.Entry<String, Symbol> entry = updateProjection.assignments().entrySet().iterator().next();
-        assertThat(entry.getKey(), is("name"));
-        assertThat(entry.getValue(), isLiteral("Vogon lyric fan", DataTypes.STRING));
+        assertThat(updateProjection.assignmentsColumns()[0], is("name"));
+        Symbol symbol = updateProjection.assignments()[0];
+        assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
 
         MergeNode mergeNode = (MergeNode)childNodes.get(1);
         assertThat(mergeNode.projections().size(), is(1));
@@ -767,34 +767,42 @@ public class PlannerTest {
 
     @Test
     public void testUpdateByIdPlan() throws Exception {
-        Update planNode = (Update) plan("update users set name='Vogon lyric fan' where id=1");
+        Upsert planNode = (Upsert) plan("update users set name='Vogon lyric fan' where id=1");
         assertThat(planNode.nodes().size(), is(1));
 
         List<DQLPlanNode> childNodes = planNode.nodes().get(0);
         assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(UpdateByIdNode.class));
+        assertThat(childNodes.get(0), instanceOf(UpsertByIdNode.class));
 
-        UpdateByIdNode updateNode = (UpdateByIdNode)childNodes.get(0);
+        UpsertByIdNode updateNode = (UpsertByIdNode)childNodes.get(0);
         assertThat(updateNode.index(), is("users"));
-        assertThat(updateNode.id(), is("1"));
+        assertThat(updateNode.items().size(), is(1));
 
-        Map.Entry<String, Symbol> entry = updateNode.assignments().entrySet().iterator().next();
-        assertThat(entry.getKey(), is("name"));
-        assertThat(entry.getValue(), isLiteral("Vogon lyric fan", DataTypes.STRING));
+        assertThat(updateNode.assignmentsColumns()[0], is("name"));
+
+        UpsertByIdNode.Item item = updateNode.items().get(0);
+        assertThat(item.id(), is("1"));
+
+        Symbol symbol = item.assignments()[0];
+        assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
     }
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
-        Update planNode =  (Update) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");;
+        Upsert planNode =  (Upsert) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");;
         assertThat(planNode.nodes().size(), is(1));
 
         List<DQLPlanNode> childNodes = planNode.nodes().get(0);
-        assertThat(childNodes.size(), is(3));
+        assertThat(childNodes.size(), is(1));
+
+        assertThat(childNodes.get(0), instanceOf(UpsertByIdNode.class));
+        UpsertByIdNode updateNode = (UpsertByIdNode)childNodes.get(0);
 
         List<String> ids = new ArrayList<>(3);
-        for (DQLPlanNode executionNode : childNodes) {
-            assertThat(executionNode, instanceOf(UpdateByIdNode.class));
-            ids.add(((UpdateByIdNode)executionNode).id());
+        for (UpsertByIdNode.Item item : updateNode.items()) {
+            ids.add(item.id());
+            assertThat(item.assignments().length, is(1));
+            assertThat(item.assignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
         }
 
         assertThat(ids, containsInAnyOrder("1", "2", "3"));
@@ -978,9 +986,9 @@ public class PlannerTest {
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
         assertThat(projection.primaryKeys().size(), is(1));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
-        assertThat(projection.columnIdents().size(), is(2));
-        assertThat(projection.columnIdents().get(0).fqn(), is("id"));
-        assertThat(projection.columnIdents().get(1).fqn(), is("name"));
+        assertThat(projection.columnReferences().size(), is(2));
+        assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("id"));
+        assertThat(projection.columnReferences().get(1).ident().columnIdent().fqn(), is("name"));
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
@@ -1007,8 +1015,8 @@ public class PlannerTest {
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
 
-        assertThat(projection.columnIdents().size(), is(1));
-        assertThat(projection.columnIdents().get(0).fqn(), is("id"));
+        assertThat(projection.columnReferences().size(), is(1));
+        assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("id"));
 
         assertThat(projection.partitionedBySymbols().size(), is(1));
         assertThat(((InputColumn)projection.partitionedBySymbols().get(0)).index(), is(1));
@@ -1034,9 +1042,9 @@ public class PlannerTest {
         assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
 
-        assertThat(projection.columnIdents().size(), is(2));
-        assertThat(projection.columnIdents().get(0).fqn(), is("name"));
-        assertThat(projection.columnIdents().get(1).fqn(), is("id"));
+        assertThat(projection.columnReferences().size(), is(2));
+        assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("name"));
+        assertThat(projection.columnReferences().get(1).ident().columnIdent().fqn(), is("id"));
 
         assertThat(projection.columnSymbols().size(), is(2));
         assertThat(((InputColumn)projection.columnSymbols().get(0)).index(), is(0));
@@ -1060,10 +1068,10 @@ public class PlannerTest {
         assertThat(collectNode.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)collectNode.projections().get(0);
 
-        assertThat(projection.columnIdents().size(), is(3));
-        assertThat(projection.columnIdents().get(0).fqn(), is("date"));
-        assertThat(projection.columnIdents().get(1).fqn(), is("id"));
-        assertThat(projection.columnIdents().get(2).fqn(), is("name"));
+        assertThat(projection.columnReferences().size(), is(3));
+        assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("date"));
+        assertThat(projection.columnReferences().get(1).ident().columnIdent().fqn(), is("id"));
+        assertThat(projection.columnReferences().get(2).ident().columnIdent().fqn(), is("name"));
         assertThat(((InputColumn) projection.ids().get(0)).index(), is(1));
         assertThat(((InputColumn)projection.clusteredBy()).index(), is(1));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));

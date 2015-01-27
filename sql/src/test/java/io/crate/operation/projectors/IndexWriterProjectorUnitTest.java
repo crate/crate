@@ -23,13 +23,18 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Reference;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
-import org.elasticsearch.action.bulk.TransportShardBulkActionDelegateImpl;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
@@ -48,6 +53,9 @@ import static org.mockito.Mockito.mock;
 public class IndexWriterProjectorUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("id");
+    private static final TableIdent bulkImportIdent = new TableIdent(null, "bulk_import");
+    private static Reference rawSourceReference = new Reference(new ReferenceInfo(
+            new ReferenceIdent(bulkImportIdent, "_raw"), RowGranularity.DOC, DataTypes.STRING));
 
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
@@ -73,9 +81,10 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkActionDelegateImpl.class),
+                mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
                 "bulk_import",
+                rawSourceReference,
                 Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
                 ImmutableList.<Input<?>>of(),
@@ -111,9 +120,10 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkActionDelegateImpl.class),
+                mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
                 "bulk_import",
+                rawSourceReference,
                 Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
                 ImmutableList.<Input<?>>of(),

@@ -33,11 +33,11 @@ import io.crate.planner.symbol.Field;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class Update implements PlannedAnalyzedRelation, Plan {
+public class Upsert implements PlannedAnalyzedRelation, Plan {
 
     private final List<List<DQLPlanNode>> nodes;
 
-    public Update(List<List<DQLPlanNode>> nodes) {
+    public Upsert(List<List<DQLPlanNode>> nodes) {
         this.nodes = nodes;
     }
 
@@ -68,7 +68,7 @@ public class Update implements PlannedAnalyzedRelation, Plan {
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitUpdate(this, context);
+        return visitor.visitUpsert(this, context);
     }
 
     @Override

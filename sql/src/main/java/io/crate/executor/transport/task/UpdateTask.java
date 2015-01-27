@@ -59,8 +59,12 @@ public class UpdateTask extends AsyncChainedTask {
                     result.setException(new NullPointerException());
                     return;
                 }
-                assert results.size() == 1 : "Last sub-task is expected to have 1 result only";
-                result.set(new RowCountResult(((Number)results.get(0).rows()[0][0]).longValue()));
+                //assert results.size() == 1 : "Last sub-task is expected to have 1 result only";
+                try {
+                    result.set(new RowCountResult(((Number) results.get(0).rows()[0][0]).longValue()));
+                } catch (Throwable t) {
+                    result.setException(t);
+                }
             }
 
             @Override
