@@ -646,4 +646,24 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             assertThat((Boolean) response.rows()[i][3], is(Version.CURRENT.snapshot()));
         }
     }
+
+    @Test
+    public void selectCurrentTimestamp() throws Exception {
+        long before = System.currentTimeMillis();
+        SQLResponse response = executor.exec("select current_timestamp from sys.cluster");
+        long after = System.currentTimeMillis();
+
+        assertThat(response.cols(), arrayContaining("current_timestamp"));
+        assertThat((Long)response.rows()[0][0], allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
+    }
+
+    @Test
+    public void selectWhereEqualCurrentTimestamp() throws Exception {
+        SQLResponse response = executor.exec("select * from sys.cluster where current_timestamp = current_timestamp");
+        assertThat(response.rowCount(), is(1L));
+
+        response = executor.exec("select * from sys.cluster where current_timestamp > current_timestamp");
+        assertThat(response.rowCount(), is(0L));
+    }
+
 }

@@ -251,6 +251,29 @@ The following fields are supported:
 .. _`Joda-Time`: http://www.joda.org/joda-time/
 
 
+CURRENT_TIMESTAMP
+-----------------
+
+The ``CURRENT_TIMESTAMP`` expression returns the timestamp in milliseconds
+since epoch at the time the SQL statement is handled. It is evaluated once per
+query while the query is analyzed, before actual execution.
+
+synopsis::
+
+    CURRENT_TIMESTAMP [ ( precision ) ]
+
+``precision`` must be a positive integer between 0 and 3. The default value is 3.
+It determines the number of fractional seconds to output. A value of 0 means the
+timestamp will have second precision, no fractional seconds (milliseconds) are given.
+
+.. note::
+
+   The ``CURRENT_TIMESTAMP`` will be evaluated  using javas
+   ``System.currentTimeMillis()``. So its actual result depends on the underlying
+   operating system.
+
+
+
 Geo Functions
 =============
 
