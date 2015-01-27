@@ -6,6 +6,10 @@ env:
   global:
     _JAVA_OPTIONS="-Xmx1g -XX:MaxPermSize=256m"
 
+cache:
+  directories:
+    - $HOME/.m2
+
 notifications:
   email: false
 
