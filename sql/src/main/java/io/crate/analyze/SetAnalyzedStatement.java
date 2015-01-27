@@ -26,15 +26,11 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.Set;
 
-public class SetAnalyzedStatement extends AnalyzedStatement {
+public class SetAnalyzedStatement implements AnalyzedStatement {
     private Settings settings;
     private Set<String> settingsToRemove;
     private boolean persistent = false;
     private boolean isReset = false;
-
-    protected SetAnalyzedStatement(ParameterContext parameterContext) {
-        super(parameterContext);
-    }
 
     public Settings settings() {
         return settings;
@@ -67,11 +63,6 @@ public class SetAnalyzedStatement extends AnalyzedStatement {
 
     public void persistent(boolean persistent) {
         this.persistent = persistent;
-    }
-
-    @Override
-    public void normalize() {
-
     }
 
     @Override

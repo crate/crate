@@ -26,13 +26,12 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DeleteAnalyzedStatement extends AnalyzedStatement {
+public class DeleteAnalyzedStatement implements AnalyzedStatement {
 
     final List<WhereClause> whereClauses = new ArrayList<>();
     final AnalyzedRelation analyzedRelation;
 
-    public DeleteAnalyzedStatement(ParameterContext parameterContext, AnalyzedRelation analyzedRelation) {
-        super(parameterContext);
+    public DeleteAnalyzedStatement(AnalyzedRelation analyzedRelation) {
         this.analyzedRelation = analyzedRelation;
     }
 
@@ -42,10 +41,6 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
 
     public List<WhereClause> whereClauses() {
         return whereClauses;
-    }
-
-    @Override
-    public void normalize() {
     }
 
     @Override

@@ -119,11 +119,6 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     }
 
     @Override
-    public void normalize() {
-
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitInsertFromValuesStatement(this, context);
     }

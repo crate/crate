@@ -34,6 +34,8 @@ import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolFormatter;
 import io.crate.sql.tree.*;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -42,75 +44,85 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyAnalyzedStatement> {
+@Singleton
+public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedStatement, Analysis> {
 
     private final AnalysisMetaData analysisMetaData;
     private ExpressionAnalysisContext expressionAnalysisContext;
     private ExpressionAnalyzer expressionAnalyzer;
 
+    @Inject
     public CopyStatementAnalyzer(AnalysisMetaData analysisMetaData) {
         this.analysisMetaData = analysisMetaData;
     }
 
+    public AnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return super.process(node, analysis);
+
+    }
+
     @Override
-    public Void visitCopyFromStatement(CopyFromStatement node, CopyAnalyzedStatement context) {
+    public CopyAnalyzedStatement visitCopyFromStatement(CopyFromStatement node, Analysis analysis) {
+        CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
-        context.table(tableInfo);
+        statement.table(tableInfo);
         TableRelation tableRelation = new TableRelation(tableInfo);
-        setExpressionAnalyzer(tableRelation, context);
+        setExpressionAnalyzer(tableRelation, statement, analysis.parameterContext());
         Symbol pathSymbol = tableRelation.resolve(expressionAnalyzer.convert(node.path(), expressionAnalysisContext));
-        context.uri(pathSymbol);
+        statement.uri(pathSymbol);
         if (tableInfo.schemaInfo().systemSchema() || (tableInfo.isAlias() && !tableInfo.isPartitioned())) {
             throw new UnsupportedOperationException(
                     String.format("Cannot COPY FROM %s INTO '%s', table is read-only", SymbolFormatter.format(pathSymbol), tableInfo));
         }
         if (node.genericProperties().isPresent()) {
-            context.settings(settingsFromProperties(node.genericProperties().get(), tableRelation));
+            statement.settings(settingsFromProperties(node.genericProperties().get(), tableRelation));
         }
-        context.mode(CopyAnalyzedStatement.Mode.FROM);
+        statement.mode(CopyAnalyzedStatement.Mode.FROM);
 
         if (!node.table().partitionProperties().isEmpty()) {
-            context.partitionIdent(PartitionPropertiesAnalyzer.toPartitionIdent(
-                            tableInfo,
-                            node.table().partitionProperties(),
-                            context.parameters()));
+            statement.partitionIdent(PartitionPropertiesAnalyzer.toPartitionIdent(
+                    tableInfo,
+                    node.table().partitionProperties(),
+                    analysis.parameterContext().parameters()));
         }
 
-        return null;
+        return statement;
     }
 
     @Override
-    public Void visitCopyTo(CopyTo node, CopyAnalyzedStatement context) {
-        context.mode(CopyAnalyzedStatement.Mode.TO);
+    public CopyAnalyzedStatement visitCopyTo(CopyTo node, Analysis analysis) {
+        CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
+        statement.mode(CopyAnalyzedStatement.Mode.TO);
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
-        context.table(tableInfo);
+        statement.table(tableInfo);
         TableRelation tableRelation = new TableRelation(tableInfo);
-        setExpressionAnalyzer(tableRelation, context);
+        setExpressionAnalyzer(tableRelation, statement, analysis.parameterContext());
         if (node.genericProperties().isPresent()) {
-            context.settings(settingsFromProperties(node.genericProperties().get(), tableRelation));
+            statement.settings(settingsFromProperties(node.genericProperties().get(), tableRelation));
         }
 
         if (!node.table().partitionProperties().isEmpty()) {
             String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
                     tableInfo,
                     node.table().partitionProperties(),
-                    context.parameters());
+                    analysis.parameterContext().parameters());
 
             if (!partitionExists(tableInfo, partitionIdent)){
                 throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionIdent);
             }
-            context.partitionIdent(partitionIdent);
+            statement.partitionIdent(partitionIdent);
         }
         Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
-        context.uri(tableRelation.resolve(uri));
-        context.directoryUri(node.directoryUri());
+        statement.uri(tableRelation.resolve(uri));
+        statement.directoryUri(node.directoryUri());
 
         List<Symbol> columns = new ArrayList<>(node.columns().size());
         for (Expression expression : node.columns()) {
             columns.add(tableRelation.resolve(expressionAnalyzer.convert(expression, expressionAnalysisContext)));
         }
-        context.selectedColumns(columns);
-        return null;
+        statement.selectedColumns(columns);
+        return statement;
     }
 
     private boolean partitionExists(TableInfo table, @Nullable String partitionIdent) {
@@ -120,12 +132,12 @@ public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyA
         return false;
     }
 
-    private void setExpressionAnalyzer(TableRelation tableRelation, CopyAnalyzedStatement context) {
+    private void setExpressionAnalyzer(TableRelation tableRelation, CopyAnalyzedStatement statement, ParameterContext parameterContext) {
         expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
-                context.parameterContext(),
+                parameterContext,
                 new NameFieldResolver(tableRelation));
-        if (context.mode() == CopyAnalyzedStatement.Mode.FROM) {
+        if (statement.mode() == CopyAnalyzedStatement.Mode.FROM) {
             expressionAnalyzer.resolveWritableFields(true);
         }
         expressionAnalysisContext = new ExpressionAnalysisContext();
@@ -155,8 +167,4 @@ public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyA
         return builder.build();
     }
 
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new CopyAnalyzedStatement(parameterContext);
-    }
 }

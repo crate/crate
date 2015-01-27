@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SelectAnalyzedStatement extends AnalyzedStatement implements AnalyzedRelation {
+public class SelectAnalyzedStatement implements AnalyzedRelation, AnalyzedStatement {
 
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final List<Field> fields;
@@ -42,8 +42,6 @@ public class SelectAnalyzedStatement extends AnalyzedStatement implements Analyz
             Map<QualifiedName, AnalyzedRelation> sources,
             List<String> outputNames,
             QuerySpec querySpec){
-
-        super(null);
         this.querySpec = querySpec;
         this.sources = sources;
 

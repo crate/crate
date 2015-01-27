@@ -24,12 +24,19 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Table;
 
 import java.util.List;
 
-public abstract class BlobTableAnalyzer<TypeAnalysis extends AnalyzedStatement>
-        extends AbstractStatementAnalyzer<Void, TypeAnalysis> {
+public abstract class BlobTableAnalyzer<StatementType extends AnalyzedStatement>
+        extends DefaultTraversalVisitor<StatementType, Analysis> {
+
+    public StatementType analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return super.process(node, analysis);
+    }
 
     protected static TableIdent tableToIdent(Table table) {
         List<String> tableNameParts = table.getName().getParts();

@@ -26,14 +26,10 @@ import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.TableIdent;
 
-public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
+public abstract class AbstractDDLAnalyzedStatement implements AnalyzedStatement {
 
     protected final TableParameter tableParameter = new TableParameter();
     protected TableIdent tableIdent;
-
-    protected AbstractDDLAnalyzedStatement(ParameterContext parameterContext) {
-        super(parameterContext);
-    }
 
     public void table(TableIdent tableIdent) {
         if (tableIdent.schema() != null && !isValidTableOrSchemaName(tableIdent.schema())) {

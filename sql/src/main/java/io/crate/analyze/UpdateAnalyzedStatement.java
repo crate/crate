@@ -36,14 +36,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class UpdateAnalyzedStatement extends AnalyzedStatement implements AnalyzedRelation {
+public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatement {
 
     private final List<NestedAnalyzedStatement> nestedStatements;
     private final AnalyzedRelation sourceRelation;
 
 
     public UpdateAnalyzedStatement(AnalyzedRelation sourceRelation, List<NestedAnalyzedStatement> nestedStatements) {
-        super(null);
         this.sourceRelation = sourceRelation;
         this.nestedStatements = nestedStatements;
     }
@@ -55,9 +54,6 @@ public class UpdateAnalyzedStatement extends AnalyzedStatement implements Analyz
     public List<NestedAnalyzedStatement> nestedStatements() {
         return nestedStatements;
     }
-
-    @Override
-    public void normalize() {}
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {

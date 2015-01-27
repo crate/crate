@@ -23,10 +23,14 @@ package io.crate.analyze;
 
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
+import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.Node;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
-public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, DropTableAnalyzedStatement> {
+@Singleton
+public class DropTableStatementAnalyzer extends DefaultTraversalVisitor<DropTableAnalyzedStatement, Void> {
 
     private final ReferenceInfos referenceInfos;
 
@@ -36,13 +40,14 @@ public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, 
     }
 
     @Override
-    public Void visitDropTable(DropTable node, DropTableAnalyzedStatement context) {
-        context.table(TableIdent.of(node.table()));
-        return null;
+    public DropTableAnalyzedStatement visitDropTable(DropTable node, Void context) {
+        DropTableAnalyzedStatement statement = new DropTableAnalyzedStatement(referenceInfos);
+        statement.table(TableIdent.of(node.table()));
+        return statement;
     }
 
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new DropTableAnalyzedStatement(referenceInfos);
+    public AnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return process(node, null);
     }
 }

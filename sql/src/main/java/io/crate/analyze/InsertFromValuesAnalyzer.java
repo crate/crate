@@ -40,6 +40,8 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.text.BytesText;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -51,21 +53,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
-
-    private final AnalysisMetaData analysisMetaData;
-    private final ParameterContext parameterContext;
+@Singleton
+public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     private ExpressionAnalyzer expressionAnalyzer;
     private ExpressionAnalysisContext expressionAnalysisContext;
 
-    public InsertFromValuesAnalyzer(AnalysisMetaData analysisMetaData, ParameterContext parameterContext) {
-        this.analysisMetaData = analysisMetaData;
-        this.parameterContext = parameterContext;
+    @Inject
+    protected InsertFromValuesAnalyzer(AnalysisMetaData analysisMetaData) {
+        super(analysisMetaData);
     }
 
     @Override
-    public AnalyzedStatement visitInsertFromValues(InsertFromValues node, Void context) {
+    public AbstractInsertAnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis analysis) {
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
         TableRelation tableRelation = new TableRelation(tableInfo);
         validateTable(tableInfo);
@@ -73,17 +73,18 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
         FieldResolver fieldResolver = new NameFieldResolver(tableRelation);
         expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
-                parameterContext,
+                analysis.parameterContext(),
                 fieldResolver
                 );
         expressionAnalyzer.resolveWritableFields(true);
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
-        InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(tableInfo, parameterContext.hasBulkParams());
+        InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
+                tableInfo, analysis.parameterContext().hasBulkParams());
         handleInsertColumns(node, node.maxValuesLength(), statement);
 
         for (ValuesList valuesList : node.valuesLists()) {
-            analyzeValues(valuesList, statement);
+            analyzeValues(valuesList, statement, analysis.parameterContext());
         }
         return statement;
     }
@@ -97,21 +98,22 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<Void> {
         }
     }
 
-    private void analyzeValues(ValuesList node, InsertFromValuesAnalyzedStatement context) {
-        if (node.values().size() != context.columns().size()) {
+    private void analyzeValues(ValuesList node, InsertFromValuesAnalyzedStatement statement,
+                               ParameterContext parameterContext) {
+        if (node.values().size() != statement.columns().size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Invalid number of values: Got %d columns specified but %d values",
-                    context.columns().size(), node.values().size()));
+                    statement.columns().size(), node.values().size()));
         }
         try {
-            int numPks = context.tableInfo().primaryKey().size();
+            int numPks = statement.tableInfo().primaryKey().size();
             if (parameterContext.bulkParameters.length > 0) {
                 for (int i = 0; i < parameterContext.bulkParameters.length; i++) {
                     parameterContext.setBulkIdx(i);
-                    addValues(node, context, numPks);
+                    addValues(node, statement, numPks);
                 }
             } else {
-                addValues(node, context, numPks);
+                addValues(node, statement, numPks);
             }
         } catch (IOException e) {
             throw new RuntimeException(e); // can't throw IOException directly because of visitor interface

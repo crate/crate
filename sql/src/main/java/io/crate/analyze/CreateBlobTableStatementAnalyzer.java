@@ -26,43 +26,43 @@ import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.inject.Singleton;
 
+@Singleton
 public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalyzedStatement> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
 
 
     @Override
-    public Void visitCreateBlobTable(CreateBlobTable node, CreateBlobTableAnalyzedStatement context) {
-        context.table(tableToIdent(node.name()));
+    public CreateBlobTableAnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis analysis) {
+        CreateBlobTableAnalyzedStatement statement = new CreateBlobTableAnalyzedStatement();
+        statement.table(tableToIdent(node.name()));
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();
 
             int numShards;
             if (clusteredBy.numberOfShards().isPresent()) {
-                numShards = ExpressionToNumberVisitor.convert(clusteredBy.numberOfShards().get(), context.parameters()).intValue();
+                numShards = ExpressionToNumberVisitor.convert(clusteredBy.numberOfShards().get(),
+                        analysis.parameterContext().parameters()).intValue();
                 if (numShards < 1) {
                     throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
                 }
             } else {
                 numShards = Constants.DEFAULT_NUM_SHARDS;
             }
-            context.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+            statement.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         }
 
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         TABLE_PROPERTIES_ANALYZER.analyze(
-                context.tableParameter(), new BlobTableParameterInfo(),
-                node.genericProperties(), context.parameters(), true);
+                statement.tableParameter(), new BlobTableParameterInfo(),
+                node.genericProperties(), analysis.parameterContext().parameters(), true);
 
-        return null;
+        return statement;
     }
 
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new CreateBlobTableAnalyzedStatement(parameterContext);
-    }
 }

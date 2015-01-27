@@ -24,14 +24,17 @@ package io.crate.analyze;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Table;
 import io.crate.types.CollectionType;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
 
-public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void, AddColumnAnalyzedStatement> {
+@Singleton
+public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnalyzedStatement, Analysis> {
 
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -43,40 +46,41 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new AddColumnAnalyzedStatement(referenceInfos, fulltextAnalyzerResolver, parameterContext);
+    public AddColumnAnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return super.process(node, analysis);
     }
 
     @Override
-    protected Void visitNode(Node node, AddColumnAnalyzedStatement context) {
+    protected AddColumnAnalyzedStatement visitNode(Node node, Analysis analysis) {
         throw new RuntimeException(
                 String.format("Encountered node %s but expected a AlterTableAddColumn node", node));
     }
 
     @Override
-    public Void visitAlterTableAddColumnStatement(AlterTableAddColumn node, AddColumnAnalyzedStatement context) {
-        setTableAndPartitionName(node.table(), context);
+    public AddColumnAnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
+        AddColumnAnalyzedStatement statement = new AddColumnAnalyzedStatement(referenceInfos);
+        setTableAndPartitionName(node.table(), statement);
 
-        context.analyzedTableElements(TableElementsAnalyzer.analyze(
+        statement.analyzedTableElements(TableElementsAnalyzer.analyze(
                 node.tableElement(),
-                context.parameters(),
-                context.fulltextAnalyzerResolver()
+                analysis.parameterContext().parameters(),
+                fulltextAnalyzerResolver
         ));
 
-        for (AnalyzedColumnDefinition column : context.analyzedTableElements().columns()) {
-            ensureColumnLeafsAreNew(column, context.table());
+        for (AnalyzedColumnDefinition column : statement.analyzedTableElements().columns()) {
+            ensureColumnLeafsAreNew(column, statement.table());
         }
-        addExistingPrimaryKeys(context);
-        ensureNoIndexDefinitions(context.analyzedTableElements().columns());
-        context.analyzedTableElements().finalizeAndValidate();
+        addExistingPrimaryKeys(statement);
+        ensureNoIndexDefinitions(statement.analyzedTableElements().columns());
+        statement.analyzedTableElements().finalizeAndValidate();
 
-        int numCurrentPks = context.table().primaryKey().size();
-        if (context.table().primaryKey().contains(new ColumnIdent("_id"))) {
+        int numCurrentPks = statement.table().primaryKey().size();
+        if (statement.table().primaryKey().contains(new ColumnIdent("_id"))) {
             numCurrentPks -= 1;
         }
-        context.newPrimaryKeys(context.analyzedTableElements().primaryKeys().size() > numCurrentPks);
-        return null;
+        statement.newPrimaryKeys(statement.analyzedTableElements().primaryKeys().size() > numCurrentPks);
+        return statement;
     }
 
     private void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
@@ -130,4 +134,5 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
         }
         context.table(TableIdent.of(node));
     }
+
 }

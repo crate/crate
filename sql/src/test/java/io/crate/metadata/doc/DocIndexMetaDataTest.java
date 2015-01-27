@@ -5,10 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.analyze.AnalyzedTableElements;
-import io.crate.analyze.CreateTableAnalyzedStatement;
-import io.crate.analyze.CreateTableStatementAnalyzer;
-import io.crate.analyze.ParameterContext;
+import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
@@ -654,22 +651,20 @@ public class DocIndexMetaDataTest {
             new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class))
         );
 
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyzer.newAnalysis(
-                new ParameterContext(new Object[0], new Object[0][]));
-        analysis.analyzedTableElements(new AnalyzedTableElements());
+        Analysis analysis = new Analysis(new ParameterContext(new Object[0], new Object[0][]));
+        CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(statement, analysis);
 
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
-                .put(analysis.tableParameter().settings());
+                .put(analyzedStatement.tableParameter().settings());
 
-        analyzer.process(statement, analysis);
-        IndexMetaData indexMetaData = IndexMetaData.builder(analysis.tableIdent().name())
+        IndexMetaData indexMetaData = IndexMetaData.builder(analyzedStatement.tableIdent().name())
                 .settings(settingsBuilder)
-                .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analysis.mapping()))
+                .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStatement.mapping()))
                 .build();
 
-        return newMeta(indexMetaData, analysis.tableIdent().name());
+        return newMeta(indexMetaData, analyzedStatement.tableIdent().name());
     }
 
     @Test

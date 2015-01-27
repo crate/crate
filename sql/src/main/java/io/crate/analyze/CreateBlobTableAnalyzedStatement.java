@@ -25,14 +25,6 @@ import io.crate.metadata.TableIdent;
 
 public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    public CreateBlobTableAnalyzedStatement(ParameterContext parameterContext) {
-        super(parameterContext);
-    }
-
-    @Override
-    public void normalize() {
-    }
-
     public String tableName() {
         return tableIdent.name();
     }

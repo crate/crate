@@ -22,7 +22,6 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,7 +43,10 @@ import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.SourceIndexWriterProjection;
+import io.crate.planner.projection.WriterProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
@@ -78,18 +80,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private AggregationProjection localMergeProjection;
 
     protected static class Context {
-        public final Optional<ColumnIndexWriterProjection> indexWriterProjection;
 
-        Context() {
-            this(null);
+        private final Analysis analysis;
+
+        Context(Analysis analysis) {
+            this.analysis = analysis;
         }
 
-        Context(@Nullable ColumnIndexWriterProjection indexWriterProjection) {
-            this.indexWriterProjection = Optional.fromNullable(indexWriterProjection);
+        public Analysis analysis() {
+            return analysis;
         }
     }
-
-    private static final Context EMPTY_CONTEXT = new Context();
 
     @Inject
     public Planner(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
@@ -107,7 +108,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, EMPTY_CONTEXT);
+        return process(analyzedStatement, new Context(analysis));
     }
 
     @Override

@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
@@ -32,17 +31,12 @@ import io.crate.metadata.table.TableInfo;
 public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final ReferenceInfos referenceInfos;
-    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private TableInfo tableInfo;
     private AnalyzedTableElements analyzedTableElements;
     private boolean newPrimaryKeys = false;
 
-    protected AddColumnAnalyzedStatement(ReferenceInfos referenceInfos,
-                                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                         ParameterContext parameterContext) {
-        super(parameterContext);
+    protected AddColumnAnalyzedStatement(ReferenceInfos referenceInfos) {
         this.referenceInfos = referenceInfos;
-        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
     @Override
@@ -67,17 +61,8 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     }
 
     @Override
-    public void normalize() {
-
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitAddColumnStatement(this, context);
-    }
-
-    public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
-        return fulltextAnalyzerResolver;
     }
 
     public void analyzedTableElements(AnalyzedTableElements analyzedTableElements) {

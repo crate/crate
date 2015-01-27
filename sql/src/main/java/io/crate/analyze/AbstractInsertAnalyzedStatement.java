@@ -40,7 +40,7 @@ import java.util.Set;
 /**
  * holding analysis results for any insert statement variant
  */
-public abstract class AbstractInsertAnalyzedStatement extends AnalyzedStatement {
+public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStatement {
 
     private List<Reference> columns;
     private IntSet primaryKeyColumnIndices = new IntOpenHashSet();
@@ -49,10 +49,6 @@ public abstract class AbstractInsertAnalyzedStatement extends AnalyzedStatement 
     private TableInfo tableInfo;
 
     private final Set<ReferenceInfo> allocatedReferences = new HashSet<>();
-
-    protected AbstractInsertAnalyzedStatement() {
-        super(null);
-    }
 
     public List<Reference> columns() {
         return columns;

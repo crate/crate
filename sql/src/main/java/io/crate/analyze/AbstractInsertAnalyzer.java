@@ -30,11 +30,17 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.Node;
 
 import java.util.ArrayList;
 
-public abstract class AbstractInsertAnalyzer<T> extends DefaultTraversalVisitor<AnalyzedStatement, T> {
+public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<AbstractInsertAnalyzedStatement, Analysis> {
 
+    protected final AnalysisMetaData analysisMetaData;
+
+    protected AbstractInsertAnalyzer(AnalysisMetaData analysisMetaData) {
+        this.analysisMetaData = analysisMetaData;
+    }
 
     protected void handleInsertColumns(Insert node, int maxInsertValues, AbstractInsertAnalyzedStatement context) {
         // allocate columnsLists
@@ -49,7 +55,9 @@ public abstract class AbstractInsertAnalyzer<T> extends DefaultTraversalVisitor<
 
             int i = 0;
             for (ReferenceInfo columnInfo : context.tableInfo().columns()) {
-                if (i >= maxInsertValues) { break; }
+                if (i >= maxInsertValues) {
+                    break;
+                }
                 addColumn(columnInfo.ident().columnIdent().name(), context, i);
                 i++;
             }
@@ -94,7 +102,7 @@ public abstract class AbstractInsertAnalyzer<T> extends DefaultTraversalVisitor<
     protected Reference addColumn(ReferenceIdent ident, AbstractInsertAnalyzedStatement context, int i) {
         final ColumnIdent columnIdent = ident.columnIdent();
         Preconditions.checkArgument(!columnIdent.name().startsWith("_"), "Inserting system columns is not allowed");
-        if(Constants.INVALID_COLUMN_NAME_PREDICATE.apply(columnIdent.name())){
+        if (Constants.INVALID_COLUMN_NAME_PREDICATE.apply(columnIdent.name())) {
             throw new InvalidColumnNameException(columnIdent.name());
         }
 
@@ -122,5 +130,10 @@ public abstract class AbstractInsertAnalyzer<T> extends DefaultTraversalVisitor<
         Reference columnReference = context.allocateUniqueReference(ident);
         context.columns().add(columnReference);
         return columnReference;
+    }
+
+    public AnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return super.process(node, analysis);
     }
 }

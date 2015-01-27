@@ -44,9 +44,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private ColumnIdent routingColumn;
 
     public CreateTableAnalyzedStatement(ReferenceInfos referenceInfos,
-                                        FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                        ParameterContext parameterContext) {
-        super(parameterContext);
+                                        FulltextAnalyzerResolver fulltextAnalyzerResolver){
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
@@ -85,11 +83,6 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             return isPartitionAlias;
         }
         return false;
-
-    }
-
-    @Override
-    public void normalize() {
 
     }
 

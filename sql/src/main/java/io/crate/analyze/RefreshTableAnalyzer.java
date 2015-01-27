@@ -24,12 +24,16 @@ package io.crate.analyze;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Node;
 import io.crate.sql.tree.RefreshStatement;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
 
-public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalyzedStatement> {
+@Singleton
+public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAnalyzedStatement, Analysis> {
 
     private final ReferenceInfos referenceInfos;
 
@@ -38,27 +42,31 @@ public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, Refres
         this.referenceInfos = referenceInfos;
     }
 
+    public RefreshTableAnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return super.process(node, analysis);
+    }
+
     @Override
-    public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalyzedStatement context) {
-        context.table(TableIdent.of(node.table()));
+    public RefreshTableAnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis analysis) {
+        RefreshTableAnalyzedStatement statement = new RefreshTableAnalyzedStatement(referenceInfos);
+        statement.table(TableIdent.of(node.table()));
         if (!node.table().partitionProperties().isEmpty()) {
-            setParitionIdent(node.table().partitionProperties(), context);
+            setParitionIdent(node.table().partitionProperties(), statement, analysis.parameterContext());
         }
 
-        return null;
+        return statement;
     }
 
-    private void setParitionIdent(List<Assignment> properties, RefreshTableAnalyzedStatement context) {
+    private void setParitionIdent(List<Assignment> properties,
+                                  RefreshTableAnalyzedStatement statement,
+                                  ParameterContext parameterContext) {
         String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
-                context.table(),
+                statement.table(),
                 properties,
-                context.parameters()
+                parameterContext.parameters()
         );
-        context.partitionIdent(partitionIdent);
+        statement.partitionIdent(partitionIdent);
     }
 
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new RefreshTableAnalyzedStatement(referenceInfos, parameterContext);
-    }
 }

@@ -60,11 +60,16 @@ public class Analyzer {
         private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
         private final SetStatementAnalyzer setStatementAnalyzer;
         private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
+        private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
+        private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
+        private final CopyStatementAnalyzer copyStatementAnalyzer;
         private final EvaluatingNormalizer normalizer;
-        private AnalysisMetaData analysisMetaData;
+        private final SelectStatementAnalyzer selectStatementAnalyzer;
+        private final AnalysisMetaData analysisMetaData;
 
         @Inject
         public AnalyzerDispatcher(AnalysisMetaData analysisMetaData,
+                                  SelectStatementAnalyzer selectStatementAnalyzer,
                                   DropTableStatementAnalyzer dropTableStatementAnalyzer,
                                   CreateTableStatementAnalyzer createTableStatementAnalyzer,
                                   CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
@@ -74,8 +79,12 @@ public class Analyzer {
                                   AlterTableAnalyzer alterTableAnalyzer,
                                   AlterBlobTableAnalyzer alterBlobTableAnalyzer,
                                   SetStatementAnalyzer setStatementAnalyzer,
-                                  AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer) {
+                                  AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
+                                  InsertFromValuesAnalyzer insertFromValuesAnalyzer,
+                                  InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
+                                  CopyStatementAnalyzer copyStatementAnalyzer) {
             this.analysisMetaData = analysisMetaData;
+            this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
             this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
@@ -86,22 +95,17 @@ public class Analyzer {
             this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
             this.setStatementAnalyzer = setStatementAnalyzer;
             this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
+            this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
+            this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
+            this.copyStatementAnalyzer = copyStatementAnalyzer;
             this.normalizer = new EvaluatingNormalizer(
                     analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver());
         }
 
-        private AnalyzedStatement analyze(Node node, AbstractStatementAnalyzer statementAnalyzer, Analysis analysis) {
-            AnalyzedStatement analyzedStatement = statementAnalyzer.newAnalysis(analysis.parameterContext());
-            node.accept(statementAnalyzer, analyzedStatement);
-            analyzedStatement.normalize();
-            return analyzedStatement;
-        }
-
         @Override
-        protected AnalyzedStatement visitQuery(Query node, Analysis context) {
-            SelectStatementAnalyzer analyzer = new SelectStatementAnalyzer(analysisMetaData, context.parameterContext());
-            SelectAnalyzedStatement statement = (SelectAnalyzedStatement )analyzer.process(node, null);
-            context.rootRelation(statement);
+        protected AnalyzedStatement visitQuery(Query node, Analysis analysis) {
+            SelectAnalyzedStatement statement = selectStatementAnalyzer.process(node, analysis);
+            analysis.rootRelation(statement);
             statement.normalize(normalizer);
             return statement;
         }
@@ -115,18 +119,12 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis context) {
-            InsertFromValuesAnalyzer analyzer = new InsertFromValuesAnalyzer(
-                    analysisMetaData, context.parameterContext());
-            context.expectsAffectedRows(true);
-            return analyzer.process(node, null);
+            return insertFromValuesAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis context) {
-            InsertFromSubQueryAnalyzer analyzer = new InsertFromSubQueryAnalyzer(
-                    analysisMetaData, context.parameterContext());
-            context.expectsAffectedRows(true);
-            return analyzer.process(node, null);
+            return insertFromSubQueryAnalyzer.analyze(node, context);
         }
 
         @Override
@@ -139,80 +137,67 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCopyFromStatement(CopyFromStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, new CopyStatementAnalyzer(analysisMetaData), context);
+            return copyStatementAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitCopyTo(CopyTo node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, new CopyStatementAnalyzer(analysisMetaData), context);
+            return copyStatementAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitDropTable(DropTable node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, dropTableStatementAnalyzer, context);
+            return dropTableStatementAnalyzer.analyze(node, context);
         }
 
         @Override
-        public AnalyzedStatement visitCreateTable(CreateTable node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, createTableStatementAnalyzer, context);
+        public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
+            return createTableStatementAnalyzer.analyze(node, analysis);
         }
 
         @Override
         public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, createAnalyzerStatementAnalyzer, context);
+            return createAnalyzerStatementAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, createBlobTableStatementAnalyzer, context);
+            return createBlobTableStatementAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, dropBlobTableStatementAnalyzer, context);
+            return dropBlobTableStatementAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, alterBlobTableAnalyzer, context);
+            return alterBlobTableAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, refreshTableAnalyzer, context);
+            return refreshTableAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitAlterTable(AlterTable node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, alterTableAnalyzer, context);
+            return alterTableAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, alterTableAddColumnAnalyzer, context);
+            return alterTableAddColumnAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, setStatementAnalyzer, context);
+            return setStatementAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitResetStatement(ResetStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return analyze(node, setStatementAnalyzer, context);
+            return setStatementAnalyzer.analyze(node, context);
         }
 
         @Override
