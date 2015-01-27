@@ -24,34 +24,23 @@ package io.crate.operation.projectors;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
-import org.elasticsearch.action.bulk.TransportShardBulkActionDelegate;
-import org.elasticsearch.client.Requests;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
-
     private final List<Input<?>> columnInputs;
-    private final List<ColumnIdent> columnIdents;
 
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Settings settings,
-                                         TransportShardBulkActionDelegate transportShardBulkActionDelegate,
+                                         TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                          TransportCreateIndexAction transportCreateIndexAction,
                                          String tableName,
                                          List<ColumnIdent> primaryKeys,
@@ -59,34 +48,38 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          List<Input<?>> partitionedByInputs,
                                          @Nullable ColumnIdent routingIdent,
                                          @Nullable Input<?> routingInput,
-                                         List<ColumnIdent> columnIdents,
+                                         List<Reference> columnReferences,
                                          List<Input<?>> columnInputs,
                                          CollectExpression<?>[] collectExpressions,
                                          @Nullable Integer bulkActions,
                                          boolean autoCreateIndices) {
-        super(clusterService, settings, transportShardBulkActionDelegate,
-                transportCreateIndexAction, tableName, primaryKeys, idInputs,
-                partitionedByInputs, routingIdent, routingInput, collectExpressions,
-                bulkActions, autoCreateIndices);
-        assert columnIdents.size() == columnInputs.size();
-        this.columnIdents = columnIdents;
+        super(tableName, primaryKeys, idInputs,
+                partitionedByInputs, routingIdent, routingInput, collectExpressions);
+        assert columnReferences.size() == columnInputs.size();
         this.columnInputs = columnInputs;
+
+        createBulkShardProcessor(
+                clusterService,
+                settings,
+                transportShardUpsertActionDelegate,
+                transportCreateIndexAction,
+                bulkActions,
+                autoCreateIndices,
+                null,
+                columnReferences.toArray(new Reference[columnReferences.size()]));
     }
 
     @Override
-    protected BytesReference generateSource() {
-        Map<String, Object> sourceMap = new HashMap<>(this.columnInputs.size());
-        Iterator<ColumnIdent> identIterator = columnIdents.iterator();
-        Iterator<Input<?>> inputIterator = columnInputs.iterator();
-        while (identIterator.hasNext()) {
-            sourceMap.put(identIterator.next().fqn(), inputIterator.next().value());
-        }
+    protected Symbol[] generateAssignments() {
+        return new Symbol[0];
+    }
 
-        try {
-            return XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE).map(sourceMap).bytes();
-        } catch (IOException e) {
-            logger.error("Could not parse xContent", e);
-            return null;
+    @Override
+    protected Object[] generateMissingAssignments() {
+        Object[] missingAssignments = new Object[columnInputs.size()];
+        for (int i = 0; i < columnInputs.size(); i++) {
+            missingAssignments[i] = columnInputs.get(i).value();
         }
+        return missingAssignments;
     }
 }

@@ -123,6 +123,11 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
     @Override
     public Object[] readValueFrom(StreamInput in) throws IOException {
         int size = in.readVInt();
+        // size of 0 is threaten as null value so real size must be decreased by 1
+        if (size == 0) {
+            return null;
+        }
+        size--;
         Object[] array = new Object[size];
         for (int i = 0; i < size; i++) {
             array[i] = innerType.streamer().readValueFrom(in);
@@ -133,7 +138,12 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
     @Override
     public void writeValueTo(StreamOutput out, Object values) throws IOException {
         Object[] array = (Object[]) values;
-        out.writeVInt(array.length);
+        // write null as size 0, so increase real size by 1
+        if (array == null) {
+            out.writeVInt(0);
+            return;
+        }
+        out.writeVInt(array.length + 1);
         for (Object value : array) {
             innerType.streamer().writeValueTo(out, value);
         }
