@@ -55,6 +55,8 @@ import static org.hamcrest.core.Is.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -1484,7 +1486,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select o['i'], o['name'] from t");
         assertThat((Integer) response.rows()[0][0], Matchers.is(1));
         execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
-        assertEquals("t| 04132\n", TestingHelpers.printedTable(response.rows()));
+        assertEquals("t| 04132" + LN, TestingHelpers.printedTable(response.rows()));
     }
 
     @Test

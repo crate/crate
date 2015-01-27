@@ -37,6 +37,8 @@ import static org.hamcrest.core.Is.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -197,11 +199,11 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select l, log(d,l) from t order by l, log(d,l) desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("2| 6.6293566200796095\n" +
-                        "2| 6.499845887083206\n" +
-                        "4| 3.3146783100398047\n" +
-                        "4| 3.249922943541603\n" +
-                        "31234594433| 0.19015764044502392\n"));
+                is("2| 6.6293566200796095" + LN +
+                        "2| 6.499845887083206" + LN +
+                        "4| 3.3146783100398047" + LN +
+                        "4| 3.249922943541603" + LN +
+                        "31234594433| 0.19015764044502392" + LN));
     }
 
     @Test
@@ -283,21 +285,21 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select i from t where i%2 = 0 order by i");
         assertThat(response.rowCount(), is(3L));
 
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n10\n193384\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2" + LN + "10" + LN + "193384" + LN));
 
         execute("select l from t where i * -1 > 0");
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("4\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("4" + LN));
 
         execute("select l from t where i * 2 = l");
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2" + LN));
 
         execute("select i%3, sum(l) from t where i+1 > 2 group by i%3 order by sum(l)");
         assertThat(response.rowCount(), is(2L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "2| 5.0\n" +
-                        "1| 3.1234594454E10\n"));
+                "2| 5.0" + LN +
+                        "1| 3.1234594454E10" + LN));
     }
 
     @Test
@@ -310,11 +312,11 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select i, i%3 from t order by i%3, l");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "-1| -1\n" +
-                        "1| 1\n" +
-                        "10| 1\n" +
-                        "193384| 1\n" +
-                        "2| 2\n"));
+                "-1| -1" + LN +
+                        "1| 1" + LN +
+                        "10| 1" + LN +
+                        "193384| 1" + LN +
+                        "2| 2" + LN));
     }
 
     @Test

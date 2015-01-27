@@ -46,6 +46,8 @@ import static org.junit.Assert.assertThat;
 
 public class WriterProjectorTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
@@ -80,11 +82,11 @@ public class WriterProjectorTest {
         assertEquals(1, rows.length);
         assertEquals(5L, rows[0][0]);
 
-        assertEquals("input line 00\n" +
-                "input line 01\n" +
-                "input line 02\n" +
-                "input line 03\n" +
-                "input line 04\n", TestingHelpers.readFile(uri));
+        assertEquals("input line 00" + LN +
+                "input line 01" + LN +
+                "input line 02" + LN +
+                "input line 03" + LN +
+                "input line 04" + LN, TestingHelpers.readFile(uri));
     }
 
     @Test

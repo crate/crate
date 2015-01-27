@@ -55,6 +55,8 @@ import static org.hamcrest.Matchers.*;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -150,8 +152,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         assertThat(response.cols(), is(arrayContaining("boo", "id", "name")));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "NULL| 1| Ford\n" +
-                "true| 2| Trillian\n"));
+                "NULL| 1| Ford" + LN +
+                "true| 2| Trillian" + LN));
     }
 
     @Test
@@ -350,8 +352,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         assertThat(response.cols(), is(arrayContaining("good", "id", "score")));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "NULL| 1| 42.24\n" +
-                "false| 2| -0.01\n"));
+                "NULL| 1| 42.24" + LN +
+                "false| 2| -0.01" + LN));
     }
 
     @Test
@@ -491,8 +493,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         assertThat(response.cols(), arrayContaining("num", "odd", "perfect", "prime"));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "6| true| NULL| false\n" +
-                "28| true| true| false\n"));
+                "6| true| NULL| false" + LN +
+                "28| true| true| false" + LN));
 
         execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
         assertThat(response.rowCount(), is(1L));
@@ -508,8 +510,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                         && Joiner.on(", ").join(Arrays.asList(response.cols()))
                             .equals("author, changed, num, odd, perfect, prime")
                         && TestingHelpers.printedTable(response.rows()).equals(
-                                "NULL| NULL| 6| true| NULL| false\n" +
-                                "troll| 1414059600000| 28| true| true| true\n");
+                                "NULL| NULL| 6| true| NULL| false" + LN +
+                                "troll| 1414059600000| 28| true| true| true" + LN);
             }
         });
     }

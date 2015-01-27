@@ -51,6 +51,8 @@ import static org.mockito.Mockito.when;
 
 public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -502,11 +504,12 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithGeoPoint() throws Exception {
+
         CreateTableAnalyzedStatement analyze = (CreateTableAnalyzedStatement)analyze(
-                "create table geo_point_table (\n" +
-                "    id integer primary key,\n" +
-                "    my_point geo_point\n" +
-                ")\n");
+                "create table geo_point_table (" + LN +
+                "    id integer primary key," + LN +
+                "    my_point geo_point" + LN +
+                ")" + LN);
         Map my_point = (Map) analyze.mappingProperties().get("my_point");
         assertEquals("geo_point", my_point.get("type"));
     }

@@ -43,6 +43,8 @@ import static org.hamcrest.Matchers.*;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     final static Joiner dotJoiner = Joiner.on('.');
     final static Joiner commaJoiner = Joiner.on(", ");
 
@@ -895,10 +897,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute(stmtIsColumns);
         assertThat(response.rowCount(), is(4L));
 
-        String expected = "data_points| data| object\n" +
-                "data_points| data['somelongroute']| long\n" +
-                "data_points| data['somestringroute']| string\n" +
-                "data_points| day| string\n";
+        String expected = "data_points| data| object" + LN +
+                "data_points| data['somelongroute']| long" + LN +
+                "data_points| data['somestringroute']| string" + LN +
+                "data_points| day| string" + LN;
         assertEquals(expected, TestingHelpers.printedTable(response.rows()));
     }
 

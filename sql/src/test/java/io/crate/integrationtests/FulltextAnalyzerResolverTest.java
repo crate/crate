@@ -45,6 +45,8 @@ import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -309,7 +311,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 "  char_filters (" +
                 "     mypattern WITH (" +
                 "       type='pattern_replace'," +
-                "      \"pattern\" ='sample(.*)',\n" +
+                "      \"pattern\" ='sample(.*)'," + LN +
                 "      \"replacement\" = 'replacedSample $1'" +
                 "     )," +
                 "     \"html_strip\"" +

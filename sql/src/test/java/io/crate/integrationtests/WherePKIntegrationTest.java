@@ -38,6 +38,8 @@ import static org.hamcrest.core.Is.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     @Test
     public void testWherePkColInWithLimit() throws Exception {
         execute("create table users (" +
@@ -165,7 +167,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from explicit_routing where name=','");
         assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("[36.567, 52.998]| ,\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("[36.567, 52.998]| ," + LN));
     }
 
     @Test

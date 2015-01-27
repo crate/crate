@@ -29,6 +29,9 @@ import java.util.List;
 
 public final class TreePrinter
 {
+
+    private static final String LN = System.getProperty("line.separator");
+
     private TreePrinter() {}
 
     public static String treeToString(Tree tree)
@@ -46,7 +49,7 @@ public final class TreePrinter
         sb.append(tree.toString());
         for (Tree t : children(tree)) {
             if (hasSubtree(t) && (leafCount(tree) > 2)) {
-                sb.append("\n");
+                sb.append("" + LN);
                 sb.append(Strings.repeat("   ", depth));
             }
             else {

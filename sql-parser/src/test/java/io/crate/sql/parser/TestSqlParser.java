@@ -38,6 +38,9 @@ import static org.testng.Assert.fail;
 
 public class TestSqlParser
 {
+
+    private static final String LN = System.getProperty("line.separator");
+
     @Test
     public void testPossibleExponentialBacktracking()
             throws Exception
@@ -136,13 +139,13 @@ public class TestSqlParser
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 3:1: mismatched input 'from' expecting EOF")
     public void testParseErrorStartOfLine()
     {
-        SqlParser.createStatement("select *\nfrom x\nfrom");
+        SqlParser.createStatement("select *" + LN + "from x" + LN + "from");
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 3:7: no viable alternative at input 'from'")
     public void testParseErrorMiddleOfLine()
     {
-        SqlParser.createStatement("select *\nfrom x\nwhere from");
+        SqlParser.createStatement("select *" + LN + "from x" + LN + "where from");
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:14: no viable alternative at input '<EOF>'")
@@ -215,7 +218,7 @@ public class TestSqlParser
     public void testParsingExceptionPositionInfo()
     {
         try {
-            SqlParser.createStatement("select *\nfrom x\nwhere from");
+            SqlParser.createStatement("select *"  + LN +  "from x "  + LN +  "where from");
             fail("expected exception");
         }
         catch (ParsingException e) {
@@ -287,7 +290,7 @@ public class TestSqlParser
     private static void assertParsed(String input, Node expected, Node parsed)
     {
         if (!parsed.equals(expected)) {
-            fail(format("expected\n\n%s\n\nto parse as\n\n%s\n\nbut was\n\n%s\n",
+            fail(format("expected" + LN + LN + "%s" + LN + LN + "to parse as" + LN + LN + "%s" + LN + LN + "but was" + LN + LN + "%s" + LN,
                     indent(input),
                     indent(formatSql(expected)),
                     indent(formatSql(parsed))));
@@ -297,6 +300,6 @@ public class TestSqlParser
     private static String indent(String value)
     {
         String indent = "    ";
-        return indent + value.trim().replaceAll("\n", "\n" + indent);
+        return indent + value.trim().replaceAll(LN, LN + indent);
     }
 }

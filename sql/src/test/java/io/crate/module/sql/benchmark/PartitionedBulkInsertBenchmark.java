@@ -43,6 +43,8 @@ import org.junit.rules.TestRule;
 @BenchmarkMethodChart(filePrefix = "benchmark-partitioned-bulk-insert")
 public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
 
+    private static final String LN = System.getProperty("line.separator");
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -66,14 +68,14 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
             NODE2 = cluster.startNode(getNodeSettings(2));
         }
         if(!indexExists()){
-            execute("create table motiondata (\n" +
-                    "  d string,\n" +
-                    "  device_id string,\n" +
-                    "  ts timestamp,\n" +
-                    "  ax double,\n" +
-                    "  primary key (d, device_id, ts)\n" +
-                    ")\n" +
-                    "partitioned by (d)\n" +
+            execute("create table motiondata (" + LN +
+                    "  d string," + LN +
+                    "  device_id string," + LN +
+                    "  ts timestamp," + LN +
+                    "  ax double," + LN +
+                    "  primary key (d, device_id, ts)" + LN +
+                    ")" + LN +
+                    "partitioned by (d)" + LN +
                     "clustered by (device_id)", new Object[0], false);
             refresh(client());
         }

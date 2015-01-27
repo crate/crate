@@ -46,6 +46,8 @@ import static org.hamcrest.core.Is.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
+    private static final String LN = System.getProperty("line.separator");
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -218,7 +220,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from users");
         assertThat(response.rowCount(), is(1L));
 
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2| Trillian\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2| Trillian" + LN));
     }
 
     @Test
