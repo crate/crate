@@ -81,6 +81,16 @@ public class Reference extends Symbol {
         return visitor.visitReference(this, context);
     }
 
+    public static Reference fromStream(StreamInput in) throws IOException {
+        Reference reference = new Reference();
+        reference.readFrom(in);
+        return reference;
+    }
+
+    public static void toStream(Reference reference, StreamOutput out) throws IOException {
+        reference.writeTo(out);
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         info = new ReferenceInfo();

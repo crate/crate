@@ -24,9 +24,9 @@ package io.crate.operation.projectors;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.transport.ShardUpdateRequest;
-import io.crate.executor.transport.TransportShardUpdateAction;
-import io.crate.executor.transport.ShardUpdateResponse;
+import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
@@ -34,14 +34,12 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -53,10 +51,11 @@ public class UpdateProjector implements Projector {
     private final List<SettableFuture<Long>> updateResults = new ArrayList<>();
 
     private final ShardId shardId;
-    private final TransportShardUpdateAction transportUpdateAction;
+    private final TransportShardUpsertAction transportUpdateAction;
     private final CollectExpression<?> collectUidExpression;
     // The key of this map is expected to be a FQN columnIdent.
-    private final Map<String, Symbol> assignments;
+    private final String[] assignmentsColumns;
+    private final Symbol[] assignments;
     @Nullable
     private final Long requiredVersion;
     private final Object lock = new Object();
@@ -64,13 +63,15 @@ public class UpdateProjector implements Projector {
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     public UpdateProjector(ShardId shardId,
-                           TransportShardUpdateAction transportUpdateAction,
+                           TransportShardUpsertAction transportUpdateAction,
                            CollectExpression<?> collectUidExpression,
-                           Map<String, Symbol> assignments,
+                           String[] assignmentsColumns,
+                           Symbol[] assignments,
                            @Nullable Long requiredVersion) {
         this.shardId = shardId;
         this.transportUpdateAction = transportUpdateAction;
         this.collectUidExpression = collectUidExpression;
+        this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
     }
@@ -84,7 +85,7 @@ public class UpdateProjector implements Projector {
 
     @Override
     public boolean setNextRow(Object... row) {
-        Uid uid;
+        final Uid uid;
         synchronized (lock) {
             // resolve the Uid
             collectUidExpression.setNextRow(row);
@@ -94,26 +95,32 @@ public class UpdateProjector implements Projector {
         final SettableFuture<Long> future = SettableFuture.create();
         updateResults.add(future);
 
-        final ShardUpdateRequest updateRequest = new ShardUpdateRequest(shardId, uid, requiredVersion);
-        updateRequest.assignments(assignments);
+        ShardUpsertRequest updateRequest = new ShardUpsertRequest(shardId, assignmentsColumns, null);
+        updateRequest.add(0, uid.id(), assignments, requiredVersion, null);
 
-        transportUpdateAction.execute(updateRequest, new ActionListener<ShardUpdateResponse>() {
+        transportUpdateAction.execute(updateRequest, new ActionListener<ShardUpsertResponse>() {
             @Override
-            public void onResponse(ShardUpdateResponse updateResponse) {
-                future.set(1L);
+            public void onResponse(ShardUpsertResponse updateResponse) {
+                int location = updateResponse.locations().get(0);
+                if (updateResponse.responses().get(location) != null) {
+                    future.set(1L);
+                } else {
+                    ShardUpsertResponse.Failure failure = updateResponse.failures().get(location);
+                    if (logger.isDebugEnabled()) {
+                        if (failure.versionConflict()) {
+                            logger.debug("Updating document with id {} failed because of a version conflict", failure.id());
+                        } else {
+                            logger.debug("Updating document with id {} failed {}", failure.id(), failure.message());
+                        }
+                    }
+                    future.set(0L);
+                }
             }
 
             @Override
             public void onFailure(Throwable e) {
-                if (e instanceof VersionConflictEngineException) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Updating document with id {} failed because of a version conflict", updateRequest.id());
-                    }
-                    future.set(0L);
-                } else {
-                    logger.error("Updating document with id {} failed", e, updateRequest.id());
-                    future.set(0L);
-                }
+                logger.error("Updating document with id {} failed {}", e, uid.id());
+                future.set(0L);
             }
         });
 

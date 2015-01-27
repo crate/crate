@@ -103,7 +103,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
             ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
                     insertFromSubQueryAnalyzedStatement.tableInfo().ident().name(),
                     insertFromSubQueryAnalyzedStatement.tableInfo().primaryKey(),
-                    columns,
+                    insertFromSubQueryAnalyzedStatement.columns(),
                     insertFromSubQueryAnalyzedStatement.primaryKeyColumnIndices(),
                     insertFromSubQueryAnalyzedStatement.partitionedByIndices(),
                     insertFromSubQueryAnalyzedStatement.routingColumn(),

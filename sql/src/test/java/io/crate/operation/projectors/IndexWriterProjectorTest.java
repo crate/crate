@@ -24,14 +24,18 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
-import org.elasticsearch.action.bulk.TransportShardBulkActionDelegateImpl;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
@@ -45,6 +49,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
 
+    private static final TableIdent bulkImportIdent = new TableIdent(null, "bulk_import");
+
     @Test
     public void testIndexWriter() throws Throwable {
         execute("create table bulk_import (id int primary key, name string) with (number_of_replicas=0)");
@@ -55,12 +61,15 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
         CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput };
 
+        ReferenceInfos referenceInfos = cluster().getInstance(ReferenceInfos.class);
+
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 cluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                cluster().getInstance(TransportShardBulkActionDelegateImpl.class),
+                cluster().getInstance(TransportShardUpsertActionDelegateImpl.class),
                 cluster().getInstance(TransportCreateIndexAction.class),
                 "bulk_import",
+                new Reference(referenceInfos.getReferenceInfo(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW))),
                 Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
                 ImmutableList.<Input<?>>of(),

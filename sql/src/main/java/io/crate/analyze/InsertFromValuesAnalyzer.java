@@ -63,14 +63,19 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     private static class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
 
         private final ExpressionAnalyzer expressionAnalyzer;
-        public Map<String, Object> insertValues;
+        public List<Reference> columns;
+        public List<String> assignmentColumns;
+        public Object[] insertValues;
+        private TableRelation tableRelation;
 
         public ValuesAwareExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                                              ParameterContext parameterContext,
                                              FieldProvider fieldProvider,
-                                             ExpressionAnalyzer expressionAnalyzer) {
+                                             ExpressionAnalyzer expressionAnalyzer,
+                                             TableRelation tableRelation) {
             super(analysisMetaData, parameterContext, fieldProvider);
             this.expressionAnalyzer = expressionAnalyzer;
+            this.tableRelation = tableRelation;
         }
 
         @Override
@@ -91,11 +96,13 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 String outputName = ((ColumnIdent) ((Field) argumentColumn).path()).fqn();
                 DataType returnType = argumentColumn.valueType();
                 // use containsKey instead of checking result .get() for null because inserted value might actually be null
-                if (!insertValues.containsKey(outputName)) {
+                Reference columnReference = tableRelation.resolveField((Field)argumentColumn);
+                if (!columns.contains(columnReference)) {
                     throw new IllegalArgumentException(String.format(
                             "Referenced column '%s' isn't part of the column list of the INSERT statement", outputName));
                 }
-                return Literal.newLiteral(returnType, returnType.value(insertValues.get(outputName)));
+                assignmentColumns.add(columnReference.ident().columnIdent().fqn());
+                return Literal.newLiteral(returnType, returnType.value(insertValues[columns.indexOf(columnReference)]));
             }
             return super.convertFunctionCall(node, context);
         }
@@ -125,7 +132,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
         valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-                analysisMetaData, analysis.parameterContext(), fieldProvider, expressionAnalyzer);
+                analysisMetaData, analysis.parameterContext(), fieldProvider, expressionAnalyzer, tableRelation);
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
                 tableInfo, analysis.parameterContext().hasBulkParams());
@@ -177,15 +184,13 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             context.newPartitionMap();
         }
         List<BytesRef> primaryKeyValues = new ArrayList<>(numPrimaryKeys);
-        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
         String routingValue = null;
         List<Expression> values = node.values();
         List<ColumnIdent> primaryKey = context.tableInfo().primaryKey();
+        Object[] insertValues = new Object[node.values().size()];
 
-        Map<String, Object> insertValues = new HashMap<>();
-
-        for (int i = 0, valuesSize = values.size(); i < valuesSize; i++) {
-            Expression expression = values.get(i);
+        for (int i = 0, valuesSize = node.values().size(); i < valuesSize; i++) {
+            Expression expression = node.values().get(i);
             Symbol valuesSymbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
 
             // implicit type conversion
@@ -222,20 +227,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 if (context.partitionedByIndices().contains(i)) {
                     Object rest = processPartitionedByValues(columnIdent, value, context);
                     if (rest != null) {
-                        builder.field(columnIdent.name(), rest);
-                        if (!assignments.isEmpty()) {
-                            insertValues.put(columnIdent.name(), rest);
-                        }
-                    }
-                } else {
-                    if (value instanceof BytesRef) {
-                        value = new BytesText(new BytesArray((BytesRef) value));
-                    }
-                    builder.field(columnIdent.name(), value);
-                    if (!assignments.isEmpty()) {
-                        insertValues.put(columnIdent.name(), value);
+                        value = rest;
                     }
                 }
+                insertValues[i] = value;
             } catch (ClassCastException e) {
                 // symbol is no input
                 throw new ColumnValidationException(columnIdent.name(),
@@ -244,19 +239,26 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
 
         if (!assignments.isEmpty()) {
-            Map<String, Symbol> onDupKeyAssignments = new HashMap<>();
+            Symbol[] onDupKeyAssignments = new Symbol[assignments.size()];
             valuesAwareExpressionAnalyzer.insertValues = insertValues;
-            for (Assignment assignment : assignments) {
+            valuesAwareExpressionAnalyzer.columns = context.columns();
+            valuesAwareExpressionAnalyzer.assignmentColumns = new ArrayList<>(assignments.size());
+            for (int i = 0; i < assignments.size(); i++) {
+                Assignment assignment = assignments.get(i);
                 Symbol columnName = expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext);
                 assert columnName instanceof Field : "columnName must be a field"; // ensured by parser
 
                 Symbol assignmentExpression = valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext);
                 assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression);
-                onDupKeyAssignments.put(((ColumnIdent) ((Field) columnName).path()).fqn(), assignmentExpression);
+                onDupKeyAssignments[i] = assignmentExpression;
+                if (valuesAwareExpressionAnalyzer.assignmentColumns.size() == i) {
+                    valuesAwareExpressionAnalyzer.assignmentColumns.add(((ColumnIdent) ((Field) columnName).path()).fqn());
+                }
             }
             context.addOnDuplicateKeyAssignments(onDupKeyAssignments);
+            context.addOnDuplicateKeyAssignmentsColumns(valuesAwareExpressionAnalyzer.assignmentColumns.toArray(new String[valuesAwareExpressionAnalyzer.assignmentColumns.size()]));
         }
-        context.sourceMaps().add(builder.bytes());
+        context.sourceMaps().add(insertValues);
         context.addIdAndRouting(primaryKeyValues, routingValue);
     }
 
