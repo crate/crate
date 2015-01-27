@@ -234,9 +234,10 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new IndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportShardBulkAction(),
+                transportActionProvider.transportShardUpsertActionDelegate(),
                 transportActionProvider.transportCreateIndexAction(),
                 projection.tableName(),
+                projection.rawSourceReference(),
                 projection.primaryKeys(),
                 idInputs,
                 partitionedByInputs,
@@ -273,7 +274,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new ColumnIndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportShardBulkAction(),
+                transportActionProvider.transportShardUpsertActionDelegate(),
                 transportActionProvider.transportCreateIndexAction(),
                 projection.tableName(),
                 projection.primaryKeys(),
@@ -281,7 +282,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 partitionedByInputs,
                 projection.clusteredByIdent(),
                 clusteredBy,
-                projection.columnIdents(),
+                projection.columnReferences(),
                 columnInputs,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.bulkActions(),
@@ -317,8 +318,9 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
         return new UpdateProjector(
                 shardId,
-                transportActionProvider.transportShardUpdateAction(),
+                transportActionProvider.transportShardUpsertAction(),
                 ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()])[0],
+                projection.assignmentsColumns(),
                 projection.assignments(),
                 projection.requiredVersion());
     }

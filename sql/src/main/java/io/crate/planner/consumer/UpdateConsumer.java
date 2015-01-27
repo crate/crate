@@ -41,8 +41,8 @@ import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dml.UpdateByIdNode;
-import io.crate.planner.node.dml.Update;
+import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -57,6 +57,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import org.elasticsearch.cluster.routing.operation.plain.Preference;
+import org.elasticsearch.common.collect.Tuple;
 
 import java.util.*;
 
@@ -117,13 +118,14 @@ public class UpdateConsumer implements Consumer {
                 }
                 if (whereClauseContext.ids().size() >= 1
                         && whereClauseContext.routingValues().size() == whereClauseContext.ids().size()) {
+                    // TODO: create only 1 UpdateByIdNode for all nested statements
                     childNodes.add(updateById(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
                 } else {
                     childNodes.add(updateByQuery(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
                 }
             }
             if (childNodes.size()>0){
-                return new Update(childNodes);
+                return new Upsert(childNodes);
             } else {
                 return new NoopPlannedAnalyzedRelation(statement);
             }
@@ -147,9 +149,12 @@ public class UpdateConsumer implements Consumer {
                                 new ReferenceIdent(tableInfo.ident(), "_uid"),
                                 RowGranularity.DOC, DataTypes.STRING));
 
+                Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
+
                 UpdateProjection updateProjection = new UpdateProjection(
                         new InputColumn(0, DataTypes.STRING),
-                        convertAssignments(nestedAnalysis.assignments()),
+                        assignments.v1(),
+                        assignments.v2(),
                         whereClauseContext.whereClause().version().orNull());
 
                 CollectNode collectNode = PlanNodeBuilder.collect(
@@ -176,25 +181,33 @@ public class UpdateConsumer implements Consumer {
             assert indices.length == 1;
             assert whereClauseContext.ids().size() == whereClauseContext.routingValues().size();
             List<DQLPlanNode> nodes = new ArrayList<>(whereClauseContext.ids().size());
+
+            Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
+
+            UpsertByIdNode upsertByIdNode = new UpsertByIdNode(indices[0], false, false, assignments.v1(), null);
             for (int i = 0; i < whereClauseContext.ids().size(); i++) {
-                nodes.add(new UpdateByIdNode(
-                                indices[0],
-                                whereClauseContext.ids().get(i),
-                                whereClauseContext.routingValues().get(i),
-                                convertAssignments(nestedAnalysis.assignments()),
-                                whereClause.version(),
-                                null,
-                                null));
+                upsertByIdNode.add(
+                        whereClauseContext.ids().get(i),
+                        whereClauseContext.routingValues().get(i),
+                        assignments.v2(),
+                        whereClause.version().orNull());
             }
+            nodes.add(upsertByIdNode);
             return nodes;
         }
 
-        private Map<String, Symbol> convertAssignments(Map<Reference, Symbol> assignments) {
-            Map<String, Symbol> convertedAssignments = new HashMap<>(assignments.size());
-            for(Map.Entry<Reference, Symbol> entry : assignments.entrySet()) {
-                convertedAssignments.put(entry.getKey().info().ident().columnIdent().fqn(), entry.getValue());
+        private Tuple<String[], Symbol[]> convertAssignments(Map<Reference, Symbol> assignments) {
+            String[] assignmentColumns = new String[assignments.size()];
+            Symbol[] assignmentSymbols = new Symbol[assignments.size()];
+            Iterator<Reference> it = assignments.keySet().iterator();
+            int i = 0;
+            while(it.hasNext()) {
+                Reference key = it.next();
+                assignmentColumns[i] = key.ident().columnIdent().fqn();
+                assignmentSymbols[i] = assignments.get(key);
+                i++;
             }
-            return convertedAssignments;
+            return new Tuple<>(assignmentColumns, assignmentSymbols);
         }
 
         @Override

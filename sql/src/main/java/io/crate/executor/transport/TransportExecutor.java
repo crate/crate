@@ -197,10 +197,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public Void visitUpdate(Update plan, Job job) {
+        public Void visitUpsert(Upsert plan, Job job) {
             ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
             for (List<DQLPlanNode> childNodes : plan.nodes()) {
                 List<Task> subTasks = new ArrayList<>(childNodes.size());
+                if (childNodes.size() == 1) {
+                    job.addTasks(childNodes.get(0).accept(nodeVisitor, job.id()));
+                    return null;
+                }
                 for (DQLPlanNode childNode : childNodes) {
                     subTasks.addAll(childNode.accept(nodeVisitor, job.id()));
                 }
@@ -357,7 +361,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public ImmutableList<Task> visitESIndexNode(ESIndexNode node, UUID jobId) {
             if (node.sourceMaps().size() > 1) {
                 return singleTask(new ESBulkIndexTask(jobId, clusterService, settings,
-                        transportActionProvider.transportShardBulkAction(),
+                        transportActionProvider.transportShardUpsertActionDelegate(),
                         transportActionProvider.transportCreateIndexAction(),
                         node));
             } else {
@@ -369,9 +373,12 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitUpdateByIdNode(UpdateByIdNode node, UUID jobId) {
-            return singleTask(new UpdateByIdTask(jobId,
-                    transportActionProvider.transportShardUpdateAction(),
+        public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
+            return singleTask(new UpsertByIdTask(jobId,
+                    clusterService,
+                    settings,
+                    transportActionProvider.transportShardUpsertActionDelegate(),
+                    transportActionProvider.transportCreateIndexAction(),
                     node));
         }
 

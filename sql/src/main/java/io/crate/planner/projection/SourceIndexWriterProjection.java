@@ -23,6 +23,7 @@ package io.crate.planner.projection;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
@@ -42,6 +43,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private @Nullable String[] includes;
     private @Nullable String[] excludes;
 
+    protected Reference rawSourceReference;
     protected Symbol rawSourceSymbol;
 
     public static final ProjectionFactory<SourceIndexWriterProjection> FACTORY =
@@ -55,6 +57,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     protected SourceIndexWriterProjection() {}
 
     public SourceIndexWriterProjection(String tableName,
+                                       Reference rawSourceReference,
                                        List<ColumnIdent> primaryKeys,
                                        List<ColumnIdent> partitionedBy,
                                        @Nullable ColumnIdent clusteredByColumn,
@@ -65,6 +68,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        boolean autoCreateIndices) {
         super(tableName, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
 
+        this.rawSourceReference = rawSourceReference;
         this.includes = includes;
         this.excludes = excludes;
         int[] pkIndices = new int[primaryKeys.size()];
@@ -98,6 +102,10 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     }
     public Symbol rawSource() {
         return rawSourceSymbol;
+    }
+
+    public Reference rawSourceReference() {
+        return rawSourceReference;
     }
 
     @Nullable
@@ -142,6 +150,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = Symbol.fromStream(in);
 
 
@@ -165,6 +174,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
+        Reference.toStream(rawSourceReference, out);
         Symbol.toStream(rawSourceSymbol, out);
 
         if (includes == null) {
