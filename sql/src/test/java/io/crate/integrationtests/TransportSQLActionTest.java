@@ -1737,6 +1737,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertAndSelectGeoType() throws Exception {
         execute("create table geo_point_table (id int primary key, p geo_point) with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into geo_point_table (id, p) values (?, ?)", new Object[]{1, new Double[]{47.22, 12.09}});
         execute("insert into geo_point_table (id, p) values (?, ?)", new Object[]{2, new Double[]{57.22, 7.12}});
         refresh();
