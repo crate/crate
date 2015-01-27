@@ -24,10 +24,8 @@ package io.crate.analyze;
 import com.google.common.collect.Sets;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.ResetStatement;
-import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.*;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -35,32 +33,41 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import java.util.Locale;
 import java.util.Set;
 
-public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAnalyzedStatement> {
+@Singleton
+public class SetStatementAnalyzer extends DefaultTraversalVisitor<SetAnalyzedStatement, Analysis> {
 
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
+    public SetAnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return super.process(node, analysis);
+    }
+
     @Override
-    public Void visitSetStatement(SetStatement node, SetAnalyzedStatement context) {
-        context.persistent(node.settingType().equals(SetStatement.SettingType.PERSISTENT));
+    public SetAnalyzedStatement visitSetStatement(SetStatement node, Analysis analysis) {
+        SetAnalyzedStatement statement = new SetAnalyzedStatement();
+        statement.persistent(node.settingType().equals(SetStatement.SettingType.PERSISTENT));
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Assignment assignment : node.assignments()) {
-            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(), context.parameters());
+            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
+                    analysis.parameterContext().parameters());
             SettingsApplier settingsApplier = CrateSettings.getSetting(settingsName);
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
             }
-            settingsApplier.apply(builder, context.parameters(), assignment.expression());
+            settingsApplier.apply(builder, analysis.parameterContext().parameters(), assignment.expression());
         }
-        context.settings(builder.build());
-        return null;
+        statement.settings(builder.build());
+        return statement;
     }
 
     @Override
-    public Void visitResetStatement(ResetStatement node, SetAnalyzedStatement context) {
-        context.isReset(true);
+    public SetAnalyzedStatement visitResetStatement(ResetStatement node, Analysis analysis) {
+        SetAnalyzedStatement statement = new SetAnalyzedStatement();
+        statement.isReset(true);
         Set<String> settingsToRemove = Sets.newHashSet();
         for (Expression expression : node.columns()) {
-            String settingsName = ExpressionToStringVisitor.convert(expression, context.parameters());
+            String settingsName = ExpressionToStringVisitor.convert(expression, analysis.parameterContext().parameters());
             if (!settingsToRemove.contains(settingsName)) {
                 Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
                 if (settingNames.size() == 0) {
@@ -70,12 +77,7 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
                 logger.info("resetting []", settingNames);
             }
         }
-        context.settingsToRemove(settingsToRemove);
-        return null;
-    }
-
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new SetAnalyzedStatement(parameterContext);
+        statement.settingsToRemove(settingsToRemove);
+        return statement;
     }
 }

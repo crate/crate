@@ -24,12 +24,12 @@ package io.crate.analyze;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.AlterTable;
-import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.Table;
+import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
-public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalyzedStatement> {
+@Singleton
+public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedStatement, Analysis> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final ReferenceInfos referenceInfos;
@@ -40,7 +40,7 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
     }
 
     @Override
-    public Void visitColumnDefinition(ColumnDefinition node, AlterTableAnalyzedStatement context) {
+    public AlterTableAnalyzedStatement visitColumnDefinition(ColumnDefinition node, Analysis analysis) {
         if (node.ident().startsWith("_")) {
             throw new IllegalArgumentException("Column ident must not start with '_'");
         }
@@ -49,33 +49,36 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
     }
 
     @Override
-    public Void visitAlterTable(AlterTable node, AlterTableAnalyzedStatement context) {
-        setTableAndPartitionName(node.table(), context);
+    public AlterTableAnalyzedStatement visitAlterTable(AlterTable node, Analysis analysis) {
 
-        TableParameterInfo tableParameterInfo = context.table().tableParameterInfo();
-        if (context.partitionName().isPresent()) {
+        AlterTableAnalyzedStatement statement = new AlterTableAnalyzedStatement(referenceInfos);
+        setTableAndPartitionName(node.table(), statement, analysis);
+
+        TableParameterInfo tableParameterInfo = statement.table().tableParameterInfo();
+        if (statement.partitionName().isPresent()) {
             assert tableParameterInfo instanceof AlterPartitionedTableParameterInfo;
             tableParameterInfo = ((AlterPartitionedTableParameterInfo) tableParameterInfo).partitionTableSettingsInfo();
         }
 
         if (node.genericProperties().isPresent()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
-                    context.tableParameter(), tableParameterInfo, node.genericProperties(), context.parameters());
+                    statement.tableParameter(), tableParameterInfo, node.genericProperties(),
+                    analysis.parameterContext().parameters());
         } else if (!node.resetProperties().isEmpty()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
-                    context.tableParameter(), tableParameterInfo, node.resetProperties());
+                    statement.tableParameter(), tableParameterInfo, node.resetProperties());
         }
 
-        return null;
+        return statement;
     }
 
-    private void setTableAndPartitionName(Table node, AlterTableAnalyzedStatement context) {
+    private void setTableAndPartitionName(Table node, AlterTableAnalyzedStatement context, Analysis analysis) {
         context.table(TableIdent.of(node));
         if (!node.partitionProperties().isEmpty()) {
             PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                     context.table(),
                     node.partitionProperties(),
-                    context.parameters());
+                    analysis.parameterContext().parameters());
             if (!context.table().partitions().contains(partitionName)) {
                 throw new IllegalArgumentException("Referenced partition does not exist.");
             }
@@ -83,8 +86,8 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
         }
     }
 
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new AlterTableAnalyzedStatement(parameterContext, referenceInfos);
+    public AnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return process(node, analysis);
     }
 }

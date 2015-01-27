@@ -26,6 +26,7 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.ArrayList;
@@ -33,7 +34,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateAnalyzerAnalyzedStatement> {
+@Singleton
+public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
+        CreateAnalyzerAnalyzedStatement, CreateAnalyzerStatementAnalyzer.Context> {
 
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -42,23 +45,39 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
+    public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return super.process(node, new Context(analysis));
+    }
+
+    class Context{
+
+        Analysis analysis;
+        CreateAnalyzerAnalyzedStatement statement;
+
+        public Context(Analysis analysis) {
+            this.analysis = analysis;
+        }
+    }
+
     @Override
-    public Void visitCreateAnalyzer(CreateAnalyzer node, CreateAnalyzerAnalyzedStatement context) {
-        context.ident(node.ident());
+    public CreateAnalyzerAnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Context context) {
+        context.statement = new CreateAnalyzerAnalyzedStatement(fulltextAnalyzerResolver);
+        context.statement.ident(node.ident());
 
         if (node.isExtending()) {
-            context.extendedAnalyzer(node.extendedAnalyzer().get());
+            context.statement.extendedAnalyzer(node.extendedAnalyzer().get());
         }
 
         for (AnalyzerElement element : node.elements()) {
             process(element, context);
         }
 
-        return null;
+        return context.statement;
     }
 
     @Override
-    public Void visitTokenizer(Tokenizer tokenizer, CreateAnalyzerAnalyzedStatement context) {
+    public CreateAnalyzerAnalyzedStatement visitTokenizer(Tokenizer tokenizer, Context context) {
         String name = tokenizer.ident();
         Optional<io.crate.sql.tree.GenericProperties> properties = tokenizer.properties();
 
@@ -67,17 +86,17 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
             // use a builtin tokenizer without parameters
 
             // validate
-            if (!context.analyzerService().hasBuiltInTokenizer(name)) {
+            if (!context.statement.analyzerService().hasBuiltInTokenizer(name)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Non-existing tokenizer '%s'", name));
             }
             // build
-            context.tokenDefinition(name, ImmutableSettings.EMPTY);
+            context.statement.tokenDefinition(name, ImmutableSettings.EMPTY);
         } else {
             // validate
-            if (!context.analyzerService().hasBuiltInTokenizer(name)) {
+            if (!context.statement.analyzerService().hasBuiltInTokenizer(name)) {
                 // type mandatory
-                String evaluatedType = extractType(properties.get(), context);
-                if (!context.analyzerService().hasBuiltInTokenizer(evaluatedType)) {
+                String evaluatedType = extractType(properties.get(), context.analysis.parameterContext());
+                if (!context.statement.analyzerService().hasBuiltInTokenizer(evaluatedType)) {
                     // only builtin tokenizers can be extended, for now
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                             "Non-existing built-in tokenizer type '%s'", evaluatedType));
@@ -87,16 +106,16 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
             }
             // build
             // transform name as tokenizer is not publicly available
-            name = String.format("%s_%s", context.ident(), name);
+            name = String.format("%s_%s", context.statement.ident(), name);
 
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (Map.Entry<String, Expression> tokenizerProperty : properties.get().properties().entrySet()) {
                 genericPropertyToSetting(builder,
-                        context.getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
+                        context.statement.getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
                         tokenizerProperty.getValue(),
-                        context);
+                        context.analysis.parameterContext());
             }
-            context.tokenDefinition(name, builder.build());
+            context.statement.tokenDefinition(name, builder.build());
         }
 
 
@@ -104,17 +123,17 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     }
 
     @Override
-    public Void visitGenericProperty(GenericProperty property, CreateAnalyzerAnalyzedStatement context) {
-        genericPropertyToSetting(context.genericAnalyzerSettingsBuilder(),
-                context.getSettingsKey("index.analysis.analyzer.%s.%s", context.ident(), property.key()),
+    public CreateAnalyzerAnalyzedStatement visitGenericProperty(GenericProperty property, Context context) {
+        genericPropertyToSetting(context.statement.genericAnalyzerSettingsBuilder(),
+                context.statement.getSettingsKey("index.analysis.analyzer.%s.%s", context.statement.ident(), property.key()),
                 property.value(),
-                context
+                context.analysis.parameterContext()
         );
         return null;
     }
 
     @Override
-    public Void visitTokenFilters(TokenFilters tokenFilters, CreateAnalyzerAnalyzedStatement context) {
+    public CreateAnalyzerAnalyzedStatement visitTokenFilters(TokenFilters tokenFilters, Context context) {
         for (NamedProperties tokenFilterNode : tokenFilters.tokenFilters()) {
 
             String name = tokenFilterNode.ident();
@@ -123,17 +142,17 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
             // use a builtin tokenfilter without parameters
             if (!properties.isPresent()) {
                 // validate
-                if (!context.analyzerService().hasBuiltInTokenFilter(name)) {
+                if (!context.statement.analyzerService().hasBuiltInTokenFilter(name)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Non-existing built-in token-filter '%s'", name));
                 }
                 // build
-                context.addTokenFilter(name, ImmutableSettings.EMPTY);
+                context.statement.addTokenFilter(name, ImmutableSettings.EMPTY);
             } else {
                 // validate
-                if (!context.analyzerService().hasBuiltInTokenFilter(name)) {
+                if (!context.statement.analyzerService().hasBuiltInTokenFilter(name)) {
                     // type mandatory when name is not a builtin filter
-                    String evaluatedType = extractType(properties.get(), context);
-                    if (!context.analyzerService().hasBuiltInTokenFilter(evaluatedType)) {
+                    String evaluatedType = extractType(properties.get(), context.analysis.parameterContext());
+                    if (!context.statement.analyzerService().hasBuiltInTokenFilter(evaluatedType)) {
                         // only builtin token-filters can be extended, for now
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                 "Non-existing built-in token-filter type '%s'", evaluatedType));
@@ -147,22 +166,22 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
 
                 // build
                 // transform name as token-filter is not publicly available
-                name = String.format("%s_%s", context.ident(), name);
+                name = String.format("%s_%s", context.statement.ident(), name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, Expression> tokenFilterProperty : properties.get().properties().entrySet()) {
                     genericPropertyToSetting(builder,
-                            context.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
+                            context.statement.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
                             tokenFilterProperty.getValue(),
-                            context);
+                            context.analysis.parameterContext());
                 }
-                context.addTokenFilter(name, builder.build());
+                context.statement.addTokenFilter(name, builder.build());
             }
         }
         return null;
     }
 
     @Override
-    public Void visitCharFilters(CharFilters charFilters, CreateAnalyzerAnalyzedStatement context) {
+    public CreateAnalyzerAnalyzedStatement visitCharFilters(CharFilters charFilters, Context context) {
         for (NamedProperties charFilterNode : charFilters.charFilters()) {
 
             String name = charFilterNode.ident();
@@ -171,15 +190,15 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
             // use a builtin tokenfilter without parameters
             if (!properties.isPresent()) {
                 // validate
-                if (!context.analyzerService().hasBuiltInCharFilter(name)) {
+                if (!context.statement.analyzerService().hasBuiltInCharFilter(name)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                             "Non-existing built-in char-filter '%s'", name));
                 }
                 // build
-                context.addCharFilter(name, ImmutableSettings.EMPTY);
+                context.statement.addCharFilter(name, ImmutableSettings.EMPTY);
             } else {
-                String type = extractType(properties.get(), context);
-                if (!context.analyzerService().hasBuiltInCharFilter(type)) {
+                String type = extractType(properties.get(), context.analysis.parameterContext());
+                if (!context.statement.analyzerService().hasBuiltInCharFilter(type)) {
                     // only builtin char-filters can be extended, for now
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                             "Non-existing built-in char-filter" +
@@ -188,15 +207,15 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
 
                 // build
                 // transform name as char-filter is not publicly available
-                name = String.format("%s_%s", context.ident(), name);
+                name = String.format("%s_%s", context.statement.ident(), name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, Expression> charFilterProperty: properties.get().properties().entrySet()) {
                     genericPropertyToSetting(builder,
-                            context.getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
+                            context.statement.getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
                             charFilterProperty.getValue(),
-                            context);
+                            context.analysis.parameterContext());
                 }
-                context.addCharFilter(name, builder.build());
+                context.statement.addCharFilter(name, builder.build());
             }
         }
         return null;
@@ -207,10 +226,10 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
      * Validate and process `type` property
      *
      * @param properties
-     * @param context
+     * @param parameterContext
      * @return
      */
-    private String extractType(GenericProperties properties, CreateAnalyzerAnalyzedStatement context) {
+    private String extractType(GenericProperties properties, ParameterContext parameterContext) {
         Expression expression = properties.get("type");
         if (expression == null) {
             throw new IllegalArgumentException("'type' property missing");
@@ -219,7 +238,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
             throw new IllegalArgumentException("'type' property is invalid");
         }
 
-        return ExpressionToStringVisitor.convert(expression, context.parameters());
+        return ExpressionToStringVisitor.convert(expression, parameterContext.parameters());
     }
 
     /**
@@ -232,21 +251,16 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     private void genericPropertyToSetting(ImmutableSettings.Builder builder,
                                           String name,
                                           Expression value,
-                                          CreateAnalyzerAnalyzedStatement context) {
+                                          ParameterContext parameterContext) {
         if (value instanceof ArrayLiteral) {
             ArrayLiteral array = (ArrayLiteral)value;
             List<String> values = new ArrayList<>(array.values().size());
             for (Expression expression : array.values()) {
-                values.add(ExpressionToStringVisitor.convert(expression, context.parameters()));
+                values.add(ExpressionToStringVisitor.convert(expression, parameterContext.parameters()));
             }
             builder.putArray(name, values.toArray(new String[values.size()]));
         } else  {
-            builder.put(name, ExpressionToStringVisitor.convert(value, context.parameters()));
+            builder.put(name, ExpressionToStringVisitor.convert(value, parameterContext.parameters()));
         }
-    }
-
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new CreateAnalyzerAnalyzedStatement(fulltextAnalyzerResolver, parameterContext);
     }
 }

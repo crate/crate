@@ -21,25 +21,8 @@
 
 package io.crate.analyze;
 
-public abstract class AnalyzedStatement {
+public interface AnalyzedStatement {
 
-    private final ParameterContext parameterContext;
-
-    protected AnalyzedStatement(ParameterContext parameterContext) {
-        this.parameterContext = parameterContext;
-    }
-    public abstract void normalize();
-
-    public ParameterContext parameterContext() {
-        return parameterContext;
-    }
-
-    public Object[] parameters() {
-        return parameterContext.parameters();
-    }
-
-    public <C, R> R accept(AnalyzedStatementVisitor<C,R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAnalyzedStatement(this, context);
-    }
+    public <C, R> R accept(AnalyzedStatementVisitor<C,R> analyzedStatementVisitor, C context);
 
 }

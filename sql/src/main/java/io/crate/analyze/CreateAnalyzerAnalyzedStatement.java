@@ -46,14 +46,8 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private Map<String,Settings> charFilters = new HashMap<>();
     private Map<String, Settings> tokenFilters = new HashMap<>();
 
-    public CreateAnalyzerAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                           ParameterContext parameterContext) {
-        super(parameterContext);
+    public CreateAnalyzerAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver){
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-    }
-
-    @Override
-    public void normalize() {
     }
 
     @Override

@@ -33,8 +33,7 @@ public class DropBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
 
-    protected DropBlobTableAnalyzedStatement(ParameterContext parameterContext, ReferenceInfos referenceInfos) {
-        super(parameterContext);
+    protected DropBlobTableAnalyzedStatement(ReferenceInfos referenceInfos) {
         this.referenceInfos = referenceInfos;
     }
 
@@ -55,11 +54,6 @@ public class DropBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement
 
     public TableInfo table() {
         return tableInfo;
-    }
-
-    @Override
-    public void normalize() {
-
     }
 
     public TableIdent tableIdent() {

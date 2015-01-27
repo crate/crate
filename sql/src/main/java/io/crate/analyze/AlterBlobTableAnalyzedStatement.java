@@ -33,8 +33,7 @@ public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
 
-    public AlterBlobTableAnalyzedStatement(ParameterContext parameterContext, ReferenceInfos referenceInfos) {
-        super(parameterContext);
+    public AlterBlobTableAnalyzedStatement(ReferenceInfos referenceInfos) {
         this.referenceInfos = referenceInfos;
     }
 
@@ -54,11 +53,6 @@ public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
     public TableInfo table() {
         return tableInfo;
-    }
-
-    @Override
-    public void normalize() {
-
     }
 
     @Override

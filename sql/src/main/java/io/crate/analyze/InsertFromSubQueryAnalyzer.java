@@ -31,28 +31,28 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolFormatter;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.types.DataType;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<Void> {
+@Singleton
+public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
-    private AnalysisMetaData analysisMetaData;
-    private ParameterContext parameterContext;
-
-    public InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, ParameterContext parameterContext) {
-        this.analysisMetaData = analysisMetaData;
-        this.parameterContext = parameterContext;
+    @Inject
+    protected InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData) {
+        super(analysisMetaData);
     }
 
     @Override
-    public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Void context) {
+    public AbstractInsertAnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis context) {
 
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
 
-        SelectStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer(analysisMetaData, parameterContext);
-        AnalyzedStatement statement = selectStatementAnalyzer.process(node.subQuery(), null);
+        SelectStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer(analysisMetaData);
+        AnalyzedStatement statement = selectStatementAnalyzer.process(node.subQuery(), context);
         assert statement instanceof SelectAnalyzedStatement : "sub-query must be a SelectAnalyzedStatement";
         SelectAnalyzedStatement selectAnalyzedStatement = (SelectAnalyzedStatement) statement;
 

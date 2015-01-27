@@ -46,10 +46,6 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
     }
 
     @Override
-    public void normalize() {
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitInsertFromSubQueryStatement(this, context);
     }

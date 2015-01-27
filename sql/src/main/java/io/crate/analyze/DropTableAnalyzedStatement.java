@@ -34,7 +34,6 @@ public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private final ReferenceInfos referenceInfos;
 
     public DropTableAnalyzedStatement(ReferenceInfos referenceInfos) {
-        super(null);
         this.referenceInfos = referenceInfos;
     }
 
@@ -65,9 +64,6 @@ public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     public TableInfo table() {
         return tableInfo;
     }
-
-    @Override
-    public void normalize() { }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {

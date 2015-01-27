@@ -29,7 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class CopyAnalyzedStatement extends AnalyzedStatement {
+public class CopyAnalyzedStatement implements AnalyzedStatement {
 
     private Settings settings = ImmutableSettings.EMPTY;
     private TableInfo table;
@@ -39,10 +39,6 @@ public class CopyAnalyzedStatement extends AnalyzedStatement {
     private boolean directoryUri;
     private String partitionIdent = null;
     private List<Symbol> selectedColumns;
-
-    protected CopyAnalyzedStatement(ParameterContext parameterContext) {
-        super(parameterContext);
-    }
 
     public void selectedColumns(List<Symbol> columns) {
         this.selectedColumns = columns;
@@ -67,10 +63,6 @@ public class CopyAnalyzedStatement extends AnalyzedStatement {
 
     public TableInfo table() {
         return table;
-    }
-
-    @Override
-    public void normalize() {
     }
 
     @Nullable

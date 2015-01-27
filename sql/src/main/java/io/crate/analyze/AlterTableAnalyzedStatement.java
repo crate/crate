@@ -38,8 +38,7 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private TableInfo tableInfo;
     private Optional<PartitionName> partitionName = Optional.absent();
 
-    public AlterTableAnalyzedStatement(ParameterContext parameterContext, ReferenceInfos referenceInfos) {
-        super(parameterContext);
+    public AlterTableAnalyzedStatement(ReferenceInfos referenceInfos) {
         this.referenceInfos = referenceInfos;
     }
 
@@ -71,11 +70,6 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     public Optional<PartitionName> partitionName() {
         return partitionName;
-    }
-
-    @Override
-    public void normalize() {
-
     }
 
     @Override

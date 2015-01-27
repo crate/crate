@@ -76,7 +76,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                     "relation \"%s\" is read-only and cannot be deleted", analyzedRelation));
         }
 
-        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(parameterContext, analyzedRelation);
+        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(analyzedRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
                 new ExpressionAnalyzer(analysisMetaData, parameterContext,
                         new FullQualifedNameFieldResolver(relationAnalysisContext.sources())),

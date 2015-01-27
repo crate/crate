@@ -39,9 +39,7 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
     private TableInfo tableInfo;
     private PartitionName partitionName;
 
-    protected RefreshTableAnalyzedStatement(ReferenceInfos referenceInfos,
-                                            ParameterContext parameterContext) {
-        super(parameterContext);
+    protected RefreshTableAnalyzedStatement(ReferenceInfos referenceInfos){
         this.referenceInfos = referenceInfos;
     }
 
@@ -64,11 +62,6 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
 
     public @Nullable PartitionName partitionName() {
         return partitionName;
-    }
-
-    @Override
-    public void normalize() {
-
     }
 
     @Override

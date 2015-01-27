@@ -24,7 +24,9 @@ package io.crate.analyze;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.sql.tree.AlterBlobTable;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
+@Singleton
 public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnalyzedStatement> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
@@ -36,24 +38,22 @@ public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnal
     }
 
     @Override
-    public Void visitAlterBlobTable(AlterBlobTable node, AlterBlobTableAnalyzedStatement context) {
-        context.table(tableToIdent(node.table()));
+    public AlterBlobTableAnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis analysis) {
+        AlterBlobTableAnalyzedStatement statement = new AlterBlobTableAnalyzedStatement(referenceInfos);
+
+        statement.table(tableToIdent(node.table()));
 
         if (node.genericProperties().isPresent()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
-                    context.tableParameter(), context.table().tableParameterInfo(),
-                    node.genericProperties(), context.parameters());
+                    statement.tableParameter(), statement.table().tableParameterInfo(),
+                    node.genericProperties(), analysis.parameterContext().parameters());
         } else if (!node.resetProperties().isEmpty()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
-                    context.tableParameter(), context.table().tableParameterInfo(),
+                    statement.tableParameter(), statement.table().tableParameterInfo(),
                     node.resetProperties());
         }
 
-        return null;
+        return statement;
     }
 
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new AlterBlobTableAnalyzedStatement(parameterContext, referenceInfos);
-    }
 }

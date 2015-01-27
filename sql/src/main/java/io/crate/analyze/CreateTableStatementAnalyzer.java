@@ -30,16 +30,32 @@ import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Locale;
 
-
-public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalyzedStatement> {
+@Singleton
+public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<CreateTableAnalyzedStatement,
+        CreateTableStatementAnalyzer.Context> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+
+    class Context {
+        Analysis analysis;
+        CreateTableAnalyzedStatement statement;
+
+        public Context(Analysis analysis) {
+            this.analysis = analysis;
+        }
+    }
+
+    public CreateTableAnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return super.process(node, new Context(analysis));
+    }
 
     @Inject
     public CreateTableStatementAnalyzer(ReferenceInfos referenceInfos,
@@ -49,85 +65,84 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     }
 
     @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new CreateTableAnalyzedStatement(referenceInfos, fulltextAnalyzerResolver, parameterContext);
-    }
-
-    protected Void visitNode(Node node, CreateTableAnalyzedStatement context) {
+    protected CreateTableAnalyzedStatement visitNode(Node node, Context context) {
         throw new RuntimeException(
                 String.format("Encountered node %s but expected a CreateTable node", node));
     }
 
     @Override
-    public Void visitCreateTable(CreateTable node, CreateTableAnalyzedStatement context) {
+    public CreateTableAnalyzedStatement visitCreateTable(CreateTable node, Context context) {
+        assert context.statement == null;
+        context.statement = new CreateTableAnalyzedStatement(referenceInfos, fulltextAnalyzerResolver);
         TableIdent tableIdent = TableIdent.of(node.name());
-        context.table(tableIdent);
+        context.statement.table(tableIdent);
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         TABLE_PROPERTIES_ANALYZER.analyze(
-                context.tableParameter(), new TableParameterInfo(),
-                node.properties(), context.parameters(), true);
+                context.statement.tableParameter(), new TableParameterInfo(),
+                node.properties(), context.analysis.parameterContext().parameters(), true);
 
-        context.analyzedTableElements(TableElementsAnalyzer.analyze(
+        context.statement.analyzedTableElements(TableElementsAnalyzer.analyze(
                 node.tableElements(),
-                context.parameters(),
-                context.fulltextAnalyzerResolver()));
+                context.analysis.parameterContext().parameters(),
+                context.statement.fulltextAnalyzerResolver()));
 
-        context.analyzedTableElements().finalizeAndValidate();
+        context.statement.analyzedTableElements().finalizeAndValidate();
         // update table settings
-        context.tableParameter().settingsBuilder().put(context.analyzedTableElements().settings());
+        context.statement.tableParameter().settingsBuilder().put(context.statement.analyzedTableElements().settings());
 
         for (CrateTableOption option : node.crateTableOptions()) {
             process(option, context);
         }
 
-        return null;
+        return context.statement;
     }
 
     @Override
-    public Void visitClusteredBy(ClusteredBy node, CreateTableAnalyzedStatement context) {
+    public CreateTableAnalyzedStatement visitClusteredBy(ClusteredBy node, Context context) {
         if (node.column().isPresent()) {
             ColumnIdent routingColumn = ColumnIdent.fromPath(
-                    ExpressionToStringVisitor.convert(node.column().get(), context.parameters()));
+                    ExpressionToStringVisitor.convert(node.column().get(), context.analysis.parameterContext().parameters()));
 
-            for(AnalyzedColumnDefinition column: context.analyzedTableElements().partitionedByColumns){
+            for(AnalyzedColumnDefinition column: context.statement.analyzedTableElements().partitionedByColumns){
                 if(column.ident().equals(routingColumn)){
                     throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
                 }
             }
-            if (!context.hasColumnDefinition(routingColumn)) {
+            if (!context.statement.hasColumnDefinition(routingColumn)) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Invalid or non-existent routing column \"%s\"",
                                 routingColumn));
             }
-            if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(routingColumn.fqn())) {
+            if (context.statement.primaryKeys().size() > 0 && !context.statement.primaryKeys().contains(routingColumn.fqn())) {
                 throw new IllegalArgumentException("Clustered by column must be part of primary keys");
             }
 
-            context.routing(routingColumn);
+            context.statement.routing(routingColumn);
         }
 
         int numShards;
         if (node.numberOfShards().isPresent()) {
-            numShards = ExpressionToNumberVisitor.convert(node.numberOfShards().get(), context.parameters()).intValue();
+            numShards = ExpressionToNumberVisitor.convert(node.numberOfShards().get(),
+                    context.analysis.parameterContext().parameters()).intValue();
             if (numShards < 1) {
                 throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
             }
         } else {
             numShards = Constants.DEFAULT_NUM_SHARDS;
         }
-        context.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
-        return null;
+        context.statement.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+        return context.statement;
     }
 
     @Override
-    public Void visitPartitionedBy(PartitionedBy node, CreateTableAnalyzedStatement context) {
+    public CreateTableAnalyzedStatement visitPartitionedBy(PartitionedBy node, Context context) {
         for (Expression partitionByColumn : node.columns()) {
             ColumnIdent partitionedByIdent = ColumnIdent.fromPath(
-                    ExpressionToStringVisitor.convert(partitionByColumn, context.parameters()));
-            context.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false);
-            ColumnIdent routing = context.routing();
+                    ExpressionToStringVisitor.convert(partitionByColumn, context.analysis.parameterContext().parameters()));
+            context.statement.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false);
+            ColumnIdent routing = context.statement.routing();
             if (routing != null && routing.equals(partitionedByIdent)) {
                 throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
             }
