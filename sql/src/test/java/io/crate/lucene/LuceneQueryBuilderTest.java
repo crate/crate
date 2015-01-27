@@ -26,16 +26,18 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
-import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.InOperator;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.symbol.*;
+import io.crate.operation.operator.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
@@ -47,6 +49,7 @@ import java.util.Arrays;
 import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -64,12 +67,37 @@ public class LuceneQueryBuilderTest {
     }
 
     @Test
+    public void testNoMatchWhereClause() throws Exception {
+        Query query = convert(WhereClause.NO_MATCH);
+        assertThat(query, instanceOf(MatchNoDocsQuery.class));
+    }
+
+    @Test
     public void testWhereRefEqRef() throws Exception {
         Reference foo = createReference("foo", DataTypes.STRING);
         Query query = convert(eq(foo, foo));
         assertThat(query, instanceOf(FilteredQuery.class));
     }
 
+    @Test
+    public void testLteQuery() throws Exception {
+        Query query = convert(new WhereClause(createFunction(LteOperator.NAME,
+                DataTypes.BOOLEAN,
+                createReference("x", DataTypes.INTEGER),
+                Literal.newLiteral(10))));
+        assertThat(query, instanceOf(NumericRangeQuery.class));
+        assertThat(query.toString(), is("x:{* TO 10]"));
+    }
+
+    @Test
+    public void testGteQuery() throws Exception {
+        Query query = convert(new WhereClause(createFunction(GteOperator.NAME,
+                DataTypes.BOOLEAN,
+                createReference("x", DataTypes.INTEGER),
+                Literal.newLiteral(10))));
+        assertThat(query, instanceOf(NumericRangeQuery.class));
+        assertThat(query.toString(), is("x:[10 TO *}"));
+    }
 
     @Test
     public void testWhereRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
