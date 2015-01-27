@@ -22,6 +22,7 @@
 package io.crate.executor;
 
 import com.google.common.collect.Iterators;
+import io.crate.executor.pageable.BigArrayPage;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.util.BigArrays;

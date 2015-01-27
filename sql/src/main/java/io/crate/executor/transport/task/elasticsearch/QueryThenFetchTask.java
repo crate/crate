@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
@@ -34,11 +35,21 @@ import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.core.bigarray.MultiObjectArrayBigArray;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.FailedShardsException;
-import io.crate.executor.*;
-import io.crate.metadata.*;
+import io.crate.executor.JobTask;
+import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
+import io.crate.executor.pageable.*;
+import io.crate.executor.pageable.policy.Caches;
+import io.crate.executor.pageable.policy.PageCache;
+import io.crate.executor.pageable.policy.PageCachePolicy;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.dql.QueryThenFetchNode;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
@@ -170,21 +181,21 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
     @Override
     public void start() {
-        doStart(Optional.<PageInfo>absent());
+        doStart(Optional.<PagingContext>absent());
     }
 
     @Override
-    public void start(PageInfo pageInfo) {
-        doStart(Optional.of(pageInfo));
+    public void start(PageInfo pageInfo, PageCachePolicy policy) {
+        doStart(Optional.of(new PagingContext(pageInfo, policy)));
     }
 
-    private void doStart(Optional<PageInfo> pageInfo) {
+    private void doStart(Optional<PagingContext> pagingCtx) {
         // create initial requests
-        requests = prepareRequests(references, pageInfo);
+        requests = prepareRequests(references, pagingCtx);
 
         if (!routing.hasLocations() || requests.size() == 0) {
             result.set(
-                    pageInfo.isPresent()
+                    pagingCtx.isPresent()
                             ? PageableTaskResult.EMPTY_PAGABLE_RESULT
                             : TaskResult.EMPTY_RESULT
             );
@@ -200,12 +211,12 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
             transportQueryShardAction.executeQuery(
                     requestTuple.v1(),
                     requestTuple.v2(),
-                    new QueryShardResponseListener(requestIdx, firstResults, totalOps, pageInfo)
+                    new QueryShardResponseListener(requestIdx, firstResults, totalOps, pagingCtx)
             );
         }
     }
 
-    private List<Tuple<String, QueryShardRequest>> prepareRequests(List<Reference> outputs, Optional<PageInfo> pageInfo) {
+    private List<Tuple<String, QueryShardRequest>> prepareRequests(List<Reference> outputs, Optional<PagingContext> pagingCtx) {
         List<Tuple<String, QueryShardRequest>> requests = new ArrayList<>();
         Map<String, Map<String, Set<Integer>>> locations = searchNode.routing().locations();
         if (locations == null) {
@@ -215,9 +226,9 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         int queryLimit;
         int queryOffset;
 
-        if (pageInfo.isPresent()) {
+        if (pagingCtx.isPresent()) {
             // fetch all, including all offset stuff
-            queryLimit = this.offset + pageInfo.get().position() + pageInfo.get().size();
+            queryLimit = this.offset + pagingCtx.get().pageInfo().position() + pagingCtx.get().pageInfo().size();
             queryOffset = 0;
         } else {
             queryLimit = this.limit;
@@ -226,7 +237,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
         // only set keepAlive on pages Requests
         Optional<TimeValue> keepAliveValue = Optional.absent();
-        if (pageInfo.isPresent()) {
+        if (pagingCtx.isPresent()) {
             keepAliveValue = keepAlive.or(Optional.of(DEFAULT_KEEP_ALIVE));
         }
 
@@ -259,18 +270,18 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         return requests;
     }
 
-    private void moveToSecondPhase(Optional<PageInfo> pageInfo) throws IOException {
+    private void moveToSecondPhase(Optional<PagingContext> pagingContext) throws IOException {
         ScoreDoc[] lastEmittedDocs = null;
-        if (pageInfo.isPresent()) {
-            // first sort to determine the lastEmittedDocs
+        if (pagingContext.isPresent()) {
+            // firstPageInfo sort to determine the lastEmittedDocs
             // no offset and limit should be limit + offset
-            int sortLimit = this.offset + pageInfo.get().size() + pageInfo.get().position();
+            int sortLimit = this.offset + pagingContext.get().pageInfo().size() + pagingContext.get().pageInfo().position();
             sortedShardList = crateResultSorter.sortDocs(firstResults, 0, sortLimit);
             lastEmittedDocs = searchPhaseController.getLastEmittedDocPerShard(
                     sortedShardList,
                     numShards);
 
-            int fillOffset = pageInfo.get().position() + this.offset;
+            int fillOffset = pagingContext.get().pageInfo().position() + this.offset;
 
             // create a fetchrequest for all documents even those hit by the offset
             // to set the lastemitteddoc on the shard
@@ -282,7 +293,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
         //searchPhaseController.fillDocIdsToLoad(docIdsToLoad, sortedShardList);
         if (docIdsToLoad.asList().isEmpty()) {
-            finish(pageInfo);
+            finish(pagingContext);
             return;
         }
 
@@ -292,7 +303,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
             QuerySearchResult queryResult = firstResults.get(entry.index);
             DiscoveryNode node = nodes.get(queryResult.shardTarget().nodeId());
             ShardFetchSearchRequest fetchRequest = createFetchRequest(queryResult, entry, lastEmittedDocs);
-            executeFetch(entry.index, queryResult.shardTarget(), counter, fetchRequest, node, pageInfo);
+            executeFetch(entry.index, queryResult.shardTarget(), counter, fetchRequest, node, pagingContext);
         }
     }
 
@@ -301,7 +312,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                               final AtomicInteger counter,
                               ShardFetchSearchRequest shardFetchSearchRequest,
                               DiscoveryNode node,
-                              final Optional<PageInfo> pageInfo) {
+                              final Optional<PagingContext> pagingCtx) {
 
         searchServiceTransportAction.sendExecuteFetch(
                 node,
@@ -312,7 +323,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                         result.shardTarget(shardTarget);
                         fetchResults.set(shardIndex, result);
                         if (counter.decrementAndGet() == 0) {
-                            finish(pageInfo);
+                            finish(pagingCtx);
                         }
                     }
 
@@ -321,7 +332,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                         docIdsToLoad.set(shardIndex, null);
                         addShardFailure(shardIndex, shardTarget, t);
                         if (counter.decrementAndGet() == 0) {
-                            finish(pageInfo);
+                            finish(pagingCtx);
                         }
                     }
                 }
@@ -375,7 +386,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         return rows;
     }
 
-    private void finish(final Optional<PageInfo> pageInfo) {
+    private void finish(final Optional<PagingContext> pagingContext) {
         try {
             threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
                 @Override
@@ -390,9 +401,9 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                         InternalSearchResponse response = searchPhaseController.merge(sortedShardList, firstResults, fetchResults);
 
 
-                        if (pageInfo.isPresent()) {
+                        if (pagingContext.isPresent()) {
                             ObjectArray<Object[]> page = toPage(response.hits().hits(), extractors);
-                            result.set(new QTFScrollTaskResult(page, 0, pageInfo.get()));
+                            result.set(new QTFScrollTaskResult(page, 0, pagingContext.get().pageInfo(), pagingContext.get().policy()));
                         } else {
                             final Object[][] rows = toRows(response.hits().hits(), extractors);
                             result.set(new QueryResult(rows));
@@ -400,13 +411,13 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                     } catch (Throwable t) {
                         result.setException(t);
                     } finally {
-                        releaseIrrelevantSearchContexts(firstResults, docIdsToLoad, pageInfo);
+                        releaseIrrelevantSearchContexts(firstResults, docIdsToLoad, pagingContext);
                     }
                 }
             });
         } catch (EsRejectedExecutionException e) {
             try {
-                releaseIrrelevantSearchContexts(firstResults, docIdsToLoad, pageInfo);
+                releaseIrrelevantSearchContexts(firstResults, docIdsToLoad, pagingContext);
             } finally {
                 result.setException(e);
             }
@@ -415,22 +426,41 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
     class QTFScrollTaskResult implements PageableTaskResult {
 
-        private final ObjectArray<Object[]> pageSource;
-        private final Page page;
-        private final long startIndexAtPageSource;
-        private final PageInfo currentPageInfo;
-        private final AtomicArray<QueryFetchSearchResult> queryFetchResults;
 
-        public QTFScrollTaskResult(ObjectArray<Object[]> pageSource, long startIndexAtPageSource, PageInfo pageInfo) {
-            this.pageSource = pageSource;
+        private final Page page;
+        private final PageCachePolicy policy;
+        private final PageCache cache;
+        private PageInfo currentPageInfo;
+        private ObjectArray<Object[]> currentPageSource;
+        private long startIndexAtPageSource;
+
+
+
+        public QTFScrollTaskResult(ObjectArray<Object[]> pageSource, long startIndexAtPageSource,
+                                   PageInfo pageInfo, PageCachePolicy policy) {
+            this.currentPageSource = pageSource;
+            this.policy = policy;
+            this.cache = Caches.getCache(policy, new Function<PageInfo, ListenableFuture<Page>>() {
+                @javax.annotation.Nullable
+                @Override
+                public ListenableFuture<Page> apply(@Nullable PageInfo input) {
+                    return internalFetch(input);
+                }
+            });
             this.startIndexAtPageSource = startIndexAtPageSource;
             this.currentPageInfo = pageInfo;
-            this.queryFetchResults = new AtomicArray<>(numShards);
-            this.page = new BigArrayPage(pageSource, startIndexAtPageSource, currentPageInfo.size());
+            this.page = createPage(pageSource, startIndexAtPageSource, pageInfo);
+        }
+
+        private Page createPage(ObjectArray<Object[]> pageSource, long startIndexAtPageSource, PageInfo pageInfo) {
+            this.startIndexAtPageSource = startIndexAtPageSource;
+            this.currentPageSource = pageSource;
+            return new BigArrayPage(pageSource, startIndexAtPageSource, pageInfo.size());
         }
 
         private void fetchFromSource(long needToFetch, final FutureCallback<ObjectArray<Object[]>> callback) {
             final AtomicInteger numOps = new AtomicInteger(numShards);
+            final AtomicArray<QueryFetchSearchResult> queryFetchResults = new AtomicArray<>(numShards);
 
             final Scroll scroll = new Scroll(keepAlive.or(DEFAULT_KEEP_ALIVE));
 
@@ -484,25 +514,29 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         }
 
         @Override
-        public ListenableFuture<PageableTaskResult> fetch(final PageInfo pageInfo) {
+        public ListenableFuture<Page> fetch(PageInfo pageInfo) {
             Preconditions.checkArgument(
                     pageInfo.position() == (this.currentPageInfo.size() + this.currentPageInfo.position()),
                     "QueryThenFetchTask can only page forward without gaps");
+            return cache.get(pageInfo);
+        }
 
-            final long restSize = (pageSource.size()-startIndexAtPageSource) - currentPageInfo.size();
-            final SettableFuture<PageableTaskResult> future = SettableFuture.create();
+        private ListenableFuture<Page> internalFetch(final PageInfo pageInfo) {
+
+            final PageInfo formerPageInfo = currentPageInfo;
+            currentPageInfo = pageInfo;
+            final long restSize = (currentPageSource.size()-startIndexAtPageSource) - formerPageInfo.size();
+            final SettableFuture<Page> future = SettableFuture.create();
+
             if (restSize >= pageInfo.size()) {
                 // don't need to fetch nuttin'
                 future.set(
-                        new QTFScrollTaskResult(
-                                pageSource,
-                                startIndexAtPageSource + currentPageInfo.size(),
-                                pageInfo)
+                    createPage(currentPageSource, startIndexAtPageSource + formerPageInfo.size(), pageInfo)
                 );
             } else if (restSize < 0) {
                 // if restSize is less than 0, we got less than requested
                 // and in that can safely assume that we're exhausted
-                future.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+                future.set(Page.EMPTY);
                 try {
                     close();
                 } catch (IOException e) {
@@ -513,14 +547,14 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                     @Override
                     public void onSuccess(@Nullable ObjectArray<Object[]> result) {
                         if (result.size() == 0) {
-                            future.set(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+                            future.set(Page.EMPTY);
                             try {
                                 close();
                             } catch (IOException e) {
                                 logger.error("error closing QTFScrollTaskResult", e);
                             }
                         } else {
-                            future.set(new QTFScrollTaskResult(result, 0, pageInfo));
+                            future.set(createPage(result, 0, pageInfo));
                         }
                     }
 
@@ -536,12 +570,12 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                     public void onSuccess(@Nullable ObjectArray<Object[]> result) {
 
                         MultiObjectArrayBigArray<Object[]> merged = new MultiObjectArrayBigArray<>(
-                                pageSource.size() - restSize,
+                                currentPageSource.size() - restSize,
                                 pageInfo.size(),
-                                pageSource,
+                                currentPageSource,
                                 result
                         );
-                        future.set(new QTFScrollTaskResult(merged, 0, pageInfo));
+                        future.set(createPage(merged, 0, pageInfo));
                     }
 
                     @Override
@@ -556,6 +590,11 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         @Override
         public Page page() {
             return page;
+        }
+
+        @Override
+        public PageCachePolicy policy() {
+            return policy;
         }
 
         @Override
@@ -577,10 +616,10 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
     private void releaseIrrelevantSearchContexts(AtomicArray<QuerySearchResult> firstResults,
                                                  AtomicArray<IntArrayList> docIdsToLoad,
-                                                 Optional<PageInfo> pageInfo) {
+                                                 Optional<PagingContext> pagingCtx) {
 
         // don't release searchcontexts yet, if we use scroll
-        if (docIdsToLoad == null || pageInfo.isPresent()) {
+        if (docIdsToLoad == null || pagingCtx.isPresent()) {
             return;
         }
 
@@ -635,16 +674,17 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         private final AtomicArray<QuerySearchResult> firstResults;
         private final AtomicInteger totalOps;
         private final int expectedOps;
-        private final Optional<PageInfo> pageInfo;
+        private final Optional<PagingContext> pagingContext;
 
         public QueryShardResponseListener(int requestIdx,
                                           AtomicArray<QuerySearchResult> firstResults,
-                                          AtomicInteger totalOps, Optional<PageInfo> pageInfo) {
+                                          AtomicInteger totalOps,
+                                          Optional<PagingContext> pagingContext) {
 
             this.requestIdx = requestIdx;
             this.firstResults = firstResults;
             this.totalOps = totalOps;
-            this.pageInfo = pageInfo;
+            this.pagingContext = pagingContext;
             this.expectedOps = firstResults.length();
         }
 
@@ -660,7 +700,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
             firstResults.set(requestIdx, querySearchResult);
             if (totalOps.incrementAndGet() == expectedOps) {
                 try {
-                    moveToSecondPhase(pageInfo);
+                    moveToSecondPhase(pagingContext);
                 } catch (IOException e) {
                     raiseEarlyFailure(e);
                 }

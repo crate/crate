@@ -31,6 +31,8 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.bigarray.IterableBigArray;
 import io.crate.core.bigarray.MultiNativeArrayBigArray;
 import io.crate.executor.*;
+import io.crate.executor.pageable.*;
+import io.crate.executor.pageable.policy.PageCachePolicy;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -246,20 +248,20 @@ public class NestedLoopOperation implements ProjectorUpstream {
         this.innerRelationTasks = innerTasks;
     }
 
-    private List<ListenableFuture<TaskResult>> executeChildTasks(List<Task> tasks, PageInfo pageInfo) {
+    private List<ListenableFuture<TaskResult>> executeChildTasks(List<Task> tasks, PageInfo pageInfo, PageCachePolicy policy) {
         assert !tasks.isEmpty() : "nested loop child tasks are empty";
         if (tasks.size() == 1 &&
                 tasks.get(0) instanceof PageableTask) {
             // one pageable task, page it
             PageableTask task = (PageableTask) tasks.get(0);
             logger.debug("[NestedLoop] fetching {} rows from source relation", pageInfo.size());
-            task.start(pageInfo);
+            task.start(pageInfo, policy);
             return task.result();
         }
         return this.taskExecutor.execute(tasks);
     }
 
-    public ListenableFuture<TaskResult> execute(final Optional<PageInfo> pageInfo) {
+    public ListenableFuture<TaskResult> execute(final Optional<PagingContext> pagingContext) {
         FlatProjectorChain projectorChain = new FlatProjectorChain(projections, projectionToProjectorVisitor, ramAccountingContext);
         downstream(projectorChain.firstProjector());
         projectorChain.startProjections();
@@ -267,7 +269,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
         if (limit == 0) {
             // shortcut
             return Futures.immediateFuture(
-                    pageInfo.isPresent()
+                    pagingContext.isPresent()
                             ? PageableTaskResult.EMPTY_PAGABLE_RESULT
                             : TaskResult.EMPTY_RESULT);
         }
@@ -278,12 +280,13 @@ public class NestedLoopOperation implements ProjectorUpstream {
         // and we fetch all that is needed to fetch all others
         int outerPageSize = Math.max(1, Math.min(rowsToProduce / 10, DEFAULT_PAGE_SIZE));
         final PageInfo outerPageInfo = new PageInfo(0, outerPageSize);
-        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, outerPageInfo);
+        // TODO: use different cache policies for inner and outer
+        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, outerPageInfo, PageCachePolicy.NO_CACHE);
 
         int innerPageSize = rowsToProduce/outerPageSize;
 
         final PageInfo innerPageInfo = new PageInfo(0, innerPageSize);
-        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, innerPageInfo);
+        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, innerPageInfo, PageCachePolicy.NO_CACHE);
 
         Futures.addCallback(
                 Futures.allAsList(
@@ -345,9 +348,9 @@ public class NestedLoopOperation implements ProjectorUpstream {
             @Nullable
             @Override
             public TaskResult apply(Object[][] rows) {
-                if (pageInfo.isPresent()) {
+                if (pagingContext.isPresent()) {
                     IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
-                    return new FetchedRowsPageableTaskResult(wrappedRows, 0L, pageInfo.get());
+                    return new FetchedRowsPageableTaskResult(wrappedRows, 0L, pagingContext.get());
                 } else {
                     return new QueryResult(rows);
                 }

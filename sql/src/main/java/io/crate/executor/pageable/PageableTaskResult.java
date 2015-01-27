@@ -19,10 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.executor.pageable;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.TaskResult;
+import io.crate.executor.pageable.policy.PageCachePolicy;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;
@@ -30,7 +32,7 @@ import java.io.IOException;
 import java.util.NoSuchElementException;
 
 /**
- * enhanced TaskResult that supports fetching the next page
+ * enhanced TaskResult that supports fetching pages
  * asynchronously.
  *
  */
@@ -38,13 +40,18 @@ public interface PageableTaskResult extends TaskResult, Closeable {
 
     public static final PageableTaskResult EMPTY_PAGABLE_RESULT = new PageableTaskResult() {
         @Override
-        public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
+        public ListenableFuture<Page> fetch(PageInfo pageInfo) {
             return Futures.immediateFailedFuture(new NoSuchElementException());
         }
 
         @Override
         public Page page() {
             return Page.EMPTY;
+        }
+
+        @Override
+        public PageCachePolicy policy() {
+            return PageCachePolicy.NO_CACHE;
         }
 
         @Override
@@ -68,9 +75,9 @@ public interface PageableTaskResult extends TaskResult, Closeable {
      * get the page identified by <code>pageInfo</code>.
      *
      * @param pageInfo identifying the page to fetch
-     * @return a future holding the result of fetching the next page
+     * @return a future holding the page identified by pageInfo
      */
-    ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo);
+    ListenableFuture<Page> fetch(PageInfo pageInfo);
 
 
     /**
@@ -85,6 +92,12 @@ public interface PageableTaskResult extends TaskResult, Closeable {
      * @return a Page you can iterate over to get the rows it consists of
      */
     Page page();
+
+    /**
+     * The policy determines how this taskResult handles stuff already fetched.
+     * How much rows/pages are kept locally before accessing its sources
+     */
+    PageCachePolicy policy();
 
     /**
      * Must be called after paging is done

@@ -19,31 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.executor.pageable.policy;
 
-import java.util.Collections;
-import java.util.Iterator;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.pageable.Page;
+import io.crate.executor.pageable.PageInfo;
 
-/**
- * a Page represents a couple of rows
- */
-public interface Page extends Iterable<Object[]> {
+public interface PageCache {
 
-    /**
-     * The number of rows that this page actually contains.
-     * Might be less that the requested size
-     */
-    public long size();
-
-    public static final Page EMPTY = new Page() {
-        @Override
-        public long size() {
-            return 0;
-        }
-
-        @Override
-        public Iterator<Object[]> iterator() {
-            return Collections.emptyIterator();
-        }
-    };
+    public ListenableFuture<Page> get(final PageInfo pageInfo);
 }

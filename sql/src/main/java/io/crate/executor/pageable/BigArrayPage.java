@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.executor.pageable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
