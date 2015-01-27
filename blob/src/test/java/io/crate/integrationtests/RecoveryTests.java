@@ -120,8 +120,7 @@ public class RecoveryTests extends CrateIntegrationTest {
                 try {
                     Thread.sleep(timeBetweenChunks.get());
                 } catch (InterruptedException ex) {
-                    // Restore the interrupted status
-                    Thread.currentThread().interrupt();
+                    Thread.interrupted();
                 }
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
                 client.execute(PutChunkAction.INSTANCE,
@@ -201,6 +200,7 @@ public class RecoveryTests extends CrateIntegrationTest {
                     }
                 }
             };
+            writers[i].setName("blob-uploader-thread");
             // dispatch threads from parent, ignoring possible leaking threads
             writers[i].setDaemon(true);
             writers[i].start();
