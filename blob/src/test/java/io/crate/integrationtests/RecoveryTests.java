@@ -32,6 +32,7 @@ import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -123,12 +124,16 @@ public class RecoveryTests extends CrateIntegrationTest {
                     Thread.interrupted();
                 }
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
-                client.execute(PutChunkAction.INSTANCE,
-                        new PutChunkRequest(
-                                BlobIndices.fullIndexName("test"), digest,
-                                startBlobRequest.transferId(), bytes, i,
-                                (i + 1) == content.length())
-                ).actionGet();
+                try {
+                    client.execute(PutChunkAction.INSTANCE,
+                            new PutChunkRequest(
+                                    BlobIndices.fullIndexName("test"), digest,
+                                    startBlobRequest.transferId(), bytes, i,
+                                    (i + 1) == content.length())
+                    ).actionGet();
+                } catch (ElasticsearchIllegalStateException ex) {
+                    Thread.interrupted();
+                }
             }
         }
         logger.trace("Upload finished {} digest {}", content, digestString);
