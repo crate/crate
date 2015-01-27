@@ -61,6 +61,8 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
 
     private static final String LN = System.getProperty("line.separator");
 
+    private static final String LN = System.getProperty("line.separator");
+
     private static File tmpFile;
     private static File tmpFileGz;
     private FileCollectInputSymbolVisitor inputSymbolVisitor;
