@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for the CURRENT_TIMESTAMP expression
+
  - Throw an error while using unknown column references in ``SELECT``
    statements while parent's policy is not of type ``ignored``
 
