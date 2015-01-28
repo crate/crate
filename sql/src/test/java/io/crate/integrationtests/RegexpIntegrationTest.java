@@ -26,6 +26,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -34,6 +35,8 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    private Setup setup = new Setup(sqlExecutor);
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -74,6 +77,31 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(5L));
         execute("select i from regex_test where regexp_replace(s, 'is', 'was') is null");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testRegexpMatchOperator() throws Exception {
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+        execute("select distinct name from locations where name ~ '[A-Z][a-z0-9]+' order by name");
+        assertThat(response.rowCount(), is(5L));
+        assertThat((String) response.rows()[0][0], is("Aldebaran"));
+        assertThat((String) response.rows()[1][0], is("Algol"));
+        assertThat((String) response.rows()[2][0], is("Altair"));
+        assertThat((String) response.rows()[3][0], is("Argabuthon"));
+        assertThat((String) response.rows()[4][0], is("Bartledan"));
+
+        execute("select name from locations where name !~ '[A-Z][a-z0-9]+' order by name");
+        assertThat(response.rowCount(), is(8L));
+        assertThat((String) response.rows()[0][0], is(""));
+        assertThat((String) response.rows()[1][0], is("Allosimanius Syneca"));
+        assertThat((String) response.rows()[2][0], is("Alpha Centauri"));
+        assertThat((String) response.rows()[3][0], is("Arkintoofle Minor"));
+        assertThat((String) response.rows()[4][0], is("Galactic Sector QQ7 Active J Gamma"));
+        assertThat((String) response.rows()[5][0], is("North West Ripple"));
+        assertThat((String) response.rows()[6][0], is("Outer Eastern Rim"));
+        assertThat(response.rows()[7][0], is(nullValue()));
     }
 
 }
