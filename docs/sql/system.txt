@@ -653,8 +653,6 @@ Note, that querying a time setting will always return a ``string`` value::
     +---------------------------------------------------...-------------------+
     SELECT 1 row in set (... sec)
 
-::
-
 The default configuration in ``crate.yml`` looks like:
 
 .. code-block:: yaml

@@ -19,23 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.operation.aggregation.statistics.moment;
 
-import io.crate.types.*;
+import org.apache.commons.math3.util.FastMath;
 
-public class SizeEstimatorFactory {
-
-    @SuppressWarnings("unchecked")
-    public static <T> SizeEstimator<T> create(DataType type) {
-        switch (type.id()) {
-            case StringType.ID:
-            case IpType.ID:
-                return (SizeEstimator<T>)new BytesRefSizeEstimator();
-            default:
-                if (type instanceof FixedWidthType) {
-                    return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());
-                }
-                throw new UnsupportedOperationException(String.format("Cannot get SizeEstimator for type %s", type));
-        }
+public class StandardDeviation extends Variance {
+    @Override
+    public double result() {
+        return FastMath.sqrt(super.result());
     }
 }

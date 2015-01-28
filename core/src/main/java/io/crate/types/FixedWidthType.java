@@ -24,11 +24,11 @@ package io.crate.types;
 /**
  * A type that has a fixed size for every value
  */
-public interface FixedWithType {
+public interface FixedWidthType {
 
     /**
      * The fixed amount of memory a value object instance of type t requires.
-     * (t is the type described by our DataType interface or something that implements FixedWithType)
+     * (t is the type described by our DataType interface or something that implements FixedWidthType)
      *
      *
      * Implementations here may not be 100% accurate because sizes may vary between JVM implementations

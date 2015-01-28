@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class ShortType extends DataType<Short> implements DataTypeFactory, Streamer<Short>, FixedWithType {
+public class ShortType extends DataType<Short> implements DataTypeFactory, Streamer<Short>, FixedWidthType {
 
     public static final ShortType INSTANCE = new ShortType();
     public static final int ID = 8;

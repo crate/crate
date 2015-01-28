@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class FloatType extends DataType<Float> implements Streamer<Float>, DataTypeFactory, FixedWithType {
+public class FloatType extends DataType<Float> implements Streamer<Float>, DataTypeFactory, FixedWidthType {
 
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;

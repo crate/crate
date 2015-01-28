@@ -31,7 +31,7 @@ import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
-import io.crate.types.FixedWithType;
+import io.crate.types.FixedWidthType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -39,26 +39,60 @@ import java.io.IOException;
 
 public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageState, Double> {
 
-    public static final String NAME = "avg";
+    public static final String[] NAMES = new String[] {"avg", "mean"};
+    public static final String NAME = NAMES[0];
     private final FunctionInfo info;
 
+    /**
+     * register as "avg" and "mean"
+     */
     public static void register(AggregationImplModule mod) {
-        for (DataType t :DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+        for (String name :NAMES) {
+            for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+                mod.register(new AverageAggregation(new FunctionInfo(
+                        new FunctionIdent(name, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
+                        FunctionInfo.Type.AGGREGATE)));
+            }
             mod.register(new AverageAggregation(new FunctionInfo(
-                            new FunctionIdent(NAME, ImmutableList.of(t)), DataTypes.DOUBLE,
-                                               FunctionInfo.Type.AGGREGATE)));
+                    new FunctionIdent(name, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+                    FunctionInfo.Type.AGGREGATE)));
         }
-        mod.register(new AverageAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
     }
 
-    AverageAggregation(FunctionInfo info) {
-        this.info = info;
+    public static class AverageState implements Comparable<AverageState> {
+
+        private double sum = 0;
+        private long count = 0;
+
+        public Double value() {
+            if (count > 0) {
+                return sum / count;
+            } else {
+                return null;
+            }
+        }
+
+        @Override
+        public int compareTo(AverageState o) {
+            if (o == null) {
+                return 1;
+            } else {
+                int compare = Double.compare(sum, o.sum);
+                if (compare == 0) {
+                    return Long.compare(count, o.count);
+                }
+                return compare;
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "sum: " + sum + " count: " + count;
+        }
     }
 
     public static class AverageStateType extends DataType<AverageState>
-            implements FixedWithType, Streamer<AverageState>, DataTypeFactory {
+            implements FixedWidthType, Streamer<AverageState>, DataTypeFactory {
 
         public static final int ID = 1024;
         private static final AverageStateType INSTANCE = new AverageStateType();
@@ -119,38 +153,9 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
     }
 
-    public static class AverageState implements Comparable<AverageState> {
-
-        private double sum = 0;
-        private long count = 0;
-
-        public Double value() {
-            if (count > 0) {
-                return sum / count;
-            } else {
-                return null;
-            }
-        }
-
-        @Override
-        public int compareTo(AverageState o) {
-            if (o == null) {
-                return 1;
-            } else {
-                int compare = Double.compare(sum, o.sum);
-                if (compare == 0) {
-                    return Long.compare(count, o.count);
-                }
-                return compare;
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "sum: " + sum + " count: " + count;
-        }
+    AverageAggregation(FunctionInfo info) {
+        this.info = info;
     }
-
 
     @Override
     public AverageState iterate(RamAccountingContext ramAccountingContext, AverageState state, Input... args) {

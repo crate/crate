@@ -31,7 +31,7 @@ import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.FixedWithType;
+import io.crate.types.FixedWidthType;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 public abstract class MaximumAggregation extends AggregationFunction<Comparable, Comparable> {
@@ -45,7 +45,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
             FunctionInfo functionInfo = new FunctionInfo(
                     new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE);
 
-            if (dataType instanceof FixedWithType) {
+            if (dataType instanceof FixedWidthType) {
                 mod.register(new FixedMaximumAggregation(functionInfo));
             } else {
                 mod.register(new VariableMaximumAggregation(functionInfo));
@@ -59,7 +59,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         public FixedMaximumAggregation(FunctionInfo info) {
             super(info);
-            size = ((FixedWithType) partialType()).fixedSize();
+            size = ((FixedWidthType) partialType()).fixedSize();
         }
 
         @Override

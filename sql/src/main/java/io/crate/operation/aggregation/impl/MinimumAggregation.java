@@ -32,7 +32,7 @@ import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.FixedWithType;
+import io.crate.types.FixedWidthType;
 
 public abstract class MinimumAggregation extends AggregationFunction<Comparable, Comparable> {
 
@@ -45,7 +45,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
             FunctionInfo functionInfo = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(dataType)),
                     dataType, FunctionInfo.Type.AGGREGATE);
 
-            if (dataType instanceof FixedWithType) {
+            if (dataType instanceof FixedWidthType) {
                 mod.register(new FixedMinimumAggregation(functionInfo));
             } else {
                 mod.register(new VariableMinimumAggregation(functionInfo));
@@ -92,7 +92,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         FixedMinimumAggregation(FunctionInfo info) {
             super(info);
-            size = ((FixedWithType) partialType()).fixedSize();
+            size = ((FixedWidthType) partialType()).fixedSize();
         }
 
         @Override
