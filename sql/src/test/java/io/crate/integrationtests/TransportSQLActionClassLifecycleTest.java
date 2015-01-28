@@ -403,7 +403,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testCopyToDirectoryOnPartitionedTableWithPartitionClause() throws Exception {
-        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = executor.exec("copy parted partition (date='2014-01-01') to DIRECTORY ?", uriTemplate);
         assertThat(response.rowCount(), is(2L));
 
@@ -423,7 +423,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testCopyToDirectoryOnPartitionedTableWithoutPartitionClause() throws Exception {
-        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = executor.exec("copy parted to DIRECTORY ?", uriTemplate);
         assertThat(response.rowCount(), is(5L));
 

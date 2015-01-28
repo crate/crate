@@ -27,6 +27,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.DynamicFunctionResolver;
@@ -35,6 +36,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.apache.lucene.util.BytesRef;
@@ -46,6 +48,7 @@ import org.junit.Test;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.zip.GZIPOutputStream;
 
@@ -58,8 +61,6 @@ import static org.mockito.Mockito.when;
 
 
 public class FileReadingCollectorTest extends AbstractRandomizedTest {
-
-    private static final String LN = System.getProperty("line.separator");
 
     private static final String LN = System.getProperty("line.separator");
 
@@ -123,25 +124,25 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
 
     @Test
     public void testCollectFromUriWithGlob() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFile.getParent() + "/file*.json");
+        CollectingProjector projector = getObjects(resolveURI(tmpFile.getParentFile(), "file*.json"));
         assertCorrectResult(projector.result().get());
     }
 
     @Test
     public void testCollectFromDirectory() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFile.getParent() + "/*");
+        CollectingProjector projector = getObjects(resolveURI(tmpFile.getParentFile(), "*"));
         assertCorrectResult(projector.result().get());
     }
 
     @Test
     public void testDoCollectRaw() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFile.getAbsolutePath());
+        CollectingProjector projector = getObjects(Paths.get(tmpFile.toURI()).toUri().toString());
         assertCorrectResult(projector.result().get());
     }
 
     @Test
     public void testDoCollectRawFromCompressed() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFileGz.getAbsolutePath(), "gzip");
+        CollectingProjector projector = getObjects(Paths.get(tmpFileGz.toURI()).toUri().toString(), "gzip");
         assertCorrectResult(projector.result().get());
     }
 
@@ -200,5 +201,22 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
         projector.startProjection();
         collector.doCollect(null);
         return projector;
+    }
+
+    /**
+     * Resolves file path to URI<br/>
+     * Note: Per URI specification, the only allowed format is file:///foo/bar.json (or for windows file:///C:/foo/bar.json)
+     * @param path the path (directory) that contains the file
+     * @param file the file name
+     * @return uri
+     */
+    public static String resolveURI(File path, String file){
+        String uri = null != file ?
+                Joiner.on("").join(path.toURI().toString(), file) : path.toURI().toString();
+        // matching against regex "file:\/[^\/].*"
+        if(uri.matches("file:\\/[^\\/].*")){
+            uri = uri.replace("file:/", "file:///");
+        }
+        return uri;
     }
 }

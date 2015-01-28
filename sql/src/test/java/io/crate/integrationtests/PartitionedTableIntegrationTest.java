@@ -76,19 +76,19 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "quote string index using fulltext" +
                 ") partitioned by (date) with (number_of_replicas=0)");
         ensureGreen();
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes partition (date=1400507539938) from ?", new Object[]{filePath});
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes partition (date=1400507539938) from ?", new Object[]{uriPath});
         refresh();
         execute("select id, date, quote from quotes order by id asc");
         assertEquals(3L, response.rowCount());
         assertThat((Integer) response.rows()[0][0], is(1));
         assertThat((Long) response.rows()[0][1], is(1400507539938L));
-        assertThat((String) response.rows()[0][2], is("Don't pañic."));
+        assertThat((String) response.rows()[0][2], is("Don't pa\u00f1ic."));
 
         execute("select count(*) from information_schema.table_partitions where table_name = 'quotes'");
         assertThat((Long) response.rows()[0][0], is(1L));
 
-        execute("copy quotes partition (date=1800507539938) from ?", new Object[]{filePath});
+        execute("copy quotes partition (date=1800507539938) from ?", new Object[]{uriPath});
         refresh();
 
         execute("select partition_ident from information_schema.table_partitions " +
@@ -107,8 +107,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 ") partitioned by (id)");
         ensureGreen();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ?", new Object[]{filePath});
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{uriPath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
@@ -959,6 +959,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                             put("name", "Ford");
                         }}});
         ensureGreen();
+        waitNoPendingTasksOnAll();
         refresh();
 
         execute("select * from information_schema.columns where table_name = 'quotes'");

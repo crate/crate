@@ -77,7 +77,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         execute("select min(age), gender from characters group by gender order by gender");
 
-        String expected = "32.0| female\n34.0| male" + LN;
+        String expected = "32.0| female" + LN + "34.0| male" + LN;
 
         assertEquals("min(age)", response.cols()[0]);
         assertEquals(expected, TestingHelpers.printedTable(response.rows()));
