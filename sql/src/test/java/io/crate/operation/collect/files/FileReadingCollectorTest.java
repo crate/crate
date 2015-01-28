@@ -36,6 +36,7 @@ import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.AbstractRandomizedTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -56,7 +57,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-public class FileReadingCollectorTest {
+public class FileReadingCollectorTest extends AbstractRandomizedTest {
 
     private static File tmpFile;
     private static File tmpFileGz;
@@ -80,7 +81,7 @@ public class FileReadingCollectorTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         Functions functions = new Functions(
                 ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
                 ImmutableMap.<String, DynamicFunctionResolver>of()

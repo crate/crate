@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Force UTF8 encoding in file reading collector to avoid JVM's default encoding settings
+
  - Fix: Fixed global count using non-existing column in the where clause
 
  - Fix: removed unsupported syntax from ``Update`` synposis
