@@ -71,6 +71,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,6 +84,21 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 public class TestSysNodesExpressions {
+
+    /**
+     * Resolve canonical path (platform independent)
+     * @param path the path to be resolved (e.g. /dev/sda1)
+     * @return full canonical path (e.g. linux will resolve to /dev/sda1, windows to C:\dev\sda1)
+     */
+    String resolveCanonicalPath(String path){
+        try {
+            return new File(path).getCanonicalPath();
+        }
+        catch (IOException e){
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     private Injector injector;
     private ReferenceResolver resolver;
@@ -198,25 +214,25 @@ public class TestSysNodesExpressions {
             });
 
             FileSystem fsFoo = mock(FileSystem.class);
-            when(fsFoo.getDevName()).thenReturn("/dev/sda1");
-            when(fsFoo.getDirName()).thenReturn("/foo");
+            when(fsFoo.getDevName()).thenReturn(resolveCanonicalPath("/dev/sda1"));
+            when(fsFoo.getDirName()).thenReturn(resolveCanonicalPath("/foo"));
             when(fsFoo.getType()).thenReturn(FileSystem.TYPE_LOCAL_DISK);
 
             FileSystem fsBar = mock(FileSystem.class);
-            when(fsBar.getDevName()).thenReturn("/dev/sda2");
-            when(fsBar.getDirName()).thenReturn("/bar");
+            when(fsBar.getDevName()).thenReturn(resolveCanonicalPath("/dev/sda2"));
+            when(fsBar.getDirName()).thenReturn(resolveCanonicalPath("/bar"));
             when(fsBar.getType()).thenReturn(FileSystem.TYPE_LOCAL_DISK);
 
 
             FileSystem fsFiltered = mock(FileSystem.class);
             when(fsFiltered.getType()).thenReturn(FileSystem.TYPE_UNKNOWN);
-            when(fsFiltered.getDevName()).thenReturn(("/dev/filtered"));
-            when(fsFiltered.getDirName()).thenReturn(("/filtered"));
+            when(fsFiltered.getDevName()).thenReturn((resolveCanonicalPath("/dev/filtered")));
+            when(fsFiltered.getDirName()).thenReturn((resolveCanonicalPath("/filtered")));
 
             FileSystemMap map = mock(FileSystemMap.class);
-            when(map.getMountPoint("/foo")).thenReturn(fsFoo);
-            when(map.getMountPoint("/bar")).thenReturn(fsBar);
-            when(map.getMountPoint("/filtered")).thenReturn(fsFiltered);
+            when(map.getMountPoint(resolveCanonicalPath("/foo"))).thenReturn(fsFoo);
+            when(map.getMountPoint(resolveCanonicalPath("/bar"))).thenReturn(fsBar);
+            when(map.getMountPoint(resolveCanonicalPath("/filtered"))).thenReturn(fsFiltered);
             FileSystemUsage usage = mock(FileSystemUsage.class, new Answer<Long>() {
                 @Override
                 public Long answer(InvocationOnMock invocation) throws Throwable {
@@ -384,20 +400,20 @@ public class TestSysNodesExpressions {
         Object[] disks = (Object[]) v.get("disks");
         assertThat(disks.length, is(2));
         Map<String, Object> disk0 = (Map<String, Object>) disks[0];
-        assertThat((String)disk0.get("dev"), is("/dev/sda1"));
+        assertThat((String)disk0.get("dev"), is(resolveCanonicalPath("/dev/sda1")));
         assertThat((Long)disk0.get("size"), is(42L*1024));
 
         Map<String, Object> disk1 = (Map<String, Object>) disks[1];
-        assertThat((String)disk1.get("dev"), is("/dev/sda2"));
+        assertThat((String)disk1.get("dev"), is(resolveCanonicalPath("/dev/sda2")));
         assertThat((Long)disk0.get("used"), is(42L*1024));
 
         Object[] data = (Object[]) v.get("data");
         assertThat(data.length, is(2));
-        assertThat((String)((Map<String, Object>)data[0]).get("dev"), is("/dev/sda1"));
-        assertThat((String)((Map<String, Object>)data[0]).get("path"), is("/foo"));
+        assertThat((String)((Map<String, Object>)data[0]).get("dev"), is(resolveCanonicalPath("/dev/sda1")));
+        assertThat((String)((Map<String, Object>)data[0]).get("path"), is(resolveCanonicalPath("/foo")));
 
-        assertThat((String)((Map<String, Object>)data[1]).get("dev"), is("/dev/sda2"));
-        assertThat((String)((Map<String, Object>)data[1]).get("path"), is("/bar"));
+        assertThat((String)((Map<String, Object>)data[1]).get("dev"), is(resolveCanonicalPath("/dev/sda2")));
+        assertThat((String)((Map<String, Object>)data[1]).get("path"), is(resolveCanonicalPath("/bar")));
 
         ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME, ImmutableList.of(NodeFsDataExpression.NAME, "dev"));
         SysExpression<Object[]> fsData = (SysExpression<Object[]>)resolver.getImplementation(ident);
@@ -519,4 +535,17 @@ public class TestSysNodesExpressions {
         assertThat(versionNumber.value(), is(new BytesRef(version.value().get(NodeVersionExpression.NUMBER).toString())));
 
     }
+    @Test
+    public void test() {
+        Sigar sigar = new Sigar();
+        try {
+            for (FileSystem fs : sigar.getFileSystemList()) {
+                System.out.println(fs.getDevName());
+                System.out.println(fs.getDirName());
+            }
+        } catch (SigarException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
