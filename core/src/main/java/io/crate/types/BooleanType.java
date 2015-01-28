@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
-public class BooleanType extends DataType<Boolean> implements DataTypeFactory, Streamer<Boolean>, FixedWithType {
+public class BooleanType extends DataType<Boolean> implements DataTypeFactory, Streamer<Boolean>, FixedWidthType {
 
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();

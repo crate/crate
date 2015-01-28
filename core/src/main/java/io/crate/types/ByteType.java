@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class ByteType extends DataType<Byte> implements DataTypeFactory, Streamer<Byte>, FixedWithType {
+public class ByteType extends DataType<Byte> implements DataTypeFactory, Streamer<Byte>, FixedWidthType {
 
     public final static ByteType INSTANCE = new ByteType();
     public final static int ID = 2;

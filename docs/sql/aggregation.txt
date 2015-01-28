@@ -221,10 +221,10 @@ as a double value. Its single argument is the column name of a numeric column or
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
     SQLActionException[unknown function: sum(string)]
 
-avg
-===
+avg / mean
+==========
 
-The ``avg`` aggregation function returns the arithmetic mean, the *average*,
+The ``avg`` or ``mean`` aggregation function returns the arithmetic mean, the *average*,
 of all values in a column that are not ``NULL`` as a double value. It accepts all numeric columns
 and timestamp columns as single argument. Using ``avg`` on other column types is not allowed.
 
@@ -241,6 +241,94 @@ Example::
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
+
+geometric_mean
+==============
+
+The ``geometric_mean`` aggregation function computes the geometric mean,
+a mean for positive numbers. For details see: `Geometric Mean`_.
+
+``geometric mean`` is defined on all numeric types and on timestamp. It always
+returns double values. If a value is negative, all values were null or we got no
+value at all ``NULL`` is returned. If any of the aggregated values is ``0`` the result will be ``0.0``
+as well.
+
+.. note::
+
+    Due to java double precision arithmetic it is possible that any two executions
+    of the aggregation function on the same data produce slightly differing results.
+
+Example::
+
+    cr> select geometric_mean(position), kind from locations
+    ... group by kind order by kind;
+    +--------------------------+-------------+
+    | geometric_mean(position) | kind        |
+    +--------------------------+-------------+
+    |             2.6321480259 | Galaxy      |
+    |             2.6051710847 | Planet      |
+    |             2.2133638394 | Star System |
+    +--------------------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+
+variance
+========
+
+The ``variance`` aggregation function computes the `Variance`_ of the set of non-null
+values in a column. It is a measure about how far a set of numbers is spread.
+A variance of ``0.0`` indicates that all values are the same.
+
+``variance`` is defined on all numeric types and on timestamp. It returns a
+double value. If all values were null or we got no value at all ``NULL`` is
+returned.
+
+Example::
+
+    cr> select variance(position), kind from locations
+    ... group by kind order by kind desc;
+    +--------------------+-------------+
+    | variance(position) | kind        |
+    +--------------------+-------------+
+    |             1.25   | Star System |
+    |             2.0    | Planet      |
+    |             3.6875 | Galaxy      |
+    +--------------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+.. note::
+
+    Due to java double precision arithmetic it is possible that any two executions
+    of the aggregation function on the same data produce slightly differing results.
+
+stddev
+======
+
+The ``stddev`` aggregation function computes the `Standard Deviation`_ of the set
+of non-null values in a column. It is a measure of the variation of data values.
+A low standard deviation indicates that the values tend to be near the mean.
+
+``stddev`` is defined on all numeric types and on timestamp. It always
+returns double values. If all values were null or we got no
+value at all ``NULL`` is returned.
+
+Example::
+
+    cr> select stddev(position), kind from locations
+    ... group by kind order by kind;
+    +------------------+-------------+
+    | stddev(position) | kind        |
+    +------------------+-------------+
+    |    1.92028643697 | Galaxy      |
+    |    1.41421356237 | Planet      |
+    |    1.11803398875 | Star System |
+    +------------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+.. note::
+
+    Due to java double precision arithmetic it is possible that any two executions
+    of the aggregation function on the same data produce slightly differing results.
 
 arbitrary
 =========
@@ -284,3 +372,7 @@ user. This works as rows with same ``user_id`` have the same
 strings.  The advantage is that the ``arbitrary`` function does very little
 to no computation as for example ``max`` aggregation function would
 do.
+
+.. _Geometric Mean: https://en.wikipedia.org/wiki/Mean#Geometric_mean_.28GM.29
+.. _Variance: https://en.wikipedia.org/wiki/Variance
+.. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation

@@ -35,6 +35,7 @@ import org.junit.rules.ExpectedException;
 import java.util.HashMap;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -388,20 +389,26 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGroupByAvgDouble() throws Exception {
-        execute("select avg(income), department from employees group by department order by department asc");
+        execute("select avg(income), mean(income), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
 
-        assertEquals("HR", response.rows()[0][1]);
+
         assertEquals(500000000.245d, response.rows()[0][0]);
+        assertEquals(500000000.245d, response.rows()[0][1]);
+        assertEquals("HR", response.rows()[0][2]);
 
-        assertEquals("engineering", response.rows()[1][1]);
         assertEquals(5000.0d, response.rows()[1][0]);
+        assertEquals(5000.0d, response.rows()[1][1]);
+        assertEquals("engineering", response.rows()[1][2]);
 
-        assertEquals("internship", response.rows()[2][1]);
+
         assertEquals(null, response.rows()[2][0]);
+        assertEquals(null, response.rows()[2][1]);
+        assertEquals("internship", response.rows()[2][2]);
 
-        assertEquals("management", response.rows()[3][1]);
         assertEquals(Double.MAX_VALUE, response.rows()[3][0]);
+        assertEquals(Double.MAX_VALUE, response.rows()[3][1]);
+        assertEquals("management", response.rows()[3][2]);
     }
 
     @Test
@@ -946,5 +953,48 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         } catch (SQLActionException e) {
             fail(e.getMessage());
         }
+    }
+
+    @Test
+    public void groupByAggregateStdDevByte() throws Exception {
+        this.setup.groupBySetup("byte");
+
+        execute("select stddev(age), gender from characters group by gender order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals(5.5d, response.rows()[0][0]);
+        assertEquals(39.0d, response.rows()[1][0]);
+    }
+
+    @Test
+    public void groupByAggregateVarianceByte() throws Exception {
+        this.setup.groupBySetup("byte");
+
+        execute("select variance(age), gender from characters group by gender order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals(30.25d, response.rows()[0][0]);
+        assertEquals(1521.0d, response.rows()[1][0]);
+    }
+
+    @Test
+    public void groupByAggregateStdDevDouble() throws Exception {
+        this.setup.groupBySetup("double");
+
+        execute("select stddev(age), gender from characters group by gender order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals(5.5d, response.rows()[0][0]);
+        assertEquals(39.0d, response.rows()[1][0]);
+    }
+
+    @Test
+    public void groupByStatsAggregatesGlobal() throws Exception {
+        this.setup.groupBySetup("short");
+        execute("select min(age), mean(age), geometric_mean(age), max(age), variance(age), stddev(age) from characters");
+        assertThat((Short) response.rows()[0][0], is((short) 32));
+        assertThat((Double)response.rows()[0][1], is(55.25d));
+
+        assertThat((Double)response.rows()[0][2], closeTo(47.84415001097868d, 0.0000001));
+        assertThat((Short)response.rows()[0][3], is((short)112));
+        assertThat((Double)response.rows()[0][4], is(1090.6875d));
+        assertThat((Double)response.rows()[0][5], is(33.025558284456d));
     }
 }

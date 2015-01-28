@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for the ``std_dev``, ``variance`` and ``geometric_mean``
+   aggregation functions
+
  - Added support for the CURRENT_TIMESTAMP expression
 
  - Throw an error while using unknown column references in ``SELECT``
