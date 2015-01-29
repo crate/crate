@@ -35,8 +35,9 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
+import static java.lang.String.format;
+import static java.util.Locale.ENGLISH;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -90,10 +91,27 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropExistingTable() throws Exception {
-        AnalyzedStatement analyzedStatement = analyze(String.format(Locale.ENGLISH, "drop table %s", TEST_DOC_TABLE_IDENT.name()));
+        AnalyzedStatement analyzedStatement = analyze(format(ENGLISH, "drop table %s", TEST_DOC_TABLE_IDENT.name()));
         assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
-
+        assertThat(dropTableAnalysis.ignoreNonExistentTable(), is(false));
         assertThat(dropTableAnalysis.index(), is(TEST_DOC_TABLE_IDENT.name()));
+    }
+
+    @Test
+    public void testDropIfExistExistingTable() throws Exception {
+        AnalyzedStatement analyzedStatement = analyze(format(ENGLISH, "drop table if exists %s", TEST_DOC_TABLE_IDENT.name()));
+        assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
+        DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
+        assertThat(dropTableAnalysis.ignoreNonExistentTable(), is(true));
+        assertThat(dropTableAnalysis.index(), is(TEST_DOC_TABLE_IDENT.name()));
+    }
+
+    @Test
+    public void testNonExistentTableIsRecognizedCorrectly() throws Exception {
+        AnalyzedStatement analyzedStatement = analyze("drop table if exists unknowntable");
+        assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
+        DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
+        assertThat(dropTableAnalysis.ignoreNonExistentTable(), is(true));
     }
 }

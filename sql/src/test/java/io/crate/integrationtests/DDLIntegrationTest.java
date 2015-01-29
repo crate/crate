@@ -21,8 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.PartitionName;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.core.Is.is;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import io.crate.action.sql.SQLActionException;
+import io.crate.metadata.PartitionName;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -37,14 +45,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.skyscreamer.jsonassert.JSONAssert;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.core.Is.is;
-
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -54,7 +54,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
 
 
     @Test
@@ -129,7 +128,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "}}}";
         JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
     }
-
 
 
     @Test
@@ -345,7 +343,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
 
-
     @Test
     public void testAlterTableAddColumnAsPrimaryKey() throws Exception {
         execute("create table t (id int primary key) " +
@@ -467,6 +464,25 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDropTableIfExists() {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+        execute("drop table if exists test");
+        assertThat(response.rowCount(), is(1L));
+        assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+    }
+
+    @Test
+    public void testDropIfExistsUnknownTable() throws Exception {
+        execute("drop table if exists nonexistent");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void testCreateAlterAndDropBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("alter blob table screenshots set (number_of_replicas=1)");
@@ -474,6 +490,18 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "where schema_name = 'blob' and table_name = 'screenshots'");
         assertEquals("1", response.rows()[0][0]);
         execute("drop blob table screenshots");
+    }
+
+    @Test
+    public void testDropIfExistsBlobTable() throws Exception {
+        execute("create blob table screenshots with (number_of_replicas=0)");
+        execute("drop blob table if exists screenshots");
+        assertEquals(response.rowCount(), 1);
+    }
+    @Test
+    public void testDropBlobTableIfExistsUnknownTable() throws Exception {
+        execute("drop blob table if exists nonexistent");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
@@ -523,11 +551,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select name from a.t");
         assertThat(response.rowCount(), is(1L));
-        assertThat((String)response.rows()[0][0], is("Ford"));
+        assertThat((String) response.rows()[0][0], is("Ford"));
 
         execute("select schema_name from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount(), is(1L));
-        assertThat((String)response.rows()[0][0], is("a"));
+        assertThat((String) response.rows()[0][0], is("a"));
     }
 
     @Test

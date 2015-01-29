@@ -855,8 +855,8 @@ alterTableStmt
 // DROP STATEMENTS
 
 dropStatement
-	: TABLE table -> ^(DROP_TABLE table)
-	| BLOB TABLE table -> ^(DROP_BLOB_TABLE table)
+	: TABLE ( IF EXISTS )? table -> ^(DROP_TABLE EXISTS? table)
+	| BLOB TABLE ( IF EXISTS )? table -> ^(DROP_BLOB_TABLE EXISTS? table)
 	| ALIAS qname -> ^(DROP_ALIAS qname)
 	;
 // END DROP STATEMENTS

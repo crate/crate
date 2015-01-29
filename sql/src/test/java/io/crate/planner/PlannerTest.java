@@ -9,6 +9,8 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -25,6 +27,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.GenericDDLNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
@@ -180,6 +183,13 @@ public class PlannerTest {
             when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
             schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
+            schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(mockBlobSchemaInfo());
+        }
+
+        private SchemaInfo mockBlobSchemaInfo(){
+            BlobSchemaInfo blobSchemaInfo = mock(BlobSchemaInfo.class);
+            when(blobSchemaInfo.getTableInfo("screenshots")).thenReturn(mock(BlobTableInfo.class));
+            return blobSchemaInfo;
         }
 
         private SchemaInfo mockSysSchemaInfo() {
@@ -912,6 +922,24 @@ public class PlannerTest {
     }
 
     @Test
+    public void testDropTableIfExists() throws Exception {
+        IterablePlan plan = (IterablePlan) plan("drop table if exists users");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(DropTableNode.class));
+
+        DropTableNode node = (DropTableNode) planNode;
+        assertThat(node.tableInfo().ident().name(), is("users"));
+    }
+
+    @Test
+    public void testDropTableIfExistsNonExistentTableCreatesNoop() throws Exception {
+        Plan plan = plan("drop table if exists groups");
+        assertThat(plan, instanceOf(NoopPlan.class));
+    }
+
+
+    @Test
     public void testDropPartitionedTable() throws Exception {
         IterablePlan plan = (IterablePlan) plan("drop table parted");
         Iterator<PlanNode> iterator = plan.iterator();
@@ -922,6 +950,18 @@ public class PlannerTest {
         assertThat(node.tableInfo().ident().name(), is("parted"));
 
         assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testDropBlobTableIfExistsCreatesIterablePlan() throws Exception {
+        Plan plan = plan("drop blob table if exists screenshots");
+        assertThat(plan, instanceOf(IterablePlan.class));
+    }
+
+    @Test
+    public void testDropNonExistentBlobTableCreatesNoop() throws Exception {
+        Plan plan = plan("drop blob table if exists unknown");
+        assertThat(plan, instanceOf(NoopPlan.class));
     }
 
     @Test

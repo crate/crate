@@ -39,6 +39,7 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -168,6 +169,19 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
         analyze("drop blob table unknown");
     }
 
+    @Test
+    public void testDropBlobTableIfExists() throws Exception {
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table if exists users");
+        assertThat(analysis.ignoreNonExistentTable(), is(true));
+        assertThat(analysis.tableIdent().name(), is("users"));
+        assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
+    }
+
+    @Test
+    public void testDropNonExistentBlobTableIfExists() throws Exception {
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table if exists unknown");
+        assertThat(analysis.ignoreNonExistentTable(), is(true));
+    }
 
     @Test (expected = IllegalArgumentException.class)
     public void testAlterBlobTableWithInvalidProperty() throws Exception {

@@ -24,50 +24,58 @@ package io.crate.sql.tree;
 import com.google.common.base.Objects;
 
 public class DropTable
-        extends Statement
-{
+        extends Statement {
     private final Table table;
+    private final boolean ignoreNonExistentTable;
 
-    public DropTable(Table table)
-    {
+    public DropTable(Table table, boolean ignoreNonExistentTable) {
         this.table = table;
+        this.ignoreNonExistentTable = ignoreNonExistentTable;
     }
 
-    public Table table()
-    {
+    public DropTable(Table table) {
+        this(table, false);
+    }
+
+    public boolean ignoreNonExistentTable() {
+        return ignoreNonExistentTable;
+    }
+
+    public Table table() {
         return table;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropTable(this, context);
     }
 
     @Override
-    public int hashCode()
-    {
-        return Objects.hashCode(table);
+    public int hashCode() {
+        return Objects.hashCode(table, ignoreNonExistentTable);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
         if ((obj == null) || (getClass() != obj.getClass())) {
             return false;
         }
-        DropTable o = (DropTable) obj;
-        return Objects.equal(table, o.table);
+        DropTable that = (DropTable) obj;
+        if (this.ignoreNonExistentTable != that.ignoreNonExistentTable) {
+            return false;
+        }
+        return table.equals(that.table);
+
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return Objects.toStringHelper(this)
                 .add("table", table)
+                .add("ignoreNonExistentTable", ignoreNonExistentTable)
                 .toString();
     }
 }

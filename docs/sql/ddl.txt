@@ -26,6 +26,11 @@ A table can be removed by using the ``DROP TABLE`` command::
     cr> drop table my_table;
     DROP OK (... sec)
 
+The ``DROP TABLE`` command takes the optional clause ``IF EXISTS`` which prevents the generation
+of an error if the specified table does not exist::
+
+    cr> drop table if exists my_table;
+    DROP OK (... sec)
 
 Schemas
 -------
@@ -139,7 +144,7 @@ the default routing value used for sharding. Example::
     ... );
     CREATE OK (... sec)
 
-Currently primary key's cannot be auto generated and have to be specified if
+Currently primary keys cannot be auto generated and have to be specified if
 data is inserted, otherwise an error is returned.
 
 Defining multiple columns with a primary key constraint is also supported::
