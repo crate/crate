@@ -165,7 +165,7 @@ public class ExpressionAnalyzer {
         }
         Literal literal;
         try {
-            valueSymbol = normalizer.process(valueSymbol, null);
+            valueSymbol = normalizer.normalize(valueSymbol);
             if (valueSymbol.symbolType() != SymbolType.LITERAL) {
                 return valueSymbol;
             }
@@ -245,7 +245,7 @@ public class ExpressionAnalyzer {
      */
     public Literal normalizeInputForType(Symbol inputValue, DataType dataType) {
         try {
-            return Literal.convert(normalizer.process(inputValue, null), dataType);
+            return Literal.convert(normalizer.normalize(inputValue), dataType);
         } catch (ClassCastException | NumberFormatException e) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid value of type '%s'", inputValue.symbolType().name()));
@@ -290,10 +290,6 @@ public class ExpressionAnalyzer {
 
     private boolean isObjectArray(DataType type) {
         return type.id() == ArrayType.ID && ((ArrayType)type).innerType().id() == ObjectType.ID;
-    }
-
-    private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo) {
-        return normalizeObjectArrayValue(value, arrayInfo, false);
     }
 
     private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo, boolean forWrite) {

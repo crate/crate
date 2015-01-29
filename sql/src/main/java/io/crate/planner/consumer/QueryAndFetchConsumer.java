@@ -22,12 +22,8 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.Constants;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.SelectAnalyzedStatement;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
@@ -95,40 +91,35 @@ public class QueryAndFetchConsumer implements Consumer {
             this.analysisMetaData = analysisMetaData;
         }
 
-        @Override
-        public AnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
-            if(statement.sources().size() != 1){
-                return statement;
-            }
-            AnalyzedRelation sourceRelation = Iterables.getOnlyElement(statement.sources().entrySet()).getValue();
-            if(!(sourceRelation instanceof TableRelation)){
-                return statement;
-            }
 
-            TableRelation tableRelation = (TableRelation) sourceRelation;
+
+        @Override
+        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+            TableRelation tableRelation = table.tableRelation();
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(tableRelation.resolve(statement.querySpec().where()));
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(tableRelation.resolve(table.querySpec().where()));
             if(whereClauseContext.whereClause().version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
-                return statement;
+                return table;
             }
             TableInfo tableInfo = tableRelation.tableInfo();
 
             if (tableInfo.schemaInfo().systemSchema() && whereClauseContext.whereClause().hasQuery()) {
                 ensureNoLuceneOnlyPredicates(whereClauseContext.whereClause().query());
             }
-            if (statement.querySpec().hasAggregates()) {
+            if (table.querySpec().hasAggregates()) {
                 context.result = true;
-                return GlobalAggregateConsumer.globalAggregates(statement, tableRelation, whereClauseContext, null);
+                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClauseContext, null);
             } else {
                if(tableInfo.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
                         tableInfo.getRouting(whereClauseContext.whereClause(), null).hasLocations() &&
                         !tableInfo.schemaInfo().systemSchema()){
-                   return statement;
+                   return table;
                }
 
                context.result = true;
-               return QueryAndFetchConsumer.normalSelect(statement, whereClauseContext, tableRelation, null, analysisMetaData.functions());
+               return QueryAndFetchConsumer.normalSelect(table.querySpec(), whereClauseContext, tableRelation,
+                       null, analysisMetaData.functions());
             }
         }
 
@@ -157,7 +148,7 @@ public class QueryAndFetchConsumer implements Consumer {
     }
 
 
-    public static AnalyzedRelation normalSelect(SelectAnalyzedStatement statement,
+    public static AnalyzedRelation normalSelect(QuerySpec querySpec,
                                                 WhereClauseContext whereClauseContext,
                                                 TableRelation tableRelation,
                                                 @Nullable ColumnIndexWriterProjection indexWriterProjection,
@@ -167,26 +158,26 @@ public class QueryAndFetchConsumer implements Consumer {
 
         List<Symbol> outputSymbols;
         if (tableInfo.schemaInfo().systemSchema()) {
-            outputSymbols = tableRelation.resolve(statement.querySpec().outputs());
+            outputSymbols = tableRelation.resolve(querySpec.outputs());
         } else {
-            outputSymbols = new ArrayList<>(statement.querySpec().outputs().size());
-            for (Symbol symbol : statement.querySpec().outputs()) {
+            outputSymbols = new ArrayList<>(querySpec.outputs().size());
+            for (Symbol symbol : querySpec.outputs()) {
                 outputSymbols.add(DocReferenceConverter.convertIfPossible(tableRelation.resolve(symbol), tableInfo));
             }
         }
         CollectNode collectNode;
         MergeNode mergeNode;
-        OrderBy orderBy = statement.querySpec().orderBy();
+        OrderBy orderBy = querySpec.orderBy();
         if (indexWriterProjection != null) {
             // insert directly from shards
-            assert !statement.querySpec().isLimited() : "insert from sub query with limit or order by is not supported. " +
+            assert !querySpec.isLimited() : "insert from sub query with limit or order by is not supported. " +
                     "Analyzer should have thrown an exception already.";
 
             ImmutableList<Projection> projections = ImmutableList.<Projection>of(indexWriterProjection);
             collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, projections);
             // use aggregation projection to merge node results (number of inserted rows)
             mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection(functions)), collectNode);
-        } else if (statement.querySpec().isLimited() || orderBy != null) {
+        } else if (querySpec.isLimited() || orderBy != null) {
             /**
              * select id, name, order by id, date
              *
@@ -228,11 +219,11 @@ public class QueryAndFetchConsumer implements Consumer {
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
             TopNProjection tnp;
-            int limit = firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
             if (orderBy == null){
-                tnp = new TopNProjection(statement.querySpec().offset() + limit, 0);
+                tnp = new TopNProjection(querySpec.offset() + limit, 0);
             } else {
-                tnp = new TopNProjection(statement.querySpec().offset() + limit, 0,
+                tnp = new TopNProjection(querySpec.offset() + limit, 0,
                         orderByInputColumns,
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst()
@@ -242,9 +233,9 @@ public class QueryAndFetchConsumer implements Consumer {
             collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
             if (orderBy == null) {
-                tnp = new TopNProjection(limit, statement.querySpec().offset());
+                tnp = new TopNProjection(limit, querySpec.offset());
             } else {
-                tnp = new TopNProjection(limit, statement.querySpec().offset(),
+                tnp = new TopNProjection(limit, querySpec.offset(),
                         orderByInputColumns,
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst());

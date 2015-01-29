@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -31,18 +32,19 @@ import org.elasticsearch.common.inject.Singleton;
 @Singleton
 public class SelectStatementAnalyzer extends DefaultTraversalVisitor<SelectAnalyzedStatement, Analysis> {
 
-    private final AnalysisMetaData analysisMetaData;
+    private final RelationAnalyzer relationAnalyzer;
 
     @Inject
-    public SelectStatementAnalyzer(AnalysisMetaData analysisMetaData) {
-        this.analysisMetaData = analysisMetaData;
+    public SelectStatementAnalyzer(RelationAnalyzer relationAnalyzer) {
+        this.relationAnalyzer = relationAnalyzer;
     }
 
     @Override
     protected SelectAnalyzedStatement visitQuery(Query node, Analysis analysis) {
-        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData, analysis.parameterContext());
-        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext();
-
-        return (SelectAnalyzedStatement) relationAnalyzer.process(node.getQueryBody(), relationAnalysisContext);
+        // TODO: make RelationAnalyzer a singleton
+        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(analysis.parameterContext());
+        QueriedRelation relation = (QueriedRelation) relationAnalyzer.process(node.getQueryBody(), relationAnalysisContext);
+        analysis.rootRelation(relation);
+        return new SelectAnalyzedStatement(relation);
     }
 }

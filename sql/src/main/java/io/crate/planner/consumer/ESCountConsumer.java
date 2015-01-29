@@ -22,11 +22,10 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
@@ -69,31 +68,27 @@ public class ESCountConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, ConsumerContext context) {
-            if (!selectAnalyzedStatement.querySpec().hasAggregates() || selectAnalyzedStatement.querySpec().groupBy()!=null) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+            if (!table.querySpec().hasAggregates() || table.querySpec().groupBy()!=null) {
                 return null;
             }
-            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(selectAnalyzedStatement.sources());
-            if (tableRelation == null) {
-                return null;
-            }
-            TableInfo tableInfo = tableRelation.tableInfo();
+            TableInfo tableInfo = table.tableRelation().tableInfo();
             if (tableInfo.schemaInfo().systemSchema()) {
                 return null;
             }
-            if (!hasOnlyGlobalCount(selectAnalyzedStatement.querySpec().outputs())) {
+            if (!hasOnlyGlobalCount(table.querySpec().outputs())) {
                 return null;
             }
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(selectAnalyzedStatement.querySpec().where());
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
             if(whereClauseContext.whereClause().version().isPresent()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
 
-            if (firstNonNull(selectAnalyzedStatement.querySpec().limit(), 1) < 1 ||
-                    selectAnalyzedStatement.querySpec().offset() > 0){
-                return new NoopPlannedAnalyzedRelation(selectAnalyzedStatement);
+            if (firstNonNull(table.querySpec().limit(), 1) < 1 ||
+                    table.querySpec().offset() > 0){
+                return new NoopPlannedAnalyzedRelation(table);
             }
 
 

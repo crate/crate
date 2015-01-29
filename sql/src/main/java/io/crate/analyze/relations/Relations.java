@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.QueriedTable;
 import io.crate.metadata.table.TableInfo;
 
 public class Relations {
@@ -36,6 +37,11 @@ public class Relations {
         @Override
         protected Boolean visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
             return true;
+        }
+
+        @Override
+        public Boolean visitQueriedTable(QueriedTable table, Void context) {
+            return process(table.tableRelation(), context);
         }
 
         @Override

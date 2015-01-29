@@ -37,7 +37,9 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class TableRelation implements AnalyzedRelation {
+public class TableRelation implements AnalyzedRelation, FieldResolver {
+
+    public final static SortValidator SORT_VALIDATOR = new SortValidator();
 
     private static final Predicate<ReferenceInfo> IS_OBJECT_ARRAY = new Predicate<ReferenceInfo>() {
         @Override
@@ -51,7 +53,6 @@ public class TableRelation implements AnalyzedRelation {
     private TableInfo tableInfo;
     private List<Field> outputs;
     private final static FieldUnwrappingVisitor FIELD_UNWRAPPING_VISITOR = new FieldUnwrappingVisitor();
-    private final static SortValidator SORT_VALIDATOR = new SortValidator();
     private Map<Path, Reference> allocatedFields = new HashMap<>();
 
     public TableRelation(TableInfo tableInfo) {
@@ -175,6 +176,7 @@ public class TableRelation implements AnalyzedRelation {
         return tableInfo.hashCode();
     }
 
+    @Deprecated
     public WhereClause resolve(WhereClause whereClause) {
         if (whereClause.hasQuery()) {
             return new WhereClause(resolve(whereClause.query()));
@@ -182,6 +184,7 @@ public class TableRelation implements AnalyzedRelation {
         return whereClause;
     }
 
+    @Deprecated
     public List<Symbol> resolve(Collection<? extends Symbol> symbols) {
         List<Symbol> result = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
@@ -190,23 +193,36 @@ public class TableRelation implements AnalyzedRelation {
         return result;
     }
 
+    @Deprecated
     public Symbol resolveHaving(Symbol symbol) {
         return resolve(symbol);
     }
 
+    @Override
+    @Nullable
     public Reference resolveField(Field field) {
         if (field.relation() == this) {
             return allocatedFields.get(field.path());
         }
-        throw new IllegalArgumentException(String.format(
-                "TableRelation %s can't resolve field of another relation", this));
+        return null;
     }
 
+    @Deprecated
     public Symbol resolve(Symbol symbol) {
         assert symbol != null : "can't resolve symbol that is null";
         return FIELD_UNWRAPPING_VISITOR.process(symbol, this);
     }
 
+    public void validateOrderBy(@Nullable OrderBy orderBy) {
+        if (orderBy!=null) {
+            for (Symbol symbol : orderBy.orderBySymbols()) {
+                SORT_VALIDATOR.process(symbol, this);
+            }
+        }
+    }
+
+
+    @Deprecated
     @Nullable
     public List<Symbol> resolveAndValidateOrderBy(@Nullable OrderBy orderBy) {
         if (orderBy==null){
@@ -221,6 +237,7 @@ public class TableRelation implements AnalyzedRelation {
         return result;
     }
 
+    @Deprecated
     private static class FieldUnwrappingVisitor extends SymbolVisitor<TableRelation, Symbol> {
 
         private Reference resolveField(Field field, TableRelation relation) {

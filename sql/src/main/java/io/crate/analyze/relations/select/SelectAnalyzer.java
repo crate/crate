@@ -28,6 +28,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.validator.SelectSymbolValidator;
+import io.crate.metadata.OutputName;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
@@ -55,7 +56,7 @@ public class SelectAnalyzer {
         private Map<QualifiedName, AnalyzedRelation> sources;
         private ExpressionAnalyzer expressionAnalyzer;
         private ExpressionAnalysisContext expressionAnalysisContext;
-        private List<String> outputNames = new ArrayList<>();
+        private List<OutputName> outputNames = new ArrayList<>();
         private List<Symbol> outputSymbols = new ArrayList<>();
         private Multimap<String, Symbol> outputMultiMap = HashMultimap.create();
 
@@ -67,7 +68,7 @@ public class SelectAnalyzer {
             this.expressionAnalysisContext = expressionAnalysisContext;
         }
 
-        public List<String> outputNames() {
+        public List<OutputName> outputNames() {
             return outputNames;
         }
 
@@ -89,7 +90,7 @@ public class SelectAnalyzer {
         }
 
         void add(String outputName, Symbol symbol) {
-            outputNames.add(outputName);
+            outputNames.add(new OutputName(outputName));
             outputSymbols.add(symbol);
             outputMultiMap.put(outputName, symbol);
         }

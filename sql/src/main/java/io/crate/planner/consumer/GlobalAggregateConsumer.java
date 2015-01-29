@@ -23,17 +23,17 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -78,26 +78,22 @@ public class GlobalAggregateConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
-            if (statement.querySpec().groupBy()!=null || !statement.querySpec().hasAggregates()) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+            if (table.querySpec().groupBy()!=null || !table.querySpec().hasAggregates()) {
                 return null;
             }
-            if (firstNonNull(statement.querySpec().limit(), 1) < 1 || statement.querySpec().offset() > 0){
-                return new NoopPlannedAnalyzedRelation(statement);
+            if (firstNonNull(table.querySpec().limit(), 1) < 1 || table.querySpec().offset() > 0){
+                return new NoopPlannedAnalyzedRelation(table);
             }
 
-            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
-            if (tableRelation == null) {
-                return null;
-            }
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
             WhereClause whereClause = whereClauseContext.whereClause();
             if(whereClause.version().isPresent()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return globalAggregates(statement, tableRelation, whereClauseContext, null);
+            return globalAggregates(table, table.tableRelation(), whereClauseContext, null);
         }
 
         @Override
@@ -106,24 +102,24 @@ public class GlobalAggregateConsumer implements Consumer {
         }
     }
 
-    public static PlannedAnalyzedRelation globalAggregates(SelectAnalyzedStatement statement,
+    public static PlannedAnalyzedRelation globalAggregates(QueriedTable table,
                                                            TableRelation tableRelation,
                                                            WhereClauseContext whereClauseContext,
                                                            ColumnIndexWriterProjection indexWriterProjection){
-        validateAggregationOutputs(tableRelation, statement.querySpec().outputs());
+        validateAggregationOutputs(tableRelation, table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(
-                tableRelation.resolve(statement.querySpec().outputs()));
+                tableRelation.resolve(table.querySpec().outputs()));
 
         // havingClause could be a Literal or Function.
         // if its a Literal and value is false, we'll never reach this point (no match),
         // otherwise (true value) having can be ignored
         Symbol havingClause = null;
-        Symbol having = statement.querySpec().having();
+        Symbol having = table.querySpec().having();
         if (having != null) {
             havingClause = contextBuilder.having(tableRelation.resolveHaving(having));
             if (!WhereClause.canMatch(havingClause)) {
-                return new NoopPlannedAnalyzedRelation(statement);
+                return new NoopPlannedAnalyzedRelation(table);
             };
         }
 

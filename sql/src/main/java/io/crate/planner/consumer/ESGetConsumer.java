@@ -23,11 +23,10 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
@@ -63,23 +62,19 @@ public class ESGetConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
-            if (statement.querySpec().hasAggregates() || statement.querySpec().groupBy()!=null) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+            if (table.querySpec().hasAggregates() || table.querySpec().groupBy()!=null) {
                 return null;
             }
-            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
-            if (tableRelation == null) {
-                return null;
-            }
-            TableInfo tableInfo = tableRelation.tableInfo();
+            TableInfo tableInfo = table.tableRelation().tableInfo();
             if (tableInfo.isAlias()
                     || tableInfo.schemaInfo().systemSchema()
                     || tableInfo.rowGranularity() != RowGranularity.DOC) {
                 return null;
             }
 
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
 
             if(whereClauseContext.whereClause().version().isPresent()){
                 context.validationException(new VersionInvalidException());
@@ -106,36 +101,37 @@ public class ESGetConsumer implements Consumer {
                 indexName = tableInfo.ident().name();
             }
 
-            Integer limit = statement.querySpec().limit();
+            Integer limit = table.querySpec().limit();
             if (limit != null){
                 if (limit == 0){
-                    return new NoopPlannedAnalyzedRelation(statement);
+                    return new NoopPlannedAnalyzedRelation(table);
                 }
             }
 
-            OrderBy orderBy = statement.querySpec().orderBy();
+            OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
                 return new ESGetNode(
                         indexName,
-                        tableRelation.resolve(statement.querySpec().outputs()),
+                        table.querySpec().outputs(),
                         whereClauseContext.ids(),
                         whereClauseContext.routingValues(),
                         null, null, null,
                         limit,
-                        statement.querySpec().offset(),
+                        table.querySpec().offset(),
                         tableInfo.partitionedByColumns()
                 );
             } else {
+                table.tableRelation().validateOrderBy(orderBy);
                 return new ESGetNode(
                         indexName,
-                        tableRelation.resolve(statement.querySpec().outputs()),
+                        table.querySpec().outputs(),
                         whereClauseContext.ids(),
                         whereClauseContext.routingValues(),
-                        tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy()),
+                        orderBy.orderBySymbols(),
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst(),
                         limit,
-                        statement.querySpec().offset(),
+                        table.querySpec().offset(),
                         tableInfo.partitionedByColumns()
                 );
             }

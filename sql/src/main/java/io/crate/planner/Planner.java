@@ -118,7 +118,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitSelectStatement(SelectAnalyzedStatement statement, Context context) {
-        return consumingPlanner.plan(statement);
+        return consumingPlanner.plan(statement.relation());
     }
 
     @Override
@@ -396,7 +396,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 whereClauseContext.whereClause().version()));
     }
 
-    @Nullable
     private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClauseContext whereClauseContext, IterablePlan plan) {
         WhereClause whereClause = whereClauseContext.whereClause();
 

@@ -21,9 +21,15 @@
 
 package io.crate.analyze;
 
+import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class QuerySpec {
@@ -92,9 +98,9 @@ public class QuerySpec {
     }
 
     public QuerySpec orderBy(@Nullable OrderBy orderBy) {
-        if (orderBy== null || !orderBy.isSorted()){
+        if (orderBy == null || !orderBy.isSorted()) {
             this.orderBy = null;
-        } else{
+        } else {
             this.orderBy = orderBy;
         }
         return this;
@@ -123,18 +129,58 @@ public class QuerySpec {
     }
 
     public void normalize(EvaluatingNormalizer normalizer) {
-        if (groupBy != null){
+        if (groupBy != null) {
             normalizer.normalizeInplace(groupBy);
         }
-        if (orderBy != null){
+        if (orderBy != null) {
             orderBy.normalize(normalizer);
         }
-        if (outputs != null){
+        if (outputs != null) {
             normalizer.normalizeInplace(outputs);
         }
-        if (where != null){
+        if (where != null) {
             where = where.normalize(normalizer);
         }
+        if (having != null) {
+            having = normalizer.normalize(having);
+        }
+    }
+
+    /**
+     * Tries to cast the outputs to the given types. Types might contain Null values, which indicates to skip that
+     * position. The iterator needs to return exactly the same number of types as there are outputs.
+     *
+     * @param types an iterable providing the types
+     * @return -1 if all casts where successfully applied or the position of the failed cast
+     */
+    public int castOutputs(Iterator<DataType> types) {
+        int i = 0;
+        while (types.hasNext()) {
+            DataType targetType = types.next();
+            if (targetType != null) {
+                Symbol output = outputs.get(i);
+                DataType sourceType = output.valueType();
+                if (!sourceType.equals(targetType)) {
+                    if (sourceType.isConvertableTo(targetType)) {
+                        Function castFunction = new Function(
+                                CastFunctionResolver.functionInfo(sourceType, targetType),
+                                Arrays.asList(output));
+                        if (groupBy() != null) {
+                            Collections.replaceAll(groupBy(), output, castFunction);
+                        }
+                        if (orderBy() != null) {
+                            Collections.replaceAll(orderBy().orderBySymbols(), output, castFunction);
+                        }
+                        outputs.set(i, castFunction);
+                    } else {
+                        return i;
+                    }
+                }
+            }
+            i++;
+        }
+        assert i == outputs.size();
+        return -1;
     }
 
 }

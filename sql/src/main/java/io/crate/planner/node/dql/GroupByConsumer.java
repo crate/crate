@@ -52,9 +52,9 @@ public class GroupByConsumer {
         // this also handles the case if there is only one primary key.
         // as clustered by column == pk column  in that case
         Symbol groupByKey = groupBySymbols.get(0);
-        return (groupByKey instanceof Field
-                && (tableRelation.resolveField((Field) groupByKey).info().ident().columnIdent()
-                    .equals(tableRelation.tableInfo().clusteredBy())));
+        return (groupByKey instanceof Reference
+                && ((Reference) groupByKey).info().ident().columnIdent()
+                    .equals(tableRelation.tableInfo().clusteredBy()));
     }
 
     private static boolean groupedByPrimaryKeys(TableRelation tableRelation, List<Symbol> groupBy) {
@@ -64,8 +64,8 @@ public class GroupByConsumer {
         }
         for (int i = 0, groupBySize = groupBy.size(); i < groupBySize; i++) {
             Symbol groupBySymbol = groupBy.get(i);
-            if (groupBySymbol instanceof Field) {
-                ColumnIdent columnIdent = tableRelation.resolveField(((Field) groupBySymbol)).info().ident().columnIdent();
+            if (groupBySymbol instanceof Reference) {
+                ColumnIdent columnIdent = ((Reference) groupBySymbol).info().ident().columnIdent();
                 ColumnIdent pkIdent = primaryKeys.get(i);
                 if (!pkIdent.equals(columnIdent)) {
                     return false;

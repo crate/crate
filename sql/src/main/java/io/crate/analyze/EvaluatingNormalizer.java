@@ -20,6 +20,7 @@
  */
 package io.crate.analyze;
 
+import io.crate.analyze.relations.FieldResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
@@ -31,7 +32,9 @@ import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -46,61 +49,139 @@ import java.util.List;
  * <p/>
  * eq(column_ref, 'someliteral')
  */
-public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
+public class EvaluatingNormalizer {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final Functions functions;
     private final RowGranularity granularity;
     private final ReferenceResolver referenceResolver;
+    private final FieldResolver fieldResolver;
+    private final BaseVisitor visitor;
 
+
+    /**
+     * @param functions function resolver
+     * @param granularity the maximum row granularity the normalizer should try to normalize
+     * @param referenceResolver reference resolver which is used to resolve paths
+     * @param fieldResolver optional field resolver to resolve fields
+     * @param inPlace defines if symbols like functions can be changed inplace instead of being copied when changed
+     */
     public EvaluatingNormalizer(
-            Functions functions, RowGranularity granularity, ReferenceResolver referenceResolver) {
+            Functions functions, RowGranularity granularity, ReferenceResolver referenceResolver,
+            @Nullable FieldResolver fieldResolver, boolean inPlace) {
         this.functions = functions;
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
+        this.fieldResolver = fieldResolver;
+        if (inPlace) {
+            this.visitor = new InPlaceVisitor();
+        } else {
+            this.visitor = new CopyingVisitor();
+        }
     }
 
-    @Override
-    public Symbol visitFunction(Function function, Void context) {
-        List<Symbol> newArgs = normalize(function.arguments());
-        if (newArgs != function.arguments()) {
-            function = new Function(function.info(), newArgs);
-        }
-        return normalizeFunctionSymbol(function);
+    public EvaluatingNormalizer(
+            Functions functions, RowGranularity granularity, ReferenceResolver referenceResolver) {
+        this(functions, granularity, referenceResolver, null, false);
     }
 
-    @SuppressWarnings("unchecked")
-    private Symbol normalizeFunctionSymbol(Function function) {
-        FunctionImplementation impl = functions.get(function.info().ident());
-        if (impl != null) {
-            return impl.normalizeSymbol(function);
-        }
-        if (logger.isTraceEnabled()) {
-            logger.trace(SymbolFormatter.format("No implementation found for function %s", function));
-        }
-        return function;
+    public EvaluatingNormalizer(AnalysisMetaData analysisMetaData, FieldResolver fieldResolver, boolean inPlace) {
+        this(analysisMetaData.functions(), RowGranularity.CLUSTER,
+                analysisMetaData.referenceResolver(), fieldResolver, inPlace);
     }
 
-    @Override
-    public Symbol visitReference(Reference symbol, Void context) {
-        if (symbol.info().granularity().ordinal() > granularity.ordinal()) {
+    private abstract class BaseVisitor extends SymbolVisitor<Void, Symbol> {
+        @Override
+        public Symbol visitField(Field field, Void context) {
+            if (fieldResolver != null) {
+                Symbol resolved = fieldResolver.resolveField(field);
+                if (resolved != null) {
+                    return resolved;
+                }
+            }
+            return field;
+        }
+
+        @Override
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Void Context) {
+            if (fieldResolver != null) {
+                // Once the fields can be resolved, rewrite matchPredicate to function
+                Map<Field, Double> fieldBoostMap = matchPredicate.identBoostMap();
+                Map<String, Object> fqnBoostMap = new HashMap<>(fieldBoostMap.size());
+
+                for (Map.Entry<Field, Double> entry : fieldBoostMap.entrySet()) {
+                    Symbol resolved = process(entry.getKey(), null);
+                    if (resolved instanceof Reference) {
+                        fqnBoostMap.put(((Reference) resolved).info().ident().columnIdent().fqn(), entry.getValue());
+                    } else {
+                        return matchPredicate;
+                    }
+                }
+
+                return new Function(
+                        io.crate.operation.predicate.MatchPredicate.INFO,
+                        Arrays.<Symbol>asList(
+                                Literal.newLiteral(fqnBoostMap),
+                                Literal.newLiteral(matchPredicate.queryTerm()),
+                                Literal.newLiteral(matchPredicate.matchType()),
+                                Literal.newLiteral(matchPredicate.options())));
+            }
+            return matchPredicate;
+        }
+
+
+        @SuppressWarnings("unchecked")
+        protected Symbol normalizeFunctionSymbol(Function function) {
+            FunctionImplementation impl = functions.get(function.info().ident());
+            if (impl != null) {
+                return impl.normalizeSymbol(function);
+            }
+            if (logger.isTraceEnabled()) {
+                logger.trace(SymbolFormatter.format("No implementation found for function %s", function));
+            }
+            return function;
+        }
+
+        @Override
+        public Symbol visitReference(Reference symbol, Void context) {
+            if (symbol.info().granularity().ordinal() > granularity.ordinal()) {
+                return symbol;
+            }
+
+            Input input = (Input) referenceResolver.getImplementation(symbol.info().ident());
+            if (input != null) {
+                return Literal.newLiteral(symbol.info().type(), input.value());
+            }
+
+            if (logger.isTraceEnabled()) {
+                logger.trace(SymbolFormatter.format("Can't resolve reference %s", symbol));
+            }
             return symbol;
         }
 
-        Input input = (Input) referenceResolver.getImplementation(symbol.info().ident());
-        if (input != null) {
-            return Literal.newLiteral(symbol.info().type(), input.value());
+        @Override
+        protected Symbol visitSymbol(Symbol symbol, Void context) {
+            return symbol;
         }
-
-        if (logger.isTraceEnabled()) {
-            logger.trace(SymbolFormatter.format("Can't resolve reference %s", symbol));
-        }
-        return symbol;
     }
 
-    @Override
-    protected Symbol visitSymbol(Symbol symbol, Void context) {
-        return symbol;
+    private class CopyingVisitor extends BaseVisitor {
+        @Override
+        public Symbol visitFunction(Function function, Void context) {
+            List<Symbol> newArgs = normalize(function.arguments());
+            if (newArgs != function.arguments()) {
+                function = new Function(function.info(), newArgs);
+            }
+            return normalizeFunctionSymbol(function);
+        }
+    }
+
+    private class InPlaceVisitor extends BaseVisitor {
+        @Override
+        public Symbol visitFunction(Function function, Void context) {
+            normalizeInplace(function.arguments());
+            return normalizeFunctionSymbol(function);
+        }
     }
 
     /**
@@ -132,7 +213,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
      * @param symbols the list to be normalized
      */
     public void normalizeInplace(@Nullable List<Symbol> symbols) {
-        if (symbols != null){
+        if (symbols != null) {
             for (int i = 0; i < symbols.size(); i++) {
                 symbols.set(i, normalize(symbols.get(i)));
             }
@@ -143,7 +224,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
         if (symbol == null) {
             return null;
         }
-        return process(symbol, null);
+        return visitor.process(symbol, null);
     }
 
 }

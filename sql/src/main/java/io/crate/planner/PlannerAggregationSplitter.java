@@ -37,6 +37,7 @@ class PlannerAggregationSplitter extends SymbolVisitor<PlannerContext, Symbol> {
             context.parent = aggregation;
         }
 
+
         if (context.parent != null && context.parent.symbolType() == SymbolType.AGGREGATION) {
             // beneath a aggregation. Just mark everything as to collect
             int idx = 0;

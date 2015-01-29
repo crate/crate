@@ -168,11 +168,11 @@ public class TestingHelpers {
     private static <T> void assertLiteral(Symbol symbol, T expectedValue, DataType type) {
         assertThat(symbol, instanceOf(Literal.class));
         assertEquals(type, ((Literal)symbol).valueType());
-        assertThat((T)((Literal) symbol).value(), is(expectedValue));
+        assertThat((T) ((Literal) symbol).value(), is(expectedValue));
     }
 
     public static <T> void assertNullLiteral(Symbol symbol, T expectedValue) {
-        assertLiteral(symbol, (T)((Literal)symbol).value(), DataTypes.UNDEFINED);
+        assertLiteral(symbol, (T) ((Literal) symbol).value(), DataTypes.UNDEFINED);
     }
 
     public static void assertLiteralSymbol(Symbol symbol, Object expectedValue, DataType type) {
@@ -212,6 +212,43 @@ public class TestingHelpers {
         };
     }
 
+    public static Matcher<Symbol> isField(final String expectedName) {
+        return isField(expectedName, null);
+    }
+
+    public static Matcher<Symbol> isField(final String expectedName, @Nullable final DataType dataType) {
+        return new TypeSafeDiagnosingMatcher<Symbol>() {
+
+            @Override
+            public boolean matchesSafely(Symbol item, Description desc) {
+                if (!(item instanceof Field)) {
+                    desc.appendText("not a Field: ").appendText(item.getClass().getName());
+                    return false;
+                }
+                String name = ((Field) item).path().outputName();
+                if (!name.equals(expectedName)) {
+                    desc.appendText("different path ").appendValue(name);
+                    return false;
+                }
+                if (dataType != null && !((Field) item).valueType().equals(dataType)) {
+                    desc.appendText("different type ").appendValue(dataType.toString());
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                StringBuilder builder = new StringBuilder("a Field with path ").append(expectedName);
+                if (dataType != null) {
+                    builder.append(" and type").append(dataType.toString());
+                }
+                description.appendText(builder.toString());
+            }
+        };
+    }
+
+
+
     public static Matcher<Symbol> isReference(String expectedName) {
         return isReference(expectedName, null);
     }
@@ -225,7 +262,7 @@ public class TestingHelpers {
                     desc.appendText("not a Reference: ").appendText(item.getClass().getName());
                     return false;
                 }
-                String name = ((Reference) item).info().ident().columnIdent().fqn();
+                String name = ((Reference) item).info().ident().columnIdent().outputName();
                 if (!name.equals(expectedName)) {
                     desc.appendText("different name ").appendValue(name);
                     return false;

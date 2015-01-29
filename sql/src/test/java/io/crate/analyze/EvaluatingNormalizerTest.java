@@ -108,7 +108,7 @@ public class EvaluatingNormalizerTest {
 
         // the dummy reference load == 0.08 evaluates to true,
         // so the whole query can be normalized to a single boolean literal
-        Symbol query = visitor.process(op_or, null);
+        Symbol query = visitor.normalize(op_or);
         assertLiteralSymbol(query, true);
     }
 
@@ -118,7 +118,7 @@ public class EvaluatingNormalizerTest {
                 functions, RowGranularity.CLUSTER, referenceResolver);
 
         Function op_or = prepareFunctionTree();
-        Symbol query = visitor.process(op_or, null);
+        Symbol query = visitor.normalize(op_or);
         assertThat(query, instanceOf(Function.class));
     }
 
