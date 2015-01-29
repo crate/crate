@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Force UTF8 encoding in file reading collector to avoid JVM's default encoding settings
+
  - Added support for the ``std_dev``, ``variance`` and ``geometric_mean``
    aggregation functions
 
