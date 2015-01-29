@@ -351,7 +351,7 @@ public class TestingHelpers {
         private final Class<? extends Throwable> type;
         private final String expectedMessage;
 
-        public CauseMatcher(Class<? extends Throwable> type, String expectedMessage) {
+        public CauseMatcher(Class<? extends Throwable> type, @Nullable String expectedMessage) {
             this.type = type;
             this.expectedMessage = expectedMessage;
         }
@@ -359,16 +359,22 @@ public class TestingHelpers {
         @Override
         protected boolean matchesSafely(Throwable item) {
             return item.getClass().isAssignableFrom(type)
-                    && item.getMessage().contains(expectedMessage);
+                    && (null == expectedMessage || item.getMessage().contains(expectedMessage));
         }
 
         @Override
         public void describeTo(Description description) {
             description.appendText("expects type ")
-                    .appendValue(type)
-                    .appendText(" and a message ")
-                    .appendValue(expectedMessage);
+                    .appendValue(type);
+            if(expectedMessage != null) {
+                description.appendText(" and a message ")
+                        .appendValue(expectedMessage);
+            }
         }
+    }
+
+    public static Matcher<Throwable> cause(Class<? extends Throwable> type) {
+        return cause(type, null);
     }
 
     public static Matcher<Throwable> cause(Class<? extends Throwable> type, String expectedMessage) {

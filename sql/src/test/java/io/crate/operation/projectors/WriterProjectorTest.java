@@ -35,6 +35,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -57,7 +58,8 @@ public class WriterProjectorTest {
     @Test
     public void testWriteRawToFile() throws Exception {
 
-        String uri = folder.newFile("out.json").getAbsolutePath();
+        String fileAbsolutePath = folder.newFile("out.json").getAbsolutePath();
+        String uri = Paths.get(fileAbsolutePath).toUri().toString();
         Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
                 uri,
@@ -82,11 +84,13 @@ public class WriterProjectorTest {
         assertEquals(1, rows.length);
         assertEquals(5L, rows[0][0]);
 
-        assertEquals("input line 00" + LN +
-                "input line 01" + LN +
-                "input line 02" + LN +
-                "input line 03" + LN +
-                "input line 04" + LN, TestingHelpers.readFile(uri));
+        //NOTE: "\n" is hardcoded in the WritingCollector (requirement), thus
+        // we need to hard code the "\n" in this test as well!
+        assertEquals("input line 00\n" +
+                "input line 01\n" +
+                "input line 02\n" +
+                "input line 03\n" +
+                "input line 04\n", TestingHelpers.readFile(fileAbsolutePath));
     }
 
     @Test
@@ -106,7 +110,7 @@ public class WriterProjectorTest {
         expectedException.expect(ExecutionException.class);
         expectedException.expectCause(TestingHelpers.cause(UnhandledServerException.class, "Failed to open output: 'Output path is a directory: "));
 
-        String uri = folder.newFolder().getAbsolutePath();
+        String uri = Paths.get(folder.newFolder().toURI()).toUri().toString();
         Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
                 uri,
@@ -126,9 +130,9 @@ public class WriterProjectorTest {
     @Test
     public void testFileAsDirectory() throws Exception {
         expectedException.expect(ExecutionException.class);
-        expectedException.expectCause(TestingHelpers.cause(UnhandledServerException.class, "(Not a directory)"));
+        expectedException.expectCause(TestingHelpers.cause(UnhandledServerException.class));
 
-        String uri = new File(folder.newFile(), "out.json").getCanonicalPath();
+        String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
         Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
                 uri,
