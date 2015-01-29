@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.FullQualifedNameFieldResolver;
+import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -136,7 +136,7 @@ public class ExpressionAnalyzerNormalizeTest {
                 .createInjector();
         expressionAnalyzer = new ExpressionAnalyzer(injector.getInstance(AnalysisMetaData.class),
                 new ParameterContext(new Object[0], new Object[0][]),
-                new FullQualifedNameFieldResolver(
+                new FullQualifedNameFieldProvider(
                         ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                             new QualifiedName(Arrays.asList("doc", "test1")), new TableRelation(userTableInfo)))
         );

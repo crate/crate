@@ -79,7 +79,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(analyzedRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
                 new ExpressionAnalyzer(analysisMetaData, parameterContext,
-                        new FullQualifedNameFieldResolver(relationAnalysisContext.sources())),
+                        new FullQualifedNameFieldProvider(relationAnalysisContext.sources())),
                 new ExpressionAnalysisContext(),
                 deleteAnalyzedStatement
         );

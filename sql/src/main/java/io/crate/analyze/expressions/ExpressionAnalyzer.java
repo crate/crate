@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.FieldResolver;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -84,7 +84,7 @@ public class ExpressionAnalyzer {
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final InnerExpressionAnalyzer innerAnalyzer;
     private final EvaluatingNormalizer normalizer;
-    private final FieldResolver fieldResolver;
+    private final FieldProvider fieldProvider;
     private final Functions functions;
     private final ReferenceInfos referenceInfos;
     private final ParameterContext parameterContext;
@@ -92,11 +92,11 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               ParameterContext parameterContext,
-                              FieldResolver fieldResolver) {
+                              FieldProvider fieldProvider) {
         functions = analysisMetaData.functions();
         referenceInfos = analysisMetaData.referenceInfos();
         this.parameterContext = parameterContext;
-        this.fieldResolver = fieldResolver;
+        this.fieldProvider = fieldProvider;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
         this.normalizer = new EvaluatingNormalizer(
                 analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver());
@@ -484,7 +484,7 @@ public class ExpressionAnalyzer {
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
             if (subscriptContext.qName() != null && subscriptExpression == null) {
-                subscriptSymbol = fieldResolver.resolveField(subscriptContext.qName(), subscriptContext.parts(), forWrite);
+                subscriptSymbol = fieldProvider.resolveField(subscriptContext.qName(), subscriptContext.parts(), forWrite);
             } else if (subscriptExpression != null) {
                 subscriptSymbol = subscriptExpression.accept(this, context);
             } else {
@@ -682,7 +682,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            return fieldResolver.resolveField(node.getName(), forWrite);
+            return fieldProvider.resolveField(node.getName(), forWrite);
         }
 
         @Override

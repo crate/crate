@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.FullQualifedNameFieldResolver;
+import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
@@ -123,7 +123,7 @@ public class CompoundLiteralTest extends AbstractRandomizedTest {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 new ParameterContext(params, new Object[0][]),
-                new FullQualifedNameFieldResolver(
+                new FullQualifedNameFieldProvider(
                         ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                             new QualifiedName("dummy"), new DummyRelation()
                 ))

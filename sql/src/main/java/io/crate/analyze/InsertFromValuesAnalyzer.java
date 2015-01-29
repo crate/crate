@@ -23,8 +23,8 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.FieldResolver;
-import io.crate.analyze.relations.NameFieldResolver;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
@@ -70,11 +70,11 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         TableRelation tableRelation = new TableRelation(tableInfo);
         validateTable(tableInfo);
 
-        FieldResolver fieldResolver = new NameFieldResolver(tableRelation);
+        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 analysis.parameterContext(),
-                fieldResolver
+                fieldProvider
                 );
         expressionAnalyzer.resolveWritableFields(true);
         expressionAnalysisContext = new ExpressionAnalysisContext();

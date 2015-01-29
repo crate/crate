@@ -35,11 +35,11 @@ import java.util.Locale;
  *
  * The QualifiedNames must not contain a schema or a table.
  */
-public class NameFieldResolver implements FieldResolver {
+public class NameFieldProvider implements FieldProvider {
 
     private AnalyzedRelation relation;
 
-    public NameFieldResolver(AnalyzedRelation relation) {
+    public NameFieldProvider(AnalyzedRelation relation) {
         this.relation = relation;
     }
 

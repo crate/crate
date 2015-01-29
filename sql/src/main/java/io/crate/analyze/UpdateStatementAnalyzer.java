@@ -78,9 +78,9 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         TableRelation tableRelation = ((TableRelation) analyzedRelation);
         TableInfo tableInfo = tableRelation.tableInfo();
 
-        FieldResolver fieldResolver = new NameFieldResolver(analyzedRelation);
+        FieldProvider fieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, parameterContext, fieldResolver);
+                new ExpressionAnalyzer(analysisMetaData, parameterContext, fieldProvider);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;

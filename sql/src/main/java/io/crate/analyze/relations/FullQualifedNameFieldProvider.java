@@ -38,11 +38,11 @@ import java.util.Map;
  * The Resolver also takes full qualified names so the name may contain table
  * and / or schema.
  */
-public class FullQualifedNameFieldResolver implements FieldResolver {
+public class FullQualifedNameFieldProvider implements FieldProvider {
 
     private Map<QualifiedName, AnalyzedRelation> sources;
 
-    public FullQualifedNameFieldResolver(Map<QualifiedName, AnalyzedRelation> sources) {
+    public FullQualifedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources) {
         assert !sources.isEmpty() : "Must have at least one source";
         this.sources = sources;
     }

@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.NameFieldResolver;
+import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -136,7 +136,7 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 parameterContext,
-                new NameFieldResolver(tableRelation));
+                new NameFieldProvider(tableRelation));
         if (statement.mode() == CopyAnalyzedStatement.Mode.FROM) {
             expressionAnalyzer.resolveWritableFields(true);
         }

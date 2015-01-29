@@ -27,7 +27,7 @@ import io.crate.sql.tree.QualifiedName;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public interface FieldResolver {
+public interface FieldProvider {
 
     public Field resolveField(QualifiedName qualifiedName, boolean forWrite);
 
