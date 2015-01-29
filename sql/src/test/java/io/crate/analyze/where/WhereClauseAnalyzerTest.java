@@ -24,12 +24,10 @@ package io.crate.analyze.where;
 import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
@@ -157,13 +155,11 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     private WhereClauseContext analyzeSelectWhere(String stmt) {
         SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(
                 SqlParser.createStatement(stmt), new Object[0], new Object[0][]).analyzedStatement();
-        assertThat(statement.sources().size(), is(1));
-        AnalyzedRelation sourceRelation = Iterables.getOnlyElement(statement.sources().values());
-        assertThat(sourceRelation, instanceOf(TableRelation.class));
-        TableRelation tableRelation = (TableRelation) sourceRelation;
+        QueriedTable sourceRelation = (QueriedTable) statement.relation();
+        TableRelation tableRelation = sourceRelation.tableRelation();
         TableInfo tableInfo = tableRelation.tableInfo();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        return whereClauseAnalyzer.analyze(statement.querySpec().where());
+        return whereClauseAnalyzer.analyze(statement.relation().querySpec().where());
     }
 
     @Test

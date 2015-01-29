@@ -40,26 +40,39 @@ import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
+@Singleton
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, RelationAnalysisContext> {
 
     private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
 
     private final AnalysisMetaData analysisMetaData;
-    private final ParameterContext parameterContext;
 
     private ExpressionAnalyzer expressionAnalyzer;
     private ExpressionAnalysisContext expressionAnalysisContext;
 
-    public RelationAnalyzer(AnalysisMetaData analysisMetaData,
-                            ParameterContext parameterContext) {
+    @Inject
+    public RelationAnalyzer(AnalysisMetaData analysisMetaData) {
         this.analysisMetaData = analysisMetaData;
-        this.parameterContext = parameterContext;
+    }
+
+
+    public AnalyzedRelation analyze(Node node, Analysis analysis){
+        RelationAnalysisContext context = new RelationAnalysisContext(analysis.parameterContext());
+        return process(node, context);
+    }
+
+    @Override
+    protected AnalyzedRelation visitQuery(Query node, RelationAnalysisContext context) {
+        return process(node.getQueryBody(), context);
     }
 
     @Override
@@ -75,7 +88,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     ("Only exactly one table is allowed in the FROM clause, got: " + context.sources().size());
         }
         FieldProvider fieldProvider = new FullQualifedNameFieldProvider(context.sources());
-        expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext, fieldProvider);
+        expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, context.parameterContext(), fieldProvider);
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
         WhereClause whereClause = analyzeWhere(node.getWhere());
@@ -109,12 +122,26 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 .groupBy(groupBy)
                 .hasAggregates(expressionAnalysisContext.hasAggregates);
 
-        return new SelectAnalyzedStatement(
+        if (context.sources().size()==1){
+            Map.Entry<QualifiedName, AnalyzedRelation> entry = Iterables.getOnlyElement(context.sources().entrySet());
+            if (entry.getValue() instanceof TableRelation){
+                QueriedTable relation = new QueriedTable(entry.getKey(), (TableRelation) entry.getValue(),
+                        selectAnalysis.outputNames(), querySpec);
+                return relation.normalize(analysisMetaData);
+            } else {
+                throw new UnsupportedOperationException
+                        ("Only tables are allowed in the FROM clause, got: " + entry.getValue());
+            }
+        }
+        // TODO: implement multi table selects
+        // once this is used .normalize should for this class needs to be handled here too
+        return new MultiSourceSelect(
                 context.sources(),
                 selectAnalysis.outputNames(),
                 querySpec
         );
     }
+
 
     private List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
@@ -303,7 +330,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, RelationAnalysisContext context) {
-        AnalyzedRelation childRelation = process(node.getRelation(), new RelationAnalysisContext());
+        AnalyzedRelation childRelation = process(node.getRelation(), new RelationAnalysisContext(context.parameterContext()));
         context.addSourceRelation(node.getAlias(), childRelation);
         return childRelation;
     }

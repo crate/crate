@@ -21,37 +21,14 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.ParameterContext;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Symbol;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import javax.annotation.Nullable;
 
-public class RelationAnalysisContext {
+public interface FieldResolver {
 
-    private Map<QualifiedName, AnalyzedRelation> sources = new HashMap<>();
-    private ParameterContext parameterContext;
-
-    public RelationAnalysisContext(ParameterContext parameterContext) {
-
-        this.parameterContext = parameterContext;
-    }
-
-    public ParameterContext parameterContext() {
-        return parameterContext;
-    }
-
-    public void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
-        sources.put(new QualifiedName(nameOrAlias), relation);
-    }
-
-    public void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
-        sources.put(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
-    }
-
-    public Map<QualifiedName, AnalyzedRelation> sources() {
-        return sources;
-    }
+    @Nullable
+    public Symbol resolveField(Field field);
 
 }

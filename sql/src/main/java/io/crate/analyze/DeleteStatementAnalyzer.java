@@ -26,8 +26,12 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.Node;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
-public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Void> {
+@Singleton
+public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
     final DefaultTraversalVisitor<Void, InnerAnalysisContext> innerAnalyzer =
         new DefaultTraversalVisitor<Void, InnerAnalysisContext>() {
@@ -41,11 +45,18 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     };
 
     private AnalysisMetaData analysisMetaData;
-    private ParameterContext parameterContext;
+    private RelationAnalyzer relationAnalyzer;
 
-    public DeleteStatementAnalyzer(AnalysisMetaData analysisMetaData, ParameterContext parameterContext) {
+    @Inject
+    public DeleteStatementAnalyzer(AnalysisMetaData analysisMetaData,
+                                   RelationAnalyzer relationAnalyzer) {
         this.analysisMetaData = analysisMetaData;
-        this.parameterContext = parameterContext;
+        this.relationAnalyzer = relationAnalyzer;
+    }
+
+    public AnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return process(node, analysis);
     }
 
     private static class InnerAnalysisContext {
@@ -53,10 +64,9 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         ExpressionAnalysisContext expressionAnalysisContext;
         DeleteAnalyzedStatement deleteAnalyzedStatement;
 
-        public InnerAnalysisContext(ExpressionAnalyzer expressionAnalyzer,
-                                    ExpressionAnalysisContext expressionAnalysisContext,
-                                    DeleteAnalyzedStatement deleteAnalyzedStatement) {
-
+        InnerAnalysisContext(ExpressionAnalyzer expressionAnalyzer,
+                             ExpressionAnalysisContext expressionAnalysisContext,
+                             DeleteAnalyzedStatement deleteAnalyzedStatement) {
             this.expressionAnalyzer = expressionAnalyzer;
             this.expressionAnalysisContext = expressionAnalysisContext;
             this.deleteAnalyzedStatement = deleteAnalyzedStatement;
@@ -64,11 +74,10 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     }
 
     @Override
-    public AnalyzedStatement visitDelete(Delete node, Void context) {
+    public AnalyzedStatement visitDelete(Delete node, Analysis context) {
         int numNested = 1;
 
-        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData, parameterContext);
-        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext();
+        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(context.parameterContext());
 
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
         if (Relations.isReadOnly(analyzedRelation)) {
@@ -78,17 +87,17 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(analyzedRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-                new ExpressionAnalyzer(analysisMetaData, parameterContext,
+                new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),
                         new FullQualifedNameFieldProvider(relationAnalysisContext.sources())),
                 new ExpressionAnalysisContext(),
                 deleteAnalyzedStatement
         );
 
-        if (parameterContext.hasBulkParams()) {
-            numNested = parameterContext.bulkParameters.length;
+        if (context.parameterContext().hasBulkParams()) {
+            numNested = context.parameterContext().bulkParameters.length;
         }
         for (int i = 0; i < numNested; i++) {
-            parameterContext.setBulkIdx(i);
+            context.parameterContext().setBulkIdx(i);
             innerAnalyzer.process(node, innerAnalysisContext);
         }
         return deleteAnalyzedStatement;

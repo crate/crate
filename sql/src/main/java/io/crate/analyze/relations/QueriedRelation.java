@@ -21,37 +21,10 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.ParameterContext;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.analyze.QuerySpec;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+public interface QueriedRelation extends AnalyzedRelation {
 
-public class RelationAnalysisContext {
-
-    private Map<QualifiedName, AnalyzedRelation> sources = new HashMap<>();
-    private ParameterContext parameterContext;
-
-    public RelationAnalysisContext(ParameterContext parameterContext) {
-
-        this.parameterContext = parameterContext;
-    }
-
-    public ParameterContext parameterContext() {
-        return parameterContext;
-    }
-
-    public void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
-        sources.put(new QualifiedName(nameOrAlias), relation);
-    }
-
-    public void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
-        sources.put(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
-    }
-
-    public Map<QualifiedName, AnalyzedRelation> sources() {
-        return sources;
-    }
+    public QuerySpec querySpec();
 
 }

@@ -35,9 +35,12 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -45,7 +48,8 @@ import java.util.List;
 import java.util.Map;
 
 
-public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Void> {
+@Singleton
+public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
     private static final Predicate<ReferenceInfo> IS_OBJECT_ARRAY = new Predicate<ReferenceInfo>() {
         @Override
@@ -56,20 +60,26 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         }
     };
 
-    private AnalysisMetaData analysisMetaData;
-    private ParameterContext parameterContext;
+    private final AnalysisMetaData analysisMetaData;
+    private final RelationAnalyzer relationAnalyzer;
 
-    public UpdateStatementAnalyzer(AnalysisMetaData analysisMetaData, ParameterContext parameterContext) {
+
+    @Inject
+    public UpdateStatementAnalyzer(AnalysisMetaData analysisMetaData,
+                                   RelationAnalyzer relationAnalyzer) {
         this.analysisMetaData = analysisMetaData;
-        this.parameterContext = parameterContext;
+        this.relationAnalyzer = relationAnalyzer;
     }
 
-    @Override
-    public AnalyzedStatement visitUpdate(Update node, Void context) {
-        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData, parameterContext);
-        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext();
+    public AnalyzedStatement analyze(Node node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+        return process(node, analysis);
+    }
 
-        AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.relation(), relationAnalysisContext);
+
+    @Override
+    public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
+        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), analysis);
         if (Relations.isReadOnly(analyzedRelation)) {
             throw new UnsupportedOperationException(String.format(
                     "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
@@ -80,16 +90,16 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
         FieldProvider fieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, parameterContext, fieldProvider);
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;
-        if (parameterContext.bulkParameters.length > 0) {
-            numNested = parameterContext.bulkParameters.length;
+        if (analysis.parameterContext().bulkParameters.length > 0) {
+            numNested = analysis.parameterContext().bulkParameters.length;
         }
         List<UpdateAnalyzedStatement.NestedAnalyzedStatement> nestedAnalyzedStatements = new ArrayList<>(numNested);
         for (int i = 0; i < numNested; i++) {
-            parameterContext.setBulkIdx(i);
+            analysis.parameterContext().setBulkIdx(i);
 
             UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement = new UpdateAnalyzedStatement.NestedAnalyzedStatement(
                     expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext));
@@ -179,4 +189,5 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         }
         return false;
     }
+
 }

@@ -23,11 +23,10 @@ package io.crate.planner.consumer;
 import io.crate.Constants;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
@@ -83,35 +82,31 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
 
         @Override
-        public AnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
-            if(context.consumerContext.rootRelation() != statement){
-                return statement;
+        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+            if(context.consumerContext.rootRelation() != table){
+                return table;
             }
-            if(statement.querySpec().groupBy()==null){
-                return statement;
+            if(table.querySpec().groupBy()==null){
+                return table;
             }
-            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
-            if(tableRelation == null){
-                return statement;
-            }
-            TableInfo tableInfo = tableRelation.tableInfo();
+            TableInfo tableInfo = table.tableRelation().tableInfo();
 
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
             WhereClause whereClause = whereClauseContext.whereClause();
             if(whereClause.version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
-                return statement;
+                return table;
             }
 
             Routing routing = tableInfo.getRouting(whereClause, null);
 
             if(GroupByConsumer.requiresDistribution(tableInfo, routing) && !(tableInfo.schemaInfo().systemSchema())){
-                return statement;
+                return table;
             }
 
             context.result = true;
-            return nonDistributedGroupBy(statement, tableRelation, whereClauseContext, null);
+            return nonDistributedGroupBy(table, whereClauseContext, null);
         }
 
         @Override
@@ -134,27 +129,26 @@ public class NonDistributedGroupByConsumer implements Consumer {
      *  Collect ( GroupProjection ITER -> PARTIAL )
      *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], [TopN], IndexWriterProjection )
      */
-    public static AnalyzedRelation nonDistributedGroupBy(SelectAnalyzedStatement analysis,
-                                                          TableRelation tableRelation,
-                                                          WhereClauseContext whereClauseContext,
-                                                          @Nullable ColumnIndexWriterProjection indexWriterProjection) {
+    public static AnalyzedRelation nonDistributedGroupBy(QueriedTable table,
+                                                         WhereClauseContext whereClauseContext,
+                                                         @Nullable ColumnIndexWriterProjection indexWriterProjection) {
         boolean ignoreSorting = indexWriterProjection != null;
-        TableInfo tableInfo = tableRelation.tableInfo();
+        TableInfo tableInfo = table.tableRelation().tableInfo();
 
-        GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.querySpec().groupBy());
-        List<Symbol> groupBy = tableRelation.resolve(analysis.querySpec().groupBy());
+        GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
+        List<Symbol> groupBy = table.tableRelation().resolve(table.querySpec().groupBy());
         int numAggregationSteps = 2;
 
         PlannerContextBuilder contextBuilder =
                 new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
-                        .output(tableRelation.resolve(analysis.querySpec().outputs()))
-                        .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy()));
+                        .output(table.tableRelation().resolve(table.querySpec().outputs()))
+                        .orderBy(table.tableRelation().resolveAndValidateOrderBy(table.querySpec().orderBy()));
 
         Symbol havingClause = null;
-        if(analysis.querySpec().having() != null){
-            havingClause = tableRelation.resolveHaving(analysis.querySpec().having());
+        if(table.querySpec().having() != null){
+            havingClause = table.tableRelation().resolveHaving(table.querySpec().having());
             if (!WhereClause.canMatch(havingClause)) {
-                return new NoopPlannedAnalyzedRelation(analysis);
+                return new NoopPlannedAnalyzedRelation(table);
             };
         }
         if (havingClause != null && havingClause instanceof Function) {
@@ -184,14 +178,14 @@ public class NonDistributedGroupByConsumer implements Consumer {
             contextBuilder.addProjection(fp);
         }
         if (!ignoreSorting) {
-            OrderBy orderBy = analysis.querySpec().orderBy();
-            int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            OrderBy orderBy = table.querySpec().orderBy();
+            int limit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN;
             if (orderBy == null){
-                topN = new TopNProjection(limit, analysis.querySpec().offset());
+                topN = new TopNProjection(limit, table.querySpec().offset());
 
             } else {
-                topN = new TopNProjection(limit, analysis.querySpec().offset(),
+                topN = new TopNProjection(limit, table.querySpec().offset(),
                         contextBuilder.orderBy(),
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst());

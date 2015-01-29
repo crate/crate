@@ -22,7 +22,8 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.UpdateAnalyzedStatement;
 
 import javax.annotation.Nullable;
@@ -37,8 +38,12 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         throw new UnsupportedOperationException(String.format("relation \"%s\" is not supported", relation));
     }
 
-    public R visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, C context) {
-        return visitAnalyzedRelation(selectAnalyzedStatement, context);
+    public R visitQueriedTable(QueriedTable table, C context) {
+        return visitAnalyzedRelation(table, context);
+    }
+
+    public R visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, C context) {
+        return visitAnalyzedRelation(multiSourceSelect, context);
     }
 
     public R visitTableRelation(TableRelation tableRelation, C context) {
@@ -56,4 +61,5 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     public R visitUpdateAnalyzedStatement(UpdateAnalyzedStatement updateAnalyzedStatement, C context) {
         return visitAnalyzedRelation(updateAnalyzedStatement, context);
     }
+
 }

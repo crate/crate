@@ -24,13 +24,9 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.SelectAnalyzedStatement;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
@@ -88,48 +84,46 @@ public class DistributedGroupByConsumer implements Consumer {
         }
 
         @Override
-        public AnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
+        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
             // Test if statement is root relation because the rootRelation will be replaced with the returned plan
-            if (context.consumerContext.rootRelation() != statement) {
-                return statement;
+            if (context.consumerContext.rootRelation() != table) {
+                return table;
             }
-            if (statement.querySpec().groupBy()==null) {
-                return statement;
+            if (table.querySpec().groupBy()==null) {
+                return table;
             }
-            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
-            if (tableRelation == null) {
-                return statement;
-            }
-            TableInfo tableInfo = tableRelation.tableInfo();
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
+
+            TableInfo tableInfo = table.tableRelation().tableInfo();
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
             WhereClause whereClause = whereClauseContext.whereClause();
             if(whereClause.version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
-                return statement;
+                return table;
             }
 
             Routing routing = tableInfo.getRouting(whereClause, null);
 
             if (!GroupByConsumer.requiresDistribution(tableInfo, routing)) {
-                return statement;
+                return table;
             }
 
-            GroupByConsumer.validateGroupBySymbols(tableRelation, statement.querySpec().groupBy());
-            PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, tableRelation.resolve(statement.querySpec().groupBy()))
-                    .output(tableRelation.resolve(statement.querySpec().outputs())
-                    );
+            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
+            PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2,
+                    table.querySpec().groupBy())
+                    .output(table.querySpec().outputs());
 
-            OrderBy orderBy = statement.querySpec().orderBy();
+            OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy != null){
-                contextBuilder.orderBy(tableRelation.resolveAndValidateOrderBy(orderBy));
+                table.tableRelation().validateOrderBy(orderBy);
+                contextBuilder.orderBy(orderBy.orderBySymbols());
             }
 
             Symbol havingClause = null;
-            if(statement.querySpec().having() != null){
-                havingClause = tableRelation.resolveHaving(statement.querySpec().having());
+            if(table.querySpec().having() != null){
+                havingClause = table.querySpec().having();
                 if (!WhereClause.canMatch(havingClause)) {
-                    return new NoopPlannedAnalyzedRelation(statement);
+                    return new NoopPlannedAnalyzedRelation(table);
                 };
             }
             if (havingClause != null && havingClause instanceof Function) {
@@ -175,10 +169,10 @@ public class DistributedGroupByConsumer implements Consumer {
                  * Any additional aggregations in the having clause that are not part of the selectList must come
                  * AFTER the selectList aggregations
                  */
-                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), statement.querySpec().outputs().size()));
+                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), table.querySpec().outputs().size()));
                 contextBuilder.addProjection(fp);
             }
-            TopNProjection topNForReducer = getTopNForReducer(statement, contextBuilder, contextBuilder.outputs());
+            TopNProjection topNForReducer = getTopNForReducer(table.querySpec(), contextBuilder, contextBuilder.outputs());
             if (topNForReducer != null) {
                 contextBuilder.addProjection(topNForReducer);
             }
@@ -197,12 +191,12 @@ public class DistributedGroupByConsumer implements Consumer {
                 outputs = contextBuilder.passThroughOutputs();
             }
             // mergeNode handler
-            int limit = firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            int limit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN;
             if (orderBy == null){
-                topN = new TopNProjection(limit, statement.querySpec().offset());
+                topN = new TopNProjection(limit, table.querySpec().offset());
             } else {
-                topN = new TopNProjection(limit, statement.querySpec().offset(),
+                topN = new TopNProjection(limit, table.querySpec().offset(),
                         orderBySymbols,
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst()
@@ -233,12 +227,12 @@ public class DistributedGroupByConsumer implements Consumer {
          * @param outputs list of outputs to add to the topNProjection if applicable.
          */
         @Nullable
-        private TopNProjection getTopNForReducer(SelectAnalyzedStatement analysis,
+        private TopNProjection getTopNForReducer(QuerySpec querySpec,
                                                  PlannerContextBuilder contextBuilder,
                                                  List<Symbol> outputs) {
-            if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
-                OrderBy orderBy = analysis.querySpec().orderBy();
-                int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset();
+            if (requireLimitOnReducer(querySpec, contextBuilder.aggregationsWrappedInScalar)) {
+                OrderBy orderBy = querySpec.orderBy();
+                int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset();
                 TopNProjection topN;
                 if (orderBy==null){
                     topN = new TopNProjection(limit, 0);
@@ -254,9 +248,9 @@ public class DistributedGroupByConsumer implements Consumer {
             return null;
         }
 
-        private boolean requireLimitOnReducer(SelectAnalyzedStatement analysis, boolean aggregationsWrappedInScalar) {
-            return (analysis.querySpec().limit() != null
-                    || analysis.querySpec().offset() > 0
+        private boolean requireLimitOnReducer(QuerySpec querySpec, boolean aggregationsWrappedInScalar) {
+            return (querySpec.limit() != null
+                    || querySpec.offset() > 0
                     || aggregationsWrappedInScalar);
         }
     }

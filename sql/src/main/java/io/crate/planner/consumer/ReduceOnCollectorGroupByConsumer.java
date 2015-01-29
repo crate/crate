@@ -22,10 +22,7 @@
 package io.crate.planner.consumer;
 
 import io.crate.Constants;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.SelectAnalyzedStatement;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
@@ -86,30 +83,26 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
         }
 
         @Override
-        public AnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
-            if (context.consumerContext.rootRelation() != statement) {
-                return statement;
+        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+            if (context.consumerContext.rootRelation() != table) {
+                return table;
             }
-            if (statement.querySpec().groupBy() == null) {
-                return statement;
+            if (table.querySpec().groupBy() == null) {
+                return table;
             }
-            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
-            if (tableRelation == null) {
-                return statement;
-            }
-
-            if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, statement.querySpec().groupBy())) {
-                return statement;
+            if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(table.tableRelation(), table.querySpec().groupBy())) {
+                return table;
             }
 
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.querySpec().where());
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
             if (whereClauseContext.whereClause().version().isPresent()) {
                 context.consumerContext.validationException(new VersionInvalidException());
-                return statement;
+                return table;
             }
             context.result = true;
-            return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(statement, tableRelation, whereClauseContext, null);
+            return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, table.tableRelation(),
+                    whereClauseContext, null);
         }
 
 
@@ -135,25 +128,25 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
      * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
      * LocalMergeNode ( [TopN], IndexWriterProjection )
      */
-    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(SelectAnalyzedStatement analysis, TableRelation tableRelation, WhereClauseContext whereClauseContext, ColumnIndexWriterProjection indexWriterProjection) {
-        assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, analysis.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
+    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, WhereClauseContext whereClauseContext, ColumnIndexWriterProjection indexWriterProjection) {
+        assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
         TableInfo tableInfo = tableRelation.tableInfo();
-        GroupByConsumer.validateGroupBySymbols(tableRelation, analysis.querySpec().groupBy());
-        List<Symbol> groupBy = tableRelation.resolve(analysis.querySpec().groupBy());
+        GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
+        List<Symbol> groupBy = tableRelation.resolve(table.querySpec().groupBy());
         boolean ignoreSorting = indexWriterProjection != null
-                && analysis.querySpec().limit() == null
-                && analysis.querySpec().offset() == TopN.NO_OFFSET;
+                && table.querySpec().limit() == null
+                && table.querySpec().offset() == TopN.NO_OFFSET;
         int numAggregationSteps = 1;
         PlannerContextBuilder contextBuilder =
                 new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
-                        .output(tableRelation.resolve(analysis.querySpec().outputs()))
-                        .orderBy(tableRelation.resolveAndValidateOrderBy(analysis.querySpec().orderBy()));
+                        .output(tableRelation.resolve(table.querySpec().outputs()))
+                        .orderBy(tableRelation.resolveAndValidateOrderBy(table.querySpec().orderBy()));
         Symbol havingClause = null;
-        if (analysis.querySpec().having() != null) {
-            havingClause = contextBuilder.having(tableRelation.resolveHaving(analysis.querySpec().having()));
+        if (table.querySpec().having() != null) {
+            havingClause = contextBuilder.having(tableRelation.resolveHaving(table.querySpec().having()));
             if (!WhereClause.canMatch(havingClause)) {
-                return new NoopPlannedAnalyzedRelation(analysis);
-            };
+                return new NoopPlannedAnalyzedRelation(table);
+            }
         }
         // mapper / collect
         List<Symbol> toCollect = contextBuilder.toCollect();
@@ -174,7 +167,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
         // use topN on collector if needed
         TopNProjection topNReducer = getTopNForReducer(
-                analysis,
+                table.querySpec(),
                 contextBuilder,
                 contextBuilder.outputs());
         if (topNReducer != null) {
@@ -200,12 +193,12 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 outputs = contextBuilder.passThroughOutputs();
             }
             TopNProjection topN;
-            int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
-            OrderBy orderBy = analysis.querySpec().orderBy();
+            int limit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+            OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
-                topN = new TopNProjection(limit, analysis.querySpec().offset());
+                topN = new TopNProjection(limit, table.querySpec().offset());
             } else {
-                topN = new TopNProjection(limit, analysis.querySpec().offset(),
+                topN = new TopNProjection(limit, table.querySpec().offset(),
                         orderBySymbols,
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst()
@@ -231,13 +224,13 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
      * @param outputs list of outputs to add to the topNProjection if applicable.
      */
     @javax.annotation.Nullable
-    private static TopNProjection getTopNForReducer(SelectAnalyzedStatement analysis,
+    private static TopNProjection getTopNForReducer(QuerySpec querySpec,
                                                     PlannerContextBuilder contextBuilder,
                                                     List<Symbol> outputs) {
-        if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
-            OrderBy orderBy = analysis.querySpec().orderBy();
+        if (requireLimitOnReducer(querySpec, contextBuilder.aggregationsWrappedInScalar)) {
+            OrderBy orderBy = querySpec.orderBy();
             TopNProjection topN;
-            int limit = firstNonNull(analysis.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.querySpec().offset();
+            int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset();
             if (orderBy == null) {
                 topN = new TopNProjection(limit, 0);
             } else {
@@ -253,9 +246,9 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
         return null;
     }
 
-    private static boolean requireLimitOnReducer(SelectAnalyzedStatement analysis, boolean aggregationsWrappedInScalar) {
-        return (analysis.querySpec().limit() != null
-                || analysis.querySpec().offset() > 0
+    private static boolean requireLimitOnReducer(QuerySpec querySpec, boolean aggregationsWrappedInScalar) {
+        return (querySpec.limit() != null
+                || querySpec.offset() > 0
                 || aggregationsWrappedInScalar);
     }
 }

@@ -80,8 +80,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement statement) {
 
-        SelectAnalyzedStatement selectAnalyzedStatement = (SelectAnalyzedStatement) statement.subQueryRelation();
-        List<Symbol> outputSymbols = selectAnalyzedStatement.querySpec().outputs();
+        List<Symbol> outputSymbols = statement.subQueryRelation().querySpec().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
 
         for (int i = 0; i < statement.columns().size(); i++) {
@@ -182,7 +181,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
                         ")");
 
 
-        List<Symbol> outputSymbols = ((SelectAnalyzedStatement) statement.subQueryRelation()).querySpec().outputs();
+        List<Symbol> outputSymbols = statement.subQueryRelation().querySpec().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
         assertThat(outputSymbols.get(1), instanceOf(Function.class));
         Function castFunction = (Function)outputSymbols.get(1);

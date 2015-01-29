@@ -21,29 +21,31 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.Iterators;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.scalar.cast.CastFunctionResolver;
-import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolFormatter;
+import io.crate.planner.symbol.Symbols;
 import io.crate.sql.tree.InsertFromSubquery;
-import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 
 @Singleton
 public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
+
+    private final RelationAnalyzer relationAnalyzer;
+
     @Inject
-    protected InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData) {
+    protected InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
         super(analysisMetaData);
+        this.relationAnalyzer = relationAnalyzer;
     }
 
     @Override
@@ -51,25 +53,23 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
 
-        SelectStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer(analysisMetaData);
-        AnalyzedStatement statement = selectStatementAnalyzer.process(node.subQuery(), context);
-        assert statement instanceof SelectAnalyzedStatement : "sub-query must be a SelectAnalyzedStatement";
-        SelectAnalyzedStatement selectAnalyzedStatement = (SelectAnalyzedStatement) statement;
 
+        QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), context);
         InsertFromSubQueryAnalyzedStatement insertStatement =
-                new InsertFromSubQueryAnalyzedStatement(selectAnalyzedStatement, tableInfo);
+                new InsertFromSubQueryAnalyzedStatement(source, tableInfo);
 
         // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
-        if (selectAnalyzedStatement.querySpec().isLimited() || selectAnalyzedStatement.querySpec().orderBy() != null) {
+        // TODO: move this to the consumer
+        if (source.querySpec().isLimited() || source.querySpec().orderBy() != null) {
             throw new UnsupportedFeatureException("Using limit, offset or order by is not" +
                     "supported on insert using a sub-query");
         }
 
         int numInsertColumns = node.columns().size() == 0 ? tableInfo.columns().size() : node.columns().size();
-        int maxInsertValues = Math.max(numInsertColumns, selectAnalyzedStatement.querySpec().outputs().size());
+        int maxInsertValues = Math.max(numInsertColumns, source.fields().size());
         handleInsertColumns(node, maxInsertValues, insertStatement);
 
-        validateMatchingColumns(insertStatement, selectAnalyzedStatement);
+        validateMatchingColumns(insertStatement, source.querySpec());
 
         return insertStatement;
     }
@@ -78,51 +78,23 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
      * validate that result columns from subquery match explicit insert columns
      * or complete table schema
      */
-    private void validateMatchingColumns(InsertFromSubQueryAnalyzedStatement context, SelectAnalyzedStatement selectAnalyzedStatement) {
-        List<Reference> insertColumns = context.columns();
-        List<Symbol> sourceSymbols = selectAnalyzedStatement.querySpec().outputs();
-        if (insertColumns.size() != sourceSymbols.size()) {
+    private void validateMatchingColumns(InsertFromSubQueryAnalyzedStatement context, QuerySpec querySpec) {
+        if (context.columns().size() != querySpec.outputs().size()) {
             throw new IllegalArgumentException("Number of columns in insert statement and subquery differ");
         }
 
-        for (int i = 0; i < sourceSymbols.size(); i++) {
-            Reference insertColumn = insertColumns.get(i);
-            DataType targetType = insertColumn.valueType();
-            Symbol sourceColumn = sourceSymbols.get(i);
-            DataType sourceType = sourceColumn.valueType();
-
-            if (!targetType.equals(sourceType)) {
-                if (sourceType.isConvertableTo(targetType)) {
-                    Function castFunction = new Function(
-                            CastFunctionResolver.functionInfo(sourceType, targetType),
-                            Arrays.asList(sourceColumn));
-                    if (selectAnalyzedStatement.querySpec().groupBy() != null) {
-                        replaceIfPresent(selectAnalyzedStatement.querySpec().groupBy(), sourceColumn, castFunction);
-                    }
-                    if (selectAnalyzedStatement.querySpec().orderBy() != null) {
-                        //noinspection ConstantConditions
-                        replaceIfPresent(selectAnalyzedStatement.querySpec().orderBy().orderBySymbols(), sourceColumn, castFunction);
-                    }
-                    sourceSymbols.set(i, castFunction);
-                } else {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
-                            SymbolFormatter.format(sourceColumn),
-                            sourceType,
-                            insertColumn.info().ident().columnIdent().fqn(),
-                            targetType
-                    ));
-                }
-            }
-        }
-        // congrats! valid statement
-    }
-
-    private void replaceIfPresent(List<Symbol> symbols, Symbol oldSymbol, Symbol newSymbol) {
-        assert symbols != null : "symbols must not be null";
-        int i = symbols.indexOf(oldSymbol);
-        if (i != -1) {
-            symbols.set(i, newSymbol);
+        int failedCastPosition = querySpec.castOutputs(Iterators.transform(context.columns().iterator(), Symbols.TYPES_FUNCTION));
+        if (failedCastPosition >= 0) {
+            Symbol failedSource = querySpec.outputs().get(failedCastPosition);
+            Reference failedTarget = context.columns().get(failedCastPosition);
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
+                    failedSource,
+                    failedSource.valueType(),
+                    failedTarget.info().ident().columnIdent().fqn(),
+                    failedTarget.valueType()
+            ));
         }
     }
+
 }

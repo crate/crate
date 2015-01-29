@@ -23,12 +23,11 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
@@ -64,22 +63,18 @@ public class QueryThenFetchConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, ConsumerContext context) {
-            if (statement.querySpec().hasAggregates() || statement.querySpec().groupBy()!=null) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+            if (table.querySpec().hasAggregates() || table.querySpec().groupBy()!=null) {
                 return null;
             }
-            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
-            if (tableRelation == null) {
-                return null;
-            }
-            TableInfo tableInfo = tableRelation.tableInfo();
+            TableInfo tableInfo = table.tableRelation().tableInfo();
             if (tableInfo.schemaInfo().systemSchema() || tableInfo.rowGranularity() != RowGranularity.DOC) {
                 return null;
             }
 
-            WhereClause where = statement.querySpec().where();
+            WhereClause where = table.querySpec().where();
             if (where != null){
-                WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+                WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
                 WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(where);
                 if(whereClauseContext.whereClause().version().isPresent()){
                     context.validationException(new VersionInvalidException());
@@ -87,29 +82,30 @@ public class QueryThenFetchConsumer implements Consumer {
                 }
                 where = whereClauseContext.whereClause();
                 if (where.noMatch()){
-                    return new NoopPlannedAnalyzedRelation(statement);
+                    return new NoopPlannedAnalyzedRelation(table);
                 }
             }
-            OrderBy orderBy = statement.querySpec().orderBy();
+            OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
                 return new QueryThenFetchNode(
                         tableInfo.getRouting(where, null),
-                        tableRelation.resolve(statement.querySpec().outputs()),
+                        table.querySpec().outputs(),
                         null, null, null,
-                        statement.querySpec().limit(),
-                        statement.querySpec().offset(),
+                        table.querySpec().limit(),
+                        table.querySpec().offset(),
                         where,
                         tableInfo.partitionedByColumns()
                 );
             } else {
+                table.tableRelation().validateOrderBy(orderBy);
                 return new QueryThenFetchNode(
                         tableInfo.getRouting(where, null),
-                        tableRelation.resolve(statement.querySpec().outputs()),
-                        tableRelation.resolveAndValidateOrderBy(statement.querySpec().orderBy()),
+                        table.querySpec().outputs(),
+                        orderBy.orderBySymbols(),
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst(),
-                        statement.querySpec().limit(),
-                        statement.querySpec().offset(),
+                        table.querySpec().limit(),
+                        table.querySpec().offset(),
                         where,
                         tableInfo.partitionedByColumns()
                 );

@@ -21,46 +21,18 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.metadata.OutputName;
-import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.analyze.relations.QueriedRelation;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+public class SelectAnalyzedStatement implements AnalyzedStatement {
 
-public class SelectAnalyzedStatement implements AnalyzedRelation, AnalyzedStatement {
+    private final QueriedRelation relation;
 
-    private final Map<QualifiedName, AnalyzedRelation> sources;
-    private final List<Field> fields;
-    private final QuerySpec querySpec;
-
-    public SelectAnalyzedStatement(
-            Map<QualifiedName, AnalyzedRelation> sources,
-            List<String> outputNames,
-            QuerySpec querySpec){
-        this.querySpec = querySpec;
-        this.sources = sources;
-
-        assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
-        fields = new ArrayList<>(outputNames.size());
-        for (int i = 0; i < outputNames.size(); i++) {
-            fields.add(new Field(this, new OutputName(outputNames.get(i)), querySpec.outputs().get(i).valueType()));
-        }
+    public SelectAnalyzedStatement(QueriedRelation relation){
+        this.relation = relation;
     }
 
-    public Map<QualifiedName, AnalyzedRelation> sources() {
-        return sources;
-    }
-
-    public void normalize(EvaluatingNormalizer normalizer) {
-        querySpec.normalize(normalizer);
-    }
-
-    public void normalize() {
+    public QueriedRelation relation() {
+        return relation;
     }
 
     @Override
@@ -68,27 +40,4 @@ public class SelectAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
         return analyzedStatementVisitor.visitSelectStatement(this, context);
     }
 
-    @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitSelectAnalyzedStatement(this, context);
-    }
-
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
-    }
-
-    @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("SelectAnalyzedStatement is not writable");
-    }
-
-    @Override
-    public List<Field> fields() {
-        return fields;
-    }
-
-    public QuerySpec querySpec() {
-        return querySpec;
-    }
 }

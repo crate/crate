@@ -1156,7 +1156,7 @@ public class PlannerTest {
         List<Symbol> toCollect = collectNode.toCollect();
         assertThat(toCollect.size(), is(2));
         assertThat(toCollect.get(0), isFunction("toLong"));
-        assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc.id"));
+        assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc['id']"));
         assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
             new ReferenceIdent(new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
     }

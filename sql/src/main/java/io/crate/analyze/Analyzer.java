@@ -20,7 +20,6 @@
  */
 package io.crate.analyze;
 
-import io.crate.planner.RowGranularity;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
@@ -63,13 +62,13 @@ public class Analyzer {
         private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
         private final CopyStatementAnalyzer copyStatementAnalyzer;
-        private final EvaluatingNormalizer normalizer;
         private final SelectStatementAnalyzer selectStatementAnalyzer;
-        private final AnalysisMetaData analysisMetaData;
+        private final UpdateStatementAnalyzer updateStatementAnalyzer;
+        private final DeleteStatementAnalyzer deleteStatementAnalyzer;
+
 
         @Inject
-        public AnalyzerDispatcher(AnalysisMetaData analysisMetaData,
-                                  SelectStatementAnalyzer selectStatementAnalyzer,
+        public AnalyzerDispatcher(SelectStatementAnalyzer selectStatementAnalyzer,
                                   DropTableStatementAnalyzer dropTableStatementAnalyzer,
                                   CreateTableStatementAnalyzer createTableStatementAnalyzer,
                                   CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
@@ -82,8 +81,9 @@ public class Analyzer {
                                   AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
                                   InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
-                                  CopyStatementAnalyzer copyStatementAnalyzer) {
-            this.analysisMetaData = analysisMetaData;
+                                  CopyStatementAnalyzer copyStatementAnalyzer,
+                                  UpdateStatementAnalyzer updateStatementAnalyzer,
+                                  DeleteStatementAnalyzer deleteStatementAnalyzer) {
             this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
@@ -98,23 +98,18 @@ public class Analyzer {
             this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
             this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
             this.copyStatementAnalyzer = copyStatementAnalyzer;
-            this.normalizer = new EvaluatingNormalizer(
-                    analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver());
+            this.updateStatementAnalyzer = updateStatementAnalyzer;
+            this.deleteStatementAnalyzer = deleteStatementAnalyzer;
         }
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, Analysis analysis) {
-            SelectAnalyzedStatement statement = selectStatementAnalyzer.process(node, analysis);
-            analysis.rootRelation(statement);
-            statement.normalize(normalizer);
-            return statement;
+            return selectStatementAnalyzer.process(node, analysis);
         }
 
         @Override
         public AnalyzedStatement visitDelete(Delete node, Analysis context) {
-            DeleteStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer(analysisMetaData, context.parameterContext());
-            context.expectsAffectedRows(true);
-            return deleteStatementAnalyzer.process(node, null);
+            return deleteStatementAnalyzer.analyze(node, context);
         }
 
         @Override
@@ -129,10 +124,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitUpdate(Update node, Analysis context) {
-            UpdateStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer(
-                    analysisMetaData, context.parameterContext());
-            context.expectsAffectedRows(true);
-            return updateStatementAnalyzer.process(node, null);
+            return updateStatementAnalyzer.analyze(node, context);
         }
 
         @Override
