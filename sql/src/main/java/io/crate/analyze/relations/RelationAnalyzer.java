@@ -239,14 +239,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBySymbols;
     }
 
-    private Symbol analyzeHaving(Optional<Expression> having, List<Symbol> groupBy, boolean hasAggregates) {
+    private HavingClause analyzeHaving(Optional<Expression> having, List<Symbol> groupBy, boolean hasAggregates) {
         if (having.isPresent()) {
             if (!hasAggregates && groupBy.isEmpty()) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
             Symbol symbol = expressionAnalyzer.convert(having.get(), expressionAnalysisContext);
             HavingSymbolValidator.validate(symbol, groupBy);
-            return expressionAnalyzer.normalize(symbol);
+            return new HavingClause(expressionAnalyzer.normalize(symbol));
         }
         return null;
     }

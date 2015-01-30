@@ -42,7 +42,7 @@ public class FilterProjection extends Projection {
         }
     };
 
-    private Function query;
+    private Symbol query;
     private List<Symbol> outputs = ImmutableList.of();
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
@@ -58,15 +58,15 @@ public class FilterProjection extends Projection {
         this.requiredGranularity = requiredRowGranularity;
     }
 
-    public FilterProjection(Function query) {
+    public FilterProjection(Symbol query) {
         this.query = query;
     }
 
-    public void query(Function query) {
+    public void query(Symbol query) {
         this.query = query;
     }
 
-    public Function query() {
+    public Symbol query() {
         return query;
     }
 

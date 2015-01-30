@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
-import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
@@ -38,13 +37,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WhereClause implements Streamable {
+public class WhereClause extends QueryClause implements Streamable {
 
     public static final WhereClause MATCH_ALL = new WhereClause();
     public static final WhereClause NO_MATCH = new WhereClause(null, true);
-
-    private Symbol query;
-    private boolean noMatch = false;
 
     protected String clusteredBy;
     protected Long version;
@@ -58,6 +54,10 @@ public class WhereClause implements Streamable {
         readFrom(in);
     }
 
+    public WhereClause(Symbol normalizedQuery) {
+        super(normalizedQuery);
+    }
+
     public WhereClause(Function query) {
         this.query = query;
     }
@@ -65,29 +65,6 @@ public class WhereClause implements Streamable {
     public WhereClause(Function query, boolean noMatch) {
         this(query);
         this.noMatch = noMatch;
-    }
-
-    public WhereClause(Symbol normalizedQuery) {
-        if (normalizedQuery.symbolType().isValueSymbol()) {
-            noMatch = !canMatch(normalizedQuery);
-        } else {
-            query = normalizedQuery;
-        }
-    }
-
-    public static boolean canMatch(Symbol query) {
-        if (query.symbolType().isValueSymbol()) {
-            Object value = ((Input) query).value();
-            if (value == null) {
-                return false;
-            }
-            if (value instanceof Boolean) {
-                return (Boolean) value;
-            } else {
-                throw new RuntimeException("Symbol normalized to an invalid value");
-            }
-        }
-        return true;
     }
 
     public WhereClause normalize(EvaluatingNormalizer normalizer) {
@@ -104,7 +81,6 @@ public class WhereClause implements Streamable {
         normalizedWhereClause.clusteredBy = clusteredBy;
         return normalizedWhereClause;
     }
-
 
     public Optional<String> clusteredBy() {
         return Optional.fromNullable(clusteredBy);
@@ -186,19 +162,6 @@ public class WhereClause implements Streamable {
         } else {
             out.writeBoolean(false);
         }
-    }
-
-    public boolean hasQuery() {
-        return query != null;
-    }
-
-    @Nullable
-    public Symbol query() {
-        return query;
-    }
-
-    public boolean noMatch() {
-        return noMatch;
     }
 
     @Override

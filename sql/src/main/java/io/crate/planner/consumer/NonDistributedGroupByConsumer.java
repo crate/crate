@@ -21,10 +21,7 @@
 package io.crate.planner.consumer;
 
 import io.crate.Constants;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.where.WhereClauseAnalyzer;
@@ -40,7 +37,6 @@ import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
@@ -52,7 +48,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public NonDistributedGroupByConsumer(AnalysisMetaData analysisMetaData){
+    public NonDistributedGroupByConsumer(AnalysisMetaData analysisMetaData) {
         visitor = new Visitor(analysisMetaData);
     }
 
@@ -67,7 +63,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
         ConsumerContext consumerContext;
         boolean result = false;
 
-        public Context(ConsumerContext context){
+        public Context(ConsumerContext context) {
             this.consumerContext = context;
         }
     }
@@ -76,17 +72,17 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
         private final AnalysisMetaData analysisMetaData;
 
-        public Visitor(AnalysisMetaData analysisMetaData){
+        public Visitor(AnalysisMetaData analysisMetaData) {
             this.analysisMetaData = analysisMetaData;
         }
 
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
-            if(context.consumerContext.rootRelation() != table){
+            if (context.consumerContext.rootRelation() != table) {
                 return table;
             }
-            if(table.querySpec().groupBy()==null){
+            if (table.querySpec().groupBy() == null) {
                 return table;
             }
             TableInfo tableInfo = table.tableRelation().tableInfo();
@@ -94,14 +90,14 @@ public class NonDistributedGroupByConsumer implements Consumer {
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
             WhereClause whereClause = whereClauseContext.whereClause();
-            if(whereClause.version().isPresent()){
+            if (whereClause.version().isPresent()) {
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
             }
 
             Routing routing = tableInfo.getRouting(whereClause, null);
 
-            if(GroupByConsumer.requiresDistribution(tableInfo, routing) && !(tableInfo.schemaInfo().systemSchema())){
+            if (GroupByConsumer.requiresDistribution(tableInfo, routing) && !(tableInfo.schemaInfo().systemSchema())) {
                 return table;
             }
 
@@ -122,12 +118,12 @@ public class NonDistributedGroupByConsumer implements Consumer {
      * produces:
      *
      * SELECT:
-     *  Collect ( GroupProjection ITER -> PARTIAL )
-     *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
+     * Collect ( GroupProjection ITER -> PARTIAL )
+     * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
      *
      * INSERT FROM QUERY:
-     *  Collect ( GroupProjection ITER -> PARTIAL )
-     *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], [TopN], IndexWriterProjection )
+     * Collect ( GroupProjection ITER -> PARTIAL )
+     * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], [TopN], IndexWriterProjection )
      */
     public static AnalyzedRelation nonDistributedGroupBy(QueriedTable table,
                                                          WhereClauseContext whereClauseContext,
@@ -144,18 +140,15 @@ public class NonDistributedGroupByConsumer implements Consumer {
                         .output(table.tableRelation().resolve(table.querySpec().outputs()))
                         .orderBy(table.tableRelation().resolveAndValidateOrderBy(table.querySpec().orderBy()));
 
-        Symbol havingClause = null;
-        if(table.querySpec().having() != null){
-            havingClause = table.tableRelation().resolveHaving(table.querySpec().having());
-            if (!WhereClause.canMatch(havingClause)) {
+        HavingClause havingClause = table.querySpec().having();
+        Symbol havingQuery = null;
+        if (havingClause != null) {
+            if (havingClause.noMatch()) {
                 return new NoopPlannedAnalyzedRelation(table);
-            };
+            } else if (havingClause.hasQuery()){
+                havingQuery = contextBuilder.having(havingClause.query());
+            }
         }
-        if (havingClause != null && havingClause instanceof Function) {
-            // extract collect symbols and such from having clause
-            havingClause = contextBuilder.having(havingClause);
-        }
-
         // mapper / collect
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
@@ -172,8 +165,8 @@ public class NonDistributedGroupByConsumer implements Consumer {
         contextBuilder.nextStep();
         Projection handlerGroupProjection = new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
         contextBuilder.addProjection(handlerGroupProjection);
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
+        if (havingQuery != null) {
+            FilterProjection fp = new FilterProjection(havingQuery);
             fp.outputs(contextBuilder.genInputColumns(handlerGroupProjection.outputs(), handlerGroupProjection.outputs().size()));
             contextBuilder.addProjection(fp);
         }
@@ -181,7 +174,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             OrderBy orderBy = table.querySpec().orderBy();
             int limit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN;
-            if (orderBy == null){
+            if (orderBy == null) {
                 topN = new TopNProjection(limit, table.querySpec().offset());
 
             } else {

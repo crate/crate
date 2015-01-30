@@ -43,10 +43,8 @@ import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
@@ -192,18 +190,15 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     .output(tableRelation.resolve(table.querySpec().outputs()))
                     .orderBy(tableRelation.resolveAndValidateOrderBy(table.querySpec().orderBy()));
 
-            Symbol havingClause = null;
-            if(table.querySpec().having() != null){
-                havingClause = tableRelation.resolveHaving(table.querySpec().having());
-                if (!WhereClause.canMatch(havingClause)) {
+            HavingClause havingClause = table.querySpec().having();
+            Symbol havingQuery = null;
+            if(havingClause != null){
+                if (havingClause.noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table);
-                };
+                } else if (havingClause.hasQuery()){
+                    havingQuery = contextBuilder.having(havingClause.query());
+                }
             }
-            if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
-                // replace aggregation symbols with input columns from previous projection
-                havingClause = contextBuilder.having(havingClause);
-            }
-
             TableInfo tableInfo = tableRelation.tableInfo();
             Routing routing = tableInfo.getRouting(whereClauseContext.whereClause(), null);
 
@@ -227,8 +222,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     contextBuilder.aggregations()));
 
 
-            if (havingClause != null) {
-                FilterProjection fp = new FilterProjection((Function)havingClause);
+            if (havingQuery != null) {
+                FilterProjection fp = new FilterProjection(havingQuery);
                 fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), table.querySpec().outputs().size()));
                 contextBuilder.addProjection(fp);
             }

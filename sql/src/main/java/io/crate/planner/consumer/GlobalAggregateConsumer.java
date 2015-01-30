@@ -23,6 +23,7 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -111,16 +112,13 @@ public class GlobalAggregateConsumer implements Consumer {
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(
                 tableRelation.resolve(table.querySpec().outputs()));
 
-        // havingClause could be a Literal or Function.
-        // if its a Literal and value is false, we'll never reach this point (no match),
-        // otherwise (true value) having can be ignored
-        Symbol havingClause = null;
-        Symbol having = table.querySpec().having();
-        if (having != null) {
-            havingClause = contextBuilder.having(tableRelation.resolveHaving(having));
-            if (!WhereClause.canMatch(havingClause)) {
+        HavingClause havingClause = table.querySpec().having();
+        if(havingClause != null){
+            if (havingClause.noMatch()) {
                 return new NoopPlannedAnalyzedRelation(table);
-            };
+            } else if (havingClause.hasQuery()){
+                contextBuilder.having(havingClause.query());
+            }
         }
 
         AggregationProjection ap = new AggregationProjection();
@@ -137,8 +135,9 @@ public class GlobalAggregateConsumer implements Consumer {
         List<Projection> projections = new ArrayList<>();
         projections.add(new AggregationProjection(contextBuilder.aggregations()));
 
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
+
+        if (havingClause != null && havingClause.hasQuery()) {
+            FilterProjection fp = new FilterProjection((Function) havingClause.query());
             fp.outputs(contextBuilder.passThroughOutputs());
             projections.add(fp);
         }

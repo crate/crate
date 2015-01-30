@@ -43,7 +43,6 @@ import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
@@ -119,20 +118,15 @@ public class DistributedGroupByConsumer implements Consumer {
                 contextBuilder.orderBy(orderBy.orderBySymbols());
             }
 
-            Symbol havingClause = null;
-            if(table.querySpec().having() != null){
-                havingClause = table.querySpec().having();
-                if (!WhereClause.canMatch(havingClause)) {
+            HavingClause havingClause = table.querySpec().having();
+            Symbol havingQuery = null;
+            if(havingClause != null){
+                if (havingClause.noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table);
-                };
+                } else if (havingClause.hasQuery()){
+                    havingQuery = contextBuilder.having(havingClause.query());
+                }
             }
-            if (havingClause != null && havingClause instanceof Function) {
-                // replace aggregation symbols with input columns from previous projection
-                havingClause = contextBuilder.having(havingClause);
-            }
-
-            // collector
-
             contextBuilder.addProjection(new GroupProjection(
                     contextBuilder.groupBy(), contextBuilder.aggregations()));
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
@@ -151,8 +145,8 @@ public class DistributedGroupByConsumer implements Consumer {
                     contextBuilder.aggregations()));
 
 
-            if (havingClause != null) {
-                FilterProjection fp = new FilterProjection((Function)havingClause);
+            if (havingQuery != null) {
+                FilterProjection fp = new FilterProjection(havingQuery);
                 /**
                  * Pass through outputs from previous group by projection as-is.
                  * In case group by has more outputs than the select statement strip those outputs away.

@@ -43,7 +43,6 @@ import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 
 import java.util.List;
@@ -141,11 +140,14 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
                         .output(tableRelation.resolve(table.querySpec().outputs()))
                         .orderBy(tableRelation.resolveAndValidateOrderBy(table.querySpec().orderBy()));
-        Symbol havingClause = null;
-        if (table.querySpec().having() != null) {
-            havingClause = contextBuilder.having(tableRelation.resolveHaving(table.querySpec().having()));
-            if (!WhereClause.canMatch(havingClause)) {
+
+        HavingClause havingClause = table.querySpec().having();
+        Symbol havingQuery = null;
+        if(havingClause != null){
+            if (havingClause.noMatch()) {
                 return new NoopPlannedAnalyzedRelation(table);
+            } else if (havingClause.hasQuery()){
+                havingQuery = contextBuilder.having(havingClause.query());
             }
         }
         // mapper / collect
@@ -158,8 +160,8 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
         contextBuilder.addProjection(groupProjection);
 
         // optional having
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function) havingClause);
+        if (havingQuery != null) {
+            FilterProjection fp = new FilterProjection(havingQuery);
             fp.outputs(contextBuilder.genInputColumns(groupProjection.outputs(), groupProjection.outputs().size()));
             fp.requiredGranularity(RowGranularity.SHARD); // running on every shard
             contextBuilder.addProjection(fp);
