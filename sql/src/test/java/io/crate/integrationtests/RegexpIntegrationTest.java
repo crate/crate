@@ -196,14 +196,11 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
      * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
      * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
      */
-    @Test(expected = SQLActionException.class)
+    @Test
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForCount() throws Exception {
 
-        // Currently raises
-        // SQLActionException{
-        //      errorCode=4000,
-        //      status=BAD_REQUEST,
-        //      stackTrace='io.crate.exceptions.SQLParseException: Using ~ with PCRE regular expressions currently not supported for this type of query
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Using ~ with PCRE regular expressions currently not supported for this type of query");
 
         this.setup.setUpLocations();
         ensureGreen();
@@ -224,14 +221,11 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
      * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
      * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
      */
-    @Test(expected = SQLActionException.class)
+    @Test
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForDelete() throws Exception {
 
-        // Currently raises
-        // SQLActionException{
-        //      errorCode=4000,
-        //      status=BAD_REQUEST,
-        //      stackTrace='io.crate.exceptions.SQLParseException: Using ~ with PCRE regular expressions currently not supported for this type of query
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Using ~ with PCRE regular expressions currently not supported for this type of query");
 
         this.setup.setUpLocations();
         ensureGreen();
