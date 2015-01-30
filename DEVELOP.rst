@@ -5,7 +5,7 @@ DEVELOPMENT
 Prerequisites
 =============
 
-Crate is written in Java_ 7, so a JDK needs to be installed. On OS X and Windows we
+Crate is written in Java_ 7, so a JDK needs to be installed. On OS X we
 recommend using `Oracle's Java`_ and OpenJDK_ on Linux Systems.
 
 The documentation is built using Sphinx_ which requires Python_ 2.7 to be
@@ -25,7 +25,7 @@ Gradlew - Building Crate and Documentation
 ==========================================
 
 This project uses Gradle_ as build tool. It can be invoked by executing
-``./gradlew`` (``gradlew.bat`` on Windows). The first time this command is executed it is bootstrapped
+``./gradlew``. The first time this command is executed it is bootstrapped
 automatically, therefore there is no need to install gradle on the system.
 
 Writing Documentation
@@ -213,7 +213,7 @@ After that the Run/Debug Configurations can be added within IntelliJ. Go to the
 +--------------------------+-----------------------------------------------+
 | Use classpath of module: | app                                           |
 +--------------------------+-----------------------------------------------+
-	
+
 Test Coverage
 --------------
 
