@@ -794,6 +794,7 @@ public class ExpressionAnalyzer {
 
         private static final Set<ComparisonExpression.Type> NEGATING_TYPES = ImmutableSet.of(
                 ComparisonExpression.Type.REGEX_NO_MATCH,
+                ComparisonExpression.Type.REGEX_NO_MATCH_CI,
                 ComparisonExpression.Type.NOT_EQUAL);
         private final ExpressionAnalysisContext expressionAnalysisContext;
 
@@ -860,10 +861,24 @@ public class ExpressionAnalyzer {
             if (!NEGATING_TYPES.contains(comparisonExpressionType)) {
                 return;
             }
-            String opName = comparisonExpressionType.equals(ComparisonExpression.Type.NOT_EQUAL)
-                    ? EqOperator.NAME : RegexpMatchOperator.NAME;
-            DataType opType = comparisonExpressionType.equals(ComparisonExpression.Type.NOT_EQUAL)
-                    ? EqOperator.RETURN_TYPE : RegexpMatchOperator.RETURN_TYPE;
+
+            String opName = null;
+            DataType opType = null;
+            switch (comparisonExpressionType) {
+                case NOT_EQUAL:
+                    opName = EqOperator.NAME;
+                    opType = EqOperator.RETURN_TYPE;
+                    break;
+                case REGEX_NO_MATCH:
+                    opName = RegexpMatchOperator.NAME;
+                    opType = RegexpMatchOperator.RETURN_TYPE;
+                    break;
+                case REGEX_NO_MATCH_CI:
+                    opName = RegexpMatchCaseInsensitiveOperator.NAME;
+                    opType = RegexpMatchCaseInsensitiveOperator.RETURN_TYPE;
+                    break;
+            }
+
             FunctionIdent ident = new FunctionIdent(opName, Arrays.asList(leftType, rightType));
             left = context.allocateFunction(
                     new FunctionInfo(ident, opType),

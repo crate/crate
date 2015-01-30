@@ -136,4 +136,39 @@ public class RegexMatcher {
         return flags.utf8ToString().indexOf('g') != -1;
     }
 
+
+    // PCRE features
+    public static final String character_classes = "dDsSwW";
+    public static final String boundary_matchers = "bBAGZz";
+    public static final String embedded_flags = "idmsuxU";
+
+    // recognize pcre escaped sequences anywhere inside the pattern
+    public static final String escape_sequences_pattern = ".*\\\\[" + character_classes + boundary_matchers + "].*";
+
+    // recognize pcre embedded flags at the beginning of the pattern
+    public static final String embedded_flags_pattern = "^\\(\\?[" + embedded_flags + "]\\).*";
+
+    // final precompiled java.util.regex.Pattern
+    public static final Pattern pcre_pattern = Pattern.compile(escape_sequences_pattern + "|" + embedded_flags_pattern);
+
+    /**
+     *
+     * Determine whether regex pattern contains PCRE features, e.g.
+     * - predefined character classes like \d, \D, \s, \S, \w, \W
+     * - boundary matchers like \b, \B, \A, \G, \Z, \z
+     * - embedded flag expressions like (?i), (?d), etc.
+     *
+     * @see {@link java.util.regex.Pattern}
+     *
+     */
+    public static boolean isPcrePattern(Object pattern) {
+        if (pattern instanceof String) {
+            return pcre_pattern.matcher((String) pattern).matches();
+        }
+        if (pattern instanceof BytesRef) {
+            return pcre_pattern.matcher(((BytesRef) pattern).utf8ToString()).matches();
+        }
+        return false;
+    }
+
 }

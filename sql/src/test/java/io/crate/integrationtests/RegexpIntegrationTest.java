@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,8 +80,20 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
     }
 
+    /**
+     * Test querying using regular expressions based on RegexpQuery,
+     * which in turn is based on the fast finite-state automata
+     * regular expression engine implementation `dk.brics.automaton`.
+     *
+     * This engine is the default when using the regexp tilde operator `~`.
+     *
+     * @see {@link org.apache.lucene.search.RegexpQuery}
+     * @see {@link org.apache.lucene.util.automaton.RegExp}
+     * @see <a href="http://www.brics.dk/automaton/">http://www.brics.dk/automaton/</a>
+     * @see <a href="http://tusker.org/regex/regex_benchmark.html">http://tusker.org/regex/regex_benchmark.html</a>
+     */
     @Test
-    public void testRegexpMatchOperator() throws Exception {
+    public void testRegexpMatchQueryOperatorFast() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
         refresh();
@@ -102,6 +115,160 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((String) response.rows()[5][0], is("North West Ripple"));
         assertThat((String) response.rows()[6][0], is("Outer Eastern Rim"));
         assertThat(response.rows()[7][0], is(nullValue()));
+    }
+
+    /**
+     * Test querying using regular expressions based on RegexQuery,
+     * which in turn uses the regular expression engine of the
+     * Java standard library.
+     *
+     * This engine is active when using the case-insensitive regexp tilde operator `~*`.
+     *
+     * @see {@link org.apache.lucene.sandbox.queries.regex.RegexQuery}
+     * @see {@link java.util.regex}
+     */
+    @Test
+    public void testRegexpMatchQueryOperatorWithCaseInsensitivity() throws Exception {
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+        execute("select distinct name from locations where name ~* 'aldebaran'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("Aldebaran"));
+
+        execute("select distinct name from locations where name !~* 'aldebaran|algol|altair' and name != '' order by name");
+        assertThat(response.rowCount(), is(9L));
+        assertThat((String) response.rows()[0][0], is("Allosimanius Syneca"));
+        assertThat((String) response.rows()[1][0], is("Alpha Centauri"));
+
+    }
+
+    /**
+     * Test querying using regular expressions based on RegexQuery,
+     * which in turn uses the regular expression engine of the
+     * Java standard library.
+     *
+     * This engine is active when using the regular regexp tilde operator `~`,
+     * but the pattern used contains PCRE features, which the fast regex
+     * implementation {@link org.apache.lucene.util.automaton.RegExp}
+     * isn't capable of.
+     *
+     * @see {@link org.apache.lucene.sandbox.queries.regex.RegexQuery}
+     * @see {@link java.util.regex}
+     */
+    @Test
+    public void testRegexpMatchQueryOperatorWithPcre() throws Exception {
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+
+        // character class shortcut aliases
+        execute("select distinct name from locations where name ~ 'Alpha\\sCentauri'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("Alpha Centauri"));
+
+        // word boundaries: positive
+        execute("select distinct name from locations where name ~ '.*\\bCentauri\\b.*'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("Alpha Centauri"));
+
+        // word boundaries: negative
+        execute("select distinct name from locations where name ~ '.*\\bauri\\b.*'");
+        assertThat(response.rowCount(), is(0L));
+
+        // embedded flag expressions
+        execute("select distinct name from locations where name ~ '(?i).*centauri.*'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("Alpha Centauri"));
+
+        execute("select count(name) from locations where name ~ '(?i).*centauri.*'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long) response.rows()[0][0], is(1L));
+
+    }
+
+    /**
+     * Same as above, but running through different code path for COUNT(*) expressions.
+     *
+     * Making this possible requires patching ES => postponed.
+     *
+     * @see {@link io.crate.executor.transport.task.elasticsearch.ESQueryBuilder}
+     * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
+     * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
+     */
+    @Test(expected = SQLActionException.class)
+    public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForCount() throws Exception {
+
+        // Currently raises
+        // SQLActionException{
+        //      errorCode=4000,
+        //      status=BAD_REQUEST,
+        //      stackTrace='io.crate.exceptions.SQLParseException: Using ~ with PCRE regular expressions currently not supported for this type of query
+
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+
+        execute("select count(*) from locations where name ~ '(?i).*centauri.*'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long) response.rows()[0][0], is(1L));
+
+    }
+
+    /**
+     * Same as above, running through the same code path for DELETE expressions.
+     *
+     * Making this possible requires patching ES => postponed.
+     *
+     * @see {@link io.crate.executor.transport.task.elasticsearch.ESQueryBuilder}
+     * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
+     * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
+     */
+    @Test(expected = SQLActionException.class)
+    public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForDelete() throws Exception {
+
+        // Currently raises
+        // SQLActionException{
+        //      errorCode=4000,
+        //      status=BAD_REQUEST,
+        //      stackTrace='io.crate.exceptions.SQLParseException: Using ~ with PCRE regular expressions currently not supported for this type of query
+
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+
+        execute("delete from locations where name ~ '(?i).*centauri.*'");
+        assertThat(response.rowCount(), is(-1L));
+
+    }
+
+    /**
+     * Also test ~ and ~* operators with PCRE features, but on system tables.
+     */
+    @Test
+    public void testRegexpMatchQueryOperatorOnSysShards() throws Exception {
+
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+
+        execute("select * from sys.shards where table_name ~ '(?i)LOCATIONS'");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String) response.rows()[0][1], is("locations"));
+
+    }
+
+    @Test
+    public void testRegexpMatchQueryOperatorWithCaseInsensitivityOnSysShards() throws Exception {
+
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+
+        execute("select * from sys.shards where table_name ~* 'LOCATIONS'");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String) response.rows()[0][1], is("locations"));
+
     }
 
 }

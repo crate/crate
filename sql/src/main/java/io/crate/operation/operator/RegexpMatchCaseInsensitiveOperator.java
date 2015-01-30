@@ -31,16 +31,16 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.ByteRunAutomaton;
 import org.apache.lucene.util.automaton.RegExp;
 
-import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
+import java.util.regex.Pattern;
 
 
-public class RegexpMatchOperator extends Operator<BytesRef> {
+public class RegexpMatchCaseInsensitiveOperator extends Operator<BytesRef> {
 
-    public static final String NAME = "op_~";
+    public static final String NAME = "op_~*";
     public static final FunctionInfo INFO = generateInfo(NAME, DataTypes.STRING);
 
     public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new RegexpMatchOperator());
+        module.registerOperatorFunction(new RegexpMatchCaseInsensitiveOperator());
     }
 
 
@@ -55,13 +55,9 @@ public class RegexpMatchOperator extends Operator<BytesRef> {
         if (pattern == null) {
             return null;
         }
-        if (isPcrePattern(pattern)) {
-            return source.utf8ToString().matches(pattern.utf8ToString());
-        } else {
-            RegExp regexp = new RegExp(pattern.utf8ToString());
-            ByteRunAutomaton regexpRunAutomaton = new ByteRunAutomaton(regexp.toAutomaton());
-            return regexpRunAutomaton.run(source.bytes, source.offset, source.length);
-        }
+
+        Pattern p = Pattern.compile(pattern.utf8ToString(), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+        return p.matcher(source.utf8ToString()).matches();
     }
 
     @Override
