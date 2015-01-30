@@ -62,6 +62,12 @@ public class FilterProjection extends Projection {
         this.query = query;
     }
 
+    public FilterProjection(Symbol query, List<Symbol> outputs) {
+        outputs(outputs);
+        this.query = query;
+    }
+
+
     public void query(Symbol query) {
         this.query = query;
     }

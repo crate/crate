@@ -2,6 +2,7 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.Constants;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.WhereClause;
@@ -47,6 +48,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
+import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -276,8 +278,8 @@ public class PlannerTest {
         assertThat(mergeNode.numUpstreams(), is(2));
         assertThat(mergeNode.executionNodes().size(), is(2));
         assertEquals(mergeNode.inputTypes(), collectNode.outputTypes());
-        assertThat(mergeNode.projections().size(), is(1));
-        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(mergeNode.projections().size(), is(2)); // for the default limit there is always a TopNProjection
+        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
 
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection) mergeNode.projections().get(0);
@@ -285,8 +287,8 @@ public class PlannerTest {
         assertThat(inputColumn.index(), is(1));
 
         assertThat(mergeNode.outputTypes().size(), is(2));
-        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(0));
-        assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(1));
+        assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
+        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(1));
 
         MergeNode localMerge = distributedGroupBy.localMergeNode();
 
@@ -298,12 +300,9 @@ public class PlannerTest {
         TopNProjection topN = (TopNProjection) localMerge.projections().get(0);
         assertThat(topN.outputs().size(), is(2));
 
-        // groupProjection changes output to  keys, aggregations
-        // topN needs to swap the outputs back
-        assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
-        assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+        assertEquals(DataTypes.LONG, localMerge.outputTypes().get(0));
+        assertEquals(DataTypes.STRING, localMerge.outputTypes().get(1));
+
     }
 
     @Test
@@ -391,11 +390,6 @@ public class PlannerTest {
         TopNProjection topN = (TopNProjection) mergeNode.projections().get(1);
         assertThat(topN.limit(), is(2));
         assertThat(topN.offset(), is(0));
-        assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
-        assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
-
 
         // local merge
         DQLPlanNode dqlPlanNode = distributedGroupBy.localMergeNode();
@@ -681,8 +675,7 @@ public class PlannerTest {
         Symbol orderBy = topNProjection.orderBy().get(0);
         assertThat(orderBy, instanceOf(InputColumn.class));
 
-        // points to the first values() entry of the previous GroupProjection
-        assertThat(((InputColumn) orderBy).index(), is(1));
+        assertThat(orderBy.valueType(), Is.<DataType>is(DataTypes.LONG));
     }
 
     @Test
@@ -715,14 +708,14 @@ public class PlannerTest {
         // collect
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
         assertThat(collectNode.toCollect().size(), is(2));
-        assertThat(((Reference)collectNode.toCollect().get(1)).info().ident().columnIdent().name(), is("id"));
-        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
+        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("id"));
+        assertThat(((Reference)collectNode.toCollect().get(1)).info().ident().columnIdent().name(), is("name"));
         Projection projection = collectNode.projections().get(0);
         assertThat(projection, instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection)projection;
         Symbol groupKey = groupProjection.keys().get(0);
         assertThat(groupKey, instanceOf(InputColumn.class));
-        assertThat(((InputColumn)groupKey).index(), is(0));
+        assertThat(((InputColumn)groupKey).index(), is(1));
         assertThat(groupProjection.values().size(), is(1));
 
         Aggregation aggregation = groupProjection.values().get(0);
@@ -1195,22 +1188,23 @@ public class PlannerTest {
 
         MergeNode mergeNode = distributedGroupBy.reducerMergeNode();
 
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
+        assertThat(mergeNode.projections().size(), is(3));
 
+        // grouping
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection)mergeNode.projections().get(0);
         assertThat(groupProjection.values().size(), is(2));
 
+        // filter the having clause
+        assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection)mergeNode.projections().get(1);
-        assertThat(filterProjection.outputs().size(), is(2));
-        assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
-        InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
-        assertThat(inputColumn.index(), is(0));
 
-        assertThat(filterProjection.outputs().get(1), instanceOf(InputColumn.class));
-        inputColumn = (InputColumn)filterProjection.outputs().get(1);
-        assertThat(inputColumn.index(), is(1));
+        // apply the default limit
+        assertThat(mergeNode.projections().get(2), instanceOf(TopNProjection.class));
+        TopNProjection topN = (TopNProjection)mergeNode.projections().get(2);
+        assertThat(topN.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.DOUBLE));
+        assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
     }
 
     @Test
@@ -1350,13 +1344,6 @@ public class PlannerTest {
 
         MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
 
-        // group projection
-        //      outputs: name, count(*)
-        // filter projection
-        //      outputs: name, count(*)
-        // topN projection
-        //      outputs: count(*), name     -> swaps symbols to match original selectList
-
         Projection projection = mergeNode.projections().get(1);
         assertThat(projection, instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection) projection;
@@ -1365,24 +1352,18 @@ public class PlannerTest {
         assertThat(countArgument, instanceOf(InputColumn.class));
         assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
 
-        // outputs: name, count(*)
-        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
-
         // outputs: count(*), name
         TopNProjection topN = (TopNProjection) mergeNode.projections().get(2);
-        // swapped!
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+        assertThat(topN.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.LONG));
+        assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
 
 
         MergeNode localMerge = planNode.localMergeNode();
-
         // topN projection
         //      outputs: count(*), name
         topN = (TopNProjection) localMerge.projections().get(0);
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+        assertThat(topN.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.LONG));
+        assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
     }
 
     @Test
@@ -1403,21 +1384,13 @@ public class PlannerTest {
         assertThat(countArgument, instanceOf(InputColumn.class));
         assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
 
-        // filter projection - can't reorder here
-        //      outputs: name, count(*)
-        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+        assertThat(mergeNode.outputTypes().get(0), equalTo((DataType) DataTypes.LONG));
+        assertThat(mergeNode.outputTypes().get(1), equalTo((DataType) DataTypes.STRING));
 
-        assertThat(mergeNode.outputTypes().get(0), equalTo((DataType) DataTypes.STRING));
-        assertThat(mergeNode.outputTypes().get(1), equalTo((DataType) DataTypes.LONG));
+        mergeNode = planNode.localMergeNode();
 
-        MergeNode localMerge = planNode.localMergeNode();
-
-        // topN projection
-        //      outputs: name, count(*)
-        TopNProjection topN = (TopNProjection) localMerge.projections().get(0);
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+        assertThat(mergeNode.outputTypes().get(0), equalTo((DataType) DataTypes.LONG));
+        assertThat(mergeNode.outputTypes().get(1), equalTo((DataType) DataTypes.STRING));
     }
 
     @Test
