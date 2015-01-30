@@ -24,6 +24,7 @@ package io.crate;
 import io.crate.blob.BlobEnvironment;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
@@ -31,16 +32,15 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -91,7 +91,7 @@ public class BlobEnvironmentTest {
         File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0));
         File nodeShardLocation = nodeEnvironment.shardLocations(new ShardId(".blob_test", 0))[0];
         assertThat(shardLocation.getAbsolutePath().substring(nodeShardLocation.getAbsolutePath().length()),
-                is("/"+BlobEnvironment.BLOBS_SUB_PATH));
+                is(File.separator + BlobEnvironment.BLOBS_SUB_PATH));
     }
 
     @Test
@@ -114,6 +114,8 @@ public class BlobEnvironmentTest {
 
     @Test
     public void testValidateNotCreatable() throws Exception {
+        Assume.assumeFalse(OsUtils.WINDOWS);
+
         File tmpDir = folder.newFolder();
         assertThat(tmpDir.setReadable(false), is(true));
         assertThat(tmpDir.setWritable(false), is(true));
