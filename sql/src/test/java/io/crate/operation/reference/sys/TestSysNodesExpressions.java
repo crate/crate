@@ -535,17 +535,5 @@ public class TestSysNodesExpressions {
         assertThat(versionNumber.value(), is(new BytesRef(version.value().get(NodeVersionExpression.NUMBER).toString())));
 
     }
-    @Test
-    public void test() {
-        Sigar sigar = new Sigar();
-        try {
-            for (FileSystem fs : sigar.getFileSystemList()) {
-                System.out.println(fs.getDevName());
-                System.out.println(fs.getDirName());
-            }
-        } catch (SigarException e) {
-            e.printStackTrace();
-        }
-    }
 
 }
