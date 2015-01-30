@@ -496,8 +496,10 @@ comparisonType returns [ComparisonExpression.Type value]
     | GT                    { $value = ComparisonExpression.Type.GREATER_THAN; }
     | GTE                   { $value = ComparisonExpression.Type.GREATER_THAN_OR_EQUAL; }
     | IS_DISTINCT_FROM      { $value = ComparisonExpression.Type.IS_DISTINCT_FROM; }
-    | REGEX_MATCH	    { $value = ComparisonExpression.Type.REGEX_MATCH; }
+    | REGEX_MATCH	        { $value = ComparisonExpression.Type.REGEX_MATCH; }
     | REGEX_NO_MATCH	    { $value = ComparisonExpression.Type.REGEX_NO_MATCH; }
+    | REGEX_MATCH_CI        { $value = ComparisonExpression.Type.REGEX_MATCH_CI; }
+    | REGEX_NO_MATCH_CI	    { $value = ComparisonExpression.Type.REGEX_NO_MATCH_CI; }
     ;
 
 setCompareQuantifier returns [ArrayComparisonExpression.Quantifier value]

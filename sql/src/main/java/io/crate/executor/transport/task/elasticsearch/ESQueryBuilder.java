@@ -43,6 +43,7 @@ import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
+import io.crate.operation.scalar.regex.RegexMatcher;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.*;
@@ -757,6 +758,9 @@ public class ESQueryBuilder {
                 Preconditions.checkArgument(
                         tuple.v2() == null || tuple.v2() instanceof String,
                         "Can only use ~ with patterns of type string");
+                Preconditions.checkArgument(
+                        !RegexMatcher.isPcrePattern(tuple.v2()),
+                        "Using ~ with PCRE regular expressions currently not supported for this type of query");
                 context.builder.startObject("regexp").startObject(tuple.v1())
                         .field("value", tuple.v2())
                         .field("flags", "ALL")

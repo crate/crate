@@ -35,6 +35,7 @@ public class OperatorModule extends AbstractModule {
         LikeOperator.register(this);
         InOperator.register(this);
         RegexpMatchOperator.register(this);
+        RegexpMatchCaseInsensitiveOperator.register(this);
 
         AnyEqOperator.register(this);
         AnyNeqOperator.register(this);

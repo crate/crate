@@ -545,7 +545,7 @@ nullOrdering
     ;
 
 cmpOp
-    : EQ | NEQ | LT | LTE | GT | GTE | REGEX_MATCH | REGEX_NO_MATCH
+    : EQ | NEQ | LT | LTE | GT | GTE | REGEX_MATCH | REGEX_NO_MATCH | REGEX_MATCH_CI | REGEX_NO_MATCH_CI
     ;
 
 setCmpQuantifier
@@ -1196,6 +1196,8 @@ GT  : '>';
 GTE : '>=';
 REGEX_MATCH: '~';
 REGEX_NO_MATCH: '!~';
+REGEX_MATCH_CI: '~*';
+REGEX_NO_MATCH_CI: '!~*';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
