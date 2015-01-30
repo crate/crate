@@ -38,10 +38,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class PlanNodeBuilder {
 
@@ -63,7 +60,7 @@ public class PlanNodeBuilder {
     }
 
     public static MergeNode distributedMerge(CollectNode collectNode,
-                                      ImmutableList<Projection> projections) {
+                                      List<Projection> projections) {
         MergeNode node = new MergeNode("distributed merge", collectNode.executionNodes().size());
         node.projections(projections);
 
