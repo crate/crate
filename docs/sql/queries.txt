@@ -224,34 +224,70 @@ The following predicates extend the range of possible conditions to use in the w
 Regular Expressions
 -------------------
 
-::
+Operators for matching using regular expressions.
 
-  'source' ~ 'pattern'
+.. list-table::
+   :widths: 5 20 15
+   :header-rows: 1
 
-::
+   * - Operator
+     - Description
+     - Example
+   * - ``~``
+     - Matches regular expression, case sensitive
+     - ::
 
-  'source' !~ 'pattern'
+         'foo' ~ '.*foo.*'
+   * - ``~*``
+     - Matches regular expression, case insensitive
+     - ::
+
+         'Foo' ~* '.*foo.*'
+   * - ``!~``
+     - Does not match regular expression, case sensitive
+     - ::
+
+         'Foo' !~ '.*foo.*'
+   * - ``!~*``
+     - Does not match regular expression, case insensitive
+     - ::
+
+         'foo' !~* '.*bar.*'
 
 The ``~`` operator can be used to match a string against a regular
-expression. It returns ``true`` if ``source`` matches, ``false`` if not, and
-``NULL`` if ``source`` is ``NULL``.
+expression. It returns ``true`` if the string matches the pattern,
+``false`` if not, and ``NULL`` if string is ``NULL``.
 
 To negate the matching, use the optional ``!`` prefix. The operator
-returns ``true`` if ``source`` does not match ``pattern``, ``false`` otherwise.
+returns ``true`` if the string does not match the pattern, ``false`` otherwise.
 
-The regular expression ``pattern`` is implicitly anchored, that means
-that the whole ``source`` string must match, not a single
-subsequence. The match is always case sensitive, all unicode
-characters are allowed.
+The regular expression pattern is implicitly anchored, that means
+that the whole string must match, not a single
+subsequence. All unicode characters are allowed.
 
-Internally the ``~`` operator uses `Lucene Regular Expressions`_ which
-are optimized for fast regular expression matching on lucene terms.
+If using `PCRE`_ features in the regular expression pattern, the operator
+uses the regular expression engine of the Java standard library
+``java.util.regex``.
+
+If not using `PCRE`_ features in the regular expression pattern, the
+operator uses `Lucene Regular Expressions`_, which are optimized
+for fast regular expression matching on Lucene terms.
 
 `Lucene Regular Expressions`_ are basically `POSIX Extended Regular
 Expressions`_ without the character classes and with some extensions,
 like a metacharacter ``#``  for the empty string or ``~`` for negation
-and others. By default all Lucene extension are enabled. See the
+and others. By default all Lucene extensions are enabled. See the
 Lucene documentation for more details.
+
+.. note::
+
+    Since case-insensitive matching using ``~*`` or ``!~*`` implicitly uses
+    the regular expression engine of the Java standard library,
+    features of `Lucene Regular Expressions`_ do not work there.
+
+.. warning::
+
+    `PCRE`_ features currently do not work for ``SELECT COUNT(*)`` and ``DELETE`` queries.
 
 Examples::
 
@@ -271,7 +307,7 @@ Examples::
 ::
 
     cr> select 'matches' from sys.cluster where
-    ... 'gcc --std=c99 -Wall source.c' ~ '[A-Za-z0-9]+ ((-|--)[A-Za-z0-9]+ )*([^ ] ?)*';
+    ... 'gcc --std=c99 -Wall source.c' ~ '[A-Za-z0-9]+( (-|--)[A-Za-z0-9]+)*( [^ ]+)*';
     +-----------+
     | 'matches' |
     +-----------+
@@ -291,6 +327,7 @@ Examples::
 
 .. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 .. _POSIX Extended Regular Expressions: http://en.wikipedia.org/wiki/Regular_expression#POSIX_extended
+.. _PCRE: https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions
 
 
 .. _sql_dql_like:
