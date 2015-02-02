@@ -75,17 +75,4 @@ public abstract class DataType<T> implements Comparable, Streamable {
     public String toString() {
         return getName();
     }
-
-    public boolean isUndefinedType() {
-        DataType dataType = this;
-        while (dataType instanceof CollectionType) {
-            DataType innerType = ((CollectionType) dataType).innerType();
-            if (innerType instanceof CollectionType || innerType == DataTypes.UNDEFINED) {
-                dataType = innerType;
-            } else {
-                break;
-            }
-        }
-        return dataType == DataTypes.UNDEFINED;
-    }
 }
