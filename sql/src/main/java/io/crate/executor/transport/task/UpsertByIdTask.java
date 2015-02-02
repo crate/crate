@@ -136,7 +136,7 @@ public class UpsertByIdTask extends JobTask {
     public void start() {
         for (UpsertByIdNode.Item item : node.items()) {
             bulkShardProcessor.add(
-                    node.index(),
+                    item.index(),
                     item.id(),
                     item.assignments(),
                     item.missingAssignments(),

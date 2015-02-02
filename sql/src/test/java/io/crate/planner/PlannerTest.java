@@ -777,12 +777,12 @@ public class PlannerTest {
         assertThat(childNodes.get(0), instanceOf(UpsertByIdNode.class));
 
         UpsertByIdNode updateNode = (UpsertByIdNode)childNodes.get(0);
-        assertThat(updateNode.index(), is("users"));
         assertThat(updateNode.items().size(), is(1));
 
         assertThat(updateNode.assignmentsColumns()[0], is("name"));
 
         UpsertByIdNode.Item item = updateNode.items().get(0);
+        assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
 
         Symbol symbol = item.assignments()[0];
