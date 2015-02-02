@@ -109,6 +109,7 @@ public class UpdateConsumer implements Consumer {
             }
 
             List<List<DQLPlanNode>> childNodes = new ArrayList<>(statement.nestedStatements().size());
+            UpsertByIdNode upsertByIdNode = null;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
                 WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
@@ -118,10 +119,14 @@ public class UpdateConsumer implements Consumer {
                 }
                 if (whereClauseContext.ids().size() >= 1
                         && whereClauseContext.routingValues().size() == whereClauseContext.ids().size()) {
-                    // TODO: create only 1 UpdateByIdNode for all nested statements
-                    childNodes.add(updateById(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
+                    if (upsertByIdNode == null) {
+                        Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
+                        upsertByIdNode = new UpsertByIdNode(false, statement.nestedStatements().size() > 1, assignments.v1(), null);
+                        childNodes.add(ImmutableList.<DQLPlanNode>of(upsertByIdNode));
+                    }
+                    upsertById(nestedAnalysis, tableInfo, whereClause, whereClauseContext, upsertByIdNode);
                 } else {
-                    childNodes.add(updateByQuery(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
+                    childNodes.add(upsertByQuery(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
                 }
             }
             if (childNodes.size()>0){
@@ -131,10 +136,10 @@ public class UpdateConsumer implements Consumer {
             }
         }
 
-        private List<DQLPlanNode> updateByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
-                                               TableInfo tableInfo,
-                                               WhereClause whereClause,
-                                               WhereClauseContext whereClauseContext) {
+        private List<DQLPlanNode> upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
+                                                TableInfo tableInfo,
+                                                WhereClause whereClause,
+                                                WhereClauseContext whereClauseContext) {
 
             if(whereClauseContext.whereClause().version().isPresent()){
                 VersionRewriter versionRewriter = new VersionRewriter();
@@ -173,27 +178,25 @@ public class UpdateConsumer implements Consumer {
             }
         }
 
-        private List<DQLPlanNode> updateById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
+        private void upsertById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
                                              TableInfo tableInfo,
                                              WhereClause whereClause,
-                                             WhereClauseContext whereClauseContext) {
+                                             WhereClauseContext whereClauseContext,
+                                             UpsertByIdNode upsertByIdNode) {
             String[] indices = Planner.indices(tableInfo, whereClause);
             assert indices.length == 1;
             assert whereClauseContext.ids().size() == whereClauseContext.routingValues().size();
-            List<DQLPlanNode> nodes = new ArrayList<>(whereClauseContext.ids().size());
 
             Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
 
-            UpsertByIdNode upsertByIdNode = new UpsertByIdNode(indices[0], false, false, assignments.v1(), null);
             for (int i = 0; i < whereClauseContext.ids().size(); i++) {
                 upsertByIdNode.add(
+                        indices[0],
                         whereClauseContext.ids().get(i),
                         whereClauseContext.routingValues().get(i),
                         assignments.v2(),
                         whereClause.version().orNull());
             }
-            nodes.add(upsertByIdNode);
-            return nodes;
         }
 
         private Tuple<String[], Symbol[]> convertAssignments(Map<Reference, Symbol> assignments) {

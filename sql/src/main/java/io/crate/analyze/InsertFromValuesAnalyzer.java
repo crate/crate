@@ -236,9 +236,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     insertValues[i] = rest;
                 }
             } else {
-                if (value instanceof BytesRef) {
-                    value = new BytesText(new BytesArray((BytesRef) value));
-                }
                 insertValues[i] = value;
             }
         }

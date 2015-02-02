@@ -141,7 +141,11 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
             int location = request.locations().get(i);
             ShardUpsertRequest.Item item = request.items().get(i);
             try {
-                IndexResponse indexResponse = indexItem(request, item, indexShard, 0);
+                IndexResponse indexResponse = indexItem(
+                        request,
+                        item, indexShard,
+                        item.missingAssignments() != null, // try insert first
+                        0);
                 shardUpsertResponse.add(location,
                         new ShardUpsertResponse.Response(
                                 item.id(),
@@ -169,16 +173,31 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
     public IndexResponse indexItem(ShardUpsertRequest request,
                           ShardUpsertRequest.Item item,
                           IndexShard indexShard,
+                          boolean tryInsertFirst,
                           int retryCount) throws ElasticsearchException {
 
         try {
-            IndexRequest indexRequest = new IndexRequest(prepare(request, item, indexShard), request);
-            logger.trace("executing index request {}, routing {}", indexRequest, indexRequest.routing());
+            IndexRequest indexRequest;
+            if (tryInsertFirst) {
+                // try insert first without fetching the document
+                try {
+                    indexRequest = new IndexRequest(prepareMissingAssignmentsIndexRequest(request, item), request);
+                } catch (IOException e) {
+                    throw new ElasticsearchException("IOException", e);
+                }
+            } else {
+                indexRequest = new IndexRequest(prepare(request, item, indexShard), request);
+            }
+            logger.trace("executing index request {}, routing {}", indexRequest, item.routing());
             return indexAction.execute(indexRequest).actionGet();
         } catch (Throwable t) {
             if (t instanceof VersionConflictEngineException
                     && retryCount < item.retryOnConflict()) {
-                return indexItem(request, item, indexShard, retryCount + 1);
+                return indexItem(request, item, indexShard, false, retryCount + 1);
+            } else if (tryInsertFirst && item.assignments() != null
+                    && t instanceof DocumentAlreadyExistsException) {
+                // insert failed, document already exists, try update
+                return indexItem(request, item, indexShard, false, 0);
             } else {
                 throw t;
             }
@@ -197,13 +216,6 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
                 true, item.version(), VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
 
         if (!getResult.isExists()) {
-            if(item.missingAssignments() != null){
-                try {
-                    return prepareMissingAssignmentsIndexRequest(request, item);
-                } catch (IOException e) {
-                    throw new ElasticsearchException("IOException", e);
-                }
-            }
             throw new DocumentMissingException(new ShardId(indexShard.indexService().index().name(), request.shardId()), request.type(), item.id());
         } else if (item.assignments() == null) {
             throw new DocumentAlreadyExistsException(new ShardId(indexShard.indexService().index().name(), request.shardId()), request.type(), item.id());
@@ -239,9 +251,12 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
-        final IndexRequest indexRequest = Requests.indexRequest(request.index()).type(request.type()).id(item.id()).routing(routing).parent(parent)
+        final IndexRequest indexRequest = Requests.indexRequest(request.index())
+                .type(request.type())
+                .id(item.id())
+                .routing(routing)
+                .parent(parent)
                 .source(updatedSourceAsMap, updateSourceContentType)
-                .routing(item.routing())
                 .version(getResult.getVersion());
         indexRequest.operationThreaded(false);
         return indexRequest;

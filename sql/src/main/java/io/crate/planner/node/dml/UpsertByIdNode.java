@@ -37,6 +37,7 @@ public class UpsertByIdNode extends DMLPlanNode {
      */
     public static class Item {
 
+        private final String index;
         private final String id;
         private final String routing;
         private final Symbol[] assignments;
@@ -44,11 +45,13 @@ public class UpsertByIdNode extends DMLPlanNode {
         @Nullable
         private Object[] missingAssignments;
 
-        public Item(String id,
+        Item(String index,
+                    String id,
                     String routing,
                     Symbol[] assignments,
                     @Nullable Long version,
                     @Nullable Object[] missingAssignments) {
+            this.index = index;
             this.id = id;
             this.routing = routing;
             this.assignments = assignments;
@@ -56,6 +59,10 @@ public class UpsertByIdNode extends DMLPlanNode {
                 this.version = version;
             }
             this.missingAssignments = missingAssignments;
+        }
+
+        public String index() {
+            return index;
         }
 
         public String id() {
@@ -81,7 +88,6 @@ public class UpsertByIdNode extends DMLPlanNode {
     }
 
 
-    private final String index;
     private final boolean partitionedTable;
     private final boolean bulkRequest;
     private final List<Item> items;
@@ -89,21 +95,15 @@ public class UpsertByIdNode extends DMLPlanNode {
     @Nullable
     private final Reference[] missingAssignmentsColumns;
 
-    public UpsertByIdNode(String index,
-                          boolean partitionedTable,
+    public UpsertByIdNode(boolean partitionedTable,
                           boolean bulkRequest,
                           String[] assignmentsColumns,
                           @Nullable Reference[] missingAssignmentsColumns) {
-        this.index = index;
         this.partitionedTable = partitionedTable;
         this.bulkRequest = bulkRequest;
         this.assignmentsColumns = assignmentsColumns;
         this.missingAssignmentsColumns = missingAssignmentsColumns;
         this.items = new ArrayList<>();
-    }
-
-    public String index() {
-        return index;
     }
 
     public String[] assignmentsColumns() {
@@ -123,16 +123,21 @@ public class UpsertByIdNode extends DMLPlanNode {
         return bulkRequest;
     }
 
-    public void add(String id, String routing, Symbol[] assignments, @Nullable Long version) {
-        add(id, routing, assignments, version, null);
+    public void add(String index,
+                    String id,
+                    String routing,
+                    Symbol[] assignments,
+                    @Nullable Long version) {
+        add(index, id, routing, assignments, version, null);
     }
 
-    public void add(String id,
+    public void add(String index,
+                    String id,
                     String routing,
                     Symbol[] assignments,
                     @Nullable Long version,
                     @Nullable Object[] missingAssignments) {
-        items.add(new Item(id, routing, assignments, version, missingAssignments));
+        items.add(new Item(index, id, routing, assignments, version, missingAssignments));
     }
 
     public List<Item> items() {

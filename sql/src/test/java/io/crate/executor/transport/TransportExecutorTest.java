@@ -607,8 +607,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
-        UpsertByIdNode updateNode = new UpsertByIdNode("characters", false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
-        updateNode.add("1", "1", new Symbol[]{ Literal.newLiteral("Vogon lyric fan")}, null);
+        UpsertByIdNode updateNode = new UpsertByIdNode(false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
+        updateNode.add("characters", "1", "1", new Symbol[]{ Literal.newLiteral("Vogon lyric fan")}, null);
         Plan plan = new IterablePlan(updateNode);
 
         Job job = executor.newJob(plan);
@@ -641,13 +641,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
             set name = 'Zaphod Beeblebrox' */
         Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
         UpsertByIdNode updateNode = new UpsertByIdNode(
-                "characters",
                 false,
                 false,
                 new String[]{nameRef.ident().columnIdent().fqn()},
                 new Reference[]{idRef, nameRef, femaleRef});
 
-        updateNode.add("5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
+        updateNode.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
@@ -677,12 +676,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
         Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
         UpsertByIdNode updateNode = new UpsertByIdNode(
-                "characters",
                 false,
                 false,
                 new String[]{femaleRef.ident().columnIdent().fqn()},
                 new Reference[]{idRef, nameRef, femaleRef});
-        updateNode.add("1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
+        updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
