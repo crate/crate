@@ -32,7 +32,6 @@ public class ParameterContext {
 
     final Object[] parameters;
     final Object[][] bulkParameters;
-    DataType[] bulkTypes;
 
     private int currentIdx = 0;
 
@@ -45,25 +44,10 @@ public class ParameterContext {
     }
 
     private void validateBulkParams(Object[][] bulkParams) {
+        int length = bulkParams[0].length;
         for (Object[] bulkParam : bulkParams) {
-            if (bulkTypes == null) {
-                initializeBulkTypes(bulkParam);
-                continue;
-            } else if (bulkParam.length != bulkTypes.length) {
+            if (bulkParam.length != length) {
                 throw new IllegalArgumentException("mixed number of arguments inside bulk arguments");
-            }
-
-            for (int i = 0; i < bulkParam.length; i++) {
-                Object o = bulkParam[i];
-                DataType expectedType = bulkTypes[i];
-                DataType guessedType = guessTypeSafe(o);
-
-                if (expectedType.isUndefinedType()) {
-                    bulkTypes[i] = guessedType;
-                } else if (o != null && !bulkTypes[i].equals(guessedType)) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "argument %d of bulk arguments contains mixed data types", i + 1));
-                }
             }
         }
     }
@@ -75,13 +59,6 @@ public class ParameterContext {
                     "Got an argument \"%s\" that couldn't be recognized", value));
         }
         return guessedType;
-    }
-
-    private void initializeBulkTypes(Object[] bulkParam) {
-        bulkTypes = new DataType[bulkParam.length];
-        for (int i = 0; i < bulkParam.length; i++) {
-            bulkTypes[i] = guessTypeSafe(bulkParam[i]);
-        }
     }
 
     public boolean hasBulkParams() {
@@ -101,13 +78,15 @@ public class ParameterContext {
 
     public io.crate.planner.symbol.Literal getAsSymbol(int index) {
         try {
+            Object value;
             if (hasBulkParams()) {
-                // already did a type guess so it is possible to create a literal directly
-                return newLiteral(bulkTypes[index], bulkTypes[index].value(bulkParameters[currentIdx][index]));
+                value = bulkParameters[currentIdx][index];
+            } else {
+                value = parameters[index];
             }
-            DataType type = guessTypeSafe(parameters[index]);
+            DataType type = guessTypeSafe(value);
             // use type.value because some types need conversion (String to BytesRef, List to Array)
-            return newLiteral(type, type.value(parameters[index]));
+            return newLiteral(type, type.value(value));
         } catch (ArrayIndexOutOfBoundsException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Tried to resolve a parameter but the arguments provided with the " +

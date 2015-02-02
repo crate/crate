@@ -587,12 +587,12 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithBulkArgsTypeMissMatch() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("argument 1 of bulk arguments contains mixed data types");
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for id: \"'11!'\" has a type that can't be implicitly cast to that of \"users.id\" (long)");
         analyze("insert into users (id, name) values (?, ?)",
                 new Object[][]{
                         new Object[]{10, "foo"},
-                        new Object[]{"11", "bar"}
+                        new Object[]{"11!", "bar"}
                 }
         );
     }
@@ -681,8 +681,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         ));
 
         analyze("insert into users (id, name) values (?, ?)", new Object[][]{
-                new Object[]{"foo"},
-                new Object[]{new Foo()},
+                new Object[]{1, "Arthur"},
+                new Object[]{new Foo(), "Ford"},
         });
     }
 
