@@ -71,8 +71,8 @@ public class ParameterContextTest {
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(0), true);
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(1), 1);
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(2), "foo");
-        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(3), null, new ArrayType(DataTypes.UNDEFINED));
-        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(4), new BytesRef[]{null}, new ArrayType(DataTypes.STRING));
+        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(3), null, DataTypes.UNDEFINED);
+        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(4), new BytesRef[]{null}, new ArrayType(DataTypes.UNDEFINED));
         ctx.setBulkIdx(1);
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(0), false);
         TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(1), 2);
@@ -91,30 +91,6 @@ public class ParameterContextTest {
         };
         new ParameterContext(EMPTY_ARGS, bulkArgs);
     }
-
-    @Test
-    public void testBulkArgsMixedSimpleTypes() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("argument 1 of bulk arguments contains mixed data types");
-        Object[][] bulkArgs = new Object[][] {
-                new Object[]{ true },
-                new Object[]{ false },
-                new Object[]{ "maybe" }
-        };
-        new ParameterContext(EMPTY_ARGS, bulkArgs);
-    }
-
-    @Test
-    public void testBulkArgsMixedArrayTypes() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("argument 1 of bulk arguments contains mixed data types");
-        Object[][] bulkArgs = new Object[][] {
-                new Object[]{ new String[]{ "foo" } },
-                new Object[]{ new Integer[]{ 1 } }
-        };
-        new ParameterContext(EMPTY_ARGS, bulkArgs);
-    }
-
 
     @Test
     public void testBulkArgsNested() throws Exception {
@@ -144,7 +120,7 @@ public class ParameterContextTest {
                 new Object[] { new String[][] { new String[]{ "foo" } } },
         };
         ParameterContext ctx = new ParameterContext(EMPTY_ARGS, bulkArgs);
-        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(0), bulkArgs[0][0], new ArrayType(new ArrayType(DataTypes.STRING)));
+        TestingHelpers.assertLiteralSymbol(ctx.getAsSymbol(0), bulkArgs[0][0], new ArrayType(new ArrayType(DataTypes.UNDEFINED)));
     }
 
     @Test
