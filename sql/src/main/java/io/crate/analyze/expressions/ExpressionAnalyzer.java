@@ -362,7 +362,7 @@ public class ExpressionAnalyzer {
     }
 
 
-    private static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType, ExpressionAnalysisContext context) {
+    public static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType, ExpressionAnalysisContext context) {
         DataType sourceType = symbolToCast.valueType();
         if (sourceType.equals(targetType)) {
             return symbolToCast;

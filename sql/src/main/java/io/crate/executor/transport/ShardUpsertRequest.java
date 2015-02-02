@@ -166,7 +166,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
     private Reference[] missingAssignmentsColumns;
     @Nullable
     private Streamer[] streamers;
-    private boolean continueOnDuplicates = false;
+    private boolean continueOnError = false;
 
     public ShardUpsertRequest() {
     }
@@ -184,12 +184,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
         if (missingAssignmentsColumns != null) {
             streamers = new Streamer[missingAssignmentsColumns.length];
             for (int i = 0; i < missingAssignmentsColumns.length; i++) {
-                try {
-                    streamers[i] = missingAssignmentsColumns[i].valueType().streamer();
-                } catch (Exception e) {
-                    int b = 0;
-                    throw e;
-                }
+                streamers[i] = missingAssignmentsColumns[i].valueType().streamer();
             }
         }
     }
@@ -198,13 +193,6 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
                               String[] assignmentsColumns,
                               @Nullable Reference[] missingAssignmentsColumns) {
         this(shardId.getIndex(), shardId.id(), assignmentsColumns, missingAssignmentsColumns);
-        //this.shardId = shardId.id();
-    }
-
-    public ShardUpsertRequest(ShardId shardId,
-                              Reference[] missingAssignmentsColumns) {
-        this(shardId.getIndex(),shardId.id(), null, missingAssignmentsColumns);
-        //this.shardId = shardId.id();
     }
 
     public List<Item> items() {
@@ -260,12 +248,12 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
         return missingAssignmentsColumns;
     }
 
-    public boolean continueOnDuplicates() {
-        return continueOnDuplicates;
+    public boolean continueOnError() {
+        return continueOnError;
     }
 
-    public void continueOnDuplicates(boolean continueOnDuplicates) {
-        this.continueOnDuplicates = continueOnDuplicates;
+    public void continueOnError(boolean continueOnError) {
+        this.continueOnError = continueOnError;
     }
 
     @Override
@@ -299,7 +287,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
             locations.add(in.readVInt());
             items.add(Item.readItem(in, streamers));
         }
-        continueOnDuplicates = in.readBoolean();
+        continueOnError = in.readBoolean();
     }
 
     @Override
@@ -327,7 +315,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
             out.writeVInt(locations.get(i));
             items.get(i).writeTo(out);
         }
-        out.writeBoolean(continueOnDuplicates);
+        out.writeBoolean(continueOnError);
     }
 
 }

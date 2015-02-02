@@ -30,7 +30,6 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -121,7 +120,6 @@ public class BulkShardProcessor {
         result = SettableFuture.create();
         autoCreateIndex = new AutoCreateIndex(settings);
         requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
-        logger.setLevel("trace");
     }
 
     public boolean add(String indexName,
@@ -168,12 +166,13 @@ public class BulkShardProcessor {
                                          @Nullable Object[] missingAssignments,
                                          @Nullable String routing,
                                          @Nullable Long version) {
-        ShardId shardId = clusterService.operationRouting().indexShards(
+        ShardId shardId = clusterService.operationRouting().getShards(
                 clusterService.state(),
                 indexName,
                 Constants.DEFAULT_MAPPING_TYPE,
                 id,
-                routing
+                routing,
+                Preference.PRIMARY.type()
         ).shardId();
 
 
@@ -182,7 +181,7 @@ public class BulkShardProcessor {
             ShardUpsertRequest updateRequest = requestsByShard.get(shardId);
             if (updateRequest == null) {
                 updateRequest = new ShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns);
-                updateRequest.continueOnDuplicates(continueOnDuplicates);
+                updateRequest.continueOnError(continueOnDuplicates);
                 requestsByShard.put(shardId, updateRequest);
             }
             counter.getAndIncrement();

@@ -66,7 +66,7 @@ public class UpsertByIdTask extends JobTask {
                 node.isPartitionedTable(),
                 true,
                 node.items().size(),
-                false,
+                node.isBulkRequest() || node.assignmentsColumns() != null, // continue on error on bulk and/or update
                 node.assignmentsColumns(),
                 node.missingAssignmentsColumns());
 

@@ -21,22 +21,9 @@
 
 package io.crate.analyze;
 
-import java.io.IOException;
-import java.util.*;
-
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.text.BytesText;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.core.StringUtils;
@@ -51,6 +38,16 @@ import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.lucene.BytesRefs;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Singleton
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
@@ -106,6 +103,11 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             }
             return super.convertFunctionCall(node, context);
         }
+
+        @Override
+        public Symbol convert(Expression expression, ExpressionAnalysisContext expressionAnalysisContext) {
+            return tableRelation.resolve(super.convert(expression, expressionAnalysisContext));
+        }
     }
 
     @Inject
@@ -115,9 +117,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     @Override
     public AbstractInsertAnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis analysis) {
-        if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            throw new UnsupportedOperationException("ON DUPLICATE KEY UPDATE clause is not supported");
-        }
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
         TableRelation tableRelation = new TableRelation(tableInfo);
         validateTable(tableInfo);
@@ -249,7 +248,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 Symbol columnName = expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext);
                 assert columnName instanceof Field : "columnName must be a field"; // ensured by parser
 
-                Symbol assignmentExpression = valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext);
+                Symbol assignmentExpression = ExpressionAnalyzer.castIfNeededOrFail(
+                        valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
+                        columnName.valueType(), expressionAnalysisContext);
                 assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression);
                 onDupKeyAssignments[i] = assignmentExpression;
                 if (valuesAwareExpressionAnalyzer.assignmentColumns.size() == i) {
