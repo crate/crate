@@ -1200,8 +1200,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupByHaving() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having(), isFunction("op_like"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having();
+        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_like"));
+        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
@@ -1209,15 +1209,18 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupByHavingNormalize() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats) from users group by name having 1 > 4");
-        assertLiteralSymbol(analysis.relation().querySpec().having(), false);
+        HavingClause having = analyze(
+                "select sum(floats) from users group by name having 1 > 4")
+                .relation().querySpec().having();
+        assertTrue(having.noMatch());
+        assertNull(having.query());
     }
 
     @Test
     public void testGroupByHavingOtherColumnInAggregate() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
-        assertThat(analysis.relation().querySpec().having(), isFunction("op_="));
-        Function havingFunction = (Function) analysis.relation().querySpec().having();
+        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_="));
+        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isFunction("max"));
         Function maxFunction = (Function) havingFunction.arguments().get(0);
@@ -1247,8 +1250,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testGroupByHavingByGroupKey() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
                 "select sum(floats), name from users group by name having name like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having(), isFunction("op_like"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having();
+        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_like"));
+        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
@@ -1259,8 +1262,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testGroupByHavingComplex() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users " +
                 "group by name having 1=0 or sum(bytes) in (42, 43, 44) and  name not like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having(), instanceOf(Function.class));
-        Function andFunction = (Function) analysis.relation().querySpec().having();
+        assertTrue(analysis.relation().querySpec().having().hasQuery());
+        Function andFunction = (Function) analysis.relation().querySpec().having().query();
         assertThat(andFunction, is(notNullValue()));
         assertThat(andFunction.info().ident().name(), is("op_and"));
         assertThat(andFunction.arguments().size(), is(2));
@@ -1279,8 +1282,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGlobalAggregateHaving() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats) from users having sum(bytes) in (42, 43, 44)");
-        assertThat(analysis.relation().querySpec().having(), isFunction("op_in"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having();
+        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_in"));
+        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
 
         assertThat(havingFunction.info().ident().name(), is("op_in"));
         assertThat(havingFunction.arguments().size(), is(2));

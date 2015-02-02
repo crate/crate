@@ -36,7 +36,7 @@ public class QuerySpec {
 
     private List<Symbol> groupBy;
     private OrderBy orderBy;
-    private Symbol having;
+    private HavingClause having;
     private List<Symbol> outputs;
     private WhereClause where;
     private Integer limit;
@@ -83,11 +83,14 @@ public class QuerySpec {
     }
 
     @Nullable
-    public Symbol having() {
+    public HavingClause having() {
         return having;
     }
 
-    public QuerySpec having(@Nullable Symbol having) {
+    public QuerySpec having(@Nullable HavingClause having) {
+        if (having == null || !having.hasQuery() && !having.noMatch()){
+            this.having = null;
+        }
         this.having = having;
         return this;
     }
@@ -142,7 +145,7 @@ public class QuerySpec {
             where = where.normalize(normalizer);
         }
         if (having != null) {
-            having = normalizer.normalize(having);
+            having = having.normalize(normalizer);
         }
     }
 

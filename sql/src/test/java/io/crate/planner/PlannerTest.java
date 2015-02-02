@@ -1295,7 +1295,7 @@ public class PlannerTest {
         assertThat(projection, instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection) projection;
 
-        Symbol countArgument = filterProjection.query().arguments().get(0);
+        Symbol countArgument = ((Function) filterProjection.query()).arguments().get(0);
         assertThat(countArgument, instanceOf(InputColumn.class));
         assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
 
@@ -1333,7 +1333,7 @@ public class PlannerTest {
         assertThat(projection, instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection) projection;
 
-        Symbol countArgument = filterProjection.query().arguments().get(0);
+        Symbol countArgument = ((Function) filterProjection.query()).arguments().get(0);
         assertThat(countArgument, instanceOf(InputColumn.class));
         assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
 
@@ -1370,7 +1370,7 @@ public class PlannerTest {
         assertThat(projection, instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection) projection;
 
-        Symbol countArgument = filterProjection.query().arguments().get(0);
+        Symbol countArgument = ((Function) filterProjection.query()).arguments().get(0);
         assertThat(countArgument, instanceOf(InputColumn.class));
         assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
 
@@ -1404,7 +1404,7 @@ public class PlannerTest {
         assertThat(projection, instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection) projection;
 
-        Symbol countArgument = filterProjection.query().arguments().get(0);
+        Symbol countArgument = ((Function) filterProjection.query()).arguments().get(0);
         assertThat(countArgument, instanceOf(InputColumn.class));
         assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
 
