@@ -354,21 +354,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitESIndexNode(ESIndexNode node, UUID jobId) {
-            if (node.sourceMaps().size() > 1) {
-                return singleTask(new ESBulkIndexTask(jobId, clusterService, settings,
-                        transportActionProvider.transportShardUpsertActionDelegate(),
-                        transportActionProvider.transportCreateIndexAction(),
-                        node));
-            } else {
-                return singleTask(new ESIndexTask(
-                        jobId,
-                        transportActionProvider.transportIndexAction(),
-                        node));
-            }
-        }
-
-        @Override
         public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
             return singleTask(new UpsertByIdTask(jobId,
                     clusterService,

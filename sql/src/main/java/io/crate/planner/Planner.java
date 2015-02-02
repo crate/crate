@@ -126,9 +126,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
         Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
-        if (!analysis.onDuplicateKeyAssignments().isEmpty()) {
-            throw new UnsupportedOperationException("ON DUPLICATE KEY UPDATE is not supported");
-        }
         return processInsertStatement(analysis);
     }
 
