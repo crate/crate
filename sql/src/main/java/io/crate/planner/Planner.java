@@ -421,61 +421,51 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     private Upsert processInsertStatement(InsertFromValuesAnalyzedStatement analysis) {
-        List<List<DQLPlanNode>> childNodes = new ArrayList<>();
+        String[] onDuplicateKeyAssignmentsColumns = null;
+        if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
+            onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
+        }
+        UpsertByIdNode upsertByIdNode = new UpsertByIdNode(
+                analysis.tableInfo().isPartitioned(),
+                analysis.isBulkRequest(),
+                onDuplicateKeyAssignmentsColumns,
+                analysis.columns().toArray(new Reference[analysis.columns().size()])
+        );
         if (analysis.tableInfo().isPartitioned()) {
             List<String> partitions = analysis.generatePartitions();
             String[] indices = partitions.toArray(new String[partitions.size()]);
-            // TODO: add support for multiple indices to UpsertByIdNode so only 1 BulkShardProcessor is used
             for (int i = 0; i < indices.length; i++) {
-                String[] onDuplicateKeyAssignmentsColumns = null;
                 Symbol[] onDuplicateKeyAssignments = null;
                 if (analysis.onDuplicateKeyAssignmentsColumns().size() > i) {
-                    onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(i);
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
-                UpsertByIdNode upsertByIdNode = new UpsertByIdNode(
-                        indices[i],
-                        analysis.tableInfo().isPartitioned(),
-                        analysis.isBulkRequest(),
-                        onDuplicateKeyAssignmentsColumns,
-                        analysis.columns().toArray(new Reference[analysis.columns().size()])
-                );
                 upsertByIdNode.add(
+                        indices[i],
                         analysis.ids().get(i),
                         analysis.routingValues().get(i),
                         onDuplicateKeyAssignments,
                         null,
                         analysis.sourceMaps().get(i));
-                childNodes.add(ImmutableList.<DQLPlanNode>of((upsertByIdNode)));
             }
         } else {
-            String[] onDuplicateKeyAssignmentsColumns = null;
-            if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
-                onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
-            }
-            UpsertByIdNode upsertByIdNode = new UpsertByIdNode(
-                    analysis.tableInfo().ident().esName(),
-                    analysis.tableInfo().isPartitioned(),
-                    analysis.isBulkRequest(),
-                    onDuplicateKeyAssignmentsColumns,
-                    analysis.columns().toArray(new Reference[analysis.columns().size()])
-            );
             for (int i = 0; i < analysis.ids().size(); i++) {
                 Symbol[] onDuplicateKeyAssignments = null;
                 if (analysis.onDuplicateKeyAssignments().size() > i) {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
                 upsertByIdNode.add(
+                        analysis.tableInfo().ident().esName(),
                         analysis.ids().get(i),
                         analysis.routingValues().get(i),
                         onDuplicateKeyAssignments,
                         null,
                         analysis.sourceMaps().get(i));
             }
-            childNodes.add(ImmutableList.<DQLPlanNode>of((upsertByIdNode)));
         }
 
-        return new Upsert(childNodes);
+        return new Upsert(
+                ImmutableList.<List<DQLPlanNode>>of(
+                        ImmutableList.<DQLPlanNode>of(upsertByIdNode)));
     }
 
     static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {

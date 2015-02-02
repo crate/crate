@@ -227,10 +227,11 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 if (context.partitionedByIndices().contains(i)) {
                     Object rest = processPartitionedByValues(columnIdent, value, context);
                     if (rest != null) {
-                        value = rest;
+                        insertValues[i] = rest;
                     }
+                } else {
+                    insertValues[i] = value;
                 }
-                insertValues[i] = value;
             } catch (ClassCastException e) {
                 // symbol is no input
                 throw new ColumnValidationException(columnIdent.name(),

@@ -168,13 +168,12 @@ public class BulkShardProcessor {
                                          @Nullable Object[] missingAssignments,
                                          @Nullable String routing,
                                          @Nullable Long version) {
-        ShardId shardId = clusterService.operationRouting().getShards(
+        ShardId shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 indexName,
                 Constants.DEFAULT_MAPPING_TYPE,
                 id,
-                routing,
-                Preference.PRIMARY.type()
+                routing
         ).shardId();
 
 

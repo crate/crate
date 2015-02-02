@@ -196,15 +196,11 @@ public class TransportExecutor implements Executor, TaskExecutor {
             ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
             for (List<DQLPlanNode> childNodes : plan.nodes()) {
                 List<Task> subTasks = new ArrayList<>(childNodes.size());
-                if (childNodes.size() == 1) {
-                    job.addTasks(childNodes.get(0).accept(nodeVisitor, job.id()));
-                    return null;
-                }
                 for (DQLPlanNode childNode : childNodes) {
                     subTasks.addAll(childNode.accept(nodeVisitor, job.id()));
                 }
-                UpdateTask updateTask = new UpdateTask(TransportExecutor.this, job.id(), subTasks);
-                taskBuilder.add(updateTask);
+                UpsertTask upsertTask = new UpsertTask(TransportExecutor.this, job.id(), subTasks);
+                taskBuilder.add(upsertTask);
             }
             job.addTasks(taskBuilder.build());
             return null;
