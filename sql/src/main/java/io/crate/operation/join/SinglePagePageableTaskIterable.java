@@ -56,6 +56,7 @@ public class SinglePagePageableTaskIterable extends RelationIterable {
             public void onSuccess(@Nullable PageableTaskResult result) {
                 if (result == null) {
                     future.setException(new IllegalArgumentException("PageableTaskResult is null"));
+                    return;
                 }
                 currentTaskResult = result;
                 future.set(null);

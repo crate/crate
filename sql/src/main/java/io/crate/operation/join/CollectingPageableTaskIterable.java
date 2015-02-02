@@ -45,7 +45,7 @@ import java.util.*;
  */
 public class CollectingPageableTaskIterable extends RelationIterable {
 
-    private PageableTaskResult currentTaskResult;
+    private volatile PageableTaskResult currentTaskResult;
     private List<Page> pages;
 
     public CollectingPageableTaskIterable(PageableTaskResult taskResult, PageInfo pageInfo) {
@@ -83,6 +83,7 @@ public class CollectingPageableTaskIterable extends RelationIterable {
                 if (result == null) {
                     future.setException(new IllegalArgumentException("PageableTaskResult is null"));
                 } else {
+                    currentTaskResult = result;
                     pages.add(result.page());
                     future.set(null);
                 }

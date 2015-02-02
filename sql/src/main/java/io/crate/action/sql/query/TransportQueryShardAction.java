@@ -28,8 +28,8 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.search.fetch.ScrollQueryFetchSearchResult;
 import org.elasticsearch.search.query.QuerySearchResult;
+import org.elasticsearch.search.query.ScrollQuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
@@ -124,17 +124,17 @@ public class TransportQueryShardAction {
         }
     }
 
-    public void executeScroll(String node, final QueryShardScrollRequest request, final ActionListener<ScrollQueryFetchSearchResult> listener) {
+    public void executeScrollQuery(String node, final QueryShardScrollRequest request, final ActionListener<ScrollQuerySearchResult> listener) {
         Runnable localRunnable = new Runnable() {
             @Override
             public void run() {
                 executeScrollOnShard(request, listener);
             }
         };
-        TransportResponseHandler<?> responseHandler = new DefaultTransportResponseHandler<ScrollQueryFetchSearchResult>(listener, executorName) {
+        TransportResponseHandler<?> responseHandler = new DefaultTransportResponseHandler<ScrollQuerySearchResult>(listener, executorName) {
             @Override
-            public ScrollQueryFetchSearchResult newInstance() {
-                return new ScrollQueryFetchSearchResult();
+            public ScrollQuerySearchResult newInstance() {
+                return new ScrollQuerySearchResult();
             }
         };
         executeLocalOrViaTransport(node, localRunnable, request, queryScrollTransportAction, responseHandler);
@@ -142,9 +142,9 @@ public class TransportQueryShardAction {
 
     }
 
-    public void executeScrollOnShard(QueryShardScrollRequest request, ActionListener<ScrollQueryFetchSearchResult> listener) {
+    public void executeScrollOnShard(QueryShardScrollRequest request, ActionListener<ScrollQuerySearchResult> listener) {
         try {
-            ScrollQueryFetchSearchResult result = searchService.executeScrollPhase(request);
+            ScrollQuerySearchResult result = searchService.executeScrollQueryPhase(request);
             listener.onResponse(result);
         } catch (Throwable e) {
             listener.onFailure(e);
@@ -160,7 +160,7 @@ public class TransportQueryShardAction {
 
         @Override
         public void messageReceived(QueryShardScrollRequest request, TransportChannel channel) throws Exception {
-            ActionListener<ScrollQueryFetchSearchResult> listener = ResponseForwarder.forwardTo(channel);
+            ActionListener<ScrollQuerySearchResult> listener = ResponseForwarder.forwardTo(channel);
             executeScrollOnShard(request, listener);
         }
 

@@ -22,6 +22,7 @@
 package io.crate.executor;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -33,6 +34,7 @@ public class PageInfo {
     private final int position;
 
     public PageInfo(int position, int size) {
+        Preconditions.checkArgument(position >= 0 && size >= 0, "invalid page paramaters");
         this.position = position;
         this.size = size;
     }

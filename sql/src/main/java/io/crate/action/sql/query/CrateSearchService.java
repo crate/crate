@@ -67,12 +67,11 @@ import org.elasticsearch.search.MultiValueMode;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.dfs.DfsPhase;
 import org.elasticsearch.search.fetch.FetchPhase;
-import org.elasticsearch.search.fetch.QueryFetchSearchResult;
-import org.elasticsearch.search.fetch.ScrollQueryFetchSearchResult;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.query.QueryPhase;
 import org.elasticsearch.search.query.QuerySearchResult;
+import org.elasticsearch.search.query.ScrollQuerySearchResult;
 import org.elasticsearch.search.sort.SortParseElement;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -118,45 +117,20 @@ public class CrateSearchService extends InternalSearchService {
     }
 
 
-    public ScrollQueryFetchSearchResult executeScrollPhase(QueryShardScrollRequest request) {
+    public ScrollQuerySearchResult executeScrollQueryPhase(QueryShardScrollRequest request) {
         final SearchContext context = findContext(request.id());
-        contextProcessing(context);
         try {
-            processScroll(request, context);
             context.indexShard().searchService().onPreQueryPhase(context);
             long time = System.nanoTime();
-            try {
-                queryPhase.execute(context);
-            } catch (Throwable e) {
-                context.indexShard().searchService().onFailedQueryPhase(context);
-                throw Throwables.propagate(e);
-            }
-
-            // set lastEmittedDoc
-            int size = context.queryResult().topDocs().scoreDocs.length;
-            if (size > 0) {
-                context.lastEmittedDoc(context.queryResult().topDocs().scoreDocs[size - 1]);
-            }
-
-            long time2 = System.nanoTime();
-            context.indexShard().searchService().onQueryPhase(context, time2 - time);
-            context.indexShard().searchService().onPreFetchPhase(context);
-            try {
-                shortcutDocIdsToLoad(context);
-                fetchPhase.execute(context);
-                if (context.scroll() == null) {
-                    freeContext(request.id());
-                } else {
-                    contextProcessedSuccessfully(context);
-                }
-            } catch (Throwable e) {
-                context.indexShard().searchService().onFailedFetchPhase(context);
-                throw Throwables.propagate(e);
-            }
-            context.indexShard().searchService().onFetchPhase(context, System.nanoTime() - time2);
-            return new ScrollQueryFetchSearchResult(new QueryFetchSearchResult(context.queryResult(), context.fetchResult()), context.shardTarget());
+            contextProcessing(context);
+            processScroll(request, context);
+            queryPhase.execute(context);
+            contextProcessedSuccessfully(context);
+            context.indexShard().searchService().onQueryPhase(context, System.nanoTime() - time);
+            return new ScrollQuerySearchResult(context.queryResult(), context.shardTarget());
         } catch (Throwable e) {
-            logger.trace("Fetch phase failed", e);
+            context.indexShard().searchService().onFailedQueryPhase(context);
+            logger.trace("Query phase failed", e);
             freeContext(context.id());
             throw Throwables.propagate(e);
         } finally {
@@ -167,7 +141,7 @@ public class CrateSearchService extends InternalSearchService {
     private void processScroll(QueryShardScrollRequest request, SearchContext context) {
         // process scroll
         context.size(request.limit());
-        context.from(context.from() + context.size());
+        context.from(request.from());
 
         context.scroll(request.scroll());
         // update the context keep alive based on the new scroll value
