@@ -43,7 +43,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -539,50 +538,69 @@ public class PlannerTest {
     }
 
     @Test
-    public void testESIndexPlan() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("insert into users (id, name) values (42, 'Deep Thought')");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESIndexNode.class));
+    public void testInsertPlan() throws Exception {
+        Upsert plan = (Upsert) plan("insert into users (id, name) values (42, 'Deep Thought')");
 
-        ESIndexNode indexNode = (ESIndexNode) planNode;
-        assertThat(indexNode.sourceMaps().size(), is(1));
-        Map<String, Object> values = XContentHelper.convertToMap(indexNode.sourceMaps().get(0), false).v2();
-        assertThat(values.size(), is(2));
+        assertThat(plan.nodes().size(), is(1));
 
-        assertThat(values.keySet(), contains("id", "name"));
+        List<DQLPlanNode> childNodes = plan.nodes().get(0);
+        assertThat(childNodes.size(), is(1));
+        assertThat(childNodes.get(0), instanceOf(UpsertByIdNode.class));
 
-        assertThat((Integer) values.get("id"), is(42));
-        assertThat((String) values.get("name"), is("Deep Thought"));
+        UpsertByIdNode updateNode = (UpsertByIdNode)childNodes.get(0);
 
-        assertThat(indexNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));
+        assertThat(updateNode.missingAssignmentsColumns().length, is(2));
+        Reference idRef = updateNode.missingAssignmentsColumns()[0];
+        assertThat(idRef.ident().columnIdent().fqn(), is("id"));
+        Reference nameRef = updateNode.missingAssignmentsColumns()[1];
+        assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
+
+        assertThat(updateNode.items().size(), is(1));
+        UpsertByIdNode.Item item = updateNode.items().get(0);
+        assertThat(item.index(), is("users"));
+        assertThat(item.id(), is("42"));
+        assertThat(item.routing(), is("42"));
+
+        assertThat(item.missingAssignments().length, is(2));
+        assertThat((Long)item.missingAssignments()[0], is(42L));
+        assertThat((BytesRef)item.missingAssignments()[1], is(new BytesRef("Deep Thought")));
     }
 
     @Test
-    public void testESIndexPlanMultipleValues() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESIndexNode.class));
+    public void testInsertPlanMultipleValues() throws Exception {
+        Upsert plan = (Upsert) plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
 
-        ESIndexNode indexNode = (ESIndexNode) planNode;
+        assertThat(plan.nodes().size(), is(1));
 
-        Map<String, Object> values0 = XContentHelper.convertToMap(indexNode.sourceMaps().get(0), false).v2();
-        assertThat(indexNode.sourceMaps().size(), is(2));
-        assertThat(values0.size(), is(2));
+        List<DQLPlanNode> childNodes = plan.nodes().get(0);
+        assertThat(childNodes.size(), is(1));
+        assertThat(childNodes.get(0), instanceOf(UpsertByIdNode.class));
 
-        Map<String, Object> values1 = XContentHelper.convertToMap(indexNode.sourceMaps().get(1), false).v2();
-        assertThat(values1.size(), is(2));
+        UpsertByIdNode updateNode = (UpsertByIdNode)childNodes.get(0);
 
-        assertThat((Integer) values0.get("id"), is(42));
-        assertThat((String) values0.get("name"), is("Deep Thought"));
+        assertThat(updateNode.missingAssignmentsColumns().length, is(2));
+        Reference idRef = updateNode.missingAssignmentsColumns()[0];
+        assertThat(idRef.ident().columnIdent().fqn(), is("id"));
+        Reference nameRef = updateNode.missingAssignmentsColumns()[1];
+        assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
-        assertThat((Integer) values1.get("id"), is(99));
-        assertThat((String) values1.get("name"), is("Marvin"));
+        assertThat(updateNode.items().size(), is(2));
 
-        assertThat(indexNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));
+        UpsertByIdNode.Item item1 = updateNode.items().get(0);
+        assertThat(item1.index(), is("users"));
+        assertThat(item1.id(), is("42"));
+        assertThat(item1.routing(), is("42"));
+        assertThat(item1.missingAssignments().length, is(2));
+        assertThat((Long)item1.missingAssignments()[0], is(42L));
+        assertThat((BytesRef)item1.missingAssignments()[1], is(new BytesRef("Deep Thought")));
+
+        UpsertByIdNode.Item item2 = updateNode.items().get(1);
+        assertThat(item2.index(), is("users"));
+        assertThat(item2.id(), is("99"));
+        assertThat(item2.routing(), is("99"));
+        assertThat(item2.missingAssignments().length, is(2));
+        assertThat((Long)item2.missingAssignments()[0], is(99L));
+        assertThat((BytesRef)item2.missingAssignments()[1], is(new BytesRef("Marvin")));
     }
 
     @Test
@@ -1531,8 +1549,31 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ON DUPLICATE KEY UPDATE is not supported");
-        plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
+        Upsert plan = (Upsert) plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
+        assertThat(plan.nodes().size(), is(1));
+        assertThat(plan.nodes().get(0).size(), is(1));
+        assertThat(plan.nodes().get(0).get(0), instanceOf(UpsertByIdNode.class));
+        UpsertByIdNode node = (UpsertByIdNode) plan.nodes().get(0).get(0);
+
+        assertThat(node.assignmentsColumns(), is(new String[]{ "name" }));
+
+        assertThat(node.missingAssignmentsColumns().length, is(2));
+        Reference idRef = node.missingAssignmentsColumns()[0];
+        assertThat(idRef.ident().columnIdent().fqn(), is("id"));
+        Reference nameRef = node.missingAssignmentsColumns()[1];
+        assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
+
+        assertThat(node.items().size(), is(1));
+        UpsertByIdNode.Item item = node.items().get(0);
+        assertThat(item.index(), is("users"));
+        assertThat(item.id(), is("1"));
+        assertThat(item.routing(), is("1"));
+
+        assertThat(item.missingAssignments().length, is(2));
+        assertThat((Long)item.missingAssignments()[0], is(1L));
+        assertNull(item.missingAssignments()[1]);
+
+        assertThat(item.assignments().length, is(1));
+        assertThat(item.assignments()[0], isLiteral(null, DataTypes.STRING));
     }
 }

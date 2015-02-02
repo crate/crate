@@ -61,10 +61,6 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitESIndexNode(ESIndexNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
     public R visitUpsertByIdNode(UpsertByIdNode node, C context) {
         return visitPlanNode(node, context);
     }

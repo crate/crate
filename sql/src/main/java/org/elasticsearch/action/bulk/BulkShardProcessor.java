@@ -121,7 +121,6 @@ public class BulkShardProcessor {
         result = SettableFuture.create();
         autoCreateIndex = new AutoCreateIndex(settings);
         requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
-        logger.setLevel("trace");
     }
 
     public boolean add(String indexName,

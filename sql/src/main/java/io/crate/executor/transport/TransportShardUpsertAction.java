@@ -97,7 +97,6 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
         this.indexAction = indexAction;
         this.indicesService = indicesService;
         this.functions = functions;
-        logger.setLevel("trace");
     }
 
     @Override
@@ -132,7 +131,6 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
 
     @Override
     protected ShardUpsertResponse shardOperation(ShardUpsertRequest request, ShardId shardId) throws ElasticsearchException {
-        logger.trace("received request {} for shardId {}", request, shardId);
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
 
@@ -188,7 +186,6 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
             } else {
                 indexRequest = new IndexRequest(prepare(request, item, indexShard), request);
             }
-            logger.trace("executing index request {}, routing {}", indexRequest, item.routing());
             return indexAction.execute(indexRequest).actionGet();
         } catch (Throwable t) {
             if (t instanceof VersionConflictEngineException
