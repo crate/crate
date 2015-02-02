@@ -2006,9 +2006,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testEmptyClusteredByValue() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from bystring where name = ''");
-        assertThat(analysis.whereClause().clusteredBy().get(), is(""));
-        assertThat(analysis.ids().size(), is(1));
-        assertThat(analysis.ids().get(0), is(""));
+        assertThat(analysis.whereClause().clusteredBy().isPresent(), is(false));
+        assertThat(analysis.ids().size(), is(0));
     }
 
     @Test

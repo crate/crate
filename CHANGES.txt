@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Filtering on a routing column sometimes didn't work if the value was an
+   empty string
+
  - Fix: Bulk inserts with mixed but compatible types (e.g. int and long) failed
 
  - Fix: removed unsupported syntax from ``Update`` synposis

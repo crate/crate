@@ -35,6 +35,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import io.crate.types.SetType;
+import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -65,6 +66,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     private static final ImmutableSet<String> PK_COMPARISONS = ImmutableSet.of(
             EqOperator.NAME, InOperator.NAME
     );
+    private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
 
 
     public static class Context {
@@ -92,7 +94,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
          * because primary key literals can differ in type.
          * We must return a nested list of primitive literals in such cases.
          *
-         * @return
          */
         @Nullable
         public List keyLiterals() {
@@ -316,7 +317,17 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     }
 
     private void setClusterBy(Context context, Literal right) {
-        if (context.currentBucket.clusteredBy == null) {
+        Object value = right.value();
+
+        /**
+         * Don't set the clusteredBy value for empty strings:
+         *      IndexRequest sets the routingValue to null if the value is an empty string;
+         *      If the clusteredBy value would be set here the routing value would be calculated using the hash("")
+         *      which is different from the value used in the index operation.
+         */
+        if (value != null && EMPTY_BYTES_REF.equals(value)) {
+            invalidate(context);
+        } else if (context.currentBucket.clusteredBy == null) {
             context.currentBucket.clusteredBy = right;
         } else if (!context.currentBucket.clusteredBy.equals(right)) {
             invalidate(context);
