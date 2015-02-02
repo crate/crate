@@ -169,6 +169,38 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testQueryOnEmptyClusteredByColumn() throws Exception {
+        execute("create table expl_routing (id int primary key, name string primary key) " +
+                "clustered by (name) with (number_of_replicas = 0)");
+        ensureGreen();
+
+        if (randomInt(1) == 0) {
+            execute("insert into expl_routing (id, name) values (?, ?)", new Object[][]{
+                    new Object[]{1, ""},
+                    new Object[]{2, ""},
+                    new Object[]{1, "1"}
+            });
+        } else {
+            execute("insert into expl_routing (id, name) values (?, ?)", new Object[]{1, ""});
+            execute("insert into expl_routing (id, name) values (?, ?)", new Object[]{2, ""});
+            execute("insert into expl_routing (id, name) values (?, ?)", new Object[]{1, "1"});
+        }
+        execute("refresh table expl_routing");
+
+        execute("select count(*) from expl_routing where name = ''");
+        assertThat((Long)response.rows()[0][0], is(2L));
+
+        execute("select * from expl_routing where name = '' order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Integer)response.rows()[1][0], is(2));
+
+        execute("delete from expl_routing where name = ''");
+        execute("select count(*) from expl_routing");
+        assertThat((Long) response.rows()[0][0], is(1L));
+    }
+
+    @Test
     public void testDeleteByQueryCommaRouting() throws Exception {
         execute("create table explicit_routing (" +
                 "  name string," +
