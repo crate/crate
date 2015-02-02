@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Bulk inserts with mixed but compatible types (e.g. int and long) failed
+
  - Fix: Force UTF8 encoding in file reading collector to avoid JVM's default encoding settings
 
  - Added support for the ``std_dev``, ``variance`` and ``geometric_mean``

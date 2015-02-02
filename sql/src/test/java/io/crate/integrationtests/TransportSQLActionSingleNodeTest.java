@@ -147,6 +147,39 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
                 });
     }
 
+    @Test
+    public void testInsertBulkDifferentTypes() throws Exception {
+        execute("create table foo (value integer) with (number_of_replicas=0)");
+        ensureGreen();
+        SQLBulkRequest request = new SQLBulkRequest("insert into foo (bar) values (?)",
+                new Object[][]{
+                   new Object[]{new HashMap<String, Object>(){{
+                       put("foo", 127);
+                   }}},
+                   new Object[]{1},
+                });
+        SQLBulkResponse response = sqlExecutor.exec(request);
+        // One is inserted, the other fails because of a cast error
+        assertThat(response.results()[0].rowCount() + response.results()[1].rowCount(), is(-1L));
+    }
+
+    @Test
+    public void testInsertBulkNullArray() throws Exception {
+        execute("create table foo (value integer) with (number_of_replicas=0)");
+        ensureGreen();
+        SQLBulkRequest request = new SQLBulkRequest("insert into foo (bar) values (?)",
+                new Object[][]{
+                   new Object[]{new Object[]{null}},
+                   new Object[]{new Object[]{1, 2}},
+                });
+        SQLBulkResponse res = sqlExecutor.exec(request);
+        assertThat(res.results()[0].rowCount(), is(1L));
+        assertThat(res.results()[1].rowCount(), is(1L));
+        refresh();
+        execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
+        assertThat((String)response.rows()[0][0], is("long_array"));
+    }
+
     private void assertBulkResponseWithTypes(String stmt, Object[][] bulkArgs) {
         SQLBulkRequest request = new SQLBulkRequest(stmt, bulkArgs);
         request.includeTypesOnResponse(true);
