@@ -369,7 +369,7 @@ public class ExpressionAnalyzer {
             List<Symbol> args = Lists.<Symbol>newArrayList(
                     Literal.newLiteral(node.getPrecision().or(CurrentTimestampFunction.DEFAULT_PRECISION))
             );
-            return context.allocateFunction(CurrentTimestampFunction.INFO, args);
+            return context.allocateCurrentTime(node, args, normalizer);
         }
 
         @Override
