@@ -31,7 +31,9 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
@@ -45,8 +47,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -635,7 +636,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analysis.sourceMaps().size(), is(2));
         assertThat((Object[])analysis.sourceMaps().get(0)[1], arrayContaining((Object)null));
-        assertThat((Object[])analysis.sourceMaps().get(1)[1], arrayContaining((Object)new BytesRef("foo")));
+        assertThat((Object[]) analysis.sourceMaps().get(1)[1], arrayContaining((Object) new BytesRef("foo")));
     }
 
     @Test
@@ -771,13 +772,17 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
         InsertFromValuesAnalyzedStatement statement = (InsertFromValuesAnalyzedStatement) analyze(
-                "insert into users (id, name) values (1, 'Arthur') " +
-                "on duplicate key update name = substr(values (name), 1, 2)");
+                "insert into users (id, name, other_id) values (1, 'Arthur', 10) " +
+                "on duplicate key update name = substr(values (name), 1, 2), " +
+                "other_id = other_id + 100");
         assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
         Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
-        assertThat(assignments.length, is(1));
+        assertThat(assignments.length, is(2));
         assertLiteralSymbol(assignments[0], "Ar");
+        assertThat(assignments[1], isFunction(AddFunction.NAME));
+        Function function = (Function)assignments[1];
+        assertThat(function.arguments().get(0), isReference("other_id"));
     }
 
     @Test
