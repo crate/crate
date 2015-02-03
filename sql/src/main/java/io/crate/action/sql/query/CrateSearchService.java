@@ -31,6 +31,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.collect.EngineSearcher;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.symbol.*;
@@ -191,7 +192,7 @@ public class CrateSearchService extends InternalSearchService {
                 request.index(),
                 request.shardId()
         );
-        Engine.Searcher engineSearcher = searcher == null ? indexShard.acquireSearcher("search") : searcher;
+        Engine.Searcher engineSearcher = EngineSearcher.getSearcherWithRetry(indexShard, searcher);
         long keepAlive = defaultKeepAlive;
         if (request.scroll().isPresent() && request.scroll().get().keepAlive() != null) {
             keepAlive = request.scroll().get().keepAlive().millis();
@@ -245,6 +246,7 @@ public class CrateSearchService extends InternalSearchService {
         }
         return context;
     }
+
 
     private static final OutputSymbolVisitor OUTPUTS_VISITOR = new OutputSymbolVisitor();
 

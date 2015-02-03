@@ -43,7 +43,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
                 "   id int primary key," +
                 "   name string" +
                 ") clustered into 2 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into users (id, name) values (?, ?)", new Object[][] {
                 new Object[] { 1, "Arthur" },
                 new Object[] { 2, "Trillian" },
@@ -64,7 +64,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
                 "   id int primary key," +
                 "   name string" +
                 ") clustered into 2 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into users (id, name) values (?, ?)", new Object[][]{
                 new Object[]{1, "Arthur"},
                 new Object[]{2, "Trillian"},
@@ -85,7 +85,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
                 "   id int primary key," +
                 "   name string" +
                 ") clustered into 2 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into users (id, name) values (?, ?)", new Object[][]{
                 new Object[]{1, "Arthur"},
                 new Object[]{2, "Trillian"},
@@ -104,7 +104,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     public void testWherePkColLimit0() throws Exception {
         execute("create table users (id int primary key, name string) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into users (id, name) values (1, 'Arthur')");
         execute("refresh table users");
         execute("select name from users where id = 1 limit 0");
@@ -115,7 +115,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelectNestedObjectWherePk() throws Exception {
         execute("create table items (id string primary key, details object as (tags array(string)) )" +
             "clustered into 3 shards with (number_of_replicas = '0-1')");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into items (id, details) values (?, ?)", new Object[]{
             "123", MapBuilder.newMapBuilder().put("tags", Arrays.asList("small", "blue")).map()
@@ -137,7 +137,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
                 "  name string," +
                 "  location geo_point" +
                 ") with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into auto_id (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");
         execute("refresh table auto_id");
@@ -155,7 +155,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
                 "  name string," +
                 "  location geo_point" +
                 ") clustered by (name) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into explicit_routing (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");
         execute("refresh table explicit_routing");
         execute("select * from explicit_routing where name=''");
@@ -172,7 +172,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     public void testQueryOnEmptyClusteredByColumn() throws Exception {
         execute("create table expl_routing (id int primary key, name string primary key) " +
                 "clustered by (name) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         if (randomInt(1) == 0) {
             execute("insert into expl_routing (id, name) values (?, ?)", new Object[][]{
@@ -206,7 +206,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
                 "  name string," +
                 "  location geo_point" +
                 ") clustered by (name) into 3 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         // resolved routings:
         // A -> 2
         // W -> 0

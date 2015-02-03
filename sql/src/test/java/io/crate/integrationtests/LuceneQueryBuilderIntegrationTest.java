@@ -33,7 +33,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     public void testWhereFunctionWithAnalyzedColumnArgument() throws Exception {
         execute("create table t (text string index using fulltext) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (text) values ('hello world')");
         refresh();
 
@@ -66,7 +66,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     public void testWhereFunctionWithIndexOffColumn() throws Exception {
         execute("create table t (text string index off) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (text) values ('hello world')");
         refresh();
 
@@ -78,7 +78,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     public void testWhereFunctionWithIndexReference() throws Exception {
         execute("create table t (text string, index text_ft using fulltext (text)) " +
                 "clustered into 2 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (text) values ('hello world')");
         execute("insert into t (text) values ('harr')");
         execute("insert into t (text) values ('hh')");
@@ -91,7 +91,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     @Test
     public void testWhereSubstringWithSysColumn() throws Exception {
         execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 1)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (dummy) values ('yalla')");
         refresh();
 

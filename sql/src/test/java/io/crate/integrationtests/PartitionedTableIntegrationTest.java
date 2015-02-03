@@ -24,9 +24,9 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.metadata.PartitionName;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.metadata.PartitionName;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -82,7 +82,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "date timestamp primary key," +
                 "quote string index using fulltext" +
                 ") partitioned by (date) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
         execute("copy quotes partition (date=1400507539938) from ?", new Object[]{uriPath});
         refresh();
@@ -112,14 +112,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "  id integer primary key, " +
                 "  quote string index using fulltext" +
                 ") partitioned by (id)");
-        ensureGreen();
+        ensureYellow();
 
         String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{uriPath});
         assertEquals(3L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
-        ensureGreen();
+        ensureYellow();
 
         for (String id : ImmutableList.of("1", "2", "3")) {
             String partitionName = new PartitionName("quotes", ImmutableList.of(new BytesRef(id))).stringValue();
@@ -175,7 +175,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testCreatePartitionedTableAndQueryMeta() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("select * from information_schema.tables where schema_name='doc' order by table_name");
         assertEquals(1L, response.rowCount());
@@ -193,7 +193,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testInsertPartitionedTable() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
-        ensureGreen();
+        ensureYellow();
         String templateName = PartitionName.templateName(null, "parted");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
@@ -206,7 +206,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{1, "Ford", 13959981214861L});
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         assertTrue(clusterService().state().metaData().aliases().containsKey("parted"));
@@ -270,7 +270,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testMultiValueInsertPartitionedTable() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
                 new Object[]{
                         1, "Ford", 13959981214861L,
@@ -278,7 +278,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         3, "Zaphod", null
                 });
         assertThat(response.rowCount(), is(3L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         validateInsertPartitionedTable();
@@ -288,13 +288,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testBulkInsertPartitionedTable() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into parted (id, name, date) values (?, ?, ?)", new Object[][] {
                 new Object[]{ 1, "Ford", 13959981214861L },
                 new Object[]{ 2, "Trillian", 0L },
                 new Object[]{ 3, "Zaphod", null }
         });
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         validateInsertPartitionedTable();
@@ -304,12 +304,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testInsertPartitionedTableOnlyPartitionedColumns() throws Exception {
         execute("create table parted (name string, date timestamp)" +
                 "partitioned by (name, date)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into parted (name, date) values (?, ?)",
                 new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        ensureYellow();
         refresh();
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef("Ford"), new BytesRef(String.valueOf(13959981214861L)))
@@ -332,17 +332,17 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testInsertPartitionedTableOnlyPartitionedColumnsAlreadyExsists() throws Exception {
         execute("create table parted (name string, date timestamp)" +
                 "partitioned by (name, date)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into parted (name, date) values (?, ?)",
                 new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        ensureYellow();
         refresh();
         execute("insert into parted (name, date) values (?, ?)",
                 new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select name, date from parted");
@@ -362,12 +362,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "  date timestamp," +
                 "  primary key (id, name)" +
                 ") partitioned by (id, name)");
-        ensureGreen();
+        ensureYellow();
         Long dateValue = System.currentTimeMillis();
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{42, "Zaphod", dateValue});
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         expectedException.expect(SQLActionException.class);
@@ -382,12 +382,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         // insert only some partitioned column values
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (name, date)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into parted (id, name) values (?, ?)",
                 new Object[]{1, "Trillian"});
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        ensureYellow();
         refresh();
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef("Trillian"), null)).stringValue();
@@ -405,13 +405,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testInsertPartitionedTableReversedPartitionedColumns() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (name, date)");
-        ensureGreen();
+        ensureYellow();
 
         Long dateValue = System.currentTimeMillis();
         execute("insert into parted (id, date, name) values (?, ?, ?)",
                 new Object[]{1, dateValue, "Trillian"});
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        ensureYellow();
         refresh();
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef("Trillian"), new BytesRef(dateValue.toString()))).stringValue();
@@ -423,12 +423,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testSelectFromPartitionedTableWhereClause() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select id, quote from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000) and id = 1");
@@ -439,12 +439,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testSelectCountFromPartitionedTableWhereClause() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select count(*) from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000)");
@@ -459,12 +459,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testSelectFromPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
         execute("select id, quote, timestamp as ts, timestamp from quotes where timestamp > 1395874800000");
         assertThat(response.rowCount(), is(1L));
@@ -480,14 +480,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "  type byte primary key," +
                 "  content string) " +
                 "partitioned by(type) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into stuff (id, type, content) values(?, ?, ?)",
                 new Object[]{1, 127, "Don't panic"});
         execute("insert into stuff (id, type, content) values(?, ?, ?)",
                 new Object[]{2, 126, "Time is an illusion. Lunchtime doubly so"});
         execute("insert into stuff (id, type, content) values(?, ?, ?)",
                 new Object[]{3, 126, "Now panic"});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select id, type, content from stuff where id=2 and type=126");
@@ -514,12 +514,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testUpdatePartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("update quotes set quote = ? where timestamp = ?",
@@ -546,12 +546,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testUpdatePartitionedUnknownPartition() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp, o object) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("update quotes set quote='now panic' where timestamp = ?", new Object[]{ 1395874800123L });
@@ -565,12 +565,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testUpdatePartitionedUnknownColumn() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp, o object(ignored)) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("update quotes set quote='now panic' where o['timestamp'] = ?", new Object[]{ 1395874800123L });
@@ -584,12 +584,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testUpdatePartitionedUnknownColumnKnownValue() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("update quotes set quote='now panic' where timestamp = ? and quote=?",
@@ -605,12 +605,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testUpdateUnknownColumnKnownValueAndConjunction() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Don't panic", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("update quotes set quote='now panic' where not timestamp = ? and quote=?",
@@ -625,14 +625,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testDeleteFromPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{3, "I'd far rather be happy than right any day", 1396303200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("delete from quotes where timestamp = 1395874800000 and id = 1");
@@ -696,7 +696,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testDeleteFromPartitionedTableDeleteByQuery() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -705,7 +705,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 new Object[]{3, "I'd far rather be happy than right any day", 1396303200000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{4, "Now panic", 1395874800000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
@@ -733,7 +733,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testDeleteFromPartitionedTableDeleteByPartitionAndByQuery() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp, o object(ignored)) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -742,7 +742,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 new Object[]{3, "I'd far rather be happy than right any day", 1396303200000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{4, "Now panic", 1395874800000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         // does not match
@@ -769,14 +769,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testDeleteFromPartitionedTableDeleteByPartitionAndQueryWithConjunction() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{2, "Don't panic", 1395961200000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
                 new Object[]{3, "Don't panic", 1396303200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("delete from quotes where not timestamp=? and quote=?", new Object[]{1396303200000L, "Don't panic"});
@@ -789,7 +789,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testGlobalAggregatePartitionedColumns() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
-        ensureGreen();
+        ensureYellow();
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted");
         assertThat(response.rowCount(), is(1L));
@@ -802,7 +802,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{0, "Trillian", 100L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
@@ -817,12 +817,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{1, "Ford", 1001L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{2, "Arthur", 1001L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
@@ -840,13 +840,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testGroupByPartitionedColumns() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
-        ensureGreen();
+        ensureYellow();
         execute("select date, count(*) from parted group by date");
         assertThat(response.rowCount(), is(0L));
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{0, "Trillian", 100L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select date, count(*) from parted group by date");
@@ -859,7 +859,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         1, "Arthur", null,
                         2, "Ford", null
                 });
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select date, count(*) from parted group by date order by count(*) desc");
@@ -874,13 +874,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testGroupByPartitionedColumnWhereClause() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
-        ensureGreen();
+        ensureYellow();
         execute("select date, count(*) from parted where date > 0 group by date");
         assertThat(response.rowCount(), is(0L));
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{0, "Trillian", 100L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select date, count(*) from parted where date > 0 group by date");
@@ -892,7 +892,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         2, "Ford", 2437646253L
                 }
         );
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select date, count(*) from parted where date > 100 group by date");
@@ -905,7 +905,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testGlobalAggregateWhereClause() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
-        ensureGreen();
+        ensureYellow();
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted where date > 0");
         assertThat(response.rowCount(), is(1L));
@@ -925,7 +925,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         4, "Trillian", 0L
                 });
         assertThat(response.rowCount(), is(4L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
@@ -946,11 +946,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "  quote string, " +
                 "  date timestamp" +
                 ") partitioned by (date) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, date) values(?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L,
                         2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("drop table quotes");
@@ -970,13 +970,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testPartitionedTableSelectById() throws Exception {
         execute("create table quotes (id integer, quote string, num double, primary key (id, num)) partitioned by (num)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, num) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{
                         1, "Don't panic", 4.0d,
                         2, "Time is an illusion. Lunchtime doubly so", -4.0d
                 });
-        ensureGreen();
+        ensureYellow();
         refresh();
         execute("select * from quotes where id = 1 and num = 4");
         assertThat(response.rowCount(), is(1L));
@@ -991,7 +991,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table quotes (id integer, quote string, date timestamp," +
                 "author object(dynamic) as (name string)) " +
                 "partitioned by(date) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L,
                         new HashMap<String, Object>() {{
@@ -1001,8 +1001,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         new HashMap<String, Object>() {{
                             put("name", "Ford");
                         }}});
-        ensureGreen();
-        waitNoPendingTasksOnAll();
+        ensureYellow();
         refresh();
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
@@ -1014,7 +1013,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                             put("name", "Douglas");
                             put("surname", "Adams");
                         }}});
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
@@ -1032,14 +1031,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table quotes (id integer primary key, quote string, " +
                 "date timestamp primary key, user_id string primary key) " +
                 "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
         assertEquals(1L, response.rowCount());
         execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
         assertEquals(1L, response.rowCount());
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select id, quote from quotes where user_id = 'Arthur'");
@@ -1069,14 +1068,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table my_schema.quotes (id integer primary key, quote string, " +
                 "date timestamp primary key, user_id string primary key) " +
                 "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
         assertEquals(1L, response.rowCount());
         execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
         assertEquals(1L, response.rowCount());
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select id, quote from my_schema.quotes where user_id = 'Arthur'");
@@ -1108,11 +1107,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "   id int primary key," +
                 "   date timestamp primary key" +
                 ") partitioned by (date) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into foo (id, date, foo) values (1, '2014-01-01', 'foo')");
         execute("insert into foo (id, date, bar) values (2, '2014-02-01', 'bar')");
         refresh();
-        ensureGreen();
+        ensureYellow();
 
         // schema updates are async and cannot reliably be forced
         int retry = 0;
@@ -1137,14 +1136,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "  user_id string)" +
                 ") partitioned by(created['date']) clustered by (id) with (number_of_replicas=0)");
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", new MapBuilder<String, Object>().put("date", 1395874800000L).put("user_id", "Arthur").map()});
         assertEquals(1L, response.rowCount());
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
                 new Object[]{2, "Time is an illusion. Lunchtime doubly so", new MapBuilder<String, Object>().put("date", 1395961200000L).put("user_id", "Ford").map()});
         assertEquals(1L, response.rowCount());
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select id, quote, created['date'] from quotes where created['user_id'] = 'Arthur'");
@@ -1175,7 +1174,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testAlterPartitionTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
-        ensureGreen();
+        ensureYellow();
         assertThat(response.rowCount(), is(1L));
 
         String templateName = PartitionName.templateName(null, "quotes");
@@ -1187,7 +1186,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
 
         execute("alter table quotes set (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
@@ -1201,7 +1200,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         2, "Now panic", 1395961200000L}
         );
         assertThat(response.rowCount(), is(2L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         assertTrue(clusterService().state().metaData().aliases().containsKey("quotes"));
@@ -1211,7 +1210,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertEquals(3, response.rows()[0][1]);
 
         execute("alter table quotes set (number_of_replicas='1-all')");
-        ensureGreen();
+        ensureYellow();
 
         execute("select number_of_replicas from information_schema.tables where table_name = 'quotes'");
         assertEquals("1-all", response.rows()[0][0]);
@@ -1242,7 +1241,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testAlterTableResetEmptyPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='1-all')");
-        ensureGreen();
+        ensureYellow();
         assertThat(response.rowCount(), is(1L));
 
         String templateName = PartitionName.templateName(null, "quotes");
@@ -1253,7 +1252,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
 
         execute("alter table quotes reset (number_of_replicas)");
-        ensureGreen();
+        ensureYellow();
 
         templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
@@ -1267,7 +1266,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testAlterTableResetPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='1-all')");
-        ensureGreen();
+        ensureYellow();
         assertThat(response.rowCount(), is(1L));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
@@ -1275,11 +1274,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         2, "Now panic", 1395961200000L}
         );
         assertThat(response.rowCount(), is(2L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("alter table quotes reset (number_of_replicas)");
-        ensureGreen();
+        ensureYellow();
 
         String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
@@ -1308,7 +1307,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testAlterPartitionedTablePartition() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         assertThat(response.rowCount(), is(1L));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
@@ -1316,11 +1315,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         2, "Now panic", 1395961200000L}
         );
         assertThat(response.rowCount(), is(2L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("alter table quotes partition (date=1395874800000) set (number_of_replicas=1)");
-        ensureGreen();
+        ensureYellow();
         List<String> partitions = ImmutableList.of(
                 new PartitionName("quotes", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
                 new PartitionName("quotes", Arrays.asList(new BytesRef("1395961200000"))).stringValue()
@@ -1344,7 +1343,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testRefreshPartitionedTableAllPartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("refresh table parted");
         assertThat(response.rowCount(), is(-1L));
@@ -1353,7 +1352,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "(1, 'Trillian', '1970-01-01'), " +
                 "(2, 'Arthur', '1970-01-07')");
         assertThat(response.rowCount(), is(2L));
-        ensureGreen();
+        ensureYellow();
 
         // cannot tell what rows are visible
         // could be none, could be all
@@ -1372,7 +1371,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testRefreshEmptyPartitionedTable() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
-        ensureGreen();
+        ensureYellow();
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("No partition for table 'parted' with ident '04130' exists");
@@ -1383,13 +1382,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testRefreshPartitionedTableSinglePartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) " +
                 "with (number_of_replicas=0, refresh_interval=-1)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01')," +
                 "(2, 'Arthur', '1970-01-07')");
         assertThat(response.rowCount(), is(2L));
 
-        ensureGreen();
+        ensureYellow();
         execute("refresh table parted");
         assertThat(response.rowCount(), is(-1L));
 
@@ -1452,14 +1451,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "  name string, " +
                 "  date timestamp" +
                 ") partitioned by (date) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("select count(*) from parted");
         assertThat(response.rowCount(), is(1L));
         assertThat((Long) response.rows()[0][0], is(0L));
 
         execute("insert into parted (id, name, date) values (1, 'Trillian', '1970-01-01'), (2, 'Ford', '2010-01-01')");
-        ensureGreen();
+        ensureYellow();
         execute("refresh table parted");
 
         execute("select count(*) from parted");
@@ -1473,11 +1472,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "partitioned by (date) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("alter table t add column name string");
         execute("alter table t add column ft_name string index using fulltext");
-        ensureGreen();
+        ensureYellow();
 
         execute("select * from t");
         assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "ft_name", "id", "name"));
@@ -1502,7 +1501,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("insert into t (id, date) values (1, '2014-01-01')");
         execute("insert into t (id, date) values (10, '2015-01-01')");
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("alter table t add name string");
@@ -1546,9 +1545,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testPartitionedTableNestedPk() throws Exception {
         execute("create table t (o object as (i int primary key, name string)) partitioned by (o['i']) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (o) values (?)", new Object[]{new MapBuilder<String, Object>().put("i", 1).put("name", "Zaphod").map()});
-        ensureGreen();
+        ensureYellow();
         refresh();
         execute("select o['i'], o['name'] from t");
         assertThat((Integer) response.rows()[0][0], Matchers.is(1));

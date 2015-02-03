@@ -61,7 +61,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testDeleteWhereVersion() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
         refresh();
@@ -84,7 +84,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testDeleteWhereVersionWithConflict() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
         refresh();
@@ -104,7 +104,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testUpdateWhereVersionWithPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
         refresh();
@@ -127,7 +127,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testUpdateWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
         refresh();
@@ -161,7 +161,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testUpdateWhereVersionWithConflict() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
         refresh();
@@ -189,7 +189,6 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testSelectWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
         execute("select _version from test where col2 = 'hello' and _version = 1");
@@ -198,7 +197,6 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testSelectWhereVersionWithPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
         execute("select _version from test where col1 = 1 and _version = 50");
@@ -207,7 +205,6 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testSelectGroupByVersion() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
         execute("select col2 from test where col1 = 1 and _version = 50 group by col2");

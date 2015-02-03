@@ -138,7 +138,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testInsertBulkWithTypes() throws Exception {
         execute("create table bla1 (id integer primary key, name string) " +
                 "clustered into 2 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         assertBulkResponseWithTypes("insert into bla1 (id, name) values (?, ?)",
                 new Object[][]{
@@ -150,7 +150,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     @Test
     public void testInsertBulkDifferentTypes() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         SQLBulkRequest request = new SQLBulkRequest("insert into foo (bar) values (?)",
                 new Object[][]{
                    new Object[]{new HashMap<String, Object>(){{
@@ -166,7 +166,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     @Test
     public void testInsertBulkNullArray() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         SQLBulkRequest request = new SQLBulkRequest("insert into foo (bar) values (?)",
                 new Object[][]{
                    new Object[]{new Object[]{null}},
@@ -192,7 +192,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testSelectUnknownNoResultWithTypes() throws Exception {
         execute("create table unknown (id integer primary key, name object(ignored)) " +
                 "clustered into 2 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         assertResponseWithTypes("select name['bla'] from unknown where 1=0");
     }
@@ -201,7 +201,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testDMLStatementsWithTypes() throws Exception {
         execute("create table bla (id integer primary key, name string) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         assertResponseWithTypes("insert into bla (id, name) (select 4, 'Trillian' from sys.cluster)");
         assertResponseWithTypes("insert into bla (id, name) values (1, 'Ford')");
         assertResponseWithTypes("update bla set name='Arthur' where name ='Ford'");
@@ -215,12 +215,12 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testDDLStatementsWithTypes() throws Exception {
         assertResponseWithTypes("create table bla2 (id integer primary key, name string) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         assertResponseWithTypes("alter table bla2 add column blubb string");
         assertResponseWithTypes("refresh table bla2");
         assertResponseWithTypes("drop table bla2");
         assertResponseWithTypes("create blob table blablob2 clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         assertResponseWithTypes("drop blob table blablob2");
         assertResponseWithTypes("create ANALYZER \"german_snowball\" extends snowball WITH (language='german')");
     }
@@ -237,7 +237,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testSubscriptArray() throws Exception {
         execute("create table test (id integer primary key, names array(string)) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test (id, names) values (?, ?)",
                 new Object[]{1, Arrays.asList("Arthur", "Ford")});
         refresh();
@@ -250,7 +250,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testSubscriptArrayNesting() throws Exception {
         execute("create table test (id integer primary key, names array(object as (surname string))) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test (id, names) values (?, ?)",
                 new Object[]{1, Arrays.asList(
                         new HashMap<String, String>(){{ put("surname", "Adams"); }}
@@ -265,7 +265,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testSelectRegexpMatchesGroup() throws Exception {
         execute("create table test (id integer primary key, text string) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test (id, text) values (1, 'Time is an illusion')");
         refresh();
         execute("select regexp_matches(text, '(\\w+)\\s(\\w+)')[1] as first_word," +

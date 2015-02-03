@@ -21,8 +21,10 @@
 
 package io.crate.metadata.doc;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -34,13 +36,20 @@ import io.crate.planner.RowGranularity;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 
 public class DocTableInfo extends AbstractDynamicTableInfo {
@@ -58,6 +67,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     private final BytesRef numberOfReplicas;
     private final ClusterService clusterService;
     private final TableParameterInfo tableParameterInfo;
+    private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final String[] indices;
     private final List<PartitionName> partitions;
@@ -158,11 +168,23 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         shards.add(shardRouting.id());
     }
 
-
+    /**
+     * retrieves the routing
+     *
+     * In case some shards are still unassigned or initializing this method might block up to
+     * 1 second and wait for the shards to become ready.
+     */
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        ClusterState clusterState = clusterService.state();
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        ClusterStateObserver observer = new ClusterStateObserver(
+                clusterService, new TimeValue(1, TimeUnit.SECONDS), logger);
+        return getRouting(observer, whereClause, preference);
+    }
+
+    private Routing getRouting(
+            final ClusterStateObserver observer, final WhereClause whereClause, @Nullable final String preference) {
+        ClusterState clusterState = observer.observedState();
+        final Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
 
         String[] routingIndices = concreteIndices;
         if (whereClause.partitions().size() > 0) {
@@ -174,7 +196,6 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
             routingMap = clusterState.metaData().resolveSearchRouting(
                     ImmutableSet.of(whereClause.clusteredBy().get()), routingIndices);
         }
-
         GroupShardsIterator shardIterators;
         try {
             shardIterators = clusterService.operationRouting().searchShards(
@@ -187,16 +208,60 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         } catch (IndexMissingException e) {
             return new Routing();
         }
+
+        final List<ShardId> missingShards = new ArrayList<>(0);
         ShardRouting shardRouting;
         for (ShardIterator shardIterator : shardIterators) {
             shardRouting = shardIterator.nextOrNull();
-            if (shardRouting != null && shardRouting.active()) {
-                processShardRouting(locations, shardRouting);
+            if (shardRouting != null) {
+                if (shardRouting.active()) {
+                    processShardRouting(locations, shardRouting);
+                } else {
+                    missingShards.add(shardIterator.shardId());
+                }
             } else {
                 throw new UnavailableShardsException(shardIterator.shardId());
             }
         }
-        return new Routing(locations);
+        if (missingShards.isEmpty()) {
+            return new Routing(locations);
+        } else {
+            final SettableFuture<Routing> futureRouting = SettableFuture.create();
+            observer.waitForNextChange(new ClusterStateObserver.Listener() {
+                @Override
+                public void onNewClusterState(ClusterState state) {
+                    Thread thread = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                futureRouting.set(getRouting(observer, whereClause, preference));
+                            } catch (Throwable e) {
+                                futureRouting.setException(e);
+                            }
+                        }
+                    });
+                    thread.setDaemon(true);
+                    thread.start();
+                }
+
+                @Override
+                public void onClusterServiceClose() {
+                    futureRouting.setException(new IllegalStateException("ClusterService closed"));
+                }
+
+                @Override
+                public void onTimeout(TimeValue timeout) {
+                    futureRouting.setException(new UnavailableShardsException(missingShards.get(0)));
+                }
+            });
+            try {
+                return futureRouting.get();
+            } catch (ExecutionException e) {
+                throw Throwables.propagate(e.getCause());
+            } catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+        }
     }
 
     public List<ColumnIdent> primaryKey() {

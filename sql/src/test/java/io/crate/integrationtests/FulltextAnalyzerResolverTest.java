@@ -454,7 +454,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 " name string," +
                 " content string index using fulltext with (analyzer='a11')" +
                 ")");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test (id, name, content) values (?, ?, ?)", new Object[]{
                 1, "phrase", "The quick brown fox jumps over the lazy dog."
         });
