@@ -384,10 +384,7 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testWhereNoMatch() throws Exception {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("A where clause with no match should not result in an ES query");
-
-        generator.convert(WhereClause.NO_MATCH);
+        assertThat(generator.convert(WhereClause.NO_MATCH).toUtf8(),  is("{\"query\":{\"query_string\":{\"query\":\"\"}}}"));
     }
 
     @Test

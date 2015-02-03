@@ -116,6 +116,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectCountStarWithWhereClauseForUnknownCol() throws Exception {
+        execute("create table test (\"name\" string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (name) values (?)", new Object[]{"Arthur"});
+        refresh();
+        execute("select count(*) from test where non_existant = 'Some Value'");
+        assertEquals(1, response.rowCount());
+        assertEquals(0L, response.rows()[0][0]);
+    }
+
+    @Test
     public void testSelectCountStarWithWhereClause() throws Exception {
         execute("create table test (name string) with (number_of_replicas=0)");
         ensureGreen();
