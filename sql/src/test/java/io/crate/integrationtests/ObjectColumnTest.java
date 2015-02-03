@@ -49,7 +49,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     @Before
     public void initTestData() {
         this.setup.setUpObjectTable();
-        ensureGreen();
+        ensureYellow();
     }
 
     @Test
@@ -204,7 +204,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                         authorMap
                 });
         refresh();
-        ensureGreen(); // ensure mapping change is distributed
+        ensureYellow(); // ensure mapping change is distributed
         execute("select author from ot where author['dead']=true");
         assertEquals(1, response.rowCount());
         assertEquals(authorMap, response.rows()[0][0]);
@@ -278,7 +278,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectDynamicObjectNewColumns() throws Exception {
         execute("create table test (message string, person object(dynamic)) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test (message, person) values " +
                 "('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         execute("refresh table test");
@@ -300,7 +300,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectObject() throws Exception {
         execute("create table test (a object as (nested integer)) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test (a) values (?)", new Object[]{
                 new MapBuilder<String, Object>().put("nested", 2).map()
         });

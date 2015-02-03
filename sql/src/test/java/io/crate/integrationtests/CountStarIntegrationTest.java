@@ -39,7 +39,7 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
     public void testCountWithPartitionFilter() throws Exception {
         execute("create table t (name string, p string) partitioned by (p) clustered into 2 shards " +
                 "with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("select count(*) from t");
         assertThat(response.rowCount(), is(1L));
@@ -47,7 +47,7 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into t (name, p) values ('Arthur', 'foo')");
         execute("insert into t (name, p) values ('Trillian', 'foobar')");
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select count(*) from t where p = 'foobar'");
@@ -62,7 +62,7 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
                   "number short, " +
                   "zipcode string" +
                 ") clustered by (zipcode) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into count_routing (street, number, zipcode) values " +
                 "('Hintere Achmühler Str. 1', 8, '1,2'), " +
                 "('Ritterstr.', 12, '1')," +
@@ -91,7 +91,7 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
                 "  name string," +
                 "  location geo_point" +
                 ") with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into auto_id (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");
         execute("refresh table auto_id");

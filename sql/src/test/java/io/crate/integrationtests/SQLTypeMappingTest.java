@@ -65,7 +65,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 " ip_field ip" +
                 ") clustered by (id) into %d shards with(number_of_replicas=0)", numShards);
         execute(stmt);
-        ensureGreen();
+        ensureYellow();
     }
 
     @Test
@@ -107,7 +107,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 "  dynamic_again object(dynamic) as (field timestamp)" +
                 " )" +
                 ") clustered into 2 shards with(number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
     }
 
     @Test
@@ -283,7 +283,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertObjectIntoString() throws Exception {
         execute("create table t1 (o object)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t1 values ({a='abc'})");
         refresh();
         waitNoPendingTasksOnAll();
@@ -441,7 +441,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testDynamicEmptyArray() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into arr (id, tags, new) values (1, ['wow', 'much', 'wow'], [])");
         refresh();
         waitNoPendingTasksOnAll();
@@ -453,7 +453,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testDynamicNullArray() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into arr (id, tags, new) values (2, ['wow', 'much', 'wow'], [null])");
         refresh();
         waitNoPendingTasksOnAll();
@@ -465,7 +465,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testDynamicNullArrayAndDouble() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into arr (id, tags, new) values (3, ['wow', 'much', 'wow'], ?)", new Object[]{ new Double[]{null, 42.7} });
         refresh();
         waitNoPendingTasksOnAll();

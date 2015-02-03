@@ -67,7 +67,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereArithmeticScalar() throws Exception {
         execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (d) values (?), (?), (?)", new Object[]{1.3d, 1.6d, 2.2d});
         execute("refresh table t");
 
@@ -107,7 +107,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectOrderByScalar() throws Exception {
         execute("create table t (d double, i integer, name string) clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (d, name) values (?, ?)", new Object[][] {
                 new Object[] {1.3d, "Arthur" },
                 new Object[] {1.6d, null },
@@ -151,7 +151,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereArithmeticScalarTwoReferences() throws Exception {
         execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (d, i) values (?, ?), (?, ?), (?, ?)", new Object[]{
                 1.3d, 1,
                 1.6d, 2,
@@ -168,7 +168,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereArithmeticScalarTwoReferenceArgs() throws Exception {
         execute("create table t (x long, base long) clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (x, base) values (?, ?), (?, ?), (?, ?)", new Object[]{
                 144L, 12L, // 2
                 65536L, 2L, // 16
@@ -190,7 +190,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testScalarInOrderByAndSelect() throws Exception {
         execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (-1, 4, 90.5), (193384, 31234594433, 99.0)");
         execute("insert into t (i, l, d) values (1, 2, 99.0), (-1, 4, 99.0)");
         refresh();
@@ -207,7 +207,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testNonIndexedColumnInRegexScalar() throws Exception {
         execute("create table regex_noindex (i integer, s string INDEX OFF) clustered into 3 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into regex_noindex (i, s) values (?, ?)", new Object[][]{
                 new Object[]{1, "foo"},
                 new Object[]{2, "bar"},
@@ -229,7 +229,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testFulltextColumnInRegexScalar() throws Exception {
         execute("create table regex_fulltext (i integer, s string INDEX USING FULLTEXT) clustered into 3 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into regex_fulltext (i, s) values (?, ?)", new Object[][]{
                 new Object[]{1, "foo is first"},
                 new Object[]{2, "bar is second"},
@@ -276,7 +276,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectArithmeticOperatorInWhereClause() throws Exception {
         execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (2, 5, 90.5), (193384, 31234594433, 99.0), (10, 21, 99.0), (-1, 4, 99.0)");
         refresh();
 
@@ -303,7 +303,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectArithMetricOperatorInOrderBy() throws Exception {
         execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (2, 5, 90.5), (193384, 31234594433, 99.0), (10, 21, 99.0), (-1, 4, 99.0)");
         refresh();
 
@@ -323,7 +323,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
 
         execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5)");
         refresh();
 
@@ -336,7 +336,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
 
         execute("create table t (i integer, l long, d double) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (0, 4, 100)");
         execute("refresh table t");
 
@@ -347,7 +347,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     public void testArithmeticScalarFunctionsOnAllTypes() throws Exception {
         // this test validates that no exception is thrown
         execute("create table t (b byte, s short, i integer, l long, f float, d double, t timestamp) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (b, s, i, l, f, d, t) values (1, 2, 3, 4, 5.7, 6.3, '2014-07-30')");
         refresh();
 

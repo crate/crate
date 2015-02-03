@@ -66,7 +66,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyFromFile() throws Exception {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{uriPath});
@@ -86,7 +86,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyFromFileWithoutPK() throws Exception {
         execute("create table quotes (id int, " +
                 "quote string index using fulltext) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{uriPath});
@@ -103,7 +103,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyFromDirectory() throws Exception {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "/*"});
         assertEquals(3L, response.rowCount());
@@ -117,7 +117,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyFromFilePattern() throws Exception {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         String uriPath = Joiner.on("/").join(copyFilePath, "*.json");
         execute("copy quotes from ?", new Object[]{uriPath});
@@ -144,7 +144,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyToFile() throws Exception {
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into singleshard (name) values ('foo')");
         execute("refresh table singleshard");
 
@@ -218,7 +218,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         // assert that rows with nested arrays aren't imported
         execute("create table users (id int, " +
                 "name string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         String uriPath = Joiner.on("/").join(nestedArrayCopyFilePath, "nested_array_copy_from.json");
         execute("copy users from ? with (shared=true)", new Object[]{uriPath});
         assertEquals(1L, response.rowCount()); // only 1 document got inserted
@@ -242,7 +242,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
                 " name string," +
                 " details object" +
                 ") with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         String directoryUri = Paths.get(folder.newFolder().toURI()).toUri().toString();
         execute("COPY characters TO ?", new Object[]{directoryUri});

@@ -82,7 +82,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
 
         cluster().fullRestart();
-        ensureGreen();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
@@ -113,7 +112,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
 
         cluster().fullRestart();
-        ensureGreen();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());

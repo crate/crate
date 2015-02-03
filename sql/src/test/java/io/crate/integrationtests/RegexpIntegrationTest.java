@@ -45,7 +45,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testRegexpMatchesIsNull() throws Exception {
         execute("create table regex_test (i integer, s string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into regex_test(i, s) values (?, ?)", new Object[][]{
                 new Object[]{1, "foo is first"},
                 new Object[]{2, "bar is second"},
@@ -64,7 +64,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testRegexpReplaceIsNull() throws Exception {
         execute("create table regex_test (i integer, s string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into regex_test(i, s) values (?, ?)", new Object[][]{
                 new Object[]{1, "foo is first"},
                 new Object[]{2, "bar is second"},

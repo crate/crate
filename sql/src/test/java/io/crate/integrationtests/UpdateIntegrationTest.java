@@ -51,7 +51,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdate() throws Exception {
         execute("create table test (message string) clustered into 2 shards");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test values('hello'),('again'),('hello'),('hello')");
         assertEquals(4, response.rowCount());
@@ -71,7 +71,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateByPrimaryKeyUnknownDocument() {
         execute("create table test (id int primary key, message string)");
-        ensureGreen();
+        ensureYellow();
         execute("update test set message='b' where id = 1");
         assertEquals(0, response.rowCount());
     }
@@ -79,7 +79,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateWithExpression() throws Exception {
         execute("create table test (id integer, other_id long, name string)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test (id, other_id, name) values(1, 10, 'Ford'),(2, 20, 'Arthur')");
         assertEquals(2, response.rowCount());
@@ -103,7 +103,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateByPrimaryKeyWithExpression() throws Exception {
         execute("create table test (id integer primary key, other_id long)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test (id, other_id) values(1, 10),(2, 20)");
         assertEquals(2, response.rowCount());
@@ -123,7 +123,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateMultipleDocuments() throws Exception {
         execute("create table test (message string)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test values('hello'),('again'),('hello')");
         assertEquals(3, response.rowCount());
         refresh();
@@ -142,7 +142,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testTwoColumnUpdate() throws Exception {
         execute("create table test (col1 string, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test values('hello', 'hallo'), ('again', 'nochmal')");
         assertEquals(2, response.rowCount());
@@ -166,7 +166,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 "  coolness float, " +
                 "  details array(object)" +
                 ")");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into test values(1.1, ?),(2.2, ?)", new Object[]{new Object[0],
                 new Object[]{
@@ -193,7 +193,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedObjectWithoutDetailedSchema() throws Exception {
         execute("create table test (coolness object)");
-        ensureGreen();
+        ensureYellow();
 
         Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
@@ -222,7 +222,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 "a object as (x string, y int)," +
                 "firstcol int, othercol int" +
                 ") with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
@@ -261,7 +261,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedObjectDeleteWithArgs() throws Exception {
         execute("create table test (a object as (x object as (y int, z int))) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         Map<String, Object> map = newHashMap();
         Map<String, Object> nestedMap = newHashMap();
@@ -288,7 +288,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedObjectDeleteWithoutArgs() throws Exception {
         execute("create table test (a object as (x object as (y int, z int))) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         Map<String, Object> map = newHashMap();
         Map<String, Object> nestedMap = newHashMap();
@@ -315,7 +315,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
         execute("create table test (coolness array(float)) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test values (?)", new Object[]{new Object[]{2.2, 2.3, 2.4}});
         assertEquals(1, response.rowCount());
         refresh();
@@ -329,7 +329,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedObjectWithDetailedSchema() throws Exception {
         execute("create table test (coolness object as (x string, y string))");
-        ensureGreen();
+        ensureYellow();
         Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", "2");
@@ -352,7 +352,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateResetNestedObject() throws Exception {
         execute("create table test (coolness object)");
-        ensureGreen();
+        ensureYellow();
 
         Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
@@ -390,7 +390,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateResetNestedObjectUsingUpdateRequest() throws Exception {
         execute("create table test (id string, data object(ignored))");
-        ensureGreen();
+        ensureYellow();
 
         Map<String, Object> data = new HashMap<String, Object>() {{
             put("foo", "bar");
@@ -423,7 +423,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateResetNestedNestedObject() throws Exception {
         execute("create table test (coolness object)");
-        ensureGreen();
+        ensureYellow();
 
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("x", "1");
@@ -472,7 +472,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     public void testUpdateByIdWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) clustered by(author) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -491,7 +491,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     public void testUpdateByQueryWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) clustered by(author) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -510,7 +510,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateVersionHandling() throws Exception {
         execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
         execute("select _version, c from test");
@@ -548,7 +548,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     public void testUpdateRetryOnVersionConflict() throws Exception {
         // issue a bulk update request updating the same document to force a version conflict
         execute("create table test (a string, b int) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test (a, b) values ('foo', 1)");
         assertThat(response.rowCount(), is(1L));
         refresh();

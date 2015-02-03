@@ -60,7 +60,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
-        ensureGreen();
+        ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -95,7 +95,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithRefreshIntervalDisableRefresh() throws Exception {
         execute("create table test (id int primary key, content string) with (refresh_interval=0)");
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
-        ensureGreen();
+        ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -133,7 +133,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableAlreadyExistsException() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("The table 'test' already exists.");
@@ -200,7 +200,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithInlineDefaultIndex() throws Exception {
         execute("create table quotes (quote string index using plain) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -221,7 +221,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithInlineIndex() throws Exception {
         execute("create table quotes (quote string index using fulltext) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -242,7 +242,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithIndexOff() throws Exception {
         execute("create table quotes (id int, quote string index off) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -262,7 +262,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithIndex() throws Exception {
         execute("create table quotes (quote string, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -284,7 +284,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table novels (title string, description string, " +
                 "index title_desc_fulltext using fulltext(title, description) " +
                 "with(analyzer='english')) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("novels"))
                 .actionGet().isExists());
 
@@ -317,7 +317,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testAlterTable() throws Exception {
         execute("create table test (col1 int) with (number_of_replicas='0-all')");
-        ensureGreen();
+        ensureYellow();
 
         execute("select number_of_replicas from information_schema.tables where table_name = 'test'");
         assertEquals("0-all", response.rows()[0][0]);
@@ -348,7 +348,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (id int primary key) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("alter table t add column name string primary key");
         execute("select constraint_name from information_schema.table_constraints " +
                 "where table_name = 't' and schema_name = 'doc' and constraint_type = 'PRIMARY_KEY'");
@@ -362,7 +362,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (o object as (x string)) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("alter table t add o['y'] int");
         try {
             execute("alter table t add o object as (z string)");
@@ -390,7 +390,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "  age integer," +
                 "  book object as (isbn string)" +
                 ")");
-        ensureGreen();
+        ensureYellow();
         execute("alter table my_table add column book['author'] object as (\"authorId\" integer)");
         waitNoPendingTasksOnAll();
         execute("select column_name from information_schema.columns where " +
@@ -413,7 +413,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testAlterTableAddNestedObjectWithArrayToExistingObject() throws Exception {
         execute("CREATE TABLE my_table (col1 object)");
-        ensureGreen();
+        ensureYellow();
         execute("ALTER TABLE my_table ADD COLUMN col1['col2'] object as (col3 array(string))");
         waitNoPendingTasksOnAll();
         execute("SELECT column_name, data_type FROM information_schema.columns " +
@@ -425,10 +425,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 is(Matchers.<Object>arrayContaining("object", "object", "string_array")));
 
         execute("DROP TABLE my_table");
-        ensureGreen();
+        ensureYellow();
 
         execute("CREATE TABLE my_table (col1 object as (col2 object))");
-        ensureGreen();
+        ensureYellow();
         execute("ALTER TABLE my_table ADD COLUMN col1['col2']['col3'] object as (col4 array(long))");
         waitNoPendingTasksOnAll();
         execute("SELECT column_name, data_type FROM information_schema.columns " +
@@ -443,7 +443,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
@@ -508,7 +508,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testAlterShardsOfPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
-        ensureGreen();
+        ensureYellow();
         assertThat(response.rowCount(), is(1L));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
@@ -516,7 +516,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                         2, "Now panic", 1395961200000L}
         );
         assertThat(response.rowCount(), is(2L));
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("alter table quotes set (number_of_shards=5)");
@@ -543,7 +543,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithCustomSchema() throws Exception {
         execute("create table a.t (name string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into a.t (name) values ('Ford')");
         assertThat(response.rowCount(), is(1L));
@@ -568,7 +568,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTableWithCustomSchema() throws Exception {
         execute("create table a.t (name string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("drop table a.t");
         assertThat(response.rowCount(), is(1L));
 

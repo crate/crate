@@ -688,7 +688,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testHavingGroupByNonDistributed() throws Exception {
         execute("create table foo (id int, name string, country string) clustered by (country) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
                 new Object[] { 1, "Arthur", "Austria" },
@@ -718,7 +718,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByHavingInsertInto() throws Exception {
         execute("create table foo (id int, name string, country string) with (number_of_replicas = 0)");
         execute("create table bar (country string) clustered by (country) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
                 new Object[]{1, "Arthur", "Austria"},
@@ -746,7 +746,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testTestGroupByOnClusteredByColumn() throws Exception {
         execute("create table foo (id int, name string, country string) clustered by (country) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
                 new Object[]{1, "Arthur", "Austria"},
@@ -768,7 +768,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByOnAllPrimaryKeys() throws Exception {
         execute("create table foo (id int primary key, name string primary key) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into foo (id, name) values (?, ?)", new Object[][] {
                 new Object[] { 1, "Arthur" },
@@ -789,7 +789,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByEmpty() throws Exception {
         execute("create table test (col1 string)");
-        ensureGreen();
+        ensureYellow();
 
         execute("select count(*), col1 from test group by col1");
         assertEquals(0, response.rowCount());
@@ -833,7 +833,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 " \"pageRank\" int," +
                 " \"avgDuration\" int" +
                 ") with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         for (int i = 0; i<100; i++) {
             execute("insert into rankings (\"pageURL\", \"pageRank\", \"avgDuration\") values (?, ?, ?)",
                     new Object[]{randomAsciiOfLength(i+1), randomIntBetween(i, i*i),  randomInt(i) });
@@ -850,7 +850,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 " \"pageRank\" int," +
                 " \"avgDuration\" int" +
                 ") with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         for (int i = 0; i<100; i++) {
             execute("insert into rankings (\"pageURL\", \"pageRank\", \"avgDuration\") values (?, ?, ?)",
                     new Object[]{randomAsciiOfLength(10 + (i%3)), randomIntBetween(i, i*i),  randomInt(i) });
@@ -867,7 +867,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "url string, " +
                 "score double" +
                 ") clustered by (url) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into twice (\"name\", \"url\", \"score\") values (?, ?, ?)",
                 new Object[]{
                         "A",
@@ -884,7 +884,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "   event_id string," +
                 "   item_id string" +
                 ") clustered into 2 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into likes (event_id, item_id) values (?, ?)", new Object[][] {
                 new Object[] { "event1", "item1" },
                 new Object[] { "event1", "item1" },
@@ -930,7 +930,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "   item_id string" +
                 ") clustered into 1 shards with (number_of_replicas = 0)");
         // only 1 shard to force non-distribution
-        ensureGreen();
+        ensureYellow();
         execute("insert into likes (event_id, item_id) values (?, ?)", new Object[][]{
                 new Object[]{"event1", "item1"},
                 new Object[]{"event1", "item1"},

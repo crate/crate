@@ -49,7 +49,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
                         "content string)",
                 tableName
         ));
-        ensureGreen();
+        ensureYellow();
         client().admin().indices().prepareAliases().addAlias(tableName,
                 tableAlias).execute().actionGet();
         refresh();
@@ -63,7 +63,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes_de (id int primary key, quote string) with (number_of_replicas=0)");
         client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
                 .addAlias("quotes_de", "quotes").execute().actionGet();
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into quotes_en values (?,?)", new Object[]{1, "Don't panic"});
         assertEquals(1, response.rowCount());
@@ -83,7 +83,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes_de (id int primary key, quote2 string)");
         client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
                 .addAlias("quotes_de", "quotes").execute().actionGet();
-        ensureGreen();
+        ensureYellow();
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Table alias \"quotes\" contains tables with different schema");
@@ -96,7 +96,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes_de (id int primary key, quote string) with (number_of_replicas=0)");
         client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
                 .addAlias("quotes_de", "quotes").execute().actionGet();
-        ensureGreen();
+        ensureYellow();
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Table alias \"quotes\" contains tables with different schema");
@@ -109,7 +109,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes_de (id int, quote string)");
         client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
                 .addAlias("quotes_de", "quotes").execute().actionGet();
-        ensureGreen();
+        ensureYellow();
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Table alias \"quotes\" contains tables with different schema");
@@ -122,7 +122,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes_de (id int primary key, quote2 string index using fulltext)");
         client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
                 .addAlias("quotes_de", "quotes").execute().actionGet();
-        ensureGreen();
+        ensureYellow();
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Table alias \"quotes\" contains tables with different schema");
@@ -132,7 +132,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCountWithGroupByTableAlias() throws Exception {
         execute("create table characters_guide (race string, gender string, name string)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into characters_guide (race, gender, name) values ('Human', 'male', 'Arthur Dent')");
         execute("insert into characters_guide (race, gender, name) values ('Android', 'male', 'Marving')");
         execute("insert into characters_guide (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
@@ -140,7 +140,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("create table characters_life (race string, gender string, name string)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into characters_life (race, gender, name) values ('Rabbit', 'male', 'Agrajag')");
         execute("insert into characters_life (race, gender, name) values ('Human', 'male', 'Ford Perfect')");
         execute("insert into characters_life (race, gender, name) values ('Human', 'female', 'Trillian')");
@@ -148,7 +148,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
 
         client().admin().indices().prepareAliases().addAlias("characters_guide", "characters")
                 .addAlias("characters_life", "characters").execute().actionGet();
-        ensureGreen();
+        ensureYellow();
 
         execute("select count(*) from characters");
         assertEquals(7L, response.rows()[0][0]);
@@ -223,7 +223,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testPartitionedTableKeepsAliasAfterSchemaUpdate() throws Exception {
         execute("create table t (name string, p string) partitioned by (p) " +
                 "clustered into 2 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into t (name, p) values ('Arthur', 'a')");
         execute("insert into t (name, p) values ('Trillian', 'a')");

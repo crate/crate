@@ -33,7 +33,7 @@ public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
         // session.query(func.count('*')).filter(Test.name == 'foo').scalar()
 
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         refresh();
@@ -51,7 +51,7 @@ public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
         // session.query(Test.col1).filter(Test.col2 == 'foo').scalar()
 
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         refresh();
@@ -69,7 +69,7 @@ public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
         // session.query(func.count('*'), Test.col2).group_by(Test.col2).order_by(desc(func.count('*'))).all()
 
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         execute("insert into test values (?, ?)", new Object[]{3, "foo"});
@@ -91,7 +91,7 @@ public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
 
 
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         execute("insert into test values (?, ?)", new Object[]{3, "foo"});

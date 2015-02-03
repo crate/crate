@@ -73,7 +73,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             Setup setup = new Setup(executor);
             setup.partitionTableSetup();
             setup.groupBySetup();
-            executor.ensureGreen();
             dataInitialized = true;
         }
     }

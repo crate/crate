@@ -138,7 +138,6 @@ public class Setup {
     }
 
     public void groupBySetup(String numericType) throws Exception {
-
         transportExecutor.exec(String.format("create table characters (" +
             " race string," +
             " gender string," +

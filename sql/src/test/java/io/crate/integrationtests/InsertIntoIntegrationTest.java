@@ -395,7 +395,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertFromQueryWithSysColumn() throws Exception {
         execute("create table target (name string, a string, b string) clustered into 1 shards with (number_of_replicas = 0)");
         execute("create table source (name string) clustered into 1 shards with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into source (name) values ('yalla')");
         execute("refresh table source");
@@ -415,7 +415,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
             "with (number_of_replicas = 0)");
         execute("create table users_parted (id int, name string) clustered into 1 shards " +
             "partitioned by (name) with (number_of_replicas = 0)");
-        ensureGreen();
+        ensureYellow();
 
 
         execute("insert into users_parted (id, name) values (?, ?)", new Object[][]{
@@ -425,7 +425,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 new Object[]{4, "Arthur"},
         });
         execute("refresh table users_parted");
-        ensureGreen();
+        ensureYellow();
 
         execute("insert into users (id, name) (select id, name from users_parted)");
         execute("refresh table users");
@@ -441,7 +441,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertArrayLiteralFirstNull() throws Exception {
         execute("create table users(id int primary key, friends array(string), name string)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into users (id, friends, name) values (0, [null, 'gedöns'], 'björk')");
         execute("insert into users (id, friends, name) values (1, [null], null)");
         execute("refresh table users");
