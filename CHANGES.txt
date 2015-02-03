@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Support `INSERT ... ON DUPLICATE KEY UPDATE` statement
+
  - Added case-insensitive regex operator ~*
 
  - Support PCRE compatible regular expressions
