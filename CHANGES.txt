@@ -2,8 +2,8 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2015/02/03 0.45.8
+=================
 
  - Fix: Force UTF8 encoding in file reading collector to avoid JVM's default encoding settings
 
