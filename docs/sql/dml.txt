@@ -153,13 +153,13 @@ if a document with the same ``PRIMARY KEY`` already exists::
     cr> select
     ...     name,
     ...     visits,
-    ...     format('%tF', last_visit) as last_visit
+    ...     format('%tY', date_trunc('year', last_visit)) as last_visit
     ... from uservisits order by name;
     +----------+--------+------------+
     | name     | visits | last_visit |
     +----------+--------+------------+
-    | Ford     |      1 | 2013-07-16 |
-    | Trillian |      3 | 2013-07-16 |
+    | Ford     |      1 | 2013       |
+    | Trillian |      3 | 2013       |
     +----------+--------+------------+
     SELECT 2 rows in set (... sec)
 
@@ -186,12 +186,12 @@ if a document with the same ``PRIMARY KEY`` already exists::
     cr> select
     ...     name,
     ...     visits,
-    ...     format('%tF', last_visit) as last_visit
+    ...     format('%tY', date_trunc('year', last_visit)) as last_visit
     ... from uservisits where id = 0;
     +------+--------+------------+
     | name | visits | last_visit |
     +------+--------+------------+
-    | Ford |      2 | 2015-01-12 |
+    | Ford |      2 | 2015       |
     +------+--------+------------+
     SELECT 1 row in set (... sec)
 
@@ -205,13 +205,13 @@ to refer to the current rows values::
     ...     0,
     ...     'Ford',
     ...     2,
-    ...     '2015-01-13'
+    ...     '2016-01-13'
     ... ),
     ... (
-    ...     0,
+    ...     1,
     ...     'Trillian',
     ...     5,
-    ...     '2015-01-15'
+    ...     '2016-01-15'
     ... ) on duplicate key update
     ...     visits = visits + VALUES(visits),
     ...     last_visit = VALUES(last_visit);
@@ -227,13 +227,13 @@ to refer to the current rows values::
     cr> select
     ...     name,
     ...     visits,
-    ...     format('%tF', last_visit) as last_visit
+    ...     format('%tY', date_trunc('year', last_visit)) as last_visit
     ... from uservisits order by name;
     +----------+--------+------------+
     | name     | visits | last_visit |
     +----------+--------+------------+
-    | Ford     |      4 | 2015-01-13 |
-    | Trillian |      8 | 2015-01-15 |
+    | Ford     |      4 | 2016       |
+    | Trillian |      8 | 2016       |
     +----------+--------+------------+
     SELECT 2 rows in set (... sec)
 
@@ -314,11 +314,21 @@ An example import from a file URI::
     cr> copy quotes from 'file:///tmp/import_data/quotes.json';
     COPY OK, 3 rows affected (... sec)
 
+.. Hidden: delete imported data
+
+    cr> delete from quotes;
+    DELETE OK, -1 rows affected (... sec)
+
 If all files inside a directory should be imported a ``*`` wildcard has to be
 used::
 
     cr> copy quotes from '/tmp/import_data/*' with (concurrency = 1, bulk_size = 4);
     COPY OK, 3 rows affected (... sec)
+
+.. Hidden: delete imported data
+
+    cr> delete from quotes;
+    DELETE OK, -1 rows affected (... sec)
 
 This wildcard can also be used to only match certain files::
 
