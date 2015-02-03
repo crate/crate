@@ -42,6 +42,17 @@ Unreleased
 
  - Fix: removed unsupported syntax from ``Update`` synposis
 
+2015/02/03 0.45.8
+=================
+
+ - Fix: Force UTF8 encoding in file reading collector to avoid JVM's default encoding settings
+
+ - Fix: Fixed global count using non-existing column in the where clause
+
+ - Fix: Bulk inserts with mixed but compatible types (e.g. int and long) failed
+
+ - Fix: removed unsupported syntax from ``Update`` synposis
+
 2015/01/19 0.46.3
 2015/01/19 0.45.7
 =================
