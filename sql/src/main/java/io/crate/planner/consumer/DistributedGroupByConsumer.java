@@ -120,7 +120,8 @@ public class DistributedGroupByConsumer implements Consumer {
 
             HavingClause havingClause = table.querySpec().having();
             Symbol havingQuery = null;
-            if(havingClause != null){
+            int numSymbolsWithoutHaving = contextBuilder.aggregations().size() + contextBuilder.groupBy().size();
+            if (havingClause != null){
                 if (havingClause.noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table);
                 } else if (havingClause.hasQuery()){
@@ -163,7 +164,7 @@ public class DistributedGroupByConsumer implements Consumer {
                  * Any additional aggregations in the having clause that are not part of the selectList must come
                  * AFTER the selectList aggregations
                  */
-                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), table.querySpec().outputs().size()));
+                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), numSymbolsWithoutHaving));
                 contextBuilder.addProjection(fp);
             }
             TopNProjection topNForReducer = getTopNForReducer(table.querySpec(), contextBuilder, contextBuilder.outputs());

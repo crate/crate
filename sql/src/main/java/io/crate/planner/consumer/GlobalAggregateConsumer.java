@@ -137,7 +137,7 @@ public class GlobalAggregateConsumer implements Consumer {
 
 
         if (havingClause != null && havingClause.hasQuery()) {
-            FilterProjection fp = new FilterProjection((Function) havingClause.query());
+            FilterProjection fp = new FilterProjection(havingClause.query());
             fp.outputs(contextBuilder.passThroughOutputs());
             projections.add(fp);
         }
