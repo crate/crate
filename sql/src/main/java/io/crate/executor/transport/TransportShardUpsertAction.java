@@ -38,10 +38,11 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
-import org.elasticsearch.action.support.single.shard.TransportShardSingleOperationAction;
+import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.collect.Tuple;
@@ -74,7 +75,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TransportShardUpsertAction extends TransportShardSingleOperationAction<ShardUpsertRequest, ShardUpsertResponse> {
+public class TransportShardUpsertAction extends TransportShardReplicationOperationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse> {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert";
     private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR = new SymbolToFieldExtractor(new GetResultFieldExtractorFactory());
@@ -82,7 +83,6 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
     private final TransportIndexAction indexAction;
     private final IndicesService indicesService;
     private final Functions functions;
-
 
     @Inject
     public TransportShardUpsertAction(Settings settings,
@@ -92,8 +92,9 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
                                       ActionFilters actionFilters,
                                       TransportIndexAction indexAction,
                                       IndicesService indicesService,
+                                      ShardStateAction shardStateAction,
                                       Functions functions) {
-        super(settings, ACTION_NAME, threadPool, clusterService, transportService, actionFilters);
+        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
         this.indexAction = indexAction;
         this.indicesService = indicesService;
         this.functions = functions;
@@ -101,21 +102,36 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
 
     @Override
     protected String executor() {
-        return ThreadPool.Names.INDEX;
+        return ThreadPool.Names.BULK;
     }
 
     @Override
-    protected ShardUpsertRequest newRequest() {
+    protected ShardUpsertRequest newRequestInstance() {
         return new ShardUpsertRequest();
     }
 
     @Override
-    protected ShardUpsertResponse newResponse() {
+    protected ShardUpsertRequest newReplicaRequestInstance() {
+        return new ShardUpsertRequest();
+    }
+
+    @Override
+    protected ShardUpsertResponse newResponseInstance() {
         return new ShardUpsertResponse();
     }
 
     @Override
     protected boolean resolveIndex() {
+        return true;
+    }
+
+    @Override
+    protected boolean checkWriteConsistency() {
+        return false;
+    }
+
+    @Override
+    protected boolean ignoreReplicas() {
         return true;
     }
 
@@ -126,23 +142,17 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
     }
 
     @Override
-    protected void resolveRequest(ClusterState state, InternalRequest request) {
-    }
-
-    @Override
-    protected ShardUpsertResponse shardOperation(ShardUpsertRequest request, ShardId shardId) throws ElasticsearchException {
-        IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
-
-        ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse(shardId.getIndex());
+    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
+        ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse(shardRequest.shardId.getIndex());
+        ShardUpsertRequest request = shardRequest.request;
         for (int i = 0; i < request.locations().size(); i++) {
             int location = request.locations().get(i);
             ShardUpsertRequest.Item item = request.items().get(i);
             try {
                 IndexResponse indexResponse = indexItem(
                         request,
-                        item, indexShard,
-                        item.missingAssignments() != null, // try insert first
+                        item, shardRequest.shardId,
+                        item.insertValues() != null, // try insert first
                         0);
                 shardUpsertResponse.add(location,
                         new ShardUpsertResponse.Response(
@@ -164,12 +174,18 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
                 }
             }
         }
-        return shardUpsertResponse;
+        return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+    }
+
+
+    @Override
+    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
+
     }
 
     public IndexResponse indexItem(ShardUpsertRequest request,
                           ShardUpsertRequest.Item item,
-                          IndexShard indexShard,
+                          ShardId shardId,
                           boolean tryInsertFirst,
                           int retryCount) throws ElasticsearchException {
 
@@ -178,29 +194,29 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
             if (tryInsertFirst) {
                 // try insert first without fetching the document
                 try {
-                    indexRequest = new IndexRequest(prepareMissingAssignmentsIndexRequest(request, item), request);
-                    logger.trace("Inserting document {}", indexRequest);
+                    indexRequest = new IndexRequest(prepareInsert(request, item), request);
                 } catch (IOException e) {
-                    throw new ElasticsearchException("IOException", e);
+                    throw ExceptionsHelper.convertToElastic(e);
                 }
             } else {
-                indexRequest = new IndexRequest(prepare(request, item, indexShard), request);
-                logger.trace("Updating document {}", indexRequest);
+                indexRequest = new IndexRequest(prepareUpdate(request, item, shardId), request);
             }
             return indexAction.execute(indexRequest).actionGet();
         } catch (Throwable t) {
             if (t instanceof VersionConflictEngineException
                     && retryCount < item.retryOnConflict()) {
-                return indexItem(request, item, indexShard, false, retryCount + 1);
-            } else if (tryInsertFirst && item.assignments() != null
+                return indexItem(request, item, shardId, false, retryCount + 1);
+            } else if (tryInsertFirst && item.updateAssignments() != null
                     && t instanceof DocumentAlreadyExistsException) {
                 // insert failed, document already exists, try update
-                return indexItem(request, item, indexShard, false, 0);
+                return indexItem(request, item, shardId, false, 0);
             } else {
                 throw t;
             }
         }
     }
+
+
 
     /**
      * Prepares an update request by converting it into an index request.
@@ -208,20 +224,20 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
      * TODO: detect a NOOP and return an update response if true
      */
     @SuppressWarnings("unchecked")
-    public IndexRequest prepare(ShardUpsertRequest request, ShardUpsertRequest.Item item, IndexShard indexShard) throws ElasticsearchException {
+    public IndexRequest prepareUpdate(ShardUpsertRequest request, ShardUpsertRequest.Item item, ShardId shardId) throws ElasticsearchException {
+        IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
+        IndexShard indexShard = indexService.shardSafe(shardId.id());
         final GetResult getResult = indexShard.getService().get(request.type(), item.id(),
                 new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
                 true, item.version(), VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
 
         if (!getResult.isExists()) {
-            throw new DocumentMissingException(new ShardId(indexShard.indexService().index().name(), request.shardId()), request.type(), item.id());
-        } else if (item.assignments() == null) {
-            throw new DocumentAlreadyExistsException(new ShardId(indexShard.indexService().index().name(), request.shardId()), request.type(), item.id());
+            throw new DocumentMissingException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
         }
 
         if (getResult.internalSourceRef() == null) {
             // no source, we can't do nothing, through a failure...
-            throw new DocumentSourceMissingException(new ShardId(indexShard.indexService().index().name(), request.shardId()), request.type(), item.id());
+            throw new DocumentSourceMissingException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
         }
 
         Tuple<XContentType, Map<String, Object>> sourceAndContent = XContentHelper.convertToMap(getResult.internalSourceRef(), true);
@@ -232,10 +248,10 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
 
         updatedSourceAsMap = sourceAndContent.v2();
 
-        final SymbolToFieldExtractor.Context ctx = new SymbolToFieldExtractor.Context(functions, item.assignments().length);
-        Map<String, FieldExtractor> extractors = new HashMap<>(item.assignments().length);
-        for (int i = 0; i < request.assignmentsColumns().length; i++) {
-            extractors.put(request.assignmentsColumns()[i], SYMBOL_TO_FIELD_EXTRACTOR.convert(item.assignments()[i], ctx));
+        final SymbolToFieldExtractor.Context ctx = new SymbolToFieldExtractor.Context(functions, item.updateAssignments().length);
+        Map<String, FieldExtractor> extractors = new HashMap<>(item.updateAssignments().length);
+        for (int i = 0; i < request.updateColumns().length; i++) {
+            extractors.put(request.updateColumns()[i], SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx));
         }
 
         Map<String, Object> pathsToUpdate = new HashMap<>(extractors.size());
@@ -260,16 +276,16 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
         return indexRequest;
     }
 
-    private IndexRequest prepareMissingAssignmentsIndexRequest(ShardUpsertRequest request, ShardUpsertRequest.Item item) throws IOException {
+    private IndexRequest prepareInsert(ShardUpsertRequest request, ShardUpsertRequest.Item item) throws IOException {
         BytesRef rawSource = null;
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
-        for (int i = 0; i < item.missingAssignments().length; i++) {
-            Reference ref = request.missingAssignmentsColumns()[i];
+        for (int i = 0; i < item.insertValues().length; i++) {
+            Reference ref = request.insertColumns()[i];
             if (ref.info().ident().columnIdent().equals(DocSysColumns.RAW)) {
-                rawSource = (BytesRef)item.missingAssignments()[i];
+                rawSource = (BytesRef)item.insertValues()[i];
                 break;
             }
-            builder.field(ref.ident().columnIdent().fqn(), item.missingAssignments()[i]);
+            builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
         }
         IndexRequest indexRequest = Requests.indexRequest(request.index()).type(request.type()).id(item.id()).routing(item.routing())
                 .create(true).operationThreaded(false);
@@ -317,7 +333,6 @@ public class TransportShardUpsertAction extends TransportShardSingleOperationAct
             return new FieldExtractor<GetResult>() {
                 @Override
                 public Object extract(GetResult getResult) {
-                    assert getResult.sourceAsMap() != null;
                     return XContentMapValues.extractValue(
                             reference.info().ident().columnIdent().fqn(), getResult.sourceAsMap());
                 }

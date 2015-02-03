@@ -25,7 +25,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
@@ -67,11 +66,6 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 autoCreateIndices,
                 null,
                 columnReferences.toArray(new Reference[columnReferences.size()]));
-    }
-
-    @Override
-    protected Symbol[] generateAssignments() {
-        return new Symbol[0];
     }
 
     @Override

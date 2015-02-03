@@ -56,6 +56,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractIndexWriterProjector implements Projector {
 
+    private static final Symbol[] EMPTY_ASSIGNMENTS = new Symbol[0];
+
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<?>[] collectExpressions;
     private final List<Input<?>> idInputs;
@@ -120,7 +122,6 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                 transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 autoCreateIndices,
-                false,
                 MoreObjects.firstNonNull(bulkActions, 100),
                 true,
                 assignmentsColumns,
@@ -128,7 +129,9 @@ public abstract class AbstractIndexWriterProjector implements Projector {
         );
     }
 
-    protected abstract Symbol[] generateAssignments();
+    protected Symbol[] generateAssignments() {
+        return EMPTY_ASSIGNMENTS;
+    }
 
     protected abstract Object[] generateMissingAssignments();
 

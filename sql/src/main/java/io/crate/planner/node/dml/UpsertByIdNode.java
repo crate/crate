@@ -40,25 +40,26 @@ public class UpsertByIdNode extends DMLPlanNode {
         private final String index;
         private final String id;
         private final String routing;
-        private final Symbol[] assignments;
         private long version = Versions.MATCH_ANY;
         @Nullable
-        private Object[] missingAssignments;
+        private final Symbol[] updateAssignments;
+        @Nullable
+        private Object[] insertValues;
 
         Item(String index,
                     String id,
                     String routing,
-                    Symbol[] assignments,
+                    @Nullable Symbol[] updateAssignments,
                     @Nullable Long version,
-                    @Nullable Object[] missingAssignments) {
+                    @Nullable Object[] insertValues) {
             this.index = index;
             this.id = id;
             this.routing = routing;
-            this.assignments = assignments;
+            this.updateAssignments = updateAssignments;
             if (version != null) {
                 this.version = version;
             }
-            this.missingAssignments = missingAssignments;
+            this.insertValues = insertValues;
         }
 
         public String index() {
@@ -77,13 +78,14 @@ public class UpsertByIdNode extends DMLPlanNode {
             return version;
         }
 
-        public Symbol[] assignments() {
-            return assignments;
+        @Nullable
+        public Symbol[] updateAssignments() {
+            return updateAssignments;
         }
 
         @Nullable
-        public Object[] missingAssignments() {
-            return missingAssignments;
+        public Object[] insertValues() {
+            return insertValues;
         }
     }
 
@@ -91,28 +93,29 @@ public class UpsertByIdNode extends DMLPlanNode {
     private final boolean partitionedTable;
     private final boolean bulkRequest;
     private final List<Item> items;
-    private final String[] assignmentsColumns;
     @Nullable
-    private final Reference[] missingAssignmentsColumns;
+    private final String[] updateColumns;
+    @Nullable
+    private final Reference[] insertColumns;
 
     public UpsertByIdNode(boolean partitionedTable,
                           boolean bulkRequest,
-                          String[] assignmentsColumns,
-                          @Nullable Reference[] missingAssignmentsColumns) {
+                          String[] updateColumns,
+                          @Nullable Reference[] insertColumns) {
         this.partitionedTable = partitionedTable;
         this.bulkRequest = bulkRequest;
-        this.assignmentsColumns = assignmentsColumns;
-        this.missingAssignmentsColumns = missingAssignmentsColumns;
+        this.updateColumns = updateColumns;
+        this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
     }
 
-    public String[] assignmentsColumns() {
-        return assignmentsColumns;
+    public String[] updateColumns() {
+        return updateColumns;
     }
 
     @Nullable
-    public Reference[] missingAssignmentsColumns() {
-        return missingAssignmentsColumns;
+    public Reference[] insertColumns() {
+        return insertColumns;
     }
 
     public boolean isPartitionedTable() {
@@ -126,18 +129,18 @@ public class UpsertByIdNode extends DMLPlanNode {
     public void add(String index,
                     String id,
                     String routing,
-                    Symbol[] assignments,
+                    Symbol[] updateAssignments,
                     @Nullable Long version) {
-        add(index, id, routing, assignments, version, null);
+        add(index, id, routing, updateAssignments, version, null);
     }
 
     public void add(String index,
                     String id,
                     String routing,
-                    Symbol[] assignments,
+                    Symbol[] updateAssignments,
                     @Nullable Long version,
-                    @Nullable Object[] missingAssignments) {
-        items.add(new Item(index, id, routing, assignments, version, missingAssignments));
+                    @Nullable Object[] insertValues) {
+        items.add(new Item(index, id, routing, updateAssignments, version, insertValues));
     }
 
     public List<Item> items() {

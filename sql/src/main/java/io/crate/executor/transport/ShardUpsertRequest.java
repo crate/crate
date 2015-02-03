@@ -27,7 +27,7 @@ import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.action.support.single.shard.SingleShardOperationRequest;
+import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -40,41 +40,54 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
+public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
 
     /**
      * A single update item.
      */
-    public static class Item implements Streamable {
+    static class Item implements Streamable {
 
         private String id;
         private String routing;
-        private Symbol[] assignments;
         private long version = Versions.MATCH_ANY;
+
+        /**
+         * List of symbols used on update if document exist
+         */
         @Nullable
-        private Object[] missingAssignments;
+        private Symbol[] updateAssignments;
+
+        /**
+         * List of objects used on insert
+         */
         @Nullable
-        private Streamer[] streamers;
+        private Object[] insertValues;
+
+        /**
+         * List of data type streamer needed for streaming insert values
+         */
+        @Nullable
+        private Streamer[] insertValuesStreamer;
 
 
-        Item(@Nullable Streamer[] streamers) {
-            this.streamers = streamers;
+        Item(@Nullable Streamer[] insertValuesStreamer) {
+            this.insertValuesStreamer = insertValuesStreamer;
         }
 
         Item(String id,
-             @Nullable Symbol[] assignments,
-             @Nullable Object[] missingAssignments,
+             @Nullable Symbol[] updateAssignments,
+             @Nullable Object[] insertValues,
              @Nullable Long version,
              @Nullable String routing,
-             @Nullable Streamer[] streamers) {
-            this(streamers);
+             @Nullable Streamer[] insertValuesStreamer) {
+            this(insertValuesStreamer);
             this.id = id;
             this.routing = routing;
-            this.assignments = assignments;
+            this.updateAssignments = updateAssignments;
             if (version != null) {
                 this.version = version;
             }
-            this.missingAssignments = missingAssignments;
+            this.insertValues = insertValues;
         }
 
         public String id() {
@@ -95,13 +108,13 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
         }
 
         @Nullable
-        public Symbol[] assignments() {
-            return assignments;
+        public Symbol[] updateAssignments() {
+            return updateAssignments;
         }
 
         @Nullable
-        public Object[] missingAssignments() {
-            return missingAssignments;
+        public Object[] insertValues() {
+            return insertValues;
         }
 
         static Item readItem(StreamInput in, @Nullable Streamer[] streamers) throws IOException {
@@ -116,16 +129,16 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
             routing = in.readOptionalString();
             int assignmentsSize = in.readVInt();
             if (assignmentsSize > 0) {
-                assignments = new Symbol[assignmentsSize];
+                updateAssignments = new Symbol[assignmentsSize];
                 for (int i = 0; i < assignmentsSize; i++) {
-                    assignments[i] = Symbol.fromStream(in);
+                    updateAssignments[i] = Symbol.fromStream(in);
                 }
             }
             int missingAssignmentsSize = in.readVInt();
             if (missingAssignmentsSize > 0) {
-                this.missingAssignments = new Object[missingAssignmentsSize];
+                this.insertValues = new Object[missingAssignmentsSize];
                 for (int i = 0; i < missingAssignmentsSize; i++) {
-                    missingAssignments[i] = streamers[i].readValueFrom(in);
+                    insertValues[i] = insertValuesStreamer[i].readValueFrom(in);
                 }
             }
 
@@ -136,19 +149,19 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
             out.writeOptionalString(routing);
-            if (assignments != null) {
-                out.writeVInt(assignments.length);
-                for (int i = 0; i < assignments.length; i++) {
-                    Symbol.toStream(assignments[i], out);
+            if (updateAssignments != null) {
+                out.writeVInt(updateAssignments.length);
+                for (Symbol updateAssignment : updateAssignments) {
+                    Symbol.toStream(updateAssignment, out);
                 }
             } else {
                 out.writeVInt(0);
             }
             // Stream References
-            if (missingAssignments != null) {
-                out.writeVInt(missingAssignments.length);
-                for (int i = 0; i < missingAssignments.length; i++) {
-                    streamers[i].writeValueTo(out, missingAssignments[i]);
+            if (insertValues != null) {
+                out.writeVInt(insertValues.length);
+                for (int i = 0; i < insertValues.length; i++) {
+                    insertValuesStreamer[i].writeValueTo(out, insertValues[i]);
                 }
             } else {
                 out.writeVInt(0);
@@ -160,39 +173,48 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
 
     private int shardId;
     private List<Item> items;
-    private String[] assignmentsColumns;
     private IntArrayList locations;
-    @Nullable
-    private Reference[] missingAssignmentsColumns;
-    @Nullable
-    private Streamer[] streamers;
     private boolean continueOnError = false;
+
+    /**
+     * List of column names used on update
+     */
+    @Nullable
+    private String[] updateColumns;
+
+    /**
+     * List of references used on insert
+     */
+    @Nullable
+    private Reference[] insertColumns;
+
+    /**
+     * List of data type streamer resolved through insertColumns
+     */
+    @Nullable
+    private Streamer[] insertValuesStreamer;
 
     public ShardUpsertRequest() {
     }
 
-    public ShardUpsertRequest(String index,
-                              int shardId,
-                              @Nullable String[] assignmentsColumns,
-                              @Nullable Reference[] missingAssignmentsColumns) {
-        super(index);
-        this.shardId = shardId;
+    public ShardUpsertRequest(ShardId shardId,
+                              @Nullable
+                              String[] updateColumns,
+                              @Nullable Reference[] insertColumns) {
+        assert updateColumns != null || insertColumns != null
+                : "Missing updateAssignments, whether for update nor for insert";
+        this.index = shardId.getIndex();
+        this.shardId = shardId.id();
         locations = new IntArrayList();
-        this.assignmentsColumns = assignmentsColumns;
-        this.missingAssignmentsColumns = missingAssignmentsColumns;
+        this.updateColumns = updateColumns;
+        this.insertColumns = insertColumns;
         items = new ArrayList<>();
-        if (missingAssignmentsColumns != null) {
-            streamers = new Streamer[missingAssignmentsColumns.length];
-            for (int i = 0; i < missingAssignmentsColumns.length; i++) {
-                streamers[i] = missingAssignmentsColumns[i].valueType().streamer();
+        if (insertColumns != null) {
+            insertValuesStreamer = new Streamer[insertColumns.length];
+            for (int i = 0; i < insertColumns.length; i++) {
+                insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
             }
         }
-    }
-
-    public ShardUpsertRequest(ShardId shardId,
-                              String[] assignmentsColumns,
-                              @Nullable Reference[] missingAssignmentsColumns) {
-        this(shardId.getIndex(), shardId.id(), assignmentsColumns, missingAssignmentsColumns);
     }
 
     public List<Item> items() {
@@ -210,7 +232,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
                                   @Nullable Long version,
                                   @Nullable String routing) {
         locations.add(location);
-        items.add(new Item(id, assignments, missingAssignments, version, routing, streamers));
+        items.add(new Item(id, assignments, missingAssignments, version, routing, insertValuesStreamer));
         return this;
     }
 
@@ -223,14 +245,6 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
         return this;
     }
 
-    public ShardUpsertRequest add(int location,
-                                  String id,
-                                  Object[] missingAssignments,
-                                  @Nullable String routing) {
-        add(location, id, null, missingAssignments, null, routing);
-        return this;
-    }
-
     public String type() {
         return Constants.DEFAULT_MAPPING_TYPE;
     }
@@ -239,13 +253,13 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
         return shardId;
     }
 
-    public String[] assignmentsColumns() {
-        return assignmentsColumns;
+    public String[] updateColumns() {
+        return updateColumns;
     }
 
     @Nullable
-    public Reference[] missingAssignmentsColumns() {
-        return missingAssignmentsColumns;
+    public Reference[] insertColumns() {
+        return insertColumns;
     }
 
     public boolean continueOnError() {
@@ -264,20 +278,21 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        shardId = in.readInt();
         int assignmentsColumnsSize = in.readVInt();
         if (assignmentsColumnsSize > 0) {
-            assignmentsColumns = new String[assignmentsColumnsSize];
+            updateColumns = new String[assignmentsColumnsSize];
             for (int i = 0; i < assignmentsColumnsSize; i++) {
-                assignmentsColumns[i] = in.readString();
+                updateColumns[i] = in.readString();
             }
         }
         int missingAssignmentsColumnsSize = in.readVInt();
         if (missingAssignmentsColumnsSize > 0) {
-            missingAssignmentsColumns = new Reference[missingAssignmentsColumnsSize];
-            streamers = new Streamer[missingAssignmentsColumnsSize];
+            insertColumns = new Reference[missingAssignmentsColumnsSize];
+            insertValuesStreamer = new Streamer[missingAssignmentsColumnsSize];
             for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
-                missingAssignmentsColumns[i] = Reference.fromStream(in);
-                streamers[i] = missingAssignmentsColumns[i].valueType().streamer();
+                insertColumns[i] = Reference.fromStream(in);
+                insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
             }
         }
         int size = in.readVInt();
@@ -285,7 +300,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
         items = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             locations.add(in.readVInt());
-            items.add(Item.readItem(in, streamers));
+            items.add(Item.readItem(in, insertValuesStreamer));
         }
         continueOnError = in.readBoolean();
     }
@@ -293,18 +308,19 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeInt(shardId);
         // Stream References
-        if (assignmentsColumns != null) {
-            out.writeVInt(assignmentsColumns.length);
-            for(String column : assignmentsColumns) {
+        if (updateColumns != null) {
+            out.writeVInt(updateColumns.length);
+            for(String column : updateColumns) {
                 out.writeString(column);
             }
         } else {
             out.writeVInt(0);
         }
-        if (missingAssignmentsColumns != null) {
-            out.writeVInt(missingAssignmentsColumns.length);
-            for(Reference reference : missingAssignmentsColumns) {
+        if (insertColumns != null) {
+            out.writeVInt(insertColumns.length);
+            for(Reference reference : insertColumns) {
                 Reference.toStream(reference, out);
             }
         } else {

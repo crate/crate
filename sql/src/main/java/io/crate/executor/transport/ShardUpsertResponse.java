@@ -90,7 +90,7 @@ public class ShardUpsertResponse extends ActionResponse {
         private long version;
         private boolean created;
          
-        public Response() {
+        Response() {
         }
          
         public Response(String id, long version, boolean created) {
@@ -141,18 +141,14 @@ public class ShardUpsertResponse extends ActionResponse {
 
 
     private String index;
-    private IntArrayList locations;
-    private List<Response> responses;
-    private List<Failure> failures;
+    private IntArrayList locations = new IntArrayList();
+    private List<Response> responses = new ArrayList<>();
+    private List<Failure> failures = new ArrayList<>();
 
     public ShardUpsertResponse() {
-        locations = new IntArrayList();
-        responses = new ArrayList<>();
-        failures = new ArrayList<>();
     }
 
     public ShardUpsertResponse(String index) {
-        this();
         this.index = index;
     }
 

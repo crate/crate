@@ -549,10 +549,10 @@ public class PlannerTest {
 
         UpsertByIdNode updateNode = (UpsertByIdNode)childNodes.get(0);
 
-        assertThat(updateNode.missingAssignmentsColumns().length, is(2));
-        Reference idRef = updateNode.missingAssignmentsColumns()[0];
+        assertThat(updateNode.insertColumns().length, is(2));
+        Reference idRef = updateNode.insertColumns()[0];
         assertThat(idRef.ident().columnIdent().fqn(), is("id"));
-        Reference nameRef = updateNode.missingAssignmentsColumns()[1];
+        Reference nameRef = updateNode.insertColumns()[1];
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(updateNode.items().size(), is(1));
@@ -561,9 +561,9 @@ public class PlannerTest {
         assertThat(item.id(), is("42"));
         assertThat(item.routing(), is("42"));
 
-        assertThat(item.missingAssignments().length, is(2));
-        assertThat((Long)item.missingAssignments()[0], is(42L));
-        assertThat((BytesRef)item.missingAssignments()[1], is(new BytesRef("Deep Thought")));
+        assertThat(item.insertValues().length, is(2));
+        assertThat((Long)item.insertValues()[0], is(42L));
+        assertThat((BytesRef) item.insertValues()[1], is(new BytesRef("Deep Thought")));
     }
 
     @Test
@@ -578,10 +578,10 @@ public class PlannerTest {
 
         UpsertByIdNode updateNode = (UpsertByIdNode)childNodes.get(0);
 
-        assertThat(updateNode.missingAssignmentsColumns().length, is(2));
-        Reference idRef = updateNode.missingAssignmentsColumns()[0];
+        assertThat(updateNode.insertColumns().length, is(2));
+        Reference idRef = updateNode.insertColumns()[0];
         assertThat(idRef.ident().columnIdent().fqn(), is("id"));
-        Reference nameRef = updateNode.missingAssignmentsColumns()[1];
+        Reference nameRef = updateNode.insertColumns()[1];
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(updateNode.items().size(), is(2));
@@ -590,17 +590,17 @@ public class PlannerTest {
         assertThat(item1.index(), is("users"));
         assertThat(item1.id(), is("42"));
         assertThat(item1.routing(), is("42"));
-        assertThat(item1.missingAssignments().length, is(2));
-        assertThat((Long)item1.missingAssignments()[0], is(42L));
-        assertThat((BytesRef)item1.missingAssignments()[1], is(new BytesRef("Deep Thought")));
+        assertThat(item1.insertValues().length, is(2));
+        assertThat((Long)item1.insertValues()[0], is(42L));
+        assertThat((BytesRef)item1.insertValues()[1], is(new BytesRef("Deep Thought")));
 
         UpsertByIdNode.Item item2 = updateNode.items().get(1);
         assertThat(item2.index(), is("users"));
         assertThat(item2.id(), is("99"));
         assertThat(item2.routing(), is("99"));
-        assertThat(item2.missingAssignments().length, is(2));
-        assertThat((Long)item2.missingAssignments()[0], is(99L));
-        assertThat((BytesRef)item2.missingAssignments()[1], is(new BytesRef("Marvin")));
+        assertThat(item2.insertValues().length, is(2));
+        assertThat((Long)item2.insertValues()[0], is(99L));
+        assertThat((BytesRef) item2.insertValues()[1], is(new BytesRef("Marvin")));
     }
 
     @Test
@@ -797,13 +797,13 @@ public class PlannerTest {
         UpsertByIdNode updateNode = (UpsertByIdNode)childNodes.get(0);
         assertThat(updateNode.items().size(), is(1));
 
-        assertThat(updateNode.assignmentsColumns()[0], is("name"));
+        assertThat(updateNode.updateColumns()[0], is("name"));
 
         UpsertByIdNode.Item item = updateNode.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
 
-        Symbol symbol = item.assignments()[0];
+        Symbol symbol = item.updateAssignments()[0];
         assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
     }
 
@@ -821,8 +821,8 @@ public class PlannerTest {
         List<String> ids = new ArrayList<>(3);
         for (UpsertByIdNode.Item item : updateNode.items()) {
             ids.add(item.id());
-            assertThat(item.assignments().length, is(1));
-            assertThat(item.assignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
+            assertThat(item.updateAssignments().length, is(1));
+            assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
         }
 
         assertThat(ids, containsInAnyOrder("1", "2", "3"));
@@ -1555,12 +1555,12 @@ public class PlannerTest {
         assertThat(plan.nodes().get(0).get(0), instanceOf(UpsertByIdNode.class));
         UpsertByIdNode node = (UpsertByIdNode) plan.nodes().get(0).get(0);
 
-        assertThat(node.assignmentsColumns(), is(new String[]{ "name" }));
+        assertThat(node.updateColumns(), is(new String[]{ "name" }));
 
-        assertThat(node.missingAssignmentsColumns().length, is(2));
-        Reference idRef = node.missingAssignmentsColumns()[0];
+        assertThat(node.insertColumns().length, is(2));
+        Reference idRef = node.insertColumns()[0];
         assertThat(idRef.ident().columnIdent().fqn(), is("id"));
-        Reference nameRef = node.missingAssignmentsColumns()[1];
+        Reference nameRef = node.insertColumns()[1];
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(node.items().size(), is(1));
@@ -1569,11 +1569,11 @@ public class PlannerTest {
         assertThat(item.id(), is("1"));
         assertThat(item.routing(), is("1"));
 
-        assertThat(item.missingAssignments().length, is(2));
-        assertThat((Long)item.missingAssignments()[0], is(1L));
-        assertNull(item.missingAssignments()[1]);
+        assertThat(item.insertValues().length, is(2));
+        assertThat((Long)item.insertValues()[0], is(1L));
+        assertNull(item.insertValues()[1]);
 
-        assertThat(item.assignments().length, is(1));
-        assertThat(item.assignments()[0], isLiteral(null, DataTypes.STRING));
+        assertThat(item.updateAssignments().length, is(1));
+        assertThat(item.updateAssignments()[0], isLiteral(null, DataTypes.STRING));
     }
 }

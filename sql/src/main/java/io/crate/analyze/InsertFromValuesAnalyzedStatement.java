@@ -113,7 +113,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     }
 
     public void addOnDuplicateKeyAssignments(Symbol[] assignments) {
-        assert assignments != null && assignments.length != 0 : "must have assignments!";
+        assert assignments != null && assignments.length != 0 : "must have updateAssignments!";
         onDuplicateKeyAssignments.add(assignments);
     }
 
@@ -122,7 +122,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     }
 
     public void addOnDuplicateKeyAssignmentsColumns(String[] assignmentsColumns) {
-        assert assignmentsColumns != null && assignmentsColumns.length != 0 : "must have assignments columns!";
+        assert assignmentsColumns != null && assignmentsColumns.length != 0 : "must have updateAssignments columns!";
         onDuplicateKeyAssignmentsColumns.add(assignmentsColumns);
     }
 
