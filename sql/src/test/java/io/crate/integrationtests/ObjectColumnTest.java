@@ -144,6 +144,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         execute("update ot set author['job']='Writer' " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         refresh();
+        waitNoPendingTasksOnAll(); // wait for author['job']
         execute("select author, author['job'] from ot where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         assertEquals(1, response.rowCount());
         assertEquals(
