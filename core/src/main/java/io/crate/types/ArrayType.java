@@ -123,7 +123,7 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
     @Override
     public Object[] readValueFrom(StreamInput in) throws IOException {
         int size = in.readVInt();
-        // size of 0 is threaten as null value so real size must be decreased by 1
+        // size of 0 is treated as null value so real size must be decreased by 1
         if (size == 0) {
             return null;
         }

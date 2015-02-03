@@ -64,11 +64,10 @@ public class UpsertByIdTask extends JobTask {
                 transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 node.isPartitionedTable(),
-                true,
                 node.items().size(),
-                node.isBulkRequest() || node.assignmentsColumns() != null, // continue on error on bulk and/or update
-                node.assignmentsColumns(),
-                node.missingAssignmentsColumns());
+                node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
+                node.updateColumns(),
+                node.insertColumns());
 
 
         if (!node.isBulkRequest()) {
@@ -138,8 +137,8 @@ public class UpsertByIdTask extends JobTask {
             bulkShardProcessor.add(
                     item.index(),
                     item.id(),
-                    item.assignments(),
-                    item.missingAssignments(),
+                    item.updateAssignments(),
+                    item.insertValues(),
                     item.routing(),
                     item.version());
         }

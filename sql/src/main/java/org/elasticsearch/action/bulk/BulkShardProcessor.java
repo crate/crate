@@ -36,7 +36,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -61,7 +60,7 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
  * but less flexible (only supports IndexRequests)
  *
  * If the Bulk threadPool Queue is full retries are made and
- * the {@link #add(String, org.elasticsearch.common.bytes.BytesReference, String, String)} method will start to block.
+ * the {@link #add} method will start to block.
  */
 public class BulkShardProcessor {
 
@@ -69,7 +68,6 @@ public class BulkShardProcessor {
     private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
-    private final boolean allowCreateOnly;
     private final int bulkSize;
     private final Map<ShardId, ShardUpsertRequest> requestsByShard = new HashMap<>();
     private final AutoCreateIndex autoCreateIndex;
@@ -101,7 +99,6 @@ public class BulkShardProcessor {
                               TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                               TransportCreateIndexAction transportCreateIndexAction,
                               boolean autoCreateIndices,
-                              boolean allowCreateOnly,
                               int bulkSize,
                               boolean continueOnDuplicates,
                               @Nullable String[] assignmentsColumns,
@@ -111,7 +108,6 @@ public class BulkShardProcessor {
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.autoCreateIndices = autoCreateIndices;
-        this.allowCreateOnly = allowCreateOnly;
         this.bulkSize = bulkSize;
         this.continueOnDuplicates = continueOnDuplicates;
         this.assignmentsColumns = assignmentsColumns;
@@ -180,6 +176,7 @@ public class BulkShardProcessor {
             ShardUpsertRequest updateRequest = requestsByShard.get(shardId);
             if (updateRequest == null) {
                 updateRequest = new ShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns);
+                updateRequest.timeout(requestTimeout);
                 updateRequest.continueOnError(continueOnDuplicates);
                 requestsByShard.put(shardId, updateRequest);
             }

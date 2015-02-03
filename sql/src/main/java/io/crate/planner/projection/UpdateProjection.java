@@ -46,8 +46,8 @@ public class UpdateProjection extends Projection {
             new Value(DataTypes.LONG)  // number of rows updated
     );
 
-    // The key of this map is expected to be a FQN columnIdent.
     private Symbol[] assignments;
+    // All values of this list are expected to be a FQN columnIdent.
     private String[] assignmentsColumns;
     @Nullable
     private Long requiredVersion;
@@ -106,6 +106,7 @@ public class UpdateProjection extends Projection {
         UpdateProjection that = (UpdateProjection) o;
 
         if (!assignments.equals(that.assignments)) return false;
+        if (!assignmentsColumns.equals(that.assignmentsColumns)) return false;
         if (requiredVersion != null ? !requiredVersion.equals(that.requiredVersion) : that.requiredVersion != null)
             return false;
         if (!uidSymbol.equals(that.uidSymbol)) return false;
@@ -117,6 +118,7 @@ public class UpdateProjection extends Projection {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + assignments.hashCode();
+        result = 31 * result + assignmentsColumns.hashCode();
         result = 31 * result + (requiredVersion != null ? requiredVersion.hashCode() : 0);
         result = 31 * result + uidSymbol.hashCode();
         return result;
