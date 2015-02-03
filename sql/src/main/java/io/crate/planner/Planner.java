@@ -911,6 +911,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 .orderBy(analysis.orderBy().orderBySymbols());
 
         Symbol havingClause = null;
+        int numSymbolsWithoutHavingClause = contextBuilder.aggregations().size() + contextBuilder.groupBy().size();
         if (analysis.havingClause() != null
                 && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
             // replace aggregation symbols with input columns from previous projection
@@ -954,7 +955,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
              * Any additional aggregations in the having clause that are not part of the selectList must come
              * AFTER the selectList aggregations
              */
-            fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.outputSymbols().size()));
+            fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), numSymbolsWithoutHavingClause));
             contextBuilder.addProjection(fp);
         }
         TopNProjection topNForReducer = getTopNForReducer(analysis, contextBuilder, contextBuilder.outputs());
@@ -1004,6 +1005,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 .orderBy(analysis.orderBy().orderBySymbols());
 
         Symbol havingClause = null;
+        int numSymbolsWithoutHavingClause = contextBuilder.aggregations().size() + contextBuilder.groupBy().size();
         if (analysis.havingClause() != null
                 && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
             // replace aggregation symbols with input columns from previous projection
@@ -1032,7 +1034,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.outputSymbols().size()));
+            fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), numSymbolsWithoutHavingClause));
             contextBuilder.addProjection(fp);
         }
 

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: group by queries with a having clause without the group key
+   being selected failed
+
  - Fix: Force UTF8 encoding in file reading collector to avoid JVM's default encoding settings
 
  - Fix: Filtering on a routing column sometimes didn't work if the value was an

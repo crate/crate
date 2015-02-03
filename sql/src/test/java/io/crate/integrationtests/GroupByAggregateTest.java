@@ -552,6 +552,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGlobalAggregateOnNestedColumn() throws Exception {
         this.setup.groupBySetup();
+        waitNoPendingTasksOnAll();
         execute("select count(details['job']), min(details['job']), max(details['job']), count(distinct details['job']) from characters");
         assertEquals(1, response.rowCount());
         assertArrayEquals(new String[]{"count(details['job'])", "min(details['job'])", "max(details['job'])", "count(DISTINCT details['job'])"}, response.cols());
@@ -652,6 +653,24 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select age from characters group by age having age > 40 order by age");
         assertEquals(2L, response.rowCount());
         assertEquals(43, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testHavingOnSameAggregate() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select avg(birthdate) from characters group by gender\n" +
+                "having avg(birthdate) = 181353600000.0");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1.813536E11\n"));
+    }
+
+    @Test
+    public void testHavingOnOtherAggregate() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select avg(birthdate) from characters group by gender\n" +
+                "having min(birthdate) > '1970-01-01'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1.813536E11\n"));
     }
 
 
@@ -847,10 +866,10 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 ") clustered by (url) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into twice (\"name\", \"url\", \"score\") values (?, ?, ?)",
-                    new Object[]{
-                            "A",
-                            "https://Ä.com",
-                            99.6d});
+                new Object[]{
+                        "A",
+                        "https://Ä.com",
+                        99.6d});
         refresh();
         execute("select avg(score), url, avg(score) from twice group by url limit 10");
         assertThat(TestingHelpers.printedTable(response.rows()), is("99.6| https://Ä.com| 99.6\n"));
