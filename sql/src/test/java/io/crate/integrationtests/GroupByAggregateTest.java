@@ -580,6 +580,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByAggregateOnNestedColumnOrderBy() throws Exception {
         this.setup.groupBySetup();
+        waitNoPendingTasksOnAll();
         execute("select race, count(details['job']) from characters group by race order by count(details['job']) desc limit 1");
         assertEquals(1, response.rowCount());
         assertArrayEquals(new String[]{"race", "count(details['job'])"}, response.cols());
@@ -590,6 +591,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByAggregateOnNestedColumnOrderByAlias() throws Exception {
         this.setup.groupBySetup();
+        waitNoPendingTasksOnAll();
         execute("select race, count(details['job']) as job_count from characters group by race order by job_count desc limit 1");
         assertEquals(1, response.rowCount());
         assertArrayEquals(new String[]{"race", "job_count"}, response.cols());
