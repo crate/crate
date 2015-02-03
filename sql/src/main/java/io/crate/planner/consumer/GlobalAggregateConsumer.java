@@ -103,10 +103,15 @@ public class GlobalAggregateConsumer implements Consumer {
         }
     }
 
+    private static boolean noGroupBy(List<Symbol> groupBy) {
+        return groupBy == null || groupBy.isEmpty();
+    }
+
     public static PlannedAnalyzedRelation globalAggregates(QueriedTable table,
                                                            TableRelation tableRelation,
                                                            WhereClauseContext whereClauseContext,
                                                            ColumnIndexWriterProjection indexWriterProjection){
+        assert noGroupBy(table.querySpec().groupBy()) : "must not have group by clause for global aggregate queries";
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(

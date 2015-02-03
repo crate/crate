@@ -103,10 +103,6 @@ public class DistributedGroupByConsumer implements Consumer {
 
             Routing routing = tableInfo.getRouting(whereClause, null);
 
-            if (!GroupByConsumer.requiresDistribution(tableInfo, routing)) {
-                return table;
-            }
-
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2,
                     table.querySpec().groupBy())
