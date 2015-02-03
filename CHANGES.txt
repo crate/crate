@@ -5,16 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fix: group by queries with a having clause without the group key
-   being selected failed
-
- - Fix: Filtering on a routing column sometimes didn't work if the value was an
-   empty string
-
- - Fix: Bulk inserts with mixed but compatible types (e.g. int and long) failed
-
- - Fix: Force UTF8 encoding in file reading collector to avoid JVM's default encoding settings
-
  - Added support for the ``std_dev``, ``variance`` and ``geometric_mean``
    aggregation functions
 
@@ -24,8 +14,6 @@ Unreleased
    statements while parent's policy is not of type ``ignored``
 
  - Added support for the datetime function ``extract (field from source)``
-
- - Fix: removed unsupported syntax from ``Update`` synposis
 
  - Support column referencing in ``Update`` statement assignment
    expression
@@ -38,6 +26,21 @@ Unreleased
 
  - The ``sys.operations`` table has now a ``_nodes`` system column
    which exposes information about the node the operation runs on.
+
+2015/02/03 0.46.4
+=================
+
+ - Fix: group by queries with a having clause without the group key
+   being selected failed
+
+ - Fix: Force UTF8 encoding in file reading collector to avoid JVM's default encoding settings
+
+ - Fix: Filtering on a routing column sometimes didn't work if the value was an
+   empty string
+
+ - Fix: Bulk inserts with mixed but compatible types (e.g. int and long) failed
+
+ - Fix: removed unsupported syntax from ``Update`` synposis
 
 2015/01/19 0.46.3
 2015/01/19 0.45.7
