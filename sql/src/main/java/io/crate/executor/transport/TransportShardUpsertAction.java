@@ -196,7 +196,7 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
                 try {
                     indexRequest = new IndexRequest(prepareInsert(request, item), request);
                 } catch (IOException e) {
-                    throw new ElasticsearchException("IOException", e);
+                    throw ExceptionsHelper.convertToElastic(e);
                 }
             } else {
                 indexRequest = new IndexRequest(prepareUpdate(request, item, shardId), request);

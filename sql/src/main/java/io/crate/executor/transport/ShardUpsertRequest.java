@@ -45,20 +45,33 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     /**
      * A single update item.
      */
-    public static class Item implements Streamable {
+    static class Item implements Streamable {
 
         private String id;
         private String routing;
-        private Symbol[] assignments;
         private long version = Versions.MATCH_ANY;
+
+        /**
+         * List of symbols used on update if document exist
+         */
+        @Nullable
+        private Symbol[] assignments;
+
+        /**
+         * List of objects used on insert
+         */
         @Nullable
         private Object[] missingAssignments;
+
+        /**
+         * List of data type streamer needed for streaming insert values
+         */
         @Nullable
-        private Streamer[] streamers;
+        private Streamer[] missingAssignmentsStreamer;
 
 
-        Item(@Nullable Streamer[] streamers) {
-            this.streamers = streamers;
+        Item(@Nullable Streamer[] missingAssignmentsStreamer) {
+            this.missingAssignmentsStreamer = missingAssignmentsStreamer;
         }
 
         Item(String id,
@@ -66,8 +79,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
              @Nullable Object[] missingAssignments,
              @Nullable Long version,
              @Nullable String routing,
-             @Nullable Streamer[] streamers) {
-            this(streamers);
+             @Nullable Streamer[] missingAssignmentsStreamer) {
+            this(missingAssignmentsStreamer);
             this.id = id;
             this.routing = routing;
             this.assignments = assignments;
@@ -125,7 +138,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
             if (missingAssignmentsSize > 0) {
                 this.missingAssignments = new Object[missingAssignmentsSize];
                 for (int i = 0; i < missingAssignmentsSize; i++) {
-                    missingAssignments[i] = streamers[i].readValueFrom(in);
+                    missingAssignments[i] = missingAssignmentsStreamer[i].readValueFrom(in);
                 }
             }
 
@@ -148,7 +161,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
             if (missingAssignments != null) {
                 out.writeVInt(missingAssignments.length);
                 for (int i = 0; i < missingAssignments.length; i++) {
-                    streamers[i].writeValueTo(out, missingAssignments[i]);
+                    missingAssignmentsStreamer[i].writeValueTo(out, missingAssignments[i]);
                 }
             } else {
                 out.writeVInt(0);
@@ -160,39 +173,48 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
     private int shardId;
     private List<Item> items;
-    private String[] assignmentsColumns;
     private IntArrayList locations;
+    private boolean continueOnError = false;
+
+    /**
+     * List of column names used on update
+     */
+    @Nullable
+    private String[] assignmentsColumns;
+
+    /**
+     * List of references used on insert
+     */
     @Nullable
     private Reference[] missingAssignmentsColumns;
+
+    /**
+     * List of data type streamer resolved through missingAssignmentsColumns
+     */
     @Nullable
-    private Streamer[] streamers;
-    private boolean continueOnError = false;
+    private Streamer[] missingAssignmentColumnsStreamer;
 
     public ShardUpsertRequest() {
     }
 
-    public ShardUpsertRequest(String index,
-                              int shardId,
-                              @Nullable String[] assignmentsColumns,
+    public ShardUpsertRequest(ShardId shardId,
+                              @Nullable
+                              String[] assignmentsColumns,
                               @Nullable Reference[] missingAssignmentsColumns) {
-        this.index = index;
-        this.shardId = shardId;
+        assert assignmentsColumns != null || missingAssignmentsColumns != null
+                : "Missing assignments, whether for update nor for insert";
+        this.index = shardId.getIndex();
+        this.shardId = shardId.id();
         locations = new IntArrayList();
         this.assignmentsColumns = assignmentsColumns;
         this.missingAssignmentsColumns = missingAssignmentsColumns;
         items = new ArrayList<>();
         if (missingAssignmentsColumns != null) {
-            streamers = new Streamer[missingAssignmentsColumns.length];
+            missingAssignmentColumnsStreamer = new Streamer[missingAssignmentsColumns.length];
             for (int i = 0; i < missingAssignmentsColumns.length; i++) {
-                streamers[i] = missingAssignmentsColumns[i].valueType().streamer();
+                missingAssignmentColumnsStreamer[i] = missingAssignmentsColumns[i].valueType().streamer();
             }
         }
-    }
-
-    public ShardUpsertRequest(ShardId shardId,
-                              String[] assignmentsColumns,
-                              @Nullable Reference[] missingAssignmentsColumns) {
-        this(shardId.getIndex(), shardId.id(), assignmentsColumns, missingAssignmentsColumns);
     }
 
     public List<Item> items() {
@@ -210,7 +232,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                                   @Nullable Long version,
                                   @Nullable String routing) {
         locations.add(location);
-        items.add(new Item(id, assignments, missingAssignments, version, routing, streamers));
+        items.add(new Item(id, assignments, missingAssignments, version, routing, missingAssignmentColumnsStreamer));
         return this;
     }
 
@@ -220,14 +242,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                                   @Nullable Long version,
                                   @Nullable String routing) {
         add(location, id, assignments, null, version, routing);
-        return this;
-    }
-
-    public ShardUpsertRequest add(int location,
-                                  String id,
-                                  Object[] missingAssignments,
-                                  @Nullable String routing) {
-        add(location, id, null, missingAssignments, null, routing);
         return this;
     }
 
@@ -275,10 +289,10 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         int missingAssignmentsColumnsSize = in.readVInt();
         if (missingAssignmentsColumnsSize > 0) {
             missingAssignmentsColumns = new Reference[missingAssignmentsColumnsSize];
-            streamers = new Streamer[missingAssignmentsColumnsSize];
+            missingAssignmentColumnsStreamer = new Streamer[missingAssignmentsColumnsSize];
             for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
                 missingAssignmentsColumns[i] = Reference.fromStream(in);
-                streamers[i] = missingAssignmentsColumns[i].valueType().streamer();
+                missingAssignmentColumnsStreamer[i] = missingAssignmentsColumns[i].valueType().streamer();
             }
         }
         int size = in.readVInt();
@@ -286,7 +300,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         items = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             locations.add(in.readVInt());
-            items.add(Item.readItem(in, streamers));
+            items.add(Item.readItem(in, missingAssignmentColumnsStreamer));
         }
         continueOnError = in.readBoolean();
     }

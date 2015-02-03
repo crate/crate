@@ -64,7 +64,6 @@ public class UpsertByIdTask extends JobTask {
                 transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 node.isPartitionedTable(),
-                true,
                 node.items().size(),
                 node.isBulkRequest() || node.assignmentsColumns() != null, // continue on error on bulk and/or update
                 node.assignmentsColumns(),

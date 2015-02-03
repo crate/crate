@@ -153,7 +153,7 @@ if a document with the same ``PRIMARY KEY`` already exists::
     cr> select
     ...     name,
     ...     visits,
-    ...     format('%tY', date_trunc('year', last_visit)) as last_visit
+    ...     extract(year from last_visit) as last_visit
     ... from uservisits order by name;
     +----------+--------+------------+
     | name     | visits | last_visit |
@@ -186,7 +186,7 @@ if a document with the same ``PRIMARY KEY`` already exists::
     cr> select
     ...     name,
     ...     visits,
-    ...     format('%tY', date_trunc('year', last_visit)) as last_visit
+    ...     extract(year from last_visit) as last_visit
     ... from uservisits where id = 0;
     +------+--------+------------+
     | name | visits | last_visit |
@@ -227,7 +227,7 @@ to refer to the current rows values::
     cr> select
     ...     name,
     ...     visits,
-    ...     format('%tY', date_trunc('year', last_visit)) as last_visit
+    ...     extract(year from last_visit) as last_visit
     ... from uservisits order by name;
     +----------+--------+------------+
     | name     | visits | last_visit |
