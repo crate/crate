@@ -48,7 +48,7 @@ A basic CREATE TABLE statement looks as follows::
     ...     name string,
     ...     obj object (dynamic)
     ... ) clustered into 5 shards with (number_of_replicas = 0);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 In Crate each field is indexed by default. So it is not necessary to create any
 additional indices.
@@ -61,7 +61,7 @@ off::
     ...     obj object (dynamic),
     ...     dummy string INDEX OFF
     ... ) clustered into 5 shards with (number_of_replicas = 0);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 For fields that contain text consider using a full-text analyzer. This will
 enable great full-text search capabilities. See :ref:`indices_and_fulltext` for
@@ -78,7 +78,7 @@ the table and also insert arbitrary objects into the obj column::
     INSERT OK, 1 row affected (... sec)
 
     cr> refresh table mytable2;
-    REFRESH OK (... sec)
+    REFRESH OK, ...
 
 .. Hidden: wait for schema update so that newcol is available
 

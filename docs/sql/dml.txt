@@ -55,7 +55,7 @@ Inserting Data By Query
 .. Hidden: refresh locations
 
     cr> refresh table locations
-    REFRESH OK (... sec)
+    REFRESH OK, ...
 
 It is possible to insert data using a query instead of values. Column
 data types of source and target table can differ as long as the values
@@ -74,7 +74,7 @@ Example of changing a field's data type, in this case, changing the
     ...     position short,
     ...     description string
     ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 ::
 
@@ -88,8 +88,8 @@ Example of changing a field's data type, in this case, changing the
 
 .. Hidden: drop previously created table
 
-   cr> drop table locations2
-    DROP OK (... sec)
+    cr> drop table locations2
+    DROP OK, ...
 
 Example of creating a new partitioned table out of the ``locations``
 table with data partitioned by year::
@@ -103,7 +103,7 @@ table with data partitioned by year::
     ...     position integer
     ... ) clustered by (id) into 2 shards
     ... partitioned by (year) with (number_of_replicas = 0);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 ::
 
@@ -135,8 +135,8 @@ Resulting partitions of the last insert by query::
 
 .. Hidden: drop previously created table
 
-   cr> drop table locations_parted;
-    DROP OK (... sec)
+    cr> drop table locations_parted;
+    DROP OK, ...
 
 .. note::
 
@@ -357,7 +357,7 @@ This example shows how to export a given table into files named after
 the table and shard id with gzip compression::
 
     cr> refresh table quotes;
-    REFRESH OK...
+    REFRESH OK, ...
 
 ::
 

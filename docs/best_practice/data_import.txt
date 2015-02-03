@@ -40,12 +40,12 @@ By default you would probably create the table like that::
   ...     country STRING
   ...   )
   ... );
-  CREATE OK (... sec)
+  CREATE OK, ...
 
 .. hide:
 
   cr> DROP TABLE user;
-  DROP OK (... sec)
+  DROP OK, ...
 
 Well, there's nothing wrong with that and does its job, but it is not very
 performant either and therefore not what we want to use in a real world
@@ -102,7 +102,7 @@ The ``CREATE TABLE`` statement now looks like::
   ...   )
   ... ) CLUSTERED INTO 12 shards
   ... WITH (number_of_replicas = 0);
-  CREATE OK (... sec)
+  CREATE OK, ...
 
 .. seealso::
 
@@ -121,12 +121,12 @@ minimise the overhead during the import.
 ::
 
   cr> ALTER TABLE user SET (refresh_interval = 0);
-  ALTER OK (... sec)
+  ALTER OK, ...
 
 .. hide:
 
   cr> DROP TABLE user;
-  DROP OK (... sec)
+  DROP OK, ...
 
 It is also possible to set the refresh interval already
 in the ``CREATE TABLE`` statement::
@@ -145,14 +145,14 @@ in the ``CREATE TABLE`` statement::
   ...   number_of_replicas = 0,
   ...   refresh_interval = 0
   ... );
-  CREATE OK (... sec)
+  CREATE OK, ...
 
 
 Once the import is finished you can set the refresh interval to
 a reasonable value (time in ms)::
 
   cr> ALTER TABLE user SET (refresh_interval = 1000);
-  ALTER OK (... sec)
+  ALTER OK, ...
 
 .. seealso::
 
@@ -172,14 +172,14 @@ completely by setting the ``indices.store.throttle.type`` to ``none``.
 ::
 
   cr> SET GLOBAL TRANSIENT indices.store.throttle.type = 'none';
-  SET OK (... sec)
+  SET OK, ...
 
 However if you still want to throttle the merging of segments during import
 you can increase the maximum bytes per second from its default of ``20mb``
 to something like 100-200mb/s for SSD disks::
 
   cr> SET GLOBAL TRANSIENT indices.store.throttle.max_bytes_per_sec = '150mb';
-  SET OK (... sec)
+  SET OK, ...
 
 
 After import you should not forget to turn throttling on again by setting its
@@ -188,7 +188,7 @@ value to ``merge`` (default) or ``all``.
 ::
 
   cr> SET GLOBAL TRANSIENT indices.store.throttle.type = 'merge';
-  SET OK (... sec)
+  SET OK, ...
 
 .. seealso::
 
@@ -226,7 +226,7 @@ COPY FROM Command
 .. hide:
 
   cr> REFRESH TABLE user;
-  REFRESH OK (... sec)
+  REFRESH OK, ...
 
   cr> delete from user;
   DELETE OK, -1 rows affected (... sec)
@@ -255,7 +255,7 @@ For example::
 .. hide:
 
   cr> REFRESH TABLE user;
-  REFRESH OK (... sec)
+  REFRESH OK, ...
 
   cr> delete from user;
   DELETE OK, -1 rows affected (... sec)
@@ -285,7 +285,7 @@ For example::
 .. hide:
 
   cr> REFRESH TABLE user;
-  REFRESH OK (... sec)
+  REFRESH OK, ...
 
 Partitioned Tables
 ------------------
@@ -305,7 +305,7 @@ or the other column must lose its contraint.
 .. hide:
 
   cr> DROP TABLE user;
-  DROP OK (... sec)
+  DROP OK, ...
 
 ::
 
@@ -321,7 +321,7 @@ or the other column must lose its contraint.
   ... ) CLUSTERED INTO 6 shards
   ... PARTITIONED BY (day_joined)
   ... WITH (number_of_replicas = 0);
-  CREATE OK (... sec)
+  CREATE OK, ...
 
 To import data into partitioned tables efficiently you will have to import
 each table partition separately. Since the value of the table partition is not

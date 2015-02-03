@@ -15,7 +15,7 @@ the Crate distribution.
 
 First let's connect to a running node::
 
-    cr> connect 127.0.0.1:4200;
+    cr> \connect 127.0.0.1:4200;
     +------------------------+-----------+---------+-----------+---------+
     | server_url             | node_name | version | connected | message |
     +------------------------+-----------+---------+-----------+---------+
@@ -34,7 +34,7 @@ the table ``tweets`` with all columns we need::
     ...   text string INDEX using fulltext,
     ...   user_id string
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 Now we are ready to insert our first tweet::
 

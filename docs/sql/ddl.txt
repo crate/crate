@@ -19,12 +19,12 @@ Let's create a simple table with two columns of type ``integer`` and ``string``:
     ...   first_column integer,
     ...   second_column string
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 A table can be removed by using the ``DROP TABLE`` command::
 
     cr> drop table my_table;
-    DROP OK (... sec)
+    DROP OK, ...
 
 The ``DROP TABLE`` command takes the optional clause ``IF EXISTS`` which prevents the generation
 of an error if the specified table does not exist::
@@ -44,7 +44,7 @@ it will be created::
     ...   label string,
     ...   position geo_point
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 ::
 
@@ -73,7 +73,7 @@ schema name. If the last table with that schema is dropped,
 the schema is gone (except for the ``blob`` and ``doc`` schema)::
 
     cr> drop table my_schema.my_table ;
-    DROP OK (... sec)
+    DROP OK, ...
 
 Every table that is created without an explicit schema name, will be created in
 the ``doc`` schema::
@@ -82,7 +82,7 @@ the ``doc`` schema::
     ...   a_column byte,
     ...   another_one geo_point
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 ::
 
@@ -98,7 +98,7 @@ the ``doc`` schema::
 .. hide:
 
     cr> drop table my_doc_table;
-    DROP OK (... sec)
+    DROP OK, ...
 
 
 .. _sql_ddl_naming_restrictions:
@@ -142,7 +142,7 @@ the default routing value used for sharding. Example::
     ...   first_column integer primary key,
     ...   second_column string
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 Currently primary keys cannot be auto generated and have to be specified if
 data is inserted, otherwise an error is returned.
@@ -154,7 +154,7 @@ Defining multiple columns with a primary key constraint is also supported::
     ...   second_column string primary key,
     ...   third_column string
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 Or using a alternate syntax::
 
@@ -164,7 +164,7 @@ Or using a alternate syntax::
     ...   third_column string,
     ...   primary key (first_column, second_column)
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 .. _sql_ddl_sharding:
@@ -182,7 +182,7 @@ table creation. Example::
     cr> create table my_table5 (
     ...   first_column int
     ... ) clustered into 10 shards;
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. note::
 
@@ -200,7 +200,7 @@ statement and is used to route a row to a particular shard. Example::
     ...   first_column int,
     ...   second_column string
     ... ) clustered by (first_column);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 If primary key constraints are defined, the routing column definition
@@ -212,7 +212,7 @@ If the routing column is defined explicitly, it must match a primary key column:
     ...   second_column string primary key,
     ...   third_column string
     ... ) clustered by (first_column);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 Example for combining custom routing and shard definition::
@@ -222,7 +222,7 @@ Example for combining custom routing and shard definition::
     ...   second_column string primary key,
     ...   third_column string
     ... ) clustered by (first_column) into 10 shards;
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 .. _replication:
@@ -245,7 +245,7 @@ Example::
     ...   first_column int,
     ...   second_column string
     ... ) with (number_of_replicas = 1);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 The `number_of_replicas` property also accepts an string as parameter that
@@ -293,12 +293,12 @@ Example::
     ...   title string,
     ...   author string
     ... ) with (column_policy = 'strict');
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_table11;
-    DROP OK (... sec)
+    DROP OK, ...
 
 dynamic
 -------
@@ -321,12 +321,12 @@ Examples::
     ...   title string,
     ...   author string
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_table12;
-    DROP OK (... sec)
+    DROP OK, ...
 
 which is exactly the same as::
 
@@ -334,12 +334,12 @@ which is exactly the same as::
     ...   title string,
     ...   author string
     ... ) with (column_policy = 'dynamic');
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_table13;
-    DROP OK (... sec)
+    DROP OK, ...
 
 New columns added to ``dynamic`` tables are, once added,
 usable as usual columns. One can retrieve them, sort by them
@@ -361,7 +361,7 @@ Creating a partitioned table is done using the :ref:`partitioned_by_clause`::
     ... title string,
     ... date timestamp
     ... ) partitioned by (date);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 For further details, please refer to :ref:`partitioned_by_clause`.
 
@@ -411,7 +411,7 @@ and is only available as a result column::
     cr> create table my_table1b (
     ...   first_column string INDEX OFF
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. note::
 
@@ -431,14 +431,14 @@ but can also be declared explicitly::
     cr> create table my_table1b1 (
     ...   first_column string INDEX using plain
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 This results in the same behaviour than without any index declaration::
 
     cr> create table my_table1b2 (
     ...   first_column string
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 .. _sql_ddl_index_fulltext:
@@ -458,7 +458,7 @@ If no analyzer is specified when using a fulltext index, the
     cr> create table my_table1c (
     ...   first_column string INDEX using fulltext
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 Defining the usage of a concrete analyzer is straight forward by
 defining the analyzer as a parameter using the ``WITH`` statement::
@@ -466,7 +466,7 @@ defining the analyzer as a parameter using the ``WITH`` statement::
     cr> create table my_table1d (
     ...   first_column string INDEX using fulltext with (analyzer = 'english')
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 Defining a named index column definition
@@ -480,7 +480,7 @@ search for both, the exact and analyzed data::
     ...   first_column string,
     ...   INDEX first_column_ft using fulltext (first_column)
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 Of course defining a custom analyzer is possible here too::
 
@@ -489,7 +489,7 @@ Of course defining a custom analyzer is possible here too::
     ...   INDEX first_column_ft
     ...     using fulltext(first_column) with (analyzer = 'english')
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 .. _sql-ddl-composite-index:
@@ -507,7 +507,7 @@ method::
     ...   INDEX title_body_ft
     ...     using fulltext(title, body) with (analyzer = 'english')
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 Composite indices can include nested columns within object columns as well::
 
@@ -519,7 +519,7 @@ Composite indices can include nested columns within object columns as well::
     ...   ),
     ...   INDEX author_title_ft using fulltext(title, author['name'])
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. _sql-ddl-custom-analyzer:
 
@@ -563,7 +563,7 @@ Here is a simple Example::
     ...     )
     ...   )
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 This example creates an analyzer called ``myanalyzer`` to be used in
 index-definitions and index-constraints.  It will use a
@@ -591,7 +591,7 @@ You can extend and parameterize :ref:`builtin-analyzer` like this::
     cr> create ANALYZER "german_snowball" extends snowball WITH (
     ...   language = 'german'
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 If you extend :ref:`builtin-analyzer`, tokenizer, char-filter or
 token-filter cannot be defined.  In this case use the parameters
@@ -606,7 +606,7 @@ ommitted will be taken from the extended one.  Example::
     ...       pattern = '.*'
     ...     )
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 This analyzer will use the char-filters and token-filters from
 ``myanalyzer`` and will override the tokenizer with ``mypattern``.
@@ -669,12 +669,12 @@ Updating Parameters
 The parameters of a table can be modified using the `ALTER TABLE` clause::
 
     cr> alter table my_table1 set (number_of_replicas = '0-all');
-    ALTER OK (... sec)
+    ALTER OK, ...
 
 In order to set a parameter to its default value use `reset`::
 
     cr> alter table my_table1 reset (number_of_replicas);
-    ALTER OK (... sec)
+    ALTER OK, ...
 
 Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see
 how to alter parameters of partitioned tables.
@@ -686,7 +686,7 @@ In order to add a column to an existing table use ``ALTER TABLE`` with the
 ``ADD COLUMN`` clause::
 
     cr> alter table my_table1 add column new_column_name string;
-    ALTER OK (... sec)
+    ALTER OK, ...
 
 The inner schema of object columns can also be extended, as shown in the
 following example.
@@ -694,13 +694,13 @@ following example.
 First a column of type object is added::
 
     cr> alter table my_table1 add column obj_column object as (age int);
-    ALTER OK (... sec)
+    ALTER OK, ...
 
 
 And now a nested column named ``name`` is added to the ``obj_column``::
 
     cr> alter table my_table1 add column obj_column['name'] string;
-    ALTER OK (... sec)
+    ALTER OK, ...
 
 ::
 
@@ -731,7 +731,7 @@ survive a cluster restart, if used with
 value on a restart::
 
     cr> SET GLOBAL PERSISTENT stats.enabled = false;
-    SET OK (... sec)
+    SET OK, 1 row affected (... sec)
 
 ::
 
@@ -747,7 +747,7 @@ You can change multiple values at once::
 
     cr> SET GLOBAL TRANSIENT stats.enabled = true,
     ... stats.jobs_log_size = 1024, stats.operations_log_size = 4096;
-    SET OK (... sec)
+    SET OK, 1 row affected (... sec)
 
 ::
 
@@ -769,7 +769,7 @@ settings::
     ...   jobs_log_size = 2048,
     ...   operations_log_size = 8192
     ... };
-    SET OK (... sec)
+    SET OK, 1 row affected (... sec)
 
 ::
 
@@ -785,7 +785,7 @@ Using the ``RESET`` statement, a setting will be reset to either on
 node startup defined configuration file value or to its default value::
 
     cr> RESET GLOBAL stats.enabled, stats.operations_log_size;
-    RESET OK (... sec)
+    RESET OK, ...
 
 ::
 
@@ -800,7 +800,7 @@ node startup defined configuration file value or to its default value::
 ``RESET`` can also be done on objects::
 
     cr> RESET GLOBAL stats;
-    RESET OK (... sec)
+    RESET OK, ...
 
 ::
 

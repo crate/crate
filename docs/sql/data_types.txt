@@ -22,12 +22,12 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
     cr> create table my_bool_table (
     ...   first_column boolean
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_bool_table;
-    DROP OK (... sec)
+    DROP OK, ...
 
 
 string
@@ -38,7 +38,7 @@ A text-based basic type containing one or more characters. Example::
     cr> create table my_table2 (
     ...   first_column string
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 
@@ -59,7 +59,7 @@ Example::
     ...   fifth_column float,
     ...   sixth_column byte
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 ip
@@ -74,7 +74,7 @@ Example::
     ...   fqdn string,
     ...   ip_addr ip
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 ::
 
@@ -87,7 +87,6 @@ Example::
     cr> insert into my_table_ips (fqdn, ip_addr)
     ... values ('localhost', 'not.a.real.ip');
     SQLActionException[Validation failed for ip_addr: Failed to validate ip [not.a.real.ip], not a valid ipv4 address]
-
 
 timestamp
 =========
@@ -105,7 +104,7 @@ fractions. Example::
     ...   id integer,
     ...   first_column timestamp
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 ::
 
@@ -164,7 +163,7 @@ Create table example::
     ...   id integer primary key,
     ...   pin geo_point
     ... ) with (number_of_replicas = 0)
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 object
@@ -197,12 +196,12 @@ Example::
     ...     )
     ...   )
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_table11;
-    DROP OK (... sec)
+    DROP OK, ...
 
 strict
 ------
@@ -220,12 +219,12 @@ Example::
     ...     birthday timestamp
     ...   )
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_table12;
-    DROP OK (... sec)
+    DROP OK, ...
 
 dynamic
 -------
@@ -249,12 +248,12 @@ Examples::
     ...     birthday timestamp
     ...   )
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_table13;
-    DROP OK (... sec)
+    DROP OK, ...
 
 which is exactly the same as::
 
@@ -265,12 +264,12 @@ which is exactly the same as::
     ...     birthday timestamp
     ...   )
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_table14;
-    DROP OK (... sec)
+    DROP OK, ...
 
 New columns added to ``dynamic`` objects are, once added,
 usable as usual subcolumns. One can retrieve them, sort by them
@@ -296,12 +295,12 @@ but otherwise ignore them.
     ...     font_size float
     ...   )
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 .. hide:
 
     cr> drop table my_table15;
-    DROP OK (... sec)
+    DROP OK, ...
 
 New columns added to ``ignored`` objects can be retrieved as result column in a ``SELECT`` statement,
 but one cannot order by them or use them in a where clause. They are simply there for fetching,
@@ -386,7 +385,7 @@ Array types are defined as follows::
     ...     tags array(string),
     ...     objects array(object as (age integer, name string))
     ... );
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 
 .. note::
