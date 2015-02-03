@@ -27,7 +27,7 @@ import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.action.support.single.shard.SingleShardOperationRequest;
+import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
+public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
 
     /**
      * A single update item.
@@ -175,7 +175,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
                               int shardId,
                               @Nullable String[] assignmentsColumns,
                               @Nullable Reference[] missingAssignmentsColumns) {
-        super(index);
+        this.index = index;
         this.shardId = shardId;
         locations = new IntArrayList();
         this.assignmentsColumns = assignmentsColumns;
@@ -264,6 +264,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        shardId = in.readInt();
         int assignmentsColumnsSize = in.readVInt();
         if (assignmentsColumnsSize > 0) {
             assignmentsColumns = new String[assignmentsColumnsSize];
@@ -293,6 +294,7 @@ public class ShardUpsertRequest extends SingleShardOperationRequest<ShardUpsertR
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeInt(shardId);
         // Stream References
         if (assignmentsColumns != null) {
             out.writeVInt(assignmentsColumns.length);
