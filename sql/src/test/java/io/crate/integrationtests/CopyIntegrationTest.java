@@ -70,8 +70,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{filePath});
-        // 2 nodes on same machine resulting in double affected rows
-        assertEquals(6L, response.rowCount());
+        assertEquals(3L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
@@ -91,7 +90,6 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{filePath});
-        // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
@@ -123,8 +121,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "*.json");
         execute("copy quotes from ?", new Object[]{filePath});
-        // 2 nodes on same machine resulting in double affected rows
-        assertEquals(6L, response.rowCount());
+        assertEquals(3L, response.rowCount());
         refresh();
 
         execute("select * from quotes");
@@ -211,7 +208,6 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
         String filePath = Joiner.on(File.separator).join(nestedArrayCopyFilePath, "nested_array_copy_from.json");
         execute("copy users from ? with (shared=true)", new Object[]{filePath});
-        // 2 nodes on same machine resulting in double affected rows
         assertEquals(1L, response.rowCount()); // only 1 document got inserted
         refresh();
 

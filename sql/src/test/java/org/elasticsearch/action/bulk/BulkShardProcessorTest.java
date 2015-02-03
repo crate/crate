@@ -21,36 +21,29 @@
 
 package org.elasticsearch.action.bulk;
 
+import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Reference;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.support.ActionFilter;
-import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.update.UpdateHelper;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
-import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.OperationRouting;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportRequestHandler;
-import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.*;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
-import java.util.Collections;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -59,9 +52,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class BulkShardProcessorTest {
+
+    TableIdent charactersIdent = new TableIdent(null, "characters");
+
+    Reference fooRef = new Reference(new ReferenceInfo(
+            new ReferenceIdent(charactersIdent, "foo"), RowGranularity.DOC, DataTypes.STRING));
 
     @Captor
     private ArgumentCaptor<ActionListener<BulkShardResponse>> bulkShardResponseListener;
@@ -82,10 +81,10 @@ public class BulkShardProcessorTest {
         expectedException.expect(RuntimeException.class);
         expectedException.expectMessage("a random exception");
 
-        final AtomicReference<ActionListener<BulkShardResponse>> ref = new AtomicReference<>();
-        TransportShardBulkActionDelegate transportShardBulkActionDelegate = new TransportShardBulkActionDelegate() {
+        final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
+        TransportShardUpsertActionDelegate transportShardBulkActionDelegate = new TransportShardUpsertActionDelegate() {
             @Override
-            public void execute(BulkShardRequest request, ActionListener<BulkShardResponse> listener) {
+            public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
             }
         };
@@ -96,15 +95,17 @@ public class BulkShardProcessorTest {
                 transportShardBulkActionDelegate,
                 mock(TransportCreateIndexAction.class),
                 false,
+                1,
                 false,
-                1
+                null,
+                new Reference[]{fooRef}
         );
-        bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar1\"}"), "1", null);
+        bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
 
-        ActionListener<BulkShardResponse> listener = ref.get();
+        ActionListener<ShardUpsertResponse> listener = ref.get();
         listener.onFailure(new RuntimeException("a random exception"));
 
-        assertFalse(bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar2\"}"), "2", null));
+        assertFalse(bulkShardProcessor.add("foo", "2", new Object[]{"bar2"}, null, null));
 
         try {
             bulkShardProcessor.result().get();
@@ -123,10 +124,10 @@ public class BulkShardProcessorTest {
         mockShard(operationRouting, 3);
         when(clusterService.operationRouting()).thenReturn(operationRouting);
 
-        final AtomicReference<ActionListener<BulkShardResponse>> ref = new AtomicReference<>();
-        TransportShardBulkActionDelegate transportShardBulkActionDelegate = new TransportShardBulkActionDelegate() {
+        final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
+        TransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new TransportShardUpsertActionDelegate() {
             @Override
-            public void execute(BulkShardRequest request, ActionListener<BulkShardResponse> listener) {
+            public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
             }
         };
@@ -134,15 +135,17 @@ public class BulkShardProcessorTest {
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                transportShardBulkActionDelegate,
+                transportShardUpsertActionDelegate,
                 mock(TransportCreateIndexAction.class),
                 false,
+                1,
                 false,
-                1
+                null,
+                new Reference[]{ fooRef }
         );
 
-        bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar1\"}"), "1", null);
-        final ActionListener<BulkShardResponse> listener = ref.get();
+        bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
+        final ActionListener<ShardUpsertResponse> listener = ref.get();
 
         listener.onFailure(new EsRejectedExecutionException());
         // wait, failure retry lock is done in decoupled thread
@@ -162,7 +165,7 @@ public class BulkShardProcessorTest {
                         latch.countDown();
                     }
                 }, 10, TimeUnit.MILLISECONDS);
-                bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar2\"}"), "2", null);
+                bulkShardProcessor.add("foo", "2", new Object[]{"bar2"}, null, null);
                 hasBlocked.set(false);
             }
         });

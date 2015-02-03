@@ -24,13 +24,12 @@ package io.crate.operation.projectors;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
-import org.elasticsearch.action.bulk.TransportShardBulkActionDelegate;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
@@ -47,13 +46,14 @@ import java.util.Map;
 
 public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
-    private final BytesReferenceGenerator generator;
+    private final BytesRefGenerator generator;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
-                                TransportShardBulkActionDelegate transportShardBulkActionDelegate,
+                                TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                 TransportCreateIndexAction transportCreateIndexAction,
                                 String tableName,
+                                Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeys,
                                 List<Input<?>> idInputs,
                                 List<Input<?>> partitionedByInputs,
@@ -65,10 +65,9 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices) {
-        super(clusterService, settings, transportShardBulkActionDelegate,
-                transportCreateIndexAction, tableName, primaryKeys, idInputs, partitionedByInputs,
+        super(tableName, primaryKeys, idInputs, partitionedByInputs,
                 routingIdent, routingInput,
-                collectExpressions, bulkActions, autoCreateIndices);
+                collectExpressions);
 
         if (includes == null && excludes == null) {
             //noinspection unchecked
@@ -77,17 +76,27 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
             //noinspection unchecked
             generator = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
+        createBulkShardProcessor(
+                clusterService,
+                settings,
+                transportShardUpsertActionDelegate,
+                transportCreateIndexAction,
+                bulkActions,
+                autoCreateIndices,
+                null,
+                new Reference[]{rawSourceReference});
     }
 
-    public BytesReference generateSource() {
-        return generator.generateSource();
+    @Override
+    protected Object[] generateMissingAssignments() {
+        return new Object[]{generator.generateSource()};
     }
 
-    private interface BytesReferenceGenerator {
-        public BytesReference generateSource();
+    private interface BytesRefGenerator {
+        public BytesRef generateSource();
     }
 
-    private static class BytesRefInput implements BytesReferenceGenerator {
+    private static class BytesRefInput implements BytesRefGenerator {
         private final Input<BytesRef> input;
 
         private BytesRefInput(Input<BytesRef> input) {
@@ -95,16 +104,12 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
         }
 
         @Override
-        public BytesReference generateSource() {
-            BytesRef value = input.value();
-            if (value == null) {
-                return null;
-            }
-            return new BytesArray(value);
+        public BytesRef generateSource() {
+            return input.value();
         }
     }
 
-    private static class MapInput implements BytesReferenceGenerator {
+    private static class MapInput implements BytesRefGenerator {
 
         private final Input<Map<String, Object>> sourceInput;
         private final String[] includes;
@@ -120,7 +125,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
         }
 
         @Override
-        public BytesReference generateSource() {
+        public BytesRef generateSource() {
             Map<String, Object> value = sourceInput.value();
             if (value == null) {
                 return null;
@@ -130,7 +135,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                 BytesReference bytes = new XContentBuilder(Requests.INDEX_CONTENT_TYPE.xContent(),
                         new BytesStreamOutput(lastSourceSize)).map(filteredMap).bytes();
                 lastSourceSize = bytes.length();
-                return bytes;
+                return bytes.toBytesRef();
             } catch (IOException ex) {
                 logger.error("could not parse xContent", ex);
             }

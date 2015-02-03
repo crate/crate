@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,7 +39,7 @@ import java.util.List;
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private List<Symbol> columnSymbols;
-    private List<ColumnIdent> columnIdents;
+    private List<Reference> columnReferences;
 
     public static final ProjectionFactory<ColumnIndexWriterProjection> FACTORY =
             new ProjectionFactory<ColumnIndexWriterProjection>() {
@@ -54,7 +55,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
      *
      * @param tableName
      * @param primaryKeys
-     * @param columns the columnIdents of all the columns to be written in order of appearance
+     * @param columns the columnReferences of all the columns to be written in order of appearance
      * @param primaryKeyIndices
      * @param partitionedByIndices
      * @param clusteredByIndex
@@ -62,7 +63,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
      */
     public ColumnIndexWriterProjection(String tableName,
                                        List<ColumnIdent> primaryKeys,
-                                       List<ColumnIdent>  columns,
+                                       List<Reference>  columns,
                                        IntSet primaryKeyIndices,
                                        IntSet partitionedByIndices,
                                        @Nullable ColumnIdent clusteredByColumn,
@@ -72,14 +73,14 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         super(tableName, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
         generateSymbols(primaryKeyIndices.toArray(), partitionedByIndices.toArray(), clusteredByIndex);
 
-        this.columnIdents = Lists.newArrayList(columns);
+        this.columnReferences = Lists.newArrayList(columns);
         this.columnSymbols = new ArrayList<>(columns.size()-partitionedByIndices.size());
 
         for (int i = 0; i < columns.size(); i++) {
             if (!partitionedByIndices.contains(i)) {
                 this.columnSymbols.add(new InputColumn(i, null));
             } else {
-                columnIdents.remove(i);
+                columnReferences.remove(i);
             }
         }
 
@@ -89,8 +90,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return columnSymbols;
     }
 
-    public List<ColumnIdent> columnIdents() {
-        return columnIdents;
+    public List<Reference> columnReferences() {
+        return columnReferences;
     }
 
     @Override
@@ -112,7 +113,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         ColumnIndexWriterProjection that = (ColumnIndexWriterProjection) o;
 
         if (!columnSymbols.equals(that.columnSymbols)) return false;
-        if (!columnIdents.equals(that.columnIdents)) return false;
+        if (!columnReferences.equals(that.columnReferences)) return false;
 
         return true;
     }
@@ -121,7 +122,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (columnSymbols != null ? columnSymbols.hashCode() : 0);
-        result = 31 * result + (columnIdents != null ? columnIdents.hashCode() : 0);
+        result = 31 * result + (columnReferences != null ? columnReferences.hashCode() : 0);
         return result;
     }
 
@@ -138,11 +139,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         }
         if (in.readBoolean()) {
             int length = in.readVInt();
-            columnIdents = new ArrayList<>(length);
+            columnReferences = new ArrayList<>(length);
             for (int i = 0; i < length; i++) {
-                ColumnIdent columnIdent = new ColumnIdent();
-                columnIdent.readFrom(in);
-                columnIdents.add(columnIdent);
+                columnReferences.add(Reference.fromStream(in));
             }
         }
     }
@@ -160,12 +159,12 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                 Symbol.toStream(columnSymbol, out);
             }
         }
-        if (columnIdents == null) {
+        if (columnReferences == null) {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            out.writeVInt(columnIdents.size());
-            for (ColumnIdent columnIdent : columnIdents) {
+            out.writeVInt(columnReferences.size());
+            for (Reference columnIdent : columnReferences) {
                 columnIdent.writeTo(out);
             }
         }

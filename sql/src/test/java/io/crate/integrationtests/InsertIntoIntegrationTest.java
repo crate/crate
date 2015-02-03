@@ -81,15 +81,16 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertArrayLiteralFirstNull() throws Exception {
-        execute("create table users(id int primary key, friends array(string))");
+        execute("create table users(id int primary key, friends array(string), name string)");
         ensureGreen();
-        execute("insert into users (id, friends) values (0, [null, 'Trillian'])");
-        execute("insert into users (id, friends) values (1, [null])");
+        execute("insert into users (id, friends, name) values (0, [null, 'gedöns'], 'björk')");
+        execute("insert into users (id, friends, name) values (1, [null], null)");
         execute("refresh table users");
-        execute("select friends from users order by id");
+        execute("select friends, name from users order by id");
         assertThat(response.rowCount(), is(2L));
         assertNull((((ArrayList) response.rows()[0][0]).get(0)));
-        assertThat(((String)((ArrayList) response.rows()[0][0]).get(1)), is("Trillian"));
+        assertThat(((String) ((ArrayList) response.rows()[0][0]).get(1)), is("gedöns"));
+        assertThat((String)response.rows()[0][1], is("björk"));
         assertNull((((ArrayList) response.rows()[1][0]).get(0)));
     }
 

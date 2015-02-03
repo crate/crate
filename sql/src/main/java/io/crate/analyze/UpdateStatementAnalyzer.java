@@ -144,7 +144,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         Symbol value = expressionAnalyzer.normalize(
                 tableRelation.resolve(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
         try {
-            value = expressionAnalyzer.normalizeInputForReference(value, reference, true);
+            value = expressionAnalyzer.normalizeInputForReference(value, reference, expressionAnalysisContext);
             if (tableInfo.clusteredBy() != null) {
                 ensureNotUpdated(ident, value, tableInfo.clusteredBy(),
                         "Updating a clustered-by column is not supported");

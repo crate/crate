@@ -159,15 +159,18 @@ public class ExpressionAnalyzer {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference, boolean forWrite) {
-        if (valueSymbol.symbolType() == SymbolType.REFERENCE) {
-            return valueSymbol;
-        }
+    public Symbol normalizeInputForReference(
+            Symbol valueSymbol, Reference reference, ExpressionAnalysisContext context) {
+
         Literal literal;
         try {
             valueSymbol = normalizer.normalize(valueSymbol);
             if (valueSymbol.symbolType() != SymbolType.LITERAL) {
-                return valueSymbol;
+                DataType targetType = reference.valueType();
+                if (reference instanceof DynamicReference) {
+                    targetType = valueSymbol.valueType();
+                }
+                return castIfNeededOrFail(valueSymbol, targetType, context);
             }
             literal = (Literal) valueSymbol;
 
@@ -199,7 +202,7 @@ public class ExpressionAnalyzer {
                 if (value == null) {
                     return Literal.NULL;
                 }
-                literal = Literal.newLiteral(normalizeObjectValue(value, reference.info(), forWrite));
+                literal = Literal.newLiteral(normalizeObjectValue(value, reference.info(), true));
             } else if (isObjectArray(reference.info().type())) {
                 Object[] value = (Object[]) literal.value();
                 if (value == null) {
@@ -207,7 +210,7 @@ public class ExpressionAnalyzer {
                 }
                 literal = Literal.newLiteral(
                         reference.info().type(),
-                        normalizeObjectArrayValue(value, reference.info(), forWrite)
+                        normalizeObjectArrayValue(value, reference.info(), true)
                 );
             }
         } catch (ClassCastException | NumberFormatException e) {
@@ -352,10 +355,6 @@ public class ExpressionAnalyzer {
         return context.allocateFunction(functionInfo, arguments);
     }
 
-
-    public Symbol normalizeInputForReference(Symbol inputValue, Reference reference) {
-        return normalizeInputForReference(inputValue, reference, false);
-    }
 
     public void resolveWritableFields(boolean value) {
         forWrite = value;

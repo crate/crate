@@ -39,8 +39,10 @@ import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
@@ -124,10 +126,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
         Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
-        if (!analysis.onDuplicateKeyAssignments().isEmpty()) {
-            throw new UnsupportedOperationException("ON DUPLICATE KEY UPDATE is not supported");
-        }
-        return new IterablePlan(createESIndexNode(analysis));
+        return processInsertStatement(analysis);
     }
 
     @Override
@@ -256,6 +255,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
                 tableName,
+                new Reference(table.getReferenceInfo(DocSysColumns.RAW)),
                 table.primaryKey(),
                 partitionByColumns,
                 table.clusteredBy(),
@@ -417,24 +417,52 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
     }
 
-    private ESIndexNode createESIndexNode(InsertFromValuesAnalyzedStatement analysis) {
-        String[] indices;
+    private Upsert processInsertStatement(InsertFromValuesAnalyzedStatement analysis) {
+        String[] onDuplicateKeyAssignmentsColumns = null;
+        if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
+            onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
+        }
+        UpsertByIdNode upsertByIdNode = new UpsertByIdNode(
+                analysis.tableInfo().isPartitioned(),
+                analysis.isBulkRequest(),
+                onDuplicateKeyAssignmentsColumns,
+                analysis.columns().toArray(new Reference[analysis.columns().size()])
+        );
         if (analysis.tableInfo().isPartitioned()) {
             List<String> partitions = analysis.generatePartitions();
-            indices = partitions.toArray(new String[partitions.size()]);
+            String[] indices = partitions.toArray(new String[partitions.size()]);
+            for (int i = 0; i < indices.length; i++) {
+                Symbol[] onDuplicateKeyAssignments = null;
+                if (analysis.onDuplicateKeyAssignmentsColumns().size() > i) {
+                    onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
+                }
+                upsertByIdNode.add(
+                        indices[i],
+                        analysis.ids().get(i),
+                        analysis.routingValues().get(i),
+                        onDuplicateKeyAssignments,
+                        null,
+                        analysis.sourceMaps().get(i));
+            }
         } else {
-            indices = new String[]{analysis.tableInfo().ident().esName()};
+            for (int i = 0; i < analysis.ids().size(); i++) {
+                Symbol[] onDuplicateKeyAssignments = null;
+                if (analysis.onDuplicateKeyAssignments().size() > i) {
+                    onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
+                }
+                upsertByIdNode.add(
+                        analysis.tableInfo().ident().esName(),
+                        analysis.ids().get(i),
+                        analysis.routingValues().get(i),
+                        onDuplicateKeyAssignments,
+                        null,
+                        analysis.sourceMaps().get(i));
+            }
         }
 
-        ESIndexNode indexNode = new ESIndexNode(
-                indices,
-                analysis.sourceMaps(),
-                analysis.ids(),
-                analysis.routingValues(),
-                analysis.tableInfo().isPartitioned(),
-                analysis.isBulkRequest()
-        );
-        return indexNode;
+        return new Upsert(
+                ImmutableList.<List<DQLPlanNode>>of(
+                        ImmutableList.<DQLPlanNode>of(upsertByIdNode)));
     }
 
     static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {

@@ -107,8 +107,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{filePath});
-        // 2 nodes on same machine resulting in double affected rows
-        assertEquals(6L, response.rowCount());
+        assertEquals(3L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
         ensureGreen();

@@ -31,9 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class UpdateProjection extends Projection {
 
@@ -49,15 +47,18 @@ public class UpdateProjection extends Projection {
     );
 
     // The key of this map is expected to be a FQN columnIdent.
-    private Map<String, Symbol> assignments;
+    private Symbol[] assignments;
+    private String[] assignmentsColumns;
     @Nullable
     private Long requiredVersion;
     private Symbol uidSymbol;
 
     public UpdateProjection(Symbol uidSymbol,
-                            Map<String, Symbol> assignments,
+                            String[] assignmentsColumns,
+                            Symbol[] assignments,
                             @Nullable Long requiredVersion) {
         this.uidSymbol = uidSymbol;
+        this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
     }
@@ -65,7 +66,11 @@ public class UpdateProjection extends Projection {
     public UpdateProjection() {
     }
 
-    public Map<String, Symbol> assignments() {
+    public String[] assignmentsColumns() {
+        return assignmentsColumns;
+    }
+
+    public Symbol[] assignments() {
         return assignments;
     }
 
@@ -120,10 +125,15 @@ public class UpdateProjection extends Projection {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         uidSymbol = Symbol.fromStream(in);
-        int mapSize = in.readVInt();
-        assignments = new HashMap<>(mapSize);
-        for (int i = 0; i < mapSize; i++) {
-            assignments.put(in.readString(), Symbol.fromStream(in));
+        int assignmentColumnsSize = in.readVInt();
+        assignmentsColumns = new String[assignmentColumnsSize];
+        for (int i = 0; i < assignmentColumnsSize; i++) {
+            assignmentsColumns[i] = in.readString();
+        }
+        int assignmentsSize = in.readVInt();
+        assignments = new Symbol[assignmentsSize];
+        for (int i = 0; i < assignmentsSize; i++) {
+            assignments[i] = Symbol.fromStream(in);
         }
         requiredVersion = in.readVLong();
         if (requiredVersion == 0) {
@@ -134,10 +144,13 @@ public class UpdateProjection extends Projection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         Symbol.toStream(uidSymbol, out);
-        out.writeVInt(assignments.size());
-        for (Map.Entry<String, Symbol> entry : assignments.entrySet()) {
-            out.writeString(entry.getKey());
-            Symbol.toStream(entry.getValue(), out);
+        out.writeVInt(assignmentsColumns.length);
+        for (int i = 0; i < assignmentsColumns.length; i++) {
+            out.writeString(assignmentsColumns[i]);
+        }
+        out.writeVInt(assignments.length);
+        for (int i = 0; i < assignments.length; i++) {
+            Symbol.toStream(assignments[i], out);
         }
         if (requiredVersion == null) {
             out.writeVLong(0);

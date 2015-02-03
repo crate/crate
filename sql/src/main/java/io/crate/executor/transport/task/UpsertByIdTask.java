@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport.task.elasticsearch;
+package io.crate.executor.transport.task;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -28,10 +28,10 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
-import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.action.bulk.TransportShardBulkActionDelegate;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -42,28 +42,33 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.UUID;
 
-public class ESBulkIndexTask extends JobTask {
+public class UpsertByIdTask extends JobTask {
 
     private final BulkShardProcessor bulkShardProcessor;
-    private final ESIndexNode node;
+    private final UpsertByIdNode node;
     private final ArrayList<ListenableFuture<TaskResult>> resultList;
 
-    public ESBulkIndexTask(UUID jobId,
-                           ClusterService clusterService,
-                           Settings settings,
-                           TransportShardBulkActionDelegate transportShardBulkActionDelegate,
-                           TransportCreateIndexAction transportCreateIndexAction,
-                           ESIndexNode node) {
+    public UpsertByIdTask(UUID jobId,
+                          ClusterService clusterService,
+                          Settings settings,
+                          TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
+                          TransportCreateIndexAction transportCreateIndexAction,
+                          UpsertByIdNode node) {
         super(jobId);
+
         this.node = node;
+
         this.bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardBulkActionDelegate,
+                transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
-                node.partitionedTable(),
-                true,
-                this.node.sourceMaps().size());
+                node.isPartitionedTable(),
+                node.items().size(),
+                node.isBulkRequest() || node.assignmentsColumns() != null, // continue on error on bulk and/or update
+                node.assignmentsColumns(),
+                node.missingAssignmentsColumns());
+
 
         if (!node.isBulkRequest()) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();
@@ -86,7 +91,7 @@ public class ESBulkIndexTask extends JobTask {
                 }
             });
         } else {
-            final int numResults = node.sourceMaps().size();
+            final int numResults = node.items().size();
             resultList = new ArrayList<>(numResults);
             for (int i = 0; i < numResults; i++) {
                 resultList.add(SettableFuture.<TaskResult>create());
@@ -123,29 +128,19 @@ public class ESBulkIndexTask extends JobTask {
                 }
             });
         }
+
     }
 
     @Override
     public void start() {
-        if (node.indices().length == 1) {
-            String index = node.indices()[0];
-            for(int i=0; i < this.node.sourceMaps().size(); i++){
-                bulkShardProcessor.add(
-                        index,
-                        node.sourceMaps().get(i),
-                        node.ids().get(i),
-                        node.routingValues().get(i)
-                );
-            }
-        } else {
-            for(int i=0; i < this.node.sourceMaps().size(); i++){
-                bulkShardProcessor.add(
-                        node.indices()[i],
-                        node.sourceMaps().get(i),
-                        node.ids().get(i),
-                        node.routingValues().get(i)
-                );
-            }
+        for (UpsertByIdNode.Item item : node.items()) {
+            bulkShardProcessor.add(
+                    item.index(),
+                    item.id(),
+                    item.assignments(),
+                    item.missingAssignments(),
+                    item.routing(),
+                    item.version());
         }
         bulkShardProcessor.close();
     }
@@ -157,6 +152,6 @@ public class ESBulkIndexTask extends JobTask {
 
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("BulkIndexTask can't have an upstream result");
+        throw new UnsupportedOperationException("UpsertByIdTask can't have an upstream result");
     }
 }

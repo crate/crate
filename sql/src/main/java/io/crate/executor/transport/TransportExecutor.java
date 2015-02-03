@@ -192,15 +192,15 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public Void visitUpdate(Update plan, Job job) {
+        public Void visitUpsert(Upsert plan, Job job) {
             ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
             for (List<DQLPlanNode> childNodes : plan.nodes()) {
                 List<Task> subTasks = new ArrayList<>(childNodes.size());
                 for (DQLPlanNode childNode : childNodes) {
                     subTasks.addAll(childNode.accept(nodeVisitor, job.id()));
                 }
-                UpdateTask updateTask = new UpdateTask(TransportExecutor.this, job.id(), subTasks);
-                taskBuilder.add(updateTask);
+                UpsertTask upsertTask = new UpsertTask(TransportExecutor.this, job.id(), subTasks);
+                taskBuilder.add(upsertTask);
             }
             job.addTasks(taskBuilder.build());
             return null;
@@ -355,24 +355,12 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitESIndexNode(ESIndexNode node, UUID jobId) {
-            if (node.sourceMaps().size() > 1) {
-                return singleTask(new ESBulkIndexTask(jobId, clusterService, settings,
-                        transportActionProvider.transportShardBulkAction(),
-                        transportActionProvider.transportCreateIndexAction(),
-                        node));
-            } else {
-                return singleTask(new ESIndexTask(
-                        jobId,
-                        transportActionProvider.transportIndexAction(),
-                        node));
-            }
-        }
-
-        @Override
-        public ImmutableList<Task> visitUpdateByIdNode(UpdateByIdNode node, UUID jobId) {
-            return singleTask(new UpdateByIdTask(jobId,
-                    transportActionProvider.transportShardUpdateAction(),
+        public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
+            return singleTask(new UpsertByIdTask(jobId,
+                    clusterService,
+                    settings,
+                    transportActionProvider.transportShardUpsertActionDelegate(),
+                    transportActionProvider.transportCreateIndexAction(),
                     node));
         }
 

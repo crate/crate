@@ -31,10 +31,8 @@ import io.crate.executor.Job;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.join.NestedLoopTask;
-import io.crate.executor.transport.task.UpdateByIdTask;
-import io.crate.executor.transport.task.elasticsearch.ESBulkIndexTask;
+import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
-import io.crate.executor.transport.task.elasticsearch.ESIndexTask;
 import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
@@ -48,8 +46,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.UpdateByIdNode;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
@@ -64,11 +61,8 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHits;
 import org.junit.After;
 import org.junit.Before;
@@ -361,7 +355,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(rows.length, is(3));
 
         assertThat((Integer) rows[0][0], is(3));
-        assertThat((String)rows[0][1], is("Ford"));
+        assertThat((String) rows[0][1], is("Ford"));
         assertThat((Long) rows[0][2], is(1396388720242L));
 
         assertThat((Integer) rows[1][0], is(1));
@@ -441,33 +435,28 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testESIndexTask() throws Exception {
+    public void testInsertWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
         ensureGreen();
 
+        /* insert into characters (id, name) values (99, 'Marvin'); */
 
-        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
-        builder.field(idRef.info().ident().columnIdent().name(), 99);
-        builder.field(nameRef.info().ident().columnIdent().name(), "Marvin");
-
-        ESIndexNode indexNode = new ESIndexNode(
-                new String[]{"characters"},
-                Arrays.asList(builder.bytes()),
-                ImmutableList.of("99"),
-                ImmutableList.of("99"),
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 false,
-                false
-        );
-        Plan plan = new IterablePlan(indexNode);
+                false,
+                null,
+                new Reference[]{idRef, nameRef});
+        updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
+
+        Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
         assertThat(rows.length, is(1));
         assertThat(((Long) rows[0][0]), is(1L));
-
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
@@ -490,23 +479,22 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 "  date timestamp" +
                 ") partitioned by (date)");
         ensureGreen();
-        Map<String, Object> sourceMap = new MapBuilder<String, Object>()
-                .put("id", 0L)
-                .put("name", "Trillian")
-                .map();
-        BytesReference source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
-        PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
-        ESIndexNode indexNode = new ESIndexNode(
-                new String[]{partitionName.stringValue()},
-                Arrays.asList(source),
-                ImmutableList.of("123"),
-                ImmutableList.of("123"),
+
+        /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
+
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 true,
-                false
-                );
-        Plan plan = new IterablePlan(indexNode);
+                false,
+                null,
+                new Reference[]{idRef, nameRef});
+
+        PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
+        updateNode.add(partitionName.stringValue(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
+
+        Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
+
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] indexResult = taskResult.rows();
@@ -548,32 +536,24 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testESBulkInsertTask() throws Exception {
+    public void testInsertMultiValuesWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
         ensureGreen();
 
-        Map<String, Object> sourceMap1 = new HashMap<>();
-        sourceMap1.put(idRef.info().ident().columnIdent().name(), 99);
-        sourceMap1.put(nameRef.info().ident().columnIdent().name(), "Marvin");
-        BytesReference source1 = XContentFactory.jsonBuilder().map(sourceMap1).bytes();
+        /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
 
-        Map<String, Object> sourceMap2 = new HashMap<>();
-        sourceMap2.put(idRef.info().ident().columnIdent().name(), 42);
-        sourceMap2.put(nameRef.info().ident().columnIdent().name(), "Deep Thought");
-        BytesReference source2 = XContentFactory.jsonBuilder().map(sourceMap2).bytes();
-
-        ESIndexNode indexNode = new ESIndexNode(
-                new String[]{"characters"},
-                Arrays.asList(source1, source2),
-                ImmutableList.of("99", "42"),
-                ImmutableList.of("99", "42"),
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 false,
-                false
-        );
+                false,
+                null,
+                new Reference[]{idRef, nameRef});
 
-        Plan plan = new IterablePlan(indexNode);
+        updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
+        updateNode.add("characters", "42", "42", null, null, new Object[]{42, new BytesRef("Deep Thought")});
+
+        Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESBulkIndexTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
@@ -582,7 +562,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(rows.length, is(1));
 
         // verify insertion
-
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, Arrays.asList("99", "42"));
         plan = new IterablePlan(getNode);
@@ -599,25 +578,16 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testUpdateByIdTask() throws Exception {
+    public void testUpdateWithUpsertByIdTask() throws Exception {
         setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
-        UpdateByIdNode updateNode = new UpdateByIdNode(
-                "characters",
-                "1",
-                "1",
-                new HashMap<String, Symbol>(){{
-                    put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Vogon lyric fan"));
-                }},
-                Optional.<Long>absent(),
-                null,
-                null
-        );
+        UpsertByIdNode updateNode = new UpsertByIdNode(false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
+        updateNode.add("characters", "1", "1", new Symbol[]{ Literal.newLiteral("Vogon lyric fan")}, null);
         Plan plan = new IterablePlan(updateNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
@@ -639,26 +609,21 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testUpdateByIdTaskMissingAssignmentsNewDocument() throws Exception {
+    public void testInsertOnDuplicateWithUpsertByIdTask() throws Exception {
         setup.setUpCharacters();
-        /* insert into characters (id, name, female) values (2+3, 'Zaphod Beeblebrox', false);
-           on duplicate key update
-            set name = 'Zaphod Beeblebrox' */
+        /* insert into characters (id, name, female) values (5, 'Zaphod Beeblebrox', false)
+           on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
-        UpdateByIdNode updateNode = new UpdateByIdNode(
-                "characters",
-                "5",
-                "5",
-                new HashMap<String, Symbol>(){{
-                    put(nameRef.info().ident().columnIdent().fqn(), Literal.newLiteral("Zaphod Beeblebrox"));
-                }},
-                Optional.<Long>fromNullable(null),
-                missingAssignments,
-                new Reference[]{idRef, nameRef, femaleRef}
-        );
+        UpsertByIdNode updateNode = new UpsertByIdNode(
+                false,
+                false,
+                new String[]{nameRef.ident().columnIdent().fqn()},
+                new Reference[]{idRef, nameRef, femaleRef});
+
+        updateNode.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
@@ -681,23 +646,20 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testUpdateByIdTaskMissingAssignmentsExistingDoc() throws Exception {
+    public void testUpdateOnDuplicateWithUpsertByIdTask() throws Exception {
         setup.setUpCharacters();
+        /* insert into characters (id, name, female) values (1, 'Zaphod Beeblebrox', false)
+           on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
-        UpdateByIdNode updateNode = new UpdateByIdNode(
-                "characters",
-                "1",
-                "1",
-                new HashMap<String, Symbol>(){{
-                    put(femaleRef.info().ident().columnIdent().fqn(), Literal.newLiteral(true));
-                }},
-                Optional.<Long>fromNullable(null),
-                missingAssignments,
-                new Reference[]{idRef, nameRef, femaleRef}
-        );
+        UpsertByIdNode updateNode = new UpsertByIdNode(
+                false,
+                false,
+                new String[]{femaleRef.ident().columnIdent().fqn()},
+                new Reference[]{idRef, nameRef, femaleRef});
+        updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpdateByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
