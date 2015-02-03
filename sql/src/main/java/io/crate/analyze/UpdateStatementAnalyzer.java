@@ -142,9 +142,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         Symbol value = expressionAnalyzer.normalize(
                 tableRelation.resolve(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
         try {
-            value = expressionAnalyzer.normalizeInputForReference(value, reference, true);
+            value = expressionAnalyzer.normalizeInputForReference(value, reference, expressionAnalysisContext);
             ensureUpdateIsAllowed(tableInfo, ident, value);
-
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }
