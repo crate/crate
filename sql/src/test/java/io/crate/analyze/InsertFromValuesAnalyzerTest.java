@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.ValidationException;
@@ -787,8 +788,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertFromValuesWithOnDuplicateKeyInvalidColumnInValues() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Referenced column 'does_not_exist' in VALUES expression not found");
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column does_not_exist unknown");
         analyze("insert into users (id, name) values (1, 'Arthur') " +
                 "on duplicate key update name = values (does_not_exist)");
     }
@@ -828,6 +829,16 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
         assertThat(assignments.length, is(1));
         assertLiteralSymbol(assignments[0], "foobar");
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnDuplicateWithTwoRefsAndDifferentTypes() throws Exception {
+        InsertFromValuesAnalyzedStatement statement = (InsertFromValuesAnalyzedStatement) analyze(
+                "insert into users (id, name) values (1, 'foobar') " +
+                        "on duplicate key update name = awesome");
+        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        Symbol symbol = statement.onDuplicateKeyAssignments().get(0)[0];
+        assertThat(symbol, isFunction("toString"));
     }
 
     @Test
