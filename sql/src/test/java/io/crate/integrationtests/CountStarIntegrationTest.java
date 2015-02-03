@@ -21,11 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
 import io.crate.test.integration.CrateIntegrationTest;
-import org.elasticsearch.action.count.CountRequest;
-import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.count.CrateTransportCountAction;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -73,21 +69,6 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select count(*) from count_routing where zipcode=''");
         assertThat((Long)response.rows()[0][0], is(1L)); // FOUND ONE
-
-        CrateTransportCountAction action = cluster().getInstance(CrateTransportCountAction.class);
-        CountResponse response1 = action.execute(
-                new CountRequest("count_routing")
-                        .types(Constants.DEFAULT_MAPPING_TYPE)
-                        .routing("1,2")
-        ).actionGet();
-        assertThat(response1.getCount(), is(1L));
-
-        CountResponse response2 = action.execute(
-                new CountRequest("count_routing")
-                        .types(Constants.DEFAULT_MAPPING_TYPE)
-                        .routing("")
-        ).actionGet();
-        assertThat(response2.getCount(), is(1L));
     }
 
     @Test
