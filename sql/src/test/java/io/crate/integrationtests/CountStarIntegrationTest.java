@@ -22,16 +22,23 @@
 package io.crate.integrationtests;
 
 import io.crate.Constants;
+import io.crate.action.sql.SQLActionException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.count.CrateTransportCountAction;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testCountWithPartitionFilter() throws Exception {
@@ -91,6 +98,14 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectCountStarWithWhereClauseForUnknownCol() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column non_existant unknown");
+        execute("create table test (\"name\" string) with (number_of_replicas=0)");
+        execute("select count(*) from test where non_existant = 'Some Value'");
+    }
+
+        @Test
     public void testCountRoutingClusteredById() throws Exception {
         execute("create table auto_id (" +
                 "  name string," +
