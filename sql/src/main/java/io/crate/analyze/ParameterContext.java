@@ -78,12 +78,7 @@ public class ParameterContext {
 
     public io.crate.planner.symbol.Literal getAsSymbol(int index) {
         try {
-            Object value;
-            if (hasBulkParams()) {
-                value = bulkParameters[currentIdx][index];
-            } else {
-                value = parameters[index];
-            }
+            Object value = parameters()[index];
             DataType type = guessTypeSafe(value);
             // use type.value because some types need conversion (String to BytesRef, List to Array)
             return newLiteral(type, type.value(value));
