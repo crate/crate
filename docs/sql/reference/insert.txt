@@ -15,10 +15,11 @@ Synopsis
 
     INSERT INTO table_ident
       [ ( column_ident [, ...] ) ]
-      { VALUES ( expression [, ...] ) [, ...] | query }
-      [ ON DUPLICATE KEY UPDATE
-        { column_ident = expression } [, ...]
-      ]
+      { VALUES ( expression [, ...] ) [, ...]
+        [ ON DUPLICATE KEY UPDATE
+          { column_ident = expression } [, ...]
+        ]
+      } | query
 
 Description
 ===========
