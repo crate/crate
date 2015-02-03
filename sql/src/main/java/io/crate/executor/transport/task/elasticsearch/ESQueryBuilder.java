@@ -118,11 +118,17 @@ public class ESQueryBuilder {
      */
 
     private void whereClause(Context context, WhereClause whereClause) throws IOException {
-        context.builder.startObject(Fields.QUERY);
         if (whereClause.noMatch()) {
             // should not happen
-            throw new IllegalStateException("A where clause with no match should not result in an ES query");
-        } else if (whereClause.hasQuery()) {
+            context.builder.startObject(Fields.QUERY);
+            context.builder.startObject("query_string");
+            context.builder.field(Fields.QUERY, "");
+            context.builder.endObject(); // query_string
+            context.builder.endObject(); // query
+            return;
+        }
+        context.builder.startObject(Fields.QUERY);
+        if (whereClause.hasQuery()) {
             visitor.process(whereClause.query(), context);
         } else {
             context.builder.field("match_all", Collections.emptyMap());
