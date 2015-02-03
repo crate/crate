@@ -67,6 +67,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHits;
@@ -86,8 +87,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
-
-    private static final String LN = System.getProperty("line.separator");
 
     private ClusterService clusterService;
     private ClusterName clusterName;
@@ -129,12 +128,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
 
-        boolean skipAssertion = System.getProperty("os.name").toLowerCase().contains("windows");
-
         assertThat(result.size(), is(2));
         for (ListenableFuture<TaskResult> nodeResult : result) {
             assertEquals(1, nodeResult.get().rows().length);
-            if(!skipAssertion) {
+            if(!OsUtils.WINDOWS) {
                 assertThat((Double) nodeResult.get().rows()[0][0], is(greaterThan(0.0)));
             }
         }
@@ -714,11 +711,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(results.get(0), instanceOf(QueryResult.class));
         QueryResult result = (QueryResult)results.get(0);
         assertThat(TestingHelpers.printedTable(result.rows()), is(
-                        "1| Arthur| 3| Life, the Universe and Everything| Douglas Adams" + LN +
-                        "1| Arthur| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams" + LN +
-                        "1| Arthur| 2| The Restaurant at the End of the Universe| Douglas Adams" + LN +
-                        "2| Ford| 3| Life, the Universe and Everything| Douglas Adams" + LN +
-                        "2| Ford| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams" + LN));
+                        "1| Arthur| 3| Life, the Universe and Everything| Douglas Adams\n" +
+                        "1| Arthur| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams\n" +
+                        "1| Arthur| 2| The Restaurant at the End of the Universe| Douglas Adams\n" +
+                        "2| Ford| 3| Life, the Universe and Everything| Douglas Adams\n" +
+                        "2| Ford| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams\n"));
 
 
         // SELECT c.id, b.id, b.title, b.author, c.name
@@ -751,11 +748,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(results2.get(0), instanceOf(QueryResult.class));
         QueryResult result2 = (QueryResult)results2.get(0);
         assertThat(TestingHelpers.printedTable(result2.rows()), is(
-                        "4| 3| Life, the Universe and Everything| Douglas Adams| Arthur" + LN +
-                        "1| 3| Life, the Universe and Everything| Douglas Adams| Arthur" + LN +
-                        "2| 3| Life, the Universe and Everything| Douglas Adams| Ford" + LN +
-                        "3| 3| Life, the Universe and Everything| Douglas Adams| Trillian" + LN +
-                        "4| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams| Arthur" + LN));
+                        "4| 3| Life, the Universe and Everything| Douglas Adams| Arthur\n" +
+                        "1| 3| Life, the Universe and Everything| Douglas Adams| Arthur\n" +
+                        "2| 3| Life, the Universe and Everything| Douglas Adams| Ford\n" +
+                        "3| 3| Life, the Universe and Everything| Douglas Adams| Trillian\n" +
+                        "4| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams| Arthur\n"));
     }
 
     @Test
@@ -828,10 +825,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(results.get(0), instanceOf(QueryResult.class));
         QueryResult result = (QueryResult) results.get(0);
         assertThat(TestingHelpers.printedTable(result.rows()), is(
-                        "4| Arthur| true| Douglas Adams" + LN +
-                        "4| Arthur| true| Douglas Adams" + LN +
-                        "4| Arthur| true| Douglas Adams" + LN +
-                        "1| Arthur| false| Douglas Adams" + LN +
-                        "1| Arthur| false| Douglas Adams" + LN));
+                        "4| Arthur| true| Douglas Adams\n" +
+                        "4| Arthur| true| Douglas Adams\n" +
+                        "4| Arthur| true| Douglas Adams\n" +
+                        "1| Arthur| false| Douglas Adams\n" +
+                        "1| Arthur| false| Douglas Adams\n"));
     }
 }

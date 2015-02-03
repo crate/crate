@@ -34,7 +34,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,8 +45,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 public class WriterProjectorTest {
-
-    private static final String LN = System.getProperty("line.separator");
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -84,8 +81,6 @@ public class WriterProjectorTest {
         assertEquals(1, rows.length);
         assertEquals(5L, rows[0][0]);
 
-        //NOTE: "\n" is hardcoded in the WritingCollector (requirement), thus
-        // we need to hard code the "\n" in this test as well!
         assertEquals("input line 00\n" +
                 "input line 01\n" +
                 "input line 02\n" +

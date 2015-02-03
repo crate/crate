@@ -51,8 +51,6 @@ import java.util.concurrent.TimeUnit;
 
 public class BlobHttpIntegrationTest extends CrateIntegrationTest {
 
-    private static final String LN = System.getProperty("line.separator");
-
     protected InetSocketAddress address;
     protected InetSocketAddress address2;
 
@@ -119,7 +117,7 @@ public class BlobHttpIntegrationTest extends CrateIntegrationTest {
                         Integer statusCode = res.getStatusLine().getStatusCode();
                         String resultContent = EntityUtils.toString(res.getEntity());
                         if (!resultContent.equals(expected)) {
-                            logger.warn(String.format("incorrect response %d -- length: %d expected: %d" + LN,
+                            logger.warn(String.format("incorrect response %d -- length: %d expected: %d\n",
                                     indexerId, resultContent.length(), expected.length()));
                         }
                         results.put(indexerId, (statusCode >= 200 && statusCode < 300 && expected.equals(resultContent)));

@@ -36,7 +36,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.apache.lucene.util.BytesRef;
@@ -62,8 +61,6 @@ import static org.mockito.Mockito.when;
 
 public class FileReadingCollectorTest extends AbstractRandomizedTest {
 
-    private static final String LN = System.getProperty("line.separator");
-
     private static File tmpFile;
     private static File tmpFileGz;
     private FileCollectInputSymbolVisitor inputSymbolVisitor;
@@ -76,12 +73,12 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
         tmpFile = File.createTempFile("fileReadingCollector", ".json", copy_from.toFile());
         try (BufferedWriter writer =
                      new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz))))) {
-            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}" + LN);
-            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}" + LN);
+            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
+            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
         try (FileWriter writer = new FileWriter(tmpFile)) {
-            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}" + LN);
-            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}" + LN);
+            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
+            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
     }
 

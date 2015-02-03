@@ -50,8 +50,6 @@ import static org.hamcrest.core.Is.is;
 
 public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrationTest {
 
-    private static final String LN = System.getProperty("line.separator");
-
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -126,7 +124,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertArrayEquals(new String[]{"_doc"}, response.cols());
         assertEquals(
                 "{details={job=Mathematician}, name=Trillian, age=32, " +
-                        "birthdate=276912000000, gender=female, race=Human}" + LN,
+                        "birthdate=276912000000, gender=female, race=Human}\n",
                 TestingHelpers.printedTable(response.rows()));
     }
 
@@ -135,7 +133,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response = executor.exec("select _raw from characters order by name desc limit 1");
         assertEquals(
                 "{\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
-                        "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}" + LN,
+                        "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
                 TestingHelpers.printedTable(response.rows()));
     }
 
@@ -145,7 +143,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
                 "group by _raw, name order by name desc limit 1");
         assertEquals(
                 "Trillian| {\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
-                        "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}" + LN,
+                        "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
                 TestingHelpers.printedTable(response.rows()));
     }
 

@@ -83,7 +83,7 @@ public class TestingHelpers {
                     out.print(o.toString());
                 }
             }
-            out.println();
+            out.print("\n");
         }
         return os.toString();
     }

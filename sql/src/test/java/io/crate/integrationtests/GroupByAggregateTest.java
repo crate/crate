@@ -41,8 +41,6 @@ import static org.hamcrest.Matchers.isIn;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
-    private static final String LN = System.getProperty("line.separator");
-
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -77,7 +75,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         execute("select min(age), gender from characters group by gender order by gender");
 
-        String expected = "32.0| female" + LN + "34.0| male" + LN;
+        String expected = "32.0| female\n34.0| male\n";
 
         assertEquals("min(age)", response.cols()[0]);
         assertEquals(expected, TestingHelpers.printedTable(response.rows()));
@@ -877,7 +875,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                         99.6d});
         refresh();
         execute("select avg(score), url, avg(score) from twice group by url limit 10");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("99.6| https://Ä.com| 99.6" + LN));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("99.6| https://Ä.com| 99.6\n"));
     }
 
     @Test

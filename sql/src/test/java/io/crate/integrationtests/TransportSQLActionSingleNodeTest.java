@@ -41,8 +41,6 @@ import static org.hamcrest.Matchers.notNullValue;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
 
-    private static final String LN = System.getProperty("line.separator");
-
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -123,10 +121,10 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
                 "group by table_name, partition_ident, state order by partition_ident, state");
         assertThat(response.rowCount(), is(4L));
 
-        String expected = "locations| 04132| STARTED" + LN +
-                "locations| 04132| UNASSIGNED" + LN +
-                "locations| 04134| STARTED" + LN +
-                "locations| 04134| UNASSIGNED" + LN;
+        String expected = "locations| 04132| STARTED\n" +
+                "locations| 04132| UNASSIGNED\n" +
+                "locations| 04134| STARTED\n" +
+                "locations| 04134| UNASSIGNED\n";
 
        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
     }

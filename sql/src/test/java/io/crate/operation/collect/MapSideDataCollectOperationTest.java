@@ -56,7 +56,6 @@ import static org.mockito.Mockito.when;
 
 public class MapSideDataCollectOperationTest {
 
-    private static final String LN = System.getProperty("line.separator");
 
     @Test
     public void testFileUriCollect() throws Exception {
@@ -97,8 +96,8 @@ public class MapSideDataCollectOperationTest {
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
         try (FileWriter writer = new FileWriter(tmpFile)) {
-            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}" + LN);
-            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}" + LN);
+            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
+            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
 
         Routing routing = new Routing(

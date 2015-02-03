@@ -51,8 +51,6 @@ import static org.hamcrest.core.Is.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
-    private static final String LN = System.getProperty("line.separator");
-
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -105,7 +103,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.maxRowGranularity(RowGranularity.DOC);
         Object[][] result = operation.collect(collectNode, null).get();
         System.out.println(TestingHelpers.printedTable(result));
-        assertEquals("sys| shards| 1| 0| NULL| NULL| NULL" + LN, TestingHelpers.printedTable(result));
+        assertEquals("sys| shards| 1| 0| NULL| NULL| NULL\n", TestingHelpers.printedTable(result));
     }
 
 
@@ -127,9 +125,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Object[][] result = operation.collect(collectNode, null).get();
 
 
-        String expected = "sys| cluster| id| 1| string" + LN +
-                "sys| cluster| name| 2| string" + LN +
-                "sys| cluster| master_node| 3| string" + LN +
+        String expected = "sys| cluster| id| 1| string\n" +
+                "sys| cluster| name| 2| string\n" +
+                "sys| cluster| master_node| 3| string\n" +
                 "sys| cluster| settings| 4| object";
 
 

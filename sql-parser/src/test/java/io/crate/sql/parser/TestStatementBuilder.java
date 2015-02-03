@@ -45,8 +45,6 @@ import static org.testng.Assert.assertFalse;
 public class TestStatementBuilder
 {
 
-    private static final String LN = System.getProperty("line.separator");
-
     @Test
     public void testStatementBuilder()
             throws Exception
@@ -73,14 +71,14 @@ public class TestStatementBuilder
         printStatement("select x is distinct from y from foo where a is not distinct from b");
 
         printStatement("" +
-                "select depname, empno, salary" + LN +
-                ", count(*) over ()" + LN +
-                ", avg(salary) over (partition by depname)" + LN +
-                ", rank() over (partition by depname order by salary desc)" + LN +
-                ", sum(salary) over (order by salary rows unbounded preceding)" + LN +
-                ", sum(salary) over (partition by depname order by salary rows between current row and 3 following)" + LN +
-                ", sum(salary) over (partition by depname range unbounded preceding)" + LN +
-                ", sum(salary) over (rows between 2 preceding and unbounded following)" + LN +
+                "select depname, empno, salary\n" +
+                ", count(*) over ()\n" +
+                ", avg(salary) over (partition by depname)\n" +
+                ", rank() over (partition by depname order by salary desc)\n" +
+                ", sum(salary) over (order by salary rows unbounded preceding)\n" +
+                ", sum(salary) over (partition by depname order by salary rows between current row and 3 following)\n" +
+                ", sum(salary) over (partition by depname range unbounded preceding)\n" +
+                ", sum(salary) over (rows between 2 preceding and unbounded following)\n" +
                 "from emp");
 
         printStatement("" +
@@ -518,7 +516,7 @@ public class TestStatementBuilder
     private static void println(String s)
     {
         if (Boolean.parseBoolean(System.getProperty("printParse"))) {
-            System.out.println(s);
+            System.out.print(s + "\n");
         }
     }
 

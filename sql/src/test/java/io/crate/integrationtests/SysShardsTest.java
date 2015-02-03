@@ -43,8 +43,6 @@ import static org.hamcrest.Matchers.*;
 
 public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
-    private static final String LN = System.getProperty("line.separator");
-
     private static boolean dataInitialized = false;
     private static SQLTransportExecutor transportExecutor;
 
@@ -108,10 +106,10 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
             SQLResponse response = transportExecutor.exec("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
             assertThat(response.rowCount(), is(4L));
             assertThat(TestingHelpers.printedTable(response.rows()),
-                    is("0.0| t| 0.0" + LN +
-                            "0.0| quotes| 0.0" + LN +
-                            "14.0| characters| 14.0" + LN +
-                            "0.0| blobs| 0.0" + LN));
+                    is("0.0| t| 0.0\n" +
+                            "0.0| quotes| 0.0\n" +
+                            "14.0| characters| 14.0\n" +
+                            "0.0| blobs| 0.0\n"));
         } finally {
             transportExecutor.exec("drop table t");
         }
@@ -293,7 +291,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
                 "from sys.shards " +
                 "group by table_name " +
                 "having table_name = 'quotes'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("10" + LN));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("10\n"));
     }
 
     @Test

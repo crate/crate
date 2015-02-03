@@ -24,7 +24,6 @@ package io.crate.executor.transport;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.sun.org.apache.xml.internal.serialize.LineSeparator;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.*;
@@ -57,8 +56,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
-
-    private static final String LN = System.getProperty("line.separator");
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -108,16 +105,16 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         assertThat(result, instanceOf(PageableTaskResult.class));
         PageableTaskResult pageableResult = (PageableTaskResult)result;
         assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
-                "1| Arthur| false" + LN +
-                "4| Arthur| true" + LN
+                "1| Arthur| false\n" +
+                "4| Arthur| true\n"
         ));
         pageInfo = pageInfo.nextPage(2);
         ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo);
         PageableTaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
-                "2| Ford| false" + LN +
-                "3| Trillian| true" + LN
+                "2| Ford| false\n" +
+                "3| Trillian| true\n"
         ));
 
         pageInfo = pageInfo.nextPage(2);
@@ -157,15 +154,15 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         PageableTaskResult pageableResult = (PageableTaskResult)result;
         closeMeWhenDone = pageableResult;
         assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
-                "4| Arthur| true" + LN +
-                "2| Ford| false" + LN
+                "4| Arthur| true\n" +
+                "2| Ford| false\n"
         ));
         pageInfo = pageInfo.nextPage(2);
         ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo);
         PageableTaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
-                "3| Trillian| true" + LN
+                "3| Trillian| true\n"
         ));
 
         pageInfo = pageInfo.nextPage(2);
@@ -300,7 +297,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         assertThat(result, instanceOf(PageableTaskResult.class));
         PageableTaskResult pageableResult = (PageableTaskResult)result;
         closeMeWhenDone = pageableResult;
-        assertThat(TestingHelpers.printedPage(pageableResult.page()), is("1| Trillian| NULL" + LN));
+        assertThat(TestingHelpers.printedPage(pageableResult.page()), is("1| Trillian| NULL\n"));
 
         List<String> pages = new ArrayList<>();
 
@@ -314,8 +311,8 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         }
 
         assertThat(Joiner.on("").join(pages), is(
-                "2| NULL| 0" + LN +
-                "3| Ford| 1396388720242" + LN));
+                "2| NULL| 0\n" +
+                "3| Ford| 1396388720242\n"));
         // no further pages
         assertThat(nextPageResult.page().size(), is(0L));
     }
@@ -369,23 +366,23 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
 
         // the two first records were hit by the query and page offset
         assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
-                "3| Trillian| true" + LN));
+                "3| Trillian| true\n"));
 
         pageInfo = pageInfo.nextPage(1);
         ListenableFuture<PageableTaskResult> nextPageResultFuture = pageableResult.fetch(pageInfo);
         PageableTaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
-                "4| Arthur| true" + LN));
+                "4| Arthur| true\n"));
 
         pageInfo = pageInfo.nextPage(5);
         nextPageResultFuture = nextPageResult.fetch(pageInfo);
         nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
-                "5| Matthias Wahl| false" + LN +
-                "6| Philipp Bogensberger| false" + LN +
-                "7| Sebastian Utz| false" + LN));
+                "5| Matthias Wahl| false\n" +
+                "6| Philipp Bogensberger| false\n" +
+                "7| Sebastian Utz| false\n"));
 
         // no further pages
         assertThat(nextPageResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
@@ -463,22 +460,19 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         nestedLoopTask.start();
         TaskResult result = results.get(0).get();
         assertThat(result, instanceOf(QueryResult.class));
-
-        final String LN = System.getProperty("line.separator");
-
         assertThat(TestingHelpers.printedTable(result.rows()), is(
-                        "4| Arthur| true| Life, the Universe and Everything" + LN +
-                        "4| Arthur| true| The Hitchhiker's Guide to the Galaxy" + LN +
-                        "4| Arthur| true| The Restaurant at the End of the Universe" + LN +
-                        "1| Arthur| false| Life, the Universe and Everything" + LN +
-                        "1| Arthur| false| The Hitchhiker's Guide to the Galaxy" + LN +
-                        "1| Arthur| false| The Restaurant at the End of the Universe" + LN +
-                        "2| Ford| false| Life, the Universe and Everything" + LN +
-                        "2| Ford| false| The Hitchhiker's Guide to the Galaxy" + LN +
-                        "2| Ford| false| The Restaurant at the End of the Universe" + LN +
-                        "3| Trillian| true| Life, the Universe and Everything" + LN +
-                        "3| Trillian| true| The Hitchhiker's Guide to the Galaxy" + LN +
-                        "3| Trillian| true| The Restaurant at the End of the Universe" + LN));
+                        "4| Arthur| true| Life, the Universe and Everything\n" +
+                        "4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
+                        "4| Arthur| true| The Restaurant at the End of the Universe\n" +
+                        "1| Arthur| false| Life, the Universe and Everything\n" +
+                        "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
+                        "1| Arthur| false| The Restaurant at the End of the Universe\n" +
+                        "2| Ford| false| Life, the Universe and Everything\n" +
+                        "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
+                        "2| Ford| false| The Restaurant at the End of the Universe\n" +
+                        "3| Trillian| true| Life, the Universe and Everything\n" +
+                        "3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
+                        "3| Trillian| true| The Restaurant at the End of the Universe\n"));
     }
 
     @Test
@@ -555,16 +549,16 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         TaskResult result = results.get(0).get();
         assertThat(result, instanceOf(QueryResult.class));
         assertThat(TestingHelpers.printedTable(result.rows()), is(
-                        "4| Arthur| true| The Hitchhiker's Guide to the Galaxy" + LN +
-                        "4| Arthur| true| The Restaurant at the End of the Universe" + LN +
-                        "1| Arthur| false| Life, the Universe and Everything" + LN +
-                        "1| Arthur| false| The Hitchhiker's Guide to the Galaxy" + LN +
-                        "1| Arthur| false| The Restaurant at the End of the Universe" + LN +
-                        "2| Ford| false| Life, the Universe and Everything" + LN +
-                        "2| Ford| false| The Hitchhiker's Guide to the Galaxy" + LN +
-                        "2| Ford| false| The Restaurant at the End of the Universe" + LN +
-                        "3| Trillian| true| Life, the Universe and Everything" + LN +
-                        "3| Trillian| true| The Hitchhiker's Guide to the Galaxy" + LN));
+                        "4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
+                        "4| Arthur| true| The Restaurant at the End of the Universe\n" +
+                        "1| Arthur| false| Life, the Universe and Everything\n" +
+                        "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
+                        "1| Arthur| false| The Restaurant at the End of the Universe\n" +
+                        "2| Ford| false| Life, the Universe and Everything\n" +
+                        "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
+                        "2| Ford| false| The Restaurant at the End of the Universe\n" +
+                        "3| Trillian| true| Life, the Universe and Everything\n" +
+                        "3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n"));
     }
 
     @Test
@@ -654,8 +648,8 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         assertThat(firstPage.size(), is(2L));
 
         assertThat(TestingHelpers.printedPage(firstPage), is(
-                "1| Arthur| false| The Hitchhiker's Guide to the Galaxy" + LN +
-                "1| Arthur| false| The Restaurant at the End of the Universe" + LN));
+                "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
+                "1| Arthur| false| The Restaurant at the End of the Universe\n"));
 
         pageInfo = pageInfo.nextPage(1);
         pageableResult = pageableResult.fetch(pageInfo).get();
@@ -665,7 +659,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         assertThat(secondPage.size(), is(1L));
 
         assertThat(TestingHelpers.printedPage(secondPage), is(
-                "2| Ford| false| Life, the Universe and Everything" + LN));
+                "2| Ford| false| Life, the Universe and Everything\n"));
 
 
         pageInfo = pageInfo.nextPage(10);
@@ -676,11 +670,11 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         assertThat(lastPage.size(), is(5L));
 
         assertThat(TestingHelpers.printedPage(lastPage), is(
-                "2| Ford| false| The Hitchhiker's Guide to the Galaxy" + LN +
-                "2| Ford| false| The Restaurant at the End of the Universe" + LN +
-                "3| Trillian| true| Life, the Universe and Everything" + LN +
-                "3| Trillian| true| The Hitchhiker's Guide to the Galaxy" + LN +
-                "3| Trillian| true| The Restaurant at the End of the Universe" + LN
+                "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
+                "2| Ford| false| The Restaurant at the End of the Universe\n" +
+                "3| Trillian| true| Life, the Universe and Everything\n" +
+                "3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
+                "3| Trillian| true| The Restaurant at the End of the Universe\n"
         ));
 
         expectedException.expect(ExecutionException.class);
