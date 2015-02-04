@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added case-insensitive regex operator ~*
+
+ - Support PCRE compatible regular expressions
+
  - updated crate-admin version to 0.11.3 which contains following changes:
 
     - fixed bug that showed custom schemas in the table list
