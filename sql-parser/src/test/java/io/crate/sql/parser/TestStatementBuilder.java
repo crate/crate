@@ -44,6 +44,7 @@ import static org.testng.Assert.assertFalse;
 
 public class TestStatementBuilder
 {
+
     @Test
     public void testStatementBuilder()
             throws Exception
@@ -515,7 +516,7 @@ public class TestStatementBuilder
     private static void println(String s)
     {
         if (Boolean.parseBoolean(System.getProperty("printParse"))) {
-            System.out.println(s);
+            System.out.print(s + "\n");
         }
     }
 

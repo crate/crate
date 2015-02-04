@@ -42,6 +42,7 @@ import org.mockito.Answers;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -105,7 +106,7 @@ public class MapSideDataCollectOperationTest {
         FileUriCollectNode collectNode = new FileUriCollectNode(
                 "test",
                 routing,
-                Literal.newLiteral(tmpFile.getAbsolutePath()),
+                Literal.newLiteral(Paths.get(tmpFile.toURI()).toUri().toString()),
                 Arrays.<Symbol>asList(
                         createReference("name", DataTypes.STRING),
                         createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)

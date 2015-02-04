@@ -31,7 +31,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -68,8 +67,8 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas = 0)");
         ensureGreen();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ?", new Object[]{filePath});
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{uriPath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
@@ -80,7 +79,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0].length, is(2));
 
         execute("select quote from quotes where id = 1");
-        assertThat((String) response.rows()[0][0], is("Don't pañic."));
+        assertThat((String) response.rows()[0][0], is("Don't pa\u00f1ic."));
     }
 
     @Test
@@ -89,8 +88,8 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureGreen();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ?", new Object[]{filePath});
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{uriPath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
@@ -121,8 +120,8 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureGreen();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "*.json");
-        execute("copy quotes from ?", new Object[]{filePath});
+        String uriPath = Joiner.on("/").join(copyFilePath, "*.json");
+        execute("copy quotes from ?", new Object[]{uriPath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());
         refresh();
@@ -138,7 +137,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into singleshard (name) values ('foo')");
         execute("refresh table singleshard");
 
-        String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.json").toAbsolutePath().toString();
+        String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.json").toUri().toString();
         SQLResponse response = execute("copy singleshard to ?", new Object[] { uri });
         assertThat(response.rowCount(), is(1L));
         List<String> lines = Files.readAllLines(
@@ -155,7 +154,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyColumnsToDirectory() throws Exception {
         this.setup.groupBySetup();
 
-        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy characters (name, details['job']) to DIRECTORY ?", new Object[]{uriTemplate});
         assertThat(response.cols().length, is(0));
         assertThat(response.rowCount(), is(7L));
@@ -185,7 +184,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyToDirectory() throws Exception {
         this.setup.groupBySetup();
 
-        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy characters to DIRECTORY ?", new Object[]{uriTemplate});
         assertThat(response.rowCount(), is(7L));
         List<String> lines = new ArrayList<>(7);
@@ -209,8 +208,8 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table users (id int, " +
                 "name string) with (number_of_replicas=0)");
         ensureGreen();
-        String filePath = Joiner.on(File.separator).join(nestedArrayCopyFilePath, "nested_array_copy_from.json");
-        execute("copy users from ? with (shared=true)", new Object[]{filePath});
+        String uriPath = Joiner.on("/").join(nestedArrayCopyFilePath, "nested_array_copy_from.json");
+        execute("copy users from ? with (shared=true)", new Object[]{uriPath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(1L, response.rowCount()); // only 1 document got inserted
         refresh();
@@ -235,7 +234,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureGreen();
 
-        String directory = folder.newFolder().getCanonicalPath();
-        execute("COPY characters TO ?", new Object[]{directory});
+        String directoryUri = Paths.get(folder.newFolder().toURI()).toUri().toString();
+        execute("COPY characters TO ?", new Object[]{directoryUri});
     }
 }

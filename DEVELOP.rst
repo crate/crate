@@ -156,15 +156,6 @@ First create the folders for the configuration and data::
 
     for i in {1..2}; do mkdir -p sandbox/crate_$i/{config,data,plugins}; done
 
-In order for the admin interface to work an additional folder and symbolic
-links are necessary::
-
-    for i in {1..2}; do mkdir -p sandbox/crate_$i/plugins/crate-admin/; done
-
-    ln -s ../../../../app/plugins/crate-admin/_site sandbox/crate_1/plugins/crate-admin/_site
-    ln -s ../../../../app/plugins/crate-admin/_site sandbox/crate_2/plugins/crate-admin/_site
-
-
 Then create the configuration files for both nodes::
 
     touch sandbox/crate_1/config/crate.yml
@@ -206,6 +197,10 @@ A minimal example for the logging configuration looks like this::
         layout:
           type: consolePattern
           conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
+		  
+In order for the admin interface to work please check out the crate admin repository::
+
+	https://github.com/crate/crate-admin
 
 After that the Run/Debug Configurations can be added within IntelliJ. Go to the
 `Run/Debug Configurations` window and add a new `Application` configuration

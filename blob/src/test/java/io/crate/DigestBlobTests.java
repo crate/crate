@@ -117,6 +117,7 @@ public class DigestBlobTests {
         stream.close();
 
         File file = digestBlob.commit();
+        stream.close();
         assertTrue(file.exists());
         // just in case any references to file left
         assertTrue(file.delete());

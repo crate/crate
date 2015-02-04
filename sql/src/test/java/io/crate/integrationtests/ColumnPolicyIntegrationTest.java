@@ -121,9 +121,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id int primary key) with (column_policy='strict', number_of_replicas = 0)");
         ensureGreen();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-
-        execute("copy quotes from ?", new Object[]{filePath});
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{uriPath});
         assertThat(response.rowCount(), is(0L));
     }
 
