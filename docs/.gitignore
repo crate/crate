@@ -7,3 +7,4 @@ parts/
 bin/
 develop-eggs/
 eggs/
+.venv27

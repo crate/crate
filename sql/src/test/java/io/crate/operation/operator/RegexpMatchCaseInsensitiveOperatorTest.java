@@ -32,9 +32,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class RegexpMatchOperatortest {
+public class RegexpMatchCaseInsensitiveOperatorTest {
     private static Symbol normalizeSymbol(String source, String pattern) {
-        RegexpMatchOperator op = new RegexpMatchOperator();
+        RegexpMatchCaseInsensitiveOperator op = new RegexpMatchCaseInsensitiveOperator();
         Function function = new Function(
                 op.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral(source), Literal.newLiteral(pattern))
@@ -50,10 +50,10 @@ public class RegexpMatchOperatortest {
     public void testNormalize() throws Exception {
         assertThat(regexpNormalize("", ""), is(true));
         assertThat(regexpNormalize("abc", "a.c"), is(true));
-        assertThat(regexpNormalize("AbC", "a.c"), is(false));
+        assertThat(regexpNormalize("AbC", "a.c"), is(true));
         assertThat(regexpNormalize("abbbbc", "a(b{1,4})c"), is(true));
-        assertThat(regexpNormalize("abc", "a~bc"), is(false));
-        assertThat(regexpNormalize("100 €", "<10-101> €|$"), is(true));
+        assertThat(regexpNormalize("abc", "a~bc"), is(false));              // no PCRE syntax, should fail
+        assertThat(regexpNormalize("100 €", "<10-101> €|$"), is(false));    // no PCRE syntax, should fail
     }
 
     @Test
@@ -66,17 +66,18 @@ public class RegexpMatchOperatortest {
     // evaluate
 
     private Boolean regexpEvaluate(String source, String pattern) {
-        RegexpMatchOperator op = new RegexpMatchOperator();
+        RegexpMatchCaseInsensitiveOperator op = new RegexpMatchCaseInsensitiveOperator();
         return op.evaluate(Literal.newLiteral(source), Literal.newLiteral(pattern));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertThat(regexpEvaluate("foo bar", "([A-Z][^ ]+ ?){2}"), is(false));  // case-insensitive matching should fail
+        assertThat(regexpEvaluate("foo bar", "([A-Z][^ ]+ ?){2}"), is(true));   // case-insensitive matching should work
         assertThat(regexpEvaluate("Foo Bar", "([A-Z][^ ]+ ?){2}"), is(true));
-        assertThat(regexpEvaluate("1000 $", "(<1-9999>) $|€"), is(true));
-        assertThat(regexpEvaluate("10000 $", "(<1-9999>) $|€"), is(false));
         assertThat(regexpEvaluate("", ""), is(true));
+        // java.util.regex does not understand proprietary syntax of `dk.brics.automaton` (no PCRE, should fail)
+        assertThat(regexpEvaluate("1000 $", "(<1-9999>) $|€"), is(false));
+        assertThat(regexpEvaluate("10000 $", "(<1-9999>) $|€"), is(false));
     }
 
     @Test

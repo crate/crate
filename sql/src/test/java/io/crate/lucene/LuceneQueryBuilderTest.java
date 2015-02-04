@@ -34,6 +34,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
+import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -75,7 +76,7 @@ public class LuceneQueryBuilderTest {
     @Test
     public void testWhereRefEqRef() throws Exception {
         Reference foo = createReference("foo", DataTypes.STRING);
-        Query query = convert(eq(foo, foo));
+        Query query = convert(whereClause(EqOperator.NAME, foo, foo));
         assertThat(query, instanceOf(FilteredQuery.class));
     }
 
@@ -115,15 +116,40 @@ public class LuceneQueryBuilderTest {
         }
     }
 
-
-    private Query convert(WhereClause eq) {
-        return builder.convert(eq).query;
+    /**
+     * Make sure we still sport the fast Lucene regular
+     * expression engine when not using PCRE features.
+     */
+    @Test
+    public void testRegexQueryFast() throws Exception {
+        Reference value = createReference("foo", DataTypes.STRING);
+        Literal pattern = Literal.newLiteral(new BytesRef("[a-z]"));
+        Query query = convert(whereClause(RegexpMatchOperator.NAME, value, pattern));
+        assertThat(query, instanceOf(RegexpQuery.class));
     }
 
-    private WhereClause eq(Symbol left, Symbol right) {
+    /**
+     * When using PCRE features, switch to different
+     * regex implementation on top of java.util.regex.
+     */
+    @Test
+    public void testRegexQueryPcre() throws Exception {
+        Reference value = createReference("foo", DataTypes.STRING);
+        Literal pattern = Literal.newLiteral(new BytesRef("\\D"));
+        Query query = convert(whereClause(RegexpMatchOperator.NAME, value, pattern));
+        assertThat(query, instanceOf(RegexQuery.class));
+    }
+
+
+    private Query convert(WhereClause clause) {
+        return builder.convert(clause).query;
+    }
+
+    private WhereClause whereClause(String opname, Symbol left, Symbol right) {
         return new WhereClause(new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
+                new FunctionIdent(opname, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(left, right)
         ));
     }
+
 }

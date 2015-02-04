@@ -38,7 +38,9 @@ public class ComparisonExpression
         GREATER_THAN_OR_EQUAL(">="),
         IS_DISTINCT_FROM("IS DISTINCT FROM"),
         REGEX_MATCH("~"),
-        REGEX_NO_MATCH("!~");
+        REGEX_NO_MATCH("!~"),
+        REGEX_MATCH_CI("~*"),
+        REGEX_NO_MATCH_CI("!~*");
 
         public static ImmutableMap<Type, Type> INVERSE_MAP = ImmutableMap.<Type, Type>builder()
                 .put(EQUAL, NOT_EQUAL)
@@ -49,6 +51,8 @@ public class ComparisonExpression
                 .put(GREATER_THAN_OR_EQUAL, LESS_THAN)
                 .put(REGEX_MATCH, REGEX_NO_MATCH)
                 .put(REGEX_NO_MATCH, REGEX_MATCH)
+                .put(REGEX_MATCH_CI, REGEX_NO_MATCH_CI)
+                .put(REGEX_NO_MATCH_CI, REGEX_MATCH_CI)
                 .build();
 
         private final String value;

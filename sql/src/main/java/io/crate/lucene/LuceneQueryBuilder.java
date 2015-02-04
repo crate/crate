@@ -54,6 +54,8 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
+import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -82,6 +84,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
 
 public class LuceneQueryBuilder {
 
@@ -469,13 +472,55 @@ public class LuceneQueryBuilder {
                 if (prepare == null) { return null; }
                 String fieldName = prepare.v1().info().ident().columnIdent().fqn();
                 Object value = prepare.v2().value();
+
+                // FIXME: nobody knows how Strings can arrive here
                 if (value instanceof String) {
-                    return new RegexpQuery(new Term(fieldName, (String) value), RegExp.ALL);
+                    if (isPcrePattern(value)) {
+                        return new RegexQuery(new Term(fieldName, (String) value));
+                    } else {
+                        return new RegexpQuery(new Term(fieldName, (String) value), RegExp.ALL);
+                    }
                 }
+
                 if (value instanceof BytesRef) {
-                    return new RegexpQuery(new Term(fieldName, (BytesRef) value), RegExp.ALL);
+                    if (isPcrePattern(value)) {
+                        return new RegexQuery(new Term(fieldName, (BytesRef) value));
+                    } else {
+                        return new RegexpQuery(new Term(fieldName, (BytesRef) value), RegExp.ALL);
+                    }
                 }
+
                 throw new IllegalArgumentException("Can only use ~ with patterns of type string");
+            }
+        }
+
+        class RegexMatchQueryCaseInsensitive extends CmpQuery {
+
+            @Override
+            public Query apply(Function input, Context context) throws IOException {
+                Tuple<Reference, Literal> prepare = prepare(input);
+                if (prepare == null) { return null; }
+                String fieldName = prepare.v1().info().ident().columnIdent().fqn();
+                Object value = prepare.v2().value();
+
+                // FIXME: nobody knows how Strings can arrive here
+                if (value instanceof String) {
+                    RegexQuery query = new RegexQuery(new Term(fieldName, (String) value));
+                    query.setRegexImplementation(new JavaUtilRegexCapabilities(
+                            JavaUtilRegexCapabilities.FLAG_CASE_INSENSITIVE |
+                            JavaUtilRegexCapabilities.FLAG_UNICODE_CASE));
+                    return query;
+                }
+
+                if (value instanceof BytesRef) {
+                    RegexQuery query = new RegexQuery(new Term(fieldName, (BytesRef) value));
+                    query.setRegexImplementation(new JavaUtilRegexCapabilities(
+                            JavaUtilRegexCapabilities.FLAG_CASE_INSENSITIVE |
+                            JavaUtilRegexCapabilities.FLAG_UNICODE_CASE));
+                    return query;
+                }
+
+                throw new IllegalArgumentException("Can only use ~* with patterns of type string");
             }
         }
 
@@ -690,6 +735,7 @@ public class LuceneQueryBuilder {
                         .put(AnyLikeOperator.NAME, likeQuery)
                         .put(AnyNotLikeOperator.NAME, new AnyNotLikeQuery())
                         .put(RegexpMatchOperator.NAME, new RegexpMatchQuery())
+                        .put(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
                         .build();
 
         private final ImmutableMap<String, InnerFunctionToQuery> innerFunctions =
