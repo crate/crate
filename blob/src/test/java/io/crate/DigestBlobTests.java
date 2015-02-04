@@ -114,8 +114,11 @@ public class DigestBlobTests {
         FileInputStream stream = new FileInputStream(digestBlob.file());
         stream.read(buffer, 0, 15);
         assertEquals("ABCDEFGHIJKLMNO", new BytesArray(buffer).toUtf8().trim());
-        File file = digestBlob.commit();
         stream.close();
+
+        File file = digestBlob.commit();
+
+        // check if file commit correctly
         assertTrue(file.exists());
         // just in case any references to file left
         assertTrue(file.delete());
@@ -142,7 +145,10 @@ public class DigestBlobTests {
         stream.read(buffer, 0, 15);
         assertEquals("ABCDEFGHIJKLMNO", new BytesArray(buffer).toUtf8().trim());
         stream.close();
+
         File file = digestBlob.commit();
+
+        // check if file commit correctly
         assertTrue(file.exists());
         // just in case any references to file left
         assertTrue(file.delete());
