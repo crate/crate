@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - updated crate-admin version to 0.11.3 which contains following changes:
+
+    - fixed bug that showed custom schemas in the table list
+      as often as the amount of tables in that custom schema
+
  - Added support for the ``std_dev``, ``variance`` and ``geometric_mean``
    aggregation functions
 
