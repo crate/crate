@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Close headFileChannel in DigestBlob on commit
+
  - Added case-insensitive regex operator ~*
 
  - Support PCRE compatible regular expressions
