@@ -61,9 +61,67 @@ public class
             return Long.valueOf((String)value);
         }
         if (value instanceof BytesRef) {
-            return Long.valueOf(((BytesRef)value).utf8ToString());
+            return parseLong((BytesRef) value);
         }
         return ((Number)value).longValue();
+    }
+
+    /**
+     * parses the utf-8 encoded bytesRef argument as signed decimal {@code long}.
+     * All characters in the string must be decimal digits, except the first which may be an ASCII minus sign to indicate
+     * a negative value or or a plus sign to indicate a positive value.
+     *
+     * mostly copied from {@link Long#parseLong(String s, int radix)}
+     */
+    private long parseLong(BytesRef value) {
+        assert value != null : "value must not be null";
+        boolean negative = false;
+        long result = 0;
+
+        int i = 0;
+        int len = value.length;
+        int radix = 10;
+        long limit = -Long.MAX_VALUE;
+        long multmin;
+        byte[] bytes = value.bytes;
+        int digit;
+
+        if (len <= 0) {
+            throw new NumberFormatException(value.utf8ToString());
+        }
+
+        char firstChar = (char) bytes[i];
+        if (firstChar < '0') {
+            if (firstChar == '-') {
+                negative = true;
+                limit = Long.MIN_VALUE;
+            } else if (firstChar != '+') {
+                throw new NumberFormatException(value.utf8ToString());
+            }
+
+            if (len == 1) { // lone '+' or '-'
+                throw new NumberFormatException(value.utf8ToString());
+            }
+
+            i++;;
+        }
+        multmin = limit / radix;
+        while (i < len) {
+            digit = Character.digit((char) bytes[i], radix);
+            i++;
+            if (digit < 0) {
+                throw new NumberFormatException(value.utf8ToString());
+            }
+            if (result < multmin) {
+                throw new NumberFormatException(value.utf8ToString());
+            }
+            result *= radix;
+            if (result < limit + digit) {
+                throw new NumberFormatException(value.utf8ToString());
+            }
+            result -= digit;
+        }
+        return negative ? result : -result;
     }
 
     @Override
