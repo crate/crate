@@ -26,6 +26,7 @@ import com.google.common.base.Predicate;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -779,6 +780,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         assertThat(((List<String>) response.rows()[0][7]).get(0), is("Youri"));
         assertThat(((List<String>) response.rows()[0][7]).get(1), is("Juri"));
+    }
+
+    @Test
+    public void testInsertBadIpAdress() throws Exception {
+        execute("create table t (i ip) with (number_of_replicas=0)");
+        ensureGreen();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Validation failed for i: failed to parse ip [192.168.1.500], not a valid ip address");
+        execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
     }
 
     @Test

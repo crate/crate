@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import com.google.common.net.InetAddresses;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
@@ -39,7 +40,12 @@ public class IpType extends StringType {
     public BytesRef value(Object value) {
         String strIp;
         if (value instanceof BytesRef) {
-            return (BytesRef)value;
+            BytesRef ip = (BytesRef) value;
+            if(InetAddresses.isInetAddress(ip.utf8ToString())){
+                return ip;
+            } else {
+                throw new IllegalArgumentException("failed to parse ip [" + ip.utf8ToString() + "], not a valid ip address");
+            }
         }
         if (value instanceof String) {
             strIp = (String) value;
