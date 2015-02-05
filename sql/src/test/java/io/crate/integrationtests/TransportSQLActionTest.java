@@ -787,7 +787,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureGreen();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Failed to validate ip");
+        expectedException.expectMessage("Failed to validate ip [192.168.1.500], not a valid ipv4 address");
         execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
     }
 

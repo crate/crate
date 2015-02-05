@@ -53,6 +53,10 @@ public class IpTypeTest {
                 new BytesRef("0./.1.2550"),
                 new BytesRef("0.01.01.01"),
                 new BytesRef("A.01.01.01"),
+                new BytesRef(".192.168.0.255"),
+                new BytesRef("..168.0.255"),
+                new BytesRef(".192.168.0.255."),
+
         };
         for (BytesRef ip : invalidIps) {
             assertEquals(false, ipType.isValid(ip));

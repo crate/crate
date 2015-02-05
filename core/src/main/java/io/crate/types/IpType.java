@@ -55,7 +55,7 @@ public class IpType extends StringType {
 
     private void validate(BytesRef ip) {
         if(!isValid(ip))
-            throw new IllegalArgumentException("Failed to validate ip");
+            throw new IllegalArgumentException("Failed to validate ip ["+ ip.utf8ToString() + "], not a valid ipv4 address");
     }
 
     @Override
@@ -80,7 +80,7 @@ public class IpType extends StringType {
                     sym == 47) {        // a slash in a symbol range
                 return false;
             }
-            if (firstSymbolInOctet && (sym > 48 || sym < 58)) {
+            if (firstSymbolInOctet && (sym >= 48 && sym < 58)) {
                 firstSymbolInOctet = false;
                 symbolsInOctet++;
                 if (sym == 48) {
