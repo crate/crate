@@ -5,8 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fix: Adding new columns to existing partitions could fail if the table was altered
-   before
+ - Fix: COPY FROM PARTITION failed if the source contained a ``partitioned by`` column
+
+ - Fix: ALTER TABLE could break existing tables under some conditions
 
  - Comparing arrays now works correctly for literals and comparing an array
    field to an array literal will result in a correct

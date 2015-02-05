@@ -316,6 +316,73 @@ public class DocIndexMetaDataTest {
         assertThat(md.partitionedByColumns().get(0).ident().columnIdent().fqn(), is("datum"));
     }
 
+    @Test
+    public void testExtractPartitionedByWithPartitionedByInColumns() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                    .startObject("_meta")
+                        .startArray("partitioned_by")
+                            .startArray()
+                                .value("datum").value("date")
+                            .endArray()
+                        .endArray()
+                    .endObject()
+                    .startObject("properties")
+                        .startObject("id")
+                            .field("type", "integer")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                        .startObject("datum")
+                            .field("type", "date")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                .endObject();
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        // partitioned by column is not added twice
+        assertEquals(2, md.columns().size());
+        assertEquals(8, md.references().size());
+        assertEquals(1, md.partitionedByColumns().size());
+    }
+
+    @Test
+    public void testExtractPartitionedByWithNestedPartitionedByInColumns() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                    .startObject("_meta")
+                        .startArray("partitioned_by")
+                            .startArray()
+                                .value("nested.datum").value("date")
+                            .endArray()
+                        .endArray()
+                    .endObject()
+                    .startObject("properties")
+                        .startObject("id")
+                            .field("type", "integer")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                        .startObject("nested")
+                            .field("type", "nested")
+                                .startObject("properties")
+                                    .startObject("datum")
+                                        .field("type", "date")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                .endObject()
+                            .endObject()
+                    .endObject()
+                .endObject();
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        // partitioned by column is not added twice
+        assertEquals(2, md.columns().size());
+        assertEquals(9, md.references().size());
+        assertEquals(1, md.partitionedByColumns().size());
+    }
+
     private Map<String, Object> sortProperties(Map<String, Object> mappingSource) {
         return sortProperties(mappingSource, false);
     }

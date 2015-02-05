@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -202,7 +203,7 @@ public class AnalyzedTableElements {
     }
 
     @Nullable
-    private AnalyzedColumnDefinition columnDefinitionByIdent(ColumnIdent ident, boolean removeIfFound) {
+    private AnalyzedColumnDefinition columnDefinitionByIdent(ColumnIdent ident) {
         AnalyzedColumnDefinition result = null;
         ColumnIdent root = ident.getRoot();
         for (AnalyzedColumnDefinition column : columns) {
@@ -216,32 +217,24 @@ public class AnalyzedTableElements {
         }
 
         if (result.ident().equals(ident)) {
-            if (removeIfFound) {
-                columns.remove(result);
-            }
             return result;
         }
 
-        return findInChildren(result, ident, removeIfFound);
+        return findInChildren(result, ident);
     }
 
     private AnalyzedColumnDefinition findInChildren(AnalyzedColumnDefinition column,
-                                                    ColumnIdent ident,
-                                                    boolean removeIfFound) {
+                                                    ColumnIdent ident) {
         AnalyzedColumnDefinition result = null;
         for (AnalyzedColumnDefinition child : column.children()) {
             if (child.ident().equals(ident)) {
                 result = child;
                 break;
             }
-            AnalyzedColumnDefinition inChildren = findInChildren(child, ident, removeIfFound);
+            AnalyzedColumnDefinition inChildren = findInChildren(child, ident);
             if (inChildren != null) {
                 return inChildren;
             }
-        }
-
-        if (removeIfFound && result != null) {
-            column.children().remove(result);
         }
         return result;
     }
@@ -257,7 +250,7 @@ public class AnalyzedTableElements {
                     partitionedByIdent.sqlFqn()));
         }
 
-        AnalyzedColumnDefinition columnDefinition = columnDefinitionByIdent(partitionedByIdent, true);
+        AnalyzedColumnDefinition columnDefinition = columnDefinitionByIdent(partitionedByIdent);
         if (columnDefinition == null) {
             if (skipIfNotFound) {
                 return;
@@ -280,6 +273,7 @@ public class AnalyzedTableElements {
                     columnDefinition.ident().sqlFqn()));
         }
         columnIdents.remove(columnDefinition.ident());
+        columnDefinition.index(ReferenceInfo.IndexType.NO.toString());
         partitionedByColumns.add(columnDefinition);
     }
 
