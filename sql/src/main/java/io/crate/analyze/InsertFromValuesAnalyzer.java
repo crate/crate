@@ -236,6 +236,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         expressionAnalysisContext);
                 assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression);
                 onDupKeyAssignments[i] = tableRelation.resolve(assignmentExpression);
+
+                UpdateStatementAnalyzer.ensureUpdateIsAllowed(
+                        tableRelation.tableInfo(), columnName.ident().columnIdent(), onDupKeyAssignments[i]);
                 if (valuesResolver.assignmentColumns.size() == i) {
                     valuesResolver.assignmentColumns.add(columnName.ident().columnIdent().fqn());
                 }
