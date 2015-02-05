@@ -9,6 +9,8 @@ Unreleased
    columns in INSERT statements.
 
 
+ - Fix: IP column validation is now done in analysis
+
 2015/02/03 0.46.4
 =================
 

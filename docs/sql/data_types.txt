@@ -86,7 +86,7 @@ Example::
 
     cr> insert into my_table_ips (fqdn, ip_addr)
     ... values ('localhost', 'not.a.real.ip');
-    SQLActionException[failed to parse [ip_addr]]
+    SQLActionException[Validation failed for ip_addr: Failed to validate ip [not.a.real.ip], not a valid ipv4 address]
 
 
 timestamp
