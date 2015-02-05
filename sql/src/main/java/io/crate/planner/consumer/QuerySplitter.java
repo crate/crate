@@ -61,7 +61,7 @@ public class QuerySplitter {
      * splits the given query into two queries. One that can be executed by the given relation and another one which
      * contains all the remaining parts that can't be executed.
      */
-    public static SplitQueries splitForRelation(Symbol query, AnalyzedRelation analyzedRelation) {
+    public static SplitQueries splitForRelation(AnalyzedRelation analyzedRelation, Symbol query) {
         RelationFieldCounterCtx relationFieldCounterCtx = new RelationFieldCounterCtx(analyzedRelation);
         RELATION_FIELD_COUNTER.process(query, relationFieldCounterCtx);
 

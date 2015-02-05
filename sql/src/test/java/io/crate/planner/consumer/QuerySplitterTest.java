@@ -102,7 +102,7 @@ public class QuerySplitterTest {
     private QuerySplitter.SplitQueries split(AnalyzedRelation relation, String expression) {
         Expression parsedExpression = SqlParser.createExpression(expression);
         Symbol query = expressionAnalyzer.convert(parsedExpression, expressionAnalysisCtx);
-        return QuerySplitter.splitForRelation(query, relation);
+        return QuerySplitter.splitForRelation(relation, query);
     }
 
     @Test
