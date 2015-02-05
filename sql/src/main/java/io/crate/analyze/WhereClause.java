@@ -59,6 +59,10 @@ public class WhereClause extends QueryClause implements Streamable {
         readFrom(in);
     }
 
+    public WhereClause(Symbol normalizedQuery) {
+        super(normalizedQuery);
+    }
+
     public WhereClause(Symbol normalizedQuery,
                        @Nullable List<Id> primaryKeys,
                        @Nullable List<String> partitions,

@@ -22,9 +22,7 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -32,29 +30,28 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.Routing;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
-import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
+import io.crate.sql.tree.QualifiedName;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+
 
 public class CrossJoinConsumer implements Consumer {
 
     private final CrossJoinVisitor visitor;
-    private final static FilteringVisitor FILTERING_VISITOR = new FilteringVisitor();
     private final static InputColumnProducer INPUT_COLUMN_PRODUCER = new InputColumnProducer();
 
-    public CrossJoinConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new CrossJoinVisitor(
-                analysisMetaData,
-                new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver()));
+    public CrossJoinConsumer(ConsumingPlanner consumingPlanner, AnalysisMetaData analysisMetaData) {
+        visitor = new CrossJoinVisitor(consumingPlanner, analysisMetaData);
     }
 
     @Override
@@ -69,12 +66,12 @@ public class CrossJoinConsumer implements Consumer {
 
     private static class CrossJoinVisitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
+        private final ConsumingPlanner consumingPlanner;
         private final AnalysisMetaData analysisMetaData;
-        private final EvaluatingNormalizer normalizer;
 
-        public CrossJoinVisitor(AnalysisMetaData analysisMetaData, EvaluatingNormalizer normalizer) {
+        public CrossJoinVisitor(ConsumingPlanner consumingPlanner, AnalysisMetaData analysisMetaData) {
+            this.consumingPlanner = consumingPlanner;
             this.analysisMetaData = analysisMetaData;
-            this.normalizer = normalizer;
         }
 
         @Override
@@ -134,73 +131,32 @@ public class CrossJoinConsumer implements Consumer {
              *
              * postOutputs: [in(0), subtract( add( in(1), in(3)), in(1) ]
              */
-            Map<TableRelation, RelationContext> relations = new IdentityHashMap<>(statement.sources().size());
+
             WhereClause where = MoreObjects.firstNonNull(statement.querySpec().where(), WhereClause.MATCH_ALL);
-            Symbol query = where.query();
-            for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
+            List<Plan> nestedPlans = new ArrayList<>();
+            List<QueriedTable> queriedTables = new ArrayList<>();
+
+            for (Map.Entry<QualifiedName, AnalyzedRelation> entry : statement.sources().entrySet()) {
+                AnalyzedRelation analyzedRelation = entry.getValue();
                 if (!(analyzedRelation instanceof TableRelation)) {
                     context.validationException(new ValidationException("CROSS JOIN with sub queries is not supported"));
                     return null;
                 }
                 TableRelation tableRelation = (TableRelation) analyzedRelation;
-                if (tableRelation.tableInfo().schemaInfo().systemSchema()) {
-                    context.validationException(new ValidationException("CROSS JOIN on system tables is not supported"));
-                    return null;
-                }
-
-                RelationContext relationContext = new RelationContext();
-                if (where.hasQuery()) {
-                    QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(query, analyzedRelation);
-                    if (splitQueries.relationQuery() == null) {
-                        relationContext.whereClause = WhereClause.MATCH_ALL;
-                    } else {
-                        relationContext.whereClause = new WhereClause(splitQueries.relationQuery(), null, null, null);
-                        relationContext.whereClause = relationContext.whereClause.normalize(normalizer);
-                    }
-                    query = splitQueries.remainingQuery();
-                } else {
-                    relationContext.whereClause = WhereClause.MATCH_ALL;
-                }
-                FilteringContext filteringContext = filterOutputForRelation(statement.querySpec().outputs(), tableRelation);
-                relationContext.outputs = Lists.newArrayList(filteringContext.allOutputs());
-                relations.put(tableRelation, relationContext);
+                QueriedTable queriedTable = QueriedTable.newSubRelation(entry.getKey(), tableRelation, statement.querySpec());
+                queriedTable.normalize(analysisMetaData);
+                queriedTables.add(queriedTable);
+                where = statement.querySpec().where();
+                nestedPlans.add(consumingPlanner.plan(queriedTable));
             }
-            if (where.hasQuery() && !(query instanceof Literal)) {
+            if (where.hasQuery() && !(where.query() instanceof Literal)) {
                 context.validationException(new ValidationException(
                         "WhereClause contains a function or operator that involves more than 1 relation. This is not supported"));
                 return null;
             }
 
-
-            Integer qtfLimit = null;
-            Integer querySpecLimit = statement.querySpec().limit();
-            if (querySpecLimit != null) {
-                qtfLimit = querySpecLimit + statement.querySpec().offset();
-            }
-            List<Plan> subRelationPlans = new ArrayList<>(relations.size());
-
-            for (Map.Entry<TableRelation, RelationContext> entry : relations.entrySet()) {
-                RelationContext relationContext = entry.getValue();
-                TableRelation tableRelation = entry.getKey();
-
-                WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-                WhereClause whereClause = whereClauseAnalyzer.analyze(relationContext.whereClause);
-                Routing routing = tableRelation.tableInfo().getRouting(whereClause, null);
-                QueryThenFetchNode qtf = new QueryThenFetchNode(
-                        routing,
-                        tableRelation.resolveCopy(relationContext.outputs),
-                        tableRelation.resolveCopy(relationContext.orderBy),
-                        new boolean[0],
-                        new Boolean[0],
-                        qtfLimit,
-                        0,
-                        whereClause,
-                        tableRelation.tableInfo().partitionedByColumns()
-                );
-                subRelationPlans.add(new IterablePlan(qtf));
-            }
             int limit = MoreObjects.firstNonNull(statement.querySpec().limit(), TopN.NO_LIMIT);
-            NestedLoopNode nestedLoopNode = toNestedLoop(subRelationPlans, limit, statement.querySpec().offset());
+            NestedLoopNode nestedLoopNode = toNestedLoop(nestedPlans, limit, statement.querySpec().offset());
 
             /**
              * TopN for:
@@ -233,7 +189,7 @@ public class CrossJoinConsumer implements Consumer {
              *
              * #3 Apply Limit (and Order by once supported..)
              */
-            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), relations);
+            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), queriedTables);
             TopNProjection topNProjection = new TopNProjection(limit, statement.querySpec().offset());
             topNProjection.outputs(postOutputs);
             nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
@@ -254,11 +210,11 @@ public class CrossJoinConsumer implements Consumer {
          * @return [ in(0), add( in(0), in(1) ) ]
          */
         private List<Symbol> replaceFieldsWithInputColumns(List<Symbol> statementOutputs,
-                                                           Map<TableRelation, RelationContext> relations) {
+                                                           List<QueriedTable> relations) {
             List<Symbol> result = new ArrayList<>();
             List<Symbol> inputs = new ArrayList<>();
-            for (RelationContext relationContext : relations.values()) {
-                inputs.addAll(relationContext.outputs);
+            for (QueriedTable queriedTable : relations) {
+                inputs.addAll(queriedTable.fields());
             }
             for (Symbol statementOutput : statementOutputs) {
                 result.add(INPUT_COLUMN_PRODUCER.process(statementOutput, new InputColumnProducerContext(inputs)));
@@ -286,104 +242,6 @@ public class CrossJoinConsumer implements Consumer {
                         limit,
                         offset
                 );
-            }
-            return null;
-        }
-
-
-        /**
-         * creates a FilterContext which contains the symbols which can be fetched directly from the tableRelation
-         */
-        private FilteringContext filterOutputForRelation(List<Symbol> symbols, TableRelation tableRelation) {
-            FilteringContext context = new FilteringContext(tableRelation);
-            for (Symbol symbol : symbols) {
-                FILTERING_VISITOR.process(symbol, context);
-            }
-            return context;
-        }
-    }
-
-    private static class RelationContext {
-        List<Symbol> outputs;
-        List<Symbol> orderBy = new ArrayList<>();
-        public WhereClause whereClause;
-
-        public RelationContext() {}
-    }
-
-    private static class FilteringContext {
-
-        Stack<Symbol> parents = new Stack<>();
-        TableRelation tableRelation;
-
-        /**
-         * symbols that belong to tableRelation but are inside a function that contains fields from another relation
-         */
-        List<Symbol> mixedOutputs = new ArrayList<>();
-
-        /**
-         * symbol or functions that belong to tableRelation and can be retrieved/evaluated by the tableRelation/QTF
-         */
-        List<Symbol> directOutputs = new ArrayList<>();
-
-        public FilteringContext(TableRelation tableRelation) {
-            this.tableRelation = tableRelation;
-        }
-
-        public Iterable<Symbol> allOutputs() {
-            return FluentIterable.from(mixedOutputs).append(directOutputs);
-        }
-    }
-
-    private static class FilteringVisitor extends SymbolVisitor<FilteringContext, Symbol> {
-
-        @Override
-        public Symbol visitFunction(Function function, FilteringContext context) {
-            List<Symbol> newArgs = new ArrayList<>(function.arguments().size());
-            context.parents.push(function);
-            for (Symbol argument : function.arguments()) {
-                Symbol processed = process(argument, context);
-                if (processed == null) {
-                    continue;
-                }
-                newArgs.add(processed);
-            }
-            context.parents.pop();
-
-            if (newArgs.size() == function.arguments().size()) {
-                Function newFunction = new Function(function.info(), newArgs);
-                if (context.parents.isEmpty()) {
-                    context.directOutputs.add(newFunction);
-                }
-                return newFunction;
-            } else {
-                newArg:
-                for (Symbol newArg : newArgs) {
-                    if ( !(newArg instanceof Function) || ((Function) newArg).info().deterministic()) {
-                        for (Symbol symbol : context.allOutputs()) {
-                            if (symbol.equals(newArg)) {
-                                break newArg;
-                            }
-                        }
-                    }
-                    context.mixedOutputs.add(newArg);
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public Symbol visitLiteral(Literal symbol, FilteringContext context) {
-            return symbol;
-        }
-
-        @Override
-        public Symbol visitField(Field field, FilteringContext context) {
-            if (field.relation() == context.tableRelation) {
-                if (context.parents.isEmpty()) {
-                    context.directOutputs.add(field);
-                }
-                return field;
             }
             return null;
         }
