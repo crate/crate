@@ -35,12 +35,16 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GlobalAggregate;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.ColumnIndexWriterProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.*;
 
 import java.util.ArrayList;
@@ -112,45 +116,49 @@ public class GlobalAggregateConsumer implements Consumer {
         assert noGroupBy(table.querySpec().groupBy()) : "must not have group by clause for global aggregate queries";
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(
-                tableRelation.resolve(table.querySpec().outputs()));
+
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+        SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+
+        AggregationProjection ap = projectionBuilder.aggregationProjection(
+                splitPoints.leaves(),
+                splitPoints.aggregates(),
+                Aggregation.Step.ITER,
+                Aggregation.Step.PARTIAL);
+
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                tableRelation.tableInfo(),
+                whereClause,
+                splitPoints.leaves(),
+                ImmutableList.<Projection>of(ap)
+        );
+
+        //// the handler stuff
+        List<Projection> projections = new ArrayList<>();
+        projections.add(projectionBuilder.aggregationProjection(
+                splitPoints.aggregates(),
+                splitPoints.aggregates(),
+                Aggregation.Step.PARTIAL,
+                Aggregation.Step.FINAL));
 
         HavingClause havingClause = table.querySpec().having();
         if(havingClause != null){
             if (havingClause.noMatch()) {
                 return new NoopPlannedAnalyzedRelation(table);
             } else if (havingClause.hasQuery()){
-                contextBuilder.having(havingClause.query());
+                projections.add(projectionBuilder.filterProjection(
+                        splitPoints.aggregates(),
+                        havingClause.query()
+                ));
             }
         }
 
-        AggregationProjection ap = new AggregationProjection();
-        ap.aggregations(contextBuilder.aggregations());
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                tableRelation.tableInfo(),
-                whereClause,
-                contextBuilder.toCollect(),
-                ImmutableList.<Projection>of(ap)
-        );
-        contextBuilder.nextStep();
-
-        //// the handler stuff
-        List<Projection> projections = new ArrayList<>();
-        projections.add(new AggregationProjection(contextBuilder.aggregations()));
-
-
-        if (havingClause != null && havingClause.hasQuery()) {
-            FilterProjection fp = new FilterProjection(havingClause.query());
-            fp.outputs(contextBuilder.passThroughOutputs());
-            projections.add(fp);
-        }
-
-        if (contextBuilder.aggregationsWrappedInScalar || havingClause != null) {
-            // will filter out optional having symbols which are not selected
-            TopNProjection topNProjection = new TopNProjection(1, 0);
-            topNProjection.outputs(contextBuilder.outputs());
-            projections.add(topNProjection);
-        }
+        TopNProjection topNProjection = projectionBuilder.topNProjection(
+                splitPoints.aggregates(),
+                null, 0, 1,
+                table.querySpec().outputs()
+                );
+        projections.add(topNProjection);
         if (indexWriterProjection != null) {
             projections.add(indexWriterProjection);
         }

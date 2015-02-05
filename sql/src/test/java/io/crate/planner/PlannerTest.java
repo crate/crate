@@ -1091,9 +1091,10 @@ public class PlannerTest {
         GlobalAggregate planNode = (GlobalAggregate) plan("insert into users (name, id) (select arbitrary(name), count(*) from users)");
 
         MergeNode mergeNode = planNode.mergeNode();
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
+        assertThat(mergeNode.projections().size(), is(3));
+        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(2);
 
         assertThat(projection.columnReferences().size(), is(2));
         assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("name"));
@@ -1289,7 +1290,7 @@ public class PlannerTest {
         assertThat(aggregationProjection.aggregations().size(), is(2));
 
         FilterProjection filterProjection = (FilterProjection)localMergeNode.projections().get(1);
-        assertThat(filterProjection.outputs().size(), is(1));
+        assertThat(filterProjection.outputs().size(), is(2));
         assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
         InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
         assertThat(inputColumn.index(), is(0));

@@ -40,7 +40,7 @@ class LeafVisitor extends DefaultTraversalSymbolVisitor<
             this.leaves = leaves;
         }
 
-        void allocateLeafeSymbol(Symbol symbol){
+        void allocateLeafSymbol(Symbol symbol){
             if (!leaves.contains(symbol)) {
                 leaves.add(symbol);
             }
@@ -60,7 +60,7 @@ class LeafVisitor extends DefaultTraversalSymbolVisitor<
 
     @Override
     protected Void visitSymbol(Symbol symbol, Context context) {
-        context.allocateLeafeSymbol(symbol);
+        context.allocateLeafSymbol(symbol);
         return null;
     }
 
