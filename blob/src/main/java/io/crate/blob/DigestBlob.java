@@ -23,10 +23,11 @@ package io.crate.blob;
 
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.common.Hex;
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.jboss.netty.buffer.ChannelBuffer;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.jboss.netty.buffer.ChannelBuffer;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -157,10 +158,15 @@ public class DigestBlob {
         }
 
         assert md != null;
-        String contentDigest = Hex.encodeHexString(md.digest());
-        if (!contentDigest.equals(digest)) {
-            file.delete();
-            throw new DigestMismatchException(digest, contentDigest);
+        try {
+            String contentDigest = Hex.encodeHexString(md.digest());
+            if (!contentDigest.equals(digest)) {
+                file.delete();
+                throw new DigestMismatchException(digest, contentDigest);
+            }
+        } finally {
+            IOUtils.closeWhileHandlingException(headFileChannel);
+            headFileChannel = null;
         }
         File newFile = container.getFile(digest);
         file.renameTo(newFile);
