@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.*;
+import io.crate.executor.pageable.PagingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
@@ -193,7 +194,7 @@ public class NestedLoopOperationTest {
                 new TestExecutor(),
                 projectionVisitor,
                 mock(RamAccountingContext.class));
-        Object[][] result = nestedLoop.execute(Optional.<PageInfo>absent()).get().rows();
+        Object[][] result = nestedLoop.execute(Optional.<PagingContext>absent()).get().rows();
 
         int i = 0;
         int leftIdx = 0;

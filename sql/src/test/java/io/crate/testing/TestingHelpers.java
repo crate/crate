@@ -21,7 +21,7 @@
 
 package io.crate.testing;
 
-import io.crate.executor.Page;
+import io.crate.executor.pageable.Page;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;

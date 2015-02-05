@@ -23,8 +23,8 @@ package io.crate.operation.join;
 
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
+import io.crate.executor.pageable.PageInfo;
+import io.crate.executor.pageable.PageableTaskResult;
 import io.crate.executor.TaskResult;
 
 import java.io.Closeable;

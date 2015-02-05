@@ -19,12 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.executor.pageable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.bigarray.IterableBigArray;
+import io.crate.executor.pageable.policy.PageCachePolicy;
 import org.elasticsearch.common.lease.Releasables;
 
 import javax.annotation.Nullable;
@@ -44,13 +45,17 @@ public class FetchedRowsPageableTaskResult implements PageableTaskResult {
 
     public FetchedRowsPageableTaskResult(IterableBigArray<Object[]> backingArray,
                                          long backingArrayStartIndex,
-                                         PageInfo pageInfo) {
+                                         PagingContext pagingCtx) {
         Preconditions.checkArgument(
-                backingArrayStartIndex + pageInfo.position() < backingArray.size(),
+                backingArrayStartIndex + pagingCtx.pageInfo().position() < backingArray.size(),
                 "backingArray exceeded");
         this.backingArray = backingArray;
         this.backingArrayStartIdx = backingArrayStartIndex;
-        this.page = new BigArrayPage(backingArray, backingArrayStartIndex+pageInfo.position(), pageInfo.size());
+        this.page = createPage(pagingCtx.pageInfo());
+    }
+
+    private Page createPage(PageInfo pageInfo) {
+        return new BigArrayPage(backingArray, this.backingArrayStartIdx+pageInfo.position(), pageInfo.size());
     }
 
     @Override
@@ -68,18 +73,21 @@ public class FetchedRowsPageableTaskResult implements PageableTaskResult {
      * Simply get a new TaskResult with the same backingArray with the new pageInfo on it.
      */
     @Override
-    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo){
+    public ListenableFuture<Page> fetch(PageInfo pageInfo){
         if (backingArrayStartIdx + pageInfo.position() > backingArray.size()) {
             return Futures.immediateFailedFuture(new NoSuchElementException("backingArray exceeded"));
         }
-        return Futures.<PageableTaskResult>immediateFuture(
-                new FetchedRowsPageableTaskResult(backingArray, backingArrayStartIdx, pageInfo)
-        );
+        return Futures.immediateFuture(createPage(pageInfo));
     }
 
     @Override
     public Page page() {
         return page;
+    }
+
+    @Override
+    public PageCachePolicy policy() {
+        return PageCachePolicy.NO_CACHE;
     }
 
     @Override

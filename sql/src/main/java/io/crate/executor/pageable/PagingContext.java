@@ -19,18 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.executor.pageable;
 
-/**
- * A task that is able to return paged results.
- * By contract it should return implementations of
- * {@linkplain PageableTaskResult} (nested in futures)
- * on {@linkplain #result()}.
- */
-public interface PageableTask extends Task {
+import io.crate.executor.pageable.policy.PageCachePolicy;
 
-    /**
-     * Start a paged execution.
-     */
-    public void start(PageInfo pageInfo);
+public class PagingContext {
+    private final PageInfo pageInfo;
+    private final PageCachePolicy policy;
+
+    public PagingContext(PageInfo pageInfo, PageCachePolicy policy) {
+        this.pageInfo = pageInfo;
+        this.policy = policy;
+    }
+
+    public PageInfo pageInfo() {
+        return pageInfo;
+    }
+
+    public PageCachePolicy policy() {
+        return policy;
+    }
 }

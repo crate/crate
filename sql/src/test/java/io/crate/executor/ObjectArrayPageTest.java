@@ -22,6 +22,7 @@
 package io.crate.executor;
 
 import com.google.common.collect.Iterators;
+import io.crate.executor.pageable.ObjectArrayPage;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

@@ -28,6 +28,10 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.concurrent.ForwardingFutureCallback;
 import io.crate.executor.*;
+import io.crate.executor.pageable.PageInfo;
+import io.crate.executor.pageable.PageableTask;
+import io.crate.executor.pageable.PagingContext;
+import io.crate.executor.pageable.policy.PageCachePolicy;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.join.NestedLoopNode;
@@ -68,9 +72,9 @@ public class NestedLoopTask extends JobTask implements PageableTask {
     }
 
     @Override
-    public void start(PageInfo pageInfo) {
+    public void start(PageInfo pageInfo, PageCachePolicy policy) {
         Futures.addCallback(operation.execute(
-                Optional.of(pageInfo)),
+                Optional.of(new PagingContext(pageInfo, policy))),
                 new ForwardingFutureCallback<>(result)
         );
     }
@@ -78,7 +82,7 @@ public class NestedLoopTask extends JobTask implements PageableTask {
     @Override
     public void start() {
         Futures.addCallback(operation.execute(
-                Optional.<PageInfo>absent()),
+                Optional.<PagingContext>absent()),
                 new ForwardingFutureCallback<>(result)
         );
     }

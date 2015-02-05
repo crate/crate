@@ -19,10 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.executor.pageable;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.pageable.policy.PageCachePolicy;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -32,7 +33,7 @@ import java.io.IOException;
  * Intended use: when this page is the only one returned by a relation
  *
  * Ergo further paging is not supported and
- * {@linkplain #fetch(PageInfo)} returns an empty page.
+ * {@linkplain #fetch(io.crate.executor.pageable.PageInfo)} returns an empty page.
  */
 public class SinglePageTaskResult implements PageableTaskResult {
 
@@ -47,13 +48,18 @@ public class SinglePageTaskResult implements PageableTaskResult {
     }
 
     @Override
-    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
-        return Futures.immediateFuture(PageableTaskResult.EMPTY_PAGABLE_RESULT);
+    public ListenableFuture<Page> fetch(PageInfo pageInfo) {
+        return Futures.immediateFuture(Page.EMPTY);
     }
 
     @Override
     public Page page() {
         return page;
+    }
+
+    @Override
+    public PageCachePolicy policy() {
+        return null;
     }
 
     @Override

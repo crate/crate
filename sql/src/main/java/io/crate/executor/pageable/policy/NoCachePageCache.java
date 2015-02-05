@@ -19,50 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.executor.pageable.policy;
 
-import com.google.common.util.concurrent.Futures;
+import com.google.common.base.Function;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.pageable.Page;
 import io.crate.executor.pageable.PageInfo;
-import io.crate.executor.pageable.PageableTaskResult;
-import io.crate.executor.TaskResult;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+public class NoCachePageCache implements PageCache {
 
-class FetchedRowsIterable extends RelationIterable {
+    private final Function<PageInfo, ListenableFuture<Page>> fetchPageFunction;
 
-    private final Iterable<Object[]> rows;
-
-    public FetchedRowsIterable(TaskResult taskResult, PageInfo pageInfo) {
-        super(pageInfo);
-        if (taskResult instanceof PageableTaskResult) {
-            this.rows = ((PageableTaskResult) taskResult).page();
-        } else {
-            this.rows = Arrays.asList(taskResult.rows());
-        }
+    public NoCachePageCache(Function<PageInfo, ListenableFuture<Page>> fetchPageFunction) {
+        this.fetchPageFunction = fetchPageFunction;
     }
 
     @Override
-    public Iterator<Object[]> iterator() {
-        return rows.iterator();
-    }
-
-    @Override
-    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
-        this.pageInfo(pageInfo);
-        return Futures.immediateFuture(null);
-    }
-
-    @Override
-    public boolean isComplete() {
-        return true;
-    }
-
-    @Override
-    public void close() throws IOException {
-        // ayayayayayaaaay!
+    public ListenableFuture<Page> get(PageInfo pageInfo) {
+        return fetchPageFunction.apply(pageInfo);
     }
 }

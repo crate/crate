@@ -19,15 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.executor.pageable;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ComparisonChain;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class PageInfo {
+public class PageInfo implements Comparable<PageInfo> {
 
     private final int size;
     private final int position;
@@ -91,5 +92,13 @@ public class PageInfo {
         int result = size;
         result = 31 * result + position;
         return result;
+    }
+
+    @Override
+    public int compareTo(PageInfo o) {
+        return ComparisonChain.start()
+                .compare(this.position, o.position)
+                .compare(this.size, o.size)
+                .result();
     }
 }

@@ -19,37 +19,21 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.executor.pageable;
 
-import com.google.common.base.Preconditions;
-import io.crate.core.collections.ArrayIterator;
+import io.crate.executor.Task;
+import io.crate.executor.pageable.policy.PageCachePolicy;
 
-import java.util.Iterator;
+/**
+ * A task that is able to return paged results.
+ * By contract it should return implementations of
+ * {@linkplain PageableTaskResult} (nested in futures)
+ * on {@linkplain #result()}.
+ */
+public interface PageableTask extends Task {
 
-public class ObjectArrayPage implements Page {
-
-    private final int start;
-    private final int size;
-    private final Object[][] pageSource;
-
-    public ObjectArrayPage(Object[][] pageSource, int start, int size) {
-        Preconditions.checkArgument(start <= pageSource.length, "start exceeds page");
-        this.start = start;
-        this.size = Math.min(size, pageSource.length - start);
-        this.pageSource = pageSource;
-    }
-
-    public ObjectArrayPage(Object[][] pageSource) {
-        this(pageSource, 0, pageSource.length);
-    }
-
-    @Override
-    public Iterator<Object[]> iterator() {
-        return new ArrayIterator(pageSource, start, start +  size);
-    }
-
-    @Override
-    public long size() {
-        return size;
-    }
+    /**
+     * Start a paged execution.
+     */
+    public void start(PageInfo pageInfo, PageCachePolicy policy);
 }

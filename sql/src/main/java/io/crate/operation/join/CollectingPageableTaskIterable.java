@@ -28,10 +28,10 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.Page;
-import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
-import io.crate.executor.SinglePageTaskResult;
+import io.crate.executor.pageable.Page;
+import io.crate.executor.pageable.PageInfo;
+import io.crate.executor.pageable.PageableTaskResult;
+import io.crate.executor.pageable.SinglePageTaskResult;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -77,13 +77,13 @@ public class CollectingPageableTaskIterable extends RelationIterable {
         this.pageInfo(pageInfo);
 
         final SettableFuture<Void> future = SettableFuture.create();
-        Futures.addCallback(currentTaskResult.fetch(pageInfo), new FutureCallback<PageableTaskResult>() {
+        Futures.addCallback(currentTaskResult.fetch(pageInfo), new FutureCallback<Page>() {
             @Override
-            public void onSuccess(@Nullable PageableTaskResult result) {
+            public void onSuccess(@Nullable Page result) {
                 if (result == null) {
                     future.setException(new IllegalArgumentException("PageableTaskResult is null"));
                 } else {
-                    pages.add(result.page());
+                    pages.add(result);
                     future.set(null);
                 }
             }

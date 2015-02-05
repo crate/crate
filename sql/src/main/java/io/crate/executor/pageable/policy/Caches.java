@@ -19,50 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.executor.pageable.policy;
 
-import com.google.common.util.concurrent.Futures;
+import com.google.common.base.Function;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.pageable.Page;
 import io.crate.executor.pageable.PageInfo;
-import io.crate.executor.pageable.PageableTaskResult;
-import io.crate.executor.TaskResult;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+public class Caches {
 
-class FetchedRowsIterable extends RelationIterable {
-
-    private final Iterable<Object[]> rows;
-
-    public FetchedRowsIterable(TaskResult taskResult, PageInfo pageInfo) {
-        super(pageInfo);
-        if (taskResult instanceof PageableTaskResult) {
-            this.rows = ((PageableTaskResult) taskResult).page();
+    public static PageCache getCache(PageCachePolicy policy, Function<PageInfo, ListenableFuture<Page>> fetchPageCallable) {
+        if (policy instanceof PageCachePolicy.CachingPolicy || policy == PageCachePolicy.CACHE_ALL) {
+            return new CachingPageCache((PageCachePolicy.CachingPolicy)policy, fetchPageCallable);
+        } else if (policy == PageCachePolicy.NO_CACHE) {
+            return new NoCachePageCache(fetchPageCallable);
         } else {
-            this.rows = Arrays.asList(taskResult.rows());
+            throw new IllegalArgumentException("no pageCache implementation found");
         }
-    }
-
-    @Override
-    public Iterator<Object[]> iterator() {
-        return rows.iterator();
-    }
-
-    @Override
-    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) throws NoSuchElementException {
-        this.pageInfo(pageInfo);
-        return Futures.immediateFuture(null);
-    }
-
-    @Override
-    public boolean isComplete() {
-        return true;
-    }
-
-    @Override
-    public void close() throws IOException {
-        // ayayayayayaaaay!
     }
 }
