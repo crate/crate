@@ -70,7 +70,7 @@ public class DocTableInfoBuilder {
         this.checkAliasSchema = checkAliasSchema;
     }
 
-    public DocIndexMetaData docIndexMetaData() {
+    private DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
         String templateName = PartitionName.templateName(ident.schema(), ident.name());
         boolean createdFromTemplate = false;

@@ -132,6 +132,19 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromFileWithPartition() throws Exception {
+        execute("create table quotes (id int, " +
+                "quote string) partitioned by (id)");
+        ensureGreen();
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes partition (id = 1) from ? with (shared=true)", new Object[]{filePath});
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+    }
+
+    @Test
     public void testCopyToFile() throws Exception {
         this.setup.groupBySetup();
 

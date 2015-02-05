@@ -5,8 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fix: Adding new columns to existing partitions could fail if the table was altered
-   before
+ - Fix: COPY FROM PARTITION failed if the source contained a ``partitioned by`` column
+
+ - Fix: ALTER TABLE could break existing tables under some conditions
 
  - Upgrade Elasticsearch to v1.4.2
 
