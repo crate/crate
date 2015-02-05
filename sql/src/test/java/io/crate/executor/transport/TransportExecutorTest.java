@@ -476,7 +476,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testESIndexPartitionedTableTask() throws Exception {
+    public void testInsertIntoPartitionedTableWithUpsertByIdTask() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
                 "  name string, " +
