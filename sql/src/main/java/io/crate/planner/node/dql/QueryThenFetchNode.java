@@ -135,4 +135,20 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
                 .add("partitionBy", partitionBy)
                 .toString();
     }
+
+    public static QueryThenFetchNode withLimitAndOffset(QueryThenFetchNode oldNode,
+                                                        int newOffset,
+                                                        int newLimit) {
+        return new QueryThenFetchNode(
+                oldNode.routing(),
+                oldNode.outputs(),
+                oldNode.orderBy(),
+                oldNode.reverseFlags(),
+                oldNode.nullsFirst(),
+                newLimit,
+                newOffset,
+                oldNode.whereClause(),
+                oldNode.partitionBy()
+        );
+    }
 }

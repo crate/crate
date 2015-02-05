@@ -40,6 +40,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -86,6 +87,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final BigArrays bigArrays;
 
+    private final QueryThenFetchOperation queryThenFetchOperation;
+
     @Inject
     public TransportExecutor(Settings settings,
                              TransportActionProvider transportActionProvider,
@@ -99,7 +102,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
                              CrateResultSorter crateResultSorter,
-                             BigArrays bigArrays) {
+                             BigArrays bigArrays,
+                             QueryThenFetchOperation queryThenFetchOperation) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -111,6 +115,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.clusterService = clusterService;
         this.crateResultSorter = crateResultSorter;
         this.bigArrays = bigArrays;
+        this.queryThenFetchOperation = queryThenFetchOperation;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
@@ -273,15 +278,9 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public ImmutableList<Task> visitQueryThenFetchNode(QueryThenFetchNode node, UUID jobId) {
             return singleTask(new QueryThenFetchTask(
                     jobId,
+                    queryThenFetchOperation,
                     functions,
-                    node,
-                    clusterService,
-                    transportActionProvider.transportQueryShardAction(),
-                    transportActionProvider.searchServiceTransportAction(),
-                    searchPhaseControllerProvider.get(),
-                    threadPool,
-                    bigArrays,
-                    crateResultSorter));
+                    node));
         }
 
         @Override

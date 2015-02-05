@@ -33,6 +33,7 @@ import io.crate.executor.TaskResult;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
@@ -77,7 +78,7 @@ public class QueryThenFetchTaskTest {
     private CrateResultSorter crateResultSorter;
     private SearchPhaseController searchPhaseController = mock(SearchPhaseController.class);
     private DiscoveryNodes nodes = mock(DiscoveryNodes.class);
-
+    private QueryThenFetchOperation queryThenFetchOperation;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -104,17 +105,24 @@ public class QueryThenFetchTaskTest {
         transportQueryShardAction = mock(TransportQueryShardAction.class);
         searchServiceTransportAction = mock(SearchServiceTransportAction.class);
         crateResultSorter = mock(CrateResultSorter.class);
-        queryThenFetchTask = new QueryThenFetchTask(
-                UUID.randomUUID(),
-                mock(Functions.class),
-                searchNode,
+
+        ThreadPool testPool = new ThreadPool(getClass().getName());
+        BigArrays mockedBigarrays = mock(BigArrays.class);
+        queryThenFetchOperation = new QueryThenFetchOperation(
                 clusterService,
                 transportQueryShardAction,
                 searchServiceTransportAction,
                 searchPhaseController,
-                new ThreadPool("testpool"),
-                mock(BigArrays.class),
-                crateResultSorter);
+                testPool,
+                mockedBigarrays,
+                crateResultSorter
+        );
+        queryThenFetchTask = new QueryThenFetchTask(
+                UUID.randomUUID(),
+                queryThenFetchOperation,
+                mock(Functions.class),
+                searchNode
+                );
     }
 
     @Test
@@ -123,6 +131,7 @@ public class QueryThenFetchTaskTest {
         expectedException.expectMessage("Operation not supported with symbol count()");
         new QueryThenFetchTask(
                 UUID.randomUUID(),
+                queryThenFetchOperation,
                 mock(Functions.class),
                 new QueryThenFetchNode(
                         new Routing(),
@@ -135,19 +144,14 @@ public class QueryThenFetchTaskTest {
                         null,
                         WhereClause.MATCH_ALL,
                         null
-                ),
-                clusterService,
-                mock(TransportQueryShardAction.class),
-                mock(SearchServiceTransportAction.class),
-                mock(SearchPhaseController.class),
-                mock(ThreadPool.class),
-                mock(BigArrays.class),
-                crateResultSorter);
+                )
+        );
     }
 
     @Test
     public void testFinishWithErrors() throws Throwable{
-        ArgumentCaptor<QueryThenFetchTask.QueryShardResponseListener> responseListener = ArgumentCaptor.forClass(QueryThenFetchTask.QueryShardResponseListener.class);
+        ArgumentCaptor<QueryThenFetchOperation.QueryShardResponseListener> responseListener = ArgumentCaptor.forClass(
+                QueryThenFetchOperation.QueryShardResponseListener.class);
         doAnswer(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
@@ -192,7 +196,8 @@ public class QueryThenFetchTaskTest {
 
     @Test
     public void testErrorInQueryPhase() throws Throwable {
-        ArgumentCaptor<QueryThenFetchTask.QueryShardResponseListener> responseListener = ArgumentCaptor.forClass(QueryThenFetchTask.QueryShardResponseListener.class);
+        ArgumentCaptor<QueryThenFetchOperation.QueryShardResponseListener> responseListener = ArgumentCaptor.forClass(
+                QueryThenFetchOperation.QueryShardResponseListener.class);
         doAnswer(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {

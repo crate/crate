@@ -21,11 +21,10 @@
 
 package io.crate.analyze.where;
 
-import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
