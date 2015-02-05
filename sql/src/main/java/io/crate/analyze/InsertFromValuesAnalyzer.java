@@ -98,6 +98,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         return null;
     }
 
+
     private void addValues(ValuesList node,
                            InsertFromValuesAnalyzedStatement context,
                            int numPrimaryKeys) throws IOException {
@@ -111,54 +112,54 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         List<ColumnIdent> primaryKey = context.table().primaryKey();
 
         for (int i = 0, valuesSize = values.size(); i < valuesSize; i++) {
-            Expression expression = values.get(i);
-            Symbol valuesSymbol = process(expression, context);
-
-            // implicit type conversion
+            Symbol valueSymbol = process(values.get(i), context);
             Reference column = context.columns().get(i);
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
+            Object value;
             try {
-                valuesSymbol = context.normalizeInputForReference(valuesSymbol, column, true);
+                valueSymbol = context.normalizeInputForReference(valueSymbol, column, true);
+                value = ((Input) valueSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
-                throw new ColumnValidationException(column.info().ident().columnIdent().sqlFqn(), e);
+                throw new ColumnValidationException(columnIdent.sqlFqn(), e);
+            } catch (ClassCastException e) {
+                // symbol is no Input
+                throw new ColumnValidationException(columnIdent.name(),
+                        String.format("Invalid value of type '%s' in insert statement", valueSymbol.symbolType().name()));
             }
-            try {
-                Object value = ((Input) valuesSymbol).value();
-                if (context.primaryKeyColumnIndices().contains(i)) {
-                    int idx = primaryKey.indexOf(columnIdent);
-                    if (idx < 0) {
-                        // oh look, one or more nested primary keys!
-                        assert value instanceof Map;
-                        for (ColumnIdent pkIdent : primaryKey) {
-                            if (!pkIdent.getRoot().equals(columnIdent)) {
-                                continue;
-                            }
-                            int pkIdx = primaryKey.indexOf(pkIdent);
-                            Object nestedValue = StringObjectMaps.fromMapByPath((Map) value, pkIdent.path());
-                            addPrimaryKeyValue(pkIdx, nestedValue, primaryKeyValues);
+
+            if (context.primaryKeyColumnIndices().contains(i)) {
+                if (value == null) {
+                    throw new IllegalArgumentException("Primary key value must not be NULL");
+                }
+                int idx = primaryKey.indexOf(columnIdent);
+                if (idx < 0) {
+                    // oh look, one or more nested primary keys!
+                    assert value instanceof Map;
+                    for (ColumnIdent pkIdent : primaryKey) {
+                        if (!pkIdent.getRoot().equals(columnIdent)) {
+                            continue;
                         }
-                    } else {
-                        addPrimaryKeyValue(idx, value, primaryKeyValues);
-                    }
-                }
-                if (i == context.routingColumnIndex()) {
-                    routingValue = extractRoutingValue(columnIdent, value, context);
-                }
-                if (context.partitionedByIndices().contains(i)) {
-                    Object rest = processPartitionedByValues(columnIdent, value, context);
-                    if (rest != null) {
-                        builder.field(columnIdent.name(), rest);
+                        int pkIdx = primaryKey.indexOf(pkIdent);
+                        Object nestedValue = StringObjectMaps.fromMapByPath((Map) value, pkIdent.path());
+                        addPrimaryKeyValue(pkIdx, nestedValue, primaryKeyValues);
                     }
                 } else {
-                    if (value instanceof BytesRef) {
-                        value = new BytesText(new BytesArray((BytesRef) value));
-                    }
-                    builder.field(columnIdent.name(), value);
+                    addPrimaryKeyValue(idx, value, primaryKeyValues);
                 }
-            } catch (ClassCastException e) {
-                // symbol is no input
-                throw new ColumnValidationException(columnIdent.name(),
-                        String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
+            }
+            if (i == context.routingColumnIndex()) {
+                routingValue = extractRoutingValue(columnIdent, value, context);
+            }
+            if (context.partitionedByIndices().contains(i)) {
+                Object rest = processPartitionedByValues(columnIdent, value, context);
+                if (rest != null) {
+                    builder.field(columnIdent.name(), rest);
+                }
+            } else {
+                if (value instanceof BytesRef) {
+                    value = new BytesText(new BytesArray((BytesRef) value));
+                }
+                builder.field(columnIdent.name(), value);
             }
         }
         context.sourceMaps().add(builder.bytes());
@@ -177,23 +178,26 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     }
 
     private String extractRoutingValue(ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
-        Object clusteredByValue = columnValue;
         ColumnIdent clusteredByIdent = context.table().clusteredBy();
-        if (!columnIdent.equals(clusteredByIdent)) {
+        assert clusteredByIdent != null : "clusteredByIdent must not be null";
+        if (columnValue != null && !columnIdent.equals(clusteredByIdent)) {
             // oh my gosh! A nested clustered by value!!!
-            assert clusteredByValue instanceof Map;
-            clusteredByValue = StringObjectMaps.fromMapByPath((Map) clusteredByValue, clusteredByIdent.path());
+            assert columnValue instanceof Map;
+            columnValue = StringObjectMaps.fromMapByPath((Map) columnValue, clusteredByIdent.path());
         }
-        if (clusteredByValue == null) {
+        if (columnValue == null) {
             throw new IllegalArgumentException("Clustered by value must not be NULL");
         }
-        return BytesRefs.toString(clusteredByValue);
+        return BytesRefs.toString(columnValue);
     }
 
     private Object processPartitionedByValues(final ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
         int idx = context.table().partitionedBy().indexOf(columnIdent);
         Map<String, String> partitionMap = context.currentPartitionMap();
         if (idx < 0) {
+            if (columnValue == null) {
+                return null;
+            }
             assert columnValue instanceof Map;
             Map<String, Object> mapValue = (Map<String, Object>) columnValue;
             // hmpf, one or more nested partitioned by columns

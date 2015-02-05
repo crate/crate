@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Improved value validation for nested primary key and clustered by
+   columns in INSERT statements.
+
+
 2015/02/03 0.46.4
 =================
 
