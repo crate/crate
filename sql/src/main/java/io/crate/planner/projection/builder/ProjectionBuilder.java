@@ -27,6 +27,7 @@ import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
@@ -48,6 +49,9 @@ public class ProjectionBuilder {
 
     public ProjectionBuilder(QuerySpec querySpec) {
         this.querySpec = querySpec;
+
+
+
     }
 
     public SplitPoints getSplitPoints() {
@@ -58,6 +62,18 @@ public class ProjectionBuilder {
         return context;
     }
 
+
+    public AggregationProjection aggregationProjection(
+            Collection<? extends Symbol> inputs,
+            Collection<Function> aggregates,
+            Aggregation.Step fromStep,
+            Aggregation.Step toStep){
+        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+        ArrayList<Aggregation> aggregations = getAggregations(aggregates, fromStep,
+                toStep, context);
+        return new AggregationProjection(aggregations);
+    }
+
     public GroupProjection groupProjection(
             Collection<Symbol> inputs,
             Collection<Symbol> keys,
@@ -66,34 +82,41 @@ public class ProjectionBuilder {
             Aggregation.Step toStep){
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+        ArrayList<Aggregation> aggregations = getAggregations(values, fromStep, toStep, context);
+        return new GroupProjection(inputVisitor.process(keys, context), aggregations);
+    }
 
-        ArrayList<Aggregation> aggregations = new ArrayList(values.size());
-        for (Function value : values) {
-            assert value.info().type() == FunctionInfo.Type.AGGREGATE;
+    private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
+                                                   Aggregation.Step fromStep,
+                                                   Aggregation.Step toStep,
+                                                   InputCreatingVisitor.Context context) {
+        ArrayList<Aggregation> aggregations = new ArrayList(functions.size());
+        for (Function function : functions) {
+            assert function.info().type() == FunctionInfo.Type.AGGREGATE;
             Aggregation aggregation;
             if (fromStep == Aggregation.Step.PARTIAL){
-                InputColumn ic = context.inputs.get(value);
+                InputColumn ic = context.inputs.get(function);
                 assert ic != null;
                 aggregation = new Aggregation(
-                        value.info(),
+                        function.info(),
                         ImmutableList.<Symbol>of(ic),
                         fromStep, toStep);
             } else {
                 // ITER means that there is no aggregation part upfront, therefore the input
                 // symbols need to be in arguments
                 aggregation = new Aggregation(
-                        value.info(),
-                        inputVisitor.process(value.arguments(), context),
+                        function.info(),
+                        inputVisitor.process(function.arguments(), context),
                         fromStep, toStep);
             }
             aggregations.add(aggregation);
 
         }
-        return new GroupProjection(inputVisitor.process(keys, context), aggregations);
+        return aggregations;
     }
 
     public FilterProjection filterProjection(
-            Collection<Symbol> inputs,
+            Collection<? extends Symbol> inputs,
             Symbol query) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         query = inputVisitor.process(query, context);
@@ -102,7 +125,7 @@ public class ProjectionBuilder {
     }
 
     public TopNProjection topNProjection(
-            Collection<Symbol> inputs,
+            Collection<? extends Symbol> inputs,
             @Nullable OrderBy orderBy,
             int offset,
             @Nullable Integer limit,

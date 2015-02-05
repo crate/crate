@@ -46,7 +46,7 @@ class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<
 
 
 
-        Context(Collection<Symbol> inputs, @Nullable Aggregation.Step fromStep) {
+        Context(Collection<? extends Symbol> inputs, @Nullable Aggregation.Step fromStep) {
             this.inputs = new HashMap(inputs.size());
             int i = 0;
             for (Symbol input : inputs) {
@@ -63,13 +63,13 @@ class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<
             }
         }
 
-        public Context(Collection<Symbol> inputs) {
+        public Context(Collection<? extends Symbol> inputs) {
             this(inputs, null);
         }
     }
 
 
-    public List<Symbol> process(Collection<Symbol> symbols, Context context) {
+    public List<Symbol> process(Collection<? extends Symbol> symbols, Context context) {
         List<Symbol> result = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
             result.add(process(symbol, context));
