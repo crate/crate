@@ -21,25 +21,56 @@
 
 package io.crate.types;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.spatial4j.core.shape.Shape;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.is;
 
-public class GeoShapeTypeTest {
+public class GeoShapeTypeTest extends RandomizedTest {
+
+    private GeoShapeType type = GeoShapeType.INSTANCE;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testStreamer() throws Exception {
-        Shape value = GeoShapeType.INSTANCE.value("POINT (10 10)");
+        Shape value = type.value("POINT (10 10)");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        GeoShapeType.INSTANCE.writeValueTo(out, value);
+        type.writeValueTo(out, value);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        Shape streamedShape = GeoShapeType.INSTANCE.readValueFrom(in);
+        Shape streamedShape = type.readValueFrom(in);
 
         assertThat(streamedShape, equalTo(value));
+    }
+
+    @Test
+    public void testCompareValueTo() throws Exception {
+        Shape val1 = type.value("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
+        Shape val2 = type.value("POINT (10 10)");
+
+        assertThat(type.compareValueTo(val1, val2), is(1));
+        assertThat(type.compareValueTo(val2, val1), is(-1));
+        assertThat(type.compareValueTo(val2, val2), is(0));
+    }
+
+    @Test
+    public void testInvalidStringValueCausesIllegalArgumentException() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot convert \"foobar\" to geo_shape");
+        type.value("foobar");
+    }
+    @Test
+    public void testInvalidTypeCausesIllegalArgumentException() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot convert \"200\" to geo_shape");
+        type.value(200);
     }
 }

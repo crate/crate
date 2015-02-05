@@ -63,7 +63,6 @@ public class GeoShapeType extends DataType<Shape> implements Streamer<Shape>, Da
         if (value == null) {
             return null;
         }
-
         if (value instanceof BytesRef) {
             return shapeFromString(BytesRefs.toString(value));
         }
