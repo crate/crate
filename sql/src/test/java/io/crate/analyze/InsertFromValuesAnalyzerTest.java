@@ -61,6 +61,14 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
+    private static final TableIdent NESTED_CLUSTERED_TABLE_IDENT = new TableIdent(null, "nested_clustered");
+    private static final TableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
+            NESTED_CLUSTERED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("o", DataTypes.OBJECT, null)
+            .add("o", DataTypes.STRING, Arrays.asList("c"))
+            .clusteredBy("o.c")
+            .build();
+
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
@@ -75,6 +83,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_NESTED_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name()))
                     .thenReturn(DEEPLY_NESTED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(NESTED_CLUSTERED_TABLE_IDENT.name()))
+                    .thenReturn(NESTED_CLUSTERED_TABLE_INFO);
             schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
 
@@ -785,6 +795,43 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(InvalidColumnNameException.class);
         expectedException.expectMessage("column name \"newCol[\" is invalid");
         analyze("insert into users (\"newCol[\") values(test)");
+    }
+
+    @Test
+    public void testInsertIntoTableWithNestedObjectPrimaryKeyAndNullInsert() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Primary key value must not be NULL");
+        analyze("insert into nested_pk (o) values (null)");
+    }
+
+    @Test
+    public void testNestedPrimaryKeyColumnMustNotBeNull() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Primary key value must not be NULL");
+        analyze("insert into nested_pk (o) values ({b=null})");
+    }
+
+    @Test
+    public void testNestedClusteredByColumnMustNotBeNull() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Clustered by value must not be NULL");
+        analyze("insert into nested_clustered (o) values ({c=null})");
+    }
+
+    @Test
+    public void testNestedClusteredByColumnMustNotBeNullWholeObject() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Clustered by value must not be NULL");
+        analyze("insert into nested_clustered (o) values (null)");
+    }
+
+    @Test
+    public void testInsertIntoTableWithNestedPartitionedByColumnAndNullValue() throws Exception {
+        // caused an AssertionError before... now there should be an entry with value null in the partition map
+        InsertFromValuesAnalyzedStatement statement = ((InsertFromValuesAnalyzedStatement) analyze(
+                "insert into nested_parted (obj) values (null)"));
+        assertThat(statement.partitionMaps().get(0).containsKey("obj.name"), is(true));
+        assertThat(statement.partitionMaps().get(0).get("obj.name"), nullValue());
     }
 }
 

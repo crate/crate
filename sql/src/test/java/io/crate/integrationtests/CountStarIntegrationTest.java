@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
