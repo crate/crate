@@ -48,7 +48,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         CloseableHttpResponse response = post("{\"foo\": \"bar\"}");
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\"io.crate.exceptions.SQLParseException: Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]\\n\\tat "));
+        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\"io.crate.exceptions.SQLParseException: Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]" + resolveEscapedNL() + "\\tat "));
     }
 
     @Test
@@ -57,5 +57,15 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertEquals("{\"error\":{\"message\":\"SQLActionException[request body contains args and bulk_args. It's forbidden to provide both]\",\"code\":4000},\"error_trace\":null}", bodyAsString);
+    }
+
+    private String resolveEscapedNL(){
+        String LN = System.getProperty("line.separator");
+        // http://en.wikipedia.org/wiki/Newline#Representations
+        switch (LN){
+            case "\r": return "\\r";
+            case "\r\n": return "\\r\\n";
+            default: return "\\n";
+        }
     }
 }

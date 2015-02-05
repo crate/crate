@@ -67,6 +67,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHits;
@@ -132,8 +133,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(result.size(), is(2));
         for (ListenableFuture<TaskResult> nodeResult : result) {
             assertEquals(1, nodeResult.get().rows().length);
-            assertThat((Double) nodeResult.get().rows()[0][0], is(greaterThan(0.0)));
-
+            if(!OsUtils.WINDOWS) {
+                assertThat((Double) nodeResult.get().rows()[0][0], is(greaterThan(0.0)));
+            }
         }
     }
 

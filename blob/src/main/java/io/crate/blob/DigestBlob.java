@@ -162,6 +162,14 @@ public class DigestBlob {
             file.delete();
             throw new DigestMismatchException(digest, contentDigest);
         }
+        // release headFileChannel
+        if(null != headFileChannel){
+            try {
+                headFileChannel.close();
+            } catch (IOException e) {
+                // probably already closed!
+            }
+        }
         File newFile = container.getFile(digest);
         file.renameTo(newFile);
         return newFile;

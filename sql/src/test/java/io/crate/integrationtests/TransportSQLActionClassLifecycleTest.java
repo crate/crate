@@ -30,6 +30,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.os.OsUtils;
 import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -401,7 +402,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testCopyToDirectoryOnPartitionedTableWithPartitionClause() throws Exception {
-        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = executor.exec("copy parted partition (date='2014-01-01') to DIRECTORY ?", uriTemplate);
         assertThat(response.rowCount(), is(2L));
 
@@ -421,7 +422,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testCopyToDirectoryOnPartitionedTableWithoutPartitionClause() throws Exception {
-        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = executor.exec("copy parted to DIRECTORY ?", uriTemplate);
         assertThat(response.rowCount(), is(5L));
 
@@ -453,8 +454,10 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         response = executor.exec("select ? + 2 from sys.cluster", 1);
         assertThat((Long)response.rows()[0][0], is(3L));
 
-        response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
-        assertEquals(response.rows()[0][0], (Double) response.rows()[0][1] + (Double) response.rows()[0][2]);
+        if(!OsUtils.WINDOWS) {
+            response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
+            assertEquals(response.rows()[0][0], (Double) response.rows()[0][1] + (Double) response.rows()[0][2]);
+        }
     }
 
     @Test
