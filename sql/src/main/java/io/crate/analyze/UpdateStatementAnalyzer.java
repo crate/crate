@@ -139,22 +139,11 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             // cannot update fields of object arrays
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
-
-        // it's something that we can normalize to a literal
         Symbol value = expressionAnalyzer.normalize(
                 tableRelation.resolve(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
         try {
             value = expressionAnalyzer.normalizeInputForReference(value, reference, true);
-            if (tableInfo.clusteredBy() != null) {
-                ensureNotUpdated(ident, value, tableInfo.clusteredBy(),
-                        "Updating a clustered-by column is not supported");
-            }
-            for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
-                ensureNotUpdated(ident, value, pkIdent, "Updating a primary key is not supported");
-            }
-            for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
-                ensureNotUpdated(ident, value, partitionIdent, "Updating a partitioned-by column is not supported");
-            }
+            ensureUpdateIsAllowed(tableInfo, ident, value);
 
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
@@ -163,18 +152,33 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         nestedAnalyzedStatement.addAssignment(reference, value);
     }
 
-    private void ensureNotUpdated(ColumnIdent columnUpdated,
-                                  Symbol newValue,
-                                  ColumnIdent protectedColumnIdent,
-                                  String errorMessage) {
-        if (columnUpdated.equals(protectedColumnIdent)) {
-            throw new IllegalArgumentException(errorMessage);
+    public static void ensureUpdateIsAllowed(TableInfo tableInfo, ColumnIdent column, Symbol value) {
+        if (tableInfo.clusteredBy() != null) {
+            ensureNotUpdated(column, value, tableInfo.clusteredBy(),
+                    "Updating a clustered-by column is not supported");
         }
+        for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
+            ensureNotUpdated(column, value, pkIdent, "Updating a primary key is not supported");
+        }
+        for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
+            ensureNotUpdated(column, value, partitionIdent, "Updating a partitioned-by column is not supported");
+        }
+    }
 
-        if (protectedColumnIdent.isChildOf(columnUpdated) &&
-                !(newValue.valueType().equals(DataTypes.OBJECT)
-                        && StringObjectMaps.fromMapByPath((Map) ((Literal)newValue).value(), protectedColumnIdent.path()) == null)) {
-            throw new IllegalArgumentException(errorMessage);
+    private static void ensureNotUpdated(ColumnIdent columnUpdated,
+                                         Symbol newValue,
+                                         ColumnIdent protectedColumnIdent,
+                                         String errorMessage) {
+        if (columnUpdated.equals(protectedColumnIdent)) {
+            throw new UnsupportedOperationException(errorMessage);
+        }
+        if (protectedColumnIdent.isChildOf(columnUpdated)) {
+            if (newValue.valueType().equals(DataTypes.OBJECT)
+                    && newValue.symbolType().isValueSymbol()
+                    && StringObjectMaps.fromMapByPath((Map) ((Literal) newValue).value(), protectedColumnIdent.path()) == null) {
+                return;
+            }
+            throw new UnsupportedOperationException(errorMessage);
         }
     }
 

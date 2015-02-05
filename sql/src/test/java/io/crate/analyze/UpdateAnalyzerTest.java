@@ -66,6 +66,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             NESTED_CLUSTERED_BY_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .add("obj", DataTypes.OBJECT, null)
             .add("obj", DataTypes.STRING, Arrays.asList("name"))
+            .add("other_obj", DataTypes.OBJECT, null)
             .clusteredBy("obj.name").build();
 
     private final static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "alias");
@@ -429,5 +430,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for obj: Updating a clustered-by column is not supported");
         analyze("update nestedclustered set obj = {name='foobar'}");
+    }
+
+    @Test
+    public void testUpdateNestedClusteredByColumnWithOtherObject() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for obj: Updating a clustered-by column is not supported");
+        analyze("update nestedclustered set obj = other_obj");
     }
 }
