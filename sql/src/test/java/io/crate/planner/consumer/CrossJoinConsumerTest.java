@@ -28,12 +28,12 @@ import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ValidationException;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.operator.OrOperator;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.TopNProjection;
@@ -252,17 +252,15 @@ public class CrossJoinConsumerTest {
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
 
-        IterablePlan leftPlan = (IterablePlan) nl.left();
-        IterablePlan rightPlan = (IterablePlan) nl.right();
-
-        QueryThenFetchNode left = (QueryThenFetchNode)leftPlan.iterator().next();
-        QueryThenFetchNode right = (QueryThenFetchNode)rightPlan.iterator().next();
-
-        WhereClause leftWhereClause = left.whereClause();
-        WhereClause rightWhereClause = right.whereClause();
-
-        assertThat(leftWhereClause.query(), isFunction(OrOperator.NAME));
-        assertThat(rightWhereClause.query(), isFunction(OrOperator.NAME));
+        ESGetNode left = (ESGetNode) ((IterablePlan) nl.left()).iterator().next();
+        ESGetNode right = (ESGetNode) ((IterablePlan) nl.right()).iterator().next();
+        if (left.index().equals("t1")) {
+            assertThat(left.ids(), containsInAnyOrder("1", "2"));
+            assertThat(right.ids(), containsInAnyOrder("3", "4"));
+        } else {
+            assertThat(left.ids(), containsInAnyOrder("3", "4"));
+            assertThat(right.ids(), containsInAnyOrder("1", "2"));
+        }
     }
 
     @Test
