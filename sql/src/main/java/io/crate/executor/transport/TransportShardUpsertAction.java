@@ -305,6 +305,7 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
      *
      * TODO: detect NOOP
      */
+    @SuppressWarnings("unchecked")
     private void updateSourceByPaths(Map<String, Object> source, Map<String, Object> changes) {
         for (Map.Entry<String, Object> changesEntry : changes.entrySet()) {
             if (changesEntry.getKey().contains(".")) {
