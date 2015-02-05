@@ -646,7 +646,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 });
 
         assertThat(analysis.sourceMaps().size(), is(2));
-        assertThat((Object[])analysis.sourceMaps().get(0)[1], arrayContaining((Object)null));
+        assertThat((Object[])analysis.sourceMaps().get(0)[1], arrayContaining((Object) null));
         assertThat((Object[]) analysis.sourceMaps().get(1)[1], arrayContaining((Object) new BytesRef("foo")));
     }
 
@@ -918,6 +918,27 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     public void testInvalidLeftSideExpressionInOnDuplicateKey() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         analyze("insert into users (id, name) values (1, 'Arthur') on duplicate key update [1, 2] = 1");
+    }
+
+    @Test
+    public void testUpdateOnPartitionedColumnShouldRaiseAnError() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Updating a partitioned-by column is not supported");
+        analyze("insert into parted (id) values (1) on duplicate key update date = 0");
+    }
+
+    @Test
+    public void testUpdateOnPrimaryKeyColumnShouldRaiseAnError() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Updating a primary key is not supported");
+        analyze("insert into nested_pk (id, o) values (1, {b=1}) on duplicate key update id = 10");
+    }
+
+    @Test
+    public void testUpdateOnClusteredByColumnShouldRaiseAnError() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Updating a clustered-by column is not supported");
+        analyze("insert into users (id) values (1) on duplicate key update id = 10");
     }
 }
 
