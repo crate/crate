@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Comparing arrays now works correctly for literals and comparing an array
+   field to an array literal will result in a correct
+   UnsupportedOperationException.
+
  - Fix: Improved value validation for nested primary key and clustered by
    columns in INSERT statements.
 

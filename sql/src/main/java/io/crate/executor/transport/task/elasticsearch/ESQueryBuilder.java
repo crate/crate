@@ -611,7 +611,9 @@ public class ESQueryBuilder {
                 }
 
                 assert left.symbolType() == SymbolType.REFERENCE || left.symbolType() == SymbolType.DYNAMIC_REFERENCE;
-
+                if (DataTypes.isCollectionType(left.valueType()) && DataTypes.isCollectionType(right.valueType())) {
+                    throw new UnsupportedOperationException("Cannot compare two arrays");
+                }
 
                 Object value;
                 if (Symbol.isLiteral(right, DataTypes.STRING)) {

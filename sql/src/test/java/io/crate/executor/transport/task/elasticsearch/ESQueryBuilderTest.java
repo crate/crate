@@ -859,6 +859,18 @@ public class ESQueryBuilderTest {
     }
 
     @Test
+    public void testEqOnTwoArrayShouldFail() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot compare two arrays");
+
+        DataType intArray = new ArrayType(DataTypes.INTEGER);
+        generator.convert(new WhereClause(createFunction(EqOperator.NAME, DataTypes.BOOLEAN,
+                createReference("a", intArray),
+                Literal.newLiteral(intArray, new Object[] { 10, 20})
+        )));
+    }
+
+    @Test
     public void testWhereNumericScalarEqNumericScalar() throws Exception {
         /**
          * round(a) = round(b) isn't supported
