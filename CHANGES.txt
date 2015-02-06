@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Upgrade Elasticsearch to v1.4.2
+
  - Fix: ``Insert-By-Query`` using objects did not work through wrong
    comparison of data types.
 
