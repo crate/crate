@@ -42,6 +42,27 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     }
 
     @Test
+    public void testEqualsQueryOnArrayType() throws Exception {
+        execute("create table t (a array(integer)) with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (a) values (?)", new Object[][]{
+                new Object[]{new Object[] {10, 10, 20}},
+                new Object[]{new Object[] {40, 50, 60}},
+                new Object[]{new Object[] {null, null}}
+        });
+        execute("refresh table t");
+
+        execute("select * from t where a = [10, 10, 20]");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select * from t where a = [10, 20]");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from t where a = [null, null]");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
     public void testWhereFunctionWithIndexOffColumn() throws Exception {
         execute("create table t (text string index off) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");

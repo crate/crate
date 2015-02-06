@@ -50,10 +50,12 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.symbol.*;
 import io.crate.types.CollectionType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
@@ -344,12 +346,56 @@ public class LuceneQueryBuilder {
                     return null;
                 }
 
-                if (DataTypes.isCollectionType(tuple.v1().valueType()) && DataTypes.isCollectionType(tuple.v2().valueType())) {
-                    throw new UnsupportedFeatureException("Cannot compare two arrays");
+                Reference reference = tuple.v1();
+                Literal literal = tuple.v2();
+                String columnName = reference.info().ident().columnIdent().fqn();
+                if (DataTypes.isCollectionType(reference.valueType()) && DataTypes.isCollectionType(literal.valueType())) {
+                    // create terms query to utilize lucene index to pre-filter the result..
+                    BooleanQuery booleanQuery = new BooleanQuery();
+                    DataType type = literal.valueType();
+                    while (DataTypes.isCollectionType(type)) {
+                        type = ((CollectionType) type).innerType();
+                    }
+                    QueryBuilderHelper builder = QueryBuilderHelper.forType(type);
+                    Object value = literal.value();
+                    buildTermsQuery(booleanQuery, value, columnName, builder);
+
+                    if (booleanQuery.clauses().isEmpty()) {
+                        // all values are null...
+                        return genericFunctionQuery(input);
+                    }
+                    // genericFunctionFilter will do the exact match, operating on the _DOC
+                    BooleanFilter filterClauses = new BooleanFilter();
+                    filterClauses.add(new QueryWrapperFilter(booleanQuery), BooleanClause.Occur.MUST);
+                    filterClauses.add(genericFunctionFilter(input), BooleanClause.Occur.MUST);
+                    return new FilteredQuery(Queries.newMatchAllQuery(), filterClauses);
                 }
-                String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.eq(columnName, tuple.v2().value());
+            }
+
+            private boolean buildTermsQuery(BooleanQuery booleanQuery,
+                                            Object value,
+                                            String columnName,
+                                            QueryBuilderHelper builder) {
+                if (value == null) {
+                    return true;
+                }
+                if (value.getClass().isArray()) {
+                    Object[] array = (Object[]) value;
+                    for (Object o : array) {
+                        if (!buildTermsQuery(booleanQuery, o, columnName, builder)) {
+                            return false;
+                        }
+                    }
+                } else {
+                    try {
+                        booleanQuery.add(builder.eq(columnName, value), BooleanClause.Occur.MUST);
+                    } catch (BooleanQuery.TooManyClauses e) {
+                        return false;
+                    }
+                }
+                return true;
             }
         }
 
@@ -835,7 +881,7 @@ public class LuceneQueryBuilder {
             return null;
         }
 
-        private Query genericFunctionQuery(Function function) {
+        private Filter genericFunctionFilter(Function function) {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
@@ -876,8 +922,11 @@ public class LuceneQueryBuilder {
                             acceptDocs);
                 }
             };
-            Filter cachedFilter = indexCache.filter().cache(filter);
-            return new FilteredQuery(Queries.newMatchAllQuery(), cachedFilter);
+            return indexCache.filter().cache(filter);
+        }
+
+        private Query genericFunctionQuery(Function function) {
+            return new FilteredQuery(Queries.newMatchAllQuery(), genericFunctionFilter(function));
         }
 
         static class FunctionDocSet extends MatchDocIdSet {

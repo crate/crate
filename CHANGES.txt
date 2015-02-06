@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for array comparisons using the equals ``=`` operator.
+
  - Upgrade Elasticsearch to v1.4.2
 
  - Fix: Hard wire utf-8 encoding in init scripts, so unicode filenames work
@@ -13,9 +15,6 @@ Unreleased
 
  - Fix: ALTER TABLE could break existing tables under some conditions
 
- - Comparing arrays now works correctly for literals and comparing an array
-   field to an array literal will result in a correct
-   UnsupportedOperationException.
 
  - Support `INSERT ... ON DUPLICATE KEY UPDATE` statement
 

@@ -24,7 +24,6 @@ package io.crate.lucene;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -45,9 +44,7 @@ import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 
 import java.util.Arrays;
@@ -58,12 +55,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class LuceneQueryBuilderTest extends RandomizedTest{
+public class LuceneQueryBuilderTest extends RandomizedTest {
 
     private LuceneQueryBuilder builder;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -99,13 +93,34 @@ public class LuceneQueryBuilderTest extends RandomizedTest{
 
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQuery() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Cannot compare two arrays");
         DataType longArray = new ArrayType(DataTypes.LONG);
-        convert(new WhereClause(createFunction(EqOperator.NAME,
+        Query query = convert(new WhereClause(createFunction(EqOperator.NAME,
                 DataTypes.BOOLEAN,
                 createReference("x", longArray),
-                Literal.newLiteral(longArray, new Object[] { 10L, 20L }))));
+                Literal.newLiteral(longArray, new Object[] { 10L, null, 20L }))));
+        assertThat(query, instanceOf(FilteredQuery.class));
+    }
+
+    @Test
+    public void testEqOnTwoArraysBecomesGenericFunctionQueryAllValuesNull() throws Exception {
+        DataType longArray = new ArrayType(DataTypes.LONG);
+        Query query = convert(new WhereClause(createFunction(EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                createReference("x", longArray),
+                Literal.newLiteral(longArray, new Object[] { null, null, null }))));
+        assertThat(query, instanceOf(FilteredQuery.class));
+    }
+
+    @Test
+    public void testEqOnArrayWithTooManyClauses() throws Exception {
+        Object[] values = new Object[2000]; // should trigger the TooManyClauses exception
+        Arrays.fill(values, 10L);
+        DataType longArray = new ArrayType(DataTypes.LONG);
+        Query query = convert(new WhereClause(createFunction(EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                createReference("x", longArray),
+                Literal.newLiteral(longArray, values))));
+        assertThat(query, instanceOf(FilteredQuery.class));
     }
 
     @Test
