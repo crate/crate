@@ -47,8 +47,8 @@ public class NestedLoopTask extends JobTask implements PageableTask {
     public NestedLoopTask(UUID jobId,
                           String nodeId,
                           NestedLoopNode nestedLoopNode,
-                          List<Task> outerTasks,
-                          List<Task> innerTasks,
+                          Job outerJob,
+                          Job innerJob,
                           TaskExecutor executor,
                           ProjectionToProjectorVisitor projectionToProjectorVisitor,
                           CircuitBreaker circuitBreaker) {
@@ -59,8 +59,8 @@ public class NestedLoopTask extends JobTask implements PageableTask {
                 circuitBreaker);
         operation = new NestedLoopOperation(
                 nestedLoopNode,
-                outerTasks,
-                innerTasks,
+                outerJob.tasks(),
+                innerJob.tasks(),
                 executor,
                 projectionToProjectorVisitor,
                 ramAccountingContext

@@ -33,6 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.IterablePlan;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
@@ -92,7 +93,8 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        Job fakeJob = new Job();
+        List<Task> tasks = executor.newTasks(qtfNode, fakeJob);
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = PageInfo.firstPage(2);
@@ -142,7 +144,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = new PageInfo(1, 2);
@@ -189,7 +191,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = new PageInfo(1, 2);
@@ -234,7 +236,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = new PageInfo(1, 1);
@@ -284,7 +286,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 parted.partitionedByColumns()
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = new PageInfo(0, 1);
@@ -350,7 +352,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = new PageInfo(1, 1);
@@ -447,11 +449,17 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // SELECT characters.id, characters.name, characters.female, books.title
         // FROM characters CROSS JOIN books
         // ORDER BY character.name, character.female, books.title
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, Constants.DEFAULT_SELECT_LIMIT, 0);
+        NestedLoopNode node = new NestedLoopNode(
+                new IterablePlan(leftNode),
+                new IterablePlan(rightNode),
+                true,
+                Constants.DEFAULT_SELECT_LIMIT,
+                0
+        );
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
-        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(node, new Job());
         assertThat(tasks.size(), is(1));
         assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
 
@@ -535,11 +543,17 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // FROM characters CROSS JOIN books
         // ORDER BY character.name, character.female, books.title
         // limit 10 offset 1
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 10, 1);
+        NestedLoopNode node = new NestedLoopNode(
+                new IterablePlan(leftNode),
+                new IterablePlan(rightNode),
+                true,
+                10,
+                1
+        );
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
-        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(node, new Job());
         assertThat(tasks.size(), is(1));
         assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
 
@@ -623,11 +637,17 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // FROM characters AS c CROSS JOIN books as b
         // ORDER BY c.name, c.female, b.title
         // LIMIT 10 OFFSET 1
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, queryLimit, queryOffset);
+        NestedLoopNode node = new NestedLoopNode(
+                new IterablePlan(leftNode),
+                new IterablePlan(rightNode),
+                true,
+                queryLimit,
+                queryOffset
+        );
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
-        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(node, new Job());
         assertThat(tasks.size(), is(1));
         assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
 
@@ -739,10 +759,16 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // FROM characters AS c CROSS JOIN books as b
         // ORDER BY c.name, c.female, b.title
         // LIMIT 10 OFFSET 1
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, queryLimit, queryOffset);
+        NestedLoopNode node = new NestedLoopNode(
+                new IterablePlan(leftNode),
+                new IterablePlan(rightNode),
+                true,
+                queryLimit,
+                queryOffset
+        );
         node.outputTypes(outputTypes);
 
-        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(node, new Job());
         assertThat(tasks.size(), is(1));
         assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
 
@@ -841,7 +867,13 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         );
 
         // self join :)
-        NestedLoopNode leftNestedLoopNode = new NestedLoopNode(leftQtfNode, leftQtfNode, true, TopN.NO_LIMIT, TopN.NO_OFFSET);
+        NestedLoopNode leftNestedLoopNode = new NestedLoopNode(
+                new IterablePlan(leftQtfNode),
+                new IterablePlan(leftQtfNode),
+                true,
+                TopN.NO_LIMIT,
+                TopN.NO_OFFSET
+        );
         leftNestedLoopNode.outputTypes(
                 ImmutableList.<DataType>builder()
                         .addAll(leftQtfNode.outputTypes())
@@ -853,7 +885,13 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         // FROM characters c1 CROSS JOIN characters c2 CROSS JOIN books b
         // ORDER BY c1.name, c1.female, c2.name, c2.female, b.title
         // LIMIT 20 OFFSET 1;
-        NestedLoopNode node = new NestedLoopNode(leftNestedLoopNode, rightQtfNode, true, queryLimit, queryOffset);
+        NestedLoopNode node = new NestedLoopNode(
+                new IterablePlan(leftNestedLoopNode),
+                new IterablePlan(rightQtfNode),
+                true,
+                queryLimit,
+                queryOffset
+        );
         TopNProjection projection = new TopNProjection(queryLimit, queryOffset);
         projection.outputs(ImmutableList.<Symbol>of(
                 new InputColumn(0, DataTypes.INTEGER),
@@ -872,7 +910,7 @@ public class TransportExecutorPagingTest extends BaseTransportExecutorTest {
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 
-        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(node, new Job());
         assertThat(tasks.size(), is(1));
         assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
 

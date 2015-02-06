@@ -43,6 +43,8 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -135,7 +137,7 @@ public class NestedLoopOperationTest {
             // ignore
         }
     }
-    private class TestDQLNode extends AbstractDQLPlanNode {
+    private class TestDQLNode extends AbstractDQLPlanNode implements Plan {
 
         private final Object[][] rows;
 
@@ -163,13 +165,18 @@ public class NestedLoopOperationTest {
                 return new ImmediateTestTask(rows, rows.length, 0);
             }
         }
+
+        @Override
+        public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+            return null;
+        }
     }
 
 
     private class TestExecutor implements TaskExecutor {
 
         @Override
-        public List<Task> newTasks(PlanNode planNode, UUID jobId) {
+        public List<Task> newTasks(PlanNode planNode, Job job) {
             return ImmutableList.of(((TestDQLNode) planNode).task());
         }
 
@@ -230,10 +237,10 @@ public class NestedLoopOperationTest {
     }
 
     private void assertNestedLoop(Object[][] left, Object[][] right, int limit, int offset, int expectedRows, boolean applyTopN) throws Exception {
-        PlanNode leftNode = new TestDQLNode(left);
-        PlanNode rightNode = new TestDQLNode(right);
+        TestDQLNode leftPlan = new TestDQLNode(left);
+        TestDQLNode rightPlan = new TestDQLNode(right);
 
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, leftOuterNode, limit, offset);
+        NestedLoopNode node = new NestedLoopNode(leftPlan, rightPlan, leftOuterNode, limit, offset);
         int numColumns = (left.length > 0 ? left[0].length : 0) + (right.length > 0 ? right[0].length : 0);
 
         if (applyTopN) {
@@ -246,9 +253,9 @@ public class NestedLoopOperationTest {
             node.projections(ImmutableList.<Projection>of(projection));
         }
         TaskExecutor taskExecutor = new TestExecutor();
-        UUID jobId = UUID.randomUUID();
-        Task outerTask = taskExecutor.newTasks((leftOuterNode ? leftNode : rightNode), jobId).get(0);
-        Task innerTask = taskExecutor.newTasks((leftOuterNode ? rightNode : leftNode), jobId).get(0);
+        Job fakeJob = new Job(UUID.randomUUID());
+        Task outerTask = taskExecutor.newTasks((leftOuterNode ? leftPlan : rightPlan), fakeJob).get(0);
+        Task innerTask = taskExecutor.newTasks((leftOuterNode ? rightPlan : leftPlan), fakeJob).get(0);
 
         NestedLoopOperation nestedLoop = new NestedLoopOperation(
                 node,
