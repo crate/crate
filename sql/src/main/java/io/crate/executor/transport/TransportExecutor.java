@@ -58,7 +58,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 public class TransportExecutor implements Executor, TaskExecutor {
 
@@ -128,8 +127,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
     }
 
     @Override
-    public List<Task> newTasks(PlanNode planNode, UUID jobId) {
-        return planNode.accept(nodeVisitor, jobId);
+    public List<Task> newTasks(PlanNode planNode, Job job) {
+        return planNode.accept(nodeVisitor, job);
     }
 
     @Override
@@ -151,7 +150,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         @Override
         public Void visitIterablePlan(IterablePlan plan, Job job) {
             for (PlanNode planNode : plan) {
-                job.addTasks(planNode.accept(nodeVisitor, job.id()));
+                job.addTasks(planNode.accept(nodeVisitor, job));
             }
             return null;
         }
@@ -164,22 +163,22 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitGlobalAggregate(GlobalAggregate plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.mergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.mergeNode(), job));
             return null;
         }
 
         @Override
         public Void visitQueryAndFetch(QueryAndFetch plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job));
             return null;
         }
 
         @Override
         public Void visitNonDistributedGroupBy(NonDistributedGroupBy plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job));
             return null;
         }
 
@@ -189,7 +188,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             for (List<DQLPlanNode> childNodes : plan.nodes()) {
                 List<Task> subTasks = new ArrayList<>(childNodes.size());
                 for (DQLPlanNode childNode : childNodes) {
-                    subTasks.addAll(childNode.accept(nodeVisitor, job.id()));
+                    subTasks.addAll(childNode.accept(nodeVisitor, job));
                 }
                 UpsertTask upsertTask = new UpsertTask(TransportExecutor.this, job.id(), subTasks);
                 taskBuilder.add(upsertTask);
@@ -200,9 +199,9 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitDistributedGroupBy(DistributedGroupBy plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.reducerMergeNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.reducerMergeNode(), job));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job));
             return null;
         }
 
@@ -210,25 +209,25 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public Void visitInsertByQuery(InsertFromSubQuery node, Job job) {
             this.process(node.innerPlan(), job);
             if(node.handlerMergeNode().isPresent()) {
-                job.addTasks(nodeVisitor.visitMergeNode(node.handlerMergeNode().get(), job.id()));
+                job.addTasks(nodeVisitor.visitMergeNode(node.handlerMergeNode().get(), job));
             }
             return null;
         }
 
     }
 
-    class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
+    class NodeVisitor extends PlanNodeVisitor<Job, ImmutableList<Task>> {
 
         private ImmutableList<Task> singleTask(Task task) {
             return ImmutableList.of(task);
         }
 
         @Override
-        public ImmutableList<Task> visitCollectNode(CollectNode node, UUID jobId) {
-            node.jobId(jobId); // add jobId to collectNode
+        public ImmutableList<Task> visitCollectNode(CollectNode node, Job job) {
+            node.jobId(job.id()); // add jobId to collectNode
             if (node.isRouted()) {
                 return singleTask(new RemoteCollectTask(
-                        jobId,
+                        job.id(),
                         node,
                         transportActionProvider.transportCollectNodeAction(),
                         handlerSideDataCollectOperation,
@@ -236,7 +235,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         circuitBreaker));
             } else {
                 return singleTask(new LocalCollectTask(
-                        jobId,
+                        job.id(),
                         handlerSideDataCollectOperation,
                         node,
                         circuitBreaker));
@@ -245,19 +244,21 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitGenericDDLNode(GenericDDLNode node, UUID jobId) {
-            return singleTask(new DDLTask(jobId, ddlAnalysisDispatcherProvider.get(), node));
+        public ImmutableList<Task> visitGenericDDLNode(GenericDDLNode node, Job job) {
+            return singleTask(new DDLTask(job.id(), ddlAnalysisDispatcherProvider.get(), node));
         }
 
         @Override
-        public ImmutableList<Task> visitMergeNode(@Nullable MergeNode node, UUID jobId) {
+
+        public ImmutableList<Task> visitMergeNode(@Nullable MergeNode node, Job job) {
+
             if (node == null) {
-               return ImmutableList.of();
+                return ImmutableList.of();
             }
-            node.contextId(jobId);
+            node.contextId(job.id());
             if (node.executionNodes().isEmpty()) {
                 return singleTask(new LocalMergeTask(
-                        jobId,
+                        job.id(),
                         threadPool,
                         clusterService,
                         settings,
@@ -268,32 +269,34 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         circuitBreaker));
             } else {
                 return singleTask(new DistributedMergeTask(
-                        jobId,
+                        job.id(),
                         transportActionProvider.transportMergeNodeAction(), node));
             }
         }
 
         @Override
-        public ImmutableList<Task> visitQueryThenFetchNode(QueryThenFetchNode node, UUID jobId) {
+        public ImmutableList<Task> visitQueryThenFetchNode(QueryThenFetchNode node, Job job) {
             return singleTask(new QueryThenFetchTask(
-                    jobId,
+                    job.id(),
                     queryThenFetchOperation,
                     functions,
                     node));
         }
 
         @Override
-        public ImmutableList<Task> visitNestedLoopNode(NestedLoopNode node, UUID jobId) {
+        public ImmutableList<Task> visitNestedLoopNode(NestedLoopNode node, Job job) {
             // TODO: optimize for outer and inner being the same relation
-            List<Task> outerTasks = node.outer().accept(this, jobId);
-            List<Task> innerTasks = node.inner().accept(this, jobId);
+            Job outerJob = new Job(job.id());
+            planVisitor.process(node.outer(), outerJob);
+            Job innerJob = new Job(job.id());
+            planVisitor.process(node.inner(), innerJob);
             return singleTask(
                     new NestedLoopTask(
-                            jobId,
+                            job.id(),
                             clusterService.localNode().id(),
                             node,
-                            outerTasks,
-                            innerTasks,
+                            outerJob,
+                            innerJob,
                             TransportExecutor.this,
                             globalProjectionToProjectionVisitor,
                             circuitBreaker)
@@ -301,9 +304,9 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitESGetNode(ESGetNode node, UUID jobId) {
+        public ImmutableList<Task> visitESGetNode(ESGetNode node, Job job) {
             return singleTask(new ESGetTask(
-                    jobId,
+                    job.id(),
                     functions,
                     globalProjectionToProjectionVisitor,
                     transportActionProvider.transportMultiGetAction(),
@@ -312,25 +315,25 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitESDeleteByQueryNode(ESDeleteByQueryNode node, UUID jobId) {
+        public ImmutableList<Task> visitESDeleteByQueryNode(ESDeleteByQueryNode node, Job job) {
             return singleTask(new ESDeleteByQueryTask(
-                    jobId,
+                    job.id(),
                     node,
                     transportActionProvider.transportDeleteByQueryAction()));
         }
 
         @Override
-        public ImmutableList<Task> visitESDeleteNode(ESDeleteNode node, UUID jobId) {
+        public ImmutableList<Task> visitESDeleteNode(ESDeleteNode node, Job job) {
             return singleTask(new ESDeleteTask(
-                    jobId,
+                    job.id(),
                     node,
                     transportActionProvider.transportDeleteAction()));
         }
 
         @Override
-        public ImmutableList<Task> visitCreateTableNode(CreateTableNode node, UUID jobId) {
+        public ImmutableList<Task> visitCreateTableNode(CreateTableNode node, Job job) {
             return singleTask(new CreateTableTask(
-                            jobId,
+                            job.id(),
                             clusterService,
                             transportActionProvider.transportCreateIndexAction(),
                             transportActionProvider.transportDeleteIndexAction(),
@@ -340,21 +343,21 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitESCreateTemplateNode(ESCreateTemplateNode node, UUID jobId) {
-            return singleTask(new ESCreateTemplateTask(jobId,
+        public ImmutableList<Task> visitESCreateTemplateNode(ESCreateTemplateNode node, Job job) {
+            return singleTask(new ESCreateTemplateTask(job.id(),
                     node,
                     transportActionProvider.transportPutIndexTemplateAction()));
         }
 
         @Override
-        public ImmutableList<Task> visitESCountNode(ESCountNode node, UUID jobId) {
-            return singleTask(new ESCountTask(jobId, node,
+        public ImmutableList<Task> visitESCountNode(ESCountNode node, Job job) {
+            return singleTask(new ESCountTask(job.id(), node,
                     transportActionProvider.transportCountAction()));
         }
 
         @Override
-        public ImmutableList<Task> visitSymbolBasedUpsertByIdNode(SymbolBasedUpsertByIdNode node, UUID jobId) {
-            return singleTask(new SymbolBasedUpsertByIdTask(jobId,
+        public ImmutableList<Task> visitSymbolBasedUpsertByIdNode(SymbolBasedUpsertByIdNode node, Job job) {
+            return singleTask(new SymbolBasedUpsertByIdTask(job.id(),
                     clusterService,
                     settings,
                     transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
@@ -363,8 +366,9 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
-            return singleTask(new UpsertByIdTask(jobId,
+        public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, Job job) {
+            return singleTask(new UpsertByIdTask(
+                    job.id(),
                     clusterService,
                     settings,
                     transportActionProvider.transportShardUpsertActionDelegate(),
@@ -373,30 +377,30 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitDropTableNode(DropTableNode node, UUID jobId) {
-            return singleTask(new DropTableTask(jobId,
+        public ImmutableList<Task> visitDropTableNode(DropTableNode node, Job job) {
+            return singleTask(new DropTableTask(job.id(),
                     transportActionProvider.transportDeleteIndexTemplateAction(),
                     transportActionProvider.transportDeleteIndexAction(),
                     node));
         }
 
         @Override
-        public ImmutableList<Task> visitESDeleteIndexNode(ESDeleteIndexNode node, UUID jobId) {
-            return singleTask(new ESDeleteIndexTask(jobId,
+        public ImmutableList<Task> visitESDeleteIndexNode(ESDeleteIndexNode node, Job job) {
+            return singleTask(new ESDeleteIndexTask(job.id(),
                     transportActionProvider.transportDeleteIndexAction(),
                     node));
         }
 
         @Override
-        public ImmutableList<Task> visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, UUID jobId) {
+        public ImmutableList<Task> visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, Job job) {
             return singleTask(new ESClusterUpdateSettingsTask(
-                    jobId,
+                    job.id(),
                     transportActionProvider.transportClusterUpdateSettingsAction(),
                     node));
         }
 
         @Override
-        protected ImmutableList<Task> visitPlanNode(PlanNode node, UUID jobId) {
+        protected ImmutableList<Task> visitPlanNode(PlanNode node, Job job) {
             throw new UnsupportedOperationException(
                     String.format("Can't generate job/task for planNode %s", node));
         }

@@ -21,16 +21,13 @@
 package io.crate.planner.node.dql.join;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
-import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import io.crate.planner.node.dql.DQLPlanNode;
@@ -70,11 +67,12 @@ import java.util.Set;
 public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyzedRelation {
 
 
-    private final PlanNode left;
-    private final PlanNode right;
+    private final Plan left;
+    private final Plan right;
     private boolean leftOuterLoop = true;
     private final int limit;
     private final int offset;
+
 
     /**
      * create a new NestedLoopNode
@@ -105,34 +103,32 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
      * a | 3
      * b | 3
      */
-    public NestedLoopNode(PlanNode left,
-                           PlanNode right,
-                           boolean leftOuterLoop,
-                           int limit,
-                           int offset) {
+    public NestedLoopNode(Plan left,
+                          Plan right,
+                          boolean leftOuterLoop,
+                          int limit,
+                          int offset) {
         super("nestedLoop");
         this.limit = limit;
         this.offset = offset;
         this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;
-        // fallback
-        this.outputTypes(Lists.newArrayList(FluentIterable.from(left.outputTypes()).append(right.outputTypes())));
     }
 
-    public PlanNode left() {
+    public Plan left() {
         return left;
     }
 
-    public PlanNode right() {
+    public Plan right() {
         return right;
     }
 
-    public PlanNode inner() {
+    public Plan inner() {
         return leftOuterLoop() ? right : left;
     }
 
-    public PlanNode outer() {
+    public Plan outer() {
         return leftOuterLoop() ? left : right;
     }
 
