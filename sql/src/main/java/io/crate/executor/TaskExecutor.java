@@ -26,7 +26,6 @@ import io.crate.planner.node.PlanNode;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * I can create and execute taskzzz
@@ -38,10 +37,10 @@ public interface TaskExecutor {
      * identified by <code>jobId</code>.
      *
      * @param planNode the node to convert to tasks
-     * @param jobId the identifier of the job these tasks get executed in
+     * @param job the job these tasks get executed in
      * @return a list of tasks ready for execution
      */
-    public List<Task> newTasks(PlanNode planNode, UUID jobId);
+    public List<Task> newTasks(PlanNode planNode, Job job);
 
     /**
      * Execute a given collection of tasks.
