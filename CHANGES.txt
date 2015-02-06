@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/02/06 0.47.0
+=================
+
  - Added support for array comparisons using the equals ``=`` operator.
 
  - Support `INSERT ... ON DUPLICATE KEY UPDATE` statement
