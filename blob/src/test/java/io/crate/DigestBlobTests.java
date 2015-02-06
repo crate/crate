@@ -110,14 +110,23 @@ public class DigestBlobTests {
         contentTail = new BytesArray("MNO".getBytes());
         digestBlob.addContent(contentTail, true);
 
+        // check if tmp file's content is correct
         byte[] buffer = new byte[15];
         FileInputStream stream = new FileInputStream(digestBlob.file());
         stream.read(buffer, 0, 15);
-        assertEquals("ABCDEFGHIJKLMNO", new BytesArray(buffer).toUtf8().trim());
         stream.close();
+        assertEquals("ABCDEFGHIJKLMNO", new BytesArray(buffer).toUtf8().trim());
 
         File file = digestBlob.commit();
+
+        // check if final file's content is correct
+        buffer = new byte[15];
+        stream = new FileInputStream(file);
+        stream.read(buffer, 0, 15);
         stream.close();
+        assertEquals("ABCDEFGHIJKLMNO", new BytesArray(buffer).toUtf8().trim());
+
+        // assert file created
         assertTrue(file.exists());
         // just in case any references to file left
         assertTrue(file.delete());
@@ -139,13 +148,23 @@ public class DigestBlobTests {
         contentTail = new BytesArray("O".getBytes());
         digestBlob.addContent(contentTail, true);
 
+        // check if tmp file's content is correct
         byte[] buffer = new byte[15];
         FileInputStream stream = new FileInputStream(digestBlob.file());
         stream.read(buffer, 0, 15);
-        assertEquals("ABCDEFGHIJKLMNO", new BytesArray(buffer).toUtf8().trim());
         stream.close();
+        assertEquals("ABCDEFGHIJKLMNO", new BytesArray(buffer).toUtf8().trim());
 
         File file = digestBlob.commit();
+
+        // check if final file's content is correct
+        buffer = new byte[15];
+        stream = new FileInputStream(file);
+        stream.read(buffer, 0, 15);
+        stream.close();
+        assertEquals("ABCDEFGHIJKLMNO", new BytesArray(buffer).toUtf8().trim());
+
+        // assert file created
         assertTrue(file.exists());
         // just in case any references to file left
         assertTrue(file.delete());
