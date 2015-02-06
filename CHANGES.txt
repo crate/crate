@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: ``Insert-By-Query`` using objects did not work through wrong
+   comparison of data types.
+
  - Comparing arrays now works correctly for literals and comparing an array
    field to an array literal will result in a correct
    UnsupportedOperationException.
