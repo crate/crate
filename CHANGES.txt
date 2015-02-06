@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Adding new columns to existing partitions could fail if the table was altered
+   before
+
  - Upgrade Elasticsearch to v1.4.2
 
  - Fix: ``Insert-By-Query`` using objects did not work through wrong

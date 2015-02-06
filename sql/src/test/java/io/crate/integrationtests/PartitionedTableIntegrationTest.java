@@ -36,6 +36,7 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequ
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -1373,6 +1374,29 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         // assert all partition rows are available after refresh
         execute("select * from parted where date='1970-01-07'");
         assertThat(response.rowCount(), is(2L));
+    }
+
+
+    @Test
+    public void testAlterPartitionedTableKeepsMetadata() throws Exception {
+        execute("create table dynamic_table (" +
+                "  id integer, " +
+                "  score double" +
+                ") partitioned by (score) with (number_of_replicas=0, column_policy='dynamic')");
+        ensureGreen();
+        execute("insert into dynamic_table (id, score) values (1, 10)");
+        execute("refresh table dynamic_table");
+        ensureGreen();
+        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("_meta")), Matchers.is("{partitioned_by=[[score, double]]}"));
+        execute("alter table dynamic_table set (column_policy= 'dynamic')");
+        waitNoPendingTasksOnAll();
+        partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("_meta")), Matchers.is("{partitioned_by=[[score, double]]}"));
     }
 
     @Test
