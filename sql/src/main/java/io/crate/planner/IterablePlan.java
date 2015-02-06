@@ -21,10 +21,14 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.planner.node.PlanNode;
+import io.crate.types.DataType;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 
 /**
@@ -49,6 +53,13 @@ public class IterablePlan implements Iterable<PlanNode>, Plan {
 
     public boolean isEmpty() {
         return nodes.isEmpty();
+    }
+
+    @Override
+    public Collection<DataType> outputTypes() {
+        return nodes.size() > 0
+                ? Iterables.getLast(nodes).outputTypes()
+                : ImmutableList.<DataType>of();
     }
 
     @Override
