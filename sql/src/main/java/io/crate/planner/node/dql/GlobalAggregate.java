@@ -21,16 +21,18 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 public class GlobalAggregate implements PlannedAnalyzedRelation, Plan {
@@ -97,4 +99,7 @@ public class GlobalAggregate implements PlannedAnalyzedRelation, Plan {
         return mergeNode == null ? collectNode : mergeNode;
     }
 
+    public Collection<DataType> outputTypes() {
+        return resultNode().outputTypes();
+    }
 }

@@ -31,7 +31,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Routing;
 import io.crate.operation.projectors.TopN;
@@ -154,7 +153,7 @@ public class CrossJoinConsumer implements Consumer {
                     if (splitQueries.relationQuery() == null) {
                         relationContext.whereClause = WhereClause.MATCH_ALL;
                     } else {
-                        relationContext.whereClause = new WhereClause(splitQueries.relationQuery());
+                        relationContext.whereClause = new WhereClause(splitQueries.relationQuery(), null, null, null);
                         relationContext.whereClause = relationContext.whereClause.normalize(normalizer);
                     }
                     query = splitQueries.remainingQuery();
@@ -184,8 +183,8 @@ public class CrossJoinConsumer implements Consumer {
                 TableRelation tableRelation = entry.getKey();
 
                 WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-                WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(relationContext.whereClause);
-                Routing routing = tableRelation.tableInfo().getRouting(whereClauseContext.whereClause(), null);
+                WhereClause whereClause = whereClauseAnalyzer.analyze(relationContext.whereClause);
+                Routing routing = tableRelation.tableInfo().getRouting(whereClause, null);
                 QueryThenFetchNode qtf = new QueryThenFetchNode(
                         routing,
                         tableRelation.resolveCopy(relationContext.outputs),
@@ -194,7 +193,7 @@ public class CrossJoinConsumer implements Consumer {
                         new Boolean[0],
                         qtfLimit,
                         0,
-                        whereClauseContext.whereClause(),
+                        whereClause,
                         tableRelation.tableInfo().partitionedByColumns()
                 );
                 queryThenFetchNodes.add(qtf);

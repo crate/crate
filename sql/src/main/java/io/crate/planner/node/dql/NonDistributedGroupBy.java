@@ -29,8 +29,10 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 public class NonDistributedGroupBy implements PlannedAnalyzedRelation, Plan {
@@ -97,4 +99,7 @@ public class NonDistributedGroupBy implements PlannedAnalyzedRelation, Plan {
         return localMergeNode == null ? collectNode : localMergeNode;
     }
 
+    public Collection<DataType> outputTypes() {
+        return resultNode().outputTypes();
+    }
 }

@@ -21,6 +21,11 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.types.DataType;
+
+import java.util.Collection;
+
 /**
  * A plan with an empty result
  */
@@ -34,5 +39,10 @@ public class NoopPlan implements Plan {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitNoopPlan(this, context);
+    }
+
+    @Override
+    public Collection<DataType> outputTypes() {
+        return ImmutableList.of();
     }
 }
