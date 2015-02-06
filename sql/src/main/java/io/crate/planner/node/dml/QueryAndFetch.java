@@ -1,8 +1,8 @@
 package io.crate.planner.node.dml;
 
 
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.Plan;
@@ -10,8 +10,10 @@ import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.symbol.Field;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 public class QueryAndFetch implements PlannedAnalyzedRelation, Plan {
@@ -43,6 +45,11 @@ public class QueryAndFetch implements PlannedAnalyzedRelation, Plan {
     @Override
     public List<Field> fields() {
         throw new UnsupportedOperationException("fields is not supported");
+    }
+
+    @Override
+    public Collection<DataType> outputTypes() {
+        return localMergeNode.outputTypes();
     }
 
     @Override

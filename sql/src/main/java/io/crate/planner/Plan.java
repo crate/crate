@@ -21,7 +21,13 @@
 
 package io.crate.planner;
 
+import io.crate.types.DataType;
+
+import java.util.Collection;
+
 public interface Plan {
+
+    public Collection<DataType> outputTypes();
 
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context);
 
