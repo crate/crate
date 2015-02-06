@@ -22,12 +22,18 @@
 package io.crate.operation.operator;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.*;
+import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class EqOperator extends CmpOperator {
@@ -63,12 +69,51 @@ public class EqOperator extends CmpOperator {
         return left.equals(right);
     }
 
+    private static class ArrayEqOperator extends CmpOperator {
+
+        protected ArrayEqOperator(FunctionInfo info) {
+            super(info);
+        }
+
+        @Override
+        protected boolean compare(int comparisonResult) {
+            return comparisonResult == 0;
+        }
+
+        @Override
+        public Boolean evaluate(Input[] args) {
+            Object[] left = (Object[]) args[0].value();
+            if (left == null){
+                return null;
+            }
+            Object[] right = (Object[]) args[1].value();
+            if (right == null){
+                return null;
+            }
+            return Arrays.deepEquals(left, right);
+        }
+
+        @Override
+        public Symbol normalizeSymbol(Function symbol) {
+            Symbol left = symbol.arguments().get(0);
+            Symbol right = symbol.arguments().get(1);
+
+            if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
+                return Literal.newLiteral(evaluate(new Input[] {(Input)left, (Input)right}));
+            }
+            return symbol;
+        }
+    }
+
     static class EqOperatorResolver implements DynamicFunctionResolver {
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 2);
             FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.BOOLEAN);
+            if (DataTypes.isCollectionType(dataTypes.get(0)) && DataTypes.isCollectionType(dataTypes.get(1))) {
+                return new ArrayEqOperator(info);
+            }
             return new EqOperator(info);
         }
     }

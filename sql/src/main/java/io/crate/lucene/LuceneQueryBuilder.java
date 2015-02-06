@@ -344,6 +344,9 @@ public class LuceneQueryBuilder {
                     return null;
                 }
 
+                if (DataTypes.isCollectionType(tuple.v1().valueType()) && DataTypes.isCollectionType(tuple.v2().valueType())) {
+                    throw new UnsupportedFeatureException("Cannot compare two arrays");
+                }
                 String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.eq(columnName, tuple.v2().value());

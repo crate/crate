@@ -21,8 +21,10 @@
 
 package io.crate.lucene;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -31,6 +33,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -42,7 +45,9 @@ import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 
 import java.util.Arrays;
@@ -51,12 +56,14 @@ import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-public class LuceneQueryBuilderTest {
+public class LuceneQueryBuilderTest extends RandomizedTest{
 
     private LuceneQueryBuilder builder;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -88,6 +95,17 @@ public class LuceneQueryBuilderTest {
                 Literal.newLiteral(10))));
         assertThat(query, instanceOf(NumericRangeQuery.class));
         assertThat(query.toString(), is("x:{* TO 10]"));
+    }
+
+    @Test
+    public void testEqOnTwoArraysBecomesGenericFunctionQuery() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Cannot compare two arrays");
+        DataType longArray = new ArrayType(DataTypes.LONG);
+        convert(new WhereClause(createFunction(EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                createReference("x", longArray),
+                Literal.newLiteral(longArray, new Object[] { 10L, 20L }))));
     }
 
     @Test
