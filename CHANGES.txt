@@ -2,6 +2,12 @@
 Changes for Crate
 =================
 
+Unreleased
+==========
+
+ - Fix: ``Insert-By-Query`` using objects did not work through wrong
+   comparison of data types.
+
 2015/02/03 0.45.8
 =================
 

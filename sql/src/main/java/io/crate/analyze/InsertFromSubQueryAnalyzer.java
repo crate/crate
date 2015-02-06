@@ -114,7 +114,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
             }
             DataType subQueryColumnType = ((DataTypeSymbol) subQueryColumn).valueType();
 
-            if (subQueryColumnType != insertColumn.valueType()) {
+            if (!subQueryColumnType.equals(insertColumn.valueType())) {
                 if (!subQueryColumnType.isConvertableTo(insertColumn.valueType())) {
                     throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH,

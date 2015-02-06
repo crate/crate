@@ -93,4 +93,25 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertNull((((ArrayList) response.rows()[1][0]).get(0)));
     }
 
+    /**
+     * Github issue: https://github.com/crate/crate/issues/1631
+     */
+    @Test
+    public void testInsertFromQueryWithObjects() throws Exception {
+        execute("create table source_urls " +
+                "(urls array(object(dynamic) as (uri string, count integer))) " +
+                "with (number_of_replicas = 0)");
+        ensureGreen();
+        execute("insert into source_urls (urls) values ([{ uri='blah.com', count=1 }])");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        execute("create table dest_urls " +
+                "(urls array(object(dynamic) as (uri string, count integer))) " +
+                "with (number_of_replicas = 0)");
+        ensureGreen();
+        execute("insert into dest_urls (urls)(select urls from source_urls)");
+        assertThat(response.rowCount(), is(1L));
+    }
+
 }
