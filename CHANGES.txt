@@ -7,19 +7,7 @@ Unreleased
 
  - Added support for array comparisons using the equals ``=`` operator.
 
- - Upgrade Elasticsearch to v1.4.2
-
- - Fix: Hard wire utf-8 encoding in init scripts, so unicode filenames work
-
- - Fix: COPY FROM PARTITION failed if the source contained a ``partitioned by`` column
-
- - Fix: ALTER TABLE could break existing tables under some conditions
-
-
  - Support `INSERT ... ON DUPLICATE KEY UPDATE` statement
-
- - Fix: Improved value validation for nested primary key and clustered by
-   columns in INSERT statements.
 
  - Added case-insensitive regex operator ~*
 
@@ -52,8 +40,23 @@ Unreleased
  - The ``sys.operations`` table has now a ``_nodes`` system column
    which exposes information about the node the operation runs on.
 
+2015/02/06 0.46.5
+=================
+
+ - Upgrade Elasticsearch to v1.4.2
+
+ - Fix: Hard wire utf-8 encoding in init scripts, so unicode filenames work
+
+ - Fix: COPY FROM PARTITION failed if the source contained a ``partitioned by`` column
+
+ - Fix: ALTER TABLE could break existing tables under some conditions
+
+ - Fix: Improved value validation for nested primary key and clustered by
+   columns in INSERT statements.
+
  - Fix: IP column validation is now done in analysis
 
+2015/02/06 0.46.5
 2015/02/06 0.45.9
 =================
 
