@@ -40,7 +40,7 @@ public class QuerySpec {
     private List<Symbol> outputs;
     private WhereClause where;
     private Integer limit;
-    private Integer offset = 0;
+    private int offset = 0;
     private boolean hasAggregates = false;
 
     @Nullable
@@ -73,7 +73,7 @@ public class QuerySpec {
         return this;
     }
 
-    public Integer offset() {
+    public int offset() {
         return offset;
     }
 

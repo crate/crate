@@ -33,4 +33,9 @@ public class OutputName implements Path {
     public String outputName() {
         return name;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }
