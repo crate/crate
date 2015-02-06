@@ -26,13 +26,11 @@ import com.google.common.base.Predicate;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.exceptions.ColumnValidationException;
 import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -507,84 +505,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
 
     @Test
-    public void testInsertWithColumnNames() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "firstName", "type=string,store=true,index=not_analyzed",
-                        "lastName", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
-        ensureGreen();
-        execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
-        assertEquals(1, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
-        refresh();
-
-        execute("select * from test where \"firstName\" = 'Youri'");
-
-        assertEquals(1, response.rowCount());
-        assertEquals("Youri", response.rows()[0][0]);
-        assertEquals("Zoon", response.rows()[0][1]);
-    }
-
-    @Test
-    public void testInsertWithoutColumnNames() throws Exception {
-        execute("create table test (\"firstName\" string, \"lastName\" string)");
-        ensureGreen();
-        execute("insert into test values('Youri', 'Zoon')");
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("select * from test where \"firstName\" = 'Youri'");
-
-        assertEquals(1, response.rowCount());
-        assertEquals("Youri", response.rows()[0][0]);
-        assertEquals("Zoon", response.rows()[0][1]);
-    }
-
-    @Test
-    public void testInsertAllCoreDatatypes() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "boolean", "type=boolean",
-                        "datetime", "type=date",
-                        "double", "type=double",
-                        "float", "type=float",
-                        "integer", "type=integer",
-                        "long", "type=long",
-                        "short", "type=short",
-                        "string", "type=string,index=not_analyzed")
-                .execute().actionGet();
-        ensureGreen();
-
-        execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
-        execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
-                new Object[]{true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807L, 32767, "Youri"});
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("select * from test");
-
-        assertEquals(2, response.rowCount());
-        assertEquals(true, response.rows()[0][0]);
-        assertEquals(1378849903000L, response.rows()[0][1]);
-        assertEquals(1.79769313486231570e+308, response.rows()[0][2]);
-        assertEquals(3.402f, ((Number) response.rows()[0][3]).floatValue(), 0.002f);
-        assertEquals(2147483647, response.rows()[0][4]);
-        assertEquals(9223372036854775807L, response.rows()[0][5]);
-        assertEquals(32767, response.rows()[0][6]);
-        assertEquals("Youri", response.rows()[0][7]);
-
-        assertEquals(true, response.rows()[1][0]);
-        assertEquals(1378849903000L, response.rows()[1][1]);
-        assertEquals(1.79769313486231570e+308, response.rows()[1][2]);
-        assertEquals(3.402f, ((Number) response.rows()[1][3]).floatValue(), 0.002f);
-        assertEquals(2147483647, response.rows()[1][4]);
-        assertEquals(9223372036854775807L, response.rows()[1][5]);
-        assertEquals(32767, response.rows()[1][6]);
-        assertEquals("Youri", response.rows()[1][7]);
-    }
-
-    @Test
     @SuppressWarnings("unchecked")
     public void testArraySupport() throws Exception {
         execute("create table t1 (id int primary key, strings array(string), integers array(integer)) with (number_of_replicas=0)");
@@ -735,167 +655,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void testInsertCoreTypesAsArray() throws Exception {
-        execute("create table test (" +
-                        "\"boolean\" array(boolean), " +
-                        "\"datetime\" array(timestamp), " +
-                        "\"double\" array(double), " +
-                        "\"float\" array(float), " +
-                        "\"integer\" array(integer), " +
-                        "\"long\" array(long), " +
-                        "\"short\" array(short), " +
-                        "\"string\" array(string) " +
-                        ") with (number_of_replicas=0)"
-        );
-        ensureGreen();
-
-        execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
-                new Object[]{
-                        new Boolean[]{true, false},
-                        new String[]{"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
-                        new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308},
-                        new Float[]{3.402f, 3.403f, null},
-                        new Integer[]{2147483647, 234583},
-                        new Long[]{9223372036854775807L, 4L},
-                        new Short[]{32767, 2},
-                        new String[]{"Youri", "Juri"}
-                }
-        );
-        refresh();
-
-        execute("select * from test");
-        assertEquals(true, ((List<Boolean>) response.rows()[0][0]).get(0));
-        assertEquals(false, ((List<Boolean>) response.rows()[0][0]).get(1));
-
-        assertThat(((List<Long>) response.rows()[0][1]).get(0), is(1378849903000L));
-        assertThat(((List<Long>) response.rows()[0][1]).get(1), is(1384120303000L));
-
-        assertThat(((List<Double>) response.rows()[0][2]).get(0), is(1.79769313486231570e+308));
-        assertThat(((List<Double>) response.rows()[0][2]).get(1), is(1.69769313486231570e+308));
-
-
-        assertEquals(3.402f, ((Number) ((List) response.rows()[0][3]).get(0)).floatValue(), 0.002f);
-        assertEquals(3.403f, ((Number) ((List) response.rows()[0][3]).get(1)).floatValue(), 0.002f);
-        assertThat(((List<Float>) response.rows()[0][3]).get(2), nullValue());
-
-        assertThat(((List<Integer>) response.rows()[0][4]).get(0), is(2147483647));
-        assertThat(((List<Integer>) response.rows()[0][4]).get(1), is(234583));
-
-        assertThat(((List<Long>) response.rows()[0][5]).get(0), is(9223372036854775807L));
-        assertThat(((List<Integer>) response.rows()[0][5]).get(1), is(4));
-
-        assertThat(((List<Integer>) response.rows()[0][6]).get(0), is(32767));
-        assertThat(((List<Integer>) response.rows()[0][6]).get(1), is(2));
-
-        assertThat(((List<String>) response.rows()[0][7]).get(0), is("Youri"));
-        assertThat(((List<String>) response.rows()[0][7]).get(1), is("Juri"));
-    }
-
-    @Test
-    public void testInsertBadIpAdress() throws Exception {
-        execute("create table t (i ip) with (number_of_replicas=0)");
-        ensureGreen();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Failed to validate ip [192.168.1.500], not a valid ipv4 address");
-        execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
-    }
-
-    @Test
-    public void testInsertMultipleRows() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "age", "type=integer",
-                        "name", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
-        ensureGreen();
-
-        execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
-        assertEquals(2, response.rowCount());
-        refresh();
-
-        execute("select * from test order by \"name\"");
-
-        assertEquals(2, response.rowCount());
-        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
-        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
-    }
-
-    @Test
-    public void testInsertWithParams() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "age", "type=integer",
-                        "name", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
-        ensureGreen();
-
-        Object[] args = new Object[]{32, "Youri"};
-        execute("insert into test values(?, ?)", args);
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("select * from test where name = 'Youri'");
-
-        assertEquals(1, response.rowCount());
-        assertEquals(32, response.rows()[0][0]);
-        assertEquals("Youri", response.rows()[0][1]);
-    }
-
-    @Test
-    public void testInsertMultipleRowsWithParams() throws Exception {
-        execute("create table test (age integer, name string) with (number_of_replicas=0)");
-        ensureGreen();
-
-        Object[] args = new Object[]{32, "Youri", 42, "Ruben"};
-        execute("insert into test values(?, ?), (?, ?)", args);
-        assertEquals(2, response.rowCount());
-        refresh();
-
-        execute("select * from test order by \"name\"");
-
-        assertEquals(2, response.rowCount());
-        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
-        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
-    }
-
-    @Test
-    public void testInsertObject() throws Exception {
-        execute("create table test (message string, person object) with (number_of_replicas=0)");
-        ensureGreen();
-
-        Map<String, Object> person = new HashMap<>();
-        person.put("first_name", "Youri");
-        person.put("last_name", "Zoon");
-        Object[] args = new Object[]{"I'm addicted to kite", person};
-
-        execute("insert into test values(?, ?)", args);
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("select * from test");
-
-        assertEquals(1, response.rowCount());
-        assertArrayEquals(args, response.rows()[0]);
-    }
-
-    @Test
-    public void testInsertEmptyObjectArray() throws Exception {
-        execute("create table test (" +
-                "  id integer primary key," +
-                "  details array(object)" +
-                ")");
-        ensureGreen();
-        execute("insert into test (id, details) values (?, ?)", new Object[]{1, new Map[0]});
-        refresh();
-        execute("select id, details from test");
-        assertEquals(1, response.rowCount());
-        assertEquals(1, response.rows()[0][0]);
-        assertThat(response.rows()[0][1], instanceOf(List.class));
-        assertThat(((List) response.rows()[0][1]).size(), is(0));
-    }
-
-    @Test
     public void testGetResponseWithObjectColumn() throws Exception {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
                 .startObject("default")
@@ -926,68 +685,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select data from test where id = ?", new Object[]{"1"});
         assertEquals(data, response.rows()[0][0]);
-    }
-
-    @Test
-    public void testInsertWithPrimaryKey() throws Exception {
-        this.setup.createTestTableWithPrimaryKey();
-
-        Object[] args = new Object[]{"1",
-                "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
-        execute("insert into test (pk_col, message) values (?, ?)", args);
-        refresh();
-
-        GetResponse response = client().prepareGet("test", "default", "1").execute().actionGet();
-        assertTrue(response.getSourceAsMap().containsKey("message"));
-    }
-
-    @Test
-    public void testInsertWithPrimaryKeyMultiValues() throws Exception {
-        this.setup.createTestTableWithPrimaryKey();
-
-        Object[] args = new Object[]{
-                "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
-                "2", "I always thought something was fundamentally wrong with the universe"
-        };
-        execute("insert into test (pk_col, message) values (?, ?), (?, ?)", args);
-        refresh();
-
-        GetResponse response = client().prepareGet("test", "default", "1").execute().actionGet();
-        assertTrue(response.getSourceAsMap().containsKey("message"));
-    }
-
-    @Test
-    public void testInsertWithUniqueConstraintViolation() throws Exception {
-        this.setup.createTestTableWithPrimaryKey();
-
-        Object[] args = new Object[]{
-                "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
-        };
-        execute("insert into test (pk_col, message) values (?, ?)", args);
-
-        args = new Object[]{
-                "1", "I always thought something was fundamentally wrong with the universe"
-        };
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("A document with the same primary key exists already");
-
-        execute("insert into test (pk_col, message) values (?, ?)", args);
-    }
-
-    @Test
-    public void testInsertWithPKMissingOnInsert() throws Exception {
-        this.setup.createTestTableWithPrimaryKey();
-
-        Object[] args = new Object[]{
-                "In the beginning the Universe was created.\n" +
-                        "This has made a lot of people very angry and been widely regarded as a bad move."
-        };
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Primary key is required but is missing from the insert statement");
-
-        execute("insert into test (message) values (?)", args);
     }
 
     @Test
@@ -1370,30 +1067,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(3L));
-    }
-
-    @Test
-    public void testInsertWithClusteredByNull() throws Exception {
-        execute("create table quotes (id integer, quote string) clustered by(id) " +
-                "with (number_of_replicas=0)");
-        ensureGreen();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Clustered by value must not be NULL");
-        execute("insert into quotes (id, quote) values(?, ?)",
-                new Object[]{null, "I'd far rather be happy than right any day."});
-    }
-
-    @Test
-    public void testInsertWithClusteredByWithoutValue() throws Exception {
-        execute("create table quotes (id integer, quote string) clustered by(id) " +
-                "with (number_of_replicas=0)");
-        ensureGreen();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
-        execute("insert into quotes (quote) values(?)",
-                new Object[]{"I'd far rather be happy than right any day."});
     }
 
     @Test
@@ -1850,86 +1523,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))') = false");
         assertThat(response.rowCount(), is(0L));
-    }
-
-    @Test
-    public void testInsertFromQueryGlobalAggregate() throws Exception {
-        this.setup.setUpLocations();
-        execute("refresh table locations");
-
-        execute("create table aggs (" +
-                " c long," +
-                " s double" +
-                ") with (number_of_replicas=0)");
-        ensureGreen();
-
-        execute("insert into aggs (c, s) (select count(*), sum(position) from locations)");
-        assertThat(response.rowCount(), is(1L));
-
-        execute("refresh table aggs");
-        execute("select c, s from aggs");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(((Number) response.rows()[0][0]).longValue(), is(13L));
-        assertThat((Double) response.rows()[0][1], is(38.0));
-    }
-
-    @Test
-    public void testInsertFromQueryCount() throws Exception {
-        this.setup.setUpLocations();
-        execute("refresh table locations");
-
-        execute("create table aggs (" +
-                " c long" +
-                ") with (number_of_replicas=0)");
-        ensureGreen();
-
-        execute("insert into aggs (c) (select count(*) from locations)");
-        assertThat(response.rowCount(), is(1L));
-
-        execute("refresh table aggs");
-        execute("select c from aggs");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(((Number) response.rows()[0][0]).longValue(), is(13L));
-    }
-
-    @Test
-    public void testInsertFromQuery() throws Exception {
-        this.setup.setUpLocations();
-        execute("refresh table locations");
-
-        execute("select * from locations order by id");
-        Object[][] rowsOriginal = response.rows();
-
-        execute("create table locations2 (" +
-                " id string primary key," +
-                " name string," +
-                " date timestamp," +
-                " kind string," +
-                " position long," +         // <<-- original type is integer, testing implicit cast
-                " description string," +
-                " race object," +
-                " index name_description_ft using fulltext(name, description) with (analyzer='english')" +
-                ") clustered by(id) into 2 shards with(number_of_replicas=0)");
-
-        execute("insert into locations2 (select * from locations)");
-        assertThat(response.rowCount(), is(13L));
-
-        execute("refresh table locations2");
-        execute("select * from locations2 order by id");
-        assertThat(response.rowCount(), is(13L));
-        assertThat(response.rows(), is(rowsOriginal));
-    }
-
-    @Test
-    public void testInsertFromQueryWithGeoType() throws Exception {
-        execute("create table t (p geo_point) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t (p) values (?)", new Object[]{new Double[]{10.d, 10.d}});
-        execute("refresh table t");
-        execute("create table t2 (p geo_point) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t2 (p) (select p from t)");
-        assertThat(response.rowCount(), is(1L));
     }
 
     @Test
