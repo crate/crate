@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Hard wire utf-8 encoding in init scripts, so unicode filenames work
+
  - Fix: COPY FROM PARTITION failed if the source contained a ``partitioned by`` column
 
  - Fix: ALTER TABLE could break existing tables under some conditions
