@@ -30,8 +30,10 @@ import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 public class DistributedGroupBy implements PlannedAnalyzedRelation, Plan {
@@ -110,4 +112,7 @@ public class DistributedGroupBy implements PlannedAnalyzedRelation, Plan {
         return localMergeNode != null ? localMergeNode : reducerMergeNode;
     }
 
+    public Collection<DataType> outputTypes() {
+        return resultNode().outputTypes();
+    }
 }

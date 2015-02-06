@@ -33,8 +33,10 @@ import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 public class InsertFromSubQuery implements PlannedAnalyzedRelation, Plan {
@@ -48,6 +50,8 @@ public class InsertFromSubQuery implements PlannedAnalyzedRelation, Plan {
         this.innerPlan = innerPlan;
         this.handlerMergeNode = Optional.fromNullable(handlerMergeNode);
     }
+
+
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
@@ -100,6 +104,11 @@ public class InsertFromSubQuery implements PlannedAnalyzedRelation, Plan {
 
     @Override
     public DQLPlanNode resultNode() {
+        throw new UnsupportedOperationException("resultNode is not supported");
+    }
+
+    @Override
+    public Collection<DataType> outputTypes() {
         throw new UnsupportedOperationException("resultNode is not supported");
     }
 

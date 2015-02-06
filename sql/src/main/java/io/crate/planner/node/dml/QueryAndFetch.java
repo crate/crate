@@ -13,8 +13,10 @@ import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 public class QueryAndFetch implements PlannedAnalyzedRelation, Plan {
@@ -46,6 +48,11 @@ public class QueryAndFetch implements PlannedAnalyzedRelation, Plan {
     @Override
     public List<Field> fields() {
         throw new UnsupportedOperationException("fields is not supported");
+    }
+
+    @Override
+    public Collection<DataType> outputTypes() {
+        return localMergeNode.outputTypes();
     }
 
     @Override

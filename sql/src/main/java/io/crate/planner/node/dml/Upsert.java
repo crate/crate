@@ -21,6 +21,8 @@
 
 package io.crate.planner.node.dml;
 
+
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
@@ -30,8 +32,11 @@ import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 public class Upsert implements PlannedAnalyzedRelation, Plan {
@@ -65,6 +70,11 @@ public class Upsert implements PlannedAnalyzedRelation, Plan {
     @Override
     public List<Field> fields() {
         throw new UnsupportedOperationException("fields is not supported");
+    }
+
+    @Override
+    public Collection<DataType> outputTypes() {
+        return ImmutableList.<DataType>of(DataTypes.LONG);
     }
 
     @Override
