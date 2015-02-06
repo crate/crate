@@ -813,7 +813,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 titleRef.info().type(),
                 authorRef.info().type());
 
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 3);
+        NestedLoopNode node = new NestedLoopNode(
+                new IterablePlan(leftNode),
+                new IterablePlan(rightNode),
+                true,
+                5,
+                3
+        );
         node.outputTypes(outputTypes);
         node.projections(ImmutableList.<Projection>of(projection));
 
@@ -850,7 +856,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 titleRef.info().type(),
                 authorRef.info().type(),
                 nameRef.info().type());
-        NestedLoopNode node2 = new NestedLoopNode(leftNode, rightNode, false, 5, 0);
+        NestedLoopNode node2 = new NestedLoopNode(
+                new IterablePlan(leftNode),
+                new IterablePlan(rightNode),
+                false,
+                5,
+                0
+        );
         node2.outputTypes(outputTypes2);
         node2.projections(ImmutableList.<Projection>of(projection2));
 
@@ -927,7 +939,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 femaleRef.info().type(),
                 authorRef.info().type());
 
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 0);
+        NestedLoopNode node = new NestedLoopNode(
+                new IterablePlan(leftNode),
+                new IterablePlan(rightNode),
+                true,
+                5,
+                0
+        );
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
 

@@ -100,16 +100,11 @@ public class CrossJoinConsumerTest {
         assertThat(nestedLoopNode.offset(), is(0));
         assertThat(nestedLoopNode.outputTypes().size(), is(10));
 
-        PlanNode left = nestedLoopNode.left();
-        assertThat(left, instanceOf(QueryThenFetchNode.class));
-        QueryThenFetchNode leftQtf = (QueryThenFetchNode)left;
-
-        PlanNode right = nestedLoopNode.right();
-        assertThat(right, instanceOf(QueryThenFetchNode.class));
-        QueryThenFetchNode rightQtf = (QueryThenFetchNode)right;
+        Plan left = nestedLoopNode.left();
+        Plan right = nestedLoopNode.right();
 
         // what's left and right changes per test run... so just make sure the outputs are different
-        assertNotEquals(leftQtf.outputs().size(), rightQtf.outputs().size());
+        assertNotEquals(left.outputTypes(), right.outputTypes());
     }
 
     @Test
@@ -119,8 +114,12 @@ public class CrossJoinConsumerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
-        QueryThenFetchNode left = (QueryThenFetchNode) nl.left();
-        QueryThenFetchNode right = (QueryThenFetchNode) nl.right();
+
+        IterablePlan leftPlan = (IterablePlan) nl.left();
+        IterablePlan rightPlan = (IterablePlan) nl.right();
+
+        QueryThenFetchNode left = (QueryThenFetchNode)leftPlan.iterator().next();
+        QueryThenFetchNode right = (QueryThenFetchNode)rightPlan.iterator().next();
 
         List<Symbol> leftAndRightOutputs = Lists.newArrayList(FluentIterable.from(left.outputs()).append(right.outputs()));
 
@@ -162,8 +161,14 @@ public class CrossJoinConsumerTest {
 
         assertThat(nl.limit(), is(2));
 
-        assertThat(((QueryThenFetchNode) nl.left()).limit(), is(2));
-        assertThat(((QueryThenFetchNode) nl.right()).limit(), is(2));
+        IterablePlan leftPlan = (IterablePlan) nl.left();
+        IterablePlan rightPlan = (IterablePlan) nl.right();
+
+        QueryThenFetchNode left = (QueryThenFetchNode)leftPlan.iterator().next();
+        QueryThenFetchNode right = (QueryThenFetchNode)rightPlan.iterator().next();
+
+        assertThat(left.limit(), is(2));
+        assertThat(right.limit(), is(2));
 
         assertThat(nl.projections().size(), is(1));
         assertThat(nl.projections().get(0), instanceOf(TopNProjection.class));
@@ -192,8 +197,11 @@ public class CrossJoinConsumerTest {
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
 
-        QueryThenFetchNode left = (QueryThenFetchNode) nl.left();
-        QueryThenFetchNode right = (QueryThenFetchNode) nl.right();
+        IterablePlan leftPlan = (IterablePlan) nl.left();
+        IterablePlan rightPlan = (IterablePlan) nl.right();
+
+        QueryThenFetchNode left = (QueryThenFetchNode)leftPlan.iterator().next();
+        QueryThenFetchNode right = (QueryThenFetchNode)rightPlan.iterator().next();
 
         // t1 outputs: [ id ]
         // t2 outputs: [ id, cast(id as int) ]
@@ -244,8 +252,14 @@ public class CrossJoinConsumerTest {
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
 
-        WhereClause leftWhereClause = ((QueryThenFetchNode)nl.left()).whereClause();
-        WhereClause rightWhereClause = ((QueryThenFetchNode)nl.right()).whereClause();
+        IterablePlan leftPlan = (IterablePlan) nl.left();
+        IterablePlan rightPlan = (IterablePlan) nl.right();
+
+        QueryThenFetchNode left = (QueryThenFetchNode)leftPlan.iterator().next();
+        QueryThenFetchNode right = (QueryThenFetchNode)rightPlan.iterator().next();
+
+        WhereClause leftWhereClause = left.whereClause();
+        WhereClause rightWhereClause = right.whereClause();
 
         assertThat(leftWhereClause.query(), isFunction(OrOperator.NAME));
         assertThat(rightWhereClause.query(), isFunction(OrOperator.NAME));
@@ -266,8 +280,14 @@ public class CrossJoinConsumerTest {
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
 
-        WhereClause leftWhereClause = ((QueryThenFetchNode)nl.left()).whereClause();
-        WhereClause rightWhereClause = ((QueryThenFetchNode)nl.right()).whereClause();
+        IterablePlan leftPlan = (IterablePlan) nl.left();
+        IterablePlan rightPlan = (IterablePlan) nl.right();
+
+        QueryThenFetchNode left = (QueryThenFetchNode)leftPlan.iterator().next();
+        QueryThenFetchNode right = (QueryThenFetchNode)rightPlan.iterator().next();
+
+        WhereClause leftWhereClause = left.whereClause();
+        WhereClause rightWhereClause = right.whereClause();
         // left and right isn't deterministic... but one needs to have a query and the other shouldn't have one
         if (leftWhereClause.hasQuery()) {
             assertThat(rightWhereClause.hasQuery(), is(false));

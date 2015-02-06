@@ -34,8 +34,9 @@ import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Routing;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.IterablePlan;
+import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
@@ -176,7 +177,7 @@ public class CrossJoinConsumer implements Consumer {
             if (querySpecLimit != null) {
                 qtfLimit = querySpecLimit + statement.querySpec().offset();
             }
-            List<QueryThenFetchNode> queryThenFetchNodes = new ArrayList<>(relations.size());
+            List<Plan> subRelationPlans = new ArrayList<>(relations.size());
 
             for (Map.Entry<TableRelation, RelationContext> entry : relations.entrySet()) {
                 RelationContext relationContext = entry.getValue();
@@ -196,10 +197,10 @@ public class CrossJoinConsumer implements Consumer {
                         whereClause,
                         tableRelation.tableInfo().partitionedByColumns()
                 );
-                queryThenFetchNodes.add(qtf);
+                subRelationPlans.add(new IterablePlan(qtf));
             }
             int limit = MoreObjects.firstNonNull(statement.querySpec().limit(), TopN.NO_LIMIT);
-            NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, limit, statement.querySpec().offset());
+            NestedLoopNode nestedLoopNode = toNestedLoop(subRelationPlans, limit, statement.querySpec().offset());
 
             /**
              * TopN for:
@@ -265,19 +266,22 @@ public class CrossJoinConsumer implements Consumer {
             return result;
         }
 
-        private NestedLoopNode toNestedLoop(List<? extends PlanNode> sourcePlanNodes, int limit, int offset) {
-            if (sourcePlanNodes.size() == 2) {
+        private NestedLoopNode toNestedLoop(List<Plan> subRelationPlans, int limit, int offset) {
+            if (subRelationPlans.size() == 2) {
                 return new NestedLoopNode(
-                        sourcePlanNodes.get(0),
-                        sourcePlanNodes.get(1),
+                        subRelationPlans.get(0),
+                        subRelationPlans.get(1),
                         false,
                         limit,
                         offset
                 );
-            } else if (sourcePlanNodes.size() > 2) {
+            } else if (subRelationPlans.size() > 2) {
+                Plan nestedLoopPlan = new IterablePlan(
+                        toNestedLoop(subRelationPlans.subList(1, subRelationPlans.size()), limit, offset)
+                );
                 return new NestedLoopNode(
-                        sourcePlanNodes.get(0),
-                        toNestedLoop(sourcePlanNodes.subList(1, sourcePlanNodes.size()), limit, offset),
+                        subRelationPlans.get(0),
+                        nestedLoopPlan,
                         false,
                         limit,
                         offset
