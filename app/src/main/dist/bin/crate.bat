@@ -62,6 +62,9 @@ REM The path to the heap dump location, note directory must exists and have enou
 REM space for a full heap dump.
 REM JAVA_OPTS=%JAVA_OPTS% -XX:HeapDumpPath=$CRATE_HOME/logs/heapdump.hprof
 
+REM Ensure UTF-8 encoding by default (e.g. filenames)
+set JAVA_OPTS=%JAVA_OPTS% -Dfile.encoding=UTF-8
+
 set CRATE_CLASSPATH=%CRATE_CLASSPATH%;%CRATE_HOME%/lib/crate-*.jar;%CRATE_HOME%/lib/*;%CRATE_HOME%/lib/sigar/*
 set CRATE_PARAMS=-Dcrate -Des.path.home="%CRATE_HOME%" -Des.config="%CRATE_HOME%/config/crate.yml"
 
