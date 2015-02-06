@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Adding new columns to existing partitions could fail if the table was altered
+   before
+
  - Comparing arrays now works correctly for literals and comparing an array
    field to an array literal will result in a correct
    UnsupportedOperationException.

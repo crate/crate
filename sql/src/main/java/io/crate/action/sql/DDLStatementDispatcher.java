@@ -455,9 +455,17 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
             });
         }
         if (updateMapping) {
+            Map<String, Object> mapping = null;
+            try {
+                mapping = clusterService.state().metaData().index(indices[0]).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
+            } catch (IOException e) {
+                result.setException(e);
+                return result;
+            }
+            XContentHelper.update(mapping, analysis.tableParameter().mappings(), false);
             PutMappingRequest request = new PutMappingRequest(indices);
             request.type(Constants.DEFAULT_MAPPING_TYPE);
-            request.source(analysis.tableParameter().mappings());
+            request.source(mapping);
             final SettableFuture<?> future = SettableFuture.create();
             results.add(future);
             transportActionProvider.transportPutMappingAction().execute(request, new ActionListener<PutMappingResponse>() {
