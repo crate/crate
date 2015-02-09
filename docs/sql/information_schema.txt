@@ -172,7 +172,7 @@ For further information see :ref:`sql_ddl_partitioned_by`.
 
     cr> create table a_partitioned_table (id int, content string)
     ... partitioned by (content);
-    CREATE OK (... sec)
+    CREATE OK, ...
 
 ::
 
@@ -272,3 +272,4 @@ available: ``blob``, ``doc``, ``information_schema`` and ``sys``::
     | sys                |
     +--------------------+
     SELECT 4 rows in set (... sec)
+

@@ -21,7 +21,7 @@ Every new row has an initial version of ``1``. This value is increased by ``1`` 
     UPDATE OK, 3 rows affected (... sec)
 
     cr> refresh table locations;
-    REFRESH OK (... sec)
+    REFRESH OK, ...
 
 It's possible to fetch the ``_version`` by selecting it::
 
@@ -87,8 +87,7 @@ Known Limitations
    error::
 
     cr> delete from locations where name = 'Aldebaran' and "_version" = 3;
-    SQLActionException["_version" column is only valid in the WHERE clau...]
-
+    SQLActionException["_version" column is only valid in the WHERE clause if the primary key column is also present]
 
 .. note::
 

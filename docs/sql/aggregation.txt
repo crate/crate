@@ -26,8 +26,7 @@ This aggregation function simply returns the number of rows that match the query
 
 `count(columName)` is also possible, but currently only works on a primary key column.
 The semantics are the same.
-The return value is always of type ``long``.
-::
+The return value is always of type ``long``::
 
     cr> select count(*) from locations;
     +----------+

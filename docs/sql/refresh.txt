@@ -12,7 +12,7 @@ If required a table can be refreshed explicitly in order to ensure
 that the latest state of the table gets fetched::
 
     cr> refresh table locations;
-    REFRESH OK (... sec)
+    REFRESH OK, ...
 
 A table is refreshed periodically with a specified refresh interval. By
 default, the refresh interval is set to 1000 milliseconds. The refresh interval

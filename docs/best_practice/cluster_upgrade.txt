@@ -100,7 +100,7 @@ Use the :ref:`ref-set` command to do so:
 .. code-block:: psql
 
   cr> SET GLOBAL TRANSIENT cluster.routing.allocation.enable = 'new_primaries';
-  SET OK (... sec)
+  SET OK, ...
 
 .. note::
 
@@ -217,11 +217,11 @@ look:
    ... FROM information_schema.tables
    ... WHERE number_of_replicas = 0 and schema_name in ('blob', 'doc')
    ... ORDER BY schema, "table" ;
-   +--------+-------------------+
-   | schema | table             |
-   +--------+-------------------+
+   +--------+------...+
+   | schema | table...|
+   +--------+------...+
    ...
-   +--------+-------------------+
+   +--------+------...+
    SELECT ... rows in set (... sec)
 
 
@@ -277,7 +277,7 @@ allocations again that have been disabled in the first step:
 .. code-block:: psql
 
   cr> SET GLOBAL TRANSIENT cluster.routing.allocation.enable = 'all';
-  SET OK (... sec)
+  SET OK, ...
 
 
 .. warning::

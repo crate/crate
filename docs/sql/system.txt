@@ -31,7 +31,7 @@ the ``sys.cluster`` table:
 .. Hidden: reset settings
 
     cr> reset GLOBAL stats.enabled, stats.jobs_log_size, stats.operations_log_size;
-    RESET OK (... sec)
+    RESET OK, ...
 
 The result has at most 1 row::
 
@@ -523,7 +523,7 @@ performance overhead.
 In order to activate stats tracking :ref:`ref-set` can be used::
 
     cr> set global stats.enabled = true;
-    SET OK (... sec)
+    SET OK, ...
 
 Jobs
 ----
@@ -591,7 +591,7 @@ enabled using the ``SET`` statement. The same statement can also be used to
 deactivate the stats tracking. This will also wipe all existing log entries::
 
     cr> set global stats.enabled = false;
-    SET OK (... sec)
+    SET OK, ...
 
 ::
 
@@ -621,13 +621,13 @@ Please refer to :ref:`ref-set` for a complete list of settings.
 For example to set the timeout to 30 minutes::
 
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = 1800000;
-    SET OK (... sec)
+    SET OK, ...
 
 Crate supports string literals for time values the same way as the ``crate.yml`` does.
 So you can write the previous statmement as::
 
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = '30m';
-    SET OK (... sec)
+    SET OK, ...
 
 Note, that querying a time setting will always return a ``string`` value::
 
@@ -642,8 +642,9 @@ Note, that querying a time setting will always return a ``string`` value::
 ::
 
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {force=true};
-    SET OK (... sec)
+    SET OK, ...
 
+::
 
     cr> select settings['cluster']['graceful_stop'] from sys.cluster;
     +---------------------------------------------------...-------------------+
