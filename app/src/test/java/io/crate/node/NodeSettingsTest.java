@@ -26,6 +26,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.varia.NullAppender;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -33,14 +34,16 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
 import org.elasticsearch.node.internal.InternalSettingsPreparer;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileAttribute;
+import java.util.EnumSet;
 
 import static org.junit.Assert.assertEquals;
 
@@ -57,6 +60,44 @@ public class NodeSettingsTest {
     protected Node node;
     protected Client client;
     private boolean loggingConfigured = false;
+
+    private static Path target = Paths.get("config");
+
+    @BeforeClass
+    public static void setupDefaultEsConfig(){
+
+        final Path source = Paths.get("src/main/dist/config");
+        CopyOption[] opt = new CopyOption[]{StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING};
+        try {
+            Files.createDirectories(target);
+            Files.copy(source.resolve("crate.yml"), target.resolve("crate.yml"), opt);
+            Files.copy(source.resolve("logging.yml"), target.resolve("logging.yml"), opt);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @AfterClass
+    public static void tearDownDefaultConfig(){
+        try {
+            Files.walkFileTree(target, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private void doSetup() throws IOException {
         // mute log4j warning by configuring a dummy logger
