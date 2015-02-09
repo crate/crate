@@ -27,10 +27,7 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.IdentityHashMap;
-import java.util.List;
+import java.util.*;
 
 public class QuerySplitter {
 
@@ -76,6 +73,12 @@ public class QuerySplitter {
         return splitQueries;
     }
 
+    public static RelationCount getRelationCount(AnalyzedRelation analyzedRelation, Symbol symbol) {
+        RelationFieldCounterCtx relationFieldCounterCtx = new RelationFieldCounterCtx(analyzedRelation);
+        RELATION_FIELD_COUNTER.process(symbol, relationFieldCounterCtx);
+        return relationFieldCounterCtx.countMap.get(symbol);
+    }
+
     private static Symbol joinQueryParts(List<Symbol> queryParts) {
         if (queryParts.size() == 1) {
             return queryParts.get(0);
@@ -91,6 +94,7 @@ public class QuerySplitter {
 
     public static class RelationFieldCounterCtx {
         AnalyzedRelation analyzedRelation;
+        Stack<Symbol> parents = new Stack<>();
         IdentityHashMap<Symbol, RelationCount> countMap = new IdentityHashMap<>();
 
         public RelationFieldCounterCtx(AnalyzedRelation analyzedRelation) {
@@ -98,14 +102,14 @@ public class QuerySplitter {
         }
     }
 
-    private static class RelationCount {
+    public static class RelationCount {
         int numThis = 0;
         int numOther = 0;
 
-        public RelationCount() {
+        private RelationCount() {
         }
 
-        public RelationCount(int numThis, int numOther) {
+        private RelationCount(int numThis, int numOther) {
             this.numThis = numThis;
             this.numOther = numOther;
         }
@@ -140,22 +144,30 @@ public class QuerySplitter {
         @Override
         public RelationCount visitFunction(Function function, RelationFieldCounterCtx context) {
             RelationCount relationCount = new RelationCount();
+            context.parents.push(function);
             for (Symbol argument : function.arguments()) {
                 RelationCount childCounts = process(argument, context);
 
                 relationCount.numOther += childCounts.numOther;
                 relationCount.numThis += childCounts.numThis;
             }
+            context.parents.pop();
             context.countMap.put(function, relationCount);
             return relationCount;
         }
 
         @Override
         public RelationCount visitField(Field field, RelationFieldCounterCtx context) {
+            RelationCount relationCount;
             if (field.relation() == context.analyzedRelation) {
-                return new RelationCount(1, 0);
+                relationCount = new RelationCount(1, 0);
+            } else {
+                relationCount = new RelationCount(0, 1);
             }
-            return new RelationCount(0, 1);
+            if (context.parents.isEmpty()) {
+                context.countMap.put(field, relationCount);
+            }
+            return relationCount;
         }
 
         @Override

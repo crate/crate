@@ -38,10 +38,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import java.util.*;
 
 
 public class CrossJoinConsumer implements Consumer {
@@ -95,12 +92,6 @@ public class CrossJoinConsumer implements Consumer {
                 return null;
             }
 
-            OrderBy orderBy = statement.querySpec().orderBy();
-            if (orderBy != null && orderBy.isSorted()) {
-                context.validationException(new ValidationException("Query with CROSS JOIN doesn't support ORDER BY"));
-                return null;
-            }
-
             /**
              * Example statement:
              *
@@ -132,8 +123,32 @@ public class CrossJoinConsumer implements Consumer {
              */
 
             WhereClause where = MoreObjects.firstNonNull(statement.querySpec().where(), WhereClause.MATCH_ALL);
-            List<Plan> nestedPlans = new ArrayList<>();
             List<QueriedTable> queriedTables = new ArrayList<>();
+
+            /**
+             * create a map to track which relation to order in the nestedLoopNode:
+             *
+             * e.g. select * from t1, t2, t3 order by t2.x, t3.y
+             *
+             * orderByOrder: {
+             *     t2: 0        (first)
+             *     t3: 1        (second)
+             * }
+             */
+            Map<Object, Integer> orderByOrder = new IdentityHashMap<>();
+            OrderBy orderBy = statement.querySpec().orderBy();
+            if (orderBy != null && orderBy.isSorted()) {
+                int idx = 0;
+                for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
+                    for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
+                        QuerySplitter.RelationCount relationCount = QuerySplitter.getRelationCount(analyzedRelation, orderBySymbol);
+                        if (relationCount != null && relationCount.numOther == 0 && relationCount.numThis > 0) {
+                            orderByOrder.put(analyzedRelation, idx);
+                        }
+                    }
+                    idx++;
+                }
+            }
 
             for (Map.Entry<QualifiedName, AnalyzedRelation> entry : statement.sources().entrySet()) {
                 AnalyzedRelation analyzedRelation = entry.getValue();
@@ -146,7 +161,6 @@ public class CrossJoinConsumer implements Consumer {
                 queriedTable.normalize(analysisMetaData);
                 queriedTables.add(queriedTable);
                 where = statement.querySpec().where();
-                nestedPlans.add(consumingPlanner.plan(queriedTable));
             }
             if (where.hasQuery() && !(where.query() instanceof Literal)) {
                 context.validationException(new ValidationException(
@@ -155,7 +169,7 @@ public class CrossJoinConsumer implements Consumer {
             }
 
             int limit = MoreObjects.firstNonNull(statement.querySpec().limit(), TopN.NO_LIMIT);
-            NestedLoopNode nestedLoopNode = toNestedLoop(nestedPlans, limit, statement.querySpec().offset());
+            NestedLoopNode nestedLoopNode = toNestedLoop(orderByOrder, queriedTables, limit, statement.querySpec().offset());
 
             /**
              * TopN for:
@@ -189,8 +203,22 @@ public class CrossJoinConsumer implements Consumer {
              * #3 Apply Limit (and Order by once supported..)
              */
             List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), queriedTables);
-            TopNProjection topNProjection = new TopNProjection(limit, statement.querySpec().offset());
+            TopNProjection topNProjection;
+
+            orderBy = statement.querySpec().orderBy();
+            if (orderBy != null && orderBy.isSorted()) {
+                 topNProjection = new TopNProjection(
+                         limit,
+                         statement.querySpec().offset(),
+                         orderBy.orderBySymbols(),
+                         orderBy.reverseFlags(),
+                         orderBy.nullsFirst()
+                 );
+            } else {
+                topNProjection = new TopNProjection(limit, statement.querySpec().offset());
+            }
             topNProjection.outputs(postOutputs);
+
             nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
             nestedLoopNode.outputTypes(Symbols.extractTypes(postOutputs));
             return nestedLoopNode;
@@ -221,26 +249,40 @@ public class CrossJoinConsumer implements Consumer {
             return result;
         }
 
-        private NestedLoopNode toNestedLoop(List<Plan> subRelationPlans, int limit, int offset) {
-            if (subRelationPlans.size() == 2) {
-                return new NestedLoopNode(
-                        subRelationPlans.get(0),
-                        subRelationPlans.get(1),
-                        false,
+        private NestedLoopNode toNestedLoop(Map<Object, Integer> orderByOrder, List<QueriedTable> queriedTables, int limit, int offset) {
+            if (queriedTables.size() == 2) {
+                QueriedTable left = queriedTables.get(0);
+                QueriedTable right = queriedTables.get(1);
+
+                Integer leftOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(left.tableRelation()), Integer.MAX_VALUE);
+                Integer rightOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(right.tableRelation()), Integer.MAX_VALUE);
+
+                NestedLoopNode nestedLoopNode = new NestedLoopNode(
+                        consumingPlanner.plan(left),
+                        consumingPlanner.plan(right),
+                        leftOrderByPosition < rightOrderByPosition,
                         limit,
                         offset
                 );
-            } else if (subRelationPlans.size() > 2) {
-                Plan nestedLoopPlan = new IterablePlan(
-                        toNestedLoop(subRelationPlans.subList(1, subRelationPlans.size()), limit, offset)
-                );
-                return new NestedLoopNode(
-                        subRelationPlans.get(0),
+                orderByOrder.put(nestedLoopNode, Math.min(leftOrderByPosition, rightOrderByPosition));
+                return nestedLoopNode;
+            } else if (queriedTables.size() > 2) {
+                NestedLoopNode nestedLoopNode = toNestedLoop(orderByOrder, queriedTables.subList(1, queriedTables.size()), limit, offset);
+                Plan nestedLoopPlan = new IterablePlan(nestedLoopNode);
+
+                QueriedTable queriedTable = queriedTables.get(0);
+                Integer leftOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(queriedTable.tableRelation()), Integer.MAX_VALUE);
+                Integer rightOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(nestedLoopNode), Integer.MAX_VALUE);
+
+                NestedLoopNode newNestedLoopNode = new NestedLoopNode(
+                        consumingPlanner.plan(queriedTable),
                         nestedLoopPlan,
-                        false,
+                        leftOrderByPosition < rightOrderByPosition,
                         limit,
                         offset
                 );
+                orderByOrder.put(newNestedLoopNode, Math.min(leftOrderByPosition, rightOrderByPosition));
+                return newNestedLoopNode;
             }
             return null;
         }
