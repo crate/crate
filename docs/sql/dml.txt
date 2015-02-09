@@ -294,12 +294,11 @@ Example JSON data::
 
 .. note::
 
-  Existing entries will be overwritten on import.
+  * The ``COPY FROM`` statement will not convert or validate your data.
+    Please make sure that it fits your schema.
+  * Furthermore, column names in your data are considered case sensitive (as if they
+    were quoted in a SQL statement).
 
-.. note::
-
-  The ``COPY FROM`` statement will not convert or validate your data.
-  Please make sure that it fits your schema.
 
 In order to import data into :ref:`sql_ddl_partitioned_by` take a look at the
 :ref:`copy_from` reference.

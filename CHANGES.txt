@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - COPY FROM now skips rows with the same primary key instead of overriding them
+
 2015/02/06 0.47.0
 =================
 
