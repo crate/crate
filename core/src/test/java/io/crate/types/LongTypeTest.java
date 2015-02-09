@@ -47,7 +47,7 @@ public class LongTypeTest {
     @Test
     public void testConversionWithNonAsciiCharacter() throws Exception {
         expectedException.expect(NumberFormatException.class);
-        expectedException.expectMessage("π");
+        expectedException.expectMessage("\u03C0"); // "π" GREEK SMALL LETTER PI
         assertBytesRefParsing("\u03C0", 0L);
     }
 
