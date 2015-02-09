@@ -42,20 +42,33 @@ public class WhereClause extends QueryClause implements Streamable {
     public static final WhereClause MATCH_ALL = new WhereClause();
     public static final WhereClause NO_MATCH = new WhereClause(null, true);
 
-    protected String clusteredBy;
-    protected Long version;
+    private String clusteredBy;
+    private Long version;
 
-    protected List<String> partitions = new ArrayList<>();
+    private Optional<List<Id>> primaryKeys = Optional.absent();
 
-    private WhereClause() {
+    private List<String> partitions = new ArrayList<>();
+
+    public WhereClause() {
+
     }
+
+
 
     public WhereClause(StreamInput in) throws IOException {
         readFrom(in);
     }
 
-    public WhereClause(Symbol normalizedQuery) {
+    public WhereClause(Symbol normalizedQuery,
+                       @Nullable List<Id> primaryKeys,
+                       @Nullable List<String> partitions,
+                       @Nullable Long version) {
         super(normalizedQuery);
+        primaryKeys(primaryKeys);
+        if (partitions != null){
+            this.partitions = partitions;
+        }
+        this.version = version;
     }
 
     public WhereClause(Function query) {
@@ -75,9 +88,8 @@ public class WhereClause extends QueryClause implements Streamable {
         if (normalizedQuery == query) {
             return this;
         }
-        WhereClause normalizedWhereClause = new WhereClause(normalizedQuery);
-        normalizedWhereClause.partitions = partitions;
-        normalizedWhereClause.version = version;
+        WhereClause normalizedWhereClause = new WhereClause(normalizedQuery,
+                primaryKeys.orNull(), partitions, version);
         normalizedWhereClause.clusteredBy = clusteredBy;
         return normalizedWhereClause;
     }
@@ -107,6 +119,18 @@ public class WhereClause extends QueryClause implements Streamable {
         for (Literal partition : partitions) {
             this.partitions.add(StringValueSymbolVisitor.INSTANCE.process(partition));
         }
+    }
+
+    public void primaryKeys(@Nullable List<Id> primaryKeys) {
+        if (primaryKeys == null || primaryKeys.isEmpty()){
+            this.primaryKeys = Optional.absent();
+        } else {
+            this.primaryKeys = Optional.of(primaryKeys);
+        }
+    }
+
+    public Optional<List<Id>> primaryKeys() {
+        return primaryKeys;
     }
 
     /**

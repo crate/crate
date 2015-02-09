@@ -27,7 +27,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
@@ -94,14 +93,14 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             }
 
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
-            if (whereClauseContext.whereClause().version().isPresent()) {
+            WhereClause whereClause = whereClauseAnalyzer.analyze(table.querySpec().where());
+            if (whereClause.version().isPresent()) {
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
             }
             context.result = true;
             return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, table.tableRelation(),
-                    whereClauseContext, null);
+                    whereClause, null);
         }
 
 
@@ -127,7 +126,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
      * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
      * LocalMergeNode ( [TopN], IndexWriterProjection )
      */
-    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, WhereClauseContext whereClauseContext, ColumnIndexWriterProjection indexWriterProjection) {
+    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, WhereClause whereClause, ColumnIndexWriterProjection indexWriterProjection) {
         assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
         TableInfo tableInfo = tableRelation.tableInfo();
         GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
@@ -178,7 +177,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableInfo,
-                whereClauseContext.whereClause(),
+                whereClause,
                 toCollect,
                 contextBuilder.getAndClearProjections()
         );

@@ -22,16 +22,12 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.UpdateAnalyzedStatement;
-import io.crate.analyze.VersionRewriter;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -41,8 +37,8 @@ import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -112,21 +108,19 @@ public class UpdateConsumer implements Consumer {
             UpsertByIdNode upsertByIdNode = null;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-                WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
-                WhereClause whereClause = whereClauseContext.whereClause();
+                WhereClause whereClause = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
                 if (whereClause.noMatch()){
                     continue;
                 }
-                if (whereClauseContext.ids().size() >= 1
-                        && whereClauseContext.routingValues().size() == whereClauseContext.ids().size()) {
+                if (whereClause.primaryKeys().isPresent()) {
                     if (upsertByIdNode == null) {
                         Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
                         upsertByIdNode = new UpsertByIdNode(false, statement.nestedStatements().size() > 1, assignments.v1(), null);
                         childNodes.add(ImmutableList.<DQLPlanNode>of(upsertByIdNode));
                     }
-                    upsertById(nestedAnalysis, tableInfo, whereClause, whereClauseContext, upsertByIdNode);
+                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);
                 } else {
-                    childNodes.add(upsertByQuery(nestedAnalysis, tableInfo, whereClause, whereClauseContext));
+                    childNodes.add(upsertByQuery(nestedAnalysis, tableInfo, whereClause));
                 }
             }
             if (childNodes.size()>0){
@@ -138,13 +132,13 @@ public class UpdateConsumer implements Consumer {
 
         private List<DQLPlanNode> upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
                                                 TableInfo tableInfo,
-                                                WhereClause whereClause,
-                                                WhereClauseContext whereClauseContext) {
+                                                WhereClause whereClause) {
 
-            if(whereClauseContext.whereClause().version().isPresent()){
+            if(whereClause.version().isPresent()){
                 VersionRewriter versionRewriter = new VersionRewriter();
                 Symbol whereClauseQuery = versionRewriter.rewrite(whereClause.query());
-                whereClause = new WhereClause(whereClauseQuery);
+                whereClause = new WhereClause(whereClauseQuery, whereClause.primaryKeys().orNull(), whereClause.partitions(),
+                        whereClause.version().orNull());
             }
 
             if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
@@ -160,7 +154,7 @@ public class UpdateConsumer implements Consumer {
                         new InputColumn(0, DataTypes.STRING),
                         assignments.v1(),
                         assignments.v2(),
-                        whereClauseContext.whereClause().version().orNull());
+                        whereClause.version().orNull());
 
                 CollectNode collectNode = PlanNodeBuilder.collect(
                         tableInfo,
@@ -181,19 +175,17 @@ public class UpdateConsumer implements Consumer {
         private void upsertById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
                                              TableInfo tableInfo,
                                              WhereClause whereClause,
-                                             WhereClauseContext whereClauseContext,
                                              UpsertByIdNode upsertByIdNode) {
             String[] indices = Planner.indices(tableInfo, whereClause);
             assert indices.length == 1;
-            assert whereClauseContext.ids().size() == whereClauseContext.routingValues().size();
 
             Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
 
-            for (int i = 0; i < whereClauseContext.ids().size(); i++) {
+            for (Id primaryKey : whereClause.primaryKeys().get()) {
                 upsertByIdNode.add(
                         indices[0],
-                        whereClauseContext.ids().get(i),
-                        whereClauseContext.routingValues().get(i),
+                        primaryKey.stringValue(),
+                        primaryKey.routingValue(),
                         assignments.v2(),
                         whereClause.version().orNull());
             }

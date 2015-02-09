@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -134,14 +135,15 @@ public class ExpressionAnalyzer {
         return innerAnalyzer.process(expression, expressionAnalysisContext);
     }
 
-    public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
+    public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context,
+                                           TableRelation tableRelation) {
         if (whereExpression.isPresent()) {
-            WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)));
+            WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)), null, null, null);
             if(whereClause.hasQuery()){
                 WhereClauseValidator whereClauseValidator = new WhereClauseValidator();
                 whereClauseValidator.validate(whereClause);
             }
-            return whereClause;
+            return tableRelation.resolve(whereClause);
         } else {
             return WhereClause.MATCH_ALL;
         }

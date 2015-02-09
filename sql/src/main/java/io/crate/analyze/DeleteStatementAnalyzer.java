@@ -24,6 +24,7 @@ package io.crate.analyze;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
+import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Node;
@@ -33,13 +34,14 @@ import org.elasticsearch.common.inject.Singleton;
 @Singleton
 public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
-    final DefaultTraversalVisitor<Void, InnerAnalysisContext> innerAnalyzer =
+    static final DefaultTraversalVisitor<Void, InnerAnalysisContext> innerAnalyzer =
         new DefaultTraversalVisitor<Void, InnerAnalysisContext>() {
-
             @Override
             public Void visitDelete(Delete node, InnerAnalysisContext context) {
                 context.deleteAnalyzedStatement.whereClauses.add(
-                        context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext));
+                        context.whereClauseAnalyzer.analyze(
+                                context.expressionAnalyzer.generateWhereClause(node.getWhere(),
+                                        context.expressionAnalysisContext, context.tableRelation)));
                 return null;
             }
     };
@@ -60,16 +62,23 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     }
 
     private static class InnerAnalysisContext {
-        ExpressionAnalyzer expressionAnalyzer;
-        ExpressionAnalysisContext expressionAnalysisContext;
-        DeleteAnalyzedStatement deleteAnalyzedStatement;
+        private final ExpressionAnalyzer expressionAnalyzer;
+        private final TableRelation tableRelation;
+        private final ExpressionAnalysisContext expressionAnalysisContext;
+        private final DeleteAnalyzedStatement deleteAnalyzedStatement;
+        private final WhereClauseAnalyzer whereClauseAnalyzer;
 
-        InnerAnalysisContext(ExpressionAnalyzer expressionAnalyzer,
+        InnerAnalysisContext(TableRelation tableRelation,
+                             ExpressionAnalyzer expressionAnalyzer,
                              ExpressionAnalysisContext expressionAnalysisContext,
-                             DeleteAnalyzedStatement deleteAnalyzedStatement) {
+                             DeleteAnalyzedStatement deleteAnalyzedStatement,
+                             WhereClauseAnalyzer whereClauseAnalyzer
+                             ) {
             this.expressionAnalyzer = expressionAnalyzer;
+            this.tableRelation = tableRelation;
             this.expressionAnalysisContext = expressionAnalysisContext;
             this.deleteAnalyzedStatement = deleteAnalyzedStatement;
+            this.whereClauseAnalyzer = whereClauseAnalyzer;
         }
     }
 
@@ -84,13 +93,15 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             throw new UnsupportedOperationException(String.format(
                     "relation \"%s\" is read-only and cannot be deleted", analyzedRelation));
         }
-
-        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(analyzedRelation);
+        assert analyzedRelation instanceof TableRelation;
+        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement((TableRelation) analyzedRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
+                deleteAnalyzedStatement.analyzedRelation(),
                 new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),
                         new FullQualifedNameFieldProvider(relationAnalysisContext.sources())),
                 new ExpressionAnalysisContext(),
-                deleteAnalyzedStatement
+                deleteAnalyzedStatement,
+                new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())
         );
 
         if (context.parameterContext().hasBulkParams()) {

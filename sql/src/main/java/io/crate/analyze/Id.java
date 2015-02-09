@@ -21,13 +21,15 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.common.*;
+import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import io.crate.metadata.ColumnIdent;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Base64;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -37,10 +39,33 @@ import java.util.List;
 
 public class Id {
 
+    public static final Function<Id, String> ROUTING_VALUES_FUNCTION = new Function<Id, String>() {
+        @javax.annotation.Nullable
+        @Override
+        public String apply(@Nullable Id input) {
+            return input.routingValue();
+        }
+    };
+
+    public static final Function<Id, String> ID_STRING_FUNCTION = new Function<Id, String>() {
+        @javax.annotation.Nullable
+        @Override
+        public String apply(@Nullable Id input) {
+            return input.stringValue();
+        }
+    };
+
     private final List<BytesRef> values;
+    private String routingValue;
 
     // used to avoid bytesRef/string conversion if there is just one primary key used for IndexRequests
     private String singleStringValue = null;
+
+    public Id(List<BytesRef> values){
+        this.values = values;
+        singleStringValue = null;
+        this.routingValue = null;
+    }
 
     public Id(List<ColumnIdent> primaryKeys, List<BytesRef> primaryKeyValues,
               ColumnIdent clusteredBy) {
@@ -70,27 +95,21 @@ public class Id {
                 if (primaryKeys.get(i).equals(clusteredBy)) {
                     // clusteredBy value must always be first
                     values.add(0, primaryKeyValue);
+                    routingValue = primaryKeyValue.utf8ToString();
                 } else {
                     values.add(primaryKeyValue);
                 }
             }
         }
+
     }
 
-    private Id() {
-        values = new ArrayList<>();
-        singleStringValue = null;
+    public String routingValue(){
+        return MoreObjects.firstNonNull(routingValue, stringValue());
     }
 
     public boolean isValid() {
         return values.size() > 0 || singleStringValue != null;
-    }
-
-    private void decodeValues(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        for (int i=0; i < size; i++) {
-            values.add(in.readBytesRef());
-        }
     }
 
     private void encodeValues(StreamOutput out) throws IOException {
@@ -148,21 +167,5 @@ public class Id {
             values.add(new BytesRef(singleStringValue));
         }
         return values;
-    }
-
-    /**
-     * Creates an Id object from a Base64 encoded string input.
-     * WARNING: Using this method with non-base64 encoded string input results in unpredictable
-     * id values!
-     *
-     * @throws IOException
-     */
-    public static Id fromString(String base64encodedString) throws IOException {
-        assert base64encodedString != null;
-        byte[] inputBytes = Base64.decode(base64encodedString);
-        BytesStreamInput in = new BytesStreamInput(inputBytes, true);
-        Id id = new Id();
-        id.decodeValues(in);
-        return id;
     }
 }

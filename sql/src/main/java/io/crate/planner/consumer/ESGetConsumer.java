@@ -24,11 +24,11 @@ package io.crate.planner.consumer;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -74,14 +74,14 @@ public class ESGetConsumer implements Consumer {
             }
 
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
+            WhereClause whereClause = whereClauseAnalyzer.analyze(table.querySpec().where());
 
-            if(whereClauseContext.whereClause().version().isPresent()){
+            if(whereClause.version().isPresent()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
 
-            if (whereClauseContext.ids().size() == 0 || whereClauseContext.routingValues().size() == 0) {
+            if (!whereClause.primaryKeys().isPresent()) {
                 return null;
             }
 
@@ -95,8 +95,8 @@ public class ESGetConsumer implements Consumer {
                  * The assertion here is just a safety-net, because once the WhereClauseAnalyzer allows
                  * multiple different whereClauses for partitions the logic here would have to be changed.
                  */
-                assert whereClauseContext.whereClause().partitions().size() == 1 : "Ambiguous partitions for ESGet";
-                indexName = whereClauseContext.whereClause().partitions().get(0);
+                assert whereClause.partitions().size() == 1 : "Ambiguous partitions for ESGet";
+                indexName = whereClause.partitions().get(0);
             } else {
                 indexName = tableInfo.ident().name();
             }
@@ -113,8 +113,7 @@ public class ESGetConsumer implements Consumer {
                 return new ESGetNode(
                         indexName,
                         table.querySpec().outputs(),
-                        whereClauseContext.ids(),
-                        whereClauseContext.routingValues(),
+                        whereClause.primaryKeys().get(),
                         null, null, null,
                         limit,
                         table.querySpec().offset(),
@@ -125,8 +124,7 @@ public class ESGetConsumer implements Consumer {
                 return new ESGetNode(
                         indexName,
                         table.querySpec().outputs(),
-                        whereClauseContext.ids(),
-                        whereClauseContext.routingValues(),
+                        whereClause.primaryKeys().get(),
                         orderBy.orderBySymbols(),
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst(),

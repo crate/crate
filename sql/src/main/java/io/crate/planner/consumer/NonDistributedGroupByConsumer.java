@@ -25,7 +25,6 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
@@ -88,8 +87,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             TableInfo tableInfo = table.tableRelation().tableInfo();
 
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
-            WhereClause whereClause = whereClauseContext.whereClause();
+            WhereClause whereClause = whereClauseAnalyzer.analyze(table.querySpec().where());
             if (whereClause.version().isPresent()) {
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
@@ -102,7 +100,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             }
 
             context.result = true;
-            return nonDistributedGroupBy(table, whereClauseContext, null);
+            return nonDistributedGroupBy(table, whereClause, null);
         }
 
         @Override
@@ -126,7 +124,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
      * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], [TopN], IndexWriterProjection )
      */
     public static AnalyzedRelation nonDistributedGroupBy(QueriedTable table,
-                                                         WhereClauseContext whereClauseContext,
+                                                         WhereClause whereClause,
                                                          @Nullable ColumnIndexWriterProjection indexWriterProjection) {
         boolean ignoreSorting = indexWriterProjection != null;
         TableInfo tableInfo = table.tableRelation().tableInfo();
@@ -156,7 +154,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableInfo,
-                whereClauseContext.whereClause(),
+                whereClause,
                 contextBuilder.toCollect(),
                 contextBuilder.getAndClearProjections()
         );

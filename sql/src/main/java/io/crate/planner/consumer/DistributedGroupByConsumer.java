@@ -28,7 +28,6 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
@@ -94,8 +93,7 @@ public class DistributedGroupByConsumer implements Consumer {
 
             TableInfo tableInfo = table.tableRelation().tableInfo();
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
-            WhereClause whereClause = whereClauseContext.whereClause();
+            WhereClause whereClause = whereClauseAnalyzer.analyze(table.querySpec().where());
             if(whereClause.version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
@@ -128,7 +126,7 @@ public class DistributedGroupByConsumer implements Consumer {
                     contextBuilder.groupBy(), contextBuilder.aggregations()));
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                     tableInfo,
-                    whereClauseContext.whereClause(),
+                    whereClause,
                     contextBuilder.toCollect(),
                     Lists.newArrayList(routing.nodes()),
                     contextBuilder.getAndClearProjections()

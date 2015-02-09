@@ -151,7 +151,7 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                 SqlParser.createStatement(stmt), new Object[0], new Object[0][]).analyzedStatement();
     }
 
-    private WhereClauseContext analyzeSelectWhere(String stmt) {
+    private WhereClause analyzeSelectWhere(String stmt) {
         SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(
                 SqlParser.createStatement(stmt), new Object[0], new Object[0][]).analyzedStatement();
         QueriedTable sourceRelation = (QueriedTable) statement.relation();
@@ -171,9 +171,9 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         TableRelation tableRelation = (TableRelation) statement.analyzedRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
 
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0)).ids().get(0), is("1"));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1)).ids().get(0), is("2"));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2)).ids().get(0), is("3"));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0)).primaryKeys().get().get(0).stringValue(), is("1"));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1)).primaryKeys().get().get(0).stringValue(), is("2"));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2)).primaryKeys().get().get(0).stringValue(), is("3"));
     }
 
     @Test
@@ -181,11 +181,11 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         DeleteAnalyzedStatement statement = analyzeDelete("delete from parted where date = 1395874800000");
         TableRelation tableRelation = (TableRelation) statement.analyzedRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        WhereClauseContext ctx = whereClauseAnalyzer.analyze(statement.whereClauses().get(0));
+        WhereClause whereClause = whereClauseAnalyzer.analyze(statement.whereClauses().get(0));
 
-        assertThat(ctx.whereClause().hasQuery(), is(false));
-        assertThat(ctx.whereClause().noMatch(), is(false));
-        assertThat(ctx.whereClause().partitions(),
+        assertThat(whereClause.hasQuery(), is(false));
+        assertThat(whereClause.noMatch(), is(false));
+        assertThat(whereClause.partitions(),
                 Matchers.contains(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()));
     }
 
@@ -196,8 +196,8 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
         assertThat(updateAnalyzedStatement.nestedStatements().get(0).whereClause().noMatch(), is(false));
 
-        WhereClauseContext ctx = whereClauseAnalyzer.analyze(updateAnalyzedStatement.nestedStatements().get(0).whereClause());
-        assertThat(ctx.whereClause().noMatch(), is(true));
+        WhereClause whereClause = whereClauseAnalyzer.analyze(updateAnalyzedStatement.nestedStatements().get(0).whereClause());
+        assertThat(whereClause.noMatch(), is(true));
     }
 
     @Test
@@ -210,216 +210,216 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
 
         TableRelation tableRelation = (TableRelation) updateAnalyzedStatement.sourceRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        WhereClauseContext context = whereClauseAnalyzer.analyze(nestedAnalyzedStatement.whereClause());
+        WhereClause whereClause = whereClauseAnalyzer.analyze(nestedAnalyzedStatement.whereClause());
 
-        assertThat(context.whereClause().hasQuery(), is(false));
-        assertThat(context.whereClause().noMatch(), is(false));
+        assertThat(whereClause.hasQuery(), is(false));
+        assertThat(whereClause.noMatch(), is(false));
 
         assertEquals(ImmutableList.of(
                         new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
-                context.whereClause().partitions()
+                whereClause.partitions()
         );
     }
 
-    @Test
-    public void testClusteredByValueContainsComma() throws Exception {
-        WhereClauseContext whereClauseContext = analyzeSelectWhere("select * from bystring where name = 'a,b,c'");
-        assertThat(whereClauseContext.whereClause().clusteredBy().get(), is("a,b,c"));
-        assertThat(whereClauseContext.ids().size(), is(1));
-        assertThat(whereClauseContext.ids().get(0), is("a,b,c"));
-    }
-
-    @Test
-    public void testEmptyClusteredByValue() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select * from bystring where name = ''");
-        assertThat(ctx.whereClause().clusteredBy().isPresent(), is(false));
-        assertThat(ctx.ids().size(), is(0));
-    }
-
-    @Test
-    public void testClusteredBy() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select name from users where id=1");
-        assertEquals(ImmutableList.of("1"), ctx.routingValues());
-        assertEquals("1", ctx.whereClause().clusteredBy().get());
-
-        ctx = analyzeSelectWhere("select name from users where id=1 or id=2");
-        assertThat(ctx.routingValues(), containsInAnyOrder("1", "2"));
-        assertThat(ctx.ids(), equalTo(ctx.routingValues()));
-        assertFalse(ctx.whereClause().clusteredBy().isPresent());
-    }
-
-
-    @Test
-    public void testClusteredByOnly() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select name from users_clustered_by_only where id=1");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertEquals(ImmutableList.of("1"), ctx.routingValues());
-        assertEquals("1", ctx.whereClause().clusteredBy().get());
-
-        ctx = analyzeSelectWhere("select name from users_clustered_by_only where id=1 or id=2");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertEquals(ImmutableList.of(), ctx.routingValues());
-        assertFalse(ctx.whereClause().clusteredBy().isPresent());
-
-        ctx = analyzeSelectWhere("select name from users_clustered_by_only where id=1 and id=2");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertEquals(ImmutableList.of(), ctx.routingValues());
-        assertFalse(ctx.whereClause().clusteredBy().isPresent());
-    }
-
-    @Test
-    public void testCompositePrimaryKey() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select name from users_multi_pk where id=1");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertEquals(ImmutableList.of(), ctx.routingValues());
-        assertEquals("1", ctx.whereClause().clusteredBy().get());
-
-        ctx = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas'");
-        assertEquals(ImmutableList.of("AgExB0RvdWdsYXM="), ctx.ids());
-        assertEquals(ImmutableList.of("1"), ctx.routingValues());
-        assertEquals("1", ctx.whereClause().clusteredBy().get());
-
-        ctx = analyzeSelectWhere("select name from users_multi_pk where id=1 or id=2 and name='Douglas'");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertEquals(ImmutableList.of(), ctx.routingValues());
-        assertFalse(ctx.whereClause().clusteredBy().isPresent());
-
-        ctx = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas' or name='Arthur'");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertEquals(ImmutableList.of(), ctx.routingValues());
-        assertFalse(ctx.whereClause().clusteredBy().isPresent());
-    }
-
-    @Test
-    public void testPrimaryKeyAndVersion() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere(
-                "select name from users where id = 2 and \"_version\" = 1");
-        assertEquals(ImmutableList.of("2"), ctx.ids());
-        assertEquals(ImmutableList.of("2"), ctx.routingValues());
-        assertThat(ctx.whereClause().version().get(), is(1L));
-    }
-
-    @Test
-    public void testMultiplePrimaryKeys() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere(
-                "select name from users where id = 2 or id = 1");
-
-        assertThat(ctx.ids(), containsInAnyOrder("1", "2"));
-        assertThat(ctx.routingValues(), containsInAnyOrder("1", "2"));
-    }
-
-    @Test
-    public void testMultiplePrimaryKeysAndInvalidColumn() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere(
-                "select name from users where id = 2 or id = 1 and name = 'foo'");
-        assertEquals(0, ctx.ids().size());
-    }
-
-    @Test
-    public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select name from users where id != 1");
-        assertEquals(0, ctx.ids().size());
-        assertEquals(0, ctx.routingValues().size());
-    }
-
-    @Test
-    public void testMultipleCompoundPrimaryKeys() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere(
-                "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo' and partition_ident='') " +
-                        "or (schema_name='doc' and id = 2 and table_name = 'bla' and partition_ident='')");
-        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), ctx.ids());
-        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), ctx.routingValues());
-        assertFalse(ctx.whereClause().clusteredBy().isPresent());
-
-        ctx = analyzeSelectWhere(
-                "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo') " +
-                        "or (schema_name='doc' and id = 2 and table_name = 'bla') or id = 1");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertEquals(ImmutableList.of(), ctx.routingValues());
-        assertFalse(ctx.whereClause().clusteredBy().isPresent());
-    }
-
-    @Test
-    public void test1ColPrimaryKey() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select name from sys.nodes where id='jalla'");
-        assertEquals(ImmutableList.of("jalla"), ctx.ids());
-        assertEquals(ImmutableList.of("jalla"), ctx.routingValues());
-
-        ctx = analyzeSelectWhere("select name from sys.nodes where 'jalla'=id");
-        assertEquals(ImmutableList.of("jalla"), ctx.ids());
-
-        ctx = analyzeSelectWhere("select name from sys.nodes where id='jalla' and id='jalla'");
-        assertEquals(ImmutableList.of("jalla"), ctx.ids());
-
-        ctx = analyzeSelectWhere("select name from sys.nodes where id='jalla' and (id='jalla' or 1=1)");
-        assertEquals(ImmutableList.of("jalla"), ctx.ids());
-
-        // a no match results in undefined key literals, since those are ambiguous
-        ctx = analyzeSelectWhere("select name from sys.nodes where id='jalla' and id='kelle'");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertTrue(ctx.whereClause().noMatch());
-
-        ctx = analyzeSelectWhere("select name from sys.nodes where id='jalla' or name = 'something'");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertFalse(ctx.whereClause().noMatch());
-
-        ctx = analyzeSelectWhere("select name from sys.nodes where name = 'something'");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertFalse(ctx.whereClause().noMatch());
-
-    }
-
-    @Test
-    public void test3ColPrimaryKey() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
-        // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), ctx.ids());
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), ctx.routingValues());
-        assertFalse(ctx.whereClause().noMatch());
-
-        ctx = analyzeSelectWhere("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc' and partition_ident=''");
-        // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), ctx.ids());
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), ctx.routingValues());
-        assertFalse(ctx.whereClause().noMatch());
-
-
-        ctx = analyzeSelectWhere("select id from sys.shards where id=1");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertFalse(ctx.whereClause().noMatch());
-
-        ctx = analyzeSelectWhere("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2 and partition_ident=''");
-        assertEquals(ImmutableList.of(), ctx.ids());
-        assertTrue(ctx.whereClause().noMatch());
-    }
-
-    @Test
-    public void test1ColPrimaryKeySetLiteralDiffMatches() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere(
-                "select name from sys.nodes where id in ('jalla', 'kelle') and id in ('jalla', 'something')");
-        assertFalse(ctx.whereClause().noMatch());
-        assertEquals(1, ctx.ids().size());
-        assertEquals("jalla", ctx.ids().get(0));
-    }
-
-
-    @Test
-    public void test1ColPrimaryKeySetLiteral() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select name from sys.nodes where id in ('jalla', 'kelle')");
-        assertFalse(ctx.whereClause().noMatch());
-        assertEquals(2, ctx.ids().size());
-        assertThat(ctx.ids(), containsInAnyOrder("jalla", "kelle"));
-    }
-
-    @Test
-    public void test3ColPrimaryKeySetLiteral() throws Exception {
-        WhereClauseContext ctx = analyzeSelectWhere("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
-        assertEquals(2, ctx.ids().size());
-        // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
-
-        assertThat(ctx.ids(), containsInAnyOrder("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="));
-        assertThat(ctx.routingValues(), containsInAnyOrder("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="));
-    }
+//    @Test
+//    public void testClusteredByValueContainsComma() throws Exception {
+//        WhereClauseContext whereClauseContext = analyzeSelectWhere("select * from bystring where name = 'a,b,c'");
+//        assertThat(whereClausewhereClause.clusteredBy().get(), is("a,b,c"));
+//        assertThat(whereClauseContext.ids().size(), is(1));
+//        assertThat(whereClauseContext.ids().get(0), is("a,b,c"));
+//    }
+//
+//    @Test
+//    public void testEmptyClusteredByValue() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select * from bystring where name = ''");
+//        assertThat(whereClause.clusteredBy().isPresent(), is(false));
+//        assertThat(ctx.ids().size(), is(0));
+//    }
+//
+//    @Test
+//    public void testClusteredBy() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select name from users where id=1");
+//        assertEquals(ImmutableList.of("1"), ctx.routingValues());
+//        assertEquals("1", whereClause.clusteredBy().get());
+//
+//        whereClause = analyzeSelectWhere("select name from users where id=1 or id=2");
+//        assertThat(ctx.routingValues(), containsInAnyOrder("1", "2"));
+//        assertThat(ctx.ids(), equalTo(ctx.routingValues()));
+//        assertFalse(whereClause.clusteredBy().isPresent());
+//    }
+//
+//
+//    @Test
+//    public void testClusteredByOnly() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertEquals(ImmutableList.of("1"), ctx.routingValues());
+//        assertEquals("1", whereClause.clusteredBy().get());
+//
+//        whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1 or id=2");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertEquals(ImmutableList.of(), ctx.routingValues());
+//        assertFalse(whereClause.clusteredBy().isPresent());
+//
+//        whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1 and id=2");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertEquals(ImmutableList.of(), ctx.routingValues());
+//        assertFalse(whereClause.clusteredBy().isPresent());
+//    }
+//
+//    @Test
+//    public void testCompositePrimaryKey() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertEquals(ImmutableList.of(), ctx.routingValues());
+//        assertEquals("1", whereClause.clusteredBy().get());
+//
+//        whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas'");
+//        assertEquals(ImmutableList.of("AgExB0RvdWdsYXM="), ctx.ids());
+//        assertEquals(ImmutableList.of("1"), ctx.routingValues());
+//        assertEquals("1", whereClause.clusteredBy().get());
+//
+//        whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 or id=2 and name='Douglas'");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertEquals(ImmutableList.of(), ctx.routingValues());
+//        assertFalse(whereClause.clusteredBy().isPresent());
+//
+//        whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas' or name='Arthur'");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertEquals(ImmutableList.of(), ctx.routingValues());
+//        assertFalse(whereClause.clusteredBy().isPresent());
+//    }
+//
+//    @Test
+//    public void testPrimaryKeyAndVersion() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere(
+//                "select name from users where id = 2 and \"_version\" = 1");
+//        assertEquals(ImmutableList.of("2"), ctx.ids());
+//        assertEquals(ImmutableList.of("2"), ctx.routingValues());
+//        assertThat(whereClause.version().get(), is(1L));
+//    }
+//
+//    @Test
+//    public void testMultiplePrimaryKeys() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere(
+//                "select name from users where id = 2 or id = 1");
+//
+//        assertThat(ctx.ids(), containsInAnyOrder("1", "2"));
+//        assertThat(ctx.routingValues(), containsInAnyOrder("1", "2"));
+//    }
+//
+//    @Test
+//    public void testMultiplePrimaryKeysAndInvalidColumn() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere(
+//                "select name from users where id = 2 or id = 1 and name = 'foo'");
+//        assertEquals(0, ctx.ids().size());
+//    }
+//
+//    @Test
+//    public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select name from users where id != 1");
+//        assertEquals(0, ctx.ids().size());
+//        assertEquals(0, ctx.routingValues().size());
+//    }
+//
+//    @Test
+//    public void testMultipleCompoundPrimaryKeys() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere(
+//                "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo' and partition_ident='') " +
+//                        "or (schema_name='doc' and id = 2 and table_name = 'bla' and partition_ident='')");
+//        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), ctx.ids());
+//        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), ctx.routingValues());
+//        assertFalse(whereClause.clusteredBy().isPresent());
+//
+//        whereClause = analyzeSelectWhere(
+//                "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo') " +
+//                        "or (schema_name='doc' and id = 2 and table_name = 'bla') or id = 1");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertEquals(ImmutableList.of(), ctx.routingValues());
+//        assertFalse(whereClause.clusteredBy().isPresent());
+//    }
+//
+//    @Test
+//    public void test1ColPrimaryKey() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla'");
+//        assertEquals(ImmutableList.of("jalla"), ctx.ids());
+//        assertEquals(ImmutableList.of("jalla"), ctx.routingValues());
+//
+//        whereClause = analyzeSelectWhere("select name from sys.nodes where 'jalla'=id");
+//        assertEquals(ImmutableList.of("jalla"), ctx.ids());
+//
+//        whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla' and id='jalla'");
+//        assertEquals(ImmutableList.of("jalla"), ctx.ids());
+//
+//        whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla' and (id='jalla' or 1=1)");
+//        assertEquals(ImmutableList.of("jalla"), ctx.ids());
+//
+//        // a no match results in undefined key literals, since those are ambiguous
+//        whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla' and id='kelle'");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertTrue(whereClause.noMatch());
+//
+//        whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla' or name = 'something'");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertFalse(whereClause.noMatch());
+//
+//        whereClause = analyzeSelectWhere("select name from sys.nodes where name = 'something'");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertFalse(whereClause.noMatch());
+//
+//    }
+//
+//    @Test
+//    public void test3ColPrimaryKey() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
+//        // base64 encoded versions of Streamable of ["doc","jalla","1"]
+//        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), ctx.ids());
+//        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), ctx.routingValues());
+//        assertFalse(whereClause.noMatch());
+//
+//        whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc' and partition_ident=''");
+//        // base64 encoded versions of Streamable of ["doc","jalla","1"]
+//        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), ctx.ids());
+//        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), ctx.routingValues());
+//        assertFalse(whereClause.noMatch());
+//
+//
+//        whereClause = analyzeSelectWhere("select id from sys.shards where id=1");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertFalse(whereClause.noMatch());
+//
+//        whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2 and partition_ident=''");
+//        assertEquals(ImmutableList.of(), ctx.ids());
+//        assertTrue(whereClause.noMatch());
+//    }
+//
+//    @Test
+//    public void test1ColPrimaryKeySetLiteralDiffMatches() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere(
+//                "select name from sys.nodes where id in ('jalla', 'kelle') and id in ('jalla', 'something')");
+//        assertFalse(whereClause.noMatch());
+//        assertEquals(1, ctx.ids().size());
+//        assertEquals("jalla", ctx.ids().get(0));
+//    }
+//
+//
+//    @Test
+//    public void test1ColPrimaryKeySetLiteral() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select name from sys.nodes where id in ('jalla', 'kelle')");
+//        assertFalse(whereClause.noMatch());
+//        assertEquals(2, ctx.ids().size());
+//        assertThat(ctx.ids(), containsInAnyOrder("jalla", "kelle"));
+//    }
+//
+//    @Test
+//    public void test3ColPrimaryKeySetLiteral() throws Exception {
+//        WhereClause whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
+//        assertEquals(2, ctx.ids().size());
+//        // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
+//
+//        assertThat(ctx.ids(), containsInAnyOrder("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="));
+//        assertThat(ctx.routingValues(), containsInAnyOrder("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="));
+//    }
 
     @Test
     public void testSelectFromPartitionedTable() throws Exception {
@@ -427,49 +427,49 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         String partition2 = new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue();
         String partition3 = new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue();
 
-        WhereClauseContext ctx = analyzeSelectWhere("select id, name from parted where date = 1395874800000");
-        assertEquals(ImmutableList.of(partition1), ctx.whereClause().partitions());
-        assertFalse(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        WhereClause whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000");
+        assertEquals(ImmutableList.of(partition1), whereClause.partitions());
+        assertFalse(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date = 1395874800000 " +
+        whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 " +
                 "and substr(name, 0, 4) = 'this'");
-        assertEquals(ImmutableList.of(partition1), ctx.whereClause().partitions());
-        assertThat(ctx.whereClause().hasQuery(), is(true));
-        assertThat(ctx.whereClause().noMatch(), is(false));
+        assertEquals(ImmutableList.of(partition1), whereClause.partitions());
+        assertThat(whereClause.hasQuery(), is(true));
+        assertThat(whereClause.noMatch(), is(false));
 
-        ctx = analyzeSelectWhere("select id, name from parted where date >= 1395874800000");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date >= 1395874800000");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date < 1395874800000");
-        assertEquals(ImmutableList.of(), ctx.whereClause().partitions());
-        assertTrue(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date < 1395874800000");
+        assertEquals(ImmutableList.of(), whereClause.partitions());
+        assertTrue(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date = 1395874800000 and date = 1395961200000");
-        assertEquals(ImmutableList.of(), ctx.whereClause().partitions());
-        assertTrue(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 and date = 1395961200000");
+        assertEquals(ImmutableList.of(), whereClause.partitions());
+        assertTrue(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date = 1395874800000 or date = 1395961200000");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 or date = 1395961200000");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date < 1395874800000 or date > 1395874800000");
-        assertEquals(ImmutableList.of(partition2), ctx.whereClause().partitions());
-        assertFalse(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date < 1395874800000 or date > 1395874800000");
+        assertEquals(ImmutableList.of(partition2), whereClause.partitions());
+        assertFalse(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date in (1395874800000, 1395961200000)");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date in (1395874800000, 1395961200000)");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date in (1395874800000, 1395961200000) and id = 1");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertTrue(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date in (1395874800000, 1395961200000) and id = 1");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
+        assertTrue(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
         /**
          *
@@ -479,45 +479,45 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
          *  not (null  and null) -> not (null)  -> no match
          *  not (false and null) -> not (false) -> match
          */
-        ctx = analyzeSelectWhere("select id, name from parted where not (date = 1395874800000 and obj['col'] = 'undefined')");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition2));
-        assertThat(ctx.whereClause().hasQuery(), is(false));
-        assertThat(ctx.whereClause().noMatch(), is(false));
+        whereClause = analyzeSelectWhere("select id, name from parted where not (date = 1395874800000 and obj['col'] = 'undefined')");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition2));
+        assertThat(whereClause.hasQuery(), is(false));
+        assertThat(whereClause.noMatch(), is(false));
 
-        ctx = analyzeSelectWhere("select id, name from parted where date in (1395874800000) or date in (1395961200000)");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date in (1395874800000) or date in (1395961200000)");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date = 1395961200000 and id = 1");
-        assertEquals(ImmutableList.of(partition2), ctx.whereClause().partitions());
-        assertTrue(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date = 1395961200000 and id = 1");
+        assertEquals(ImmutableList.of(partition2), whereClause.partitions());
+        assertTrue(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertTrue(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
+        assertTrue(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date = 1395874800000 and id is null");
-        assertEquals(ImmutableList.of(partition1), ctx.whereClause().partitions());
-        assertTrue(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 and id is null");
+        assertEquals(ImmutableList.of(partition1), whereClause.partitions());
+        assertTrue(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where date is null and id = 1");
-        assertEquals(ImmutableList.of(partition3), ctx.whereClause().partitions());
-        assertTrue(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where date is null and id = 1");
+        assertEquals(ImmutableList.of(partition3), whereClause.partitions());
+        assertTrue(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where 1395874700000 < date and date < 1395961200001");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where 1395874700000 < date and date < 1395961200001");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
 
-        ctx = analyzeSelectWhere("select id, name from parted where '2014-03-16T22:58:20' < date and date < '2014-03-27T23:00:01'");
-        assertThat(ctx.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
-        assertFalse(ctx.whereClause().hasQuery());
-        assertFalse(ctx.whereClause().noMatch());
+        whereClause = analyzeSelectWhere("select id, name from parted where '2014-03-16T22:58:20' < date and date < '2014-03-27T23:00:01'");
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(whereClause.hasQuery());
+        assertFalse(whereClause.noMatch());
     }
 
     @Test

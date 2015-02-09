@@ -23,6 +23,8 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import io.crate.analyze.Id;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Symbol;
@@ -49,8 +51,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     public ESGetNode(String index,
                      List<Symbol> outputs,
-                     List<String> ids,
-                     List<String> routingValues,
+                     List<Id> ids,
                      @Nullable List<Symbol> sortSymbols,
                      @Nullable boolean[] reverseFlags,
                      @Nullable Boolean[] nullsFirst,
@@ -60,8 +61,8 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         this.index = index;
         this.outputs = outputs;
         outputTypes(Symbols.extractTypes(outputs));
-        this.ids = ids;
-        this.routingValues = routingValues;
+        this.ids = Lists.transform(ids, Id.ID_STRING_FUNCTION);
+        this.routingValues = Lists.transform(ids, Id.ROUTING_VALUES_FUNCTION);
         this.sortSymbols = MoreObjects.firstNonNull(sortSymbols, ImmutableList.<Symbol>of());
         this.reverseFlags = MoreObjects.firstNonNull(reverseFlags, EMPTY_REVERSE_FLAGS);
         this.nullsFirst = MoreObjects.firstNonNull(nullsFirst, EMPTY_NULLS_FIRST);

@@ -28,7 +28,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
@@ -97,28 +96,28 @@ public class QueryAndFetchConsumer implements Consumer {
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
             TableRelation tableRelation = table.tableRelation();
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(tableRelation.resolve(table.querySpec().where()));
-            if(whereClauseContext.whereClause().version().isPresent()){
+            WhereClause whereClause = whereClauseAnalyzer.analyze(tableRelation.resolve(table.querySpec().where()));
+            if(whereClause.version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
             }
             TableInfo tableInfo = tableRelation.tableInfo();
 
-            if (tableInfo.schemaInfo().systemSchema() && whereClauseContext.whereClause().hasQuery()) {
-                ensureNoLuceneOnlyPredicates(whereClauseContext.whereClause().query());
+            if (tableInfo.schemaInfo().systemSchema() && whereClause.hasQuery()) {
+                ensureNoLuceneOnlyPredicates(whereClause.query());
             }
             if (table.querySpec().hasAggregates()) {
                 context.result = true;
-                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClauseContext, null);
+                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClause, null);
             } else {
                if(tableInfo.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
-                        tableInfo.getRouting(whereClauseContext.whereClause(), null).hasLocations() &&
+                        tableInfo.getRouting(whereClause, null).hasLocations() &&
                         !tableInfo.schemaInfo().systemSchema()){
                    return table;
                }
 
                context.result = true;
-               return QueryAndFetchConsumer.normalSelect(table.querySpec(), whereClauseContext, tableRelation,
+               return QueryAndFetchConsumer.normalSelect(table.querySpec(), whereClause, tableRelation,
                        null, analysisMetaData.functions());
             }
         }
@@ -149,12 +148,11 @@ public class QueryAndFetchConsumer implements Consumer {
 
 
     public static AnalyzedRelation normalSelect(QuerySpec querySpec,
-                                                WhereClauseContext whereClauseContext,
+                                                WhereClause whereClause,
                                                 TableRelation tableRelation,
                                                 @Nullable ColumnIndexWriterProjection indexWriterProjection,
                                                 Functions functions){
         TableInfo tableInfo = tableRelation.tableInfo();
-        WhereClause whereClause = whereClauseContext.whereClause();
 
         List<Symbol> outputSymbols;
         if (tableInfo.schemaInfo().systemSchema()) {

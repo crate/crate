@@ -179,7 +179,8 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
     @Deprecated
     public WhereClause resolve(WhereClause whereClause) {
         if (whereClause.hasQuery()) {
-            return new WhereClause(resolve(whereClause.query()));
+            return new WhereClause(resolve(whereClause.query()), whereClause.primaryKeys().orNull(),
+                    whereClause.partitions(), whereClause.version().orNull());
         }
         return whereClause;
     }
