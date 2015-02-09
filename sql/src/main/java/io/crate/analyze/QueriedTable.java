@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
@@ -100,7 +102,17 @@ public class QueriedTable implements QueriedRelation {
         if (outputs == null || outputs.isEmpty()) {
             throw new IllegalArgumentException("a querySpec needs to have some outputs in order to create a new sub-relation");
         }
-        splitQuerySpec.outputs(splitForRelation(tableRelation, outputs).splitSymbols());
+        List<Symbol> splitOutputs = Lists.newArrayList(splitForRelation(tableRelation, outputs).splitSymbols());
+
+        OrderBy orderBy = querySpec.orderBy();
+        if (orderBy != null) {
+            SplitContext splitContext = splitForRelation(tableRelation, orderBy.orderBySymbols());
+            addAllNew(splitOutputs, splitContext.mixedSplit);
+
+            if (!splitContext.directSplit.isEmpty()) {
+                rewriteOrderBy(querySpec, splitQuerySpec, splitContext);
+            }
+        }
 
         WhereClause where = querySpec.where();
         if (where != null && where.hasQuery()) {
@@ -115,23 +127,90 @@ public class QueriedTable implements QueriedRelation {
             splitQuerySpec.where(WhereClause.MATCH_ALL);
         }
 
+
         Integer limit = querySpec.limit();
         if (limit != null) {
             splitQuerySpec.limit(limit + querySpec.offset());
         }
 
-        List<OutputName> outputNames = new ArrayList<>(splitQuerySpec.outputs().size());
+
+        splitQuerySpec.outputs(splitOutputs);
+        List<OutputName> outputNames = new ArrayList<>(splitOutputs.size());
         for (Symbol symbol : splitQuerySpec.outputs()) {
             outputNames.add(new OutputName(SymbolFormatter.format(symbol)));
         }
-
         QueriedTable queriedTable = new QueriedTable(name, tableRelation, outputNames, splitQuerySpec);
         Map<Symbol, Field> fieldMap = new HashMap<>();
         for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
             fieldMap.put(splitQuerySpec.outputs().get(i), queriedTable.fields().get(i));
         }
         replaceFields(querySpec.outputs(), fieldMap);
+
+        orderBy = querySpec.orderBy();
+        if (orderBy != null) {
+            replaceFields(orderBy.orderBySymbols(), fieldMap);
+        }
         return queriedTable;
+    }
+
+    /**
+     * sets the (rewritten) orderBy to the parent querySpec and to the splitQuerySpec.
+     * E.g. in a query like:
+     *
+     *  select * from t1, t2 order by t1.x, t2.y
+     *
+     * Assuming t1 is the current relation for which the QueriedTable is being built.
+     *
+     * SplitContext will contain 1 directSplit symbol (t1.x)
+     *
+     * The parent OrderBy is rewritten:
+     *
+     *  orderBy:      [t1.x, t2.y]      - [t2.y]
+     *  reverseFlags: [false, false]    - [false]
+     *  nullsFirst:   [null, null]      - [null]
+     *
+     * The split OrderBy will be set as:
+     *
+     *  [t1.x]
+     *  [false]
+     *  [null]
+     */
+    private static void rewriteOrderBy(QuerySpec querySpec, QuerySpec splitQuerySpec, SplitContext splitContext) {
+        OrderBy orderBy = querySpec.orderBy();
+        assert orderBy != null;
+
+        boolean[] reverseFlags = new boolean[splitContext.directSplit.size()];
+        Boolean[] nullsFirst = new Boolean[splitContext.directSplit.size()];
+
+        int numRemaining = orderBy.orderBySymbols().size() - splitContext.directSplit.size();
+        List<Symbol> remainingOrderBySymbols = new ArrayList<>(numRemaining);
+        boolean[] remainingReverseFlags = new boolean[numRemaining];
+        Boolean[] remainingNullsFirst = new Boolean[numRemaining];
+
+        int idx = 0;
+        for (Symbol symbol : orderBy.orderBySymbols()) {
+            int splitIdx = splitContext.directSplit.indexOf(symbol);
+            if (splitIdx < 0) {
+                remainingReverseFlags[remainingOrderBySymbols.size()] = orderBy.reverseFlags()[idx];
+                remainingNullsFirst[remainingOrderBySymbols.size()] = orderBy.nullsFirst()[idx];
+                remainingOrderBySymbols.add(symbol);
+            } else {
+                reverseFlags[splitIdx] = orderBy.reverseFlags()[idx];
+                nullsFirst[splitIdx] = orderBy.nullsFirst()[idx];
+            }
+            idx++;
+        }
+        splitQuerySpec.orderBy(new OrderBy(splitContext.directSplit, reverseFlags, nullsFirst));
+        querySpec.orderBy(new OrderBy(remainingOrderBySymbols, remainingReverseFlags, remainingNullsFirst));
+    }
+
+    private static void addAllNew(List<Symbol> list, Collection<? extends Symbol> collectionToAdd) {
+        for (Symbol symbolToAdd : collectionToAdd) {
+            if (list.contains(symbolToAdd)) {
+                continue;
+            }
+            list.add(symbolToAdd);
+        }
     }
 
 
@@ -170,15 +249,16 @@ public class QueriedTable implements QueriedRelation {
 
     private static class SplitContext {
         final AnalyzedRelation relation;
-        final List<Symbol> splitSymbols = new ArrayList<>();
+        final List<Symbol> directSplit = new ArrayList<>();
+        final List<Symbol> mixedSplit = new ArrayList<>();
         final Stack<Symbol> parents = new Stack<>();
 
         public SplitContext(AnalyzedRelation relation) {
             this.relation = relation;
         }
 
-        public List<Symbol> splitSymbols() {
-            return splitSymbols;
+        public Iterable<Symbol> splitSymbols() {
+            return FluentIterable.from(directSplit).append(mixedSplit);
         }
     }
 
@@ -208,20 +288,20 @@ public class QueriedTable implements QueriedRelation {
             if (newArgs.size() == function.arguments().size()) {
                 Function newFunction = new Function(function.info(), newArgs);
                 if (context.parents.isEmpty()) {
-                    context.splitSymbols.add(newFunction);
+                    context.directSplit.add(newFunction);
                 }
                 return newFunction;
             } else {
                 newArg:
                 for (Symbol newArg : newArgs) {
                     if ( !(newArg instanceof Function) || ((Function) newArg).info().deterministic()) {
-                        for (Symbol symbol : context.splitSymbols) {
+                        for (Symbol symbol : context.splitSymbols()) {
                             if (symbol.equals(newArg)) {
                                 break newArg;
                             }
                         }
                     }
-                    context.splitSymbols.add(newArg);
+                    context.mixedSplit.add(newArg);
                 }
             }
             return null;
@@ -236,7 +316,7 @@ public class QueriedTable implements QueriedRelation {
         public Symbol visitField(Field field, SplitContext context) {
             if (field.relation() == context.relation) {
                 if (context.parents.isEmpty()) {
-                    context.splitSymbols.add(field);
+                    context.directSplit.add(field);
                 }
                 return field;
             }

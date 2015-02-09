@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -137,5 +138,37 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpLocations();
         execute("select * from locations, characters limit 300 offset 200");
         assertThat(response.rowCount(), is(52L));
+    }
+
+    @Test
+    public void testTwoTableCrossJoinWithOrderByTestThatOrderingIsCorrect() throws Exception {
+        execute("create table colors (color string) clustered into 3 shards with (number_of_replicas = 0)");
+        execute("create table sizes (size string) clustered into 2 shards with (number_of_replicas = 0)");
+        ensureGreen();
+
+        execute("insert into colors (color) values (?)", new Object[][] {
+                new Object[] { "green" },
+                new Object[] { "red" },
+                new Object[] { "blue" },
+        });
+        execute("insert into sizes (size) values (?)", new Object[][] {
+                new Object[] { "small" },
+                new Object[] { "medium" },
+                new Object[] { "large" },
+        });
+        execute("refresh table colors");
+        execute("refresh table sizes");
+        execute("select color, size from colors cross join sizes order by color, size");
+        assertThat(response.rowCount(), is(9L));
+        String expected = "blue| large\n" +
+                "blue| medium\n" +
+                "blue| small\n" +
+                "green| large\n" +
+                "green| medium\n" +
+                "green| small\n" +
+                "red| large\n" +
+                "red| medium\n" +
+                "red| small\n";
+        assertThat(TestingHelpers.printedTable(response.rows()), is(expected));
     }
 }
