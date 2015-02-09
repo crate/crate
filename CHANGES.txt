@@ -5,7 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
- - Improved performance of queries that use the equals operator on arrays
+ - Improved performance of queries that use generic scalar functions (like
+   equals comparison on arrays)
 
  - COPY FROM now skips rows with the same primary key instead of overriding them
 

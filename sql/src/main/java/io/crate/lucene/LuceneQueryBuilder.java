@@ -900,7 +900,7 @@ public class LuceneQueryBuilder {
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
             }
-            Filter filter = new Filter() {
+            return new Filter() {
                 @Override
                 public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
                     for (LuceneCollectorExpression expression : expressions) {
@@ -919,7 +919,6 @@ public class LuceneQueryBuilder {
                     );
                 }
             };
-            return indexCache.filter().cache(filter);
         }
 
         private Query genericFunctionQuery(Function function) {
