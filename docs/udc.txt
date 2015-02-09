@@ -71,4 +71,4 @@ By system property
 If you do not want to make any change to the jars or to the configuration,
 a system property setting like this will also make sure that UDC is never activated::
 
-    -Dudc.enabled=false
+    -Des.udc.enabled=false
