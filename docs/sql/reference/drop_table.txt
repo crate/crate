@@ -9,7 +9,7 @@ Synopsis
 
 .. code-block:: sql
 
-    DROP [BLOB] TABLE table_ident
+    DROP [BLOB] TABLE [IF EXISTS] table_ident
 
 Description
 ===========
@@ -18,6 +18,9 @@ DROP TABLE removes tables from the cluster.
 
 Use the ``BLOB`` keyword in order to remove a blob table (see
 :ref:`blob_support`).
+
+If the ``IF EXISTS`` clause is provided, the statement does not fail, if the
+referenced table does not exists.
 
 Parameters
 ==========

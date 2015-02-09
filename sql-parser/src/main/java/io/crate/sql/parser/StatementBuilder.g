@@ -652,10 +652,12 @@ forRemote returns [QualifiedName value]
 
 dropBlobTable returns [Statement value]
     : ^(DROP_BLOB_TABLE namedTable) { $value = new DropBlobTable($namedTable.value); }
+    | ^(DROP_BLOB_TABLE EXISTS namedTable) { $value = new DropBlobTable($namedTable.value, true ); }
     ;
 
 dropTable returns [Statement value]
     : ^(DROP_TABLE namedTable) { $value = new DropTable($namedTable.value); }
+    | ^(DROP_TABLE EXISTS namedTable) { $value = new DropTable($namedTable.value, true ); }
     ;
 
 insert returns [Statement value]

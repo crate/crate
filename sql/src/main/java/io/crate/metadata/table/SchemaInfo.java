@@ -21,8 +21,11 @@
 
 package io.crate.metadata.table;
 
+import javax.annotation.Nullable;
+
 public interface SchemaInfo<T extends TableInfo> extends Iterable<T> {
 
+    @Nullable
     public TableInfo getTableInfo(String name);
 
     public String name();

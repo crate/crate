@@ -21,6 +21,11 @@
 
 package io.crate.metadata.doc;
 
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
@@ -32,9 +37,11 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
-import io.crate.metadata.PartitionName;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
@@ -49,10 +56,6 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
-
-import javax.annotation.Nullable;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
@@ -96,7 +99,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             @Override
             public TableInfo apply(@Nullable String input) {
                 if (input.matches(ReferenceInfos.SCHEMA_REGEX)) {
-                    input = input.substring(name().length()+1);
+                    input = input.substring(name().length() + 1);
                 }
                 return getTableInfo(input);
             }
@@ -122,6 +125,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             return cache.get(name);
         } catch (ExecutionException e) {
             throw new UnhandledServerException("Failed to get TableInfo", e.getCause());
+        } catch (UncheckedExecutionException e) {
+            if (e.getCause() instanceof TableUnknownException) {
+                return null;
+            }
+            throw e;
         }
     }
 
@@ -134,7 +142,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
         // Search for partitioned table templates
         UnmodifiableIterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
-        while(templates.hasNext()) {
+        while (templates.hasNext()) {
             String templateName = templates.next();
             try {
                 String tableName = PartitionName.tableName(templateName);

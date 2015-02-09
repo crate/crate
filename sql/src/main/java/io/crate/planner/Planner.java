@@ -21,6 +21,14 @@
 
 package io.crate.planner;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -62,13 +70,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
@@ -145,7 +146,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         TableRelation tableRelation = (TableRelation) analyzedStatement.analyzedRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
-            if (whereClause.noMatch()){
+            if (whereClause.noMatch()) {
                 continue;
             }
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(whereClause);
@@ -330,7 +331,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
+    public Plan visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Context context) {
+        if (analysis.noop()) {
+            return NoopPlan.INSTANCE;
+        }
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
+
+    @Override
     protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, Context context) {
+        if (analysis.noop()) {
+            return NoopPlan.INSTANCE;
+        }
         return new IterablePlan(new DropTableNode(analysis.table()));
     }
 

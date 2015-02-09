@@ -26,15 +26,12 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 
-public class DropBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class DropBlobTableAnalyzedStatement extends AbstractDropTableAnalyzedStatement {
 
-    private final ReferenceInfos referenceInfos;
-    private TableInfo tableInfo;
 
-    protected DropBlobTableAnalyzedStatement(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    public DropBlobTableAnalyzedStatement(ReferenceInfos referenceInfos, boolean ignoreNonExistentTable) {
+        super(referenceInfos, ignoreNonExistentTable);
     }
 
     @Override
@@ -46,18 +43,14 @@ public class DropBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement
 
         tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
+            this.noop = true;
+        }
+        if (tableInfo == null && !ignoreNonExistentTable) {
             throw new TableUnknownException(tableIdent.name());
-        } else if (tableInfo.isAlias()) {
+        } else if (!noop && tableInfo.isAlias()) {
             throw new UnsupportedOperationException("Table alias not allowed in DROP BLOB TABLE statement.");
         }
-    }
-
-    public TableInfo table() {
-        return tableInfo;
-    }
-
-    public TableIdent tableIdent() {
-        return tableIdent;
+        this.tableIdent = tableIdent;
     }
 
     @Override

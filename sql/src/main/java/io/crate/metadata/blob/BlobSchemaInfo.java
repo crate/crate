@@ -21,13 +21,21 @@
 
 package io.crate.metadata.blob;
 
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
+
+import javax.annotation.Nullable;
+
 import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
@@ -37,11 +45,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.env.Environment;
-
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.concurrent.ExecutionException;
 
 public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
 
@@ -93,7 +96,13 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
             return cache.get(name);
         } catch (ExecutionException e) {
             throw new UnhandledServerException("Failed to get TableInfo", e.getCause());
+        } catch (UncheckedExecutionException e) {
+            if (e.getCause() instanceof TableUnknownException) {
+                return null;
+            }
+            throw e;
         }
+
     }
 
     @Override

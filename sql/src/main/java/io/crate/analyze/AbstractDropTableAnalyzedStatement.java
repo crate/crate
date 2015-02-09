@@ -23,31 +23,41 @@ package io.crate.analyze;
 
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.Node;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.metadata.table.TableInfo;
 
-@Singleton
-public class DropTableStatementAnalyzer extends DefaultTraversalVisitor<DropTableAnalyzedStatement, Void> {
+public abstract class AbstractDropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+    protected final ReferenceInfos referenceInfos;
+    protected TableInfo tableInfo;
+    protected boolean ignoreNonExistentTable;
+    protected boolean noop;
 
-    private final ReferenceInfos referenceInfos;
-
-    @Inject
-    protected DropTableStatementAnalyzer(ReferenceInfos referenceInfos) {
+    public AbstractDropTableAnalyzedStatement(ReferenceInfos referenceInfos, boolean ignoreNonExistentTable) {
         this.referenceInfos = referenceInfos;
+        this.ignoreNonExistentTable = ignoreNonExistentTable;
+    }
+
+    public String index() {
+        return tableIdent.esName();
     }
 
     @Override
-    public DropTableAnalyzedStatement visitDropTable(DropTable node, Void context) {
-        DropTableAnalyzedStatement statement = new DropTableAnalyzedStatement(referenceInfos, node.ignoreNonExistentTable());
-        statement.table(TableIdent.of(node.table()));
-        return statement;
+    public abstract void table(TableIdent tableIdent);
+
+    public TableInfo table() {
+        return tableInfo;
     }
 
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-        return process(node, null);
+    public TableIdent tableIdent(){
+        return tableIdent;
     }
+
+    public boolean noop(){
+        return noop;
+    }
+    public boolean ignoreNonExistentTable() {
+        return ignoreNonExistentTable;
+    }
+
+    @Override
+    public abstract <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context);
 }

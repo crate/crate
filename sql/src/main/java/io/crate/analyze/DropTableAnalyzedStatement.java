@@ -26,19 +26,11 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 
-public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class DropTableAnalyzedStatement extends AbstractDropTableAnalyzedStatement {
 
-    private TableInfo tableInfo;
-    private final ReferenceInfos referenceInfos;
-
-    public DropTableAnalyzedStatement(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
-    }
-
-    public String index() {
-        return tableIdent.esName();
+    public DropTableAnalyzedStatement(ReferenceInfos referenceInfos, boolean ignoreNonExistentTable) {
+        super(referenceInfos, ignoreNonExistentTable);
     }
 
     @Override
@@ -51,18 +43,17 @@ public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             throw new UnsupportedOperationException(
                     String.format("cannot delete '%s'.", tableIdent.fqn()));
         }
-        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+
         if (tableInfo == null) {
+            this.noop = true;
+        }
+        if (tableInfo == null && !ignoreNonExistentTable) {
             throw new TableUnknownException(tableIdent.fqn());
-        } else if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
+        } else if (tableInfo != null && tableInfo.isAlias() && !tableInfo.isPartitioned()) {
             throw new UnsupportedOperationException("Table alias not allowed in DROP TABLE statement.");
         }
         this.tableIdent = tableIdent;
-        this.tableInfo = tableInfo;
-    }
-
-    public TableInfo table() {
-        return tableInfo;
     }
 
     @Override

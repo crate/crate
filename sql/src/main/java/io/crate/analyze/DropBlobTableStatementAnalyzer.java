@@ -38,7 +38,7 @@ public class DropBlobTableStatementAnalyzer extends BlobTableAnalyzer<DropBlobTa
 
     @Override
     public DropBlobTableAnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis analysis) {
-        DropBlobTableAnalyzedStatement statement = new DropBlobTableAnalyzedStatement(referenceInfos);
+        DropBlobTableAnalyzedStatement statement = new DropBlobTableAnalyzedStatement(referenceInfos, node.ignoreNonExistentTable());
         statement.table(tableToIdent(node.table()));
         return statement;
     }
