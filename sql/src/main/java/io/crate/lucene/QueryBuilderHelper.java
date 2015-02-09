@@ -4,6 +4,7 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queries.TermFilter;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -50,6 +51,10 @@ public abstract class QueryBuilderHelper {
 
     public abstract Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper);
     public abstract Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper);
+
+    public Filter eqFilter(String columnName, Object value) {
+        return rangeFilter(columnName, value, value, true, true);
+    }
 
     public Query eq(String columnName, Object value) {
         return rangeQuery(columnName, value, value, true, true);
@@ -183,6 +188,11 @@ public abstract class QueryBuilderHelper {
         @Override
         public Query eq(String columnName, Object value) {
             return new TermQuery(new Term(columnName, (BytesRef)value));
+        }
+
+        @Override
+        public Filter eqFilter(String columnName, Object value) {
+            return new TermFilter(new Term(columnName, (BytesRef) value));
         }
 
         @Override

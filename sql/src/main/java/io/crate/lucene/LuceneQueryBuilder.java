@@ -345,28 +345,31 @@ public class LuceneQueryBuilder {
                 if (tuple == null) {
                     return null;
                 }
-
                 Reference reference = tuple.v1();
                 Literal literal = tuple.v2();
                 String columnName = reference.info().ident().columnIdent().fqn();
                 if (DataTypes.isCollectionType(reference.valueType()) && DataTypes.isCollectionType(literal.valueType())) {
-                    // create terms query to utilize lucene index to pre-filter the result..
-                    BooleanQuery booleanQuery = new BooleanQuery();
+
+                    // create boolean filter with term filters to pre-filter the result before applying the functionQuery.
+                    BooleanFilter boolTermsFilter = new BooleanFilter();
                     DataType type = literal.valueType();
                     while (DataTypes.isCollectionType(type)) {
                         type = ((CollectionType) type).innerType();
                     }
                     QueryBuilderHelper builder = QueryBuilderHelper.forType(type);
                     Object value = literal.value();
-                    buildTermsQuery(booleanQuery, value, columnName, builder);
+                    buildTermsQuery(boolTermsFilter, value, columnName, builder);
 
-                    if (booleanQuery.clauses().isEmpty()) {
+                    if (boolTermsFilter.clauses().isEmpty()) {
                         // all values are null...
                         return genericFunctionQuery(input);
                     }
-                    // genericFunctionFilter will do the exact match, operating on the _DOC
+
+                    // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
+                    // termsFilter is applied first
+                    // afterwards the more expensive genericFunctionFilter
                     BooleanFilter filterClauses = new BooleanFilter();
-                    filterClauses.add(new QueryWrapperFilter(booleanQuery), BooleanClause.Occur.MUST);
+                    filterClauses.add(boolTermsFilter, BooleanClause.Occur.MUST);
                     filterClauses.add(genericFunctionFilter(input), BooleanClause.Occur.MUST);
                     return new FilteredQuery(Queries.newMatchAllQuery(), filterClauses);
                 }
@@ -374,28 +377,21 @@ public class LuceneQueryBuilder {
                 return builder.eq(columnName, tuple.v2().value());
             }
 
-            private boolean buildTermsQuery(BooleanQuery booleanQuery,
+            private void buildTermsQuery(BooleanFilter booleanFilter,
                                             Object value,
                                             String columnName,
                                             QueryBuilderHelper builder) {
                 if (value == null) {
-                    return true;
+                    return;
                 }
                 if (value.getClass().isArray()) {
                     Object[] array = (Object[]) value;
                     for (Object o : array) {
-                        if (!buildTermsQuery(booleanQuery, o, columnName, builder)) {
-                            return false;
-                        }
+                        buildTermsQuery(booleanFilter, o, columnName, builder);
                     }
                 } else {
-                    try {
-                        booleanQuery.add(builder.eq(columnName, value), BooleanClause.Occur.MUST);
-                    } catch (BooleanQuery.TooManyClauses e) {
-                        return false;
-                    }
+                    booleanFilter.add(builder.eqFilter(columnName, value), BooleanClause.Occur.MUST);
                 }
-                return true;
             }
         }
 
@@ -908,7 +904,7 @@ public class LuceneQueryBuilder {
                 @Override
                 public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
                     for (LuceneCollectorExpression expression : expressions) {
-                        expression.setNextReader(context);
+                        expression.setNextReader(context.reader().getContext());
                     }
                     return BitsFilteredDocIdSet.wrap(
                             new FunctionDocSet(
@@ -919,7 +915,8 @@ public class LuceneQueryBuilder {
                                     context.reader().maxDoc(),
                                     acceptDocs
                             ),
-                            acceptDocs);
+                            acceptDocs
+                    );
                 }
             };
             return indexCache.filter().cache(filter);

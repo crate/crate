@@ -36,11 +36,13 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
+import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
+import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
@@ -99,6 +101,14 @@ public class LuceneQueryBuilderTest extends RandomizedTest {
                 createReference("x", longArray),
                 Literal.newLiteral(longArray, new Object[] { 10L, null, 20L }))));
         assertThat(query, instanceOf(FilteredQuery.class));
+        FilteredQuery filteredQuery = (FilteredQuery) query;
+
+        assertThat(filteredQuery.getFilter(), instanceOf(BooleanFilter.class));
+        assertThat(filteredQuery.getQuery(), instanceOf(XConstantScoreQuery.class));
+
+        BooleanFilter filter = (BooleanFilter) filteredQuery.getFilter();
+        assertThat(filter.clauses().get(0).getFilter(), instanceOf(BooleanFilter.class)); // booleanFilter with terms filter
+        assertThat(filter.clauses().get(1).getFilter(), instanceOf(Filter.class)); // generic function filter
     }
 
     @Test
