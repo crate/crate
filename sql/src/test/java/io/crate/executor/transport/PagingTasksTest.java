@@ -993,7 +993,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = PageInfo.firstPage(2);
@@ -1051,7 +1051,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = PageInfo.firstPage(2);
@@ -1131,7 +1131,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = new PageInfo(
@@ -1201,7 +1201,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = PageInfo.firstPage(2);
@@ -1270,7 +1270,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null
         );
 
-        List<Task> tasks = executor.newTasks(qtfNode, UUID.randomUUID());
+        List<Task> tasks = executor.newTasks(qtfNode, new Job());
         assertThat(tasks.size(), is(1));
         QueryThenFetchTask qtfTask = (QueryThenFetchTask)tasks.get(0);
         PageInfo pageInfo = PageInfo.firstPage(2);
