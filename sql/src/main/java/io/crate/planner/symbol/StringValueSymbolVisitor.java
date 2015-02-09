@@ -23,9 +23,20 @@ package io.crate.planner.symbol;
 
 import org.elasticsearch.common.lucene.BytesRefs;
 
+import javax.annotation.Nullable;
+
 public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
 
     public static final StringValueSymbolVisitor INSTANCE = new StringValueSymbolVisitor();
+
+    public static final com.google.common.base.Function<Symbol, String> PROCESS_FUNCTION =
+            new com.google.common.base.Function<Symbol, String>() {
+                @Nullable
+                @Override
+                public String apply(Symbol input) {
+                    return INSTANCE.process(input, null);
+                }
+            };
 
     private StringValueSymbolVisitor() {
     }
@@ -39,7 +50,6 @@ public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
         throw new UnsupportedOperationException(
                 SymbolFormatter.format("Unable to get string value from symbol: %s", symbol));
     }
-
 
 
     @Override

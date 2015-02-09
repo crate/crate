@@ -40,7 +40,6 @@ import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.Tuple;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class WhereClauseAnalyzer {
@@ -61,7 +60,7 @@ public class WhereClauseAnalyzer {
         WhereClauseContext whereClauseContext = new WhereClauseContext();
         PrimaryKeyVisitor.Context ctx = PRIMARY_KEY_VISITOR.process(tableInfo, whereClause.query());
         if (ctx != null) {
-            whereClause.clusteredByLiteral(ctx.clusteredByLiteral());
+            whereClause.clusteredBy(ctx.clusteredByLiterals());
             if (ctx.noMatch) {
                 return WhereClause.NO_MATCH;
             } else {
@@ -69,7 +68,6 @@ public class WhereClauseAnalyzer {
                 if (ctx.keyLiterals() != null) {
                     processPrimaryKeyLiterals(
                             ctx.keyLiterals(),
-                            whereClause.clusteredBy().orNull(),
                             whereClauseContext
                     );
                     whereClause.primaryKeys(whereClauseContext.primaryKeys());
@@ -84,8 +82,7 @@ public class WhereClauseAnalyzer {
 
 
     protected void processPrimaryKeyLiterals(List primaryKeyLiterals,
-                                                    @Nullable String clusteredBy,
-                                                    WhereClauseContext context) {
+                                             WhereClauseContext context) {
 
         List<List<BytesRef>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
         primaryKeyValuesList.add(new ArrayList<BytesRef>(tableInfo.primaryKey().size()));

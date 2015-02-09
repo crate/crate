@@ -22,7 +22,6 @@
 package io.crate.analyze.where;
 
 import io.crate.analyze.Id;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 
@@ -38,9 +37,9 @@ public class WhereClauseContext {
     }
 
     void addIdAndRouting(TableInfo tableInfo, List<BytesRef> primaryKeyValues) {
-        ColumnIdent clusteredBy = tableInfo.clusteredBy();
-        Id id = new Id(tableInfo.primaryKey(), primaryKeyValues, clusteredBy == null ? null : clusteredBy, false);
-        assert id.isValid();
-        primaryKeys.add(id);
+        Id id = new Id(tableInfo.primaryKey(), primaryKeyValues, tableInfo.clusteredBy(), false);
+        if (id.isValid()){
+            primaryKeys.add(id);
+        }
     }
 }

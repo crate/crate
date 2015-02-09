@@ -54,7 +54,9 @@ public class ESDeleteByQueryTask extends AsyncChainedTask {
         try {
             request.source(queryBuilder.convert(deleteByQueryNode), false);
             request.indices(deleteByQueryNode.indices());
-            request.routing(deleteByQueryNode.whereClause().clusteredBy().orNull());
+            if (deleteByQueryNode.whereClause().clusteredBy().isPresent()){
+                request.routing(deleteByQueryNode.routing());
+            }
 
             transportDeleteByQueryAction.execute(request, new ActionListener<DeleteByQueryResponse>() {
                 @Override

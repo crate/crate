@@ -5,9 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Optimize OR queries which involve the cluster column.
+
  - Added support for the ``IF EXISTS`` clause to ``DROP TABLE`` and
    ``DROP BLOB TABLE``
-   
+
  - Improved performance of queries that use generic scalar functions (like
    equals comparison on arrays)
 

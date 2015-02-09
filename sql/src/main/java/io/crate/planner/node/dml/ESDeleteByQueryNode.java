@@ -21,22 +21,36 @@
 
 package io.crate.planner.node.dml;
 
+import com.google.common.collect.Iterators;
 import io.crate.analyze.WhereClause;
+import io.crate.core.StringUtils;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.symbol.StringValueSymbolVisitor;
 
 public class ESDeleteByQueryNode extends DMLPlanNode {
 
     private final String[] indices;
     private final WhereClause whereClause;
+    private final String routing;
 
     public ESDeleteByQueryNode(String[] indices, WhereClause whereClause) {
         assert whereClause != null;
         this.indices = indices;
         this.whereClause = whereClause;
+        if (whereClause.clusteredBy().isPresent()){
+            routing = StringUtils.ROUTING_JOINER.join(Iterators.transform(
+                    whereClause.clusteredBy().get().iterator(), StringValueSymbolVisitor.PROCESS_FUNCTION));
+        } else {
+            this.routing = null;
+        }
     }
 
     public String[] indices() {
         return indices;
+    }
+
+    public String routing() {
+        return routing;
     }
 
     public WhereClause whereClause() {
