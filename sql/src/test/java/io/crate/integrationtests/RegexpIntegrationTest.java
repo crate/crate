@@ -27,7 +27,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -111,10 +110,10 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((String) response.rows()[1][0], is("Allosimanius Syneca"));
         assertThat((String) response.rows()[2][0], is("Alpha Centauri"));
         assertThat((String) response.rows()[3][0], is("Arkintoofle Minor"));
-        assertThat((String) response.rows()[4][0], is("Galactic Sector QQ7 Active J Gamma"));
-        assertThat((String) response.rows()[5][0], is("North West Ripple"));
-        assertThat((String) response.rows()[6][0], is("Outer Eastern Rim"));
-        assertThat(response.rows()[7][0], is(nullValue()));
+        assertThat((String) response.rows()[4][0], is("End of the Galaxy"));
+        assertThat((String) response.rows()[5][0], is("Galactic Sector QQ7 Active J Gamma"));
+        assertThat((String) response.rows()[6][0], is("North West Ripple"));
+        assertThat((String) response.rows()[7][0], is("Outer Eastern Rim"));
     }
 
     /**

@@ -116,8 +116,8 @@ public class LocalMergeTask extends JobTask {
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         final MergeOperation mergeOperation = new MergeOperation(
-                clusterService, settings, transportActionProvider, symbolVisitor, mergeNode,
-                ramAccountingContext);
+                clusterService, settings, transportActionProvider, symbolVisitor,
+                mergeNode, ramAccountingContext);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
 

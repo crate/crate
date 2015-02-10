@@ -24,9 +24,9 @@ package io.crate.operation.projectors;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertRequestOld;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.TransportShardUpsertAction;
+import io.crate.executor.transport.TransportShardUpsertActionOld;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
@@ -51,7 +51,7 @@ public class UpdateProjector implements Projector {
     private final List<SettableFuture<Long>> updateResults = new ArrayList<>();
 
     private final ShardId shardId;
-    private final TransportShardUpsertAction transportUpdateAction;
+    private final TransportShardUpsertActionOld transportUpdateAction;
     private final CollectExpression<?> collectUidExpression;
     // The key of this map is expected to be a FQN columnIdent.
     private final String[] assignmentsColumns;
@@ -63,7 +63,7 @@ public class UpdateProjector implements Projector {
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     public UpdateProjector(ShardId shardId,
-                           TransportShardUpsertAction transportUpdateAction,
+                           TransportShardUpsertActionOld transportUpdateAction,
                            CollectExpression<?> collectUidExpression,
                            String[] assignmentsColumns,
                            Symbol[] assignments,
@@ -95,7 +95,7 @@ public class UpdateProjector implements Projector {
         final SettableFuture<Long> future = SettableFuture.create();
         updateResults.add(future);
 
-        ShardUpsertRequest updateRequest = new ShardUpsertRequest(shardId, assignmentsColumns, null);
+        ShardUpsertRequestOld updateRequest = new ShardUpsertRequestOld(shardId, assignmentsColumns, null);
         updateRequest.add(0, uid.id(), assignments, requiredVersion, null);
 
         transportUpdateAction.execute(updateRequest, new ActionListener<ShardUpsertResponse>() {

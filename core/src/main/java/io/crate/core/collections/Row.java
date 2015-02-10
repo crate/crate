@@ -19,25 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.action.bulk;
+package io.crate.core.collections;
 
-import io.crate.executor.transport.ShardUpsertRequestOld;
-import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.TransportShardUpsertActionOld;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.inject.Inject;
+public interface Row {
 
-public class TransportShardUpsertActionDelegateImpl implements TransportShardUpsertActionDelegate {
+    public abstract int size();
 
-    private final TransportShardUpsertActionOld transportShardUpsertActionOld;
-
-    @Inject
-    public TransportShardUpsertActionDelegateImpl(TransportShardUpsertActionOld transportShardUpsertActionOld) {
-        this.transportShardUpsertActionOld = transportShardUpsertActionOld;
-    }
-
-    @Override
-    public void execute(ShardUpsertRequestOld request, ActionListener<ShardUpsertResponse> listener) {
-        transportShardUpsertActionOld.execute(request, listener);
-    }
+    public abstract Object get(int index);
 }

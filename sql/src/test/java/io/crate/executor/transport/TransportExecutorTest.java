@@ -54,8 +54,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
@@ -65,7 +64,6 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,7 +75,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
-@TestLogging("io.crate.executor.transport.task.elasticsearch:TRACE,io.crate.operation.qtf:TRACE")
 public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     static {
@@ -99,7 +96,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         clusterService = null;
         clusterName = null;
     }
-
 
 
     @Test
@@ -127,7 +123,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(result.size(), is(2));
         for (ListenableFuture<TaskResult> nodeResult : result) {
             assertEquals(1, nodeResult.get().rows().length);
-            if(!OsUtils.WINDOWS) {
+            if (!OsUtils.WINDOWS) {
                 assertThat((Double) nodeResult.get().rows()[0][0], is(greaterThan(0.0)));
             }
         }
@@ -213,7 +209,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(idRef, nameRef),
                 Arrays.<Symbol>asList(nameRef, idRef),
                 new boolean[]{false, false},
-                new Boolean[] { null, null },
+                new Boolean[]{null, null},
                 null, null, WhereClause.MATCH_ALL,
                 null
         );
@@ -253,7 +249,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(idRef, nameRef),
                 Arrays.<Symbol>asList(nameRef),
                 new boolean[]{false},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 null, null,
                 new WhereClause(whereClause),
                 null
@@ -307,7 +303,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(id_ref, date_ref),
                 Arrays.<Symbol>asList(id_ref),
                 new boolean[]{false},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 null, null,
                 new WhereClause(whereClause),
                 null
@@ -345,7 +341,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef),
                 Arrays.<Symbol>asList(nameRef),
                 new boolean[]{false},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 null, null,
                 WhereClause.MATCH_ALL,
                 Arrays.asList(partedDateRef.info())
@@ -400,7 +396,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(idRef, nameRef),
                 Arrays.<Symbol>asList(nameRef),
                 new boolean[]{false},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 null, null,
                 new WhereClause(whereClause),
                 null
@@ -444,13 +440,22 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ensureGreen();
 
         /* insert into characters (id, name) values (99, 'Marvin'); */
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+            put(idRef, new InputColumn(0, IntegerType.INSTANCE));
+            put(nameRef, new InputColumn(1, StringType.INSTANCE));
+        }};
 
         UpsertByIdNode updateNode = new UpsertByIdNode(
                 false,
                 false,
+                characters.primaryKey(),
+                ImmutableList.<Symbol>of(new InputColumn(0)),
                 null,
-                new Reference[]{idRef, nameRef});
-        updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
+                null,
+                insertAssignments);
+        updateNode.add("characters", new Object[]{99, new BytesRef("Marvin")}, null);
 
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
@@ -472,7 +477,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer) objects[0][0], is(99));
-        assertThat((String)objects[0][1], is("Marvin"));
+        assertThat((String) objects[0][1], is("Marvin"));
     }
 
     @Test
@@ -486,14 +491,24 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
 
+        DocTableInfo characters = docSchemaInfo.getTableInfo("parted");
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+            put(idRef, new InputColumn(0, IntegerType.INSTANCE));
+            put(nameRef, new InputColumn(1, StringType.INSTANCE));
+            put(partedDateRef, new InputColumn(2, TimestampType.INSTANCE));
+        }};
+
         UpsertByIdNode updateNode = new UpsertByIdNode(
                 true,
                 false,
+                characters.primaryKey(),
+                ImmutableList.<Symbol>of(),
                 null,
-                new Reference[]{idRef, nameRef});
+                null,
+                insertAssignments);
 
         PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
-        updateNode.add(partitionName.stringValue(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
+        updateNode.add(partitionName.stringValue(), new Object[]{0L, new BytesRef("Trillian"), 13959981214861L}, null);
 
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
@@ -524,7 +539,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 ).execute().actionGet().getHits();
         assertThat(hits.getTotalHits(), is(1L));
         assertThat((Integer) hits.getHits()[0].field("id").getValues().get(0), is(0));
-        assertThat((String)hits.getHits()[0].field("name").getValues().get(0), is("Trillian"));
+        assertThat((String) hits.getHits()[0].field("name").getValues().get(0), is("Trillian"));
     }
 
     @Test
@@ -536,7 +551,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Object[][] rows = result.get(0).get().rows();
 
         assertThat(rows.length, is(1));
-        assertThat((Long)rows[0][0], is(4L));
+        assertThat((Long) rows[0][0], is(4L));
     }
 
     @Test
@@ -546,14 +561,22 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
 
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+            put(idRef, new InputColumn(0, IntegerType.INSTANCE));
+            put(nameRef, new InputColumn(1, StringType.INSTANCE));
+        }};
+
         UpsertByIdNode updateNode = new UpsertByIdNode(
                 false,
                 false,
+                characters.primaryKey(),
+                ImmutableList.<Symbol>of(new InputColumn(0)),
                 null,
-                new Reference[]{idRef, nameRef});
-
-        updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
-        updateNode.add("characters", "42", "42", null, null, new Object[]{42, new BytesRef("Deep Thought")});
+                null,
+                insertAssignments);
+        updateNode.add("characters", new Object[]{99, new BytesRef("Marvin")}, null);
+        updateNode.add("characters", new Object[]{42, new BytesRef("Deep Thought")}, null);
 
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
@@ -574,20 +597,36 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(2));
-        assertThat((Integer)objects[0][0], is(99));
-        assertThat((String)objects[0][1], is("Marvin"));
+        assertThat((Integer) objects[0][0], is(99));
+        assertThat((String) objects[0][1], is("Marvin"));
 
-        assertThat((Integer)objects[1][0], is(42));
-        assertThat((String)objects[1][1], is("Deep Thought"));
+        assertThat((Integer) objects[1][0], is(42));
+        assertThat((String) objects[1][1], is("Deep Thought"));
     }
 
     @Test
     public void testUpdateWithUpsertByIdTask() throws Exception {
         setup.setUpCharacters();
+        // update characters set details['description'] = 'Vogon lyric fan' where id = 1
 
-        // update characters set name='Vogon lyric fan' where id=1
-        UpsertByIdNode updateNode = new UpsertByIdNode(false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
-        updateNode.add("characters", "1", "1", new Symbol[]{ Literal.newLiteral("Vogon lyric fan")}, null);
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        final Reference detailsDescRef = new Reference(new ReferenceInfo(
+                new ReferenceIdent(charactersIdent, "details", ImmutableList.of("description")), RowGranularity.DOC, DataTypes.STRING));
+
+        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{
+            put(detailsDescRef, new InputColumn(0, StringType.INSTANCE));
+        }};
+
+        UpsertByIdNode updateNode = new UpsertByIdNode(
+                false,
+                false,
+                characters.primaryKey(),
+                ImmutableList.<Symbol>of(new InputColumn(1)),
+                null,
+                updateAssignments,
+                null);
+
+        updateNode.add("characters", new Object[]{new BytesRef("Vogon lyric fan"), 1}, null);
         Plan plan = new IterablePlan(updateNode);
 
         Job job = executor.newJob(plan);
@@ -600,7 +639,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(((Long) rows[0][0]), is(1L));
 
         // verify update
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, detailsDescRef);
         ESGetNode getNode = newGetNode("characters", outputs, "1");
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
@@ -617,14 +656,26 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
         /* insert into characters (id, name, female) values (5, 'Zaphod Beeblebrox', false)
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
-        Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{
+            put(nameRef, new InputColumn(1, StringType.INSTANCE));
+        }};
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+            put(idRef, new InputColumn(0, IntegerType.INSTANCE));
+            put(nameRef, new InputColumn(1, StringType.INSTANCE));
+            put(femaleRef, new InputColumn(2, BooleanType.INSTANCE));
+        }};
+
         UpsertByIdNode updateNode = new UpsertByIdNode(
                 false,
                 false,
-                new String[]{nameRef.ident().columnIdent().fqn()},
-                new Reference[]{idRef, nameRef, femaleRef});
+                characters.primaryKey(),
+                ImmutableList.<Symbol>of(new InputColumn(0)),
+                null,
+                updateAssignments,
+                insertAssignments);
 
-        updateNode.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
+        updateNode.add("characters", new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false}, null);
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
@@ -644,23 +695,37 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(1));
-        assertThat((Integer)objects[0][0], is(5));
-        assertThat((String)objects[0][1], is("Zaphod Beeblebrox"));
-        assertThat((boolean)objects[0][2], is(false));
+        assertThat((Integer) objects[0][0], is(5));
+        assertThat((String) objects[0][1], is("Zaphod Beeblebrox"));
+        assertThat((boolean) objects[0][2], is(false));
     }
 
     @Test
     public void testUpdateOnDuplicateWithUpsertByIdTask() throws Exception {
         setup.setUpCharacters();
         /* insert into characters (id, name, female) values (1, 'Zaphod Beeblebrox', false)
-           on duplicate key update set name = 'Zaphod Beeblebrox'; */
-        Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
+           on duplicate key update name = 'Zaphod Beeblebrox', female = true; */
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{
+            put(nameRef, new InputColumn(1, StringType.INSTANCE));
+            put(femaleRef, new InputColumn(3, BooleanType.INSTANCE));
+        }};
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+            put(idRef, new InputColumn(0, IntegerType.INSTANCE));
+            put(nameRef, new InputColumn(1, StringType.INSTANCE));
+            put(femaleRef, new InputColumn(2, BooleanType.INSTANCE));
+        }};
+
         UpsertByIdNode updateNode = new UpsertByIdNode(
                 false,
                 false,
-                new String[]{femaleRef.ident().columnIdent().fqn()},
-                new Reference[]{idRef, nameRef, femaleRef});
-        updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
+                characters.primaryKey(),
+                ImmutableList.<Symbol>of(new InputColumn(0)),
+                null,
+                updateAssignments,
+                insertAssignments);
+
+        updateNode.add("characters", new Object[]{1, new BytesRef("Zaphod Beeblebrox"), false, true}, null);
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
@@ -680,10 +745,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(1));
-        assertThat((Integer)objects[0][0], is(1));
-        assertThat((String)objects[0][1], is("Arthur"));
+        assertThat((Integer) objects[0][0], is(1));
         // Existing document is updated
-        assertThat((boolean)objects[0][2], is(true));
+        assertThat((String) objects[0][1], is("Zaphod Beeblebrox"));
+        assertThat((boolean) objects[0][2], is(true));
     }
 
     @Test

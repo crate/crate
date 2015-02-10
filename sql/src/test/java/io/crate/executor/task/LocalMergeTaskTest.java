@@ -133,7 +133,8 @@ public class LocalMergeTaskTest {
                     mock(ClusterService.class),
                     ImmutableSettings.EMPTY,
                     mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                    symbolVisitor, mergeNode,
+                    symbolVisitor,
+                    mergeNode,
                     mock(StatsTables.class),
                     new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
             localMergeTask.upstreamResult(upstreamResults);

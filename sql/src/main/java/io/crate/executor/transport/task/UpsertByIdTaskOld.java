@@ -29,17 +29,16 @@ import io.crate.Constants;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertRequestOld;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.TransportShardUpsertAction;
-import io.crate.operation.collect.ShardingProjector;
-import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.dml.UpsertByIdNodeOld;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardProcessorOld;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
@@ -57,38 +56,31 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.UUID;
 
-public class UpsertByIdTask extends JobTask {
+public class UpsertByIdTaskOld extends JobTask {
 
-    private final TransportShardUpsertAction transportShardUpsertActionDelegate;
+    private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final ClusterService clusterService;
-    private final UpsertByIdNode node;
+    private final UpsertByIdNodeOld node;
     private final List<ListenableFuture<TaskResult>> resultList;
     private final AutoCreateIndex autoCreateIndex;
-    private final ShardingProjector shardingProjector;
     @Nullable
-    private BulkShardProcessor bulkShardProcessor;
+    private BulkShardProcessorOld bulkShardProcessor;
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
-    public UpsertByIdTask(UUID jobId,
-                          ClusterService clusterService,
-                          Settings settings,
-                          TransportShardUpsertAction transportShardUpsertActionDelegate,
-                          TransportCreateIndexAction transportCreateIndexAction,
-                          UpsertByIdNode node) {
+    public UpsertByIdTaskOld(UUID jobId,
+                             ClusterService clusterService,
+                             Settings settings,
+                             TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
+                             TransportCreateIndexAction transportCreateIndexAction,
+                             UpsertByIdNodeOld node) {
         super(jobId);
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.clusterService = clusterService;
         this.node = node;
         autoCreateIndex = new AutoCreateIndex(settings);
-        shardingProjector = new ShardingProjector(
-                node.primaryKeyIdents(),
-                node.primaryKeySymbols(),
-                node.routingSymbol());
-        shardingProjector.startProjection();
-
 
         if (node.items().size() == 1) {
             // skip useless usage of bulk processor if only 1 item in statement
@@ -107,7 +99,7 @@ public class UpsertByIdTask extends JobTask {
             // directly execute upsert request without usage of bulk processor
             @SuppressWarnings("unchecked")
             SettableFuture<TaskResult> futureResult = (SettableFuture)resultList.get(0);
-            UpsertByIdNode.Item item = node.items().get(0);
+            UpsertByIdNodeOld.Item item = node.items().get(0);
             if (node.isPartitionedTable()
                     && autoCreateIndex.shouldAutoCreate(item.index(), clusterService.state())) {
                 createIndexAndExecuteUpsertRequest(item, futureResult);
@@ -116,38 +108,31 @@ public class UpsertByIdTask extends JobTask {
             }
 
         } else if (bulkShardProcessor != null) {
-            for (UpsertByIdNode.Item item : node.items()) {
+            for (UpsertByIdNodeOld.Item item : node.items()) {
                 bulkShardProcessor.add(
                         item.index(),
-                        item.row(),
+                        item.id(),
+                        item.updateAssignments(),
+                        item.insertValues(),
+                        item.routing(),
                         item.version());
             }
             bulkShardProcessor.close();
         }
     }
 
-    private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture futureResult) {
-        shardingProjector.setNextRow(item.row());
-
+    private void executeUpsertRequest(final UpsertByIdNodeOld.Item item, final SettableFuture futureResult) {
         ShardId shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 item.index(),
                 Constants.DEFAULT_MAPPING_TYPE,
-                shardingProjector.id(),
-                shardingProjector.routing()
+                item.id(),
+                item.routing()
         ).shardId();
 
-        BulkShardProcessor.AssignmentVisitorContext visitorContext =
-                BulkShardProcessor.processAssignments(node.updateAssignments(), node.insertAssignments());
-
-        ShardUpsertRequest upsertRequest = new ShardUpsertRequest(
-                shardId,
-                visitorContext.dataTypes(),
-                visitorContext.columnIndicesToStream(),
-                node.updateAssignments(),
-                node.insertAssignments());
+        ShardUpsertRequestOld upsertRequest = new ShardUpsertRequestOld(shardId, node.updateColumns(), node.insertColumns());
         upsertRequest.continueOnError(false);
-        upsertRequest.add(0, shardingProjector.id(), item.row(), item.version(), shardingProjector.routing());
+        upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version(), item.routing());
 
         transportShardUpsertActionDelegate.execute(upsertRequest, new ActionListener<ShardUpsertResponse>() {
             @Override
@@ -171,7 +156,7 @@ public class UpsertByIdTask extends JobTask {
             @Override
             public void onFailure(Throwable e) {
                 e = ExceptionsHelper.unwrapCause(e);
-                if (node.insertAssignments() == null
+                if (item.insertValues() == null
                         && (e instanceof DocumentMissingException
                         || e instanceof VersionConflictEngineException)) {
                     // on updates, set affected row to 0 if document is not found or version conflicted
@@ -184,18 +169,17 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
-        bulkShardProcessor = new BulkShardProcessor(
+        bulkShardProcessor = new BulkShardProcessorOld(
                 clusterService,
                 settings,
                 transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
-                shardingProjector,
                 node.isPartitionedTable(),
                 false, // overwrite Duplicates
                 node.items().size(),
-                node.isBulkRequest() || node.updateAssignments() != null, // continue on error on bulk and/or update
-                node.updateAssignments(),
-                node.insertAssignments());
+                node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
+                node.updateColumns(),
+                node.insertColumns());
 
         if (!node.isBulkRequest()) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();
@@ -259,7 +243,7 @@ public class UpsertByIdTask extends JobTask {
         }
     }
 
-    private void createIndexAndExecuteUpsertRequest(final UpsertByIdNode.Item item,
+    private void createIndexAndExecuteUpsertRequest(final UpsertByIdNodeOld.Item item,
                                                     final SettableFuture futureResult) {
         transportCreateIndexAction.execute(
                 new CreateIndexRequest(item.index()).cause("upsert single item"),

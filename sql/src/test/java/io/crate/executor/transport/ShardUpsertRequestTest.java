@@ -26,16 +26,21 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerType;
+import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
+
+import java.util.*;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
@@ -51,23 +56,74 @@ public class ShardUpsertRequestTest {
             new ReferenceIdent(charactersIdent, "name"), RowGranularity.DOC, DataTypes.STRING));
 
     @Test
-    public void testStreaming() throws Exception {
+    public void testStreamingOfInsert() throws Exception {
         ShardId shardId = new ShardId("test", 1);
-        String[] assignmentColumns = new String[]{"id", "name"};
-        Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
+        DataType[] dataTypes = new DataType[]{ IntegerType.INSTANCE, StringType.INSTANCE };
+        List<Integer> rowIndicesToStream = new ArrayList();
+        rowIndicesToStream.add(0);
+        rowIndicesToStream.add(1);
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+            put(idRef, new InputColumn(0));
+            put(nameRef, new InputColumn(1));
+        }};
         ShardUpsertRequest request = new ShardUpsertRequest(
                 shardId,
-                assignmentColumns,
-                missingAssignmentColumns);
+                dataTypes,
+                rowIndicesToStream,
+                null,
+                insertAssignments);
 
         request.add(123, "99",
-                null,
                 new Object[]{99, new BytesRef("Marvin")},
-                null, null);
-        request.add(5, "42",
-                new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") },
+                null, "99");
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        ShardUpsertRequest request2 = new ShardUpsertRequest();
+        request2.readFrom(in);
+
+        assertThat(request2.index(), is(shardId.getIndex()));
+        assertThat(request2.shardId(), is(shardId.id()));
+        assertThat(request2.routing(), is("99"));
+        assertNull(request2.updateAssignments());
+        assertThat(request2.insertAssignments(), is(insertAssignments));
+
+        assertThat(request2.locations().size(), is(1));
+        assertThat(request2.locations().get(0), is(123));
+
+        Iterator<ShardUpsertRequest.Item> it = request2.iterator();
+        while (it.hasNext()) {
+            ShardUpsertRequest.Item item = it.next();
+            assertThat(item.id(), is("99"));
+            assertThat(item.row().size(), is(2));
+            assertThat((Integer)item.row().get(0), is(99));
+            assertThat((BytesRef)item.row().get(1), is(new BytesRef("Marvin")));
+            assertThat(item.version(), is(Versions.MATCH_ANY));
+            assertThat(item.retryOnConflict(), is(Constants.UPDATE_RETRY_ON_CONFLICT));
+        }
+    }
+
+    @Test
+    public void testStreamingOfUpdate() throws Exception {
+        ShardId shardId = new ShardId("test", 1);
+        DataType[] dataTypes = new DataType[]{ StringType.INSTANCE };
+        List<Integer> rowIndicesToStream = new ArrayList();
+        rowIndicesToStream.add(0);
+        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{ put(nameRef, new InputColumn(1)); }};
+
+        ShardUpsertRequest request = new ShardUpsertRequest(
+                shardId,
+                dataTypes,
+                rowIndicesToStream,
+                updateAssignments,
                 null,
-                2L, "42");
+                "99");
+
+        request.add(123, "99",
+                new Object[]{ new BytesRef("Marvin") },
+                2L, null);
 
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -79,30 +135,77 @@ public class ShardUpsertRequestTest {
 
         assertThat(request2.index(), is(shardId.getIndex()));
         assertThat(request2.shardId(), is(shardId.id()));
-        assertThat(request2.updateColumns(), is(assignmentColumns));
-        assertThat(request2.insertColumns(), is(missingAssignmentColumns));
+        assertThat(request2.routing(), is("99"));
+        assertThat(request2.updateAssignments(), is(updateAssignments));
+        assertNull(request2.insertAssignments());
 
-        assertThat(request2.locations().size(), is(2));
+        assertThat(request2.locations().size(), is(1));
         assertThat(request2.locations().get(0), is(123));
-        assertThat(request2.locations().get(1), is(5));
 
-        assertThat(request2.items().size(), is(2));
+        Iterator<ShardUpsertRequest.Item> it = request2.iterator();
+        while (it.hasNext()) {
+            ShardUpsertRequest.Item item = it.next();
+            assertThat(item.id(), is("99"));
+            assertThat(item.row().size(), is(1));
+            assertThat((BytesRef)item.row().get(0), is(new BytesRef("Marvin")));
+            assertThat(item.version(), is(2L));
+            assertThat(item.retryOnConflict(), is(0));
+        }
+    }
 
-        ShardUpsertRequest.Item item1 = request2.items().get(0);
-        assertThat(item1.id(), is("99"));
-        assertNull(item1.updateAssignments());
-        assertThat(item1.insertValues(), is(new Object[]{99, new BytesRef("Marvin")}));
-        assertNull(item1.routing());
-        assertThat(item1.version(), is(Versions.MATCH_ANY));
-        assertThat(item1.retryOnConflict(), is(Constants.UPDATE_RETRY_ON_CONFLICT));
+    @Test
+    public void testStreamingOfUpsert() throws Exception {
+        ShardId shardId = new ShardId("test", 1);
+        DataType[] dataTypes = new DataType[]{ IntegerType.INSTANCE, StringType.INSTANCE };
+        List<Integer> rowIndicesToStream = new ArrayList();
+        rowIndicesToStream.add(0);
+        rowIndicesToStream.add(1);
+        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{
+            put(nameRef, new InputColumn(1));
+        }};
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+            put(idRef, new InputColumn(0));
+            put(nameRef, new InputColumn(1));
+        }};
+        ShardUpsertRequest request = new ShardUpsertRequest(
+                shardId,
+                dataTypes,
+                rowIndicesToStream,
+                updateAssignments,
+                insertAssignments,
+                "99");
 
-        ShardUpsertRequest.Item item2 = request2.items().get(1);
-        assertThat(item2.id(), is("42"));
-        assertThat(item2.updateAssignments(), is(new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") }));
-        assertNull(item2.insertValues());
-        assertThat(item2.routing(), is("42"));
-        assertThat(item2.version(), is(2L));
-        assertThat(item2.retryOnConflict(), is(0));
+        request.add(123, "99",
+                new Object[]{ 99, new BytesRef("Marvin") },
+                2L, null);
+
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        ShardUpsertRequest request2 = new ShardUpsertRequest();
+        request2.readFrom(in);
+
+        assertThat(request2.index(), is(shardId.getIndex()));
+        assertThat(request2.shardId(), is(shardId.id()));
+        assertThat(request2.routing(), is("99"));
+        assertThat(request2.updateAssignments(), is(updateAssignments));
+        assertThat(request2.insertAssignments(), is(insertAssignments));
+
+        assertThat(request2.locations().size(), is(1));
+        assertThat(request2.locations().get(0), is(123));
+
+        Iterator<ShardUpsertRequest.Item> it = request2.iterator();
+        while (it.hasNext()) {
+            ShardUpsertRequest.Item item = it.next();
+            assertThat(item.id(), is("99"));
+            assertThat(item.row().size(), is(2));
+            assertThat((Integer)item.row().get(0), is(99));
+            assertThat((BytesRef)item.row().get(1), is(new BytesRef("Marvin")));
+            assertThat(item.version(), is(2L));
+            assertThat(item.retryOnConflict(), is(0));
+        }
     }
 
 }

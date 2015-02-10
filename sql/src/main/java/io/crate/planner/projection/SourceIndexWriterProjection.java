@@ -23,15 +23,18 @@ package io.crate.planner.projection;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -45,7 +48,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private @Nullable String[] excludes;
 
     protected Reference rawSourceReference;
-    protected Symbol rawSourceSymbol;
+    protected InputColumn rawSourceSymbol;
 
     private final static String OVERWRITE_DUPLICATES = "overwrite_duplicates";
     private final static boolean OVERWRITE_DUPLICATES_DEFAULT = false;
@@ -64,6 +67,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        Reference rawSourceReference,
                                        List<ColumnIdent> primaryKeys,
                                        List<ColumnIdent> partitionedBy,
+                                       List<BytesRef> partitionValues,
                                        @Nullable ColumnIdent clusteredByColumn,
                                        int clusteredByIdx,
                                        Settings settings,
@@ -75,29 +79,41 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         this.rawSourceReference = rawSourceReference;
         this.includes = includes;
         this.excludes = excludes;
-        int[] pkIndices = new int[primaryKeys.size()];
-        for (int i = 0; i<pkIndices.length;i++) {
-            pkIndices[i]=i;
-        }
-        int currentInputIndex = primaryKeys.size();
-        int[] partitionedByIndices = new int[partitionedBy.size()];
 
+        int currentInputIndex = primaryKeys.size();
+
+        idSymbols = new ArrayList<>(primaryKeys.size());
+        for (int i = 0; i < primaryKeys.size(); i++) {
+            idSymbols.add(new InputColumn(i, null));
+        }
+
+        partitionedBySymbols = new ArrayList<>(partitionedBy.size());
         for (int i = 0, length = partitionedBy.size(); i < length; i++) {
             int idx = primaryKeys.indexOf(partitionedBy.get(i));
-            if (idx == -1) {
-                idx = currentInputIndex;
-                currentInputIndex++;
+            Symbol partitionSymbol;
+            if (partitionValues.size() > i) {
+                // copy from into partition, do NOT define partition symbols
+                if (idx > -1) {
+                    // copy from into partition where partitioned column is a primary key
+                    // set partition value as primary key input
+                    idSymbols.set(idx, Literal.newLiteral(partitionValues.get(i)));
+                }
+                continue;
             }
-            partitionedByIndices[i] = idx;
+            if (idx == -1) {
+                partitionSymbol = new InputColumn(currentInputIndex++, null);
+            } else {
+                // partition column is part of primary key, use primary key input
+                partitionSymbol = idSymbols.get(idx);
+            }
+            partitionedBySymbols.add(partitionSymbol);
         }
 
         if (clusteredByIdx == -1) {
-            clusteredByIdx = currentInputIndex;
-            currentInputIndex++;
+            clusteredBySymbol = new InputColumn(currentInputIndex++, null);
         }
 
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
-        generateSymbols(pkIndices, partitionedByIndices, clusteredByIdx);
         rawSourceSymbol = new InputColumn(currentInputIndex, DataTypes.STRING);
     }
 
@@ -105,7 +121,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitSourceIndexWriterProjection(this, context);
     }
-    public Symbol rawSource() {
+    public InputColumn rawSource() {
         return rawSourceSymbol;
     }
 
@@ -138,9 +154,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
         if (!Arrays.equals(excludes, that.excludes)) return false;
         if (!Arrays.equals(includes, that.includes)) return false;
-        if (!rawSourceSymbol.equals(that.rawSourceSymbol)) return false;
-
-        return true;
+        return rawSourceSymbol.equals(that.rawSourceSymbol);
     }
 
     @Override
@@ -157,7 +171,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         super.readFrom(in);
         overwriteDuplicates = in.readBoolean();
         rawSourceReference = Reference.fromStream(in);
-        rawSourceSymbol = Symbol.fromStream(in);
+        rawSourceSymbol = (InputColumn)Symbol.fromStream(in);
 
 
         if (in.readBoolean()) {

@@ -49,7 +49,9 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     private final TransportActionProvider transportActionProvider;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
+    @Nullable
     private final ShardId shardId;
+    @Nullable
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
 
 
@@ -218,32 +220,24 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
     public Projector visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, Context context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
-        List<Input<?>> idInputs = new ArrayList<>(projection.ids().size());
-        for (Symbol idSymbol : projection.ids()) {
-            idInputs.add(symbolVisitor.process(idSymbol, symbolContext));
-        }
         List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
-        Input<?> clusteredBy = null;
-        if (projection.clusteredBy() != null) {
-            clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
-        }
         return new IndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportShardUpsertActionDelegate(),
+                transportActionProvider.transportShardUpsertAction2(),
                 transportActionProvider.transportCreateIndexAction(),
                 projection.tableName(),
                 projection.rawSourceReference(),
                 projection.primaryKeys(),
-                idInputs,
+                projection.ids(),
                 partitionedByInputs,
-                projection.clusteredByIdent(),
-                clusteredBy,
+                projection.clusteredBy(),
                 sourceInput,
+                projection.rawSource(),
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.bulkActions(),
                 projection.includes(),
@@ -256,35 +250,22 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     @Override
     public Projector visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, Context context) {
         final ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
-        List<Input<?>> idInputs = new ArrayList<>(projection.ids().size());
-        for (Symbol idSymbol : projection.ids()) {
-            idInputs.add(symbolVisitor.process(idSymbol, symbolContext));
-        }
         List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
-        Input<?> clusteredBy = null;
-        if (projection.clusteredBy() != null) {
-            clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
-        }
-        List<Input<?>> columnInputs = new ArrayList<>(projection.columnSymbols().size());
-        for (Symbol columnSymbol : projection.columnSymbols()) {
-            columnInputs.add(symbolVisitor.process(columnSymbol, symbolContext));
-        }
         return new ColumnIndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportShardUpsertActionDelegate(),
+                transportActionProvider.transportShardUpsertAction2(),
                 transportActionProvider.transportCreateIndexAction(),
                 projection.tableName(),
                 projection.primaryKeys(),
-                idInputs,
+                projection.ids(),
                 partitionedByInputs,
-                projection.clusteredByIdent(),
-                clusteredBy,
+                projection.clusteredBy(),
                 projection.columnReferences(),
-                columnInputs,
+                projection.columnSymbols(),
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.bulkActions(),
                 projection.autoCreateIndices()

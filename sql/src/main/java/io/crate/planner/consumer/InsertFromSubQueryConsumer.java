@@ -23,21 +23,17 @@ package io.crate.planner.consumer;
 
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.metadata.ColumnIdent;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Reference;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 
@@ -45,8 +41,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public InsertFromSubQueryConsumer(AnalysisMetaData analysisMetaData, ConsumingPlanner consumingPlanner){
-        visitor = new Visitor(analysisMetaData, consumingPlanner);
+    public InsertFromSubQueryConsumer(AnalysisMetaData analysisMetaData){
+        visitor = new Visitor(analysisMetaData);
     }
 
     @Override
@@ -71,25 +67,13 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
         private final AnalysisMetaData analysisMetaData;
 
-        private final ConsumingPlanner consumingPlanner;
-
-        public Visitor(AnalysisMetaData analysisMetaData, ConsumingPlanner consumingPlanner){
+        public Visitor(AnalysisMetaData analysisMetaData){
             this.analysisMetaData = analysisMetaData;
-            this.consumingPlanner = consumingPlanner;
         }
 
         @Override
         public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
-            Lists.transform(insertFromSubQueryAnalyzedStatement.columns(), new com.google.common.base.Function<Reference, ColumnIdent>() {
-                @Nullable
-                @Override
-                public ColumnIdent apply(@Nullable Reference input) {
-                    if (input == null) {
-                        return null;
-                    }
-                    return input.info().ident().columnIdent();
-                }
-            });
+
             ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
                     insertFromSubQueryAnalyzedStatement.tableInfo().ident().name(),
                     insertFromSubQueryAnalyzedStatement.tableInfo().primaryKey(),

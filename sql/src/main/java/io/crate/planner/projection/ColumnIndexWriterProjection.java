@@ -78,7 +78,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
         for (int i = 0; i < columns.size(); i++) {
             if (!partitionedByIndices.contains(i)) {
-                this.columnSymbols.add(new InputColumn(i, null));
+                this.columnSymbols.add(new InputColumn(i, columns.get(i).valueType()));
             } else {
                 columnReferences.remove(i);
             }

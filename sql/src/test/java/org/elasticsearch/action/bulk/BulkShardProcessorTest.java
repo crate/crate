@@ -21,7 +21,7 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertRequestOld;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -84,12 +84,12 @@ public class BulkShardProcessorTest {
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
         TransportShardUpsertActionDelegate transportShardBulkActionDelegate = new TransportShardUpsertActionDelegate() {
             @Override
-            public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+            public void execute(ShardUpsertRequestOld request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
             }
         };
 
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        final BulkShardProcessorOld bulkShardProcessor = new BulkShardProcessorOld(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 transportShardBulkActionDelegate,
@@ -128,12 +128,12 @@ public class BulkShardProcessorTest {
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
         TransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new TransportShardUpsertActionDelegate() {
             @Override
-            public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+            public void execute(ShardUpsertRequestOld request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
             }
         };
 
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        final BulkShardProcessorOld bulkShardProcessor = new BulkShardProcessorOld(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 transportShardUpsertActionDelegate,

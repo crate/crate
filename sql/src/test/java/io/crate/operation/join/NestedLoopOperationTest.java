@@ -168,7 +168,9 @@ public class NestedLoopOperationTest {
         ReferenceResolver referenceResolver = injector.getInstance(ReferenceResolver.class);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class);
-        projectionVisitor = new ProjectionToProjectorVisitor(mock(ClusterService.class), ImmutableSettings.EMPTY, transportActionProvider, implementationSymbolVisitor);
+        projectionVisitor = new ProjectionToProjectorVisitor(mock(ClusterService.class),
+                ImmutableSettings.EMPTY, transportActionProvider,
+                implementationSymbolVisitor);
     }
 
     private void assertNestedLoop(Object[][] left, Object[][] right, int limit, int offset, int expectedRows) throws Exception {

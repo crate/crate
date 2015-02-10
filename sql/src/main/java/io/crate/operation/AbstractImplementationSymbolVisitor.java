@@ -29,6 +29,7 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.*;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImplementationSymbolVisitor.Context>
@@ -70,7 +71,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
         return context;
     }
 
-    public C process(List<? extends Symbol> symbols) {
+    public C process(Collection<? extends Symbol> symbols) {
         C context = newContext();
         for (Symbol symbol : symbols) {
             context.add(process(symbol, context));

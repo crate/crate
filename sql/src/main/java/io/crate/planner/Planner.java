@@ -39,7 +39,7 @@ import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.dml.UpsertByIdNodeOld;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
@@ -55,6 +55,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
@@ -222,32 +223,33 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         TableInfo table = analysis.table();
         int clusteredByPrimaryKeyIdx = table.primaryKey().indexOf(analysis.table().clusteredBy());
         List<String> partitionedByNames;
-        List<ColumnIdent> partitionByColumns;
         String tableName;
 
+        List<BytesRef> partitionValues;
         if (analysis.partitionIdent() == null) {
             tableName = table.ident().esName();
             if (table.isPartitioned()) {
                 partitionedByNames = Lists.newArrayList(
                         Lists.transform(table.partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION));
-                partitionByColumns = table.partitionedBy();
             } else {
                 partitionedByNames = Collections.emptyList();
-                partitionByColumns = Collections.emptyList();
             }
+            partitionValues = ImmutableList.of();
         } else {
             assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";
             // partitionIdent is present -> possible to index raw source into concrete es index
-            tableName = PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), analysis.partitionIdent()).stringValue();
+            PartitionName partitionName = PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), analysis.partitionIdent());
+            partitionValues = partitionName.values();
+            tableName = partitionName.stringValue();
             partitionedByNames = Collections.emptyList();
-            partitionByColumns = Collections.emptyList();
         }
 
         SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
                 tableName,
                 new Reference(table.getReferenceInfo(DocSysColumns.RAW)),
                 table.primaryKey(),
-                partitionByColumns,
+                table.partitionedBy(),
+                partitionValues,
                 table.clusteredBy(),
                 clusteredByPrimaryKeyIdx,
                 analysis.settings(),
@@ -422,7 +424,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
         }
-        UpsertByIdNode upsertByIdNode = new UpsertByIdNode(
+        UpsertByIdNodeOld upsertByIdNode = new UpsertByIdNodeOld(
                 analysis.tableInfo().isPartitioned(),
                 analysis.isBulkRequest(),
                 onDuplicateKeyAssignmentsColumns,

@@ -21,41 +21,45 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
 
-    private final List<Input<?>> columnInputs;
-
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Settings settings,
-                                         TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
+                                         TransportShardUpsertAction transportShardUpsertActionDelegate,
                                          TransportCreateIndexAction transportCreateIndexAction,
                                          String tableName,
-                                         List<ColumnIdent> primaryKeys,
-                                         List<Input<?>> idInputs,
+                                         List<ColumnIdent> primaryKeyIdents,
+                                         List<Symbol> primaryKeySymbols,
                                          List<Input<?>> partitionedByInputs,
-                                         @Nullable ColumnIdent routingIdent,
-                                         @Nullable Input<?> routingInput,
+                                         @Nullable Symbol routingSymbol,
                                          List<Reference> columnReferences,
-                                         List<Input<?>> columnInputs,
+                                         List<Symbol> columnSymbols,
                                          CollectExpression<?>[] collectExpressions,
                                          @Nullable Integer bulkActions,
                                          boolean autoCreateIndices) {
-        super(tableName, primaryKeys, idInputs,
-                partitionedByInputs, routingIdent, routingInput, collectExpressions);
-        assert columnReferences.size() == columnInputs.size();
-        this.columnInputs = columnInputs;
+        super(tableName, primaryKeyIdents, primaryKeySymbols,
+                partitionedByInputs, routingSymbol, collectExpressions);
+        assert columnReferences.size() == columnSymbols.size();
+
+        Map<Reference, Symbol> insertAssignments = new HashMap<>(columnReferences.size());
+        for (int i = 0; i < columnReferences.size(); i++) {
+            insertAssignments.put(columnReferences.get(i), columnSymbols.get(i));
+        }
 
         createBulkShardProcessor(
                 clusterService,
@@ -66,15 +70,11 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 autoCreateIndices,
                 false, // overwriteDuplicates
                 null,
-                columnReferences.toArray(new Reference[columnReferences.size()]));
+                insertAssignments);
     }
 
     @Override
-    protected Object[] generateMissingAssignments() {
-        Object[] missingAssignments = new Object[columnInputs.size()];
-        for (int i = 0; i < columnInputs.size(); i++) {
-            missingAssignments[i] = columnInputs.get(i).value();
-        }
-        return missingAssignments;
+    protected void updateRow(Object... row) {
+        // nothing to do
     }
 }
