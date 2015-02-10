@@ -23,6 +23,7 @@ package io.crate.test.integration;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.randomizedtesting.SeedUtils;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.google.common.base.Joiner;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.ExceptionsHelper;
@@ -64,6 +65,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.test.ElasticsearchTestCase;
+import org.elasticsearch.test.ElasticsearchThreadFilter;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -82,6 +84,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.*;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.core.IsEqual.equalTo;
 
+@ThreadLeakFilters(filters = {CrateThreadFilter.class, ElasticsearchThreadFilter.class})
 public class CrateIntegrationTest extends ElasticsearchTestCase {
 
     static {

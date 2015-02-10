@@ -30,6 +30,8 @@ import java.io.IOException;
 
 public class PageInfo {
 
+    public static final PageInfo EMPTY = new PageInfo(0, 0);
+
     private final int size;
     private final int position;
 
