@@ -19,49 +19,39 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.operation.join.nestedloop;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.base.Optional;
+import com.google.common.util.concurrent.FutureCallback;
 import io.crate.executor.PageInfo;
 import io.crate.executor.PageableTaskResult;
 import io.crate.executor.TaskResult;
+import io.crate.operation.projectors.Projector;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
+/**
+ * a strategy handling the moving/distinct parts for the different ways
+ * to execute a JOIN using the NestedLoopOperation
+ */
+interface NestedLoopStrategy {
 
-class FetchedRowsIterable extends RelationIterable {
+    public static interface NestedLoopExecutor {
+        public void joinOuterPage();
+        public void joinInnerPage();
 
-    private final Iterable<Object[]> rows;
+        public void onNewOuterPage(PageableTaskResult taskResult);
+        public void onNewInnerPage(PageableTaskResult taskResult);
 
-    public FetchedRowsIterable(TaskResult taskResult, PageInfo pageInfo) {
-        super(pageInfo);
-        if (taskResult instanceof PageableTaskResult) {
-            this.rows = ((PageableTaskResult) taskResult).page();
-        } else {
-            this.rows = Arrays.asList(taskResult.rows());
-        }
     }
 
-    @Override
-    public Iterator<Object[]> iterator() {
-        return rows.iterator();
-    }
+    TaskResult emptyResult();
 
-    @Override
-    public ListenableFuture<Void> fetchPage(PageInfo pageInfo) {
-        this.pageInfo(pageInfo);
-        return Futures.immediateFuture(null);
-    }
+    int rowsToProduce(Optional<PageInfo> pageInfo);
 
-    @Override
-    public boolean isComplete() {
-        return true;
-    }
+    void onFirstJoin(JoinContext joinContext);
 
-    @Override
-    public void close() throws IOException {
-        // ayayayayayaaaay!
-    }
+    TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext);
+
+    String name();
+
+    NestedLoopExecutor executor(JoinContext ctx, Optional<PageInfo> pageInfo, Projector downstream, FutureCallback<Void> callback);
 }

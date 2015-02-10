@@ -42,6 +42,8 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.CollectShardModule;
+import io.crate.operation.join.nestedloop.NestedLoopExecutorService;
+import io.crate.operation.join.nestedloop.NestedLoopModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
@@ -102,7 +104,10 @@ public class SQLPlugin extends AbstractPlugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> services() {
-        return ImmutableList.<Class<? extends LifecycleComponent>>of(SQLService.class);
+        return ImmutableList.<Class<? extends LifecycleComponent>>of(
+                SQLService.class,
+                NestedLoopExecutorService.class);
+
     }
 
     @Override
@@ -126,6 +131,7 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(AggregationImplModule.class);
             modules.add(ScalarFunctionModule.class);
             modules.add(PlanModule.class);
+            modules.add(NestedLoopModule.class);
         }
         return modules;
     }

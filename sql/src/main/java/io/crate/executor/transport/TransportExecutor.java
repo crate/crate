@@ -38,6 +38,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.join.nestedloop.NestedLoopExecutorService;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.*;
@@ -67,6 +68,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final StatsTables statsTables;
     private final NodeVisitor nodeVisitor;
     private final ThreadPool threadPool;
+    private final NestedLoopExecutorService nestedLoopExecutorService;
 
     private final Settings settings;
     private final ClusterService clusterService;
@@ -85,6 +87,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     public TransportExecutor(Settings settings,
                              TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
+                             NestedLoopExecutorService nestedLoopExecutorService,
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
@@ -97,6 +100,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
+        this.nestedLoopExecutorService = nestedLoopExecutorService;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
@@ -298,6 +302,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                             outerJob,
                             innerJob,
                             TransportExecutor.this,
+                            nestedLoopExecutorService,
                             globalProjectionToProjectionVisitor,
                             circuitBreaker)
             );

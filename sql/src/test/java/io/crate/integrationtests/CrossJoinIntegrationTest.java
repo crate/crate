@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -28,7 +29,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -43,10 +44,12 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @Repeat(iterations=10)
     @Test
     public void testSelectSubscript() throws Exception {
         setup.setUpCharacters();
         setup.setUpLocations();
+        waitNoPendingTasksOnAll();
         execute("select female, race['name'] from characters, locations");
         assertThat(response.rowCount(), is(52L));
     }
@@ -58,6 +61,15 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpLocations();
         execute("select title, characters.name, locations.name from books, characters, locations");
         assertThat(response.rowCount(), is(156L));
+    }
+
+    @Test
+    public void testSimpleFourTableJoin() throws Exception {
+        setup.setUpBooks();
+        setup.setUpCharacters();
+        setup.setUpLocations();
+        execute("select b1.title, b2.title, characters.name, locations.name from books b1, books b2, characters, locations");
+        assertThat(response.rowCount(), is(468L));
     }
 
     @Test
@@ -93,7 +105,7 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         Object[] row = response.rows()[0];
         assertThat(row[0], is(instanceOf(String.class)));
         assertThat(row[1], is(instanceOf(Long.class)));
-        assertThat(row[2], is(instanceOf(Integer.class)));
+        assertThat(row[2], anyOf(nullValue(), instanceOf(Integer.class)));
     }
 
     @Test
@@ -137,7 +149,7 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpCharacters();
         setup.setUpLocations();
         execute("select * from locations, characters limit 300 offset 200");
-        assertThat(response.rowCount(), is(52L));
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
