@@ -127,18 +127,18 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 return table;
             }
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
-            if(whereClauseContext.whereClause().version().isPresent()){
+            WhereClause whereClause = whereClauseAnalyzer.analyze(table.querySpec().where());
+            if(whereClause.version().isPresent()){
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
             }
             context.result = true;
             if(table.querySpec().groupBy()!=null){
-                return groupBy(table, tableRelation, whereClauseContext, context.indexWriterProjection, analysisMetaData.functions());
+                return groupBy(table, tableRelation, whereClause, context.indexWriterProjection, analysisMetaData.functions());
             } else if(table.querySpec().hasAggregates()){
-                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClauseContext, context.indexWriterProjection);
+                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClause, context.indexWriterProjection);
             } else {
-                return QueryAndFetchConsumer.normalSelect(table.querySpec(), whereClauseContext, tableRelation,
+                return QueryAndFetchConsumer.normalSelect(table.querySpec(), whereClause, tableRelation,
                         context.indexWriterProjection, analysisMetaData.functions());
             }
         }
@@ -148,15 +148,15 @@ public class InsertFromSubQueryConsumer implements Consumer {
             return relation;
         }
 
-        private AnalyzedRelation groupBy(QueriedTable table, TableRelation tableRelation, WhereClauseContext whereClauseContext,
+        private AnalyzedRelation groupBy(QueriedTable table, TableRelation tableRelation, WhereClause whereClause,
                                                @Nullable ColumnIndexWriterProjection indexWriterProjection, @Nullable Functions functions){
             TableInfo tableInfo = tableRelation.tableInfo();
             if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(table.querySpec().where(), null))) {
-                return NonDistributedGroupByConsumer.nonDistributedGroupBy(table, whereClauseContext, indexWriterProjection);
+                return NonDistributedGroupByConsumer.nonDistributedGroupBy(table, whereClause, indexWriterProjection);
             } else if (groupedByClusteredColumnOrPrimaryKeys(table, tableRelation)) {
-                return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, tableRelation, whereClauseContext, indexWriterProjection);
+                return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, tableRelation, whereClause, indexWriterProjection);
             } else if (indexWriterProjection != null) {
-                return distributedWriterGroupBy(table, tableRelation, whereClauseContext, indexWriterProjection, functions);
+                return distributedWriterGroupBy(table, tableRelation, whereClause, indexWriterProjection, functions);
             } else {
                 assert false : "this case should have been handled in the ConsumingPlanner";
             }
@@ -177,7 +177,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
          */
         private static AnalyzedRelation distributedWriterGroupBy(QueriedTable table,
                                                                  TableRelation tableRelation,
-                                                                 WhereClauseContext whereClauseContext,
+                                                                 WhereClause whereClause,
                                                                  Projection writerProjection,
                                                                  Functions functions) {
             boolean ignoreSorting = !table.querySpec().isLimited();
@@ -200,14 +200,14 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 }
             }
             TableInfo tableInfo = tableRelation.tableInfo();
-            Routing routing = tableInfo.getRouting(whereClauseContext.whereClause(), null);
+            Routing routing = tableInfo.getRouting(whereClause, null);
 
             // collector
             contextBuilder.addProjection(new GroupProjection(
                     contextBuilder.groupBy(), contextBuilder.aggregations()));
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                     tableInfo,
-                    whereClauseContext.whereClause(),
+                    whereClause,
                     contextBuilder.toCollect(),
                     Lists.newArrayList(routing.nodes()),
                     contextBuilder.getAndClearProjections()

@@ -29,7 +29,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -75,12 +74,12 @@ public class QueryThenFetchConsumer implements Consumer {
             WhereClause where = table.querySpec().where();
             if (where != null){
                 WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-                WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(where);
-                if(whereClauseContext.whereClause().version().isPresent()){
+                WhereClause whereClause = whereClauseAnalyzer.analyze(where);
+                if(whereClause.version().isPresent()){
                     context.validationException(new VersionInvalidException());
                     return null;
                 }
-                where = whereClauseContext.whereClause();
+                where = whereClause;
                 if (where.noMatch()){
                     return new NoopPlannedAnalyzedRelation(table);
                 }

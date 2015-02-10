@@ -255,7 +255,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (!where.isPresent()) {
             return WhereClause.MATCH_ALL;
         }
-        return new WhereClause(expressionAnalyzer.normalize(expressionAnalyzer.convert(where.get(), expressionAnalysisContext)));
+        return new WhereClause(
+                expressionAnalyzer.normalize(expressionAnalyzer.convert(where.get(), expressionAnalysisContext)),
+                null, null, null
+        );
     }
 
 

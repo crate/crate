@@ -69,9 +69,6 @@ public class IdTest {
 
         assertThat(id.values().size(), is(2));
         assertEquals(ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), id.values());
-
-        Id id1 = Id.fromString(id.stringValue());
-        assertEquals(id.values(), id1.values());
     }
 
     @Test
@@ -79,10 +76,10 @@ public class IdTest {
         Id id = new Id(ImmutableList.of(new ColumnIdent("id"), new ColumnIdent("name")), ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), new ColumnIdent("name"));
 
         assertThat(id.values().size(), is(2));
+        // routing value is always first, so foo is at 0
         assertEquals(ImmutableList.of(new BytesRef("foo"), new BytesRef("1")), id.values());
-
-        Id id1 = Id.fromString(id.stringValue());
-        assertEquals(id.values(), id1.values());
+        // routed by value of name col
+        assertThat(id.routingValue(), is("foo"));
     }
 
     @Test

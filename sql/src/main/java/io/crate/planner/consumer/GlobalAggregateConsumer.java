@@ -31,7 +31,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
@@ -88,13 +87,12 @@ public class GlobalAggregateConsumer implements Consumer {
             }
 
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
-            WhereClause whereClause = whereClauseContext.whereClause();
-            if(whereClause.version().isPresent()){
+            WhereClause whereClause = whereClauseAnalyzer.analyze(table.querySpec().where());
+            if (whereClause.version().isPresent()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return globalAggregates(table, table.tableRelation(), whereClauseContext, null);
+            return globalAggregates(table, table.tableRelation(), whereClause, null);
         }
 
         @Override
@@ -109,7 +107,7 @@ public class GlobalAggregateConsumer implements Consumer {
 
     public static PlannedAnalyzedRelation globalAggregates(QueriedTable table,
                                                            TableRelation tableRelation,
-                                                           WhereClauseContext whereClauseContext,
+                                                           WhereClause whereClause,
                                                            ColumnIndexWriterProjection indexWriterProjection){
         assert noGroupBy(table.querySpec().groupBy()) : "must not have group by clause for global aggregate queries";
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
@@ -130,7 +128,7 @@ public class GlobalAggregateConsumer implements Consumer {
         ap.aggregations(contextBuilder.aggregations());
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableRelation.tableInfo(),
-                whereClauseContext.whereClause(),
+                whereClause,
                 contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(ap)
         );

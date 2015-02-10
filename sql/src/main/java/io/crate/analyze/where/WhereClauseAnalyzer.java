@@ -40,7 +40,6 @@ import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.Tuple;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class WhereClauseAnalyzer {
@@ -48,47 +47,43 @@ public class WhereClauseAnalyzer {
     private final static PrimaryKeyVisitor PRIMARY_KEY_VISITOR = new PrimaryKeyVisitor();
     private final AnalysisMetaData analysisMetaData;
     private final TableInfo tableInfo;
-    private final TableRelation tableRelation;
 
     public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, TableRelation tableRelation) {
         this.analysisMetaData = analysisMetaData;
-        this.tableRelation = tableRelation;
         this.tableInfo = tableRelation.tableInfo();
     }
 
-    public WhereClauseContext analyze(WhereClause whereClause) {
+    public WhereClause analyze(WhereClause whereClause) {
         if (whereClause.noMatch() || !whereClause.hasQuery()) {
-            return new WhereClauseContext(whereClause);
+            return whereClause;
         }
-        whereClause = tableRelation.resolve(whereClause);
-        WhereClauseContext whereClauseContext = new WhereClauseContext(whereClause);
+        WhereClauseContext whereClauseContext = new WhereClauseContext();
         PrimaryKeyVisitor.Context ctx = PRIMARY_KEY_VISITOR.process(tableInfo, whereClause.query());
         if (ctx != null) {
-            whereClause.clusteredByLiteral(ctx.clusteredByLiteral());
+            whereClause.clusteredBy(ctx.clusteredByLiterals());
             if (ctx.noMatch) {
-                whereClauseContext.whereClause(WhereClause.NO_MATCH);
+                return WhereClause.NO_MATCH;
             } else {
                 whereClause.version(ctx.version());
-
                 if (ctx.keyLiterals() != null) {
                     processPrimaryKeyLiterals(
                             ctx.keyLiterals(),
-                            whereClause.clusteredBy().orNull(),
                             whereClauseContext
                     );
+                    whereClause.primaryKeys(whereClauseContext.primaryKeys());
                 }
             }
         }
         if (tableInfo.isPartitioned()) {
-            resolvePartitions(whereClauseContext);
+            return resolvePartitions(whereClause);
         }
-        return whereClauseContext;
+        return whereClause;
     }
 
 
     protected void processPrimaryKeyLiterals(List primaryKeyLiterals,
-                                                    @Nullable String clusteredBy,
-                                                    WhereClauseContext context) {
+                                             WhereClauseContext context) {
+
         List<List<BytesRef>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
         primaryKeyValuesList.add(new ArrayList<BytesRef>(tableInfo.primaryKey().size()));
 
@@ -130,7 +125,7 @@ public class WhereClauseAnalyzer {
         }
 
         for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
-            context.addIdAndRouting(tableInfo, primaryKeyValues, clusteredBy);
+            context.addIdAndRouting(tableInfo, primaryKeyValues);
         }
     }
 
@@ -145,13 +140,12 @@ public class WhereClauseAnalyzer {
         return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
     }
 
-    private void resolvePartitions(WhereClauseContext whereClauseContext) {
+    private WhereClause resolvePartitions(WhereClause whereClause) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
         if (tableInfo.partitions().isEmpty()) {
-            whereClauseContext.whereClause(WhereClause.NO_MATCH); // table is partitioned but has no data / no partitions
+            return WhereClause.NO_MATCH; // table is partitioned but has no data / no partitions
         }
 
-        WhereClause whereClause = whereClauseContext.whereClause();
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
                 analysisMetaData.referenceResolver(),
                 tableInfo.partitionedByColumns());
@@ -169,7 +163,7 @@ public class WhereClauseAnalyzer {
             assert normalized != null : "normalizing a query must not return null";
 
             if (normalized.equals(whereClause.query())) {
-                return; // no partition columns inside the where clause
+                return whereClause; // no partition columns inside the where clause
             }
 
             boolean canMatch = WhereClause.canMatch(normalized);
@@ -185,18 +179,20 @@ public class WhereClauseAnalyzer {
 
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal>> entry = queryPartitionMap.entrySet().iterator().next();
-            whereClause = new WhereClause(entry.getKey());
+            whereClause = new WhereClause(entry.getKey(),
+                    whereClause.primaryKeys().orNull(), new ArrayList<String>(entry.getValue().size()), whereClause.version().orNull());
             whereClause.partitions(entry.getValue());
-            whereClauseContext.whereClause(whereClause);
+            return whereClause;
         } else if (queryPartitionMap.size() > 0) {
-            whereClauseContext.whereClause(tieBreakPartitionQueries(normalizer, queryPartitionMap));
+            return tieBreakPartitionQueries(normalizer, queryPartitionMap, whereClause);
         } else {
-            whereClauseContext.whereClause(WhereClause.NO_MATCH);
+            return WhereClause.NO_MATCH;
         }
     }
 
     private WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
-                                                 Map<Symbol, List<Literal>> queryPartitionMap) throws UnsupportedOperationException{
+                                                 Map<Symbol, List<Literal>> queryPartitionMap,
+                                                 WhereClause whereClause) throws UnsupportedOperationException{
         /**
          * Got multiple normalized queries which all could match.
          * This might be the case if one partition resolved to null
@@ -238,9 +234,12 @@ public class WhereClauseAnalyzer {
         }
         if (canMatch.size() == 1) {
             Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
-            WhereClause whereClause = new WhereClause(symbolListTuple.v1());
-            whereClause.partitions(symbolListTuple.v2());
-            return whereClause;
+            WhereClause where = new WhereClause(symbolListTuple.v1(),
+                    whereClause.primaryKeys().orNull(),
+                    new ArrayList<String>(symbolListTuple.v2().size()),
+                    whereClause.version().orNull());
+            where.partitions(symbolListTuple.v2());
+            return where;
         }
         throw new UnsupportedOperationException(
                 "logical conjunction of the conditions in the WHERE clause which " +

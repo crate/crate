@@ -102,7 +102,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             analysis.parameterContext().setBulkIdx(i);
 
             UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement = new UpdateAnalyzedStatement.NestedAnalyzedStatement(
-                    expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext));
+                    expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext, tableRelation));
             for (Assignment assignment : node.assignements()) {
                 analyzeAssignment(
                         assignment,

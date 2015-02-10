@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,13 +29,13 @@ import java.util.List;
 public class DeleteAnalyzedStatement implements AnalyzedStatement {
 
     final List<WhereClause> whereClauses = new ArrayList<>();
-    final AnalyzedRelation analyzedRelation;
+    final TableRelation analyzedRelation;
 
-    public DeleteAnalyzedStatement(AnalyzedRelation analyzedRelation) {
+    public DeleteAnalyzedStatement(TableRelation analyzedRelation) {
         this.analyzedRelation = analyzedRelation;
     }
 
-    public AnalyzedRelation analyzedRelation() {
+    public TableRelation analyzedRelation() {
         return analyzedRelation;
     }
 

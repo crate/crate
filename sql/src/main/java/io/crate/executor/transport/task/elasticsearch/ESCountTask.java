@@ -62,7 +62,7 @@ public class ESCountTask extends JobTask {
         } else {
             request = new CountRequest(indices)
                     .types(Constants.DEFAULT_MAPPING_TYPE)
-                    .routing(node.whereClause().clusteredBy().orNull());
+                    .routing(node.routing());
             listener = new CountResponseListener(result);
             try {
                 request.source(queryBuilder.convert(node.whereClause()), false);

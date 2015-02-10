@@ -52,8 +52,8 @@ import java.util.*;
  *
  *  would create two buckets with keyParts  and version set.
  *
- *  for backward compatibility the information in the context is exposed in a way that version and clusteredBy
- *  is only exposed if primary key has only 1 key part.
+ *  for backward compatibility the information in the context is exposed in a way that version is only
+ *  exposed if primary key has only 1 key part.
  *
  *  if any column that is neither primary key, nor _version or clustered by column is encountered
  *  the whole context is invalidated.
@@ -80,7 +80,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
         private List keyLiterals;
         private Long version;
-        private Literal clusteredBy;
+        private HashSet<Literal> clusteredBy = new HashSet<>();
         public boolean noMatch = false;
 
         public Context(TableInfo tableInfo) {
@@ -106,7 +106,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
 
         @Nullable
-        public Literal clusteredByLiteral() {
+        public HashSet<Literal> clusteredByLiterals() {
             return clusteredBy;
         }
 
@@ -120,12 +120,15 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 version = currentBucket.version;
             }
             if (!invalid) {
+                for (KeyBucket bucket : buckets) {
+                    if (bucket.clusteredBy != null) {
+                        clusteredBy.add(bucket.clusteredBy);
+                    }
+                }
                 if (buckets.size() == 1) {
-                    clusteredBy = currentBucket.clusteredBy;
                     if (currentBucket.partsFound == table.primaryKey().size()) {
                         keyLiterals = Lists.newArrayList(currentBucket.keyParts);
                     }
-
                 } else if (table.primaryKey().size() == 1) {
                     Set<Literal> keys = new HashSet<>();
                     DataType keyType = DataTypes.UNDEFINED;
@@ -165,6 +168,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                     if (keyLiterals != null && keyLiterals.size() != buckets.size()) {
                         // not all parts of all buckets found
                         keyLiterals = null;
+                        clusteredBy = null;
                     }
 
                 }

@@ -30,6 +30,9 @@ public class StringUtils {
 
     public static final Splitter PATH_SPLITTER = Splitter.on('.');
     public static final Joiner PATH_JOINER = Joiner.on('.');
+    public static final Joiner ROUTING_JOINER = Joiner.on(',');
+
+
 
     public static String dottedToSqlPath(String dottedPath) {
         Iterable<String> splitted = PATH_SPLITTER.split(dottedPath);

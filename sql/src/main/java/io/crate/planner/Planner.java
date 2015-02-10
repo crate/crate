@@ -33,11 +33,10 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -143,17 +142,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
         IterablePlan plan = new IterablePlan();
-        TableRelation tableRelation = (TableRelation) analyzedStatement.analyzedRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+        TableRelation tableRelation = analyzedStatement.analyzedRelation();
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
             if (whereClause.noMatch()) {
                 continue;
             }
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(whereClause);
-            if (whereClauseContext.ids().size() == 1 && whereClauseContext.routingValues().size() == 1) {
-                createESDeleteNode(tableRelation.tableInfo(), whereClauseContext, plan);
+            if (whereClause.primaryKeys().isPresent() && whereClause.primaryKeys().get().size()==1) {
+                createESDeleteNode(tableRelation.tableInfo(), whereClause, plan);
             } else {
-                createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauseContext, plan);
+                createESDeleteByQueryNode(tableRelation.tableInfo(), whereClause, plan);
             }
         }
         if (plan.isEmpty()) {
@@ -402,18 +399,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return node != null ? new IterablePlan(node) : NoopPlan.INSTANCE;
     }
 
-    private void createESDeleteNode(TableInfo tableInfo, WhereClauseContext whereClauseContext, IterablePlan plan) {
-        assert whereClauseContext.ids().size() == 1 && whereClauseContext.routingValues().size() == 1;
+    private void createESDeleteNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
+        assert whereClause.primaryKeys().get().size() == 1;
+        Id pk = Iterables.get(whereClause.primaryKeys().get(), 0);
         plan.add(new ESDeleteNode(
-                indices(tableInfo, whereClauseContext.whereClause())[0],
-                whereClauseContext.ids().get(0),
-                whereClauseContext.routingValues().get(0),
-                whereClauseContext.whereClause().version()));
+                indices(tableInfo, whereClause)[0],
+                pk.stringValue(),
+                pk.routingValue(),
+                whereClause.version()));
     }
 
-    private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClauseContext whereClauseContext, IterablePlan plan) {
-        WhereClause whereClause = whereClauseContext.whereClause();
-
+    private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
         String[] indices = indices(tableInfo, whereClause);
         if (indices.length > 0 && !whereClause.noMatch()) {
             if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {

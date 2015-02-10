@@ -123,8 +123,12 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testDeleteWherePartitionedByColumn() throws Exception {
         DeleteAnalyzedStatement statement = analyze("delete from parted where date = 1395874800000");
-        assertThat(statement.whereClauses().get(0).hasQuery(), is(true));
+        assertThat(statement.whereClauses().get(0).hasQuery(), is(false));
         assertThat(statement.whereClauses().get(0).noMatch(), is(false));
+        assertThat(statement.whereClauses().get(0).partitions().size(), is(1));
+        assertThat(statement.whereClauses().get(0).partitions().get(0),
+                is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+
     }
 
     @Test
