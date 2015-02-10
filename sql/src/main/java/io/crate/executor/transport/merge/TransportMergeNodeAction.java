@@ -72,7 +72,7 @@ public class TransportMergeNodeAction {
                                     final TransportActionProvider transportActionProvider,
                                     TransportService transportService,
                                     ReferenceResolver referenceResolver,
-                                    Functions functions,
+                                    final Functions functions,
                                     final ThreadPool threadPool,
                                     StatsTables statsTables,
                                     CrateCircuitBreakerService breakerService) {

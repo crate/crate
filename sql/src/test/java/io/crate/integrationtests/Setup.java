@@ -127,7 +127,7 @@ public class Setup {
                         "12",  "", "2013-07-16",  "Planet",  5,  "This Planet doesn't really exist", null
                 },
                 new Object[]{
-                        "13",  null, "2013-07-16",  "Galaxy",  6,  "The end of the Galaxy.%", null
+                        "13",  "End of the Galaxy", "2013-07-16",  "Galaxy",  6,  "The end of the Galaxy.%", null
                 }
         };
         transportExecutor.exec(insertStmt, rows);
@@ -301,7 +301,7 @@ public class Setup {
     }
 
     public void setUpCharacters() {
-        transportExecutor.exec("create table characters (id int primary key, name string, female boolean)");
+        transportExecutor.exec("create table characters (id int primary key, name string, female boolean, details object)");
         transportExecutor.ensureGreen();
         transportExecutor.exec("insert into characters (id, name, female) values (?, ?, ?)",
                 new Object[][]{

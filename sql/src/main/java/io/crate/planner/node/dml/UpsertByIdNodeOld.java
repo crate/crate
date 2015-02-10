@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -30,9 +29,8 @@ import org.elasticsearch.common.lucene.uid.Versions;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-public class UpsertByIdNode extends DMLPlanNode {
+public class UpsertByIdNodeOld extends DMLPlanNode {
 
     /**
      * A single update item.
@@ -40,27 +38,54 @@ public class UpsertByIdNode extends DMLPlanNode {
     public static class Item {
 
         private final String index;
+        private final String id;
+        private final String routing;
         private long version = Versions.MATCH_ANY;
-        private Object[] row;
+        @Nullable
+        private final Symbol[] updateAssignments;
+        @Nullable
+        private Object[] insertValues;
 
-        Item(String index, Object[] row, @Nullable Long version) {
+        Item(String index,
+                    String id,
+                    String routing,
+                    @Nullable Symbol[] updateAssignments,
+                    @Nullable Long version,
+                    @Nullable Object[] insertValues) {
             this.index = index;
+            this.id = id;
+            this.routing = routing;
+            this.updateAssignments = updateAssignments;
             if (version != null) {
                 this.version = version;
             }
-            this.row = row;
+            this.insertValues = insertValues;
         }
 
         public String index() {
             return index;
         }
 
+        public String id() {
+            return id;
+        }
+
+        public String routing() {
+            return routing;
+        }
+
         public long version() {
             return version;
         }
 
-        public Object[] row() {
-            return row;
+        @Nullable
+        public Symbol[] updateAssignments() {
+            return updateAssignments;
+        }
+
+        @Nullable
+        public Object[] insertValues() {
+            return insertValues;
         }
     }
 
@@ -68,53 +93,29 @@ public class UpsertByIdNode extends DMLPlanNode {
     private final boolean partitionedTable;
     private final boolean bulkRequest;
     private final List<Item> items;
-    private final List<ColumnIdent> primaryKeyIdents;
-    private final List<Symbol> primaryKeySymbols;
     @Nullable
-    private final Symbol routingSymbol;
+    private final String[] updateColumns;
     @Nullable
-    private final Map<Reference, Symbol> updateAssignments;
-    @Nullable
-    private final Map<Reference, Symbol> insertAssignments;
+    private final Reference[] insertColumns;
 
-    public UpsertByIdNode(boolean partitionedTable,
-                          boolean bulkRequest,
-                          List<ColumnIdent> primaryKeyIdents,
-                          List<Symbol> primaryKeySymbols,
-                          @Nullable Symbol routingSymbol,
-                          @Nullable Map<Reference, Symbol> updateAssignments,
-                          @Nullable Map<Reference, Symbol> insertAssignments) {
+    public UpsertByIdNodeOld(boolean partitionedTable,
+                             boolean bulkRequest,
+                             String[] updateColumns,
+                             @Nullable Reference[] insertColumns) {
         this.partitionedTable = partitionedTable;
         this.bulkRequest = bulkRequest;
-        this.primaryKeyIdents = primaryKeyIdents;
-        this.primaryKeySymbols = primaryKeySymbols;
-        this.routingSymbol = routingSymbol;
-        this.updateAssignments = updateAssignments;
-        this.insertAssignments = insertAssignments;
+        this.updateColumns = updateColumns;
+        this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
     }
 
-    public List<ColumnIdent> primaryKeyIdents() {
-        return primaryKeyIdents;
-    }
-
-    public List<Symbol> primaryKeySymbols() {
-        return primaryKeySymbols;
+    public String[] updateColumns() {
+        return updateColumns;
     }
 
     @Nullable
-    public Symbol routingSymbol() {
-        return routingSymbol;
-    }
-
-    @Nullable
-    public Map<Reference, Symbol> updateAssignments() {
-        return updateAssignments;
-    }
-
-    @Nullable
-    public Map<Reference, Symbol> insertAssignments() {
-        return insertAssignments;
+    public Reference[] insertColumns() {
+        return insertColumns;
     }
 
     public boolean isPartitionedTable() {
@@ -125,8 +126,21 @@ public class UpsertByIdNode extends DMLPlanNode {
         return bulkRequest;
     }
 
-    public void add(String index, Object[] row, @Nullable Long version) {
-        items.add(new Item(index, row, version));
+    public void add(String index,
+                    String id,
+                    String routing,
+                    Symbol[] updateAssignments,
+                    @Nullable Long version) {
+        add(index, id, routing, updateAssignments, version, null);
+    }
+
+    public void add(String index,
+                    String id,
+                    String routing,
+                    Symbol[] updateAssignments,
+                    @Nullable Long version,
+                    @Nullable Object[] insertValues) {
+        items.add(new Item(index, id, routing, updateAssignments, version, insertValues));
     }
 
     public List<Item> items() {
@@ -135,6 +149,6 @@ public class UpsertByIdNode extends DMLPlanNode {
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitUpsertByIdNode2(this, context);
+        return visitor.visitUpsertByIdNode(this, context);
     }
 }

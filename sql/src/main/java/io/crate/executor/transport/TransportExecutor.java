@@ -80,7 +80,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
-
     private final QueryThenFetchOperation queryThenFetchOperation;
 
     @Inject
@@ -354,11 +353,21 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
-            return singleTask(new UpsertByIdTask(jobId,
+        public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNodeOld node, UUID jobId) {
+            return singleTask(new UpsertByIdTaskOld(jobId,
                     clusterService,
                     settings,
                     transportActionProvider.transportShardUpsertActionDelegate(),
+                    transportActionProvider.transportCreateIndexAction(),
+                    node));
+        }
+
+        @Override
+        public ImmutableList<Task> visitUpsertByIdNode2(UpsertByIdNode node, UUID jobId) {
+            return singleTask(new UpsertByIdTask(jobId,
+                    clusterService,
+                    settings,
+                    transportActionProvider.transportShardUpsertAction2(),
                     transportActionProvider.transportCreateIndexAction(),
                     node));
         }

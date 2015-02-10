@@ -50,7 +50,8 @@ public class MergeOperation implements DownstreamOperation {
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
-                          ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode,
+                          ImplementationSymbolVisitor symbolVisitor,
+                          MergeNode mergeNode,
                           RamAccountingContext ramAccountingContext) {
         projectorChain = new FlatProjectorChain(mergeNode.projections(),
                 new ProjectionToProjectorVisitor(

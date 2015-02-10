@@ -76,6 +76,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
         execute("copy quotes partition (date=1400507539938) from ?", new Object[]{uriPath});
+        assertEquals(3L, response.rowCount());
         refresh();
         execute("select id, date, quote from quotes order by id asc");
         assertEquals(3L, response.rowCount());

@@ -21,13 +21,15 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -41,34 +43,35 @@ import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     private final BytesRefGenerator generator;
+    private final int sourceColumnIndex;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
-                                TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
+                                TransportShardUpsertAction transportShardUpsertActionDelegate,
                                 TransportCreateIndexAction transportCreateIndexAction,
                                 String tableName,
                                 Reference rawSourceReference,
-                                List<ColumnIdent> primaryKeys,
-                                List<Input<?>> idInputs,
+                                List<ColumnIdent> primaryKeyIdents,
+                                List<Symbol> primaryKeySymbols,
                                 List<Input<?>> partitionedByInputs,
-                                @Nullable ColumnIdent routingIdent,
-                                @Nullable Input<?> routingInput,
+                                @Nullable Symbol routingSymbol,
                                 Input<?> sourceInput,
+                                InputColumn sourceInputColumn,
                                 CollectExpression<?>[] collectExpressions,
                                 @Nullable Integer bulkActions,
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates) {
-        super(tableName, primaryKeys, idInputs, partitionedByInputs,
-                routingIdent, routingInput,
-                collectExpressions);
+        super(tableName, primaryKeyIdents, primaryKeySymbols, partitionedByInputs,
+                routingSymbol, collectExpressions);
 
         if (includes == null && excludes == null) {
             //noinspection unchecked
@@ -77,6 +80,12 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
             //noinspection unchecked
             generator = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
+
+        Map<Reference, Symbol> insertAssignments = new HashMap<>(1);
+        insertAssignments.put(rawSourceReference, sourceInputColumn);
+
+        sourceColumnIndex = sourceInputColumn.index();
+
         createBulkShardProcessor(
                 clusterService,
                 settings,
@@ -86,12 +95,13 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                 autoCreateIndices,
                 overwriteDuplicates,
                 null,
-                new Reference[]{rawSourceReference});
+                insertAssignments);
     }
 
     @Override
-    protected Object[] generateMissingAssignments() {
-        return new Object[]{generator.generateSource()};
+    protected void updateRow(Object... row) {
+        assert row.length > sourceColumnIndex : "row must include source";
+        row[sourceColumnIndex] = generator.generateSource();
     }
 
     private interface BytesRefGenerator {

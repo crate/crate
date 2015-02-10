@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 
 public abstract class CollectExpression<ReturnType> implements Input<ReturnType> {
@@ -34,5 +35,6 @@ public abstract class CollectExpression<ReturnType> implements Input<ReturnType>
 
     public abstract boolean setNextRow(Object... args);
 
+    public abstract boolean setNextRow(Row row);
 }
 

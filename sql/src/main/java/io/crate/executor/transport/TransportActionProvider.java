@@ -58,7 +58,8 @@ public class TransportActionProvider {
 
     private final Provider<TransportGetAction> transportGetActionProvider;
     private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
-    private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider;
+    private final Provider<TransportShardUpsertActionOld> transportShardUpsertActionProvider;
+    private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider2;
     private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
@@ -77,7 +78,8 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteAction> transportDeleteActionProvider,
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
-                                   Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
+                                   Provider<TransportShardUpsertActionOld> transportShardUpsertActionProvider,
+                                   Provider<TransportShardUpsertAction> transportShardUpsertActionProvider2,
                                    Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
                                    Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider) {
@@ -93,6 +95,7 @@ public class TransportActionProvider {
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
+        this.transportShardUpsertActionProvider2 = transportShardUpsertActionProvider2;
         this.transportCollectNodeActionProvider = transportCollectNodeActionProvider;
         this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
@@ -146,8 +149,12 @@ public class TransportActionProvider {
     }
 
 
-    public TransportShardUpsertAction transportShardUpsertAction() {
+    public TransportShardUpsertActionOld transportShardUpsertAction() {
         return transportShardUpsertActionProvider.get();
+    }
+
+    public TransportShardUpsertAction transportShardUpsertAction2() {
+        return transportShardUpsertActionProvider2.get();
     }
 
     public TransportShardUpsertActionDelegate transportShardUpsertActionDelegate() {

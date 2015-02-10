@@ -21,11 +21,13 @@
 
 package io.crate.operation.collect;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.Projector;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolFormatter;
@@ -50,22 +52,28 @@ public class ShardingProjector implements Projector {
     private List<Input<?>> primaryKeyInputs;
     @Nullable
     private Input<?> routingInput;
+    private boolean collectIdOrAutoGenerate;
 
-    private IdAndRouting idAndRouting;
+    private String id;
+    @Nullable
+    private String routing;
 
-    public ShardingProjector(Functions functions,
+
+    public ShardingProjector(List<ColumnIdent> primaryKeyIdents,
                              List<Symbol> primaryKeySymbols,
                              @Nullable Symbol routingSymbol) {
-        visitor = new Visitor(functions);
+        visitor = new Visitor();
         this.primaryKeySymbols = primaryKeySymbols;
         this.routingSymbol = routingSymbol;
-        idAndRouting = new IdAndRouting();
+        if (primaryKeyIdents.size() == 1 && primaryKeyIdents.get(0).fqn().equals("_id")) {
+            collectIdOrAutoGenerate = true;
+        }
     }
 
     @Override
     public void startProjection() {
         visitorContext = new VisitorContext();
-        if (routingSymbol != null) {
+        if (routingSymbol != null ) {
             routingInput = visitor.process(routingSymbol, visitorContext);
         } else {
             routingInput = null;
@@ -82,7 +90,7 @@ public class ShardingProjector implements Projector {
         for (CollectExpression collectExpression : visitorContext.collectExpressions()) {
             collectExpression.setNextRow(args);
         }
-        idAndRouting.applyInputs(primaryKeyInputs, routingInput);
+        applyInputs(primaryKeyInputs, routingInput);
         return true;
     }
 
@@ -104,70 +112,78 @@ public class ShardingProjector implements Projector {
         throw new UnsupportedOperationException("ShardingProjector does not support downstreams");
     }
 
-    public IdAndRouting idAndRouting() {
-        return idAndRouting;
+    private void applyInputs(List<Input<?>> primaryKeyInputs, @Nullable Input<?> routingInput) {
+        if (primaryKeyInputs.size() == 0) {
+            id = Strings.base64UUID();
+        } else if (primaryKeyInputs.size() == 1) {
+            Object value = primaryKeyInputs.get(0).value();
+            if (value == null && collectIdOrAutoGenerate) {
+                id = Strings.base64UUID();
+            } else if (value == null) {
+                throw new IllegalArgumentException("A primary key value must not be NULL");
+            } else {
+                id = BytesRefs.toString(primaryKeyInputs.get(0).value());
+            }
+        } else {
+            BytesStreamOutput out = new BytesStreamOutput();
+            try {
+                out.writeVInt(primaryKeyInputs.size());
+                for (Input<?> input : primaryKeyInputs) {
+                    Object value = input.value();
+                    if (value == null) {
+                        throw new IllegalArgumentException("A primary key value must not be NULL");
+                    }
+                    out.writeString(BytesRefs.toString(value));
+                }
+                out.close();
+            } catch (IOException e) {
+                //
+            }
+            id = Base64.encodeBytes(out.bytes().toBytes());
+        }
+        if (routingInput != null) {
+            routing = BytesRefs.toString(routingInput.value());
+        } else {
+            routing = null;
+        }
     }
 
-    public static class IdAndRouting {
+    /**
+     * Returns the through collected inputs generated id
+     */
+    public String id() {
+        return id;
+    }
 
-        private String id;
-        @Nullable
-        private String routing;
-
-        IdAndRouting() {
-        }
-
-        protected void applyInputs(List<Input<?>> primaryKeyInputs, @Nullable Input<?> routingInput) {
-            if (primaryKeyInputs.size() == 0) {
-                id = Strings.base64UUID();
-            } else if (primaryKeyInputs.size() == 1) {
-                id = BytesRefs.toString(primaryKeyInputs.get(0).value());
-            } else {
-                BytesStreamOutput out = new BytesStreamOutput();
-                try {
-                    out.writeVInt(primaryKeyInputs.size());
-                    for (Input<?> input : primaryKeyInputs) {
-                        Object value = input.value();
-                        if (value == null) {
-                            throw new IllegalArgumentException("A primary key value must not be null");
-                        }
-                        out.writeString(BytesRefs.toString(value));
-                    }
-                    out.close();
-                } catch (IOException e) {
-                    //
-                }
-                id = Base64.encodeBytes(out.bytes().toBytes());
-            }
-            if (routingInput != null) {
-                routing = BytesRefs.toString(routingInput.value());
-            } else {
-                routing = null;
-            }
-        }
-
-        public String id() {
-            return id;
-        }
-
-        @Nullable
-        public String routing() {
-            return routing;
-        }
-
+    /**
+     * Returns the collected routing value (if available)
+     */
+    @Nullable
+    public String routing() {
+        return routing;
     }
 
     static class VisitorContext extends ImplementationSymbolVisitor.Context {}
 
     static class Visitor extends ImplementationSymbolVisitor {
 
-        public Visitor(Functions functions) {
-            super(null, functions, null);
+        public Visitor() {
+            super(null, null, null);
         }
 
         @Override
         public Input<?> visitReference(Reference symbol, Context context) {
-            throw new IllegalArgumentException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
+            throw new UnsupportedOperationException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
+        }
+
+        @Override
+        public Input<?> visitFunction(Function function, Context context) {
+            throw new UnsupportedOperationException(SymbolFormatter.format("Can't handle Symbol %s", function));
+        }
+
+        @Override
+        public Functions functions() {
+            throw new AssertionError("Functions not supported here");
         }
     }
 }

@@ -33,6 +33,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
@@ -157,6 +158,11 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
         public SearchHitExtractorContext(Functions functions, int size, List<ReferenceInfo> partitionBy) {
             super(functions, size);
             this.partitionBy = partitionBy;
+        }
+
+        @Override
+        public Object inputValueFor(InputColumn inputColumn) {
+            throw new AssertionError("SearchHitExtractorContext does not support resolving InputColumn");
         }
     }
 

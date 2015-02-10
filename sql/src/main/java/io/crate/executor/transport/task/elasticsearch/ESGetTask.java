@@ -331,6 +331,11 @@ public class ESGetTask extends JobTask {
             super(functions, size);
             this.partitionValues = partitionValues;
         }
+
+        @Override
+        public Object inputValueFor(InputColumn inputColumn) {
+            throw new AssertionError("GetResponseContext does not support resolving InputColumn");
+        }
     }
 
     static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {

@@ -48,7 +48,7 @@ public class SymbolToFieldExtractor<T> {
         return visitor.process(symbol, context);
     }
 
-    public static class Context {
+    public abstract static class Context {
         private final List<Reference> references;
         private final Functions functions;
         private String[] referenceNames;
@@ -78,6 +78,8 @@ public class SymbolToFieldExtractor<T> {
             }
             return referenceNames;
         }
+
+        public abstract Object inputValueFor(InputColumn inputColumn);
     }
 
     static class Visitor<T> extends SymbolVisitor<Context, FieldExtractor<T>> {
@@ -111,6 +113,11 @@ public class SymbolToFieldExtractor<T> {
         @Override
         public FieldExtractor<T> visitLiteral(Literal symbol, Context context) {
             return new LiteralExtractor<>(symbol.value());
+        }
+
+        @Override
+        public FieldExtractor<T> visitInputColumn(InputColumn inputColumn, Context context) {
+            return new LiteralExtractor<>(context.inputValueFor(inputColumn));
         }
 
         @Override
