@@ -29,7 +29,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -152,7 +151,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                                                @Nullable ColumnIndexWriterProjection indexWriterProjection, @Nullable Functions functions){
             TableInfo tableInfo = tableRelation.tableInfo();
             if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(table.querySpec().where(), null))) {
-                return NonDistributedGroupByConsumer.nonDistributedGroupBy(table, whereClause, indexWriterProjection);
+                return NonDistributedGroupByConsumer.nonDistributedGroupBy(table, indexWriterProjection);
             } else if (groupedByClusteredColumnOrPrimaryKeys(table, tableRelation)) {
                 return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, tableRelation, whereClause, indexWriterProjection);
             } else if (indexWriterProjection != null) {

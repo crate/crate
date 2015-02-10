@@ -45,14 +45,6 @@ public class PlannerContextBuilder {
         this(0, ImmutableList.<Symbol>of(), false);
     }
 
-    public PlannerContextBuilder(int numAggregationSteps) {
-        this(numAggregationSteps, ImmutableList.<Symbol>of(), false);
-    }
-
-    public PlannerContextBuilder(int numAggregationSteps, List<Symbol> groupBy) {
-        this(numAggregationSteps, groupBy, false);
-    }
-
     public PlannerContextBuilder(int numAggregationSteps, List<Symbol> groupBy, boolean ignoreOrderBy) {
         this.context = new PlannerContext(groupBy.size(), numAggregationSteps);
         context.originalGroupBy = groupBy;
