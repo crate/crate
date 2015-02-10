@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/02/10 0.47.1
+=================
+
  - Improved performance of queries that use generic scalar functions (like
    equals comparison on arrays)
 
