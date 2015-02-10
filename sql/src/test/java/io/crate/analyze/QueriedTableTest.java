@@ -27,6 +27,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
@@ -38,6 +39,7 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.isField;
+import static io.crate.testing.TestingHelpers.isFunction;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -65,6 +67,65 @@ public class QueriedTableTest {
         assertThat(querySpec.outputs().get(0), isField("x"));
     }
 
+    @Test
+    public void testNewSubRelationFieldReplacingWorksForSelfJoin() throws Exception {
+        TableInfo tableInfo = mock(TableInfo.class);
+        TableRelation tr1 = new TableRelation(tableInfo);
+        TableRelation tr2 = new TableRelation(tableInfo);
+
+        QuerySpec querySpec = new QuerySpec();
+        querySpec.outputs(Arrays.<Symbol>asList(
+                new Field(tr1, new ColumnIdent("x"), DataTypes.STRING),
+                new Field(tr2, new ColumnIdent("x"), DataTypes.STRING),
+                new Field(tr2, new ColumnIdent("y"), DataTypes.STRING)
+        ));
+        QueriedTable qt1 = QueriedTable.newSubRelation(new QualifiedName("t"), tr1, querySpec);
+        assertThat(qt1.querySpec().outputs().size(), is(1));
+        assertThat(qt1.querySpec().outputs().get(0), isField("x"));
+
+        // output of original querySpec has been rewritten, fields now point to the QueriedTable
+        assertTrue(((Field) querySpec.outputs().get(0)).relation() == qt1);
+        assertThat(querySpec.outputs().get(0), isField("x"));
+
+        QueriedTable qt2 = QueriedTable.newSubRelation(new QualifiedName("t"), tr2, querySpec);
+        assertThat(qt2.querySpec().outputs().size(), is(2));
+        assertThat(qt2.querySpec().outputs().get(0), isField("x"));
+        assertThat(qt2.querySpec().outputs().get(1), isField("y"));
+
+        // output of original querySpec has been rewritten, fields now point to the QueriedTable
+        assertTrue(((Field) querySpec.outputs().get(1)).relation() == qt2);
+        assertThat(querySpec.outputs().get(1), isField("x"));
+    }
+
+    @Test
+    public void testNewSubRelationFieldReplacingWithSelfJoinAndFunctions() throws Exception {
+        // emulate self join
+        TableInfo tableInfo = mock(TableInfo.class);
+        TableRelation tr1 = new TableRelation(tableInfo);
+        TableRelation tr2 = new TableRelation(tableInfo);
+
+        QuerySpec querySpec = new QuerySpec();
+        querySpec.outputs(Arrays.asList(
+                new Field(tr1, new ColumnIdent("x"), DataTypes.STRING),
+                createFunction(AddFunction.NAME, DataTypes.INTEGER,
+                        new Field(tr2, new ColumnIdent("x"), DataTypes.STRING), Literal.newLiteral(2))
+        ));
+        QueriedTable qt1 = QueriedTable.newSubRelation(new QualifiedName("t"), tr1, querySpec);
+        assertThat(qt1.querySpec().outputs().size(), is(1));
+        assertThat(qt1.querySpec().outputs().get(0), isField("x"));
+
+        QueriedTable qt2 = QueriedTable.newSubRelation(new QualifiedName("t"), tr2, querySpec);
+        assertThat(qt2.querySpec().outputs().size(), is(1));
+        assertThat(qt2.querySpec().outputs().get(0), isFunction(AddFunction.NAME));
+
+
+        // output of original querySpec has been rewritten, fields now point to the QueriedTable
+        assertTrue(((Field) querySpec.outputs().get(0)).relation() == qt1);
+        assertThat(querySpec.outputs().get(0), isField("x"));
+
+        assertTrue(((Field) querySpec.outputs().get(1)).relation() == qt2);
+        assertThat(querySpec.outputs().get(1), isField("add(string, integer)"));
+    }
 
     @SuppressWarnings("ConstantConditions")
     @Test
