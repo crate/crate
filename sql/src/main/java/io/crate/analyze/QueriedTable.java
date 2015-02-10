@@ -144,11 +144,12 @@ public class QueriedTable implements QueriedRelation {
         for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
             fieldMap.put(splitQuerySpec.outputs().get(i), queriedTable.fields().get(i));
         }
-        replaceFields(querySpec.outputs(), fieldMap);
+        FieldReplacingCtx fieldReplacingCtx = new FieldReplacingCtx(tableRelation, fieldMap);
+        replaceFields(querySpec.outputs(), fieldReplacingCtx);
 
         orderBy = querySpec.orderBy();
         if (orderBy != null) {
-            replaceFields(orderBy.orderBySymbols(), fieldMap);
+            replaceFields(orderBy.orderBySymbols(), fieldReplacingCtx);
         }
         return queriedTable;
     }
@@ -214,15 +215,29 @@ public class QueriedTable implements QueriedRelation {
     }
 
 
-    private static void replaceFields(List<Symbol> outputs, Map<Symbol, Field> fieldMap) {
+    private static void replaceFields(List<Symbol> outputs, FieldReplacingCtx fieldReplacingCtx) {
         for (int i = 0; i < outputs.size(); i++) {
-            outputs.set(i, FIELD_REPLACING_VISITOR.process(outputs.get(i), fieldMap));
+            outputs.set(i, FIELD_REPLACING_VISITOR.process(outputs.get(i), fieldReplacingCtx));
         }
     }
 
-    private static class FieldReplacingVisitor extends SymbolVisitor<Map<Symbol, Field>, Symbol> {
+    private static class FieldReplacingCtx {
+        AnalyzedRelation relation;
+        Map<Symbol, Field> fieldMap;
+
+        public FieldReplacingCtx(AnalyzedRelation analyzedRelation, Map<Symbol, Field> fieldMap) {
+            relation = analyzedRelation;
+            this.fieldMap = fieldMap;
+        }
+
+        public Field get(Symbol symbol) {
+            return fieldMap.get(symbol);
+        }
+    }
+
+    private static class FieldReplacingVisitor extends SymbolVisitor<FieldReplacingCtx, Symbol> {
         @Override
-        public Symbol visitFunction(Function symbol, Map<Symbol, Field> context) {
+        public Symbol visitFunction(Function symbol, FieldReplacingCtx context) {
             Field field = context.get(symbol);
             if (field != null) {
                 return field;
@@ -238,7 +253,17 @@ public class QueriedTable implements QueriedRelation {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, Map<Symbol, Field> context) {
+        public Symbol visitField(Field field, FieldReplacingCtx context) {
+            // need to check relation identity for fields to not replace fields of other relations in the self-join case
+            // (otherTableRelation.equals(thisTableRelation) would result in true...
+            if (field.relation() == context.relation) {
+                return super.visitField(field, context);
+            }
+            return field;
+        }
+
+        @Override
+        protected Symbol visitSymbol(Symbol symbol, FieldReplacingCtx context) {
             Field field = context.get(symbol);
             if (field != null) {
                 return field;
@@ -301,7 +326,9 @@ public class QueriedTable implements QueriedRelation {
                             }
                         }
                     }
-                    context.mixedSplit.add(newArg);
+                    if (!newArg.symbolType().isValueSymbol()) {
+                        context.mixedSplit.add(newArg);
+                    }
                 }
             }
             return null;
