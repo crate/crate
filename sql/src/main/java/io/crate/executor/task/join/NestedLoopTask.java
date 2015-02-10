@@ -28,7 +28,8 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.concurrent.ForwardingFutureCallback;
 import io.crate.executor.*;
-import io.crate.operation.join.NestedLoopOperation;
+import io.crate.operation.join.nestedloop.NestedLoopExecutorService;
+import io.crate.operation.join.nestedloop.NestedLoopOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -50,6 +51,7 @@ public class NestedLoopTask extends JobTask implements PageableTask {
                           Job outerJob,
                           Job innerJob,
                           TaskExecutor executor,
+                          NestedLoopExecutorService nestedLoopExecutorService,
                           ProjectionToProjectorVisitor projectionToProjectorVisitor,
                           CircuitBreaker circuitBreaker) {
         super(jobId);
@@ -59,6 +61,7 @@ public class NestedLoopTask extends JobTask implements PageableTask {
                 circuitBreaker);
         operation = new NestedLoopOperation(
                 nestedLoopNode,
+                nestedLoopExecutorService,
                 outerJob.tasks(),
                 innerJob.tasks(),
                 executor,

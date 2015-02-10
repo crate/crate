@@ -46,19 +46,21 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.elasticsearch.common.util.ObjectArray;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.Closeable;
-import java.util.*;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
-@TestLogging("io.crate.operation.join.NestedLoopOperation:TRACE")
 public class PagingTasksTest extends BaseTransportExecutorTest {
 
     static {
@@ -700,7 +702,6 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
     @Test
     public void testPagedNestedLoopOptimizedPaging() throws Exception {
         // optimized paging conditions:
-        //  * offset = 0
         //  * no projections
 
         setup.setUpCharacters();
@@ -785,6 +786,12 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         Page firstPage = pageableResult.page();
         assertThat(firstPage.size(), is(2L));
 
+        Field pageSourceField = BigArrayPage.class.
+                getDeclaredField("page");
+        pageSourceField.setAccessible(true);
+        ObjectArray<Object[]> pageSource = (ObjectArray<Object[]>) pageSourceField.get(firstPage);
+        assertThat(pageSource.size(), is((long)(pageInfo.position() + pageInfo.size())));
+
         assertThat(TestingHelpers.printedPage(firstPage), is(
                 "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
                 "1| Arthur| false| The Restaurant at the End of the Universe\n"));
@@ -795,6 +802,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         Page secondPage = pageableResult.page();
         assertThat(secondPage.size(), is(1L));
+        pageSource = (ObjectArray<Object[]>) pageSourceField.get(secondPage);
+        assertThat(pageSource.size(), is((long)(pageInfo.size())));
 
         assertThat(TestingHelpers.printedPage(secondPage), is(
                 "2| Ford| false| Life, the Universe and Everything\n"));
@@ -806,6 +815,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         Page lastPage = pageableResult.page();
         assertThat(lastPage.size(), is(5L));
+        pageSource = (ObjectArray<Object[]>) pageSourceField.get(lastPage);
+        assertThat(pageSource.size(), is(5L)); // only 5 left
 
         assertThat(TestingHelpers.printedPage(lastPage), is(
                 "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
@@ -933,7 +944,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 "4| Arthur| true| 1| Arthur| false| Life, the Universe and Everything\n" +
                 "4| Arthur| true| 1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
                 "4| Arthur| true| 1| Arthur| false| The Restaurant at the End of the Universe\n" +
-                "1| Arthur| false| 4| Arthur| true| Life, the Universe and Everything\n"));
+                "4| Arthur| true| 2| Ford| false| Life, the Universe and Everything\n"));
 
         pageInfo = pageInfo.nextPage(100);
         pageableResult = pageableResult.fetch(pageInfo).get();
@@ -943,6 +954,12 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         assertThat(secondPage.size(), is(14L));
 
         assertThat(TestingHelpers.printedPage(secondPage), is(
+                "4| Arthur| true| 2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
+                "4| Arthur| true| 2| Ford| false| The Restaurant at the End of the Universe\n" +
+                "4| Arthur| true| 3| Trillian| true| Life, the Universe and Everything\n" +
+                "4| Arthur| true| 3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
+                "4| Arthur| true| 3| Trillian| true| The Restaurant at the End of the Universe\n" +
+                "1| Arthur| false| 4| Arthur| true| Life, the Universe and Everything\n" +
                 "1| Arthur| false| 4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
                 "1| Arthur| false| 4| Arthur| true| The Restaurant at the End of the Universe\n" +
                 "1| Arthur| false| 1| Arthur| false| Life, the Universe and Everything\n" +
@@ -950,15 +967,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 "1| Arthur| false| 1| Arthur| false| The Restaurant at the End of the Universe\n" +
                 "1| Arthur| false| 2| Ford| false| Life, the Universe and Everything\n" +
                 "1| Arthur| false| 2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
-                "1| Arthur| false| 2| Ford| false| The Restaurant at the End of the Universe\n" +
-                "1| Arthur| false| 3| Trillian| true| Life, the Universe and Everything\n" +
-                "1| Arthur| false| 3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
-                "1| Arthur| false| 3| Trillian| true| The Restaurant at the End of the Universe\n" +
-                "2| Ford| false| 4| Arthur| true| Life, the Universe and Everything\n" +
-                "2| Ford| false| 4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
-                "2| Ford| false| 4| Arthur| true| The Restaurant at the End of the Universe\n"
+                "1| Arthur| false| 2| Ford| false| The Restaurant at the End of the Universe\n"
         ));
-
         assertThat(pageableResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
     }
 
@@ -1098,7 +1108,6 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
     }
 
-    @TestLogging("io.crate.executor.transport.task.elasticsearch:TRACE")
     @Test
     public void testRandomQTFPaging() throws Exception {
         SQLResponse response = sqlExecutor.exec("create table ids (id long primary key) with (number_of_replicas=0)");
