@@ -99,16 +99,16 @@ the given tables ( T1 * T2 * ...)::
 
     cr> select articles.name as article, colors.name as color
     ... from articles cross join colors
-    ... order by price limit 6;
+    ... order by price, colors.name limit 6;
     +---------------------------+---------------+
     | article                   | color         |
     +---------------------------+---------------+
-    | Towel                     | Midnight Blue |
-    | Towel                     | Olive Drab    |
     | Towel                     | Antique White |
     | Towel                     | Gold          |
-    | Kill-o-Zap blaster pistol | Midnight Blue |
-    | Kill-o-Zap blaster pistol | Olive Drab    |
+    | Towel                     | Midnight Blue |
+    | Towel                     | Olive Drab    |
+    | Kill-o-Zap blaster pistol | Antique White |
+    | Kill-o-Zap blaster pistol | Gold          |
     +---------------------------+---------------+
     SELECT 6 rows in set (... sec)
 
@@ -116,16 +116,16 @@ the given tables ( T1 * T2 * ...)::
 
     cr> select articles.name as article, colors.name as color
     ... from articles, colors
-    ... order by price limit 6;
+    ... order by price, colors.name limit 6;
     +---------------------------+---------------+
     | article                   | color         |
     +---------------------------+---------------+
-    | Towel                     | Midnight Blue |
-    | Towel                     | Olive Drab    |
     | Towel                     | Antique White |
     | Towel                     | Gold          |
-    | Kill-o-Zap blaster pistol | Midnight Blue |
-    | Kill-o-Zap blaster pistol | Olive Drab    |
+    | Towel                     | Midnight Blue |
+    | Towel                     | Olive Drab    |
+    | Kill-o-Zap blaster pistol | Antique White |
+    | Kill-o-Zap blaster pistol | Gold          |
     +---------------------------+---------------+
     SELECT 6 rows in set (... sec)
 
@@ -134,18 +134,18 @@ Examples::
     cr> select articles.name as article, colors.name as color, price
     ... from articles, colors
     ... where price > 5000.0
-    ... order by price;
+    ... order by price, colors.name;
     +------------------------------+---------------+----------+
     | article                      | color         | price    |
     +------------------------------+---------------+----------+
-    | Infinite Improbability Drive | Midnight Blue | 19999.99 |
-    | Infinite Improbability Drive | Olive Drab    | 19999.99 |
     | Infinite Improbability Drive | Antique White | 19999.99 |
     | Infinite Improbability Drive | Gold          | 19999.99 |
-    | Starship Titanic             | Midnight Blue | 50000.0  |
-    | Starship Titanic             | Olive Drab    | 50000.0  |
+    | Infinite Improbability Drive | Midnight Blue | 19999.99 |
+    | Infinite Improbability Drive | Olive Drab    | 19999.99 |
     | Starship Titanic             | Antique White | 50000.0  |
     | Starship Titanic             | Gold          | 50000.0  |
+    | Starship Titanic             | Midnight Blue | 50000.0  |
+    | Starship Titanic             | Olive Drab    | 50000.0  |
     +------------------------------+---------------+----------+
     SELECT 8 rows in set (... sec)
 
@@ -156,10 +156,10 @@ Examples::
     ... where colors.name = 'Midnight Blue' and price < 50000
     ... order by price;
     +------------------------------+---------+----------+
-    | article                      | rgb     | price    |
+    | article                      | rgb     |    price |
     +------------------------------+---------+----------+
-    | Towel                        | #191970 | 1.29     |
-    | Kill-o-Zap blaster pistol    | #191970 | 3499.9   |
+    | Towel                        | #191970 |     1.29 |
+    | Kill-o-Zap blaster pistol    | #191970 |  3499.99 |
     | Infinite Improbability Drive | #191970 | 19999.99 |
     +------------------------------+---------+----------+
     SELECT 3 rows in set (... sec)
@@ -169,12 +169,12 @@ Examples::
     cr> select articles.name, colors.name, price * colors.coolness
     ... from articles, colors
     ... order by price * colors.coolness desc limit 1;
-    +------------------+----------------+-------------------------+
-    | articles.name    | colors.name    | price * colors.coolness |
-    +------------------+----------------+-------------------------+
-    | Starship Titanic | Midnight Blue  | 500000.0                |
-    +------------------+----------------+-------------------------+
-    SELECT 1 rows in set (... sec)
+    +------------------+---------------+---------------------------+
+    | articles.name    | colors.name   | (price * colors.coolness) |
+    +------------------+---------------+---------------------------+
+    | Starship Titanic | Midnight Blue |                  500000.0 |
+    +------------------+---------------+---------------------------+
+    SELECT 1 row in set (... sec)
 
 .. _sql_dql_distinct_clause:
 
