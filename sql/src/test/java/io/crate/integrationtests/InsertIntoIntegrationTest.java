@@ -238,6 +238,21 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertWithParamsInScalar() throws Exception {
+        execute("create table test (age integer, name string) with (number_of_replicas=0)");
+        ensureGreen();
+        Object[] args = new Object[]{"Youri"};
+        execute("insert into test values(32, substr(?, 0, 2))", args);
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select * from test");
+        assertEquals(1, response.rowCount());
+        assertEquals(32, response.rows()[0][0]);
+        assertEquals("Yo", response.rows()[0][1]);
+    }
+
+    @Test
     public void testInsertMultipleRowsWithParams() throws Exception {
         execute("create table test (age integer, name string) with (number_of_replicas=0)");
         ensureGreen();
