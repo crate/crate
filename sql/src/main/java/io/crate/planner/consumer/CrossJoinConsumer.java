@@ -141,7 +141,7 @@ public class CrossJoinConsumer implements Consumer {
              *     t3: 1        (second)
              * }
              */
-            Map<Object, Integer> orderByOrder = new IdentityHashMap<>();
+            final Map<Object, Integer> orderByOrder = new IdentityHashMap<>();
             OrderBy orderBy = statement.querySpec().orderBy();
             if (orderBy != null && orderBy.isSorted()) {
                 int idx = 0;
@@ -169,9 +169,17 @@ public class CrossJoinConsumer implements Consumer {
                 where = statement.querySpec().where();
             }
 
-            List<Symbol> queriedTablesOutputs = getAllOutputs(queriedTables);
             int limit = MoreObjects.firstNonNull(statement.querySpec().limit(), TopN.NO_LIMIT);
-            NestedLoopNode nestedLoopNode = toNestedLoop(orderByOrder, queriedTables, limit, statement.querySpec().offset());
+            Collections.sort(queriedTables, new Comparator<QueriedTable>() {
+                @Override
+                public int compare(QueriedTable o1, QueriedTable o2) {
+                    return Integer.compare(
+                            MoreObjects.firstNonNull(orderByOrder.get(o1.tableRelation()), Integer.MAX_VALUE),
+                            MoreObjects.firstNonNull(orderByOrder.get(o2.tableRelation()), Integer.MAX_VALUE));
+                }
+            });
+            NestedLoopNode nestedLoopNode = toNestedLoop(queriedTables, limit, statement.querySpec().offset());
+            List<Symbol> queriedTablesOutputs = getAllOutputs(queriedTables);
 
             ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
 
@@ -266,53 +274,41 @@ public class CrossJoinConsumer implements Consumer {
             return INPUT_COLUMN_PRODUCER.process(symbol, new InputColumnProducerContext(inputSymbols));
         }
 
-        private NestedLoopNode toNestedLoop(Map<Object, Integer> orderByOrder, List<QueriedTable> queriedTables, int limit, int offset) {
-            if (queriedTables.size() == 2) {
-                QueriedTable left = queriedTables.get(0);
-                QueriedTable right = queriedTables.get(1);
+        /**
+         * creates the nestedLoop.
+         *
+         * The queriedTables must be ordered in such a way that the left node of the NL will always be the one to order by ("leftOuterLoop = true")
+         */
+        private NestedLoopNode toNestedLoop(List<QueriedTable> queriedTables, int limit, int offset) {
+            Iterator<QueriedTable> iterator = queriedTables.iterator();
+            NestedLoopNode nl = null;
+            Plan left;
+            Plan right;
+            while (iterator.hasNext()) {
+                QueriedTable next = iterator.next();
+                if (nl == null) {
+                    assert iterator.hasNext();
+                    QueriedTable second = iterator.next();
 
-                Integer leftOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(left.tableRelation()), Integer.MAX_VALUE);
-                Integer rightOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(right.tableRelation()), Integer.MAX_VALUE);
+                    left = consumingPlanner.plan(next);
+                    right = consumingPlanner.plan(second);
+                    assert left != null && right != null;
 
-                Plan leftPlan = consumingPlanner.plan(left);
-                Plan rightPlan = consumingPlanner.plan(right);
-                assert leftPlan != null && rightPlan != null;
-                NestedLoopNode nestedLoopNode = new NestedLoopNode(
-                        leftPlan,
-                        rightPlan,
-                        leftOrderByPosition < rightOrderByPosition,
-                        limit,
-                        offset
-                );
-                nestedLoopNode.outputTypes(ImmutableList.<DataType>builder()
-                        .addAll(leftPlan.outputTypes())
-                        .addAll(rightPlan.outputTypes()).build());
-                orderByOrder.put(nestedLoopNode, Math.min(leftOrderByPosition, rightOrderByPosition));
-                return nestedLoopNode;
-            } else if (queriedTables.size() > 2) {
-                NestedLoopNode nestedLoopNode = toNestedLoop(orderByOrder, queriedTables.subList(1, queriedTables.size()), limit, offset);
-                Plan nestedLoopPlan = new IterablePlan(nestedLoopNode);
-
-                QueriedTable queriedTable = queriedTables.get(0);
-                Integer leftOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(queriedTable.tableRelation()), Integer.MAX_VALUE);
-                Integer rightOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(nestedLoopNode), Integer.MAX_VALUE);
-
-                Plan leftPlan = consumingPlanner.plan(queriedTable);
-                assert leftPlan != null;
-                NestedLoopNode newNestedLoopNode = new NestedLoopNode(
-                        leftPlan,
-                        nestedLoopPlan,
-                        leftOrderByPosition < rightOrderByPosition,
-                        limit,
-                        offset
-                );
-                newNestedLoopNode.outputTypes(ImmutableList.<DataType>builder()
-                        .addAll(leftPlan.outputTypes())
-                        .addAll(nestedLoopNode.outputTypes()).build());
-                orderByOrder.put(newNestedLoopNode, Math.min(leftOrderByPosition, rightOrderByPosition));
-                return newNestedLoopNode;
+                    nl = new NestedLoopNode(left, right, true, limit, offset);
+                    nl.outputTypes(ImmutableList.<DataType>builder()
+                            .addAll(left.outputTypes())
+                            .addAll(right.outputTypes()).build());
+                } else {
+                    NestedLoopNode lastNL = nl;
+                    right = consumingPlanner.plan(next);
+                    assert right != null;
+                    nl = new NestedLoopNode(new IterablePlan(lastNL), right, true, limit, offset);
+                    nl.outputTypes(ImmutableList.<DataType>builder()
+                            .addAll(lastNL.outputTypes())
+                            .addAll(right.outputTypes()).build());
+                }
             }
-            return null;
+            return nl;
         }
     }
 
