@@ -33,17 +33,16 @@ import io.crate.exceptions.ValidationException;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.join.NestedLoopNode;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class CrossJoinConsumer implements Consumer {
@@ -128,6 +127,9 @@ public class CrossJoinConsumer implements Consumer {
              */
 
             WhereClause where = MoreObjects.firstNonNull(statement.querySpec().where(), WhereClause.MATCH_ALL);
+            if (where.noMatch()) {
+                return new NoopPlannedAnalyzedRelation(statement);
+            }
             List<QueriedTable> queriedTables = new ArrayList<>();
 
             /**
@@ -167,14 +169,17 @@ public class CrossJoinConsumer implements Consumer {
                 queriedTables.add(queriedTable);
                 where = statement.querySpec().where();
             }
-            if (where.hasQuery() && !(where.query() instanceof Literal)) {
-                context.validationException(new ValidationException(
-                        "WhereClause contains a function or operator that involves more than 1 relation. This is not supported"));
-                return null;
-            }
 
+            List<Symbol> queriedTablesOutputs = getAllOutputs(queriedTables);
             int limit = MoreObjects.firstNonNull(statement.querySpec().limit(), TopN.NO_LIMIT);
             NestedLoopNode nestedLoopNode = toNestedLoop(orderByOrder, queriedTables, limit, statement.querySpec().offset());
+
+            ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
+
+            if (where.hasQuery() && !(where.query() instanceof Literal)) {
+                Symbol filter = replaceFieldsWithInputColumns(where.query(), queriedTablesOutputs);
+                projectionBuilder.add(new FilterProjection(filter));
+            }
 
             /**
              * TopN for:
@@ -207,7 +212,7 @@ public class CrossJoinConsumer implements Consumer {
              *
              * #3 Apply Limit (and Order by once supported..)
              */
-            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), queriedTables);
+            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), queriedTablesOutputs);
             TopNProjection topNProjection;
 
             orderBy = statement.querySpec().orderBy();
@@ -223,35 +228,43 @@ public class CrossJoinConsumer implements Consumer {
                 topNProjection = new TopNProjection(limit, statement.querySpec().offset());
             }
             topNProjection.outputs(postOutputs);
+            projectionBuilder.add(topNProjection);
 
-            nestedLoopNode.projections(ImmutableList.<Projection>of(topNProjection));
+            nestedLoopNode.projections(projectionBuilder.build());
             nestedLoopNode.outputTypes(Symbols.extractTypes(postOutputs));
             return nestedLoopNode;
+        }
+
+        private List<Symbol> getAllOutputs(Collection<QueriedTable> queriedTables) {
+            ImmutableList.Builder<Symbol> builder = ImmutableList.builder();
+            for (QueriedTable table : queriedTables) {
+                builder.addAll(table.fields());
+            }
+            return builder.build();
         }
 
         /**
          * generates new symbols that will use InputColumn symbols to point to the output of the given relations
          *
          * @param statementOutputs: [ u1.id,  add(u1.id, u2.id) ]
-         * @param relations:
+         * @param inputSymbols:
          * {
-         *     u1: [ u1.id ],
-         *     u2: [ u2.id ]
+         *     [ u1.id, u2.id ],
          * }
          *
          * @return [ in(0), add( in(0), in(1) ) ]
          */
-        private List<Symbol> replaceFieldsWithInputColumns(List<Symbol> statementOutputs,
-                                                           List<QueriedTable> relations) {
+        private List<Symbol> replaceFieldsWithInputColumns(Collection<? extends Symbol> statementOutputs,
+                                                           List<Symbol> inputSymbols) {
             List<Symbol> result = new ArrayList<>();
-            List<Symbol> inputs = new ArrayList<>();
-            for (QueriedTable queriedTable : relations) {
-                inputs.addAll(queriedTable.fields());
-            }
             for (Symbol statementOutput : statementOutputs) {
-                result.add(INPUT_COLUMN_PRODUCER.process(statementOutput, new InputColumnProducerContext(inputs)));
+                result.add(replaceFieldsWithInputColumns(statementOutput, inputSymbols));
             }
             return result;
+        }
+
+        private Symbol replaceFieldsWithInputColumns(Symbol symbol, List<Symbol> inputSymbols) {
+            return INPUT_COLUMN_PRODUCER.process(symbol, new InputColumnProducerContext(inputSymbols));
         }
 
         private NestedLoopNode toNestedLoop(Map<Object, Integer> orderByOrder, List<QueriedTable> queriedTables, int limit, int offset) {

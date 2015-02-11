@@ -172,7 +172,11 @@ public class QuerySplitter {
 
         @Override
         protected RelationCount visitSymbol(Symbol symbol, RelationFieldCounterCtx context) {
-            return new RelationCount(0, 0);
+            RelationCount relationCount = new RelationCount(0, 0);
+            if (context.parents.isEmpty()) {
+                context.countMap.put(symbol, relationCount);
+            }
+            return relationCount;
         }
     }
 
@@ -205,14 +209,17 @@ public class QuerySplitter {
                 if (AndOperator.NAME.equals(function.info().ident().name())) {
                     List<Symbol> newArgs = new ArrayList<>(function.arguments().size());
                     for (Symbol argument : function.arguments()) {
-                        RelationCount argumentCount = context.countMap.get(argument);
-                        if (argumentCount.numOther == 0) {
-                            context.relationQueryParts.add(argument);
-                            argument = Literal.newLiteral(true);
-                        } else {
-                            context.insideFunction = true;
-                            argument = process(argument, context);
-                            context.insideFunction = false;
+                        if (!argument.symbolType().isValueSymbol()) {
+                            RelationCount argumentCount = context.countMap.get(argument);
+                            assert argumentCount != null : "relationCount for argument must be available";
+                            if (argumentCount.numOther == 0) {
+                                context.relationQueryParts.add(argument);
+                                argument = Literal.newLiteral(true);
+                            } else {
+                                context.insideFunction = true;
+                                argument = process(argument, context);
+                                context.insideFunction = false;
+                            }
                         }
                         newArgs.add(argument);
                     }
