@@ -51,7 +51,7 @@ import java.util.*;
 public class DocIndexMetaData {
 
     private static final String ID = "_id";
-    private static final ColumnIdent ID_IDENT = new ColumnIdent(ID);
+    public static final ColumnIdent ID_IDENT = new ColumnIdent(ID);
     private final IndexMetaData metaData;
 
 

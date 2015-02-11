@@ -5,21 +5,20 @@ import io.crate.analyze.WhereClause;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.GteOperator;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.planner.symbol.*;
 import io.crate.sql.tree.ComparisonExpression;
 
 import java.util.Locale;
 import java.util.Stack;
 
-public class WhereClauseValidator {
+public abstract class WhereClauseValidator {
 
     private static final Visitor visitor = new Visitor();
 
-    public Symbol validate(WhereClause whereClause) {
-        return visitor.process(whereClause.query(), new Visitor.Context());
+    public static void validate(WhereClause whereClause) {
+        if (whereClause.hasQuery()){
+            visitor.process(whereClause.query(), new Visitor.Context(whereClause));
+        }
     }
 
     private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
@@ -27,6 +26,11 @@ public class WhereClauseValidator {
         public static class Context {
 
             public final Stack<Function> functions = new Stack();
+            private final WhereClause whereClause;
+
+            public Context(WhereClause whereClause) {
+                this.whereClause = whereClause;
+            }
         }
 
         private final static String _SCORE = "_score";
@@ -41,13 +45,14 @@ public class WhereClauseValidator {
 
         @Override
         public Symbol visitField(Field field, Context context) {
-            String columnName = field.path().outputName();
-            if(columnName.equalsIgnoreCase(_VERSION)){
-                validateSysReference(context, EqOperator.NAME, VERSION_ERROR);
-            } else if(columnName.equalsIgnoreCase(_SCORE)){
-                validateSysReference(context, GteOperator.NAME, SCORE_ERROR);
-            }
+            validateSysReference(context, field.path().outputName());
             return super.visitField(field, context);
+        }
+
+        @Override
+        public Symbol visitReference(Reference symbol, Context context) {
+            validateSysReference(context, symbol.ident().columnIdent().name());
+            return super.visitReference(symbol, context);
         }
 
         @Override
@@ -74,7 +79,14 @@ public class WhereClauseValidator {
             return false;
         }
 
-        private void validateSysReference(Context context, String requiredFunctionName, String error) {
+        private void validateSysReference(Context context, String columnName) {
+            if (columnName.equalsIgnoreCase(_VERSION)) {
+                validateSysReference(context, EqOperator.NAME, VERSION_ERROR);
+            } else if (columnName.equalsIgnoreCase(_SCORE)) {
+                validateSysReference(context, GteOperator.NAME, SCORE_ERROR);
+            }
+        }
+            private void validateSysReference(Context context, String requiredFunctionName, String error) {
             if(context.functions.isEmpty()){
                 throw new UnsupportedOperationException(error);
             }

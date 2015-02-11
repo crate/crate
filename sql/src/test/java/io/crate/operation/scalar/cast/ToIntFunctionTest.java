@@ -84,8 +84,8 @@ public class ToIntFunctionTest {
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
-        expectedException.expect(NumberFormatException.class);
-        expectedException.expectMessage("For input string: \"hello\"");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot cast 'hello' to int");
         FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING)));
         Function function = new Function(castStringToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral("hello")));
         castStringToInteger.normalizeSymbol(function);

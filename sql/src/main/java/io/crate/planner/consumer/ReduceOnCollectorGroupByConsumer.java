@@ -27,7 +27,6 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
@@ -92,9 +91,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 return table;
             }
 
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-            WhereClause whereClause = whereClauseAnalyzer.analyze(table.querySpec().where());
-            if (whereClause.version().isPresent()) {
+            if (table.querySpec().where().hasVersions()) {
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
             }

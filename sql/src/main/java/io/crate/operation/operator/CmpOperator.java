@@ -1,9 +1,11 @@
 package io.crate.operation.operator;
 
+import io.crate.core.collections.MapComparator;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
-import io.crate.core.collections.MapComparator;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 
 import java.util.Map;
 import java.util.Objects;
@@ -47,11 +49,10 @@ public abstract class CmpOperator extends Operator<Object> {
 
         if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
             // must be true due to the function registration (argument DataType signature)
-
-            if (compare(((Literal) left).compareTo((Literal)right))) {
-                return Literal.newLiteral(true);
+            if (compare(((Literal) left).compareTo((Literal) right))){
+                return Literal.BOOLEAN_TRUE;
             } else {
-                return Literal.newLiteral(false);
+                return Literal.BOOLEAN_FALSE;
             }
         }
 

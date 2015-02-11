@@ -27,7 +27,6 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
@@ -91,23 +90,21 @@ public class QueryAndFetchConsumer implements Consumer {
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
             TableRelation tableRelation = table.tableRelation();
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClause whereClause = whereClauseAnalyzer.analyze(tableRelation.resolve(table.querySpec().where()));
-            if(whereClause.version().isPresent()){
+            if(table.querySpec().where().hasVersions()){
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
             }
             TableInfo tableInfo = tableRelation.tableInfo();
 
-            if (tableInfo.schemaInfo().systemSchema() && whereClause.hasQuery()) {
-                ensureNoLuceneOnlyPredicates(whereClause.query());
+            if (tableInfo.schemaInfo().systemSchema() && table.querySpec().where().hasQuery()) {
+                ensureNoLuceneOnlyPredicates(table.querySpec().where().query());
             }
             if (table.querySpec().hasAggregates()) {
                 context.result = true;
-                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClause);
+                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, table.querySpec().where());
             } else {
                context.result = true;
-               return normalSelect(table, whereClause, tableRelation, context);
+               return normalSelect(table, table.querySpec().where(), tableRelation, context);
             }
         }
 

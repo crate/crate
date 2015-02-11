@@ -34,7 +34,7 @@ public class Function extends Symbol implements Cloneable {
         this.arguments = arguments;
     }
 
-    public Function() {
+    private Function() {
 
     }
 

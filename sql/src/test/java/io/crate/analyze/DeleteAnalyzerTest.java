@@ -30,6 +30,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
@@ -76,6 +77,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
                         new MockedClusterServiceModule(),
                         new TestMetaDataModule(),
                         new MetaDataSysModule(),
+                        new PredicateModule(),
                         new OperatorModule())
         );
         return modules;
@@ -155,4 +157,15 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         });
         assertThat(analysis.whereClauses().size(), is(4));
     }
+
+    @Test
+    public void testDeleteWhereVersionIsNullPredicate() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(
+                "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
+        analyze("delete from users where _version is null",
+                new Object[]{1});
+    }
+
+
 }

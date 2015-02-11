@@ -120,16 +120,6 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         }
     }
 
-    /**
-     * Returns the ReferenceInfo if it is defined in the table's schema.
-     * If the table doesn't contain the column and the columnIdent has no path it will create a
-     * referenceInfo with type null. This indicates a "unknown column".
-     *
-     * If the columnIdent does contain a path it's parent will be resolved, if found and if it a STRICT object
-     * null is returned.
-     *
-     * If the parent isn't strict or not found a referenceInfo with type null is returned.
-     */
     @Override
     @Nullable
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {

@@ -26,6 +26,9 @@ Unreleased
 
  - Optimize OR queries which involve the cluster column.
 
+ - Removed support for ``_version`` column in where clause if no
+   primary key is specified in a query.
+
  - Added support for the ``IF EXISTS`` clause to ``DROP TABLE`` and
    ``DROP BLOB TABLE``
 

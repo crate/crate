@@ -57,6 +57,7 @@ public class EvaluatingNormalizer {
     private final ReferenceResolver referenceResolver;
     private final FieldResolver fieldResolver;
     private final BaseVisitor visitor;
+    private final boolean inPlace;
 
 
     /**
@@ -73,6 +74,7 @@ public class EvaluatingNormalizer {
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
         this.fieldResolver = fieldResolver;
+        this.inPlace = inPlace;
         if (inPlace) {
             this.visitor = new InPlaceVisitor();
         } else {
@@ -88,6 +90,14 @@ public class EvaluatingNormalizer {
     public EvaluatingNormalizer(AnalysisMetaData analysisMetaData, FieldResolver fieldResolver, boolean inPlace) {
         this(analysisMetaData.functions(), RowGranularity.CLUSTER,
                 analysisMetaData.referenceResolver(), fieldResolver, inPlace);
+    }
+
+    public EvaluatingNormalizer ensureInPlace(boolean inPlace){
+        if (inPlace == this.inPlace){
+            return this;
+        }
+        return new EvaluatingNormalizer(this.functions,
+                this.granularity, this.referenceResolver, this.fieldResolver, inPlace);
     }
 
     private abstract class BaseVisitor extends SymbolVisitor<Void, Symbol> {

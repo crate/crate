@@ -385,7 +385,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
-        execute("select \"_id\" from test where \"_id\"='id1'");
+        execute("select _id from test where _id='id1'");
         assertEquals(1, response.rowCount());
         assertEquals("id1", response.rows()[0][0]);
     }

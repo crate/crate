@@ -22,29 +22,41 @@
 package io.crate.analyze;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.Operators;
 import io.crate.planner.symbol.*;
+import org.elasticsearch.common.Nullable;
 
 /**
  * Visitor which traverses functions to find _version columns and rewrites
- * the function to a `True` Literal.
+ * the function to a `True` Literal and returns the version symbol.
  */
 public class VersionRewriter {
 
-    private static final Visitor visitor = new Visitor();
+    private static final Visitor VISITOR = new Visitor();
 
-    public Symbol rewrite(Symbol query) {
-        return visitor.process(query, null);
+    @Nullable
+    public static Symbol get(Symbol query){
+        Visitor.Context context = new Visitor.Context();
+        VISITOR.process(query, context);
+        return context.version;
     }
 
-    private static class Visitor extends SymbolVisitor<Void, Symbol> {
+    private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
+
+        static class Context{
+            Symbol version;
+        }
 
         @Override
-        public Symbol visitFunction(Function function, Void context){
+        public Symbol visitFunction(Function function, Context context){
+            if (context.version!= null){
+                return function;
+            }
             String functionName = function.info().ident().name();
             if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
-                function = continueTraversal(function);
+                function = continueTraversal(function, context);
                 return function;
             }
             if (functionName.equals(EqOperator.NAME)) {
@@ -59,19 +71,24 @@ public class VersionRewriter {
                 Reference reference = (Reference) left;
                 ColumnIdent columnIdent = reference.info().ident().columnIdent();
 
-                if (columnIdent.name().equals("_version")) {
+                if (DocSysColumns.VERSION.equals(columnIdent)) {
+                    assert context.version == null;
+                    context.version = right;
                     return Literal.newLiteral(true);
                 }
             }
             return function;
         }
 
-        private Function continueTraversal(Function symbol) {
+        private Function continueTraversal(Function symbol, Context context) {
             int argumentsProcessed = 0;
             for (Symbol argument : symbol.arguments()) {
-                Symbol argumentNew = process(argument, null);
+                Symbol argumentNew = process(argument, context);
                 if (!argument.equals(argumentNew)) {
                     symbol.setArgument(argumentsProcessed, argumentNew);
+                    if (context.version != null){
+                        break;
+                    }
                 }
                 argumentsProcessed++;
             }

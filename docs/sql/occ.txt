@@ -52,21 +52,15 @@ Querying for the correct ``_version`` ensures that no concurrent update has
 taken place::
 
     cr> update locations set description = 'Updated description'
-    ... where name = 'Algol' and "_version" = 3;
+    ... where id=5 and "_version" = 3;
     UPDATE OK, 1 row affected (... sec)
 
 Updating a row with a wrong or outdated version number will not execute the
 update and results in 0 affected rows::
 
     cr> update locations set description = 'Updated description'
-    ... where name = 'Algol' and "_version" = 2;
+    ... where id=5 and "_version" = 2;
     UPDATE OK, 0 rows affected (... sec)
-
-.. warning::
-
-    Specifying only the ``_version`` in the ``WHERE`` clause of an
-    UPDATE statement without any other criteria is very expensive and
-    should be avoided.
 
 Optimistic Delete
 =================
@@ -78,17 +72,16 @@ Of course the same can be done when deleting a row::
 
 
 Known Limitations
------------------
+=================
 
- - On deletes, this can only be done when using a primary key query (all
-   primary keys have to be included inside the ``WHERE`` clause). For
-   example, the query below is not possible with our used testing data
-   because ``name`` is not declared as a primary key and results in an
-   error::
+ - The ``_version`` column can only be used when specifying the whole
+   primary key in a query. For example, the query below is not
+   possible with our used testing data because ``name`` is not
+   declared as a primary key and results in an error::
 
     cr> delete from locations where name = 'Aldebaran' and "_version" = 3;
-    SQLActionException["_version" column is only valid in the WHERE clau...]
-
+    SQLActionException[_version is not allowed in delete queries
+                       without specifying a primary key]
 
 .. note::
 

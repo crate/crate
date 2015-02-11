@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.TableRelation;
@@ -38,8 +37,8 @@ import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
@@ -139,7 +138,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             if (whereClause.noMatch()) {
                 continue;
             }
-            if (whereClause.primaryKeys().isPresent() && whereClause.primaryKeys().get().size()==1) {
+            if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size()==1) {
                 createESDeleteNode(tableRelation.tableInfo(), whereClause, plan);
             } else {
                 createESDeleteByQueryNode(tableRelation.tableInfo(), whereClause, plan);
@@ -394,13 +393,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     private void createESDeleteNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
-        assert whereClause.primaryKeys().get().size() == 1;
-        Id pk = Iterables.get(whereClause.primaryKeys().get(), 0);
-        plan.add(new ESDeleteNode(
-                indices(tableInfo, whereClause)[0],
-                pk.stringValue(),
-                pk.routingValue(),
-                whereClause.version()));
+        plan.add(new ESDeleteNode(tableInfo, whereClause.docKeys().get().getOnlyKey()));
     }
 
     private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {

@@ -46,7 +46,7 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
         public boolean apply(@Nullable ReferenceInfo input) {
             return input != null
                     && input.type().id() == ArrayType.ID
-                    && ((ArrayType)input.type()).innerType().equals(DataTypes.OBJECT);
+                    && ((ArrayType) input.type()).innerType().equals(DataTypes.OBJECT);
         }
     };
 
@@ -91,7 +91,7 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
             referenceInfo = tableInfo.indexColumn(ci);
             if (referenceInfo == null) {
                 DynamicReference dynamic = tableInfo.getDynamic(ci, forWrite);
-                if (dynamic == null){
+                if (dynamic == null) {
                     return null;
                 } else {
                     return allocate(ci, dynamic);
@@ -179,11 +179,12 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
     @Deprecated
     public WhereClause resolve(WhereClause whereClause) {
         if (whereClause.hasQuery()) {
-            return new WhereClause(resolve(whereClause.query()), whereClause.primaryKeys().orNull(),
-                    whereClause.partitions(), whereClause.version().orNull());
+            return new WhereClause(resolve(whereClause.query()), whereClause.docKeys().orNull(),
+                    whereClause.partitions());
         }
         return whereClause;
     }
+
 
     @Deprecated
     public List<Symbol> resolve(Collection<? extends Symbol> symbols) {
@@ -210,7 +211,7 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
     }
 
     public void validateOrderBy(@Nullable OrderBy orderBy) {
-        if (orderBy!=null) {
+        if (orderBy != null) {
             for (Symbol symbol : orderBy.orderBySymbols()) {
                 SORT_VALIDATOR.process(symbol, this);
             }
@@ -270,6 +271,7 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
             return null;
         }
     }
+
     private static class SortValidator extends TraversalSymbolVisitor {
 
         @Override

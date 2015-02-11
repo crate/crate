@@ -21,115 +21,119 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.crate.analyze.*;
+import com.google.common.collect.ImmutableList;
+import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.ReferenceToTrueVisitor;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.PartitionReferenceResolver;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.partitioned.PartitionExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.BytesRefValueSymbolVisitor;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.Tuple;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class WhereClauseAnalyzer {
 
-    private final static PrimaryKeyVisitor PRIMARY_KEY_VISITOR = new PrimaryKeyVisitor();
     private final AnalysisMetaData analysisMetaData;
     private final TableInfo tableInfo;
+    private final EvaluatingNormalizer normalizer;
+    private final EqualityExtractor eqExtractor;
 
     public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, TableRelation tableRelation) {
         this.analysisMetaData = analysisMetaData;
         this.tableInfo = tableRelation.tableInfo();
+        this.normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
+                analysisMetaData.referenceResolver(), tableRelation, false);
+        this.eqExtractor = new EqualityExtractor(normalizer);
+
     }
 
     public WhereClause analyze(WhereClause whereClause) {
-        if (whereClause.noMatch() || !whereClause.hasQuery()) {
+        if (!whereClause.hasQuery()){
             return whereClause;
         }
-        WhereClauseContext whereClauseContext = new WhereClauseContext();
-        PrimaryKeyVisitor.Context ctx = PRIMARY_KEY_VISITOR.process(tableInfo, whereClause.query());
-        if (ctx != null) {
-            whereClause.clusteredBy(ctx.clusteredByLiterals());
-            if (ctx.noMatch) {
-                return WhereClause.NO_MATCH;
-            } else {
-                whereClause.version(ctx.version());
-                if (ctx.keyLiterals() != null) {
-                    processPrimaryKeyLiterals(
-                            ctx.keyLiterals(),
-                            whereClauseContext
-                    );
-                    whereClause.primaryKeys(whereClauseContext.primaryKeys());
+        Set<Symbol> clusteredBy = null;
+        if (whereClause.hasQuery() && !tableInfo.schemaInfo().systemSchema()){
+            WhereClauseValidator.validate(whereClause);
+        }
+
+        List<ColumnIdent> pkCols;
+        boolean versionInQuery = (!tableInfo.schemaInfo().systemSchema() &&
+                HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION));
+        if (versionInQuery) {
+            pkCols = new ArrayList<>(tableInfo.primaryKey().size() + 1);
+            pkCols.addAll(tableInfo.primaryKey());
+            pkCols.add(DocSysColumns.VERSION);
+        } else {
+            pkCols = tableInfo.primaryKey();
+        }
+        List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, whereClause.query());
+
+        if (pkValues != null) {
+            int clusterdIdx = -1;
+            if (tableInfo.clusteredBy() != null) {
+                clusterdIdx = tableInfo.primaryKey().indexOf(tableInfo.clusteredBy());
+                clusteredBy = new HashSet<>(pkValues.size());
+            }
+            List<Integer> partitionsIdx = null;
+            if (tableInfo.isPartitioned()){
+                partitionsIdx = new ArrayList<>(tableInfo.partitionedByColumns().size());
+                for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {
+                    partitionsIdx.add(tableInfo.primaryKey().indexOf(columnIdent));
                 }
             }
+            whereClause.docKeys(new DocKeys(pkValues, versionInQuery, clusterdIdx, partitionsIdx));
+
+            if (clusterdIdx >= 0) {
+                for (List<Symbol> row : pkValues) {
+                    clusteredBy.add(row.get(clusterdIdx));
+                }
+                whereClause.clusteredBy(clusteredBy);
+            }
+        } else {
+            clusteredBy = getClusteredByLiterals(whereClause, eqExtractor);
         }
-        if (tableInfo.isPartitioned()) {
-            return resolvePartitions(whereClause);
+        if (clusteredBy != null) {
+            whereClause.clusteredBy(clusteredBy);
+        }
+        if (tableInfo.isPartitioned()){
+            if (whereClause.docKeys().isPresent()){
+
+            } else{
+                whereClause = resolvePartitions(whereClause, tableInfo,analysisMetaData);
+            }
         }
         return whereClause;
     }
 
-
-    protected void processPrimaryKeyLiterals(List primaryKeyLiterals,
-                                             WhereClauseContext context) {
-
-        List<List<BytesRef>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
-        primaryKeyValuesList.add(new ArrayList<BytesRef>(tableInfo.primaryKey().size()));
-
-        for (int i=0; i<primaryKeyLiterals.size(); i++) {
-            Object primaryKey = primaryKeyLiterals.get(i);
-            if (primaryKey instanceof Literal) {
-                Literal pkLiteral = (Literal)primaryKey;
-                // support e.g. pk IN (Value..,)
-                if (pkLiteral.valueType().id() == SetType.ID) {
-                    Set<Literal> literals = Sets.newHashSet(Literal.explodeCollection(pkLiteral));
-                    Iterator<Literal> literalIterator = literals.iterator();
-                    for (int s=0; s<literals.size(); s++) {
-                        Literal pk = literalIterator.next();
-                        if (s >= primaryKeyValuesList.size()) {
-                            // copy already parsed pk values, so we have all possible multiple pk for all sets
-                            primaryKeyValuesList.add(Lists.newArrayList(primaryKeyValuesList.get(s - 1)));
-                        }
-                        List<BytesRef> primaryKeyValues = primaryKeyValuesList.get(s);
-                        if (primaryKeyValues.size() > i) {
-                            primaryKeyValues.set(i, BytesRefValueSymbolVisitor.INSTANCE.process(pk));
-                        } else {
-                            primaryKeyValues.add(BytesRefValueSymbolVisitor.INSTANCE.process(pk));
-                        }
-                    }
-                } else {
-                    for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
-                        primaryKeyValues.add((BytesRefValueSymbolVisitor.INSTANCE.process(pkLiteral)));
-                    }
+    @Nullable
+    private Set<Symbol> getClusteredByLiterals(WhereClause whereClause, EqualityExtractor ee) {
+        if (tableInfo.clusteredBy() != null) {
+            List<List<Symbol>> clusteredValues = ee.extractParentMatches(
+                    ImmutableList.of(tableInfo.clusteredBy()),
+                    whereClause.query());
+            if (clusteredValues != null) {
+                Set<Symbol> clusteredBy = new HashSet<>(clusteredValues.size());
+                for (List<Symbol> row : clusteredValues) {
+                    clusteredBy.add(row.get(0));
                 }
-            } else if (primaryKey instanceof List) {
-                primaryKey = Lists.transform((List<Literal>) primaryKey, new com.google.common.base.Function<Literal, BytesRef>() {
-                    @Override
-                    public BytesRef apply(Literal input) {
-                        return BytesRefValueSymbolVisitor.INSTANCE.process(input);
-                    }
-                });
-                primaryKeyValuesList.add((List<BytesRef>) primaryKey);
+                return clusteredBy;
             }
         }
-
-        for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
-            context.addIdAndRouting(tableInfo, primaryKeyValues);
-        }
+        return null;
     }
 
-    private PartitionReferenceResolver preparePartitionResolver(
+
+
+    private static PartitionReferenceResolver preparePartitionResolver(
             ReferenceResolver referenceResolver, List<ReferenceInfo> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
@@ -140,8 +144,9 @@ public class WhereClauseAnalyzer {
         return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
     }
 
-    private WhereClause resolvePartitions(WhereClause whereClause) {
+    public static WhereClause resolvePartitions(WhereClause whereClause, TableInfo tableInfo, AnalysisMetaData analysisMetaData) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
+        assert whereClause.partitions().isEmpty(): "partitions must not be analyzed twice";
         if (tableInfo.partitions().isEmpty()) {
             return WhereClause.NO_MATCH; // table is partitioned but has no data / no partitions
         }
@@ -179,8 +184,10 @@ public class WhereClauseAnalyzer {
 
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal>> entry = queryPartitionMap.entrySet().iterator().next();
-            whereClause = new WhereClause(entry.getKey(),
-                    whereClause.primaryKeys().orNull(), new ArrayList<String>(entry.getValue().size()), whereClause.version().orNull());
+            whereClause = new WhereClause(
+                    entry.getKey(),
+                    whereClause.docKeys().orNull(),
+                    new ArrayList<String>(entry.getValue().size()));
             whereClause.partitions(entry.getValue());
             return whereClause;
         } else if (queryPartitionMap.size() > 0) {
@@ -190,9 +197,9 @@ public class WhereClauseAnalyzer {
         }
     }
 
-    private WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
-                                                 Map<Symbol, List<Literal>> queryPartitionMap,
-                                                 WhereClause whereClause) throws UnsupportedOperationException{
+    private static WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
+                                                        Map<Symbol, List<Literal>> queryPartitionMap,
+                                                        WhereClause whereClause) throws UnsupportedOperationException{
         /**
          * Got multiple normalized queries which all could match.
          * This might be the case if one partition resolved to null
@@ -235,9 +242,8 @@ public class WhereClauseAnalyzer {
         if (canMatch.size() == 1) {
             Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
             WhereClause where = new WhereClause(symbolListTuple.v1(),
-                    whereClause.primaryKeys().orNull(),
-                    new ArrayList<String>(symbolListTuple.v2().size()),
-                    whereClause.version().orNull());
+                    whereClause.docKeys().orNull(),
+                    new ArrayList<String>(symbolListTuple.v2().size()));
             where.partitions(symbolListTuple.v2());
             return where;
         }

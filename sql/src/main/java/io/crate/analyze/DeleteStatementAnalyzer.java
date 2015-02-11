@@ -24,7 +24,10 @@ package io.crate.analyze;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
+import io.crate.analyze.where.HasColumn;
 import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Node;
@@ -34,14 +37,24 @@ import org.elasticsearch.common.inject.Singleton;
 @Singleton
 public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
+    private static final String VERSION_SEARCH_EX_MSG =
+            "_version is not allowed in delete queries without specifying a primary key";
+    private static final UnsupportedFeatureException VERSION_SEARCH_EX = new UnsupportedFeatureException(
+            VERSION_SEARCH_EX_MSG);
+
+
+
     static final DefaultTraversalVisitor<Void, InnerAnalysisContext> innerAnalyzer =
         new DefaultTraversalVisitor<Void, InnerAnalysisContext>() {
             @Override
             public Void visitDelete(Delete node, InnerAnalysisContext context) {
-                context.deleteAnalyzedStatement.whereClauses.add(
-                        context.whereClauseAnalyzer.analyze(
-                                context.expressionAnalyzer.generateWhereClause(node.getWhere(),
-                                        context.expressionAnalysisContext, context.tableRelation)));
+                WhereClause whereClause = context.whereClauseAnalyzer.analyze(
+                        context.expressionAnalyzer.generateWhereClause(node.getWhere(),
+                                context.expressionAnalysisContext, context.tableRelation));
+                if (!whereClause.docKeys().isPresent() && HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION)) {
+                    throw VERSION_SEARCH_EX;
+                }
+                context.deleteAnalyzedStatement.whereClauses.add(whereClause);
                 return null;
             }
     };

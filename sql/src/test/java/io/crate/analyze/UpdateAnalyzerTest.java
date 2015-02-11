@@ -24,6 +24,7 @@ package io.crate.analyze;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
@@ -58,6 +59,7 @@ import static org.mockito.Mockito.when;
 
 public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
+    public static final String VERSION_EX_FROM_VALIDATOR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -325,7 +327,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("friends"))));
         assertThat(friendsLiteral.valueType().id(), is(ArrayType.ID));
         assertEquals(DataTypes.OBJECT, ((ArrayType)friendsLiteral.valueType()).innerType());
-        assertThat(((Object[])friendsLiteral.value()).length, is(0));
+        assertThat(((Object[]) friendsLiteral.value()).length, is(0));
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -375,13 +377,6 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testWhereClauseObjectArrayField() throws Exception {
         analyze("update users set awesome=true where friends['id'] = 5");
-    }
-
-    @Test
-    public void testUpdateWithVersionZero() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze(
-                "update users set awesome=true where name='Ford' and _version=0").nestedStatements().get(0);
-        assertThat(analysis.whereClause().noMatch(), is(false));
     }
 
     @Test
@@ -451,5 +446,77 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for obj: Updating a clustered-by column is not supported");
         analyze("update nestedclustered set obj = other_obj");
+    }
+
+    @Test
+    public void testUpdateWhereVersionUsingWrongOperator() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        analyze("update users set text = ? where text = ? and \"_version\" >= ?",
+                new Object[]{"already in panic", "don't panic", 3});
+    }
+
+    @Test
+    public void testUpdateWhereVersionIsColumn() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        analyze("update users set col2 = ? where _version = id",
+                new Object[]{1});
+    }
+
+    @Test
+    public void testUpdateWhereVersionInOperatorColumn() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        analyze("update users set col2 = ? where _version in (1,2,3)",
+                new Object[]{1});
+    }
+
+    @Test
+    public void testUpdateWhereVersionOrOperatorColumn() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        analyze("update users set col2 = ? where _version = 1 or _version = 2",
+                new Object[]{1});
+    }
+
+
+    @Test
+    public void testUpdateWhereVersionAddition() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        analyze("update users set col2 = ? where _version + 1 = 2",
+                new Object[]{1});
+    }
+
+    @Test
+    public void testUpdateWhereVersionNotPredicate() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        analyze("update users set text = ? where not (_version = 1 and id = 1)",
+                new Object[]{"Hello"});
+    }
+
+    @Test
+    public void testUpdateWhereVersionOrOperator() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        analyze("update users set awesome =  true where _version = 1 or _version = 2");
+    }
+
+    @Test
+    public void testUpdateWithVersionZero() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        analyze("update users set awesome=true where name='Ford' and _version=0").nestedStatements().get(0);
+    }
+
+
+    @Test
+    public void testSelectWhereVersionIsNullPredicate() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        analyze("update users set col2 = ? where _version is null",
+                new Object[]{1});
     }
 }

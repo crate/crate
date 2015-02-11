@@ -23,6 +23,13 @@ package io.crate.planner.symbol;
 
 public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<C, R> {
 
+    /**
+     * calls process with a null context
+     */
+    public R process(Symbol symbol){
+        return process(symbol, null);
+    }
+
     @Override
     public R visitFunction(Function symbol, C context) {
         for (Symbol arg : symbol.arguments()) {
@@ -30,4 +37,5 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
         }
         return null;
     }
+
 }

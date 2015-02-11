@@ -103,7 +103,7 @@ public class ToBooleanFunctionTest {
     @Test
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Can't convert \"hello\" to boolean");
+        expectedException.expectMessage("cannot cast 'hello' to boolean");
         TestingHelpers.assertLiteralSymbol(normalize("hello", DataTypes.STRING), 123L);
     }
 }
