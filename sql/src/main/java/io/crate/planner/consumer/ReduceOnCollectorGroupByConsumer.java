@@ -103,8 +103,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 return table;
             }
             context.result = true;
-            return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, table.tableRelation(),
-                    whereClause, null);
+            return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), null);
         }
 
 
@@ -130,7 +129,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
      * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
      * LocalMergeNode ( [TopN], IndexWriterProjection )
      */
-    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, WhereClause whereClause, ColumnIndexWriterProjection indexWriterProjection) {
+    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ColumnIndexWriterProjection indexWriterProjection) {
         assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
         TableInfo tableInfo = tableRelation.tableInfo();
         GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
