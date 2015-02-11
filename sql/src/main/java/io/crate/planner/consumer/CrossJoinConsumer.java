@@ -219,7 +219,7 @@ public class CrossJoinConsumer implements Consumer {
                  topNProjection = new TopNProjection(
                          limit,
                          statement.querySpec().offset(),
-                         orderBy.orderBySymbols(),
+                         replaceFieldsWithInputColumns(orderBy.orderBySymbols(), queriedTablesOutputs),
                          orderBy.reverseFlags(),
                          orderBy.nullsFirst()
                  );
