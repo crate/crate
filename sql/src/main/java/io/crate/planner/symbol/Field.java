@@ -99,7 +99,7 @@ public class Field extends Symbol {
 
         Field that = (Field) o;
 
-        if (!relation.equals(that.relation)) return false;
+        if (relation != that.relation) return false;
         if (!path.equals(that.path)) return false;
         if (!valueType.equals(that.valueType)) return false;
 
