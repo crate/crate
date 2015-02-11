@@ -21,14 +21,6 @@
 
 package io.crate.planner;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.annotation.Nullable;
-
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -70,10 +62,15 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
+
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
-
-    static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
 
     private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
@@ -178,14 +175,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         projection.isDirectoryUri(analysis.directoryUri());
         projection.settings(analysis.settings());
 
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
+        List<Symbol> outputs;
         if (analysis.selectedColumns() != null && !analysis.selectedColumns().isEmpty()) {
-            List<Symbol> columns = new ArrayList<>(analysis.selectedColumns().size());
-            for (Symbol symbol : analysis.selectedColumns()) {
-                columns.add(DocReferenceConverter.convertIfPossible(symbol, analysis.table()));
+            outputs = new ArrayList<>(analysis.selectedColumns().size());
+            List<Symbol> columnSymbols = new ArrayList<>(analysis.selectedColumns().size());
+            for (int i = 0; i < analysis.selectedColumns().size(); i++) {
+                outputs.add(DocReferenceConverter.convertIfPossible(analysis.selectedColumns().get(i), analysis.table()));
+                columnSymbols.add(new InputColumn(i, null));
             }
-            contextBuilder = contextBuilder.output(columns);
-            projection.inputs(contextBuilder.outputs());
+            projection.inputs(columnSymbols);
         } else {
             Reference sourceRef;
             if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
@@ -199,12 +197,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             } else {
                 sourceRef = new Reference(analysis.table().getReferenceInfo(DocSysColumns.RAW));
             }
-            contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(sourceRef));
+            outputs = ImmutableList.<Symbol>of(sourceRef);
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableInfo,
                 WhereClause.MATCH_ALL,
-                contextBuilder.toCollect(),
+                outputs,
                 ImmutableList.<Projection>of(projection),
                 analysis.partitionIdent()
         );

@@ -105,7 +105,6 @@ public class DistributedGroupByConsumer implements Consumer {
 
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
 
-            // TODO: probably inject
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
 
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
@@ -145,7 +144,6 @@ public class DistributedGroupByConsumer implements Consumer {
 
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy != null) {
-                // TODO: check if we need this
                 table.tableRelation().validateOrderBy(orderBy);
             }
 
