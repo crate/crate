@@ -15,7 +15,7 @@ the Crate distribution.
 
 First let's connect to a running node::
 
-    cr> connect 127.0.0.1:4200;
+    cr> \connect 127.0.0.1:4200;
     +------------------------+-----------+---------+-----------+---------+
     | server_url             | node_name | version | connected | message |
     +------------------------+-----------+---------+-----------+---------+
