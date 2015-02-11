@@ -21,18 +21,14 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.Iterables;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.planner.Plan;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class ConsumingPlanner {
 
@@ -69,18 +65,6 @@ public class ConsumingPlanner {
         }
         if(consumerContext.validationException() != null){
             throw consumerContext.validationException();
-        }
-        return null;
-    }
-
-    @Nullable
-    public static TableRelation getSingleTableRelation(Map<QualifiedName, AnalyzedRelation> sources) {
-        if (sources.size() != 1) {
-            return null;
-        }
-        AnalyzedRelation sourceRelation = Iterables.getOnlyElement(sources.values());
-        if (sourceRelation instanceof TableRelation) {
-            return (TableRelation) sourceRelation;
         }
         return null;
     }
