@@ -34,9 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -518,6 +516,26 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into t2 (p) (select p from t)");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInsertFromQueryWithAggregateWithinScalarFunction() throws Exception {
+        this.setup.setUpCharacters();
+        waitNoPendingTasksOnAll();
+        execute("create table t (count int, id int) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (count, id) (select (count(*) + 1), id from characters group by id)");
+        refresh();
+        execute("select count, id from t order by id");
+        assertThat(response.rowCount(), is(4L));
+        assertThat((int)response.rows()[0][0], is(2));
+        assertThat((int)response.rows()[1][0], is(2));
+        assertThat((int)response.rows()[2][0], is(2));
+        assertThat((int)response.rows()[3][0], is(2));
+        assertThat((int)response.rows()[0][1], is(1));
+        assertThat((int)response.rows()[1][1], is(2));
+        assertThat((int)response.rows()[2][1], is(3));
+        assertThat((int)response.rows()[3][1], is(4));
     }
 
 }

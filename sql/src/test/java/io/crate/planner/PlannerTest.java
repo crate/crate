@@ -28,7 +28,6 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.GenericDDLNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
@@ -656,6 +655,37 @@ public class PlannerTest {
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        MergeNode mergeNode = planNode.localMergeNode();
+        assertThat(mergeNode.projections().size(), is(1));
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+    }
+
+    @Test
+    public void testNonDistributedGroupByAggregationsWrappedInScalar() throws Exception {
+        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+                "select (count(*) + 1), id from empty_parted group by id");
+        CollectNode collectNode = planNode.collectNode();
+        assertNull(collectNode.downStreamNodes());
+        assertThat(collectNode.projections().size(), is(2));
+        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        TopNProjection topNProjection = (TopNProjection)collectNode.projections().get(1);
+        assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topNProjection.offset(), is(0));
+
+        MergeNode mergeNode = planNode.localMergeNode();
+        assertThat(mergeNode.projections().size(), is(1));
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+    }
+
+    @Test
+    public void testNonDistributedGroupBy() throws Exception {
+        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+                "select count(*), id from empty_parted group by id");
+        CollectNode collectNode = planNode.collectNode();
+        assertNull(collectNode.downStreamNodes());
+        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+
         MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
