@@ -29,7 +29,6 @@ import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -90,8 +89,8 @@ public class QueriedTableTest {
             }
         };
         normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
-        t1Info = mock(TableInfo.class);
-        t2Info = mock(TableInfo.class);
+        t1Info = tableInfoWith("t1", "x", "y");
+        t2Info = tableInfoWith("t2", "x", "y", "z");
         tr1 = new TableRelation(t1Info);
         tr2 = new TableRelation(t2Info);
         Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
@@ -106,6 +105,19 @@ public class QueriedTableTest {
         );
     }
 
+    private TableInfo tableInfoWith(String tableName, String ... columns) {
+        TableInfo tableInfo = mock(TableInfo.class);
+        for (String column : columns) {
+            when(tableInfo.getReferenceInfo(new ColumnIdent(column))).thenReturn(
+                    new ReferenceInfo(new ReferenceIdent(new TableIdent("doc",tableName), column), RowGranularity.DOC, DataTypes.INTEGER));
+        }
+        return tableInfo;
+    }
+
+    private Symbol asSymbol(String expression) {
+        return expressionAnalyzer.convert(SqlParser.createExpression(expression), context);
+    }
+
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testWhereClauseSplitWithMatchFunction() throws Exception {
@@ -113,7 +125,7 @@ public class QueriedTableTest {
                 new ReferenceInfo(new ReferenceIdent(new TableIdent("doc", "t1"), "name"), RowGranularity.DOC, DataTypes.STRING));
 
         Field t1x = new Field(tr1, new ColumnIdent("x"), DataTypes.INTEGER);
-        Symbol symbol = expressionAnalyzer.convert(SqlParser.createExpression("match (name, 'search term')"), context);
+        Symbol symbol = asSymbol("match (name, 'search term')");
         QuerySpec querySpec = new QuerySpec()
                 .outputs(Arrays.<Symbol>asList(t1x))
                 .where(new WhereClause(symbol));
@@ -144,8 +156,6 @@ public class QueriedTableTest {
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testWhereClauseSplit() throws Exception {
-        // select t1.x from t1, t2 where  t1.x = 1 and t2.x = 3 and t1.y + t2.z = 3
-
         /**
          * verify that:
          *      t1.x = 1 is fully pushed down
@@ -154,23 +164,10 @@ public class QueriedTableTest {
          *      t1.y + t2.z = 3 is in "remaining query"
          *      and both t1.y, t2.z are added to the outputs of t1 / t2
          */
+        Symbol query = asSymbol("t1.x = 1 and t2.x = 3 and t1.y + t2.z = 3");
 
-        TableRelation tr1 = new TableRelation(mock(TableInfo.class));
-        TableRelation tr2 = new TableRelation(mock(TableInfo.class));
         Field t1x = new Field(tr1, new ColumnIdent("x"), DataTypes.INTEGER);
-        Field t1y = new Field(tr1, new ColumnIdent("y"), DataTypes.INTEGER);
-        Field t2x = new Field(tr2, new ColumnIdent("x"), DataTypes.INTEGER);
-        Field t2z = new Field(tr2, new ColumnIdent("z"), DataTypes.INTEGER);
-
-        Function t1xEq1 = createFunction(EqOperator.NAME, DataTypes.BOOLEAN, t1x, Literal.newLiteral(1));
-        Function t2xEq3 = createFunction(EqOperator.NAME, DataTypes.BOOLEAN, t2x, Literal.newLiteral(3));
-        Function t1yPlusT2z = createFunction(AddFunction.NAME, DataTypes.INTEGER, t1y, t2z);
-        Function t1yPlusT2zEq3 = createFunction(EqOperator.NAME, DataTypes.BOOLEAN, t1yPlusT2z, Literal.newLiteral(3));
-
-        Function t2xEq3AndT1yPlusT2zEq3 = createFunction(AndOperator.NAME, DataTypes.BOOLEAN, t2xEq3, t1yPlusT2zEq3);
-        Function topAnd = createFunction(AndOperator.NAME, DataTypes.BOOLEAN, t1xEq1, t2xEq3AndT1yPlusT2zEq3);
-
-        WhereClause whereClause = new WhereClause(topAnd);
+        WhereClause whereClause = new WhereClause(query);
 
         QuerySpec querySpec = new QuerySpec()
                 .outputs(Arrays.<Symbol>asList(t1x))
@@ -182,11 +179,11 @@ public class QueriedTableTest {
         assertThat(qt1.querySpec().outputs().size(), is(2));
         assertThat(qt1.querySpec().outputs().get(0), isField("x"));
         assertThat(qt1.querySpec().outputs().get(1), isField("y"));
-        assertThat(qt1.querySpec().where().query(), equalTo((Symbol) t1xEq1));
+        assertThat(qt1.querySpec().where().query(), equalTo(asSymbol("t1.x = 1")));
 
         assertThat(qt2.querySpec().outputs().size(), is(1));
         assertThat(qt2.querySpec().outputs().get(0), isField("z"));
-        assertThat(qt2.querySpec().where().query(), equalTo((Symbol) t2xEq3));
+        assertThat(normalizer.normalize(qt2.querySpec().where().query()), equalTo(asSymbol("t2.x = 3")));
 
         Function remainingQuery = (Function) normalizer.normalize(querySpec.where().query());
         assertThat(remainingQuery, isFunction(EqOperator.NAME));
