@@ -153,9 +153,10 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTwoTableCrossJoinWithOrderByTestThatOrderingIsCorrect() throws Exception {
+    public void testThreeTableCrossJoinWithOrderByTestThatOrderingIsCorrect() throws Exception {
         execute("create table colors (color string) clustered into 3 shards with (number_of_replicas = 0)");
         execute("create table sizes (size string) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("create table articles (name string, price double) clustered into 4 shards with (number_of_replicas = 0)");
         ensureGreen();
 
         execute("insert into colors (color) values (?)", new Object[][] {
@@ -168,19 +169,35 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
                 new Object[] { "medium" },
                 new Object[] { "large" },
         });
+        execute("insert into articles (name, price) values (?, ?)", new Object[][] {
+                new Object[] { "Babel Fish", 52.8 },
+                new Object[] { "Towel", 37.3 },
+                new Object[] { "Pan Galactic Gargle Blaster", 17.3 }
+        });
         execute("refresh table colors");
         execute("refresh table sizes");
-        execute("select color, size from colors cross join sizes order by color, size");
-        assertThat(response.rowCount(), is(9L));
-        String expected = "blue| large\n" +
-                "blue| medium\n" +
-                "blue| small\n" +
-                "green| large\n" +
-                "green| medium\n" +
-                "green| small\n" +
-                "red| large\n" +
-                "red| medium\n" +
-                "red| small\n";
+        execute("refresh table articles");
+
+        execute("select size, color, articles.name from sizes, colors, articles where price > 20 order by name, color, size");
+        assertThat(response.rowCount(), is(18L));
+        String expected = "large| blue| Babel Fish\n" +
+                "medium| blue| Babel Fish\n" +
+                "small| blue| Babel Fish\n" +
+                "large| green| Babel Fish\n" +
+                "medium| green| Babel Fish\n" +
+                "small| green| Babel Fish\n" +
+                "large| red| Babel Fish\n" +
+                "medium| red| Babel Fish\n" +
+                "small| red| Babel Fish\n" +
+                "large| blue| Towel\n" +
+                "medium| blue| Towel\n" +
+                "small| blue| Towel\n" +
+                "large| green| Towel\n" +
+                "medium| green| Towel\n" +
+                "small| green| Towel\n" +
+                "large| red| Towel\n" +
+                "medium| red| Towel\n" +
+                "small| red| Towel\n";
         assertThat(TestingHelpers.printedTable(response.rows()), is(expected));
     }
 }
