@@ -22,32 +22,32 @@
 package io.crate.executor;
 
 import com.google.common.base.Preconditions;
-import io.crate.core.bigarray.IterableBigArray;
 import org.elasticsearch.common.lease.Releasables;
+import org.elasticsearch.common.util.ObjectArray;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 
 public abstract class AbstractBigArrayPageableTaskResult implements PageableTaskResult {
 
-    protected final IterableBigArray<Object[]> backingArray;
+    protected final ObjectArray<Object[]> backingArray;
     protected final long backingArrayStartIdx;
     protected final Page page;
 
-    public AbstractBigArrayPageableTaskResult(IterableBigArray<Object[]> backingArray,
+    public AbstractBigArrayPageableTaskResult(ObjectArray<Object[]> backingArray,
                                          long backingArrayStartIndex,
-                                         PageInfo pageInfo) {
+                                         long size) {
         Preconditions.checkArgument(
-                backingArrayStartIndex + pageInfo.position() <= backingArray.size(),
+                backingArrayStartIndex <= backingArray.size(),
                 "backingArray exceeded");
         this.backingArray = backingArray;
         this.backingArrayStartIdx = backingArrayStartIndex;
-        this.page = new BigArrayPage(backingArray, backingArrayStartIndex+pageInfo.position(), pageInfo.size());
+        this.page = new BigArrayPage(backingArray, backingArrayStartIndex, size);
     }
 
     @Override
     public Object[][] rows() {
-        throw new UnsupportedOperationException("FetchedRowsPageableTaskResult does not support rows()");
+        throw new UnsupportedOperationException("rows() is not supported");
     }
 
     @Nullable

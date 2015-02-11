@@ -24,7 +24,6 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
-import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
@@ -39,6 +38,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.join.nestedloop.NestedLoopExecutorService;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.*;
@@ -53,8 +53,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.search.controller.SearchPhaseController;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
@@ -64,12 +62,12 @@ import java.util.List;
 public class TransportExecutor implements Executor, TaskExecutor {
 
     private final Functions functions;
-    private final Provider<SearchPhaseController> searchPhaseControllerProvider;
     private final TaskCollectingVisitor planVisitor;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
     private final StatsTables statsTables;
     private final NodeVisitor nodeVisitor;
     private final ThreadPool threadPool;
+    private final NestedLoopExecutorService nestedLoopExecutorService;
 
     private final Settings settings;
     private final ClusterService clusterService;
@@ -82,38 +80,30 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
-    private final CrateResultSorter crateResultSorter;
-
-    private final BigArrays bigArrays;
-
     private final QueryThenFetchOperation queryThenFetchOperation;
 
     @Inject
     public TransportExecutor(Settings settings,
                              TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
+                             NestedLoopExecutorService nestedLoopExecutorService,
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
-                             Provider<SearchPhaseController> searchPhaseControllerProvider,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
-                             CrateResultSorter crateResultSorter,
-                             BigArrays bigArrays,
                              QueryThenFetchOperation queryThenFetchOperation) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
+        this.nestedLoopExecutorService = nestedLoopExecutorService;
         this.functions = functions;
-        this.searchPhaseControllerProvider = searchPhaseControllerProvider;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
-        this.crateResultSorter = crateResultSorter;
-        this.bigArrays = bigArrays;
         this.queryThenFetchOperation = queryThenFetchOperation;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
@@ -297,6 +287,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                             outerJob,
                             innerJob,
                             TransportExecutor.this,
+                            nestedLoopExecutorService,
                             globalProjectionToProjectionVisitor,
                             circuitBreaker)
             );

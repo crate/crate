@@ -380,4 +380,20 @@ public class TestingHelpers {
     public static Matcher<Throwable> cause(Class<? extends Throwable> type, String expectedMessage) {
         return new CauseMatcher(type, expectedMessage);
     }
+
+    /**
+     * create an 2-dimensional object-array filled with <code>size</code> 1-element object-arrays
+     * with ints from <code>from</code> to <code>from+size</code>.
+     *
+     * @param from begin of range
+     * @param size number of rows to produce
+     */
+    public static Object[][] range(int from, int size) {
+        Object[][] range = new Object[size][];
+        for (int i = 0; i<size;i++) {
+            range[i] = new Object[] { from };
+            from++;
+        }
+        return range;
+    }
 }

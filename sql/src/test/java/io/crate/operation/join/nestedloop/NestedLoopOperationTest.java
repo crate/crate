@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.operation.join.nestedloop;
 
 import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
@@ -119,7 +119,9 @@ public class NestedLoopOperationTest {
 
         @Override
         public void start(PageInfo pageInfo) {
-            result.set(new FetchedRowsPageableTaskResult(backingArray, 0, pageInfo));
+            result.set(
+                    FetchedRowsPageableTaskResult.forArray(backingArray, 0, pageInfo)
+            );
         }
 
         @Override
@@ -206,6 +208,7 @@ public class NestedLoopOperationTest {
     private final boolean pagedSources;
     private final boolean nestedLoopPaged;
     private final Random random;
+    private NestedLoopExecutorService nestedLoopExecutorService;
 
     public NestedLoopOperationTest(boolean leftOuterNode,
                                    boolean pagedSources,
@@ -214,6 +217,8 @@ public class NestedLoopOperationTest {
         this.pagedSources = pagedSources;
         this.nestedLoopPaged = nestedLoopPaged;
         this.random = new Random();
+        this.nestedLoopExecutorService = new NestedLoopExecutorService(ImmutableSettings.EMPTY);
+        this.nestedLoopExecutorService.doStart();
     }
 
     private ProjectionToProjectorVisitor projectionVisitor;
@@ -259,13 +264,12 @@ public class NestedLoopOperationTest {
 
         NestedLoopOperation nestedLoop = new NestedLoopOperation(
                 node,
+                nestedLoopExecutorService,
                 Arrays.asList(outerTask),
                 Arrays.asList(innerTask),
                 new TestExecutor(),
                 projectionVisitor,
                 mock(RamAccountingContext.class));
-
-
 
         Object[][] result = executeNestedLoop(nestedLoop, limit);
 
@@ -313,7 +317,7 @@ public class NestedLoopOperationTest {
 
             for (int j = 0; j < left[leftIdx].length; j++) {
                 assertThat(
-                        String.format("expected result row (%d) %s, got %s - %s", i, Arrays.toString(row), Arrays.toString(left[leftIdx]), Arrays.toString(right[rightIdx])),
+                        String.format("expected result row (%d)  %s - %s, got %s", i, Arrays.toString(left[leftIdx]), Arrays.toString(right[rightIdx]), Arrays.toString(row)),
                         row[rowIdx], is(left[leftIdx][rowIdx]));
                 rowIdx++;
             }

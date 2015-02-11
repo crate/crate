@@ -23,32 +23,119 @@ package io.crate.executor;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.bigarray.IterableBigArray;
+import org.elasticsearch.common.util.ObjectArray;
 
-/**
- * A PageableTaskResult implementation that has all its rows at its fingertips.
- * Paging is only iterating through the backingArray, if that is exceeded, paging
- * reached the end.
- */
-public class FetchedRowsPageableTaskResult extends AbstractBigArrayPageableTaskResult {
+import javax.annotation.Nullable;
+import java.io.IOException;
 
-    public FetchedRowsPageableTaskResult(IterableBigArray<Object[]> backingArray,
-                                         long backingArrayStartIndex,
-                                         PageInfo pageInfo) {
-        super(backingArray, backingArrayStartIndex, pageInfo);
+public abstract class FetchedRowsPageableTaskResult<T> implements PageableTaskResult {
+
+    protected final T backingArray;
+    protected final int backingArrayStartIndex;
+    private volatile Page currentPage;
+
+    protected FetchedRowsPageableTaskResult(T backingArray, int backingArrayStartIndex, PageInfo pageInfo) {
+        this.backingArray = backingArray;
+        this.backingArrayStartIndex = backingArrayStartIndex;
+        setPage(pageInfo);
     }
 
-    /**
-     * Simply get a new TaskResult with the same backingArray with the new pageInfo on it.
-     */
-    @Override
-    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo){
-        PageableTaskResult result;
-        if (backingArrayStartIdx + pageInfo.position() >= backingArray.size()) {
-            result = PageableTaskResult.EMPTY_PAGEABLE_RESULT;
+    private void setPage(PageInfo pageInfo) {
+        if (backingArrayStartIndex + pageInfo.position() >= backingArraySize()) {
+            currentPage = Page.EMPTY;
         } else {
-            result = new FetchedRowsPageableTaskResult(backingArray, backingArrayStartIdx, pageInfo);
+            currentPage = newPage(pageInfo);
         }
-        return Futures.immediateFuture(result);
+    }
+
+    protected abstract long backingArraySize();
+
+    protected abstract Page newPage(PageInfo pageInfo);
+
+    @Override
+    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
+        setPage(pageInfo);
+        return Futures.<PageableTaskResult>immediateFuture(this);
+    }
+
+    @Override
+    public Page page() {
+        return currentPage;
+    }
+
+    @Override
+    public Object[][] rows() {
+        throw new UnsupportedOperationException("rows() not supported");
+    }
+
+    @Nullable
+    @Override
+    public String errorMessage() {
+        return null;
+    }
+
+    public static PageableTaskResult wrap(TaskResult wrapMe, PageInfo pageInfo) {
+        if (wrapMe instanceof PageableTaskResult) {
+            return (PageableTaskResult)wrapMe;
+        } else {
+            return forArray(wrapMe.rows(), 0, pageInfo);
+        }
+    }
+
+    public static FetchedRowsPageableTaskResult<?> forArray(Object[][] rows, int backingArrayStartIndex, PageInfo pageInfo) {
+        return new FetchedObjectRowsPageableTaskResult(rows, backingArrayStartIndex, pageInfo);
+    }
+
+    public static FetchedRowsPageableTaskResult<?> forArray(ObjectArray<Object[]> rows, int backingArrayStartIndex, PageInfo pageInfo) {
+        return new FetchedBigArrayRowsPageableTaskResult(rows, backingArrayStartIndex, pageInfo);
+    }
+
+    private static class FetchedObjectRowsPageableTaskResult extends FetchedRowsPageableTaskResult<Object[][]> {
+
+        public FetchedObjectRowsPageableTaskResult(Object[][] backingArray,
+                                                   int backingArrayStartIndex,
+                                                   PageInfo pageInfo) {
+            super(backingArray, backingArrayStartIndex, pageInfo);
+        }
+
+        @Override
+        protected long backingArraySize() {
+            return backingArray.length;
+        }
+
+        @Override
+        protected Page newPage(PageInfo pageInfo) {
+            return new ObjectArrayPage(
+                    backingArray,
+                    backingArrayStartIndex + pageInfo.position(),
+                    pageInfo.size());
+        }
+
+        @Override
+        public void close() throws IOException {
+            // do nothing
+        }
+    }
+
+    private static class FetchedBigArrayRowsPageableTaskResult extends FetchedRowsPageableTaskResult<ObjectArray<Object[]>> {
+
+        protected FetchedBigArrayRowsPageableTaskResult(ObjectArray<Object[]> backingArray, int backingArrayStartIndex, PageInfo pageInfo) {
+            super(backingArray, backingArrayStartIndex, pageInfo);
+        }
+
+        @Override
+        protected long backingArraySize() {
+            return backingArray.size();
+        }
+
+        @Override
+        protected Page newPage(PageInfo pageInfo) {
+            return new BigArrayPage(backingArray, backingArrayStartIndex + pageInfo.position(), pageInfo.size());
+        }
+
+        @Override
+        public void close() throws IOException {
+            backingArray.close();
+        }
     }
 }
