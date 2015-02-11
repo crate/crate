@@ -9,8 +9,25 @@ import process_test
 from .paths import crate_path, project_path
 from .ports import random_available_port
 from crate.crash.command import CrateCmd
+from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
-cmd = CrateCmd()
+
+
+class CrateTestCmd(CrateCmd):
+
+    def __init__(self, **kwargs):
+        super(CrateTestCmd, self).__init__(**kwargs)
+        doctest_print = PrintWrapper()
+        self.logger = ColorPrinter(False, stream=doctest_print, line_end='')
+
+    def stmt(self, stmt):
+        stmt = stmt.replace('\n', ' ')
+        if stmt.startswith('\\'):
+            self.process(stmt)
+        else:
+            self.execute(stmt)
+
+cmd = CrateTestCmd(is_tty=False)
 
 
 CRATE_HTTP_PORT = random_available_port()
@@ -36,7 +53,7 @@ def bash_transform(s):
     s = s.replace(':4200/', ':{0}/'.format(CRATE_HTTP_PORT))
     if s.startswith("crash"):
         s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
-        return ('cmd.onecmd("""{0}""");'.format(s.strip()))
+        return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
     return (
         r'import subprocess;'
         r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True))' % s) + '\n'
@@ -49,7 +66,7 @@ def crash_transform(s):
     if s.startswith('_'):
         return s[1:]
     s = s.replace(':4200', ':{0}'.format(CRATE_HTTP_PORT))
-    return ('cmd.onecmd("""{0}""");'.format(s.strip().strip(";")))
+    return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
 
 
 bash_parser = zc.customdoctests.DocTestParser(
@@ -63,7 +80,7 @@ class ConnectingCrateLayer(CrateLayer):
 
     def start(self):
         super(ConnectingCrateLayer, self).start()
-        cmd.do_connect(self.crate_servers[0])
+        cmd._connect(self.crate_servers[0])
 
 empty_layer = ConnectingCrateLayer('crate',
                          crate_home=crate_path(),
@@ -74,8 +91,7 @@ empty_layer = ConnectingCrateLayer('crate',
 
 def setUpLocations(test):
     test.globs['cmd'] = cmd
-
-    cmd.onecmd("""
+    cmd.stmt("""
         create table locations (
           id string primary key,
           name string,
@@ -93,15 +109,15 @@ def setUpLocations(test):
           ),
           index name_description_ft using fulltext(name, description) with (analyzer='english')
         ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
-    cmd.onecmd("delete from locations")
+    cmd.stmt("delete from locations")
     locations_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "locations.json"))
-    cmd.onecmd("""copy locations from '{0}'""".format(locations_file))
-    cmd.onecmd("""refresh table locations""")
+    cmd.stmt("""copy locations from '{0}'""".format(locations_file))
+    cmd.stmt("""refresh table locations""")
 
 
 def setUpUserVisits(test):
     test.globs['cmd'] = cmd
-    cmd.onecmd("""
+    cmd.stmt("""
         create table uservisits(
           id integer primary key,
           name string,
@@ -110,18 +126,17 @@ def setUpUserVisits(test):
         )
     """.strip())
     uservisits_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "uservisits.json"))
-    cmd.onecmd("""copy uservisits from '{0}'""".format(uservisits_file))
-    cmd.onecmd("""refresh table uservisits""")
+    cmd.stmt("""copy uservisits from '{0}'""".format(uservisits_file))
+    cmd.stmt("""refresh table uservisits""")
 
 
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
-    cmd.onecmd("""
+    cmd.stmt("""
         create table quotes (
           id integer primary key,
           quote string
-        ) clustered by(id) into 2 shards with(number_of_replicas=0)
-    """.strip())
+        ) clustered by(id) into 2 shards with(number_of_replicas=0)""")
 
     import_dir = '/tmp/import_data'
     if not os.path.isdir(import_dir):
@@ -160,7 +175,7 @@ def setUp(test):
 
 
 def tearDownDropQuotes(test):
-    cmd.onecmd("drop table quotes")
+    cmd.stmt("drop table quotes")
 
 
 def test_suite():

@@ -5,6 +5,20 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash version to 0.11.2 which contains following changes:
+
+    - added ``--format`` command line option
+      to support different response output formats such as
+      ``tabular``, ``raw``, ``json``, ``csv`` and ``mixed``
+
+    - BREAKING CHANGE
+      the ``CONNECT <host>`` client command was changed to ``\connect <host>``
+      see documentation for further details
+
+    - alternative cli implementation using prompt_toolkit
+
+    - added coloured printing when in interactive shell
+
  - Optimize OR queries which involve the cluster column.
 
  - Added support for the ``IF EXISTS`` clause to ``DROP TABLE`` and
