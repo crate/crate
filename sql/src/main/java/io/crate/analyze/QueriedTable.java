@@ -114,51 +114,45 @@ public class QueriedTable implements QueriedRelation {
             throw new IllegalArgumentException("a querySpec needs to have some outputs in order to create a new sub-relation");
         }
         List<Symbol> splitOutputs = Lists.newArrayList(splitForRelation(tableRelation, outputs).splitSymbols());
+        boolean pullDownLimit = true;
 
         OrderBy orderBy = querySpec.orderBy();
         if (orderBy != null) {
-            SplitContext splitContext = splitForRelation(tableRelation, orderBy.orderBySymbols());
-            addAllNew(splitOutputs, splitContext.mixedSplit);
-
-            if (!splitContext.directSplit.isEmpty()) {
-                rewriteOrderBy(querySpec, splitQuerySpec, splitContext);
-            }
+            pullDownLimit = splitOrderBy(tableRelation, querySpec, splitQuerySpec, splitOutputs, orderBy);
         }
 
         WhereClause where = querySpec.where();
         if (where != null && where.hasQuery()) {
-            QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(tableRelation, where.query());
-            if (splitQueries.relationQuery() != null) {
-                splitQuerySpec.where(new WhereClause(splitQueries.relationQuery()));
-                querySpec.where(new WhereClause(splitQueries.remainingQuery()));
-
-                SplitContext splitContext = splitForRelation(tableRelation, splitQueries.remainingQuery());
-                assert splitContext.directSplit.isEmpty();
-                splitOutputs.addAll(splitContext.mixedSplit);
-            } else {
-                splitQuerySpec.where(WhereClause.MATCH_ALL);
-            }
+            pullDownLimit = splitWhereClause(tableRelation, querySpec, splitQuerySpec, splitOutputs, pullDownLimit, where);
         } else {
             splitQuerySpec.where(WhereClause.MATCH_ALL);
         }
 
-
-        Integer limit = querySpec.limit();
-        if (limit != null) {
-            splitQuerySpec.limit(limit + querySpec.offset());
+        if (pullDownLimit) {
+            Integer limit = querySpec.limit();
+            if (limit != null) {
+                splitQuerySpec.limit(limit + querySpec.offset());
+            }
         }
-
         splitQuerySpec.outputs(splitOutputs);
         List<OutputName> outputNames = new ArrayList<>(splitOutputs.size());
         for (Symbol symbol : splitQuerySpec.outputs()) {
             outputNames.add(new OutputName(SymbolFormatter.format(symbol)));
         }
         QueriedTable queriedTable = new QueriedTable(name, tableRelation, outputNames, splitQuerySpec);
-        Map<Symbol, Field> fieldMap = new HashMap<>();
+        replaceFields(querySpec, splitQuerySpec, queriedTable);
+        return queriedTable;
+    }
+
+    private static void replaceFields(QuerySpec querySpec,
+                                      QuerySpec splitQuerySpec,
+                                      QueriedTable queriedTable) {
+        WhereClause where;
+        OrderBy orderBy;Map<Symbol, Field> fieldMap = new HashMap<>();
         for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
             fieldMap.put(splitQuerySpec.outputs().get(i), queriedTable.fields().get(i));
         }
-        FieldReplacingCtx fieldReplacingCtx = new FieldReplacingCtx(tableRelation, fieldMap);
+        FieldReplacingCtx fieldReplacingCtx = new FieldReplacingCtx(queriedTable.tableRelation, fieldMap);
         replaceFields(querySpec.outputs(), fieldReplacingCtx);
 
         where = querySpec.where();
@@ -169,7 +163,43 @@ public class QueriedTable implements QueriedRelation {
         if (orderBy != null) {
             replaceFields(orderBy.orderBySymbols(), fieldReplacingCtx);
         }
-        return queriedTable;
+    }
+
+    private static boolean splitWhereClause(TableRelation tableRelation,
+                                            QuerySpec querySpec,
+                                            QuerySpec splitQuerySpec,
+                                            List<Symbol> splitOutputs,
+                                            boolean pullDownLimit,
+                                            WhereClause where) {
+        QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(tableRelation, where.query());
+        if (splitQueries.relationQuery() != null) {
+            splitQuerySpec.where(new WhereClause(splitQueries.relationQuery()));
+            querySpec.where(new WhereClause(splitQueries.remainingQuery()));
+
+            SplitContext splitContext = splitForRelation(tableRelation, splitQueries.remainingQuery());
+            assert splitContext.directSplit.isEmpty();
+            splitOutputs.addAll(splitContext.mixedSplit);
+            pullDownLimit = pullDownLimit && splitContext.mixedSplit.isEmpty();
+        } else {
+            splitQuerySpec.where(WhereClause.MATCH_ALL);
+        }
+        return pullDownLimit;
+    }
+
+    private static boolean splitOrderBy(TableRelation tableRelation,
+                                        QuerySpec querySpec,
+                                        QuerySpec splitQuerySpec,
+                                        List<Symbol> splitOutputs,
+                                        OrderBy orderBy) {
+        boolean pullDownLimit;
+        SplitContext splitContext = splitForRelation(tableRelation, orderBy.orderBySymbols());
+        addAllNew(splitOutputs, splitContext.mixedSplit);
+        pullDownLimit = splitContext.mixedSplit.isEmpty();
+
+        if (!splitContext.directSplit.isEmpty()) {
+            rewriteOrderBy(querySpec, splitQuerySpec, splitContext);
+        }
+        return pullDownLimit;
     }
 
     /**
