@@ -133,32 +133,32 @@ def setUpUserVisits(test):
 def setUpArticles(test):
     test.globs['cmd'] = cmd
 
-    cmd.onecmd("""
+    cmd.stmt("""
         create table articles (
           id integer primary key,
           name string,
           price float
         ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
-    cmd.onecmd("delete from articles")
+    cmd.stmt("delete from articles")
     articles_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "articles.json"))
-    cmd.onecmd("""copy articles from '{0}'""".format(articles_file))
-    cmd.onecmd("""refresh table articles""")
+    cmd.stmt("""copy articles from '{0}'""".format(articles_file))
+    cmd.stmt("""refresh table articles""")
 
 
 def setUpColors(test):
     test.globs['cmd'] = cmd
 
-    cmd.onecmd("""
+    cmd.stmt("""
         create table colors (
           id integer primary key,
           name string,
           rgb string,
           coolness float
         ) with (number_of_replicas=0)""".strip())
-    cmd.onecmd("delete from colors")
+    cmd.stmt("delete from colors")
     colors_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "colors.json"))
-    cmd.onecmd("""copy colors from '{0}'""".format(colors_file))
-    cmd.onecmd("""refresh table colors""")
+    cmd.stmt("""copy colors from '{0}'""".format(colors_file))
+    cmd.stmt("""refresh table colors""")
 
 
 def setUpQuotes(test):
