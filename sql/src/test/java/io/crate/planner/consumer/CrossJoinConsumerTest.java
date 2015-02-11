@@ -25,9 +25,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
-import io.crate.exceptions.ValidationException;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.operator.OrOperator;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -36,6 +36,8 @@ import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
@@ -86,6 +88,12 @@ public class CrossJoinConsumerTest {
         PlanPrinter planPrinter = new PlanPrinter();
         System.out.println(planPrinter.print(plan));
         return (IterablePlan) plan;
+    }
+
+    @Test
+    public void testWhereWithNoMatchShouldReturnNoopPlan() throws Exception {
+        Plan plan = planner.plan(analyzer.analyze(SqlParser.createStatement("select * from users u1, users u2 where 1 = 2")));
+        assertThat(plan, instanceOf(NoopPlan.class));
     }
 
     @Test
@@ -275,9 +283,13 @@ public class CrossJoinConsumerTest {
 
     @Test
     public void testCrossJoinWhereWithJoinCondition() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("WhereClause contains a function or operator that involves more than 1 relation. This is not supported");
-        plan("select * from users t1 cross join users t2 where t1.id = 1 or t2.id = 2");
+        IterablePlan plan = plan("select * from users t1 cross join users t2 where t1.id = 1 or t2.id = 2");
+        NestedLoopNode nl = (NestedLoopNode) plan.iterator().next();
+
+        Projection projection = nl.projections().get(0);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        Symbol query = ((FilterProjection) projection).query();
+        assertThat(query, isFunction(OrOperator.NAME));
     }
 
     @Test
