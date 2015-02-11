@@ -24,7 +24,6 @@ package io.crate.planner.consumer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.symbol.*;
-import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -171,6 +170,27 @@ public class QuerySplitter {
         }
 
         @Override
+        public RelationCount visitMatchPredicate(MatchPredicate matchPredicate, RelationFieldCounterCtx context) {
+            int numThis = 0;
+            int numOther = 0;
+            for (Field field : matchPredicate.identBoostMap().keySet()) {
+                if (field.relation() == context.analyzedRelation) {
+                    numThis++;
+                } else {
+                    numOther++;
+                }
+            }
+            if (numOther > 0 && numThis > 0) {
+                throw new IllegalArgumentException("Must not use columns from more than 1 relation inside the MATCH predicate");
+            }
+            RelationCount relationCount = new RelationCount(numThis, numOther);
+            if (context.parents.isEmpty()) {
+                context.countMap.put(matchPredicate, relationCount);
+            }
+            return relationCount;
+        }
+
+        @Override
         protected RelationCount visitSymbol(Symbol symbol, RelationFieldCounterCtx context) {
             RelationCount relationCount = new RelationCount(0, 0);
             if (context.parents.isEmpty()) {
@@ -231,18 +251,17 @@ public class QuerySplitter {
         }
 
         @Override
-        public Symbol visitField(Field field, InternalSplitterCtx context) {
-            // for cases like: where t1.bool_field
-            if (!context.insideFunction && field.relation() == context.relation) {
-                assert field.valueType().equals(DataTypes.BOOLEAN);
-                context.relationQueryParts.add(field);
-                return Literal.newLiteral(true);
-            }
-            return field;
-        }
-
-        @Override
         protected Symbol visitSymbol(Symbol symbol, InternalSplitterCtx context) {
+            // for cases like: "where t1.bool_field"  or  "where match (t1.name...)"
+            if (!context.insideFunction) {
+                RelationCount relationCount = context.countMap.get(symbol);
+                assert relationCount != null : "relation count must be available";
+
+                if (relationCount.numOther == 0) {
+                    context.relationQueryParts.add(symbol);
+                    return Literal.newLiteral(true);
+                }
+            }
             return symbol;
         }
     }
