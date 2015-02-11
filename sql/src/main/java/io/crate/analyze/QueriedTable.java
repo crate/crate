@@ -144,7 +144,6 @@ public class QueriedTable implements QueriedRelation {
             splitQuerySpec.limit(limit + querySpec.offset());
         }
 
-
         splitQuerySpec.outputs(splitOutputs);
         List<OutputName> outputNames = new ArrayList<>(splitOutputs.size());
         for (Symbol symbol : splitQuerySpec.outputs()) {

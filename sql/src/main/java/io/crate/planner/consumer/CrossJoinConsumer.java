@@ -37,8 +37,12 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.types.DataType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class CrossJoinConsumer implements Consumer {
@@ -257,13 +261,19 @@ public class CrossJoinConsumer implements Consumer {
                 Integer leftOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(left.tableRelation()), Integer.MAX_VALUE);
                 Integer rightOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(right.tableRelation()), Integer.MAX_VALUE);
 
+                Plan leftPlan = consumingPlanner.plan(left);
+                Plan rightPlan = consumingPlanner.plan(right);
+                assert leftPlan != null && rightPlan != null;
                 NestedLoopNode nestedLoopNode = new NestedLoopNode(
-                        consumingPlanner.plan(left),
-                        consumingPlanner.plan(right),
+                        leftPlan,
+                        rightPlan,
                         leftOrderByPosition < rightOrderByPosition,
                         limit,
                         offset
                 );
+                nestedLoopNode.outputTypes(ImmutableList.<DataType>builder()
+                        .addAll(leftPlan.outputTypes())
+                        .addAll(rightPlan.outputTypes()).build());
                 orderByOrder.put(nestedLoopNode, Math.min(leftOrderByPosition, rightOrderByPosition));
                 return nestedLoopNode;
             } else if (queriedTables.size() > 2) {
@@ -274,13 +284,18 @@ public class CrossJoinConsumer implements Consumer {
                 Integer leftOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(queriedTable.tableRelation()), Integer.MAX_VALUE);
                 Integer rightOrderByPosition = MoreObjects.firstNonNull(orderByOrder.get(nestedLoopNode), Integer.MAX_VALUE);
 
+                Plan leftPlan = consumingPlanner.plan(queriedTable);
+                assert leftPlan != null;
                 NestedLoopNode newNestedLoopNode = new NestedLoopNode(
-                        consumingPlanner.plan(queriedTable),
+                        leftPlan,
                         nestedLoopPlan,
                         leftOrderByPosition < rightOrderByPosition,
                         limit,
                         offset
                 );
+                newNestedLoopNode.outputTypes(ImmutableList.<DataType>builder()
+                        .addAll(leftPlan.outputTypes())
+                        .addAll(nestedLoopNode.outputTypes()).build());
                 orderByOrder.put(newNestedLoopNode, Math.min(leftOrderByPosition, rightOrderByPosition));
                 return newNestedLoopNode;
             }
