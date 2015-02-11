@@ -21,6 +21,11 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
@@ -34,26 +39,40 @@ import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class QueriedTableTest {
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     private EvaluatingNormalizer normalizer;
+    private ExpressionAnalyzer expressionAnalyzer;
+    private ExpressionAnalysisContext context;
+    private TableRelation tr1;
+    private TableRelation tr2;
+    private TableInfo t1Info;
+    private TableInfo t2Info;
 
     @Before
     public void setUp() throws Exception {
@@ -61,6 +80,8 @@ public class QueriedTableTest {
                 .add(new ScalarFunctionModule())
                 .add(new OperatorModule())
                 .createInjector();
+
+        Functions functions = injector.getInstance(Functions.class);
         ReferenceResolver referenceResolver = new ReferenceResolver() {
 
             @Override
@@ -68,11 +89,56 @@ public class QueriedTableTest {
                 return null;
             }
         };
-        normalizer = new EvaluatingNormalizer(
-                injector.getInstance(Functions.class),
-                RowGranularity.CLUSTER,
-                referenceResolver
+        normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
+        t1Info = mock(TableInfo.class);
+        t2Info = mock(TableInfo.class);
+        tr1 = new TableRelation(t1Info);
+        tr2 = new TableRelation(t2Info);
+        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                new QualifiedName("t1"), tr1,
+                new QualifiedName("t2"), tr2
         );
+        context = new ExpressionAnalysisContext();
+        expressionAnalyzer = new ExpressionAnalyzer(
+                new AnalysisMetaData(functions, mock(ReferenceInfos.class), referenceResolver),
+                new ParameterContext(new Object[0], new Object[0][]),
+                new FullQualifedNameFieldProvider(sources)
+        );
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    @Test
+    public void testWhereClauseSplitWithMatchFunction() throws Exception {
+        when(t1Info.getReferenceInfo(new ColumnIdent("name"))).thenReturn(
+                new ReferenceInfo(new ReferenceIdent(new TableIdent("doc", "t1"), "name"), RowGranularity.DOC, DataTypes.STRING));
+
+        Field t1x = new Field(tr1, new ColumnIdent("x"), DataTypes.INTEGER);
+        Symbol symbol = expressionAnalyzer.convert(SqlParser.createExpression("match (name, 'search term')"), context);
+        QuerySpec querySpec = new QuerySpec()
+                .outputs(Arrays.<Symbol>asList(t1x))
+                .where(new WhereClause(symbol));
+
+        QueriedTable qt1 = QueriedTable.newSubRelation(new QualifiedName("t1"), tr1, querySpec);
+        assertThat(qt1.querySpec().where().query(), instanceOf(io.crate.planner.symbol.MatchPredicate.class));
+        assertThat(querySpec.where().hasQuery(), is(false));
+    }
+
+    @Test
+    public void testMatchWithColumnsFrom2Relations() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Must not use columns from more than 1 relation inside the MATCH predicate");
+
+        when(t1Info.getReferenceInfo(new ColumnIdent("name"))).thenReturn(
+                new ReferenceInfo(new ReferenceIdent(new TableIdent("doc", "t1"), "name"), RowGranularity.DOC, DataTypes.STRING));
+        when(t2Info.getReferenceInfo(new ColumnIdent("foobar"))).thenReturn(
+                new ReferenceInfo(new ReferenceIdent(new TableIdent("doc", "t2"), "foobar"), RowGranularity.DOC, DataTypes.STRING));
+
+        Field t1x = new Field(tr1, new ColumnIdent("x"), DataTypes.INTEGER);
+        Symbol symbol = expressionAnalyzer.convert(SqlParser.createExpression("match ((name, foobar), 'search term')"), context);
+        QuerySpec querySpec = new QuerySpec()
+                .outputs(Arrays.<Symbol>asList(t1x))
+                .where(new WhereClause(symbol));
+        QueriedTable.newSubRelation(new QualifiedName("t1"), tr1, querySpec);
     }
 
     @SuppressWarnings("ConstantConditions")
