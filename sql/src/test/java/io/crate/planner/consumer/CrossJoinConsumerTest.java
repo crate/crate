@@ -179,12 +179,7 @@ public class CrossJoinConsumerTest {
         for (DataType dataType : nl.outputTypes()) {
             assertThat(dataType, equalTo((DataType) DataTypes.STRING));
         }
-        assertThat(nl.left().outputTypes().size(), is(1));
-        assertThat(nl.right().outputTypes().size(), is(2));
-
-        NestedLoopNode innerNL = (NestedLoopNode) ((IterablePlan) nl.right()).iterator().next();
-        assertThat(innerNL.left().outputTypes().size(), is(1));
-        assertThat(innerNL.right().outputTypes().size(), is(1));
+        assertThat(nl.left().outputTypes().size() + nl.right().outputTypes().size(), is(3));
     }
 
     @Test
