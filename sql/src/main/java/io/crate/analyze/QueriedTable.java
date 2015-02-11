@@ -131,6 +131,10 @@ public class QueriedTable implements QueriedRelation {
             if (splitQueries.relationQuery() != null) {
                 splitQuerySpec.where(new WhereClause(splitQueries.relationQuery()));
                 querySpec.where(new WhereClause(splitQueries.remainingQuery()));
+
+                SplitContext splitContext = splitForRelation(tableRelation, splitQueries.remainingQuery());
+                assert splitContext.directSplit.isEmpty();
+                splitOutputs.addAll(splitContext.mixedSplit);
             } else {
                 splitQuerySpec.where(WhereClause.MATCH_ALL);
             }
@@ -157,6 +161,10 @@ public class QueriedTable implements QueriedRelation {
         FieldReplacingCtx fieldReplacingCtx = new FieldReplacingCtx(tableRelation, fieldMap);
         replaceFields(querySpec.outputs(), fieldReplacingCtx);
 
+        where = querySpec.where();
+        if (where != null && where.hasQuery()) {
+            querySpec.where(new WhereClause(replaceFields(where.query(), fieldReplacingCtx)));
+        }
         orderBy = querySpec.orderBy();
         if (orderBy != null) {
             replaceFields(orderBy.orderBySymbols(), fieldReplacingCtx);
@@ -225,9 +233,13 @@ public class QueriedTable implements QueriedRelation {
     }
 
 
+    private static Symbol replaceFields(Symbol symbol, FieldReplacingCtx fieldReplacingCtx) {
+        return FIELD_REPLACING_VISITOR.process(symbol, fieldReplacingCtx);
+    }
+
     private static void replaceFields(List<Symbol> outputs, FieldReplacingCtx fieldReplacingCtx) {
         for (int i = 0; i < outputs.size(); i++) {
-            outputs.set(i, FIELD_REPLACING_VISITOR.process(outputs.get(i), fieldReplacingCtx));
+            outputs.set(i, replaceFields(outputs.get(i), fieldReplacingCtx));
         }
     }
 
@@ -295,6 +307,12 @@ public class QueriedTable implements QueriedRelation {
         public Iterable<Symbol> splitSymbols() {
             return FluentIterable.from(directSplit).append(mixedSplit);
         }
+    }
+
+    private static SplitContext splitForRelation(AnalyzedRelation relation, Symbol symbol) {
+        SplitContext context = new SplitContext(relation);
+        SPLITTING_VISITOR.process(symbol, context);
+        return context;
     }
 
     private static SplitContext splitForRelation(AnalyzedRelation relation, Collection<? extends Symbol> symbols) {
