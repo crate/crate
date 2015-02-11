@@ -42,6 +42,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -143,13 +144,22 @@ public class CrossJoinConsumerTest {
 
     @Test
     public void testExplicitCrossJoinWith3Tables() throws Exception {
-        IterablePlan plan = plan("select * from users u1 cross join users u2 cross join users u3");
+        IterablePlan plan = plan("select u1.name, u2.name, u3.name from users u1 cross join users u2 cross join users u3");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
 
-        assertThat(nl.outputTypes().size(), is(21));
+        assertThat(nl.outputTypes().size(), is(3));
+        for (DataType dataType : nl.outputTypes()) {
+            assertThat(dataType, equalTo((DataType) DataTypes.STRING));
+        }
+        assertThat(nl.left().outputTypes().size(), is(1));
+        assertThat(nl.right().outputTypes().size(), is(2));
+
+        NestedLoopNode innerNL = (NestedLoopNode) ((IterablePlan) nl.right()).iterator().next();
+        assertThat(innerNL.left().outputTypes().size(), is(1));
+        assertThat(innerNL.right().outputTypes().size(), is(1));
     }
 
     @Test
