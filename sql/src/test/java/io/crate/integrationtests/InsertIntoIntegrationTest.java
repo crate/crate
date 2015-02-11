@@ -538,4 +538,20 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((int)response.rows()[3][1], is(4));
     }
 
+    @Test
+    public void testInsertFromSubQueryDistributedGroupBy() throws Exception {
+        this.setup.setUpCharacters();
+        waitNoPendingTasksOnAll();
+        execute("create table t (id int, name string)");
+        ensureGreen();
+        execute("insert into t (id, name) (select id, name from characters group by id, name)");
+        assertThat(response.rowCount(), is(4L));
+        refresh();
+        execute("select id, name from t order by id");
+        assertThat(response.rowCount(), is(4L));
+        assertThat((int)response.rows()[3][0], is(4));
+        assertThat((String)response.rows()[3][1], is("Arthur"));
+
+    }
+
 }

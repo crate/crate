@@ -22,6 +22,7 @@
 package io.crate.planner.consumer;
 
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.*;
@@ -35,18 +36,24 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.PlannerContextBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.ColumnIndexWriterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.planner.projection.builder.SplitPoints;
+import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -153,7 +160,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
             if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(table.querySpec().where(), null))) {
                 return NonDistributedGroupByConsumer.nonDistributedGroupBy(table, indexWriterProjection);
             } else if (groupedByClusteredColumnOrPrimaryKeys(table, tableRelation)) {
-                return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, tableRelation, whereClause, indexWriterProjection);
+                return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, tableRelation, indexWriterProjection);
             } else if (indexWriterProjection != null) {
                 return distributedWriterGroupBy(table, tableRelation, whereClause, indexWriterProjection, functions);
             } else {
@@ -179,108 +186,94 @@ public class InsertFromSubQueryConsumer implements Consumer {
                                                                  WhereClause whereClause,
                                                                  Projection writerProjection,
                                                                  Functions functions) {
-            boolean ignoreSorting = !table.querySpec().isLimited();
             GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
-            List<Symbol> groupBy = tableRelation.resolve(table.querySpec().groupBy());
+            List<Symbol> groupBy = table.querySpec().groupBy();
 
             tableRelation.validateOrderBy(table.querySpec().orderBy());
 
-            PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, groupBy, ignoreSorting)
-                    .output(tableRelation.resolve(table.querySpec().outputs()))
-                    .orderBy(tableRelation.resolveAndValidateOrderBy(table.querySpec().orderBy()));
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+
+            GroupProjection groupProjection = projectionBuilder.groupProjection(
+                    splitPoints.leaves(),
+                    table.querySpec().groupBy(),
+                    splitPoints.aggregates(),
+                    Aggregation.Step.ITER,
+                    Aggregation.Step.PARTIAL);
+            TableInfo tableInfo = tableRelation.tableInfo();
+            Routing routing = tableInfo.getRouting(whereClause, null);
+            CollectNode collectNode = PlanNodeBuilder.distributingCollect(
+                    tableInfo,
+                    table.querySpec().where(),
+                    splitPoints.leaves(),
+                    Lists.newArrayList(routing.nodes()),
+                    ImmutableList.<Projection>of(groupProjection)
+            );
+
+            // start: Reducer
+            List<Symbol> collectOutputs = new ArrayList<>(
+                    groupBy.size() +
+                            splitPoints.aggregates().size());
+            collectOutputs.addAll(groupBy);
+            collectOutputs.addAll(splitPoints.aggregates());
+
+            List<Projection> reducerProjections = new LinkedList<>();
+            reducerProjections.add(projectionBuilder.groupProjection(
+                    collectOutputs,
+                    table.querySpec().groupBy(),
+                    splitPoints.aggregates(),
+                    Aggregation.Step.PARTIAL,
+                    Aggregation.Step.FINAL));
+
+            OrderBy orderBy = table.querySpec().orderBy();
+            if (orderBy != null) {
+                table.tableRelation().validateOrderBy(orderBy);
+            }
 
             HavingClause havingClause = table.querySpec().having();
-            Symbol havingQuery = null;
             if(havingClause != null){
                 if (havingClause.noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table);
                 } else if (havingClause.hasQuery()){
-                    havingQuery = contextBuilder.having(havingClause.query());
+                    reducerProjections.add(projectionBuilder.filterProjection(
+                            collectOutputs,
+                            havingClause.query()
+                    ));
                 }
             }
-            TableInfo tableInfo = tableRelation.tableInfo();
-            Routing routing = tableInfo.getRouting(whereClause, null);
 
-            // collector
-            contextBuilder.addProjection(new GroupProjection(
-                    contextBuilder.groupBy(), contextBuilder.aggregations()));
-            CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                    tableInfo,
-                    whereClause,
-                    contextBuilder.toCollect(),
-                    Lists.newArrayList(routing.nodes()),
-                    contextBuilder.getAndClearProjections()
-            );
-
-            contextBuilder.nextStep();
-
-            // mergeNode for reducer
-
-            contextBuilder.addProjection(new GroupProjection(
-                    contextBuilder.groupBy(),
-                    contextBuilder.aggregations()));
-
-
-            if (havingQuery != null) {
-                FilterProjection fp = new FilterProjection(havingQuery);
-                fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), table.querySpec().outputs().size()));
-                contextBuilder.addProjection(fp);
-            }
-
-            boolean topNDone = false;
-            OrderBy orderBy = table.querySpec().orderBy();
             if (table.querySpec().isLimited()) {
-                topNDone = true;
-                TopNProjection topN;
                 int limit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset();
-                if (orderBy == null) {
-                    topN = new TopNProjection(limit, 0);
-                } else {
-                    topN = new TopNProjection(limit, 0,
-                            tableRelation.resolveAndValidateOrderBy(table.querySpec().orderBy()),
-                            orderBy.reverseFlags(),
-                            orderBy.nullsFirst()
-                    );
-                }
-                topN.outputs(contextBuilder.outputs());
-                contextBuilder.addProjection((topN));
+                reducerProjections.add(projectionBuilder.topNProjection(
+                        collectOutputs,
+                        orderBy,
+                        0,
+                        limit,
+                        table.querySpec().outputs()
+                ));
             } else {
-                contextBuilder.addProjection((writerProjection));
+                reducerProjections.add(writerProjection);
             }
 
-            MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, contextBuilder.getAndClearProjections());
+            MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, reducerProjections);
 
             // local merge on handler
+            List<Projection> handlerProjections = new ArrayList<>();
             if (table.querySpec().isLimited()) {
-                List<Symbol> outputs;
-                List<Symbol> orderBySymbols;
-                if (topNDone) {
-                    orderBySymbols = contextBuilder.passThroughOrderBy();
-                    outputs = contextBuilder.passThroughOutputs();
-                } else {
-                    orderBySymbols = contextBuilder.orderBy();
-                    outputs = contextBuilder.outputs();
-                }
-                // mergeNode handler
-                TopNProjection topN;
-                int limit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
-                if (orderBy == null) {
-                    topN = new TopNProjection(limit, table.querySpec().offset());
-                } else {
-                    topN = new TopNProjection(limit, table.querySpec().offset(),
-                            orderBySymbols,
-                            orderBy.reverseFlags(),
-                            orderBy.nullsFirst()
-                    );
-                }
-                topN.outputs(outputs);
-                contextBuilder.addProjection(topN);
-                contextBuilder.addProjection(writerProjection);
+                handlerProjections.add(projectionBuilder.topNProjection(
+                        table.querySpec().outputs(),
+                        orderBy,
+                        table.querySpec().offset(),
+                        firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                        table.querySpec().outputs()
+                ));
+                handlerProjections.add(writerProjection);
+
             } else {
                 // sum up distributed indexWriter results
-                contextBuilder.addProjection(QueryAndFetchConsumer.localMergeProjection(functions));
+                handlerProjections.add(QueryAndFetchConsumer.localMergeProjection(functions));
             }
-            MergeNode localMergeNode = PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), mergeNode);
+            MergeNode localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, mergeNode);
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,
