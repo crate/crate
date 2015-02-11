@@ -31,6 +31,7 @@ import io.crate.operation.operator.OrOperator;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.dql.ESGetNode;
@@ -114,6 +115,22 @@ public class CrossJoinConsumerTest {
 
         // what's left and right changes per test run... so just make sure the outputs are different
         assertNotEquals(left.outputTypes(), right.outputTypes());
+    }
+
+    @Test
+    public void testCrossJoinWithJoinCriteriaInOrderBy() throws Exception {
+        IterablePlan plan = plan("select u1.id + u2.id, u1.name from users u1, users u2 order by 1");
+        NestedLoopNode nl = (NestedLoopNode) plan.iterator().next();
+        TopNProjection topNProjection = (TopNProjection) nl.projections().get(0);
+
+        assertThat(topNProjection.isOrdered(), is(true));
+        Symbol orderBy = topNProjection.orderBy().get(0);
+        assertThat(orderBy, isFunction(AddFunction.NAME));
+        Function function = (Function) orderBy;
+
+        for (Symbol arg : function.arguments()) {
+            assertThat(arg, instanceOf(InputColumn.class));
+        }
     }
 
     @Test
