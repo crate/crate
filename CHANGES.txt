@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Sorting on a function that returns a boolean value could cause an error.
+
  - Updated crash version to 0.11.2 which contains following changes:
 
     - added ``--format`` command line option
