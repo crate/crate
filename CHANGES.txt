@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Sorting on a function that returns a boolean value could cause an error.
+
 2015/02/10 0.47.1
 =================
 

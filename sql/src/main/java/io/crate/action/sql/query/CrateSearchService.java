@@ -21,6 +21,7 @@
 
 package io.crate.action.sql.query;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
@@ -416,8 +417,8 @@ public class CrateSearchService extends InternalSearchService {
             @SuppressWarnings("unchecked")
             final List<LuceneCollectorExpression> expressions = inputContext.docLevelExpressions();
             final SortField.Type type = luceneTypeMap.get(function.valueType());
+            final SortField.Type reducedType = MoreObjects.firstNonNull(type, SortField.Type.DOC);
             final SortOrder sortOrder = new SortOrder(context.reverseFlag, context.nullFirst);
-            assert type != null : "Could not get lucene sort type for " + function.valueType();
 
             return new SortField(function.toString(), new IndexFieldData.XFieldComparatorSource() {
                 @Override
@@ -428,13 +429,13 @@ public class CrateSearchService extends InternalSearchService {
                             expressions,
                             functionInput,
                             function.valueType(),
-                            missingObject(sortOrder.missing(), reversed)
+                            type == null ? null : missingObject(sortOrder.missing(), reversed)
                     );
                 }
 
                 @Override
                 public SortField.Type reducedType() {
-                    return type;
+                    return reducedType;
                 }
             }, context.reverseFlag);
         }
