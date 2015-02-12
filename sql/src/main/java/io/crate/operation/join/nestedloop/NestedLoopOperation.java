@@ -37,6 +37,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.PlanPrinter;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.logging.ESLogger;
@@ -50,7 +51,9 @@ import java.util.List;
 
 public class NestedLoopOperation implements ProjectorUpstream {
 
-    public static final int DEFAULT_PAGE_SIZE = 1024;
+    public static final int MAX_PAGE_SIZE = 10000;
+
+    public static final int MIN_PAGE_SIZE = 1000;
 
     /**
      * [o, u, t, e, r] + [] = [o, u, t, e, r]
@@ -165,13 +168,10 @@ public class NestedLoopOperation implements ProjectorUpstream {
                 tasks.get(0) instanceof PageableTask) {
             // one pageable task, page it
             PageableTask task = (PageableTask) tasks.get(0);
-            if (logger.isTraceEnabled()) {
-                logger.trace("fetching page {} from source relation", pageInfo);
-            }
             task.start(pageInfo);
             return task.result();
         } else {
-            logger.trace("fetching from source relation");
+            logger.trace("fetching whole source relation - ignoring page", pageInfo);
             return this.taskExecutor.execute(tasks);
         }
     }
@@ -207,16 +207,22 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
         int rowsToProduce = strategy.rowsToProduce(pageInfo);
 
-        // this size is set arbitrarily to a value between 1 and DEFAULT_PAGE_SIZE
+        // this size is set arbitrarily to a value between MIN_ and MAX_PAGE_SIZE
         // we arbitrarily assume that the inner relation produces around 10 results
         // and we fetch all that is needed to fetch all others
-        final int outerPageSize = Math.max(1, Math.min(rowsToProduce / 10, DEFAULT_PAGE_SIZE));
+        final int outerPageSize = Math.max(MIN_PAGE_SIZE, Math.min(rowsToProduce / 10, MAX_PAGE_SIZE));
         final PageInfo outerPageInfo = PageInfo.firstPage(outerPageSize);
+        if (logger.isTraceEnabled()) {
+            logger.trace("fetching page {} from outer relation {}", outerPageInfo, new PlanPrinter().print(nestedLoopNode.outer()));
+        }
         List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, outerPageInfo);
 
-        int innerPageSize = Math.max(1, rowsToProduce/outerPageSize);
+        int innerPageSize = Math.max(MIN_PAGE_SIZE, Math.min(rowsToProduce/outerPageSize, MAX_PAGE_SIZE));
 
         final PageInfo innerPageInfo = PageInfo.firstPage(innerPageSize);
+        if (logger.isTraceEnabled()) {
+            logger.trace("fetching page {} from inner relation {}", innerPageInfo, new PlanPrinter().print(nestedLoopNode.inner()));
+        }
         List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, innerPageInfo);
 
         final SettableFuture<JoinContext> joinContextFuture = SettableFuture.create();

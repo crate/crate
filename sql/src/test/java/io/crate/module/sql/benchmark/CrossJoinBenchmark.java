@@ -38,7 +38,13 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-cross-joins-history", labelWith = LabelType.CUSTOM_KEY)
@@ -56,6 +62,10 @@ public class CrossJoinBenchmark extends BenchmarkBase{
 
     public static final String ARTICLE_INSERT_SQL_STMT = "INSERT INTO articles (id, name, price) Values (?, ?, ?)";
     public static final String COLORS_INSERT_SQL_STMT = "INSERT INTO colors (id, name, coolness) Values (?, ?, ?)";
+
+    public static final int ARTICLE_SIZE = 100000;
+    public static final int COLORS_SIZE = 100000;
+    public static final int SMALL_SIZE = 50000;
 
     @Before
     public void setUp() throws Exception {
@@ -79,9 +89,9 @@ public class CrossJoinBenchmark extends BenchmarkBase{
             execute("create table small (" +
                     "    info object as (size integer)" +
                     ")", new Object[0], false);
-            createSampleData(ARTICLE_INSERT_SQL_STMT, 10000);
-            createSampleData(COLORS_INSERT_SQL_STMT, 10000);
-            createSampleDataSmall(5000);
+            createSampleData(ARTICLE_INSERT_SQL_STMT, ARTICLE_SIZE);
+            createSampleData(COLORS_INSERT_SQL_STMT, COLORS_SIZE);
+            createSampleDataSmall(SMALL_SIZE);
             refresh(client());
         }
     }
@@ -176,4 +186,43 @@ public class CrossJoinBenchmark extends BenchmarkBase{
                 new SQLRequest("select articles.name, colors.name, articles.price from articles, colors where articles.price > 50")).actionGet();
     }
 
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testHighLimitAndOffset() throws Exception {
+        getClient(false).execute(SQLAction.INSTANCE,
+                new SQLRequest("select articles.name, colors.name from articles CROSS JOIN colors limit 50000 offset 40000")).actionGet();
+    }
+
+    private void executeConcurrently(int numConcurrent, final String stmt, int timeout, TimeUnit timeoutUnit) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(numConcurrent);
+        List<Callable<Object>> tasks = Collections.nCopies(numConcurrent, Executors.callable(new Runnable() {
+            @Override
+            public void run() {
+                getClient(false).execute(SQLAction.INSTANCE,
+                        new SQLRequest(stmt)).actionGet();
+            }
+        }));
+        executor.invokeAll(tasks);
+        executor.shutdown();
+        executor.awaitTermination(timeout, timeoutUnit);
+        executor.shutdownNow();
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void test10Concurrent() throws Exception {
+        executeConcurrently(10,
+                "select articles.name, colors.name, articles.price from articles, colors limit 40000 offset 10000",
+                2, TimeUnit.MINUTES
+        );
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void test100Concurrent() throws Exception {
+        executeConcurrently(100,
+                "select articles.name, colors.name, articles.price from articles, colors limit 40000 offset 10000",
+                4, TimeUnit.MINUTES
+        );
+    }
 }
