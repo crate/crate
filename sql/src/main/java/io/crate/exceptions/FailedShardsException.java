@@ -33,10 +33,6 @@ public class FailedShardsException extends RuntimeException implements CrateExce
         super(genMessage(shardFailures));
     }
 
-    public FailedShardsException(ShardOperationFailedException[] shardFailures, Throwable original) {
-        super(genMessage(shardFailures), original);
-    }
-
     private static String genMessage(ShardOperationFailedException[] shardFailures) {
         StringBuilder sb;
 
@@ -47,18 +43,22 @@ public class FailedShardsException extends RuntimeException implements CrateExce
         }
 
         List<String> errors = new ArrayList<>(shardFailures.length);
+        String table = null;
         for (ShardOperationFailedException shardFailure : shardFailures) {
             if (shardFailure == null) {
                 continue;
             }
             errors.add(shardFailure.shardId()+" ( "+shardFailure.reason()+" )");
+            table = shardFailure.index();
         }
 
+        if (errors.isEmpty() && table == null) {
+            return "query failed on unknown shard / table";
+        }
         sb.append(Joiner.on(", ").join(errors));
-        if(shardFailures[0].index() != null){
-            sb.append(" of table ").append(shardFailures[0].index());
+        if (table != null) {
+            sb.append(" of table ").append(table);
         }
-
         return sb.toString();
     }
 

@@ -35,6 +35,13 @@ import static org.junit.Assert.assertThat;
 public class FailedShardsExceptionTest {
 
     @Test
+    public void testThatGenMessageDoesNotRaiseNPEIfShardOperationFailedExceptionIsNull() throws Exception {
+        //noinspection ThrowableInstanceNeverThrown
+        FailedShardsException exception = new FailedShardsException(new ShardOperationFailedException[]{null});
+        assertThat(exception.getMessage(), is("query failed on unknown shard / table"));
+    }
+
+    @Test
     public void testShardFailureReasonIsNull() throws Exception {
         FailedShardsException exception = new FailedShardsException(new ShardOperationFailedException[]{new ShardOperationFailedException() {
             @Override
