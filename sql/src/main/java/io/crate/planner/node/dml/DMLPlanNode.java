@@ -72,4 +72,9 @@ public abstract class DMLPlanNode implements DQLPlanNode {
     public void outputTypes(List<DataType> outputTypes) {
         throw new UnsupportedOperationException("outputTypes cannot be modified on DMLPlanNodes");
     }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection is not supported on DMLPLanNodes");
+    }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dml.QueryAndFetch;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.DistributedGroupBy;
@@ -63,6 +64,10 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitDistributedGroupBy(DistributedGroupBy node, C context) {
+        return visitPlan(node, context);
+    }
+
+    public R visitInsertByQuery(InsertFromSubQuery node, C context) {
         return visitPlan(node, context);
     }
 }

@@ -22,10 +22,7 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -40,7 +37,6 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GlobalAggregate;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -96,7 +92,13 @@ public class GlobalAggregateConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return globalAggregates(table, table.tableRelation(), whereClause, null);
+            return globalAggregates(table, table.tableRelation(), whereClause);
+        }
+
+        @Override
+        public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, ConsumerContext context) {
+            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
+            return null;
         }
 
         @Override
@@ -111,8 +113,7 @@ public class GlobalAggregateConsumer implements Consumer {
 
     public static PlannedAnalyzedRelation globalAggregates(QueriedTable table,
                                                            TableRelation tableRelation,
-                                                           WhereClause whereClause,
-                                                           ColumnIndexWriterProjection indexWriterProjection){
+                                                           WhereClause whereClause) {
         assert noGroupBy(table.querySpec().groupBy()) : "must not have group by clause for global aggregate queries";
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
@@ -159,9 +160,6 @@ public class GlobalAggregateConsumer implements Consumer {
                 table.querySpec().outputs()
                 );
         projections.add(topNProjection);
-        if (indexWriterProjection != null) {
-            projections.add(indexWriterProjection);
-        }
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
         return new GlobalAggregate(collectNode, localMergeNode);
     }

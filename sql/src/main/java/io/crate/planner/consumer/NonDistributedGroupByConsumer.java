@@ -34,14 +34,12 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
-import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,9 +79,6 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
-            if (context.consumerContext.rootRelation() != table) {
-                return table;
-            }
             if (table.querySpec().groupBy() == null) {
                 return table;
             }
@@ -103,101 +98,101 @@ public class NonDistributedGroupByConsumer implements Consumer {
             }
 
             context.result = true;
-            return nonDistributedGroupBy(table, null);
+            return nonDistributedGroupBy(table, context);
+        }
+
+        @Override
+        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
+            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
+            return insertFromSubQueryAnalyzedStatement;
+
         }
 
         @Override
         protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
             return relation;
         }
-    }
 
-    /**
-     * Group by on System Tables (never needs distribution)
-     * or Group by on user tables (RowGranulariy.DOC) with only one node.
-     *
-     * produces:
-     *
-     * SELECT:
-     * Collect ( GroupProjection ITER -> PARTIAL )
-     * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
-     *
-     * INSERT FROM QUERY:
-     * Collect ( GroupProjection ITER -> PARTIAL )
-     * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], [TopN], IndexWriterProjection )
-     */
-    public static AnalyzedRelation nonDistributedGroupBy(QueriedTable table,
-                                                         @Nullable ColumnIndexWriterProjection indexWriterProjection) {
-        TableInfo tableInfo = table.tableRelation().tableInfo();
+        /**
+         * Group by on System Tables (never needs distribution)
+         * or Group by on user tables (RowGranulariy.DOC) with only one node.
+         *
+         * produces:
+         *
+         * SELECT:
+         * Collect ( GroupProjection ITER -> PARTIAL )
+         * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
+         *
+         */
+        private AnalyzedRelation nonDistributedGroupBy(QueriedTable table, Context context) {
+            TableInfo tableInfo = table.tableRelation().tableInfo();
 
-        GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
-        List<Symbol> groupBy = table.querySpec().groupBy();
+            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
+            List<Symbol> groupBy = table.querySpec().groupBy();
 
-        ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
-        SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
-        // mapper / collect
-        GroupProjection groupProjection = projectionBuilder.groupProjection(
-                splitPoints.leaves(),
-                table.querySpec().groupBy(),
-                splitPoints.aggregates(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL);
+            // mapper / collect
+            GroupProjection groupProjection = projectionBuilder.groupProjection(
+                    splitPoints.leaves(),
+                    table.querySpec().groupBy(),
+                    splitPoints.aggregates(),
+                    Aggregation.Step.ITER,
+                    Aggregation.Step.PARTIAL);
 
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                tableInfo,
-                table.querySpec().where(),
-                splitPoints.leaves(),
-                ImmutableList.<Projection>of(groupProjection)
-        );
-        // handler
-        List<Symbol> collectOutputs = new ArrayList<>(
-                groupBy.size() +
-                        splitPoints.aggregates().size());
-        collectOutputs.addAll(groupBy);
-        collectOutputs.addAll(splitPoints.aggregates());
+            CollectNode collectNode = PlanNodeBuilder.collect(
+                    tableInfo,
+                    table.querySpec().where(),
+                    splitPoints.leaves(),
+                    ImmutableList.<Projection>of(groupProjection)
+            );
+            // handler
+            List<Symbol> collectOutputs = new ArrayList<>(
+                    groupBy.size() +
+                            splitPoints.aggregates().size());
+            collectOutputs.addAll(groupBy);
+            collectOutputs.addAll(splitPoints.aggregates());
 
 
-        OrderBy orderBy = table.querySpec().orderBy();
-        if (orderBy != null) {
-            table.tableRelation().validateOrderBy(orderBy);
-        }
+            OrderBy orderBy = table.querySpec().orderBy();
+            if (orderBy != null) {
+                table.tableRelation().validateOrderBy(orderBy);
+            }
 
-        List<Projection> projections = new ArrayList<>();
-        projections.add(projectionBuilder.groupProjection(
-                collectOutputs,
-                table.querySpec().groupBy(),
-                splitPoints.aggregates(),
-                Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL
-        ));
+            List<Projection> projections = new ArrayList<>();
+            projections.add(projectionBuilder.groupProjection(
+                    collectOutputs,
+                    table.querySpec().groupBy(),
+                    splitPoints.aggregates(),
+                    Aggregation.Step.PARTIAL,
+                    Aggregation.Step.FINAL
+            ));
 
-        HavingClause havingClause = table.querySpec().having();
-        if (havingClause != null) {
-            if (havingClause.noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table);
-            } else if (havingClause.hasQuery()){
-                projections.add(projectionBuilder.filterProjection(
+            HavingClause havingClause = table.querySpec().having();
+            if (havingClause != null) {
+                if (havingClause.noMatch()) {
+                    return new NoopPlannedAnalyzedRelation(table);
+                } else if (havingClause.hasQuery()){
+                    projections.add(projectionBuilder.filterProjection(
+                            collectOutputs,
+                            havingClause.query()
+                    ));
+                }
+            }
+
+            if (context.consumerContext.rootRelation() == table){
+                projections.add(projectionBuilder.topNProjection(
                         collectOutputs,
-                        havingClause.query()
+                        orderBy,
+                        table.querySpec().offset(),
+                        table.querySpec().limit(),
+                        table.querySpec().outputs()
                 ));
             }
+            MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
+            return new NonDistributedGroupBy(collectNode, localMergeNode);
         }
-
-        if (indexWriterProjection != null){
-            projections.add(indexWriterProjection);
-        } else {
-            projections.add(projectionBuilder.topNProjection(
-                    collectOutputs,
-                    orderBy,
-                    table.querySpec().offset(),
-                    table.querySpec().limit(),
-                    table.querySpec().outputs()
-            ));
-        }
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
-        return new NonDistributedGroupBy(collectNode, localMergeNode);
     }
-
 
 }

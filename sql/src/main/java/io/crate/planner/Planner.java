@@ -87,10 +87,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Inject
-    public Planner(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
+    public Planner(ClusterService clusterService, AnalysisMetaData analysisMetaData, ConsumingPlanner consumingPlanner) {
         this.clusterService = clusterService;
         this.functions = analysisMetaData.functions();
-        this.consumingPlanner = new ConsumingPlanner(analysisMetaData);
+        this.consumingPlanner = consumingPlanner;
     }
 
     /**

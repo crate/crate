@@ -1024,13 +1024,14 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (id, name) (select name, count(*) from sys.nodes where name='Ford' group by name)");
-
-        MergeNode mergeNode = planNode.localMergeNode();
+        NonDistributedGroupBy nonDistributedGroupBy = (NonDistributedGroupBy)planNode.innerPlan();
+        MergeNode mergeNode = nonDistributedGroupBy.localMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(planNode.handlerMergeNode().isPresent(), is(false));
     }
 
     @Test (expected = UnsupportedFeatureException.class)
@@ -1060,10 +1061,10 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryDistributedGroupByWithoutLimit() throws Exception {
-        DistributedGroupBy planNode = (DistributedGroupBy) plan(
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (id, name) (select name, count(*) from users group by name)");
-
-        MergeNode mergeNode = planNode.reducerMergeNode();
+        DistributedGroupBy groupBy = (DistributedGroupBy)planNode.innerPlan();
+        MergeNode mergeNode = groupBy.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
@@ -1078,7 +1079,7 @@ public class PlannerTest {
         assertThat(projection.tableName(), is("users"));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
-        MergeNode localMergeNode = planNode.localMergeNode();
+        MergeNode localMergeNode = planNode.handlerMergeNode().get();
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
@@ -1087,10 +1088,10 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryDistributedGroupByPartitioned() throws Exception {
-        DistributedGroupBy planNode = (DistributedGroupBy) plan(
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into parted (id, date) (select id, date from users group by id, date)");
-
-        MergeNode mergeNode = planNode.reducerMergeNode();
+        DistributedGroupBy groupBy = (DistributedGroupBy)planNode.innerPlan();
+        MergeNode mergeNode = groupBy.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
@@ -1108,7 +1109,7 @@ public class PlannerTest {
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
         assertThat(projection.tableName(), is("parted"));
 
-        MergeNode localMergeNode = planNode.localMergeNode();
+        MergeNode localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -1118,9 +1119,10 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryGlobalAggregate() throws Exception {
-        GlobalAggregate planNode = (GlobalAggregate) plan("insert into users (name, id) (select arbitrary(name), count(*) from users)");
-
-        MergeNode mergeNode = planNode.mergeNode();
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
+                "insert into users (name, id) (select arbitrary(name), count(*) from users)");
+        GlobalAggregate globalAggregate = (GlobalAggregate)planNode.innerPlan();
+        MergeNode mergeNode = globalAggregate.mergeNode();
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
@@ -1138,15 +1140,18 @@ public class PlannerTest {
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
         assertThat(projection.tableName(), is("users"));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+
+        assertThat(planNode.handlerMergeNode().isPresent(), is(false));
     }
 
     @Test
     public void testInsertFromSubQueryESGet() throws Exception {
         // doesn't use ESGetNode but CollectNode.
         // Round-trip to handler can be skipped by writing from the shards directly
-        QueryAndFetch planNode = (QueryAndFetch) plan(
-                "insert into users (date, id, name) (select date, id, name from users where id=1)");;
-        CollectNode collectNode = planNode.collectNode();
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
+                "insert into users (date, id, name) (select date, id, name from users where id=1)");
+        QueryAndFetch queryAndFetch = (QueryAndFetch)planNode.innerPlan();
+        CollectNode collectNode = queryAndFetch.collectNode();
 
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
@@ -1160,7 +1165,7 @@ public class PlannerTest {
         assertThat(((InputColumn)projection.clusteredBy()).index(), is(1));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
-        MergeNode mergeNode = planNode.localMergeNode();
+        assertThat(planNode.handlerMergeNode().isPresent(), is(true));
     }
 
     @Test (expected = UnsupportedFeatureException.class)
@@ -1190,13 +1195,15 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryWithoutLimit() throws Exception {
-        QueryAndFetch planNode = (QueryAndFetch) plan(
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (date, id, name) (select date, id, name from users)");
-        CollectNode collectNode = planNode.collectNode();
+        QueryAndFetch queryAndFetch = (QueryAndFetch)planNode.innerPlan();
+        CollectNode collectNode = queryAndFetch.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
+        assertNull(queryAndFetch.localMergeNode());
 
-        MergeNode localMergeNode = planNode.localMergeNode();
+        MergeNode localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -1240,23 +1247,24 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromQueryWithPartitionedColumn() throws Exception {
-        QueryAndFetch planNode = (QueryAndFetch) plan(
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (id, date) (select id, date from parted)");
-
-        CollectNode collectNode = planNode.collectNode();
+        QueryAndFetch queryAndFetch = (QueryAndFetch)planNode.innerPlan();
+        CollectNode collectNode = queryAndFetch.collectNode();
         List<Symbol> toCollect = collectNode.toCollect();
         assertThat(toCollect.size(), is(2));
         assertThat(toCollect.get(0), isFunction("toLong"));
         assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc['id']"));
         assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
-            new ReferenceIdent(new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
+                new ReferenceIdent(new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
     }
 
     @Test
     public void testGroupByHavingInsertInto() throws Exception {
-        DistributedGroupBy planNode = (DistributedGroupBy) plan(
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
-        MergeNode mergeNode = planNode.reducerMergeNode();
+        DistributedGroupBy groupByNode = (DistributedGroupBy)planNode.innerPlan();
+        MergeNode mergeNode = groupByNode.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
@@ -1271,7 +1279,7 @@ public class PlannerTest {
         assertThat(inputColumn.index(), is(0));
         inputColumn = (InputColumn)filterProjection.outputs().get(1);
         assertThat(inputColumn.index(), is(1));
-        MergeNode localMergeNode = planNode.localMergeNode();
+        MergeNode localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));

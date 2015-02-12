@@ -816,15 +816,15 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertEquals("u", actualAnalysisColAliased.tableAlias());
         assertEquals("u", actualAnalysisOptionalAs.tableAlias());
         assertEquals(
-                ((Function)expectedanalysis.relation().querySpec().where().query()).arguments().get(0),
-                ((Function)actualanalysis.relation().querySpec().where().query()).arguments().get(0)
+                ((Function)expectedanalysis.rootRelation().querySpec().where().query()).arguments().get(0),
+                ((Function)actualanalysis.rootRelation().querySpec().where().query()).arguments().get(0)
         );
         assertEquals(
-                ((Function)expectedanalysis.relation().querySpec().where().query()).arguments().get(0),
+                ((Function)expectedanalysis.rootRelation().querySpec().where().query()).arguments().get(0),
                 ((Function)actualAnalysisColAliased.whereClause().query()).arguments().get(0)
         );
         assertEquals(
-                ((Function) expectedanalysis.relation().querySpec().where().query()).arguments().get(0),
+                ((Function) expectedanalysis.rootRelation().querySpec().where().query()).arguments().get(0),
                 ((Function) actualAnalysisOptionalAs.whereClause().query()).arguments().get(0)
         );
     }

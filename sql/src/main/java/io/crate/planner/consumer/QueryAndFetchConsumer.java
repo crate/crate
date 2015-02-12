@@ -37,12 +37,10 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.QueryAndFetch;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -50,7 +48,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -91,7 +88,6 @@ public class QueryAndFetchConsumer implements Consumer {
         }
 
 
-
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
             TableRelation tableRelation = table.tableRelation();
@@ -108,18 +104,18 @@ public class QueryAndFetchConsumer implements Consumer {
             }
             if (table.querySpec().hasAggregates()) {
                 context.result = true;
-                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClause, null);
+                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClause);
             } else {
-               if(tableInfo.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
-                        tableInfo.getRouting(whereClause, null).hasLocations() &&
-                        !tableInfo.schemaInfo().systemSchema()){
-                   return table;
-               }
-
                context.result = true;
-               return QueryAndFetchConsumer.normalSelect(table.querySpec(), whereClause, tableRelation,
-                       null, analysisMetaData.functions());
+               return normalSelect(table, whereClause, tableRelation, context);
             }
+        }
+
+        @Override
+        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement,
+                                                     Context context) {
+            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
+            return insertFromSubQueryAnalyzedStatement;
         }
 
         @Override
@@ -144,107 +140,104 @@ public class QueryAndFetchConsumer implements Consumer {
                 return null;
             }
         }
-    }
 
+        private AnalyzedRelation normalSelect(QueriedTable table,
+                                              WhereClause whereClause,
+                                              TableRelation tableRelation,
+                                              Context context){
+            QuerySpec querySpec = table.querySpec();
+            TableInfo tableInfo = tableRelation.tableInfo();
 
-    public static AnalyzedRelation normalSelect(QuerySpec querySpec,
-                                                WhereClause whereClause,
-                                                TableRelation tableRelation,
-                                                @Nullable ColumnIndexWriterProjection indexWriterProjection,
-                                                Functions functions){
-        TableInfo tableInfo = tableRelation.tableInfo();
-
-        List<Symbol> outputSymbols;
-        if (tableInfo.schemaInfo().systemSchema()) {
-            outputSymbols = tableRelation.resolve(querySpec.outputs());
-        } else {
-            outputSymbols = new ArrayList<>(querySpec.outputs().size());
-            for (Symbol symbol : querySpec.outputs()) {
-                outputSymbols.add(DocReferenceConverter.convertIfPossible(tableRelation.resolve(symbol), tableInfo));
+            List<Symbol> outputSymbols;
+            if (tableInfo.schemaInfo().systemSchema()) {
+                outputSymbols = tableRelation.resolve(querySpec.outputs());
+            } else {
+                outputSymbols = new ArrayList<>(querySpec.outputs().size());
+                for (Symbol symbol : querySpec.outputs()) {
+                    outputSymbols.add(DocReferenceConverter.convertIfPossible(tableRelation.resolve(symbol), tableInfo));
+                }
             }
-        }
-        CollectNode collectNode;
-        MergeNode mergeNode;
-        OrderBy orderBy = querySpec.orderBy();
-        if (indexWriterProjection != null) {
-            // insert directly from shards
-            assert !querySpec.isLimited() : "insert from sub query with limit or order by is not supported. " +
-                    "Analyzer should have thrown an exception already.";
+            CollectNode collectNode;
+            MergeNode mergeNode = null;
+            OrderBy orderBy = querySpec.orderBy();
+            if (context.consumerContext.rootRelation() != table) {
+                // insert directly from shards
+                assert !querySpec.isLimited() : "insert from sub query with limit or order by is not supported. " +
+                        "Analyzer should have thrown an exception already.";
 
-            ImmutableList<Projection> projections = ImmutableList.<Projection>of(indexWriterProjection);
-            collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, projections);
-            // use aggregation projection to merge node results (number of inserted rows)
-            mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(localMergeProjection(functions)), collectNode);
-        } else if (querySpec.isLimited() || orderBy != null) {
-            /**
-             * select id, name, order by id, date
-             *
-             * toCollect:       [id, name, date]            // includes order by symbols, that aren't already selected
-             * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectNode
-             * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
-             * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
-             */
-            List<Symbol> toCollect;
-            List<Symbol> orderByInputColumns = null;
-            if (orderBy != null){
-                List<Symbol> orderBySymbols = tableRelation.resolve(orderBy.orderBySymbols());
-                toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
-                toCollect.addAll(outputSymbols);
-                // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
-                for (Symbol orderBySymbol : orderBySymbols) {
-                    if (!toCollect.contains(orderBySymbol)) {
-                        toCollect.add(orderBySymbol);
+                ImmutableList<Projection> projections = ImmutableList.<Projection>of();
+                collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, projections);
+            } else if (querySpec.isLimited() || orderBy != null) {
+                /**
+                 * select id, name, order by id, date
+                 *
+                 * toCollect:       [id, name, date]            // includes order by symbols, that aren't already selected
+                 * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectNode
+                 * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
+                 * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
+                 */
+                List<Symbol> toCollect;
+                List<Symbol> orderByInputColumns = null;
+                if (orderBy != null){
+                    List<Symbol> orderBySymbols = tableRelation.resolve(orderBy.orderBySymbols());
+                    toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
+                    toCollect.addAll(outputSymbols);
+                    // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
+                    for (Symbol orderBySymbol : orderBySymbols) {
+                        if (!toCollect.contains(orderBySymbol)) {
+                            toCollect.add(orderBySymbol);
+                        }
                     }
+                    orderByInputColumns = new ArrayList<>();
+                    for (Symbol symbol : orderBySymbols) {
+                        orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
+                    }
+                } else {
+                    toCollect = new ArrayList<>(outputSymbols.size());
+                    toCollect.addAll(outputSymbols);
                 }
-                orderByInputColumns = new ArrayList<>();
-                for (Symbol symbol : orderBySymbols) {
-                    orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
+
+                List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
+                for (int i = 0; i < toCollect.size(); i++) {
+                    allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
                 }
-            } else {
-                toCollect = new ArrayList<>(outputSymbols.size());
-                toCollect.addAll(outputSymbols);
-            }
+                List<Symbol> finalOutputs = new ArrayList<>(outputSymbols.size());  // final outputs on handler after sort
+                for (int i = 0; i < outputSymbols.size(); i++) {
+                    finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
+                }
 
-            List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
-            for (int i = 0; i < toCollect.size(); i++) {
-                allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
-            }
-            List<Symbol> finalOutputs = new ArrayList<>(outputSymbols.size());  // final outputs on handler after sort
-            for (int i = 0; i < outputSymbols.size(); i++) {
-                finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
-            }
+                // if we have an offset we have to get as much docs from every node as we have offset+limit
+                // otherwise results will be wrong
+                TopNProjection tnp;
+                int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
+                if (orderBy == null){
+                    tnp = new TopNProjection(querySpec.offset() + limit, 0);
+                } else {
+                    tnp = new TopNProjection(querySpec.offset() + limit, 0,
+                            orderByInputColumns,
+                            orderBy.reverseFlags(),
+                            orderBy.nullsFirst()
+                    );
+                }
+                tnp.outputs(allOutputs);
+                collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
-            // if we have an offset we have to get as much docs from every node as we have offset+limit
-            // otherwise results will be wrong
-            TopNProjection tnp;
-            int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
-            if (orderBy == null){
-                tnp = new TopNProjection(querySpec.offset() + limit, 0);
+                if (orderBy == null) {
+                    tnp = new TopNProjection(limit, querySpec.offset());
+                } else {
+                    tnp = new TopNProjection(limit, querySpec.offset(),
+                            orderByInputColumns,
+                            orderBy.reverseFlags(),
+                            orderBy.nullsFirst());
+                }
+                tnp.outputs(finalOutputs);
+                mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode);
             } else {
-                tnp = new TopNProjection(querySpec.offset() + limit, 0,
-                        orderByInputColumns,
-                        orderBy.reverseFlags(),
-                        orderBy.nullsFirst()
-                );
+                collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, ImmutableList.<Projection>of());
+                mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
             }
-            tnp.outputs(allOutputs);
-            collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, ImmutableList.<Projection>of(tnp));
-
-            if (orderBy == null) {
-                tnp = new TopNProjection(limit, querySpec.offset());
-            } else {
-                tnp = new TopNProjection(limit, querySpec.offset(),
-                        orderByInputColumns,
-                        orderBy.reverseFlags(),
-                        orderBy.nullsFirst());
-            }
-            tnp.outputs(finalOutputs);
-            mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode);
-        } else {
-            collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, ImmutableList.<Projection>of());
-            mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
+            return new QueryAndFetch(collectNode, mergeNode);
         }
-        return new QueryAndFetch(collectNode, mergeNode);
     }
 
     public static AggregationProjection localMergeProjection(Functions functions) {

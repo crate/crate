@@ -38,7 +38,6 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
-import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -86,9 +85,6 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
-            if (context.consumerContext.rootRelation() != table) {
-                return table;
-            }
             if (table.querySpec().groupBy() == null) {
                 return table;
             }
@@ -103,124 +99,122 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 return table;
             }
             context.result = true;
-            return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), null);
+            return optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), context.consumerContext);
         }
 
+        @Override
+        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
+            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
+            return insertFromSubQueryAnalyzedStatement;
+        }
 
         @Override
         protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
             return relation;
         }
 
+        /**
+         * grouping on doc tables by clustered column or primary keys, no distribution needed
+         * only one aggregation step as the mappers (shards) have row-authority
+         *
+         * produces:
+         *
+         * SELECT:
+         * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
+         * LocalMergeNode ( TopN )
+         */
+        private AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ConsumerContext context) {
+            assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
+            TableInfo tableInfo = tableRelation.tableInfo();
+            GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
+            List<Symbol> groupBy = table.querySpec().groupBy();
 
-    }
+            boolean ignoreSorting = context.rootRelation() != table
+                    && table.querySpec().limit() == null
+                    && table.querySpec().offset() == TopN.NO_OFFSET;
 
-    /**
-     * grouping on doc tables by clustered column or primary keys, no distribution needed
-     * only one aggregation step as the mappers (shards) have row-authority
-     *
-     * produces:
-     *
-     * SELECT:
-     * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
-     * LocalMergeNode ( TopN )
-     *
-     * INSERT FROM QUERY:
-     * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
-     * LocalMergeNode ( [TopN], IndexWriterProjection )
-     */
-    public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ColumnIndexWriterProjection indexWriterProjection) {
-        assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
-        TableInfo tableInfo = tableRelation.tableInfo();
-        GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
-        List<Symbol> groupBy = table.querySpec().groupBy();
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
-        boolean ignoreSorting = indexWriterProjection != null
-                && table.querySpec().limit() == null
-                && table.querySpec().offset() == TopN.NO_OFFSET;
+            // mapper / collect
+            List<Symbol> collectOutputs = new ArrayList<>(
+                    groupBy.size() +
+                            splitPoints.aggregates().size());
+            collectOutputs.addAll(groupBy);
+            collectOutputs.addAll(splitPoints.aggregates());
 
-        ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
-        SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+            OrderBy orderBy = table.querySpec().orderBy();
+            if (orderBy != null) {
+                table.tableRelation().validateOrderBy(orderBy);
+            }
 
-        // mapper / collect
-        List<Symbol> collectOutputs = new ArrayList<>(
-                groupBy.size() +
-                splitPoints.aggregates().size());
-        collectOutputs.addAll(groupBy);
-        collectOutputs.addAll(splitPoints.aggregates());
+            List<Projection> projections = new ArrayList<>();
+            GroupProjection groupProjection = projectionBuilder.groupProjection(
+                    splitPoints.leaves(),
+                    table.querySpec().groupBy(),
+                    splitPoints.aggregates(),
+                    Aggregation.Step.ITER,
+                    Aggregation.Step.FINAL
+            );
+            groupProjection.setRequiredGranularity(RowGranularity.SHARD);
+            projections.add(groupProjection);
 
-        OrderBy orderBy = table.querySpec().orderBy();
-        if (orderBy != null) {
-            table.tableRelation().validateOrderBy(orderBy);
-        }
+            HavingClause havingClause = table.querySpec().having();
+            if(havingClause != null){
+                if (havingClause.noMatch()) {
+                    return new NoopPlannedAnalyzedRelation(table);
+                } else if (havingClause.hasQuery()){
+                    FilterProjection fp = projectionBuilder.filterProjection(
+                            collectOutputs,
+                            havingClause.query()
+                    );
+                    fp.requiredGranularity(RowGranularity.SHARD);
+                    projections.add(fp);
+                }
+            }
+            // mapper / collect
+            // use topN on collector if needed
+            boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
+                    collectOutputs.containsAll(table.querySpec().outputs());
+            boolean collectorTopN = table.querySpec().limit() != null || table.querySpec().offset() > 0 || !outputsMatch;
 
-        List<Projection> projections = new ArrayList<>();
-        GroupProjection groupProjection = projectionBuilder.groupProjection(
-                splitPoints.leaves(),
-                table.querySpec().groupBy(),
-                splitPoints.aggregates(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.FINAL
-        );
-        groupProjection.setRequiredGranularity(RowGranularity.SHARD);
-        projections.add(groupProjection);
-
-        HavingClause havingClause = table.querySpec().having();
-        if(havingClause != null){
-            if (havingClause.noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table);
-            } else if (havingClause.hasQuery()){
-                FilterProjection fp = projectionBuilder.filterProjection(
+            if(collectorTopN) {
+                projections.add(projectionBuilder.topNProjection(
                         collectOutputs,
-                        havingClause.query()
-                );
-                fp.requiredGranularity(RowGranularity.SHARD);
-                projections.add(fp);
+                        orderBy,
+                        0, // no offset
+                        firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset(),
+                        table.querySpec().outputs()
+                ));
             }
-        }
-        // mapper / collect
-        // use topN on collector if needed
-        boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
-                collectOutputs.containsAll(table.querySpec().outputs());
-        boolean collectorTopN = table.querySpec().limit() != null || table.querySpec().offset() > 0 || !outputsMatch;
 
-        if(collectorTopN) {
-           projections.add(projectionBuilder.topNProjection(
-                    collectOutputs,
-                    orderBy,
-                    0, // no offset
-                    firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset(),
-                    table.querySpec().outputs()
-           ));
-        }
-
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                tableInfo,
-                table.querySpec().where(),
-                splitPoints.leaves(),
-                ImmutableList.copyOf(projections)
-        );
-        // handler
-        List<Projection> handlerProjections = new ArrayList<>();
-        if (!ignoreSorting) {
-            List<Symbol> inputs;
-            if(collectorTopN){
-                inputs = table.querySpec().outputs();
-            } else {
-                inputs = collectOutputs;
+            CollectNode collectNode = PlanNodeBuilder.collect(
+                    tableInfo,
+                    table.querySpec().where(),
+                    splitPoints.leaves(),
+                    ImmutableList.copyOf(projections)
+            );
+            // handler
+            List<Projection> handlerProjections = new ArrayList<>();
+            if (!ignoreSorting) {
+                List<Symbol> inputs;
+                if(collectorTopN){
+                    inputs = table.querySpec().outputs();
+                } else {
+                    inputs = collectOutputs;
+                }
+                handlerProjections.add(projectionBuilder.topNProjection(
+                        inputs,
+                        orderBy,
+                        table.querySpec().offset(),
+                        firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                        table.querySpec().outputs()
+                ));
             }
-            handlerProjections.add(projectionBuilder.topNProjection(
-                    inputs,
-                    orderBy,
-                    table.querySpec().offset(),
-                    firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    table.querySpec().outputs()
-            ));
+            MergeNode localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode);
+            return new NonDistributedGroupBy(collectNode, localMergeNode);
         }
-        if (indexWriterProjection != null) {
-            handlerProjections.add(indexWriterProjection);
-        }
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode);
-        return new NonDistributedGroupBy(collectNode, localMergeNode);
+
+
     }
 }

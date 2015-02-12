@@ -84,10 +84,6 @@ public class DistributedGroupByConsumer implements Consumer {
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
-            // Test if statement is root relation because the rootRelation will be replaced with the returned plan
-            if (context.consumerContext.rootRelation() != table) {
-                return table;
-            }
             List<Symbol> groupBy = table.querySpec().groupBy();
             if (groupBy == null) {
                 return table;
@@ -129,7 +125,7 @@ public class DistributedGroupByConsumer implements Consumer {
             // start: Reducer
             List<Symbol> collectOutputs = new ArrayList<>(
                     groupBy.size() +
-                    splitPoints.aggregates().size());
+                            splitPoints.aggregates().size());
             collectOutputs.addAll(groupBy);
             collectOutputs.addAll(splitPoints.aggregates());
 
@@ -160,33 +156,43 @@ public class DistributedGroupByConsumer implements Consumer {
                 }
             }
 
-            reducerProjections.add(projectionBuilder.topNProjection(
-                    collectOutputs,
-                    orderBy,
-                    0,
-                    MoreObjects.firstNonNull(table.querySpec().limit(),
-                            Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset(),
-                    table.querySpec().outputs()));
-
+            boolean isRootRelation = context.consumerContext.rootRelation() == table;
+            if (isRootRelation) {
+                reducerProjections.add(projectionBuilder.topNProjection(
+                        collectOutputs,
+                        orderBy,
+                        0,
+                        MoreObjects.firstNonNull(table.querySpec().limit(),
+                                Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset(),
+                        table.querySpec().outputs()));
+            }
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
                     collectNode,
                     reducerProjections);
             // end: Reducer
 
-            TopNProjection topN = projectionBuilder.topNProjection(
-                    table.querySpec().outputs(),
-                    orderBy,
-                    table.querySpec().offset(),
-                    table.querySpec().limit(),
-                    null);
-            MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
-
+            MergeNode localMergeNode = null;
+            if(isRootRelation) {
+                TopNProjection topN = projectionBuilder.topNProjection(
+                        table.querySpec().outputs(),
+                        orderBy,
+                        table.querySpec().offset(),
+                        table.querySpec().limit(),
+                        null);
+                localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
+            }
             context.result = true;
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,
                     localMergeNode
             );
+        }
+
+        @Override
+        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
+            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
+            return insertFromSubQueryAnalyzedStatement;
         }
 
         @Override

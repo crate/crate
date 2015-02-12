@@ -19,62 +19,63 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dql;
+package io.crate.planner.node.dml;
 
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
+
+import com.google.common.base.Optional;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class GlobalAggregate implements PlannedAnalyzedRelation, Plan {
+public class InsertFromSubQuery implements PlannedAnalyzedRelation, Plan {
 
-    private final CollectNode collectNode;
-    private MergeNode mergeNode;
 
-    public GlobalAggregate(CollectNode collectNode, MergeNode mergeNode) {
-        this.collectNode = collectNode;
-        this.mergeNode = mergeNode;
-    }
+    private final Optional<MergeNode> handlerMergeNode;
 
-    public CollectNode collectNode() {
-        return collectNode;
-    }
+    private final Plan innerPlan;
 
-    public MergeNode mergeNode() {
-        return mergeNode;
+    public InsertFromSubQuery(Plan innerPlan, @Nullable MergeNode handlerMergeNode) {
+        this.innerPlan = innerPlan;
+        this.handlerMergeNode = Optional.fromNullable(handlerMergeNode);
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitGlobalAggregate(this, context);
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitPlanedAnalyzedRelation(this, context);
+        return visitor.visitInsertByQuery(this, context);
     }
 
     @Nullable
     @Override
     public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField not supported on GlobalAggregateNode");
+        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override
     public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField not supported on GlobalAggregateNode");
+        throw new UnsupportedOperationException("getWritableField is not supported");
     }
 
     @Override
     public List<Field> fields() {
-        throw new UnsupportedOperationException("fields not supported on GlobalAggregateNode");
+        throw new UnsupportedOperationException("fields is not supported");
+    }
+
+    public Plan innerPlan() {
+        return innerPlan;
+    }
+
+    public Optional<MergeNode> handlerMergeNode() {
+        return handlerMergeNode;
     }
 
     @Override
@@ -83,18 +84,23 @@ public class GlobalAggregate implements PlannedAnalyzedRelation, Plan {
     }
 
     @Override
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+        return visitor.visitPlanedAnalyzedRelation(this, context);
+    }
+
+    @Override
     public void addProjection(Projection projection) {
-        mergeNode.projections().add(projection);
+        throw new UnsupportedOperationException("addingProjection not supported");
     }
 
     @Override
     public boolean resultIsDistributed() {
-        return mergeNode == null;
+        throw new UnsupportedOperationException("resultIsDistributed is not supported");
     }
 
     @Override
     public DQLPlanNode resultNode() {
-        return mergeNode == null ? collectNode : mergeNode;
+        throw new UnsupportedOperationException("resultNode is not supported");
     }
 
 }

@@ -58,8 +58,20 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
         return projections != null && projections.size() > 0;
     }
 
+    @Override
     public List<Projection> projections() {
         return projections;
+    }
+
+    public void projections(List<Projection> projections) {
+        this.projections = projections;
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        List<Projection> projections = new ArrayList<>(this.projections);
+        projections.add(projection);
+        this.projections = ImmutableList.copyOf(projections);
     }
 
     public Optional<Projection> finalProjection() {
@@ -70,9 +82,6 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
         }
     }
 
-    public void projections(List<Projection> projections) {
-        this.projections = projections;
-    }
 
     public void outputTypes(List<DataType> outputTypes) {
         this.outputTypes = outputTypes;

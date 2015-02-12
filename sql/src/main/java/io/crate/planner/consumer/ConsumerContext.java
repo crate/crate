@@ -36,8 +36,8 @@ public class ConsumerContext {
         this.rootRelation = rootRelation;
     }
 
-    public void rootRelation(AnalyzedRelation rootRelation) {
-        this.rootRelation = rootRelation;
+    public void rootRelation(AnalyzedRelation relation) {
+        this.rootRelation = relation;
     }
 
     public AnalyzedRelation rootRelation() {

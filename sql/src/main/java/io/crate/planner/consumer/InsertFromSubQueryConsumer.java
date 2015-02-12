@@ -24,47 +24,29 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Routing;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.DistributedGroupBy;
-import io.crate.planner.node.dql.GroupByConsumer;
+import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
-import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.builder.ProjectionBuilder;
-import io.crate.planner.projection.builder.SplitPoints;
-import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.ImmutableSettings;
-
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 
 public class InsertFromSubQueryConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public InsertFromSubQueryConsumer(AnalysisMetaData analysisMetaData){
-        visitor = new Visitor(analysisMetaData);
+    public InsertFromSubQueryConsumer(AnalysisMetaData analysisMetaData, ConsumingPlanner consumingPlanner){
+        visitor = new Visitor(analysisMetaData, consumingPlanner);
     }
 
     @Override
@@ -83,20 +65,22 @@ public class InsertFromSubQueryConsumer implements Consumer {
         public Context(ConsumerContext context){
             this.consumerContext = context;
         }
-
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
 
         private final AnalysisMetaData analysisMetaData;
 
-        public Visitor(AnalysisMetaData analysisMetaData){
+        private final ConsumingPlanner consumingPlanner;
+
+        public Visitor(AnalysisMetaData analysisMetaData, ConsumingPlanner consumingPlanner){
             this.analysisMetaData = analysisMetaData;
+            this.consumingPlanner = consumingPlanner;
         }
 
         @Override
         public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
-            List<ColumnIdent> columns = Lists.transform(insertFromSubQueryAnalyzedStatement.columns(), new com.google.common.base.Function<Reference, ColumnIdent>() {
+            Lists.transform(insertFromSubQueryAnalyzedStatement.columns(), new com.google.common.base.Function<Reference, ColumnIdent>() {
                 @Nullable
                 @Override
                 public ColumnIdent apply(@Nullable Reference input) {
@@ -120,32 +104,23 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
             context.insertVisited = true;
             context.indexWriterProjection = indexWriterProjection;
-            return insertFromSubQueryAnalyzedStatement.subQueryRelation().accept(this, context);
-        }
 
-        @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
-            if(!context.insertVisited){
-                return table;
-            }
-            TableRelation tableRelation = table.tableRelation();
-            if (tableRelation == null) {
-                return table;
-            }
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            WhereClause whereClause = whereClauseAnalyzer.analyze(table.querySpec().where());
-            if(whereClause.version().isPresent()){
-                context.consumerContext.validationException(new VersionInvalidException());
-                return table;
-            }
-            context.result = true;
-            if(table.querySpec().groupBy()!=null){
-                return groupBy(table, tableRelation, whereClause, context.indexWriterProjection, analysisMetaData.functions());
-            } else if(table.querySpec().hasAggregates()){
-                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, whereClause, context.indexWriterProjection);
+            AnalyzedRelation innerRelation = insertFromSubQueryAnalyzedStatement.subQueryRelation();
+            if (innerRelation instanceof PlannedAnalyzedRelation) {
+                PlannedAnalyzedRelation analyzedRelation = (PlannedAnalyzedRelation)innerRelation;
+                analyzedRelation.addProjection(indexWriterProjection);
+
+                MergeNode mergeNode = null;
+                if (analyzedRelation.resultIsDistributed()) {
+                    // add local merge Node which aggregates the distributed results
+                    AggregationProjection aggregationProjection = QueryAndFetchConsumer.localMergeProjection(this.analysisMetaData.functions());
+                    mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(aggregationProjection),
+                                                           analyzedRelation.resultNode());
+                }
+                context.result = true;
+                return new InsertFromSubQuery(((PlannedAnalyzedRelation) innerRelation).plan(), mergeNode);
             } else {
-                return QueryAndFetchConsumer.normalSelect(table.querySpec(), whereClause, tableRelation,
-                        context.indexWriterProjection, analysisMetaData.functions());
+                return insertFromSubQueryAnalyzedStatement;
             }
         }
 
@@ -154,132 +129,19 @@ public class InsertFromSubQueryConsumer implements Consumer {
             return relation;
         }
 
-        private AnalyzedRelation groupBy(QueriedTable table, TableRelation tableRelation, WhereClause whereClause,
-                                               @Nullable ColumnIndexWriterProjection indexWriterProjection, @Nullable Functions functions){
-            TableInfo tableInfo = tableRelation.tableInfo();
-            if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(table.querySpec().where(), null))) {
-                return NonDistributedGroupByConsumer.nonDistributedGroupBy(table, indexWriterProjection);
-            } else if (groupedByClusteredColumnOrPrimaryKeys(table, tableRelation)) {
-                return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, tableRelation, indexWriterProjection);
-            } else if (indexWriterProjection != null) {
-                return distributedWriterGroupBy(table, tableRelation, whereClause, indexWriterProjection, functions);
-            } else {
-                assert false : "this case should have been handled in the ConsumingPlanner";
-            }
-            return null;
+    }
+
+    public static <C, R> void planInnerRelation(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement,
+                                                C context, AnalyzedRelationVisitor<C,R> visitor) {
+        if (insertFromSubQueryAnalyzedStatement.subQueryRelation() instanceof PlannedAnalyzedRelation) {
+            // inner relation is already Planned
+            return;
         }
-
-        private static boolean groupedByClusteredColumnOrPrimaryKeys(QueriedTable analysis, TableRelation tableRelation) {
-            assert analysis.querySpec().groupBy() != null;
-            return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, analysis.querySpec().groupBy());
-        }
-
-        /**
-         * distributed collect on mapper nodes
-         * with merge on reducer to final (they have row authority) and index write
-         * if no limit and not offset is set
-         * <p/>
-         * final merge + index write on handler if limit or offset is set
-         */
-        private static AnalyzedRelation distributedWriterGroupBy(QueriedTable table,
-                                                                 TableRelation tableRelation,
-                                                                 WhereClause whereClause,
-                                                                 Projection writerProjection,
-                                                                 Functions functions) {
-            GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
-            List<Symbol> groupBy = table.querySpec().groupBy();
-
-            tableRelation.validateOrderBy(table.querySpec().orderBy());
-
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
-            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
-
-            GroupProjection groupProjection = projectionBuilder.groupProjection(
-                    splitPoints.leaves(),
-                    table.querySpec().groupBy(),
-                    splitPoints.aggregates(),
-                    Aggregation.Step.ITER,
-                    Aggregation.Step.PARTIAL);
-            TableInfo tableInfo = tableRelation.tableInfo();
-            Routing routing = tableInfo.getRouting(whereClause, null);
-            CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                    tableInfo,
-                    table.querySpec().where(),
-                    splitPoints.leaves(),
-                    Lists.newArrayList(routing.nodes()),
-                    ImmutableList.<Projection>of(groupProjection)
-            );
-
-            // start: Reducer
-            List<Symbol> collectOutputs = new ArrayList<>(
-                    groupBy.size() +
-                            splitPoints.aggregates().size());
-            collectOutputs.addAll(groupBy);
-            collectOutputs.addAll(splitPoints.aggregates());
-
-            List<Projection> reducerProjections = new LinkedList<>();
-            reducerProjections.add(projectionBuilder.groupProjection(
-                    collectOutputs,
-                    table.querySpec().groupBy(),
-                    splitPoints.aggregates(),
-                    Aggregation.Step.PARTIAL,
-                    Aggregation.Step.FINAL));
-
-            OrderBy orderBy = table.querySpec().orderBy();
-            if (orderBy != null) {
-                table.tableRelation().validateOrderBy(orderBy);
-            }
-
-            HavingClause havingClause = table.querySpec().having();
-            if(havingClause != null){
-                if (havingClause.noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table);
-                } else if (havingClause.hasQuery()){
-                    reducerProjections.add(projectionBuilder.filterProjection(
-                            collectOutputs,
-                            havingClause.query()
-                    ));
-                }
-            }
-
-            if (table.querySpec().isLimited()) {
-                int limit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset();
-                reducerProjections.add(projectionBuilder.topNProjection(
-                        collectOutputs,
-                        orderBy,
-                        0,
-                        limit,
-                        table.querySpec().outputs()
-                ));
-            } else {
-                reducerProjections.add(writerProjection);
-            }
-
-            MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, reducerProjections);
-
-            // local merge on handler
-            List<Projection> handlerProjections = new ArrayList<>();
-            if (table.querySpec().isLimited()) {
-                handlerProjections.add(projectionBuilder.topNProjection(
-                        table.querySpec().outputs(),
-                        orderBy,
-                        table.querySpec().offset(),
-                        firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                        table.querySpec().outputs()
-                ));
-                handlerProjections.add(writerProjection);
-
-            } else {
-                // sum up distributed indexWriter results
-                handlerProjections.add(QueryAndFetchConsumer.localMergeProjection(functions));
-            }
-            MergeNode localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, mergeNode);
-            return new DistributedGroupBy(
-                    collectNode,
-                    mergeNode,
-                    localMergeNode
-            );
+        R innerRelation = visitor.process(insertFromSubQueryAnalyzedStatement.subQueryRelation(), context);
+        if (innerRelation != null && innerRelation instanceof PlannedAnalyzedRelation) {
+            insertFromSubQueryAnalyzedStatement.subQueryRelation((PlannedAnalyzedRelation)innerRelation);
         }
     }
+
 
 }

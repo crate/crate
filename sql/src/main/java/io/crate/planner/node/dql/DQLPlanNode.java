@@ -11,6 +11,7 @@ public interface DQLPlanNode extends PlanNode {
 
     boolean hasProjections();
     List<Projection> projections();
+    void addProjection(Projection projection);
 
     Set<String> executionNodes();
 

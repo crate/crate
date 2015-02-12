@@ -21,10 +21,7 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;

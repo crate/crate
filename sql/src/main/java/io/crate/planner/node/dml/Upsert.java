@@ -21,13 +21,14 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
@@ -75,4 +76,20 @@ public class Upsert implements PlannedAnalyzedRelation, Plan {
     public Plan plan() {
         return this;
     }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("adding projection not supported");
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        throw new UnsupportedOperationException("resultIsDistributed is not supported");
+    }
+
+    @Override
+    public DQLPlanNode resultNode() {
+        throw new UnsupportedOperationException("resultNode is not supported");
+    }
+
 }

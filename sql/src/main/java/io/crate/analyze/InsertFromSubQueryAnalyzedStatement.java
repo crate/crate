@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.TableInfo;
@@ -35,15 +34,19 @@ import java.util.List;
 
 public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement implements AnalyzedRelation {
 
-    private final QueriedRelation subQueryRelation;
+    private AnalyzedRelation subQueryRelation;
 
-    public InsertFromSubQueryAnalyzedStatement(QueriedRelation subQueryRelation, TableInfo targetTableInfo) {
+    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation, TableInfo targetTableInfo) {
         tableInfo(targetTableInfo);
         this.subQueryRelation = subQueryRelation;
     }
 
-    public QueriedRelation subQueryRelation() {
+    public AnalyzedRelation subQueryRelation() {
         return this.subQueryRelation;
+    }
+
+    public void subQueryRelation(AnalyzedRelation subQueryRelation) {
+        this.subQueryRelation = subQueryRelation;
     }
 
     @Override

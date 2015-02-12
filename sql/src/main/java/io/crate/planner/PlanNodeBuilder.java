@@ -82,7 +82,7 @@ public class PlanNodeBuilder {
      * calculates the outputTypes using the projections and input types.
      * must be called after projections have been set.
      */
-    static void setOutputTypes(CollectNode node) {
+    public static void setOutputTypes(CollectNode node) {
         if (node.projections().isEmpty()) {
             node.outputTypes(Symbols.extractTypes(node.toCollect()));
         } else {
@@ -96,7 +96,7 @@ public class PlanNodeBuilder {
      * <p/>
      * must be called after projections have been set
      */
-    static void connectTypes(DQLPlanNode previousNode, DQLPlanNode nextNode) {
+    public static void connectTypes(DQLPlanNode previousNode, DQLPlanNode nextNode) {
         nextNode.inputTypes(previousNode.outputTypes());
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }

@@ -21,12 +21,14 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.Plan;
+import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
@@ -36,9 +38,9 @@ public class DistributedGroupBy implements PlannedAnalyzedRelation, Plan {
 
     private final CollectNode collectNode;
     private final MergeNode reducerMergeNode;
-    private final MergeNode localMergeNode;
+    private MergeNode localMergeNode;
 
-    public DistributedGroupBy(CollectNode collectNode, MergeNode reducerMergeNode, MergeNode localMergeNode) {
+    public DistributedGroupBy(CollectNode collectNode, MergeNode reducerMergeNode, @Nullable MergeNode localMergeNode) {
         this.collectNode = collectNode;
         this.reducerMergeNode = reducerMergeNode;
         this.localMergeNode = localMergeNode;
@@ -86,4 +88,26 @@ public class DistributedGroupBy implements PlannedAnalyzedRelation, Plan {
     public Plan plan() {
         return this;
     }
+
+    @Override
+    public void addProjection(Projection projection) {
+        DQLPlanNode node = resultNode();
+        node.addProjection(projection);
+        if (node instanceof CollectNode) {
+            PlanNodeBuilder.setOutputTypes((CollectNode)node);
+        } else if (node instanceof MergeNode) {
+            PlanNodeBuilder.connectTypes(reducerMergeNode, node);
+        }
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        return localMergeNode == null;
+    }
+
+    @Override
+    public @Nullable DQLPlanNode resultNode() {
+        return localMergeNode != null ? localMergeNode : reducerMergeNode;
+    }
+
 }

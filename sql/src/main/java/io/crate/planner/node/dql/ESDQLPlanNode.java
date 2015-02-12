@@ -104,6 +104,21 @@ public abstract class ESDQLPlanNode implements DQLPlanNode, PlannedAnalyzedRelat
     }
 
     @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection not supported on ESDQLPlanNode");
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        throw new UnsupportedOperationException("resultIsDistributed is not supported on ESDQLPlanNode");
+    }
+
+    @Override
+    public DQLPlanNode resultNode() {
+        throw new UnsupportedOperationException("resultNode is not supported on ESDQLPLanNode");
+    }
+
+    @Override
     public Plan plan() {
         return new IterablePlan(this);
     }

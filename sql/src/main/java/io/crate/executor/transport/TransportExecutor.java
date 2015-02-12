@@ -48,6 +48,7 @@ import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -206,6 +207,15 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return null;
         }
 
+        @Override
+        public Void visitInsertByQuery(InsertFromSubQuery node, Job job) {
+            this.process(node.innerPlan(), job);
+            if(node.handlerMergeNode().isPresent()) {
+                job.addTasks(nodeVisitor.visitMergeNode(node.handlerMergeNode().get(), job.id()));
+            }
+            return null;
+        }
+
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
@@ -241,7 +251,10 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitMergeNode(MergeNode node, UUID jobId) {
+        public ImmutableList<Task> visitMergeNode(@Nullable MergeNode node, UUID jobId) {
+            if (node == null) {
+               return ImmutableList.of();
+            }
             node.contextId(jobId);
             if (node.executionNodes().isEmpty()) {
                 return singleTask(new LocalMergeTask(

@@ -25,15 +25,19 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.planner.Plan;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+@Singleton
 public class ConsumingPlanner {
 
     private final List<Consumer> consumers = new ArrayList<>();
 
+    @Inject
     public ConsumingPlanner(AnalysisMetaData analysisMetaData) {
         consumers.add(new NonDistributedGroupByConsumer(analysisMetaData));
         consumers.add(new ReduceOnCollectorGroupByConsumer(analysisMetaData));
@@ -43,14 +47,13 @@ public class ConsumingPlanner {
         consumers.add(new ESGetConsumer(analysisMetaData));
         consumers.add(new QueryThenFetchConsumer(analysisMetaData));
         consumers.add(new UpdateConsumer(analysisMetaData));
-        consumers.add(new InsertFromSubQueryConsumer(analysisMetaData));
+        consumers.add(new InsertFromSubQueryConsumer(analysisMetaData, this));
         consumers.add(new QueryAndFetchConsumer(analysisMetaData));
     }
 
     @Nullable
     public Plan plan(AnalyzedRelation rootRelation) {
         ConsumerContext consumerContext = new ConsumerContext(rootRelation);
-
         for (int i = 0; i < consumers.size(); i++) {
             Consumer consumer = consumers.get(i);
             if (consumer.consume(consumerContext.rootRelation(), consumerContext)) {
