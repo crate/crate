@@ -80,15 +80,15 @@ public class CrossJoinBenchmark extends BenchmarkBase{
                     "    id integer primary key," +
                     "    name string," +
                     "    price float" +
-                    ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+                    ") clustered into 2 shards with (number_of_replicas=0, refresh_interval=0)", new Object[0], false);
             execute("create table colors (" +
                     "    id integer primary key," +
                     "    name string, " +
                     "    coolness float" +
-                    ")", new Object[0], false);
+                    ") with (refresh_interval=0)", new Object[0], false);
             execute("create table small (" +
                     "    info object as (size integer)" +
-                    ")", new Object[0], false);
+                    ") with (refresh_interval=0)", new Object[0], false);
             createSampleData(ARTICLE_INSERT_SQL_STMT, ARTICLE_SIZE);
             createSampleData(COLORS_INSERT_SQL_STMT, COLORS_SIZE);
             createSampleDataSmall(SMALL_SIZE);
@@ -111,7 +111,7 @@ public class CrossJoinBenchmark extends BenchmarkBase{
     private void createSampleData(String stmt, int rows) {
         Object[][] bulkArgs = new Object[rows][];
         for (int i = 0; i < rows; i++) {
-            Object[] object = getRandomObject();
+            Object[] object = getRandomObject(rows);
             bulkArgs[i]  = object;
         }
         SQLBulkRequest request = new SQLBulkRequest(stmt, bulkArgs);
@@ -119,9 +119,9 @@ public class CrossJoinBenchmark extends BenchmarkBase{
         refresh(client());
     }
 
-    private Object[] getRandomObject() {
+    private Object[] getRandomObject(int numDifferent) {
         return new Object[]{
-                (int)(Math.random() * 10000),  // id
+                (int)(Math.random() * numDifferent),  // id
                 RandomStringUtils.randomAlphabetic(10),  // name
                 (float)(Math.random() * 100),            // coolness || price
         };
