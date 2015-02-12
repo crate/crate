@@ -27,19 +27,11 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 
 public abstract class SysClusterObjectReference extends SysObjectReference {
 
-    private final ReferenceInfo info;
-
     protected SysClusterObjectReference(String name) {
         this(new ColumnIdent(name));
     }
 
     protected SysClusterObjectReference(ColumnIdent ident) {
-        info = SysClusterTableInfo.INFOS.get(ident);
-        assert info != null;
-    }
-
-    @Deprecated
-    public ReferenceInfo info() {
-        return info;
+        assert SysClusterTableInfo.INFOS.containsKey(ident);
     }
 }

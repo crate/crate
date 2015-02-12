@@ -31,11 +31,6 @@ public class ConflictException extends RuntimeException implements CrateExceptio
         super(message, cause);
     }
 
-    public ConflictException(Throwable cause) {
-        super(cause);
-    }
-
-
     @Override
     public int errorCode() {
         return 0;

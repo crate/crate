@@ -86,13 +86,6 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         }
     };
 
-    public static final Function<String, String> addPrefix = new Function<String, String>() {
-        @Override
-        public String apply(String indexName) {
-            return fullIndexName(indexName);
-        }
-    };
-
     @Inject
     public BlobIndices(Settings settings,
                        Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,

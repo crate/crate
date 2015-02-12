@@ -44,10 +44,6 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
     }
 
-    public static FunctionIdent of(String name, DataType dataType) {
-        return new FunctionIdent(name, ImmutableList.of(dataType));
-    }
-
     public static FunctionIdent of(String name, DataType type1, DataType type2) {
         return new FunctionIdent(name, ImmutableList.of(type1, type2));
     }

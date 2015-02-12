@@ -28,8 +28,6 @@ import java.util.List;
 
 public class OrderBy {
 
-    public static final OrderBy NO_ORDER_BY = new OrderBy(ImmutableList.<Symbol>of(), new boolean[0], new Boolean[0]);
-
     private List<Symbol> orderBySymbols;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;

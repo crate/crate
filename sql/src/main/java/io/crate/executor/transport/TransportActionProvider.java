@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport;
 
-import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -39,19 +38,13 @@ import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.CrateTransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
-import org.elasticsearch.action.index.TransportIndexAction;
-import org.elasticsearch.action.search.TransportSearchAction;
-import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.search.action.SearchServiceTransportAction;
 
 public class TransportActionProvider {
 
     private final Provider<TransportCollectNodeAction> transportCollectNodeActionProvider;
     private final Provider<TransportMergeNodeAction> transportMergeNodeActionProvider;
-    private final Provider<TransportSearchAction> transportSearchActionProvider;
-    private final Provider<SearchServiceTransportAction> searchServiceTransportActionProvider;
 
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
     private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
@@ -65,9 +58,6 @@ public class TransportActionProvider {
 
     private final Provider<TransportGetAction> transportGetActionProvider;
     private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
-    private final Provider<TransportIndexAction> transportIndexActionProvider;
-    private final Provider<TransportQueryShardAction> transportQueryShardActionProvider;
-    private final Provider<TransportUpdateAction> transportUpdateActionProvider;
     private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider;
     private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
@@ -87,12 +77,7 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteAction> transportDeleteActionProvider,
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
-                                   Provider<TransportIndexAction> transportIndexActionProvider,
-                                   Provider<TransportUpdateAction> transportUpdateActionProvider,
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
-                                   Provider<TransportQueryShardAction> transportQueryShardActionProvider,
-                                   Provider<TransportSearchAction> transportSearchActionProvider,
-                                   Provider<SearchServiceTransportAction> searchServiceTransportActionProvider,
                                    Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
                                    Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider) {
@@ -107,14 +92,9 @@ public class TransportActionProvider {
         this.transportDeleteActionProvider = transportDeleteActionProvider;
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
-        this.transportIndexActionProvider = transportIndexActionProvider;
-        this.transportQueryShardActionProvider = transportQueryShardActionProvider;
-        this.transportUpdateActionProvider = transportUpdateActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
         this.transportCollectNodeActionProvider = transportCollectNodeActionProvider;
         this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
-        this.transportSearchActionProvider = transportSearchActionProvider;
-        this.searchServiceTransportActionProvider = searchServiceTransportActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
@@ -165,13 +145,6 @@ public class TransportActionProvider {
         return transportMultiGetActionProvider.get();
     }
 
-    public TransportIndexAction transportIndexAction() {
-        return transportIndexActionProvider.get();
-    }
-
-    public TransportUpdateAction transportUpdateAction() {
-        return transportUpdateActionProvider.get();
-    }
 
     public TransportShardUpsertAction transportShardUpsertAction() {
         return transportShardUpsertActionProvider.get();
@@ -187,18 +160,6 @@ public class TransportActionProvider {
 
     public TransportMergeNodeAction transportMergeNodeAction() {
         return transportMergeNodeActionProvider.get();
-    }
-
-    public TransportQueryShardAction transportQueryShardAction() {
-        return transportQueryShardActionProvider.get();
-    }
-
-    public TransportSearchAction transportSearchAction() {
-        return transportSearchActionProvider.get();
-    }
-
-    public SearchServiceTransportAction searchServiceTransportAction() {
-        return searchServiceTransportActionProvider.get();
     }
 
     public TransportPutMappingAction transportPutMappingAction() {

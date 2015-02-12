@@ -36,12 +36,10 @@ public class QueriedTable implements QueriedRelation {
 
     private final TableRelation tableRelation;
     private final QuerySpec querySpec;
-    private final QualifiedName name;
     private final ArrayList<Field> fields;
 
     public QueriedTable(QualifiedName name, TableRelation tableRelation, List<OutputName> outputNames,
                         QuerySpec querySpec) {
-        this.name = name;
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
         this.fields = new ArrayList<>(outputNames.size());
@@ -82,14 +80,5 @@ public class QueriedTable implements QueriedRelation {
     @Override
     public List<Field> fields() {
         return fields;
-    }
-
-
-    public WhereClause consumeWhereClause(WhereClause clause) {
-        return null;
-    }
-
-    public OrderBy consumeOrderBy(OrderBy orderBy) {
-        return null;
     }
 }

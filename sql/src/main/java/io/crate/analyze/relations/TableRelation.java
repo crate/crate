@@ -194,11 +194,6 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
         return result;
     }
 
-    @Deprecated
-    public Symbol resolveHaving(Symbol symbol) {
-        return resolve(symbol);
-    }
-
     @Override
     @Nullable
     public Reference resolveField(Field field) {
@@ -220,22 +215,6 @@ public class TableRelation implements AnalyzedRelation, FieldResolver {
                 SORT_VALIDATOR.process(symbol, this);
             }
         }
-    }
-
-
-    @Deprecated
-    @Nullable
-    public List<Symbol> resolveAndValidateOrderBy(@Nullable OrderBy orderBy) {
-        if (orderBy==null){
-            return null;
-        }
-        List<Symbol> result = new ArrayList<>(orderBy.orderBySymbols().size());
-        for (Symbol symbol : orderBy.orderBySymbols()) {
-            Symbol resolved = resolve(symbol);
-            SORT_VALIDATOR.process(resolved, this);
-            result.add(resolved);
-        }
-        return result;
     }
 
     @Deprecated

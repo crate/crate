@@ -72,7 +72,6 @@ public class ShardCollectService {
     private final boolean isBlobShard;
     private final Functions functions;
     private final BlobIndices blobIndices;
-    private final CircuitBreaker circuitBreaker;
 
     @Inject
     public ShardCollectService(ThreadPool threadPool,
@@ -101,7 +100,6 @@ public class ShardCollectService {
         this.bigArrays = bigArrays;
         this.functions = functions;
         this.blobIndices = blobIndices;
-        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
         DocLevelReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : LuceneDocLevelReferenceResolver.INSTANCE);
@@ -134,7 +132,7 @@ public class ShardCollectService {
      *
      * @param collectNode describes the collectOperation
      * @param projectorChain the shard projector chain to get the downstream from
-     * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect()} to start
+     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect(io.crate.breaker.RamAccountingContext)} to start
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode,

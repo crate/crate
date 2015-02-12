@@ -72,8 +72,6 @@ public class BenchmarkBase {
         );
 
     public static final String INDEX_NAME = "countries";
-    public static final String SETTINGS = "/essetup/settings/bench.json";
-    public static final String MAPPING = "/essetup/mappings/bench.json";
     public static final String DATA = "/essetup/data/bench.json";
 
     private Random random = new Random(System.nanoTime());

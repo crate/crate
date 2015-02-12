@@ -163,10 +163,6 @@ public class BlobContainer {
         return new File(getVarDirectory(), digest.substring(0, 2) + File.separator + digest);
     }
 
-    public boolean exists(String digest) {
-        return getFile(digest).exists();
-    }
-
     public DigestBlob createBlob(String digest, UUID transferId) {
         // TODO: check if exists already
         return new DigestBlob(this, digest, transferId);

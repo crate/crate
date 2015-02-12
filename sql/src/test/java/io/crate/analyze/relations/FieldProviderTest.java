@@ -45,24 +45,19 @@ public class FieldProviderTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private AnalyzedRelation dummyRelation = new DummyRelation(newTI("dummy.t"), "name");
+    private AnalyzedRelation dummyRelation = new DummyRelation("name");
 
-    private Map<QualifiedName, AnalyzedRelation> dummySources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+    private Map<QualifiedName, AnalyzedRelation> dummySources = ImmutableMap.of(
             newQN("dummy.t"), dummyRelation);
 
     private static QualifiedName newQN(String dottedName) {
         return new QualifiedName(Arrays.asList(dottedName.split("\\.")));
     }
 
-    private static TableIdent newTI(String dottedTableIdent) {
-        String[] split = dottedTableIdent.split("\\.");
-        return new TableIdent(split[0], split[1]);
-    }
-
     @Test
     public void testInvalidSources() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        AnalyzedRelation relation = new DummyRelation(newTI("dummy.t"), "name");
+        AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider resolver = new FullQualifedNameFieldProvider(
                 ImmutableMap.of(newQN("too.many.parts"), relation));
         resolver.resolveField(newQN("name"), false);
@@ -104,17 +99,17 @@ public class FieldProviderTest {
     public void testResolveDynamicReference() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column age unknown");
-        AnalyzedRelation barT = new DummyRelation(newTI("bar.t"), "name");
+        AnalyzedRelation barT = new DummyRelation("name");
         FieldProvider resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(newQN("bar.t"), barT));
         resolver.resolveField(newQN("t.age"), false);
     }
 
     @Test
     public void testMultipleSourcesWithDynamicReferenceAndReference() throws Exception {
-        AnalyzedRelation barT = new DummyRelation(newTI("bar.t"), "name");
-        AnalyzedRelation fooT = new DummyRelation(newTI("foo.t"), "name");
-        AnalyzedRelation fooA = new DummyRelation(newTI("foo.a"), "name");
-        AnalyzedRelation customT = new DummyRelation(newTI("custom.t"), "tags");
+        AnalyzedRelation barT = new DummyRelation("name");
+        AnalyzedRelation fooT = new DummyRelation("name");
+        AnalyzedRelation fooA = new DummyRelation("name");
+        AnalyzedRelation customT = new DummyRelation("tags");
 
         FieldProvider resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(
                 newQN("bar.t"), barT,
@@ -135,7 +130,7 @@ public class FieldProviderTest {
     @Test
     public void testRelationOutputFromAlias() throws Exception {
         // t.name from doc.foo t
-        AnalyzedRelation relation = new DummyRelation(newTI("doc.foo"), "name");
+        AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(
                 new QualifiedName(Arrays.asList("t")), relation));
         Field field = resolver.resolveField(newQN("t.name"), false);
@@ -146,7 +141,7 @@ public class FieldProviderTest {
     @Test
     public void testRelationOutputFromSingleColumnName() throws Exception {
         // select name from t
-        AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");
+        AnalyzedRelation relation = new DummyRelation( "name");
         FieldProvider resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(newQN("doc.t"), relation));
         Field field = resolver.resolveField(newQN("name"), false);
         assertThat(field.relation(), equalTo(relation));
@@ -157,7 +152,7 @@ public class FieldProviderTest {
     public void testRelationOutputFromSchemaTableColumnName() throws Exception {
         // doc.t.name from t.name
 
-        AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");
+        AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(newQN("doc.t"), relation));
         Field field = resolver.resolveField(newQN("doc.t.name"), true);
         assertThat(field.relation(), equalTo(relation));
@@ -187,8 +182,8 @@ public class FieldProviderTest {
 
         FieldProvider resolver = new FullQualifedNameFieldProvider(
                 ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                        new QualifiedName(Arrays.asList("custom", "t")), new DummyRelation(new TableIdent("custom", "t"), "name"),
-                        new QualifiedName(Arrays.asList("doc", "t")), new DummyRelation(new TableIdent("doc", "t"), "name"))
+                        new QualifiedName(Arrays.asList("custom", "t")), new DummyRelation("name"),
+                        new QualifiedName(Arrays.asList("doc", "t")), new DummyRelation("name"))
         );
         resolver.resolveField(new QualifiedName(Arrays.asList("t", "name")), false);
     }
@@ -198,8 +193,8 @@ public class FieldProviderTest {
         // select name from doc.t, custom.t
         FieldProvider resolver = new FullQualifedNameFieldProvider(
                 ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                        new QualifiedName(Arrays.asList("custom", "t")), new DummyRelation(new TableIdent("custom", "t"), "address"),
-                        new QualifiedName(Arrays.asList("doc", "t")), new DummyRelation(new TableIdent("doc", "t"), "name"))
+                        new QualifiedName(Arrays.asList("custom", "t")), new DummyRelation("address"),
+                        new QualifiedName(Arrays.asList("doc", "t")), new DummyRelation("name"))
         );
         resolver.resolveField(new QualifiedName(Arrays.asList("t", "name")), false);
     }
@@ -207,7 +202,7 @@ public class FieldProviderTest {
     @Test
     public void testSimpleFieldResolver() throws Exception {
         // select name from doc.t
-        AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");
+        AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider resolver = new NameFieldProvider(relation);
         Field field = resolver.resolveField(new QualifiedName(Arrays.asList("name")), false);
         assertThat(field.relation(), equalTo(relation));
@@ -217,7 +212,7 @@ public class FieldProviderTest {
     public void testSimpleResolverUnknownColumn() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column unknown unknown");
-        AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");
+        AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(newQN("doc.t"), relation));
         resolver.resolveField(new QualifiedName(Arrays.asList("unknown")), false);
     }
@@ -225,10 +220,8 @@ public class FieldProviderTest {
     private static class DummyRelation implements AnalyzedRelation {
 
         private final Set<String> supportedReference = new HashSet<>();
-        private final TableIdent tableIdent;
 
-        public DummyRelation(TableIdent tableIdent, String referenceName) {
-            this.tableIdent = tableIdent;
+        public DummyRelation( String referenceName) {
             supportedReference.add(referenceName);
         }
 

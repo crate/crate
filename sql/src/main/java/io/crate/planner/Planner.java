@@ -75,7 +75,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
     private Functions functions;
-    private AnalysisMetaData analysisMetaData;
     private AggregationProjection localMergeProjection;
 
     protected static class Context {
@@ -85,17 +84,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         Context(Analysis analysis) {
             this.analysis = analysis;
         }
-
-        public Analysis analysis() {
-            return analysis;
-        }
     }
 
     @Inject
     public Planner(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
         this.clusterService = clusterService;
         this.functions = analysisMetaData.functions();
-        this.analysisMetaData = analysisMetaData;
         this.consumingPlanner = new ConsumingPlanner(analysisMetaData);
     }
 

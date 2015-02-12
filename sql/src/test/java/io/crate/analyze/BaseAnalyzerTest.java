@@ -213,8 +213,6 @@ public abstract class BaseAnalyzerTest {
     Analyzer analyzer;
 
     static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
-    static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
-    static final ReferenceInfo LOAD5_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "5"));
 
     static final ReferenceInfo CLUSTER_NAME_INFO = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
 
@@ -330,19 +328,5 @@ public abstract class BaseAnalyzerTest {
         }
         injector = builder.createInjector();
         analyzer = injector.getInstance(Analyzer.class);
-    }
-
-
-    protected static Function getFunctionByName(String functionName, Collection c) {
-        Function function = null;
-        Iterator<Function> it = c.iterator();
-        while (function == null && it.hasNext()) {
-            Function f = it.next();
-            if (f.info().ident().name().equals(functionName)) {
-                function = f;
-            }
-
-        }
-        return function;
     }
 }

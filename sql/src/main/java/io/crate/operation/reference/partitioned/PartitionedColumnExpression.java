@@ -29,21 +29,14 @@ import org.apache.lucene.util.BytesRef;
 
 public class PartitionedColumnExpression implements Input, ShardReferenceImplementation {
 
-    private final ReferenceInfo info;
     private final Object value;
 
     public PartitionedColumnExpression(ReferenceInfo info, BytesRef stringValue) {
-        this.info = info;
         if (stringValue == null) {
             this.value = null;
         } else {
             this.value = info.type().value(stringValue);
         }
-    }
-
-    @Deprecated
-    public ReferenceInfo info() {
-        return info;
     }
 
     @Override

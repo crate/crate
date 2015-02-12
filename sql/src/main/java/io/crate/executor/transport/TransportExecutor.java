@@ -24,7 +24,6 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
-import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
@@ -53,8 +52,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.search.controller.SearchPhaseController;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
@@ -65,7 +62,6 @@ import java.util.UUID;
 public class TransportExecutor implements Executor, TaskExecutor {
 
     private final Functions functions;
-    private final Provider<SearchPhaseController> searchPhaseControllerProvider;
     private final TaskCollectingVisitor planVisitor;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
     private final StatsTables statsTables;
@@ -83,9 +79,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
-    private final CrateResultSorter crateResultSorter;
-
-    private final BigArrays bigArrays;
 
     private final QueryThenFetchOperation queryThenFetchOperation;
 
@@ -96,25 +89,19 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
-                             Provider<SearchPhaseController> searchPhaseControllerProvider,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
-                             CrateResultSorter crateResultSorter,
-                             BigArrays bigArrays,
                              QueryThenFetchOperation queryThenFetchOperation) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
         this.functions = functions;
-        this.searchPhaseControllerProvider = searchPhaseControllerProvider;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
-        this.crateResultSorter = crateResultSorter;
-        this.bigArrays = bigArrays;
         this.queryThenFetchOperation = queryThenFetchOperation;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();

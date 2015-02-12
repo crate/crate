@@ -31,8 +31,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class NodeThreadPoolExpression extends SysNodeObjectReference {
 
-    public static final String NAME = NodeThreadPoolsExpression.NAME;
-
     abstract class ThreadPoolExpression<ChildType> extends SysNodeExpression<ChildType> {
     }
 

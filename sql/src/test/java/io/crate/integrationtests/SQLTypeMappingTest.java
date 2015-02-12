@@ -45,8 +45,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private Setup setup = new Setup(sqlExecutor);
-
     private void setUpSimple() throws IOException {
         setUpSimple(2);
     }

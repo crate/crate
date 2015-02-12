@@ -23,10 +23,6 @@ package io.crate.exceptions;
 
 public class AnalyzerInvalidException extends ValidationException {
 
-    public AnalyzerInvalidException(String reason, Throwable e) {
-        super(reason, e);
-    }
-
     public AnalyzerInvalidException(String reason) {
         super(reason);
     }

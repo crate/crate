@@ -40,10 +40,6 @@ public class SQLResponse extends SQLBaseResponse {
     public SQLResponse() {
     }
 
-    public SQLResponse(String[] cols, Object[][] rows, long rowCount, long requestStartedTime) {
-        this(cols, rows, new DataType[0], rowCount, requestStartedTime, false);
-    }
-
     public SQLResponse(String[] cols,
                        Object[][] rows,
                        DataType[] dataTypes,

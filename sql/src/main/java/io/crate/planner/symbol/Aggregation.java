@@ -93,10 +93,6 @@ public class Aggregation extends Symbol {
         return functionInfo.ident();
     }
 
-    public FunctionInfo functionInfo() {
-        return functionInfo;
-    }
-
     public List<Symbol> inputs() {
         return inputs;
     }

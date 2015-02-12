@@ -59,8 +59,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
-    ClusterService clusterService;
-    ClusterName clusterName;
     TransportExecutor executor;
     DocSchemaInfo docSchemaInfo;
 
@@ -72,8 +70,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     Reference nameRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(charactersIdent, "name"), RowGranularity.DOC, DataTypes.STRING));
     Reference femaleRef = TestingHelpers.createReference(charactersIdent.name(), new ColumnIdent("female"), DataTypes.BOOLEAN);
-    Reference versionRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(charactersIdent, "_version"), RowGranularity.DOC, DataTypes.LONG));
 
     Reference booksIdRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(booksIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));

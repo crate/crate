@@ -73,10 +73,6 @@ public class DocCollectorExpression extends
                 //      then eq(byte, byte) would get eq(byte, int) and fail
                 return referenceInfo.type().value(sourceLookup.extractValue(fqn));
             }
-
-            public String columnName() {
-                return referenceInfo.ident().columnIdent().path().get(0);
-            }
         };
     }
 

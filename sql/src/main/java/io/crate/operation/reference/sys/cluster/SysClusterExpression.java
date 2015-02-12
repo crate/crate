@@ -30,19 +30,12 @@ import org.elasticsearch.common.Preconditions;
 
 public abstract class SysClusterExpression<T> extends SysExpression<T> implements ReferenceImplementation {
 
-    private final ReferenceInfo info;
 
     protected SysClusterExpression(String name) {
         this(new ColumnIdent(name));
     }
 
     protected SysClusterExpression(ColumnIdent ident) {
-        info = SysClusterTableInfo.INFOS.get(ident);
-        Preconditions.checkNotNull(info, "info");
-    }
-
-    @Deprecated
-    public ReferenceInfo info() {
-        return info;
+        assert SysClusterTableInfo.INFOS.containsKey(ident);
     }
 }
