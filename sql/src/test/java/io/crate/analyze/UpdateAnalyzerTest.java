@@ -426,6 +426,20 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testUsingFQColumnNameShouldBePossibleInWhereClause() throws Exception {
+        UpdateAnalyzedStatement statement = analyze("update users set name = 'foo' where users.name != 'foo'");
+        Function eqFunction = (Function) ((Function) statement.nestedStatements().get(0).whereClause().query()).arguments().get(0);
+        assertThat(eqFunction.arguments().get(0), isField("name"));
+    }
+
+    @Test
+    public void testTestUpdateOnTableWithAliasAndFQColumnNameInWhereClause() throws Exception {
+        UpdateAnalyzedStatement statement = analyze("update users  t set name = 'foo' where t.name != 'foo'");
+        Function eqFunction = (Function) ((Function) statement.nestedStatements().get(0).whereClause().query()).arguments().get(0);
+        assertThat(eqFunction.arguments().get(0), isField("name"));
+    }
+
+    @Test
     public void testUpdateNestedClusteredByColumn() throws Exception {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for obj: Updating a clustered-by column is not supported");

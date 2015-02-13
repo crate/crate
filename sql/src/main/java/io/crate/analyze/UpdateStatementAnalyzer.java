@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
@@ -79,7 +80,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), analysis);
+        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(analysis.parameterContext());
+        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), relationAnalysisContext);
         if (Relations.isReadOnly(analyzedRelation)) {
             throw new UnsupportedOperationException(String.format(
                     "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
@@ -88,7 +90,13 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         TableRelation tableRelation = ((TableRelation) analyzedRelation);
         TableInfo tableInfo = tableRelation.tableInfo();
 
-        FieldProvider fieldProvider = new NameFieldProvider(analyzedRelation);
+        FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
+        ExpressionAnalyzer columnExpressionAnalyzer =
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider);
+        columnExpressionAnalyzer.resolveWritableFields(true);
+
+        assert Iterables.getOnlyElement(relationAnalysisContext.sources().values()) == tableRelation;
+        FieldProvider fieldProvider = new FullQualifedNameFieldProvider(relationAnalysisContext.sources());
         ExpressionAnalyzer expressionAnalyzer =
                 new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
@@ -110,6 +118,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                         tableRelation,
                         tableInfo,
                         expressionAnalyzer,
+                        columnExpressionAnalyzer,
                         expressionAnalysisContext
                 );
             }
@@ -123,13 +132,12 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                                   TableRelation tableRelation,
                                   TableInfo tableInfo,
                                   ExpressionAnalyzer expressionAnalyzer,
+                                  ExpressionAnalyzer columnExpressionAnalyzer,
                                   ExpressionAnalysisContext expressionAnalysisContext) {
-        expressionAnalyzer.resolveWritableFields(true);
         // unknown columns in strict objects handled in here
-        Reference reference = (Reference) expressionAnalyzer.normalize(
-                tableRelation.resolve(expressionAnalyzer.convert(node.columnName(), expressionAnalysisContext)));
+        Reference reference = (Reference) columnExpressionAnalyzer.normalize(
+                tableRelation.resolve(columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext)));
 
-        expressionAnalyzer.resolveWritableFields(false);
         final ColumnIdent ident = reference.info().ident().columnIdent();
         if (ident.name().startsWith("_")) {
             throw new IllegalArgumentException("Updating system columns is not allowed");

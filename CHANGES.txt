@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix regression introduced in ``0.47.0``: It is now again possible to refer
+   to columns using the fully qualified name including table name or alias in
+   the WHERE clause of an Update statement.
+
  - Added a new option ``overwrite_duplicates`` to COPY FROM. This option can be
    used to make COPY FROM behave the same as it did in versions prior to
    ``0.47.0``
