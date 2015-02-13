@@ -64,7 +64,8 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable Integer bulkActions,
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes,
-                                boolean autoCreateIndices) {
+                                boolean autoCreateIndices,
+                                boolean overwriteDuplicates) {
         super(tableName, primaryKeys, idInputs, partitionedByInputs,
                 routingIdent, routingInput,
                 collectExpressions);
@@ -83,6 +84,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                 transportCreateIndexAction,
                 bulkActions,
                 autoCreateIndices,
+                overwriteDuplicates,
                 null,
                 new Reference[]{rawSourceReference});
     }

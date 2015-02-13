@@ -248,7 +248,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 projection.bulkActions(),
                 projection.includes(),
                 projection.excludes(),
-                projection.autoCreateIndices()
+                projection.autoCreateIndices(),
+                projection.overwriteDuplicates()
         );
     }
 

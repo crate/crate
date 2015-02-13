@@ -40,11 +40,15 @@ import java.util.List;
  */
 public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
+    private Boolean overwriteDuplicates;
     private @Nullable String[] includes;
     private @Nullable String[] excludes;
 
     protected Reference rawSourceReference;
     protected Symbol rawSourceSymbol;
+
+    private final static String OVERWRITE_DUPLICATES = "overwrite_duplicates";
+    private final static boolean OVERWRITE_DUPLICATES_DEFAULT = false;
 
     public static final ProjectionFactory<SourceIndexWriterProjection> FACTORY =
             new ProjectionFactory<SourceIndexWriterProjection>() {
@@ -92,6 +96,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             currentInputIndex++;
         }
 
+        overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
         generateSymbols(pkIndices, partitionedByIndices, clusteredByIdx);
         rawSourceSymbol = new InputColumn(currentInputIndex, DataTypes.STRING);
     }
@@ -150,6 +155,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        overwriteDuplicates = in.readBoolean();
         rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = Symbol.fromStream(in);
 
@@ -174,6 +180,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
+        out.writeBoolean(overwriteDuplicates);
         Reference.toStream(rawSourceReference, out);
         Symbol.toStream(rawSourceSymbol, out);
 
@@ -195,5 +202,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                 out.writeString(exclude);
             }
         }
+    }
+
+    public boolean overwriteDuplicates() {
+        return overwriteDuplicates;
     }
 }

@@ -114,6 +114,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                                             TransportCreateIndexAction transportCreateIndexAction,
                                             @Nullable Integer bulkActions,
                                             boolean autoCreateIndices,
+                                            boolean overwriteDuplicates,
                                             @Nullable String[] assignmentsColumns,
                                             @Nullable Reference[] missingAssignmentsColumns) {
         bulkShardProcessor = new BulkShardProcessor(
@@ -122,6 +123,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                 transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 autoCreateIndices,
+                overwriteDuplicates,
                 MoreObjects.firstNonNull(bulkActions, 100),
                 true,
                 assignmentsColumns,

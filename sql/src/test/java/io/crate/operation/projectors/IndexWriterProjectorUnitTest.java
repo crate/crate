@@ -94,6 +94,7 @@ public class IndexWriterProjectorUnitTest {
                 collectExpressions,
                 20,
                 null, null,
+                false,
                 false
         );
         indexWriter.downstream(collectingProjector);
@@ -133,6 +134,7 @@ public class IndexWriterProjectorUnitTest {
                 collectExpressions,
                 20,
                 null, null,
+                false,
                 false
         );
         indexWriter.downstream(collectingProjector);
