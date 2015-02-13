@@ -1756,16 +1756,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectRandomTwoTimes() throws Exception {
-        execute("select random(), random() from sys.cluster limit 1");
-        assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
-
-        this.setup.groupBySetup();
-        execute("select random(), random() from characters limit 1");
-        assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
-    }
-
-    @Test
     public void testSelectArithmeticOperatorInWhereClause() throws Exception {
         execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
         ensureGreen();
