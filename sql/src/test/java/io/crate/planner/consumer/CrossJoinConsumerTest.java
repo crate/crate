@@ -23,6 +23,7 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
+import io.crate.Constants;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -106,7 +107,7 @@ public class CrossJoinConsumerTest {
         assertThat(next, instanceOf(NestedLoopNode.class));
 
         NestedLoopNode nestedLoopNode = (NestedLoopNode) next;
-        assertThat(nestedLoopNode.limit(), is(TopN.NO_LIMIT));
+        assertThat(nestedLoopNode.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(nestedLoopNode.offset(), is(0));
         assertThat(nestedLoopNode.outputTypes().size(), is(10));
 
@@ -174,12 +175,23 @@ public class CrossJoinConsumerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
+        assertThat(nl.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         assertThat(nl.outputTypes().size(), is(3));
         for (DataType dataType : nl.outputTypes()) {
             assertThat(dataType, equalTo((DataType) DataTypes.STRING));
         }
         assertThat(nl.left().outputTypes().size() + nl.right().outputTypes().size(), is(3));
+
+        PlanNode left = ((IterablePlan)nl.left()).iterator().next();
+        NestedLoopNode nested;
+        if (left instanceof NestedLoopNode) {
+            nested = (NestedLoopNode)left;
+        } else {
+            nested = (NestedLoopNode)((IterablePlan) nl.right()).iterator().next();
+        }
+        assertThat(nested.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(nested.offset(), is(0));
     }
 
     @Test
@@ -297,6 +309,7 @@ public class CrossJoinConsumerTest {
     public void testCrossJoinWhereWithJoinCondition() throws Exception {
         IterablePlan plan = plan("select * from users t1 cross join users t2 where t1.id = 1 or t2.id = 2");
         NestedLoopNode nl = (NestedLoopNode) plan.iterator().next();
+        assertThat(nl.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         Projection projection = nl.projections().get(0);
         assertThat(projection, instanceOf(FilterProjection.class));
@@ -326,5 +339,53 @@ public class CrossJoinConsumerTest {
         } else {
             assertThat(rightWhereClause.hasQuery(), is(true));
         }
+    }
+
+    @Test
+    public void testCrossJoinThreeTablesWithLimitAndOffset() throws Exception {
+        IterablePlan plan = plan("select * from users t1 cross join users t2 cross join users t3 limit 10 offset 2");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(NestedLoopNode.class));
+        NestedLoopNode nl = (NestedLoopNode) planNode;
+
+        assertThat(nl.limit(), is(10));
+        assertThat(nl.offset(), is(2));
+
+        IterablePlan leftPlan = (IterablePlan) nl.left();
+        IterablePlan rightPlan = (IterablePlan) nl.right();
+
+        NestedLoopNode nested;
+        if (leftPlan.iterator().next() instanceof NestedLoopNode) {
+            nested = (NestedLoopNode) leftPlan.iterator().next();
+        } else {
+            nested = (NestedLoopNode) rightPlan.iterator().next();
+        }
+        assertThat(nested.limit(), is(12));
+        assertThat(nested.offset(), is(0));
+    }
+
+    @Test
+    public void testCrossJoinThreeTablesWithJoinConditionInOrderBy() throws Exception {
+        IterablePlan plan = plan("select * from users t1 cross join users t2 cross join users t3 order by t3.id + t2.id limit 10 offset 2");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(NestedLoopNode.class));
+        NestedLoopNode nl = (NestedLoopNode) planNode;
+
+        assertThat(nl.limit(), is(10));
+        assertThat(nl.offset(), is(2));
+
+        IterablePlan leftPlan = (IterablePlan) nl.left();
+        IterablePlan rightPlan = (IterablePlan) nl.right();
+
+        NestedLoopNode nested;
+        if (leftPlan.iterator().next() instanceof NestedLoopNode) {
+            nested = (NestedLoopNode) leftPlan.iterator().next();
+        } else {
+            nested = (NestedLoopNode) rightPlan.iterator().next();
+        }
+        assertThat(nested.limit(), is(TopN.NO_LIMIT));
+        assertThat(nested.offset(), is(0));
     }
 }
