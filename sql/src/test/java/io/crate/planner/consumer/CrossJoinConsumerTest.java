@@ -114,6 +114,14 @@ public class CrossJoinConsumerTest {
         Plan left = nestedLoopNode.left();
         Plan right = nestedLoopNode.right();
 
+        QueryThenFetchNode leftQTF = (QueryThenFetchNode)((IterablePlan) left).iterator().next();
+        assertThat(leftQTF.limit(), is(nullValue()));
+        assertThat(leftQTF.offset(), is(0));
+
+        QueryThenFetchNode rightQTF = (QueryThenFetchNode)((IterablePlan) right).iterator().next();
+        assertThat(rightQTF.limit(), is(nullValue()));
+        assertThat(rightQTF.offset(), is(0));
+
         // what's left and right changes per test run... so just make sure the outputs are different
         assertNotEquals(left.outputTypes(), right.outputTypes());
     }
@@ -122,6 +130,21 @@ public class CrossJoinConsumerTest {
     public void testCrossJoinWithJoinCriteriaInOrderBy() throws Exception {
         IterablePlan plan = plan("select u1.id + u2.id, u1.name from users u1, users u2 order by 1");
         NestedLoopNode nl = (NestedLoopNode) plan.iterator().next();
+
+        // check limit
+        assertThat(nl.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        TopNProjection topN = (TopNProjection)nl.projections().get(0);
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(0));
+
+        QueryThenFetchNode leftQTF = (QueryThenFetchNode)((IterablePlan) nl.left()).iterator().next();
+        assertThat(leftQTF.limit(), is(nullValue()));
+        assertThat(leftQTF.offset(), is(TopN.NO_OFFSET));
+
+        QueryThenFetchNode rightQTF = (QueryThenFetchNode)((IterablePlan) nl.right()).iterator().next();
+        assertThat(rightQTF.limit(), is(nullValue()));
+        assertThat(rightQTF.offset(), is(TopN.NO_OFFSET));
+
         TopNProjection topNProjection = (TopNProjection) nl.projections().get(0);
 
         assertThat(topNProjection.isOrdered(), is(true));
@@ -176,6 +199,7 @@ public class CrossJoinConsumerTest {
         assertThat(planNode, instanceOf(NestedLoopNode.class));
         NestedLoopNode nl = (NestedLoopNode) planNode;
         assertThat(nl.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(nl.offset(), is(0));
 
         assertThat(nl.outputTypes().size(), is(3));
         for (DataType dataType : nl.outputTypes()) {
@@ -185,13 +209,19 @@ public class CrossJoinConsumerTest {
 
         PlanNode left = ((IterablePlan)nl.left()).iterator().next();
         NestedLoopNode nested;
+        QueryThenFetchNode qtf;
         if (left instanceof NestedLoopNode) {
             nested = (NestedLoopNode)left;
+            qtf = (QueryThenFetchNode)((IterablePlan) nl.right()).iterator().next();
         } else {
             nested = (NestedLoopNode)((IterablePlan) nl.right()).iterator().next();
+            qtf = (QueryThenFetchNode) left;
         }
         assertThat(nested.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(nested.offset(), is(0));
+
+        assertThat(qtf.limit(), is(nullValue()));
+        assertThat(qtf.offset(), is(0));
     }
 
     @Test
@@ -310,6 +340,7 @@ public class CrossJoinConsumerTest {
         IterablePlan plan = plan("select * from users t1 cross join users t2 where t1.id = 1 or t2.id = 2");
         NestedLoopNode nl = (NestedLoopNode) plan.iterator().next();
         assertThat(nl.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(nl.offset(), is(0));
 
         Projection projection = nl.projections().get(0);
         assertThat(projection, instanceOf(FilterProjection.class));
@@ -356,13 +387,29 @@ public class CrossJoinConsumerTest {
         IterablePlan rightPlan = (IterablePlan) nl.right();
 
         NestedLoopNode nested;
+        QueryThenFetchNode qtf;
         if (leftPlan.iterator().next() instanceof NestedLoopNode) {
             nested = (NestedLoopNode) leftPlan.iterator().next();
+            qtf = (QueryThenFetchNode) rightPlan.iterator().next();
         } else {
             nested = (NestedLoopNode) rightPlan.iterator().next();
+            qtf = (QueryThenFetchNode) leftPlan.iterator().next();
         }
         assertThat(nested.limit(), is(12));
         assertThat(nested.offset(), is(0));
+        assertThat(qtf.limit(), is(12));
+        assertThat(qtf.offset(), is(0));
+
+        leftPlan = (IterablePlan) nested.left();
+        rightPlan = (IterablePlan) nested.right();
+
+        QueryThenFetchNode qtfLeftNested = (QueryThenFetchNode) leftPlan.iterator().next();
+        QueryThenFetchNode qtfRightNested = (QueryThenFetchNode) rightPlan.iterator().next();
+
+        assertThat(qtfLeftNested.limit(), is(12));
+        assertThat(qtfLeftNested.offset(), is(0));
+        assertThat(qtfRightNested.limit(), is(12));
+        assertThat(qtfRightNested.offset(), is(0));
     }
 
     @Test
@@ -380,12 +427,70 @@ public class CrossJoinConsumerTest {
         IterablePlan rightPlan = (IterablePlan) nl.right();
 
         NestedLoopNode nested;
+        QueryThenFetchNode qtf;
         if (leftPlan.iterator().next() instanceof NestedLoopNode) {
             nested = (NestedLoopNode) leftPlan.iterator().next();
+            qtf = (QueryThenFetchNode) rightPlan.iterator().next();
         } else {
             nested = (NestedLoopNode) rightPlan.iterator().next();
+            qtf = (QueryThenFetchNode) leftPlan.iterator().next();
         }
         assertThat(nested.limit(), is(TopN.NO_LIMIT));
         assertThat(nested.offset(), is(0));
+        assertThat(qtf.limit(), is(nullValue()));
+        assertThat(qtf.offset(), is(0));
+
+        leftPlan = (IterablePlan) nested.left();
+        rightPlan = (IterablePlan) nested.right();
+
+        QueryThenFetchNode qtfLeftNested = (QueryThenFetchNode) leftPlan.iterator().next();
+        QueryThenFetchNode qtfRightNested = (QueryThenFetchNode) rightPlan.iterator().next();
+
+        assertThat(qtfLeftNested.limit(), is(nullValue()));
+        assertThat(qtfLeftNested.offset(), is(0));
+
+        assertThat(qtfRightNested.limit(), is(nullValue()));
+        assertThat(qtfRightNested.offset(), is(0));
+    }
+
+    @Test
+    public void testCrossJoinThreeTablesWithJoinConditionInWhereClause() throws Exception {
+        IterablePlan plan = plan("select * from users t1 cross join users t2 cross join users t3 where t3.id = t2.id limit 10 offset 2");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(NestedLoopNode.class));
+        NestedLoopNode nl = (NestedLoopNode) planNode;
+
+        assertThat(nl.limit(), is(10));
+        assertThat(nl.offset(), is(2));
+
+        IterablePlan leftPlan = (IterablePlan) nl.left();
+        IterablePlan rightPlan = (IterablePlan) nl.right();
+
+        NestedLoopNode nested;
+        QueryThenFetchNode qtf;
+        if (leftPlan.iterator().next() instanceof NestedLoopNode) {
+            nested = (NestedLoopNode) leftPlan.iterator().next();
+            qtf = (QueryThenFetchNode) rightPlan.iterator().next();
+        } else {
+            nested = (NestedLoopNode) rightPlan.iterator().next();
+            qtf = (QueryThenFetchNode) leftPlan.iterator().next();
+        }
+        assertThat(nested.limit(), is(TopN.NO_LIMIT));
+        assertThat(nested.offset(), is(0));
+        assertThat(qtf.limit(), is(nullValue()));
+        assertThat(qtf.offset(), is(0));
+
+        leftPlan = (IterablePlan) nested.left();
+        rightPlan = (IterablePlan) nested.right();
+
+        QueryThenFetchNode qtfLeftNested = (QueryThenFetchNode) leftPlan.iterator().next();
+        QueryThenFetchNode qtfRightNested = (QueryThenFetchNode) rightPlan.iterator().next();
+
+        assertThat(qtfLeftNested.limit(), is(nullValue()));
+        assertThat(qtfLeftNested.offset(), is(0));
+
+        assertThat(qtfRightNested.limit(), is(nullValue()));
+        assertThat(qtfRightNested.offset(), is(0));
     }
 }

@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
@@ -29,6 +30,7 @@ import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.core.StringUtils;
 import io.crate.metadata.ColumnIdent;
@@ -183,7 +185,7 @@ public class ESQueryBuilder {
         }
 
         builder.field("from", node.offset());
-        builder.field("size", node.limit());
+        builder.field("size", MoreObjects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT));
 
         builder.endObject();
         return builder.bytes();

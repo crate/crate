@@ -218,12 +218,12 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
 
             context.print("left");
             context.indent();
-            visitPlan(node.left(), context);
+            PlanPrinter.this.process(node.left(), context);
             context.dedent();
 
             context.print("right");
             context.indent();
-            visitPlan(node.right(), context);
+            PlanPrinter.this.process(node.right(), context);
             context.dedent();
 
             context.print("outputTypes: %s", node.outputTypes());

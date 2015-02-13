@@ -604,5 +604,17 @@ public class NestedLoopOperationTest {
             assertPagedFullNestedLoop(left, right);
         }
     }
+
+    @Test
+    public void testBiggerLimitThanDefaultPageSize() throws Exception {
+        Object[][] left = randomRows(NestedLoopOperation.MAX_PAGE_SIZE + 10, 1);
+        Object[][] right = randomRows(10, 1);
+
+        assertNestedLoop(left, right, NestedLoopOperation.MAX_PAGE_SIZE*2, 10, NestedLoopOperation.MAX_PAGE_SIZE*2);
+
+        if (nestedLoopPaged) {
+            assertPagedFullNestedLoop(left, right);
+        }
+    }
 }
 
