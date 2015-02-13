@@ -25,7 +25,6 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
@@ -40,7 +39,9 @@ import java.util.List;
 public class QueryThenFetchNode extends ESDQLPlanNode {
 
     private final List<Symbol> orderBy;
-    private final int limit;
+
+    @Nullable
+    private final Integer limit;
     private final int offset;
     private final boolean[] reverseFlags;
     private final WhereClause whereClause;
@@ -80,7 +81,7 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
         this.whereClause = whereClause;
         this.outputs = outputs;
 
-        this.limit = MoreObjects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
+        this.limit = limit;
         this.offset = MoreObjects.firstNonNull(offset, 0);
 
         this.partitionBy = MoreObjects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
@@ -91,8 +92,13 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
         return routing;
     }
 
-    public int limit() {
+    @Nullable
+    public Integer limit() {
         return limit;
+    }
+
+    public int limitOr(int ifNull) {
+        return MoreObjects.firstNonNull(limit, ifNull);
     }
 
     public int offset() {

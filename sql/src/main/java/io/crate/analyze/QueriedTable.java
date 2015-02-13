@@ -103,25 +103,24 @@ public class QueriedTable implements QueriedRelation {
             throw new IllegalArgumentException("a querySpec needs to have some outputs in order to create a new sub-relation");
         }
         List<Symbol> splitOutputs = Lists.newArrayList(splitForRelation(tableRelation, outputs).splitSymbols());
-        boolean pullDownLimit = true;
 
         OrderBy orderBy = querySpec.orderBy();
         if (orderBy != null) {
-            pullDownLimit = splitOrderBy(tableRelation, querySpec, splitQuerySpec, splitOutputs, orderBy);
+            splitOrderBy(tableRelation, querySpec, splitQuerySpec, splitOutputs, orderBy);
         }
 
         WhereClause where = querySpec.where();
         if (where != null && where.hasQuery()) {
-            pullDownLimit = splitWhereClause(tableRelation, querySpec, splitQuerySpec, splitOutputs, pullDownLimit, where);
+            splitWhereClause(tableRelation, querySpec, splitQuerySpec, splitOutputs, where);
         } else {
             splitQuerySpec.where(WhereClause.MATCH_ALL);
         }
 
-        if (pullDownLimit) {
-            Integer limit = querySpec.limit();
-            if (limit != null) {
-                splitQuerySpec.limit(limit + querySpec.offset());
-            }
+        // pull down limit = limit + offset, offset=0 by default
+        Integer limit = querySpec.limit();
+        if (limit != null) {
+            splitQuerySpec.limit(limit + querySpec.offset());
+            splitQuerySpec.offset(0);
         }
         splitQuerySpec.outputs(splitOutputs);
         List<OutputName> outputNames = new ArrayList<>(splitOutputs.size());
@@ -154,11 +153,10 @@ public class QueriedTable implements QueriedRelation {
         }
     }
 
-    private static boolean splitWhereClause(TableRelation tableRelation,
+    private static void splitWhereClause(TableRelation tableRelation,
                                             QuerySpec querySpec,
                                             QuerySpec splitQuerySpec,
                                             List<Symbol> splitOutputs,
-                                            boolean pullDownLimit,
                                             WhereClause where) {
         QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(tableRelation, where.query());
         if (splitQueries.relationQuery() != null) {
@@ -168,27 +166,22 @@ public class QueriedTable implements QueriedRelation {
             SplitContext splitContext = splitForRelation(tableRelation, splitQueries.remainingQuery());
             assert splitContext.directSplit.isEmpty();
             splitOutputs.addAll(splitContext.mixedSplit);
-            pullDownLimit = pullDownLimit && splitContext.mixedSplit.isEmpty();
         } else {
             splitQuerySpec.where(WhereClause.MATCH_ALL);
         }
-        return pullDownLimit;
     }
 
-    private static boolean splitOrderBy(TableRelation tableRelation,
+    private static void splitOrderBy(TableRelation tableRelation,
                                         QuerySpec querySpec,
                                         QuerySpec splitQuerySpec,
                                         List<Symbol> splitOutputs,
                                         OrderBy orderBy) {
-        boolean pullDownLimit;
         SplitContext splitContext = splitForRelation(tableRelation, orderBy.orderBySymbols());
         addAllNew(splitOutputs, splitContext.mixedSplit);
-        pullDownLimit = splitContext.mixedSplit.isEmpty();
 
         if (!splitContext.directSplit.isEmpty()) {
             rewriteOrderBy(querySpec, splitQuerySpec, splitContext);
         }
-        return pullDownLimit;
     }
 
     /**
