@@ -81,6 +81,7 @@ public class QueryThenFetchConsumer implements Consumer {
                     return new NoopPlannedAnalyzedRelation(table);
                 }
             }
+
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
                 return new QueryThenFetchNode(

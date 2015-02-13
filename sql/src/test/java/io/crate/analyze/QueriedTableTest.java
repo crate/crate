@@ -118,21 +118,6 @@ public class QueriedTableTest {
         return expressionAnalyzer.convert(SqlParser.createExpression(expression), context);
     }
 
-    @Test
-    public void testDoNotPullDownTheLimitIfOrderByHasJoinCondition() throws Exception {
-        Symbol t1x = asSymbol("t1.x");
-        Symbol orderBy = asSymbol("t1.x + t2.x");
-
-        QuerySpec querySpec = new QuerySpec()
-                .outputs(Arrays.asList(t1x))
-                .orderBy(new OrderBy(Arrays.asList(orderBy), new boolean[] { false }, new Boolean[] { null }))
-                .limit(100);
-
-        QueriedTable qt1 = QueriedTable.newSubRelation(new QualifiedName("t1"), tr1, querySpec);
-        assertThat(qt1.querySpec().limit(), nullValue());
-        assertThat(querySpec.limit(), is(100));
-    }
-
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testWhereClauseSplitWithMatchFunction() throws Exception {
@@ -178,8 +163,6 @@ public class QueriedTableTest {
          *
          *      t1.y + t2.z = 3 is in "remaining query"
          *      and both t1.y, t2.z are added to the outputs of t1 / t2
-         *
-         *      and that limit isn't pushed down because of join condition in whereClause
          */
         Symbol query = asSymbol("t1.x = 1 and t2.x = 3 and t1.y + t2.z = 3");
 
@@ -194,9 +177,9 @@ public class QueriedTableTest {
         QueriedTable qt1 = QueriedTable.newSubRelation(new QualifiedName("t1"), tr1, querySpec);
         QueriedTable qt2 = QueriedTable.newSubRelation(new QualifiedName("t2"), tr2, querySpec);
 
-         // no limit pushed down because of join condition in where clause
-        assertThat(qt1.querySpec().limit(), nullValue());
-        assertThat(qt2.querySpec().limit(), nullValue());
+         // limit pushed down by default
+        assertThat(qt1.querySpec().limit(), is(30));
+        assertThat(qt2.querySpec().limit(), is(30));
         assertThat(querySpec.limit(), is(30));
 
         assertThat(qt1.querySpec().outputs().size(), is(2));

@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Constants;
 import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.action.sql.query.QueryShardRequest;
 import io.crate.action.sql.query.QueryShardScrollRequest;
@@ -62,7 +63,9 @@ import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.action.SearchServiceListener;
 import org.elasticsearch.search.action.SearchServiceTransportAction;
 import org.elasticsearch.search.controller.SearchPhaseController;
-import org.elasticsearch.search.fetch.*;
+import org.elasticsearch.search.fetch.FetchSearchResult;
+import org.elasticsearch.search.fetch.ShardFetchRequest;
+import org.elasticsearch.search.fetch.ShardFetchSearchRequest;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 import org.elasticsearch.search.query.QueryPhaseExecutionException;
 import org.elasticsearch.search.query.QuerySearchResult;
@@ -156,12 +159,13 @@ public class QueryThenFetchOperation {
         if (ctx.pageInfo.isPresent()) {
             // fetch all, including all offset stuff
             queryLimit = ctx.searchNode.offset() + Math.min(
-                    ctx.searchNode.limit(),
+                    ctx.searchNode.limitOr(Constants.DEFAULT_SELECT_LIMIT),
                     ctx.pageInfo.get().position() + ctx.pageInfo.get().size());
             queryOffset = 0;
             keepAliveValue = Optional.of(DEFAULT_KEEP_ALIVE);
         } else {
-            queryLimit = ctx.searchNode.limit();
+            assert ctx.searchNode.limitOr(0) >= 0 : "cannot handle NO_LIMIT at QTF";
+            queryLimit = ctx.searchNode.limitOr(Constants.DEFAULT_SELECT_LIMIT);
             queryOffset = ctx.searchNode.offset();
         }
 

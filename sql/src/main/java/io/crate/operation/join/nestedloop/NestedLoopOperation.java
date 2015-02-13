@@ -147,10 +147,6 @@ public class NestedLoopOperation implements ProjectorUpstream {
         return this.offset;
     }
 
-    private boolean hasOffset() {
-        return this.offset > 0;
-    }
-
     private boolean needsToFetchAllForPaging() {
         return !this.projections.isEmpty();
     }
