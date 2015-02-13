@@ -175,6 +175,7 @@ public class UpsertByIdTask extends JobTask {
                 transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 node.isPartitionedTable(),
+                false, // overwrite Duplicates
                 node.items().size(),
                 node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
                 node.updateColumns(),

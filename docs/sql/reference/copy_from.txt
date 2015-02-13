@@ -21,6 +21,7 @@ where `option` can be one of:
 - `shared` *boolean*
 - `num_readers` *integer*
 - `compression` *string*
+- `overwrite_duplicates` *boolean*
 
 Description
 ===========
@@ -159,6 +160,17 @@ compression
 ^^^^^^^^^^^
 
 The default value is ``null``. Can be set to ``gzip`` to read gzipped files.
+
+overwrite_duplicates
+^^^^^^^^^^^^^^^^^^^^
+
+Default: false
+
+``COPY FROM`` by default won't overwrite rows if a document with the same
+primary key already exists.
+
+If this option is set to true this behaviour is changed so that documents will
+be overwritten.
 
 .. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 

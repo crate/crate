@@ -64,6 +64,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 transportCreateIndexAction,
                 bulkActions,
                 autoCreateIndices,
+                false, // overwriteDuplicates
                 null,
                 columnReferences.toArray(new Reference[columnReferences.size()]));
     }

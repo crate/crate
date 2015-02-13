@@ -79,6 +79,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 collectExpressions,
                 20,
                 null, null,
+                false,
                 false
         );
         indexWriter.registerUpstream(null);

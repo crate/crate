@@ -83,6 +83,32 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromWithOverwriteDuplicates() throws Exception {
+        execute("create table t (id int primary key) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("insert into t (id) values (?)", new Object[][] {
+                new Object[] { 1 },
+                new Object[] { 2 },
+                new Object[] { 3 },
+                new Object[] { 4 }
+        });
+        execute("refresh table t");
+
+        File tmpExport = folder.newFolder("tmpExport");
+        execute("copy t to directory ?", new Object[] { tmpExport.getAbsolutePath()});
+        assertThat(response.rowCount(), is(4L));
+        execute("copy t from ?", new Object[]{String.format("%s/*", tmpExport.getAbsolutePath())});
+        assertThat(response.rowCount(), is(0L));
+        execute("copy t from ? with (overwrite_duplicates = true, shared=true)",
+                new Object[]{String.format("%s/*", tmpExport.getAbsolutePath())});
+        assertThat(response.rowCount(), is(4L));
+        execute("refresh table t");
+        execute("select count(*) from t");
+        assertThat(((Long) response.rows()[0][0]), is(4L));
+    }
+
+    @Test
     public void testCopyFromFileWithoutPK() throws Exception {
         execute("create table quotes (id int, " +
                 "quote string index using fulltext) with (number_of_replicas=0)");

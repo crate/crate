@@ -160,8 +160,7 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
                                 indexResponse.getVersion(),
                                 indexResponse.isCreated()));
             } catch (Throwable t) {
-                if (TransportActions.isShardNotAvailableException(t)
-                        || !request.continueOnError()) {
+                if (TransportActions.isShardNotAvailableException(t) || !request.continueOnError()) {
                     throw t;
                 } else {
                     logger.debug("{} failed to execute update for [{}]/[{}]",
@@ -288,7 +287,7 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
             builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
         }
         IndexRequest indexRequest = Requests.indexRequest(request.index()).type(request.type()).id(item.id()).routing(item.routing())
-                .create(true).operationThreaded(false);
+                .create(!request.overwriteDuplicates()).operationThreaded(false);
         if (rawSource != null) {
             indexRequest.source(rawSource.bytes);
         } else {

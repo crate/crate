@@ -79,6 +79,7 @@ public class BulkShardProcessor {
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final BitSet responses;
     private final Object responsesLock = new Object();
+    private final boolean overwriteDuplicates;
     private volatile boolean closed = false;
     private final Set<String> indicesCreated = new HashSet<>();
     private final ReadWriteLock retryLock = new ReadWriteLock();
@@ -86,7 +87,7 @@ public class BulkShardProcessor {
     private final ScheduledExecutorService scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(daemonThreadFactory("bulkShardProcessor"));
     private final TimeValue requestTimeout;
-    private final boolean continueOnDuplicates;
+    private final boolean continueOnErrors;
 
     private Reference[] missingAssignmentsColumns;
     private String[] assignmentsColumns;
@@ -99,17 +100,19 @@ public class BulkShardProcessor {
                               TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                               TransportCreateIndexAction transportCreateIndexAction,
                               boolean autoCreateIndices,
+                              boolean overwriteDuplicates,
                               int bulkSize,
-                              boolean continueOnDuplicates,
+                              boolean continueOnErrors,
                               @Nullable String[] assignmentsColumns,
                               @Nullable Reference[] missingAssignmentsColumns) {
+        this.overwriteDuplicates = overwriteDuplicates;
         assert assignmentsColumns != null | missingAssignmentsColumns != null;
         this.clusterService = clusterService;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.autoCreateIndices = autoCreateIndices;
         this.bulkSize = bulkSize;
-        this.continueOnDuplicates = continueOnDuplicates;
+        this.continueOnErrors = continueOnErrors;
         this.assignmentsColumns = assignmentsColumns;
         this.missingAssignmentsColumns = missingAssignmentsColumns;
         responses = new BitSet();
@@ -177,7 +180,8 @@ public class BulkShardProcessor {
             if (updateRequest == null) {
                 updateRequest = new ShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns);
                 updateRequest.timeout(requestTimeout);
-                updateRequest.continueOnError(continueOnDuplicates);
+                updateRequest.continueOnError(continueOnErrors);
+                updateRequest.overwriteDuplicates(overwriteDuplicates);
                 requestsByShard.put(shardId, updateRequest);
             }
             counter.getAndIncrement();

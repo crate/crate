@@ -42,6 +42,8 @@ import java.util.List;
 
 public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
 
+
+
     /**
      * A single update item.
      */
@@ -175,6 +177,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     private List<Item> items;
     private IntArrayList locations;
     private boolean continueOnError = false;
+    private boolean overwriteDuplicates = false;
 
     /**
      * List of column names used on update
@@ -262,6 +265,14 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return insertColumns;
     }
 
+    public boolean overwriteDuplicates() {
+        return overwriteDuplicates;
+    }
+
+    public void overwriteDuplicates(boolean overwriteDuplicates) {
+        this.overwriteDuplicates = overwriteDuplicates;
+    }
+
     public boolean continueOnError() {
         return continueOnError;
     }
@@ -303,6 +314,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
             items.add(Item.readItem(in, insertValuesStreamer));
         }
         continueOnError = in.readBoolean();
+        overwriteDuplicates = in.readBoolean();
     }
 
     @Override
@@ -332,6 +344,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
             items.get(i).writeTo(out);
         }
         out.writeBoolean(continueOnError);
+        out.writeBoolean(overwriteDuplicates);
     }
 
 }
