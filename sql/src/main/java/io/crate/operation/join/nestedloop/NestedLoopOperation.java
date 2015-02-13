@@ -140,7 +140,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
     }
 
     protected int limit() {
-        return this.limit == TopN.NO_LIMIT ? Constants.DEFAULT_SELECT_LIMIT : this.limit;
+        return this.limit;
     }
 
     protected int offset() {
@@ -206,18 +206,26 @@ public class NestedLoopOperation implements ProjectorUpstream {
         FlatProjectorChain projectorChain = initializeProjectors();
 
         int rowsToProduce = strategy.rowsToProduce(pageInfo);
+        if (rowsToProduce == TopN.NO_LIMIT) {
+            // if we have no limit, we assume the default limit for the first page
+            rowsToProduce = offset() + Constants.DEFAULT_SELECT_LIMIT;
+        }
 
         // this size is set arbitrarily to a value between MIN_ and MAX_PAGE_SIZE
         // we arbitrarily assume that the inner relation produces around 10 results
         // and we fetch all that is needed to fetch all others
-        final int outerPageSize = Math.max(MIN_PAGE_SIZE, Math.min(rowsToProduce / 10, MAX_PAGE_SIZE));
+        final int outerPageSize = Math.min(rowsToProduce,
+                Math.max(MIN_PAGE_SIZE,
+                        Math.min(rowsToProduce / 10, MAX_PAGE_SIZE)
+                )
+        );
         final PageInfo outerPageInfo = PageInfo.firstPage(outerPageSize);
         if (logger.isTraceEnabled()) {
             logger.trace("fetching page {} from outer relation {}", outerPageInfo, new PlanPrinter().print(nestedLoopNode.outer()));
         }
         List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, outerPageInfo);
 
-        int innerPageSize = Math.max(MIN_PAGE_SIZE, Math.min(rowsToProduce/outerPageSize, MAX_PAGE_SIZE));
+        int innerPageSize = Math.max(MIN_PAGE_SIZE, Math.min(rowsToProduce / outerPageSize, MAX_PAGE_SIZE));
 
         final PageInfo innerPageInfo = PageInfo.firstPage(innerPageSize);
         if (logger.isTraceEnabled()) {
@@ -467,7 +475,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
         @Override
         protected ListenableFuture<PageableTaskResult> fetchWithNewQuery(PageInfo pageInfo) {
-            if (operation.limit() - pageInfo.position() <= 0) {
+            if (operation.limit() != TopN.NO_LIMIT && operation.limit() - pageInfo.position() <= 0) {
                 closeSafe();
                 return Futures.immediateFuture(PageableTaskResult.EMPTY_PAGEABLE_RESULT);
             }

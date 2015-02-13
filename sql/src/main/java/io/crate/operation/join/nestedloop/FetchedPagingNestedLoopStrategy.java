@@ -46,11 +46,6 @@ class FetchedPagingNestedLoopStrategy extends OneShotNestedLoopStrategy {
     }
 
     @Override
-    public int rowsToProduce(Optional<PageInfo> pageInfo) {
-        return nestedLoopOperation.limit() + nestedLoopOperation.offset();
-    }
-
-    @Override
     public void onFirstJoin(JoinContext joinContext) {
         // we can close the context as we produced ALL results in one batch
         try {

@@ -29,6 +29,7 @@ import io.crate.executor.PageableTaskResult;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.Projector;
+import io.crate.operation.projectors.TopN;
 
 import java.io.IOException;
 import java.util.concurrent.Executor;
@@ -194,6 +195,9 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
 
     @Override
     public int rowsToProduce(Optional<PageInfo> pageInfo) {
+        if (nestedLoopOperation.limit() == TopN.NO_LIMIT) {
+            return TopN.NO_LIMIT;
+        }
         return nestedLoopOperation.limit() + nestedLoopOperation.offset();
     }
 
