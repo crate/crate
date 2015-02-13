@@ -65,9 +65,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
 
+    public AnalyzedRelation analyze(Node node, RelationAnalysisContext relationAnalysisContext) {
+        return process(node, relationAnalysisContext);
+    }
+
     public AnalyzedRelation analyze(Node node, Analysis analysis){
-        RelationAnalysisContext context = new RelationAnalysisContext(analysis.parameterContext());
-        return process(node, context);
+        return analyze(node, new RelationAnalysisContext(analysis.parameterContext()));
     }
 
     @Override
