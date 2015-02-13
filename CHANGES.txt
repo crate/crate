@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/02/13 0.47.2
+=================
+
  - Fix regression introduced in ``0.47.0``: It is now again possible to refer
    to columns using the fully qualified name including table name or alias in
    the WHERE clause of an Update statement.
