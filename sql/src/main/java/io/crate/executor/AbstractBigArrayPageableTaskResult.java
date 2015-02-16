@@ -28,7 +28,7 @@ import org.elasticsearch.common.util.ObjectArray;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-public abstract class AbstractBigArrayPageableTaskResult implements PageableTaskResult {
+public abstract class AbstractBigArrayPageableTaskResult implements TaskResult {
 
     protected final ObjectArray<Object[]> backingArray;
     protected final long backingArrayStartIdx;

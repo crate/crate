@@ -502,7 +502,7 @@ For example, you can query shards like this::
   ...   orphan_partition as o_p
   ... from sys.shards where table_name = 'locations' and id = 1;
   +--------+-----------+----+-----+------+---------+------+---------+------+-------+
-  | schema | t         | id | p_i | docs | primary | r_n  |  state  | size | o_p   |
+  | schema | t         | id | p_i | docs | primary |  r_n |  state  | size | o_p   |
   +--------+-----------+----+-----+------+---------+------+---------+------+-------+
   | doc    | locations |  1 |     |    6 | TRUE    | NULL | STARTED | ...  | FALSE |
   +--------+-----------+----+-----+------+---------+------+---------+------+-------+

@@ -25,7 +25,6 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.Projector;
@@ -49,8 +48,8 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
 
         private final Projector downstream;
 
-        private final FutureCallback<PageableTaskResult> onOuterPage;
-        private final FutureCallback<PageableTaskResult> onInnerPage;
+        private final FutureCallback<TaskResult> onOuterPage;
+        private final FutureCallback<TaskResult> onInnerPage;
 
         public OneShotExecutor(JoinContext ctx,
                                  Optional<PageInfo> globalPageInfo,
@@ -61,9 +60,9 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
             this.callback = finalCallback;
             this.nestedLoopExecutor = nestedLoopExecutor;
             this.downstream = downstream;
-            onOuterPage = new FutureCallback<PageableTaskResult>() {
+            onOuterPage = new FutureCallback<TaskResult>() {
                 @Override
-                public void onSuccess(PageableTaskResult result) {
+                public void onSuccess(TaskResult result) {
                     if (result == null) {
                         callback.onFailure(new NullPointerException("outer relation result result is null"));
                         return;
@@ -76,9 +75,9 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
                     callback.onFailure(t);
                 }
             };
-            onInnerPage = new FutureCallback<PageableTaskResult>() {
+            onInnerPage = new FutureCallback<TaskResult>() {
                 @Override
-                public void onSuccess(PageableTaskResult result) {
+                public void onSuccess(TaskResult result) {
                     if (result == null) {
                         callback.onFailure(new NullPointerException("inner relation result result is null"));
                         return;
@@ -109,7 +108,7 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
         }
 
         @Override
-        public void onNewOuterPage(PageableTaskResult taskResult) {
+        public void onNewOuterPage(TaskResult taskResult) {
             ctx.newOuterPage(taskResult);
             if (ctx.outerIsFinished()) {
                 callback.onSuccess(null);
@@ -120,7 +119,7 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
         }
 
         @Override
-        public void onNewInnerPage(PageableTaskResult taskResult) {
+        public void onNewInnerPage(TaskResult taskResult) {
             ctx.newInnerPage(taskResult);
 
             if (taskResult.page().size() == 0) {
@@ -186,11 +185,6 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
     @Override
     public NestedLoopExecutor executor(JoinContext ctx, Optional<PageInfo> pageInfo, Projector downstream, FutureCallback<Void> callback) {
         return new OneShotExecutor(ctx, pageInfo, downstream, nestedLoopExecutorService.executor(), callback);
-    }
-
-    @Override
-    public TaskResult emptyResult() {
-        return TaskResult.EMPTY_RESULT;
     }
 
     @Override

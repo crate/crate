@@ -20,7 +20,6 @@
 */
 package io.crate.operation.join.nestedloop;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
@@ -196,7 +195,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
         if (limit() == 0) {
             // shortcut
-            return Futures.immediateFuture(strategy.emptyResult());
+            return Futures.immediateFuture((TaskResult) TaskResult.EMPTY_RESULT);
         }
 
         FlatProjectorChain projectorChain = initializeProjectors();
@@ -470,19 +469,12 @@ public class NestedLoopOperation implements ProjectorUpstream {
         }
 
         @Override
-        protected ListenableFuture<PageableTaskResult> fetchWithNewQuery(PageInfo pageInfo) {
+        protected ListenableFuture<TaskResult> fetchWithNewQuery(PageInfo pageInfo) {
             if (operation.limit() != TopN.NO_LIMIT && operation.limit() - pageInfo.position() <= 0) {
                 closeSafe();
-                return Futures.immediateFuture(PageableTaskResult.EMPTY_PAGEABLE_RESULT);
+                return Futures.immediateFuture((TaskResult) TaskResult.EMPTY_RESULT);
             }
-            return Futures.transform(operation.execute(Optional.of(pageInfo)), new Function<TaskResult, PageableTaskResult>() {
-                @Nullable
-                @Override
-                public PageableTaskResult apply(@Nullable TaskResult input) {
-                    assert input != null && input instanceof PageableTaskResult;
-                    return (PageableTaskResult)input;
-                }
-            });
+            return operation.execute(Optional.of(pageInfo));
         }
 
         @Override

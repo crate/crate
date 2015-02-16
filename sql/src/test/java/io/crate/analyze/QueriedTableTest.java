@@ -194,7 +194,7 @@ public class QueriedTableTest {
         Function remainingQuery = (Function) normalizer.normalize(querySpec.where().query());
         assertThat(remainingQuery, isFunction(EqOperator.NAME));
         assertThat(remainingQuery.arguments().get(0), isFunction(AddFunction.NAME));
-        assertThat(remainingQuery.arguments().get(1), isLiteral(3, DataTypes.INTEGER));
+        assertThat(remainingQuery.arguments().get(1), isLiteral(3L));
 
         Function addFunction = (Function) remainingQuery.arguments().get(0);
         Symbol firstArg = addFunction.arguments().get(0);

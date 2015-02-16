@@ -28,7 +28,6 @@ import io.crate.core.bigarray.MultiNativeArrayBigArray;
 import io.crate.core.bigarray.MultiObjectArrayBigArray;
 import io.crate.executor.AbstractBigArrayPageableTaskResult;
 import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
 import io.crate.executor.TaskResult;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
@@ -36,13 +35,13 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.ObjectArray;
 
 /**
- * {@linkplain io.crate.executor.PageableTaskResult} that does not cache pages,
+ * {@linkplain io.crate.executor.TaskResult} that does not cache pages,
  * issues new queries when paging backwards or when the gap between two requested
  * pages is bigger than {@linkplain #maxGapSize()}.
  *
  * @param <T> the actual implementing class
  */
-public abstract class AbstractNonCachingPageableTaskResult<T extends PageableTaskResult> extends AbstractBigArrayPageableTaskResult {
+public abstract class AbstractNonCachingPageableTaskResult<T extends TaskResult> extends AbstractBigArrayPageableTaskResult {
 
     public static final ObjectArray<Object[]> EMPTY_PAGE_SOURCE = new MultiNativeArrayBigArray<Object[]>(0L, 0L, TaskResult.EMPTY_ROWS);
 
@@ -65,7 +64,7 @@ public abstract class AbstractNonCachingPageableTaskResult<T extends PageableTas
     /**
      * fetch a new page from the data source by issuing a new query.
      */
-    protected abstract ListenableFuture<PageableTaskResult> fetchWithNewQuery(PageInfo pageInfo);
+    protected abstract ListenableFuture<TaskResult> fetchWithNewQuery(PageInfo pageInfo);
 
     /**
      * if the gap between two pages + the requested pagesize is bigger than this
@@ -87,7 +86,7 @@ public abstract class AbstractNonCachingPageableTaskResult<T extends PageableTas
 
 
     @Override
-    public ListenableFuture<PageableTaskResult> fetch(final PageInfo pageInfo) {
+    public ListenableFuture<TaskResult> fetch(final PageInfo pageInfo) {
         final long pageSourceBeginning = currentPageInfo.position() - backingArrayStartIdx;
         if (pageInfo.position() < pageSourceBeginning) {
             logger.trace("paging backwards for page {}. issue new query", pageInfo);
@@ -104,7 +103,7 @@ public abstract class AbstractNonCachingPageableTaskResult<T extends PageableTas
             restSize = 0;
         }
 
-        final SettableFuture<PageableTaskResult> future = SettableFuture.create();
+        final SettableFuture<TaskResult> future = SettableFuture.create();
         if (restSize >= pageInfo.size()) {
             // don't need to fetch nuttin'
             logger.trace("can satisfy page {} with current page source", pageInfo);
