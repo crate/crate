@@ -33,10 +33,6 @@ public class FailedShardsException extends RuntimeException implements CrateExce
         super(genMessage(shardFailures));
     }
 
-    public FailedShardsException(ShardOperationFailedException[] shardFailures, Throwable original) {
-        super(genMessage(shardFailures), original);
-    }
-
     private static String genMessage(ShardOperationFailedException[] shardFailures) {
         StringBuilder sb;
 
