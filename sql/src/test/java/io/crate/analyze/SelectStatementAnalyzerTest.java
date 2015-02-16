@@ -1371,7 +1371,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> arguments = ((Function) analysis.relation().querySpec().outputs().get(0)).arguments();
         assertThat(arguments.size(), is(2));
         assertThat(arguments.get(0), isReference("tags"));
-        assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
+        assertThat(arguments.get(1), isLiteral(1));
     }
 
     @Test
@@ -1395,7 +1395,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> arguments = ((Function) analysis.relation().querySpec().outputs().get(0)).arguments();
         assertThat(arguments.size(), is(2));
         assertThat(arguments.get(0), isReference("tags['name']"));
-        assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
+        assertThat(arguments.get(1), isLiteral(1));
     }
 
     @Test
@@ -1412,7 +1412,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> arguments = ((Function) analysis.relation().querySpec().outputs().get(0)).arguments();
         assertThat(arguments.size(), is(2));
         assertThat(arguments.get(0), isReference("tags"));
-        assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
+        assertThat(arguments.get(1), isLiteral(1));
     }
 
     @Test
@@ -1424,7 +1424,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(arguments.size(), is(2));
 
         assertThat(arguments.get(0), isFunction(MatchesFunction.NAME));
-        assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
+        assertThat(arguments.get(1), isLiteral(1));
 
         List<Symbol> scalarArguments = ((Function) arguments.get(0)).arguments();
         assertThat(scalarArguments.size(), is(2));
@@ -1535,7 +1535,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testExtractFunctionWithLiteral() throws Exception {
         SelectAnalyzedStatement statement = analyze("select extract(day from '2012-03-24') from users");
         Symbol symbol = statement.relation().querySpec().outputs().get(0);
-        assertThat(symbol, isLiteral(24L, DataTypes.LONG));
+        assertThat(symbol, isLiteral(24));
     }
 
     @Test

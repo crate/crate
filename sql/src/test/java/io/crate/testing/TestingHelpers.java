@@ -181,36 +181,76 @@ public class TestingHelpers {
         assertThat(((Literal) symbol).value(), is(expectedValue));
     }
 
-    public static Matcher<Symbol> isLiteral(final Object expectedValue, final DataType type) {
+    public static Matcher<Symbol> isLiteral(Object expectedValue) {
+        return isLiteral(expectedValue, null);
+    }
+
+    public static Matcher<Symbol> isLiteral(Object expectedObject, @Nullable final DataType type) {
+        final Object expectedValue = stringToBytesRef.apply(expectedObject);
         return new TypeSafeDiagnosingMatcher<Symbol>() {
             @Override
             protected boolean matchesSafely(Symbol item, Description mismatchDescription) {
+                boolean result = true;
                 if (!(item instanceof Literal)) {
                     mismatchDescription.appendText("not a Literal: ").appendValue(item.getClass().getName());
                     return false;
                 }
-                if (!((Literal) item).valueType().equals(type)) {
-                    mismatchDescription.appendText("wrong type ").appendValue(type.toString());
+
+                if (type != null && !item.valueType().equals(type)) {
+                    mismatchDescription.appendText("wrong type ").appendValue(item.valueType());
+                    result = false;
                 }
                 if (((Literal) item).value() == null && expectedValue != null) {
-                    mismatchDescription.appendText("wrong value ").appendValue(((Literal) item).value());
+                    mismatchDescription.appendText("wrong value ").appendValue(
+                            ((Literal) item).value());
+                    result = false;
                 } else if (((Literal) item).value() == null && expectedValue == null) {
                     return true;
                 }
                 if (!((Literal) item).value().equals(expectedValue)) {
-                    mismatchDescription.appendText("wrong value ").appendValue(((Literal) item).value());
+                    mismatchDescription.appendText("wrong value ").appendValue(
+                            bytesRefToString.apply(((Literal) item).value()));
+                    result = false;
                 }
-                return true;
+                return result;
             }
 
             @Override
             public void describeTo(Description description) {
-                description.appendText("is Literal of type ")
-                        .appendText(type.toString())
-                        .appendText(" and value ").appendValue(expectedValue);
+                description.appendText("Literal: value:").appendValue(expectedValue);
+                if (type != null) {
+                    description.appendText("type:").appendValue(type);
+                }
             }
         };
     }
+
+    private static final com.google.common.base.Function bytesRefToString =
+            new com.google.common.base.Function<Object, Object>(){
+
+                @Nullable
+                @Override
+                public Object apply(@Nullable Object input) {
+                    if (input instanceof BytesRef){
+                        return ((BytesRef) input).utf8ToString();
+                    }
+                    return input;
+                }
+            };
+
+    private static final com.google.common.base.Function stringToBytesRef =
+            new com.google.common.base.Function<Object, Object>(){
+
+                @Nullable
+                @Override
+                public Object apply(@Nullable Object input) {
+                    if (input instanceof String){
+                        return new BytesRef(input.toString());
+                    }
+                    return input;
+                }
+            };
+
 
     public static Matcher<Symbol> isField(final String expectedName) {
         return isField(expectedName, null);
@@ -296,13 +336,14 @@ public class TestingHelpers {
                     mismatchDescription.appendText("not a Function: ").appendValue(item.getClass().getName());
                     return false;
                 }
-                if (!((Function) item).info().ident().name().equals(name)) {
-                    mismatchDescription.appendText("wrong Function: ").appendValue(name);
+                FunctionIdent actualIdent = ((Function) item).info().ident();
+                if (!actualIdent.name().equals(name)) {
+                    mismatchDescription.appendText("wrong Function: ").appendValue(actualIdent.name());
                     return false;
                 }
                 if (argumentTypes != null) {
-                    if (((Function) item).info().ident().argumentTypes().size() != argumentTypes.size()) {
-                        mismatchDescription.appendText("wrong number of arguments: ").appendValue(((Function) item).info().ident().argumentTypes().size());
+                    if (actualIdent.argumentTypes().size() != argumentTypes.size()) {
+                        mismatchDescription.appendText("wrong number of arguments: ").appendValue(actualIdent.argumentTypes().size());
                         return false;
                     }
 

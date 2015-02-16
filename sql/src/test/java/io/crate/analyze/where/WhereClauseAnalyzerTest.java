@@ -241,16 +241,14 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     public void testClusteredBy() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users where id=1");
         assertThat(whereClause.primaryKeys().get().get(0).stringValue(), is("1"));
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("1", DataTypes.LONG)));
+        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("1")));
 
         whereClause = analyzeSelectWhere("select name from users where id=1 or id=2");
 
         assertThat(whereClause.primaryKeys().get().size(),is(2));
         assertThat(whereClause.primaryKeys().get(), containsInAnyOrder(hasToString("1"), hasToString("2")));
 
-        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(
-                isLiteral(1, DataTypes.LONG),
-                isLiteral(2, DataTypes.LONG)));
+        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(isLiteral("1"), isLiteral("2")));
 
     }
 
@@ -260,12 +258,12 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         WhereClause whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1");
 
         assertFalse(whereClause.primaryKeys().isPresent());
-        assertThat(whereClause.clusteredBy().get(),  contains(isLiteral("1", DataTypes.LONG)));
+        assertThat(whereClause.clusteredBy().get(),  contains(isLiteral(1L)));
 
         whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1 or id=2");
         assertFalse(whereClause.primaryKeys().isPresent());
         assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(
-                isLiteral(1, DataTypes.LONG), isLiteral(2, DataTypes.LONG)));
+                isLiteral(1L), isLiteral(2L)));
 
 
         // TODO: optimize this case: routing should be 3,4,5
@@ -284,11 +282,11 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     public void testCompositePrimaryKey() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1");
         assertFalse(whereClause.primaryKeys().isPresent());
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("1", DataTypes.LONG)));
+        assertThat(whereClause.clusteredBy().get(), contains(isLiteral(1L)));
 
         whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas'");
         assertThat(whereClause.primaryKeys().get(), contains(hasToString("AgExB0RvdWdsYXM=")));
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("1", DataTypes.LONG)));
+        assertThat(whereClause.clusteredBy().get(), contains(isLiteral(1L)));
 
         // TODO: optimize this case, since the routing values are 1,2
         whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 or id=2 and name='Douglas'");
@@ -313,8 +311,7 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         WhereClause whereClause = analyzeSelectWhere(
                 "select name from users where id = 2 or id = 1");
         assertThat(whereClause.primaryKeys().get(), containsInAnyOrder(hasToString("1"), hasToString("2")));
-        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(
-                isLiteral("1", DataTypes.LONG), isLiteral("2", DataTypes.LONG)));
+        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(isLiteral("1"), isLiteral("2")));
     }
 
     @Test
