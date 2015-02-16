@@ -22,6 +22,8 @@
 package io.crate.analyze.validator;
 
 import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableList;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
@@ -33,8 +35,11 @@ import io.crate.planner.symbol.Value;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,8 +54,13 @@ public class ValidatorTest {
 
     private static ReferenceInfos referenceInfos;
 
+    private Validator validator;
+
     private final TableIdent testTableIdent = new TableIdent(null, "test");
     private final ReferenceIdent testReferenceIdent = new ReferenceIdent(testTableIdent, "person");
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     @SuppressWarnings("unchecked")
@@ -59,17 +69,22 @@ public class ValidatorTest {
         TableInfo testTableInfo = TestingTableInfo.builder(testTableIdent, RowGranularity.DOC, new Routing())
                 .add("person", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
                 .add("person", DataTypes.INTEGER, ImmutableList.of("age"))
-                .add("person", DataTypes.OBJECT, ImmutableList.of("name"))
+                .add("person", DataTypes.OBJECT, ImmutableList.of("name"), ColumnPolicy.DYNAMIC)
                 .add("person", DataTypes.STRING, ImmutableList.of("name", "first_name"))
                 .add("person", DataTypes.STRING, ImmutableList.of("name", "last_name"))
-                .add("person", DataTypes.OBJECT, ImmutableList.of("address"))
+                .add("person", DataTypes.OBJECT, ImmutableList.of("address"), ColumnPolicy.STRICT)
                 .add("person", DataTypes.STRING, ImmutableList.of("address", "street"))
                 .add("person", DataTypes.INTEGER, ImmutableList.of("address", "building"))
-                .add("person", DataTypes.BOOLEAN, ImmutableList.of("address", "isHomeless")).build();
+                .add("person", DataTypes.BOOLEAN, ImmutableList.of("address", "is_homeless")).build();
         when(referenceInfos.getTableInfoUnsafe(testTableIdent)).thenReturn(testTableInfo);
         when(referenceInfos.getReferenceInfo(testReferenceIdent)).thenReturn(
                 new ReferenceInfo(testReferenceIdent, RowGranularity.DOC, DataTypes.OBJECT)
         );
+    }
+
+    @Before
+    public void setUpValidator() {
+        validator = new Validator(referenceInfos);
     }
 
     @Test
@@ -78,27 +93,27 @@ public class ValidatorTest {
 
         Map<String, Object> person1 = new HashMap<String, Object>() {{
             put("name", new HashMap<String, Object>() {{
-                put("first_name", "John");
-                put("last_name", "Doe");
+                put("first_name", new BytesRef("John"));
+                put("last_name", new BytesRef("Doe"));
             }});
             put("age", 25);
             put("address", new HashMap<String, Object>() {{
-                put("street", "Broadway");
+                put("street", new BytesRef("Broadway"));
                 put("building", 7);
-                put("isHomeless", false);
+                put("is_homeless", false);
             }});
         }};
 
         Map<String, Object> person2 = new HashMap<String, Object>() {{
             put("name", new HashMap<String, Object>() {{
-                put("first_name", "");
-                put("last_name", 0);
+                put("first_name", new BytesRef("Jane"));
+                put("last_name", new BytesRef("Doe"));
             }});
             put("age", null);
             put("address", new HashMap<String, Object>() {{
-                put("street", true);
+                put("street", new BytesRef(""));
                 put("building", "0");
-                put("isHomeless", true);
+                put("is_homeless", true);
             }});
         }};
 
@@ -119,19 +134,75 @@ public class ValidatorTest {
         colType.add(new Value(new ArrayType(StringType.INSTANCE)));
         colType.add(referenceType);
 
-        Validator validator = new Validator(referenceInfos);
         validator.repairArgs(args, colType);
+
         assertEquals(args[0][0], 41);
         assertEquals(args[1][1], new BytesRef("52345"));
         assertEquals(args[1][2], new BytesRef("192.168.0.1"));
         assertEquals(args[1][2], new BytesRef("192.168.0.1"));
         assertEquals(args[3][0], null);
         assertTrue(((HashMap) args[0][4]).get("age") instanceof Integer);
-        assertTrue(((HashMap) ((HashMap) args[0][4]).get("name")).get("first_name") instanceof String);
-        assertTrue(((HashMap) ((HashMap) args[0][4]).get("address")).get("isHomeless") instanceof Boolean);
+        assertTrue(((HashMap) ((HashMap) args[0][4]).get("name")).get("first_name") instanceof BytesRef);
+        assertTrue(((HashMap) ((HashMap) args[0][4]).get("address")).get("is_homeless") instanceof Boolean);
         assertNull(((HashMap) args[1][4]).get("age"));
         assertTrue(((HashMap) ((HashMap) args[1][4]).get("name")).get("last_name") instanceof BytesRef);
         assertTrue(((HashMap) ((HashMap) args[1][4]).get("address")).get("street") instanceof BytesRef);
         assertTrue(((HashMap) ((HashMap) args[0][4]).get("address")).get("building") instanceof Integer);
+    }
+
+
+    @Test
+    public void testValidateTypeMismatch() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage(String.format("Invalid %s", DataTypes.STRING));
+
+        Map<String, Object> person = new HashMap<String, Object>() {{
+            put("name", new HashMap<String, Object>() {{
+                put("first_name", new BytesRef("John"));
+                put("last_name", new Array [] {
+                });
+            }});
+            put("age", 25);
+            put("address", new HashMap<String, Object>() {{
+                put("street", "Broadway");
+                put("building", 7);
+                put("is_homeless", false);
+            }});
+        }};
+        Object[][] args = new Object[][]{{person}};
+
+        Reference referenceType = new Reference(referenceInfos.getReferenceInfo(testReferenceIdent));
+
+        ArrayList<Symbol> colType = new ArrayList<>();
+        colType.add(referenceType);
+
+        validator.repairArgs(args, colType);
+    }
+
+    @Test
+    public void testValidateUnknownColumnForStrictPolicy() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column person['address']['additional_field'] unknown");
+        Map<String, Object> person = new HashMap<String, Object>() {{
+            put("name", new HashMap<String, Object>() {{
+                put("first_name", new BytesRef("John"));
+                put("last_name", new Array [] {
+                });
+            }});
+            put("age", 25);
+            put("address", new HashMap<String, Object>() {{
+                put("street", "Broadway");
+                put("building", 7);
+                put("is_homeless", false);
+                put("additional_field", "foo");
+            }});
+        }};
+        Object[][] args = new Object[][]{{person}};
+        Reference referenceType = new Reference(referenceInfos.getReferenceInfo(testReferenceIdent));
+
+        ArrayList<Symbol> colType = new ArrayList<>();
+        colType.add(referenceType);
+
+        validator.repairArgs(args, colType);
     }
 }

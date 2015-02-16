@@ -39,12 +39,14 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Singleton
 public class Validator {
 
     @Inject
@@ -100,7 +102,7 @@ public class Validator {
                 if (ref.info().columnPolicy() == ColumnPolicy.IGNORED) {
                     continue;
                 }
-                DynamicReference dynamicReference = tableInfo.getDynamic(nestedIdent, false);
+                DynamicReference dynamicReference = tableInfo.getDynamic(nestedIdent, true);
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent.sqlFqn());
                 }
@@ -132,9 +134,6 @@ public class Validator {
 
     private Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
         try {
-            if (info.type().equals(DataTypes.STRING) && primitiveValue instanceof String) {
-                return primitiveValue;
-            }
             return info.type().value(primitiveValue);
         } catch (Exception e) {
             throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
