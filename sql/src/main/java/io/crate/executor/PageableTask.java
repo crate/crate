@@ -23,9 +23,6 @@ package io.crate.executor;
 
 /**
  * A task that is able to return paged results.
- * By contract it should return implementations of
- * {@linkplain PageableTaskResult} (nested in futures)
- * on {@linkplain #result()}.
  */
 public interface PageableTask extends Task {
 

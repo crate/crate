@@ -24,7 +24,6 @@ package io.crate.operation.join.nestedloop;
 import com.google.common.base.Optional;
 import io.crate.executor.FetchedRowsPageableTaskResult;
 import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
 import io.crate.executor.TaskResult;
 
 import java.io.IOException;
@@ -38,11 +37,6 @@ class FetchedPagingNestedLoopStrategy extends OneShotNestedLoopStrategy {
     public FetchedPagingNestedLoopStrategy(NestedLoopOperation nestedLoopOperation,
                                            NestedLoopExecutorService nestedLoopExecutorService) {
         super(nestedLoopOperation, nestedLoopExecutorService);
-    }
-
-    @Override
-    public TaskResult emptyResult() {
-        return PageableTaskResult.EMPTY_PAGEABLE_RESULT;
     }
 
     @Override

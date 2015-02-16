@@ -27,7 +27,6 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.core.bigarray.IterableBigArray;
 import io.crate.core.bigarray.MultiNativeArrayBigArray;
 import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
 import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.Projector;
 
@@ -53,11 +52,6 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
                                     NestedLoopExecutorService nestedLoopExecutorService) {
         this.nestedLoopOperation = nestedLoopOperation;
         this.nestedLoopExecutorService = nestedLoopExecutorService;
-    }
-
-    @Override
-    public TaskResult emptyResult() {
-        return PageableTaskResult.EMPTY_PAGEABLE_RESULT;
     }
 
     @Override
@@ -96,6 +90,7 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
     }
 
     static class PagingExecutor implements NestedLoopExecutor {
+
         private final JoinContext ctx;
         private final FutureCallback<Void> callback;
         private final Executor nestedLoopExecutor;
@@ -108,8 +103,8 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
 
         private final Projector downstream;
 
-        private final FutureCallback<PageableTaskResult> onOuterPage;
-        private final FutureCallback<PageableTaskResult> onInnerPage;
+        private final FutureCallback<TaskResult> onOuterPage;
+        private final FutureCallback<TaskResult> onInnerPage;
 
         public PagingExecutor(JoinContext ctx,
                                int rowsToProduce,
@@ -123,9 +118,9 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
             this.callback = finalCallback;
             this.nestedLoopExecutor = nestedLoopExecutor;
             this.downstream = downstream;
-            onOuterPage = new FutureCallback<PageableTaskResult>() {
+            onOuterPage = new FutureCallback<TaskResult>() {
                 @Override
-                public void onSuccess(PageableTaskResult result) {
+                public void onSuccess(TaskResult result) {
                     if (result == null) {
                         callback.onFailure(new NullPointerException("outer relation result result is null"));
                         return;
@@ -138,9 +133,9 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
                     callback.onFailure(t);
                 }
             };
-            onInnerPage = new FutureCallback<PageableTaskResult>() {
+            onInnerPage = new FutureCallback<TaskResult>() {
                 @Override
-                public void onSuccess(PageableTaskResult result) {
+                public void onSuccess(TaskResult result) {
                     if (result == null) {
                         callback.onFailure(new NullPointerException("inner relation result result is null"));
                         return;
@@ -169,7 +164,7 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
         }
 
         @Override
-        public void onNewOuterPage(PageableTaskResult taskResult) {
+        public void onNewOuterPage(TaskResult taskResult) {
             ctx.newOuterPage(taskResult);
             if (ctx.outerIsFinished()) {
                 callback.onSuccess(null);
@@ -180,7 +175,7 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
         }
 
         @Override
-        public void onNewInnerPage(PageableTaskResult taskResult) {
+        public void onNewInnerPage(TaskResult taskResult) {
             ctx.newInnerPage(taskResult);
 
             if (taskResult.page().size() == 0) {

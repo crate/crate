@@ -118,6 +118,7 @@ public class QueryThenFetchOperation {
                         QueryThenFetchNode queryThenFetchNode,
                         List<Reference> outputs,
                         Optional<PageInfo> pageInfo) {
+
         // do stuff
         QueryThenFetchContext ctx = new QueryThenFetchContext(bigArrays, queryThenFetchNode, outputs, pageInfo);
         prepareRequests(ctx);

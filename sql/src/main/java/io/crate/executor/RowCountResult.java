@@ -21,9 +21,11 @@
 
 package io.crate.executor;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 
 public class RowCountResult implements TaskResult {
 
@@ -48,6 +50,16 @@ public class RowCountResult implements TaskResult {
         return rows;
     }
 
+    @Override
+    public ListenableFuture<TaskResult> fetch(PageInfo pageInfo) {
+        throw new UnsupportedOperationException("fetch() on RowCountResult is not supported");
+    }
+
+    @Override
+    public Page page() {
+        return new ObjectArrayPage(rows, 0, rows.length);
+    }
+
     @Nullable
     @Override
     public String errorMessage() {
@@ -55,5 +67,9 @@ public class RowCountResult implements TaskResult {
             return null;
         }
         return Exceptions.messageOf(error);
+    }
+
+    @Override
+    public void close() throws IOException {
     }
 }
