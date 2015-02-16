@@ -124,6 +124,7 @@ public class QueryThenFetchOperation {
 
         if (!queryThenFetchNode.routing().hasLocations() || ctx.requests.size() == 0) {
             callback.onSuccess(ctx);
+            return;
         }
 
         ClusterState state = clusterService.state();
@@ -221,7 +222,7 @@ public class QueryThenFetchOperation {
                             logger.error("error fetching page results for page from={} size={}", e, from ,size);
                             callback.onFailure(e);
                         }
-                    } else {
+                    } else if (logger.isTraceEnabled()) {
                         logger.trace("{} queries pending", pageContext.numOps.get());
                     }
                 }
@@ -276,9 +277,7 @@ public class QueryThenFetchOperation {
 
                 @Override
                 public void onFailure(Throwable t) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Failed to execute paged fetch phase", t);
-                    }
+                    logger.debug("Failed to execute paged fetch phase", t);
                     pageContext.successfulFetchOps.decrementAndGet();
                     if (counter.decrementAndGet() == 0) {
                         callback.onFailure(t);
@@ -547,23 +546,23 @@ public class QueryThenFetchOperation {
         public ObjectArray<Object[]> toPage(SearchHit[] hits, List<FieldExtractor<SearchHit>> extractors) {
             ObjectArray<Object[]> rows = bigArrays.newObjectArray(hits.length);
             for (int r = 0; r < hits.length; r++) {
-                Object[] row = new Object[numColumns];
-                for (int c = 0; c < numColumns; c++) {
-                    row[c] = extractors.get(c).extract(hits[r]);
-                }
-                rows.set(r, row);
+                rows.set(r, toRow(hits[r], extractors));
             }
             return rows;
         }
 
+        private Object[] toRow(SearchHit hit, List<FieldExtractor<SearchHit>> extractors) {
+            Object[] row = new Object[numColumns];
+            for (int c = 0; c < numColumns; c++) {
+                row[c] = extractors.get(c).extract(hit);
+            }
+            return row;
+        }
+
         public Object[][] toRows(SearchHit[] hits, List<FieldExtractor<SearchHit>> extractors) {
             Object[][] rows = new Object[hits.length][numColumns];
-
             for (int r = 0; r < hits.length; r++) {
-                rows[r] = new Object[numColumns];
-                for (int c = 0; c < numColumns; c++) {
-                    rows[r][c] = extractors.get(c).extract(hits[r]);
-                }
+                rows[r] = toRow(hits[r], extractors);
             }
             return rows;
         }
