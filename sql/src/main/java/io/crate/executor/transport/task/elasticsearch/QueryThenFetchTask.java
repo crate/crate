@@ -23,7 +23,6 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.*;
@@ -44,6 +43,7 @@ import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.*;
 
@@ -99,7 +99,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
             @Override
             public void onSuccess(@Nullable final QueryThenFetchOperation.QueryThenFetchContext context) {
-                Futures.addCallback(context.createSearchResponse(), new FutureCallback<InternalSearchResponse>() {
+                context.createSearchResponse(new FutureCallback<InternalSearchResponse>() {
                     @Override
                     public void onSuccess(@Nullable InternalSearchResponse searchResponse) {
                         if (pageInfo.isPresent()) {
@@ -118,7 +118,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                     }
 
                     @Override
-                    public void onFailure(Throwable t) {
+                    public void onFailure(@Nonnull Throwable t) {
                         try {
                             context.close();
                             logger.error("error creating a QueryThenFetch response", t);

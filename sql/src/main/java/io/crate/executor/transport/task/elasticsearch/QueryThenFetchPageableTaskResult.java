@@ -21,22 +21,20 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.PageInfo;
 import io.crate.executor.PageableTaskResult;
 import io.crate.executor.transport.AbstractNonCachingPageableTaskResult;
 import io.crate.operation.qtf.QueryThenFetchOperation;
-import io.crate.planner.node.dql.QueryThenFetchNode;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
 
@@ -69,18 +67,19 @@ class QueryThenFetchPageableTaskResult extends AbstractNonCachingPageableTaskRes
     }
 
     @Override
-    protected void fetchFromSource(int from, int size, FutureCallback<ObjectArray<Object[]>> callback) {
-        Futures.addCallback(
-                Futures.transform(operation.executePageQuery(from, size, ctx),
-                        new Function<InternalSearchResponse, ObjectArray<Object[]>>() {
-                            @javax.annotation.Nullable
-                            @Override
-                            public ObjectArray<Object[]> apply(@Nullable InternalSearchResponse input) {
-                                return ctx.toPage(input.hits().hits(), extractors);
-                            }
-                        }),
-                callback
-        );
+    protected void fetchFromSource(int from, int size, final FutureCallback<ObjectArray<Object[]>> callback) {
+        operation.executePageQuery(from, size, ctx, new FutureCallback<InternalSearchResponse>(){
+
+            @Override
+            public void onSuccess(@Nullable InternalSearchResponse result) {
+                callback.onSuccess(ctx.toPage(result.hits().hits(), extractors));
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                callback.onFailure(t);
+            }
+        });
     }
 
     @Override
@@ -92,8 +91,7 @@ class QueryThenFetchPageableTaskResult extends AbstractNonCachingPageableTaskRes
 
             @Override
             public void onSuccess(@Nullable final QueryThenFetchOperation.QueryThenFetchContext newCtx) {
-                Futures.addCallback(
-                        newCtx.createSearchResponse(),
+                newCtx.createSearchResponse(
                         new FutureCallback<InternalSearchResponse>() {
                             @Override
                             public void onSuccess(@Nullable InternalSearchResponse searchResponse) {
@@ -106,7 +104,7 @@ class QueryThenFetchPageableTaskResult extends AbstractNonCachingPageableTaskRes
                             }
 
                             @Override
-                            public void onFailure(Throwable t) {
+                            public void onFailure(@Nonnull Throwable t) {
                                 closeSafe();
                                 future.setException(t);
                             }
@@ -115,13 +113,12 @@ class QueryThenFetchPageableTaskResult extends AbstractNonCachingPageableTaskRes
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 closeSafe();
                 future.setException(t);
             }
         };
-        QueryThenFetchNode oldNode = ctx.searchNode();
-        operation.execute(callback, oldNode, ctx.outputs(), Optional.of(pageInfo));
+        operation.execute(callback, ctx.searchNode(), ctx.outputs(), Optional.of(pageInfo));
         return future;
     }
 

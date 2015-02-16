@@ -24,8 +24,6 @@ package io.crate.operation.qtf;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.action.sql.query.QueryShardRequest;
@@ -198,9 +196,9 @@ public class QueryThenFetchOperation {
         }
     }
 
-    public ListenableFuture<InternalSearchResponse> executePageQuery(final int from, final int size, final QueryThenFetchContext ctx) {
+    public void executePageQuery(
+            final int from, final int size, final QueryThenFetchContext ctx, final FutureCallback<InternalSearchResponse> callback) {
 
-        final SettableFuture<InternalSearchResponse> future = SettableFuture.create();
         final QueryThenFetchPageContext pageContext = new QueryThenFetchPageContext(ctx);
         final Scroll scroll = new Scroll(DEFAULT_KEEP_ALIVE);
 
@@ -218,10 +216,10 @@ public class QueryThenFetchOperation {
 
                     if (pageContext.numOps.decrementAndGet() == 0) {
                         try {
-                            executePageFetch(pageContext, future);
+                            executePageFetch(pageContext, callback);
                         } catch (Exception e) {
                             logger.error("error fetching page results for page from={} size={}", e, from ,size);
-                            future.setException(e);
+                            callback.onFailure(e);
                         }
                     } else {
                         logger.trace("{} queries pending", pageContext.numOps.get());
@@ -231,23 +229,22 @@ public class QueryThenFetchOperation {
                 @Override
                 public void onFailure(Throwable t) {
                     logger.error("error querying page results for page from={} size={}", t, from ,size);
-                    future.setException(t);
+                    callback.onFailure(t);
                 }
             });
             requestId++;
         }
-        return future;
     }
 
-    public void executePageFetch(final QueryThenFetchPageContext pageContext,
-                                 final SettableFuture<InternalSearchResponse> future) throws Exception {
+    private void executePageFetch(final QueryThenFetchPageContext pageContext,
+                                  final FutureCallback<InternalSearchResponse> callback) throws Exception {
 
         final ScoreDoc[] sortedShardList = searchPhaseController.sortDocs(true, pageContext.queryResults);
         AtomicArray<IntArrayList> docIdsToLoad = new AtomicArray<>(pageContext.queryResults.length());
         searchPhaseController.fillDocIdsToLoad(docIdsToLoad, sortedShardList);
 
         if (docIdsToLoad.asList().isEmpty()) {
-            future.set(InternalSearchResponse.empty());
+            callback.onSuccess(InternalSearchResponse.empty());
             return;
         }
 
@@ -271,7 +268,7 @@ public class QueryThenFetchOperation {
                                 sortedShardList,
                                 pageContext.queryResults,
                                 pageContext.fetchResults);
-                        future.set(response);
+                        callback.onSuccess(response);
                     } else {
                         logger.trace("{} fetch results left", counter.get());
                     }
@@ -284,7 +281,7 @@ public class QueryThenFetchOperation {
                     }
                     pageContext.successfulFetchOps.decrementAndGet();
                     if (counter.decrementAndGet() == 0) {
-                        future.setException(t);
+                        callback.onFailure(t);
                     }
                 }
             });
@@ -442,8 +439,7 @@ public class QueryThenFetchOperation {
             numColumns = node.outputs().size();
         }
 
-        public ListenableFuture<InternalSearchResponse> createSearchResponse() {
-            final SettableFuture<InternalSearchResponse> future = SettableFuture.create();
+        public void createSearchResponse(final FutureCallback<InternalSearchResponse> callback) {
             try {
                 threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
                     @Override
@@ -452,7 +448,7 @@ public class QueryThenFetchOperation {
                             if(shardFailures != null && shardFailures.length() > 0){
                                 FailedShardsException ex = new FailedShardsException(shardFailures.toArray(
                                         new ShardSearchFailure[shardFailures.length()]));
-                                future.setException(ex);
+                                callback.onFailure(ex);
                                 return;
                             }
                             ScoreDoc[] appliedSortedShardList = sortedShardList;
@@ -464,9 +460,9 @@ public class QueryThenFetchOperation {
                                         sortedShardList.length
                                 );
                             }
-                            future.set(searchPhaseController.merge(appliedSortedShardList, queryResults, fetchResults));
+                            callback.onSuccess(searchPhaseController.merge(appliedSortedShardList, queryResults, fetchResults));
                         } catch (Throwable t) {
-                            future.setException(t);
+                            callback.onFailure(t);
                         } finally {
                             releaseIrrelevantSearchContexts(queryResults, docIdsToLoad, pageInfo);
                         }
@@ -476,10 +472,9 @@ public class QueryThenFetchOperation {
                 try {
                     releaseIrrelevantSearchContexts(queryResults, docIdsToLoad, pageInfo);
                 } finally {
-                    future.setException(e);
+                    callback.onFailure(e);
                 }
             }
-            return future;
         }
 
         private void releaseIrrelevantSearchContexts(AtomicArray<QuerySearchResult> firstResults,
