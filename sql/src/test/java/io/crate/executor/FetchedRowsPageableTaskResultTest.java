@@ -55,7 +55,7 @@ public class FetchedRowsPageableTaskResultTest extends RandomizedTest{
         Object[][] array = range(0, 100);
         int pageSize = randomIntBetween(1, 100);
         PageInfo pageInfo = PageInfo.firstPage(pageSize);
-        PageableTaskResult pageableTaskResult = FetchedRowsPageableTaskResult.forArray(array, 0, pageInfo);
+        TaskResult pageableTaskResult = FetchedRowsPageableTaskResult.forArray(array, 0, pageInfo);
 
         while (pageableTaskResult.page().size() > 0) {
             assertPageEquals(pageableTaskResult.page(), array, pageInfo.position(), pageSize);
@@ -70,7 +70,7 @@ public class FetchedRowsPageableTaskResultTest extends RandomizedTest{
         IterableBigArray<Object[]> array = new MultiNativeArrayBigArray<Object[]>(0, 100, range(0, 100));
         int pageSize = randomIntBetween(1, 100);
         PageInfo pageInfo = PageInfo.firstPage(pageSize);
-        PageableTaskResult pageableTaskResult = FetchedRowsPageableTaskResult.forArray(array, 0, pageInfo);
+        TaskResult pageableTaskResult = FetchedRowsPageableTaskResult.forArray(array, 0, pageInfo);
 
         while (pageableTaskResult.page().size() > 0) {
             assertPageEquals(pageableTaskResult.page(), array, pageInfo.position(), pageSize);
@@ -85,7 +85,7 @@ public class FetchedRowsPageableTaskResultTest extends RandomizedTest{
         Object[][] array = range(0, 0);
         int pageSize = randomIntBetween(1, 100);
         PageInfo pageInfo = PageInfo.firstPage(pageSize);
-        PageableTaskResult pageableTaskResult = FetchedRowsPageableTaskResult.forArray(array, 0, pageInfo);
+        TaskResult pageableTaskResult = FetchedRowsPageableTaskResult.forArray(array, 0, pageInfo);
 
         while (pageableTaskResult.page().size() > 0) {
             assertThat(pageableTaskResult.page().size(), is(0L));

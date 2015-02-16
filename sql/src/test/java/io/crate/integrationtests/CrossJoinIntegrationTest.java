@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -44,7 +43,6 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    @Repeat(iterations=10)
     @Test
     public void testSelectSubscript() throws Exception {
         setup.setUpCharacters();

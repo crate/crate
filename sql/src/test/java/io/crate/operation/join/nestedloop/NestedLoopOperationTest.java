@@ -348,7 +348,7 @@ public class NestedLoopOperationTest {
             int actualLimit = (limit == TopN.NO_LIMIT ? Constants.DEFAULT_SELECT_LIMIT : limit);
             int pageSize = actualLimit >= 10 ? actualLimit/10 : Math.max(actualLimit, 1);
             PageInfo pageInfo = new PageInfo(0, pageSize);
-            PageableTaskResult pageableTaskResult = (PageableTaskResult)nestedLoop.execute(Optional.of(pageInfo)).get();
+            TaskResult pageableTaskResult = nestedLoop.execute(Optional.of(pageInfo)).get();
             List<Object[]> rows = new ArrayList<>();
 
             while (pageableTaskResult.page().size() > 0L) {

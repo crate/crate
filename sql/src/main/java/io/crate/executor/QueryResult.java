@@ -21,7 +21,10 @@
 
 package io.crate.executor;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 import javax.annotation.Nullable;
+import java.io.IOException;
 
 public class QueryResult implements TaskResult {
 
@@ -36,9 +39,24 @@ public class QueryResult implements TaskResult {
         return rows;
     }
 
+    @Override
+    public ListenableFuture<TaskResult> fetch(PageInfo pageInfo) {
+        throw new UnsupportedOperationException("fetch() on QueryResult not supported");
+    }
+
+    @Override
+    public Page page() {
+        return new ObjectArrayPage(rows, 0, rows.length);
+    }
+
     @Nullable
     @Override
     public String errorMessage() {
         return null;
+    }
+
+    @Override
+    public void close() throws IOException {
+
     }
 }

@@ -28,7 +28,7 @@ import org.elasticsearch.common.util.ObjectArray;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-public abstract class FetchedRowsPageableTaskResult<T> implements PageableTaskResult {
+public abstract class FetchedRowsPageableTaskResult<T> implements TaskResult {
 
     protected final T backingArray;
     protected final int backingArrayStartIndex;
@@ -53,9 +53,9 @@ public abstract class FetchedRowsPageableTaskResult<T> implements PageableTaskRe
     protected abstract Page newPage(PageInfo pageInfo);
 
     @Override
-    public ListenableFuture<PageableTaskResult> fetch(PageInfo pageInfo) {
+    public ListenableFuture<TaskResult> fetch(PageInfo pageInfo) {
         setPage(pageInfo);
-        return Futures.<PageableTaskResult>immediateFuture(this);
+        return Futures.<TaskResult>immediateFuture(this);
     }
 
     @Override
@@ -74,11 +74,11 @@ public abstract class FetchedRowsPageableTaskResult<T> implements PageableTaskRe
         return null;
     }
 
-    public static PageableTaskResult wrap(TaskResult wrapMe, PageInfo pageInfo) {
-        if (wrapMe instanceof PageableTaskResult) {
-            return (PageableTaskResult)wrapMe;
-        } else {
+    public static TaskResult wrap(TaskResult wrapMe, PageInfo pageInfo) {
+        if (wrapMe instanceof QueryResult || wrapMe instanceof RowCountResult) {
             return forArray(wrapMe.rows(), 0, pageInfo);
+        } else {
+            return wrapMe;
         }
     }
 

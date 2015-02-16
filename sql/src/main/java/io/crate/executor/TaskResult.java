@@ -21,12 +21,16 @@
 
 package io.crate.executor;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 import javax.annotation.Nullable;
+import java.io.Closeable;
 
 /**
  * The result of executing a {@linkplain io.crate.executor.Task}.
  */
-public interface TaskResult {
+public interface TaskResult extends Closeable {
+
     Object[][] EMPTY_ROWS = new Object[0][];
     RowCountResult ZERO = new RowCountResult(0L);
     RowCountResult ONE_ROW = new RowCountResult(1L);
@@ -35,6 +39,23 @@ public interface TaskResult {
     QueryResult EMPTY_RESULT = new QueryResult(EMPTY_ROWS);
 
     Object[][] rows();
+
+
+    /**
+     * get the page identified by <code>pageInfo</code>.
+     *
+     * @param pageInfo identifying the page to fetch
+     * @return a future holding the result of fetching the next page
+     */
+    ListenableFuture<TaskResult> fetch(PageInfo pageInfo);
+
+    /**
+     *
+     * Get the page that was fetched with this task result.
+     * It might contain less rows than requested.
+    * @return a Page you can iterate over to get the rows it consists of
+    */
+    Page page();
 
     /**
      * can be set in bulk operations to set the error for a single operation

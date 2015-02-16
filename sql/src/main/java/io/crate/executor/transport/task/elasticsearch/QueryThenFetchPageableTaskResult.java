@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.PageInfo;
-import io.crate.executor.PageableTaskResult;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.AbstractNonCachingPageableTaskResult;
 import io.crate.operation.qtf.QueryThenFetchOperation;
 import org.elasticsearch.common.Nullable;
@@ -83,8 +83,8 @@ class QueryThenFetchPageableTaskResult extends AbstractNonCachingPageableTaskRes
     }
 
     @Override
-    protected ListenableFuture<PageableTaskResult> fetchWithNewQuery(final PageInfo pageInfo) {
-        final SettableFuture<PageableTaskResult> future = SettableFuture.create();
+    protected ListenableFuture<TaskResult> fetchWithNewQuery(final PageInfo pageInfo) {
+        final SettableFuture<TaskResult> future = SettableFuture.create();
 
         FutureCallback<QueryThenFetchOperation.QueryThenFetchContext> callback =
                 new FutureCallback<QueryThenFetchOperation.QueryThenFetchContext>() {

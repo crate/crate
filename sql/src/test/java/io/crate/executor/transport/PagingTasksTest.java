@@ -108,15 +108,15 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
 
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        assertThat(result, instanceOf(TaskResult.class));
+        TaskResult pageableResult = (TaskResult) result;
         assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
                 "1| Arthur| false\n" +
                 "4| Arthur| true\n"
         ));
         pageInfo = pageInfo.nextPage(2);
-        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo);
-        PageableTaskResult nextPageResult = nextPageResultFuture.get();
+        ListenableFuture<TaskResult> nextPageResultFuture = ((TaskResult)result).fetch(pageInfo);
+        TaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
                 "2| Ford| false\n" +
@@ -155,16 +155,16 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         assertThat(results.size(), is(1));
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        assertThat(result, instanceOf(TaskResult.class));
+        TaskResult pageableResult = (TaskResult)result;
         closeMeWhenDone = pageableResult;
         assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
                 "4| Arthur| true\n" +
                 "2| Ford| false\n"
         ));
         pageInfo = pageInfo.nextPage(2);
-        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo);
-        PageableTaskResult nextPageResult = nextPageResultFuture.get();
+        ListenableFuture<TaskResult> nextPageResultFuture = ((TaskResult)result).fetch(pageInfo);
+        TaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
                 "3| Trillian| true\n"
@@ -202,19 +202,19 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
-        closeMeWhenDone = (PageableTaskResult)result;
-        PageableTaskResult firstResult = (PageableTaskResult)result;
+        assertThat(result, instanceOf(TaskResult.class));
+        closeMeWhenDone = (TaskResult)result;
+        TaskResult firstResult = (TaskResult)result;
         assertThat(firstResult.page().size(), is(2L));
 
         pageInfo = pageInfo.nextPage(2);
-        ListenableFuture<PageableTaskResult> nextPageResultFuture = ((PageableTaskResult)result).fetch(pageInfo);
-        PageableTaskResult nextPageResult = nextPageResultFuture.get();
+        ListenableFuture<TaskResult> nextPageResultFuture = ((TaskResult)result).fetch(pageInfo);
+        TaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(nextPageResult.page().size(), is(1L));
 
         pageInfo = pageInfo.nextPage(2);
-        PageableTaskResult furtherPageResult = nextPageResult.fetch(pageInfo).get();
+        TaskResult furtherPageResult = nextPageResult.fetch(pageInfo).get();
         closeMeWhenDone = furtherPageResult;
         assertThat(furtherPageResult.page().size(), is(0L));
     }
@@ -247,15 +247,15 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         // first page
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        assertThat(result, instanceOf(TaskResult.class));
+        TaskResult pageableResult = (TaskResult)result;
         closeMeWhenDone = pageableResult;
         assertThat(pageableResult.page().size(), is(1L));
 
-        PageableTaskResult nextPageResult = (PageableTaskResult)result;
+        TaskResult nextPageResult = (TaskResult)result;
         for (int i = 0; i<2 ; i++) {
             pageInfo = pageInfo.nextPage();
-            ListenableFuture<PageableTaskResult> nextPageResultFuture = nextPageResult.fetch(pageInfo);
+            ListenableFuture<TaskResult> nextPageResultFuture = nextPageResult.fetch(pageInfo);
             nextPageResult = nextPageResultFuture.get();
             closeMeWhenDone = nextPageResult;
             assertThat(nextPageResult.page().size(), is(1L));
@@ -296,17 +296,17 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         // first page
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        assertThat(result, instanceOf(TaskResult.class));
+        TaskResult pageableResult = (TaskResult)result;
         closeMeWhenDone = pageableResult;
         assertThat(TestingHelpers.printedPage(pageableResult.page()), is("1| Trillian| NULL\n"));
 
         List<String> pages = new ArrayList<>();
 
-        PageableTaskResult nextPageResult = (PageableTaskResult)result;
+        TaskResult nextPageResult = (TaskResult)result;
         while (nextPageResult.page().size() > 0) {
             pageInfo = pageInfo.nextPage();
-            ListenableFuture<PageableTaskResult> nextPageResultFuture = nextPageResult.fetch(pageInfo);
+            ListenableFuture<TaskResult> nextPageResultFuture = nextPageResult.fetch(pageInfo);
             nextPageResult = nextPageResultFuture.get();
             closeMeWhenDone = nextPageResult;
             pages.add(TestingHelpers.printedPage(nextPageResult.page()));
@@ -361,8 +361,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         // first page
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        assertThat(result, instanceOf(TaskResult.class));
+        TaskResult pageableResult = (TaskResult)result;
         closeMeWhenDone = pageableResult;
 
         // the two first records were hit by the query and page offset
@@ -370,8 +370,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 "3| Trillian| true\n"));
 
         pageInfo = pageInfo.nextPage(1);
-        ListenableFuture<PageableTaskResult> nextPageResultFuture = pageableResult.fetch(pageInfo);
-        PageableTaskResult nextPageResult = nextPageResultFuture.get();
+        ListenableFuture<TaskResult> nextPageResultFuture = pageableResult.fetch(pageInfo);
+        TaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
                 "4| Arthur| true\n"));
@@ -658,9 +658,9 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         nestedLoopTask.start(pageInfo);
 
         TaskResult result = nestedLoopResultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
+        assertThat(result, instanceOf(TaskResult.class));
 
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        TaskResult pageableResult = (TaskResult)result;
         closeMeWhenDone = pageableResult;
 
         Page firstPage = pageableResult.page();
@@ -778,9 +778,9 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         nestedLoopTask.start(pageInfo);
 
         TaskResult result = nestedLoopResultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
+        assertThat(result, instanceOf(TaskResult.class));
 
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        TaskResult pageableResult = (TaskResult)result;
         closeMeWhenDone = pageableResult;
 
         Page firstPage = pageableResult.page();
@@ -931,9 +931,9 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         nestedLoopTask.start(pageInfo);
 
         TaskResult result = nestedLoopResultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
+        assertThat(result, instanceOf(TaskResult.class));
 
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
+        TaskResult pageableResult = (TaskResult)result;
         closeMeWhenDone = pageableResult;
 
         Page firstPage = pageableResult.page();
@@ -1014,8 +1014,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
 
         TaskResult taskResult = resultFuture.get();
-        assertThat(taskResult, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableTaskResult = (PageableTaskResult)taskResult;
+        assertThat(taskResult, instanceOf(TaskResult.class));
+        TaskResult pageableTaskResult = (TaskResult)taskResult;
         closeMeWhenDone = pageableTaskResult;
         assertThat(TestingHelpers.printedPage(pageableTaskResult.page()),
                 is("1| Arthur| false\n" +
@@ -1023,7 +1023,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         );
 
         pageInfo = new PageInfo(4, 2);
-        PageableTaskResult gappedResult = pageableTaskResult.fetch(pageInfo).get();
+        TaskResult gappedResult = pageableTaskResult.fetch(pageInfo).get();
         closeMeWhenDone = gappedResult;
         assertThat(TestingHelpers.printedPage(gappedResult.page()),
                 is("5| Matthias Wahl| false\n" +
@@ -1072,8 +1072,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
 
         TaskResult taskResult = resultFuture.get();
-        assertThat(taskResult, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableTaskResult = (PageableTaskResult)taskResult;
+        assertThat(taskResult, instanceOf(TaskResult.class));
+        TaskResult pageableTaskResult = (TaskResult)taskResult;
         closeMeWhenDone = pageableTaskResult;
         assertThat(TestingHelpers.printedPage(pageableTaskResult.page()),
                 is("0\n" +
@@ -1081,7 +1081,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         );
 
         pageInfo = new PageInfo(1048, 4);
-        PageableTaskResult gappedResult = pageableTaskResult.fetch(pageInfo).get();
+        TaskResult gappedResult = pageableTaskResult.fetch(pageInfo).get();
         closeMeWhenDone = gappedResult;
         assertThat(TestingHelpers.printedPage(gappedResult.page()),
                 is("1048\n" +
@@ -1091,7 +1091,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         );
 
         pageInfo = pageInfo.nextPage(10);
-        PageableTaskResult afterGappedResult = gappedResult.fetch(pageInfo).get();
+        TaskResult afterGappedResult = gappedResult.fetch(pageInfo).get();
         closeMeWhenDone = afterGappedResult;
         assertThat(TestingHelpers.printedPage(afterGappedResult.page()),
                 is("1052\n" +
@@ -1153,8 +1153,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
 
         TaskResult taskResult = resultFuture.get();
-        assertThat(taskResult, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableTaskResult = (PageableTaskResult)taskResult;
+        assertThat(taskResult, instanceOf(TaskResult.class));
+        TaskResult pageableTaskResult = (TaskResult)taskResult;
         closeMeWhenDone = pageableTaskResult;
 
         int run = 0;
@@ -1221,15 +1221,15 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
 
         TaskResult taskResult = resultFuture.get();
-        assertThat(taskResult, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableTaskResult = (PageableTaskResult)taskResult;
+        assertThat(taskResult, instanceOf(TaskResult.class));
+        TaskResult pageableTaskResult = (TaskResult)taskResult;
         closeMeWhenDone = pageableTaskResult;
         assertThat(TestingHelpers.printedPage(pageableTaskResult.page()),
                 is("1| Arthur| false" + System.lineSeparator() +
                         "2| Ford| false" + System.lineSeparator())
         );
 
-        PageableTaskResult samePageResult = pageableTaskResult.fetch(pageInfo).get();
+        TaskResult samePageResult = pageableTaskResult.fetch(pageInfo).get();
         closeMeWhenDone = samePageResult;
 
         assertThat(TestingHelpers.printedPage(samePageResult.page()),
@@ -1238,7 +1238,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         );
 
         pageInfo = new PageInfo(pageInfo.position(), pageInfo.size()+2);
-        PageableTaskResult biggerPageResult = pageableTaskResult.fetch(pageInfo).get();
+        TaskResult biggerPageResult = pageableTaskResult.fetch(pageInfo).get();
         assertThat(TestingHelpers.printedPage(biggerPageResult.page()),
                 is("1| Arthur| false" + System.lineSeparator() +
                    "2| Ford| false" + System.lineSeparator() +
@@ -1290,8 +1290,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
 
         TaskResult taskResult = resultFuture.get();
-        assertThat(taskResult, instanceOf(PageableTaskResult.class));
-        PageableTaskResult pageableTaskResult = (PageableTaskResult)taskResult;
+        assertThat(taskResult, instanceOf(TaskResult.class));
+        TaskResult pageableTaskResult = (TaskResult)taskResult;
         closeMeWhenDone = pageableTaskResult;
         assertThat(TestingHelpers.printedPage(pageableTaskResult.page()),
                 is("1| Arthur| false" + System.lineSeparator() +
@@ -1299,7 +1299,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         );
 
         pageInfo = pageInfo.nextPage(4);
-        PageableTaskResult nextResult = pageableTaskResult.fetch(pageInfo).get();
+        TaskResult nextResult = pageableTaskResult.fetch(pageInfo).get();
         closeMeWhenDone = nextResult;
         assertThat(TestingHelpers.printedPage(nextResult.page()), is(
                 "3| Trillian| true" + System.lineSeparator() +
@@ -1309,7 +1309,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
 
         pageInfo = PageInfo.firstPage(1);
-        PageableTaskResult backwardResult = nextResult.fetch(pageInfo).get();
+        TaskResult backwardResult = nextResult.fetch(pageInfo).get();
         closeMeWhenDone = backwardResult;
         assertThat(TestingHelpers.printedPage(backwardResult.page()), is("1| Arthur| false" + System.lineSeparator()));
     }

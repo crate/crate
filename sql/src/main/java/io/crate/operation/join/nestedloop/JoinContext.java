@@ -47,8 +47,8 @@ class JoinContext implements Closeable {
     Iterator<Object[]> outerPageIterator;
     private Object[] outerRow;
 
-    PageableTaskResult innerTaskResult;
-    PageableTaskResult outerTaskResult;
+    TaskResult innerTaskResult;
+    TaskResult outerTaskResult;
 
 
     public JoinContext(TaskResult outerTaskResult,
@@ -99,13 +99,13 @@ class JoinContext implements Closeable {
         innerTaskResult.close();
     }
 
-    public synchronized void newInnerPage(PageableTaskResult taskResult) {
+    public synchronized void newInnerPage(TaskResult taskResult) {
         innerTaskResult = taskResult;
         innerPage = taskResult.page();
         innerPageIterator = innerPage.iterator();
     }
 
-    public synchronized void newOuterPage(PageableTaskResult taskResult) {
+    public synchronized void newOuterPage(TaskResult taskResult) {
         outerTaskResult = taskResult;
         outerPage = taskResult.page();
         outerPageIterator = outerPage.iterator();
