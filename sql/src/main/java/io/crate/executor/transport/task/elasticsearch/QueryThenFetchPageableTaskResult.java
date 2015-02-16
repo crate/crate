@@ -86,45 +86,42 @@ class QueryThenFetchPageableTaskResult extends AbstractNonCachingPageableTaskRes
     @Override
     protected ListenableFuture<PageableTaskResult> fetchWithNewQuery(final PageInfo pageInfo) {
         final SettableFuture<PageableTaskResult> future = SettableFuture.create();
-        QueryThenFetchNode oldNode = ctx.searchNode();
-        Futures.addCallback(
-                operation.execute(
-                        oldNode,
-                        ctx.outputs(),
-                        Optional.of(pageInfo)
-                ),
+
+        FutureCallback<QueryThenFetchOperation.QueryThenFetchContext> callback =
                 new FutureCallback<QueryThenFetchOperation.QueryThenFetchContext>() {
-                    @Override
-                    public void onSuccess(@Nullable final QueryThenFetchOperation.QueryThenFetchContext newCtx) {
-                        Futures.addCallback(
-                                newCtx.createSearchResponse(),
-                                new FutureCallback<InternalSearchResponse>() {
-                                    @Override
-                                    public void onSuccess(@Nullable InternalSearchResponse searchResponse) {
-                                        ObjectArray<Object[]> pageSource = newCtx.toPage(searchResponse.hits().hits(), extractors);
-                                        newCtx.cleanAfterFirstPage();
-                                        future.set(
-                                            new QueryThenFetchPageableTaskResult(operation, newCtx, extractors, pageInfo, pageSource, 0L)
-                                        );
-                                        closeSafe(); // close old searchcontexts and stuff
-                                    }
 
-                                    @Override
-                                    public void onFailure(Throwable t) {
-                                        closeSafe();
-                                        future.setException(t);
-                                    }
-                                }
-                        );
-                    }
+            @Override
+            public void onSuccess(@Nullable final QueryThenFetchOperation.QueryThenFetchContext newCtx) {
+                Futures.addCallback(
+                        newCtx.createSearchResponse(),
+                        new FutureCallback<InternalSearchResponse>() {
+                            @Override
+                            public void onSuccess(@Nullable InternalSearchResponse searchResponse) {
+                                ObjectArray<Object[]> pageSource = newCtx.toPage(searchResponse.hits().hits(), extractors);
+                                newCtx.cleanAfterFirstPage();
+                                future.set(
+                                        new QueryThenFetchPageableTaskResult(operation, newCtx, extractors, pageInfo, pageSource, 0L)
+                                );
+                                closeSafe(); // close old searchcontexts and stuff
+                            }
 
-                    @Override
-                    public void onFailure(Throwable t) {
-                        closeSafe();
-                        future.setException(t);
-                    }
-                }
-        );
+                            @Override
+                            public void onFailure(Throwable t) {
+                                closeSafe();
+                                future.setException(t);
+                            }
+                        }
+                );
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                closeSafe();
+                future.setException(t);
+            }
+        };
+        QueryThenFetchNode oldNode = ctx.searchNode();
+        operation.execute(callback, oldNode, ctx.outputs(), Optional.of(pageInfo));
         return future;
     }
 
