@@ -23,6 +23,7 @@ package io.crate.operation.qtf;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.Optional;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
@@ -115,17 +116,18 @@ public class QueryThenFetchOperation {
         this.clusterService = clusterService;
     }
 
-    public ListenableFuture<QueryThenFetchContext> execute(QueryThenFetchNode searchNode,
-                                                           List<Reference> outputs,
-                                                           Optional<PageInfo> pageInfo) {
-        SettableFuture<QueryThenFetchContext> future = SettableFuture.create();
+    public void execute(FutureCallback<QueryThenFetchContext> callback,
+                        QueryThenFetchNode queryThenFetchNode,
+                        List<Reference> outputs,
+                        Optional<PageInfo> pageInfo) {
         // do stuff
-        QueryThenFetchContext ctx = new QueryThenFetchContext(bigArrays, searchNode, outputs, pageInfo);
+        QueryThenFetchContext ctx = new QueryThenFetchContext(bigArrays, queryThenFetchNode, outputs, pageInfo);
         prepareRequests(ctx);
 
-        if (!searchNode.routing().hasLocations() || ctx.requests.size() == 0) {
-            future.set(ctx);
+        if (!queryThenFetchNode.routing().hasLocations() || ctx.requests.size() == 0) {
+            callback.onSuccess(ctx);
         }
+
         ClusterState state = clusterService.state();
         state.blocks().globalBlockedRaiseException(ClusterBlockLevel.READ);
         AtomicInteger totalOps = new AtomicInteger(0);
@@ -137,11 +139,9 @@ public class QueryThenFetchOperation {
             transportQueryShardAction.executeQuery(
                     requestTuple.v1(),
                     requestTuple.v2(),
-                    new QueryShardResponseListener(requestIdx, totalOps, ctx, future)
+                    new QueryShardResponseListener(requestIdx, totalOps, ctx, callback)
             );
         }
-
-        return future;
     }
 
     private void prepareRequests(QueryThenFetchContext ctx) {
@@ -291,7 +291,7 @@ public class QueryThenFetchOperation {
         }
     }
 
-    private void moveToSecondPhase(QueryThenFetchContext ctx, SettableFuture<QueryThenFetchContext> future) throws IOException {
+    private void moveToSecondPhase(QueryThenFetchContext ctx, FutureCallback<QueryThenFetchContext> callback) throws IOException {
         ScoreDoc[] lastEmittedDocs = null;
         if (ctx.pageInfo.isPresent()) {
             PageInfo pageInfo = ctx.pageInfo.get();
@@ -320,7 +320,7 @@ public class QueryThenFetchOperation {
         }
 
         if (ctx.docIdsToLoad.asList().isEmpty()) {
-            future.set(ctx);
+            callback.onSuccess(ctx);
             return;
         }
 
@@ -330,7 +330,7 @@ public class QueryThenFetchOperation {
             QuerySearchResult queryResult = ctx.queryResults.get(entry.index);
             DiscoveryNode node = ctx.nodes.get(queryResult.shardTarget().nodeId());
             ShardFetchSearchRequest fetchRequest = createFetchRequest(queryResult, entry, lastEmittedDocs);
-            executeFetch(ctx, future, entry.index, queryResult.shardTarget(), counter, fetchRequest, node);
+            executeFetch(ctx, callback, entry.index, queryResult.shardTarget(), counter, fetchRequest, node);
         }
     }
 
@@ -344,7 +344,7 @@ public class QueryThenFetchOperation {
     }
 
     private void executeFetch(final QueryThenFetchContext ctx,
-                              final SettableFuture<QueryThenFetchContext> future,
+                              final FutureCallback<QueryThenFetchContext> callback,
                               final int shardIndex,
                               final SearchShardTarget shardTarget,
                               final AtomicInteger counter,
@@ -360,7 +360,7 @@ public class QueryThenFetchOperation {
                         result.shardTarget(shardTarget);
                         ctx.fetchResults.set(shardIndex, result);
                         if (counter.decrementAndGet() == 0) {
-                            future.set(ctx);
+                            callback.onSuccess(ctx);
                         }
                     }
 
@@ -369,21 +369,21 @@ public class QueryThenFetchOperation {
                         ctx.docIdsToLoad.set(shardIndex, null);
                         ctx.addShardFailure(shardIndex, shardTarget, t);
                         if (counter.decrementAndGet() == 0) {
-                            future.set(ctx);
+                            callback.onSuccess(ctx);
                         }
                     }
                 }
         );
     }
 
-    private void raiseEarlyFailure(QueryThenFetchContext ctx, SettableFuture<?> future, Throwable t) {
+    private void raiseEarlyFailure(QueryThenFetchContext ctx, FutureCallback<?> callback, Throwable t) {
         ctx.releaseAllContexts();
         t = Exceptions.unwrap(t);
         if (t instanceof QueryPhaseExecutionException) {
-            future.setException(t.getCause());
+            callback.onFailure(t.getCause());
             return;
         }
-        future.setException(t);
+        callback.onFailure(t);
     }
 
     public class QueryThenFetchPageContext {
@@ -601,17 +601,17 @@ public class QueryThenFetchOperation {
         private final AtomicInteger totalOps;
         private final int expectedOps;
         private final QueryThenFetchContext ctx;
-        private final SettableFuture<QueryThenFetchContext> future;
+        private final FutureCallback<QueryThenFetchContext> callback;
 
         public QueryShardResponseListener(int requestIdx,
                                           AtomicInteger totalOps,
                                           QueryThenFetchContext ctx,
-                                          SettableFuture<QueryThenFetchContext> future) {
+                                          FutureCallback<QueryThenFetchContext> callback) {
 
             this.requestIdx = requestIdx;
             this.ctx = ctx;
             this.totalOps = totalOps;
-            this.future = future;
+            this.callback = callback;
             this.expectedOps = ctx.queryResults.length();
         }
 
@@ -626,16 +626,16 @@ public class QueryThenFetchOperation {
             ctx.queryResults.set(requestIdx, querySearchResult);
             if (totalOps.incrementAndGet() == expectedOps) {
                 try {
-                    moveToSecondPhase(ctx, future);
+                    moveToSecondPhase(ctx, callback);
                 } catch (IOException e) {
-                    raiseEarlyFailure(ctx, future, e);
+                    raiseEarlyFailure(ctx, callback, e);
                 }
             }
         }
 
         @Override
         public void onFailure(Throwable e) {
-            raiseEarlyFailure(ctx, future, e);
+            raiseEarlyFailure(ctx, callback, e);
         }
     }
 }

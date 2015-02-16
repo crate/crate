@@ -36,7 +36,6 @@ import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -94,53 +93,52 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
     }
 
     private void doStart(final Optional<PageInfo> pageInfo) {
-        Futures.addCallback(
-            operation.execute(searchNode, references, pageInfo),
-            new FutureCallback<QueryThenFetchOperation.QueryThenFetchContext>() {
+        FutureCallback<QueryThenFetchOperation.QueryThenFetchContext> callback =
+                new FutureCallback<QueryThenFetchOperation.QueryThenFetchContext>() {
 
-                @Override
-                public void onSuccess(@Nullable final QueryThenFetchOperation.QueryThenFetchContext context) {
-                    Futures.addCallback(context.createSearchResponse(), new FutureCallback<InternalSearchResponse>() {
-                        @Override
-                        public void onSuccess(@Nullable InternalSearchResponse searchResponse) {
-                            if (pageInfo.isPresent()) {
-                                ObjectArray<Object[]> pageSource = context.toPage(searchResponse.hits().hits(), extractors);
-                                context.cleanAfterFirstPage();
-                                result.set(new QueryThenFetchPageableTaskResult(operation, context, extractors, pageInfo.get(), pageSource, 0L));
-                            } else {
-                                Object[][] rows = context.toRows(searchResponse.hits().hits(), extractors);
-                                try {
-                                    context.close();
-                                    result.set(new QueryResult(rows));
-                                } catch (IOException e) {
-                                    onFailure(e);
-                                }
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Throwable t) {
+            @Override
+            public void onSuccess(@Nullable final QueryThenFetchOperation.QueryThenFetchContext context) {
+                Futures.addCallback(context.createSearchResponse(), new FutureCallback<InternalSearchResponse>() {
+                    @Override
+                    public void onSuccess(@Nullable InternalSearchResponse searchResponse) {
+                        if (pageInfo.isPresent()) {
+                            ObjectArray<Object[]> pageSource = context.toPage(searchResponse.hits().hits(), extractors);
+                            context.cleanAfterFirstPage();
+                            result.set(new QueryThenFetchPageableTaskResult(operation, context, extractors, pageInfo.get(), pageSource, 0L));
+                        } else {
+                            Object[][] rows = context.toRows(searchResponse.hits().hits(), extractors);
                             try {
                                 context.close();
-                                logger.error("error creating a QueryThenFetch response", t);
-                                result.setException(t);
+                                result.set(new QueryResult(rows));
                             } catch (IOException e) {
-                                // ignore in this case
-                                logger.error("error closing QueryThenFetch context", t);
-                                result.setException(e);
+                                onFailure(e);
                             }
-
                         }
-                    });
-                }
+                    }
 
-                @Override
-                public void onFailure(Throwable t) {
-                    logger.error("error executing a QueryThenFetch query", t);
-                    result.setException(t);
-                }
+                    @Override
+                    public void onFailure(Throwable t) {
+                        try {
+                            context.close();
+                            logger.error("error creating a QueryThenFetch response", t);
+                            result.setException(t);
+                        } catch (IOException e) {
+                            // ignore in this case
+                            logger.error("error closing QueryThenFetch context", t);
+                            result.setException(e);
+                        }
+
+                    }
+                });
             }
-        );
+
+            @Override
+            public void onFailure(Throwable t) {
+                logger.error("error executing a QueryThenFetch query", t);
+                result.setException(t);
+            }
+        };
+        operation.execute(callback, searchNode, references, pageInfo);
     }
 
     @Override
