@@ -5,9 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fix: Inserting from a query which contains aggregation functions failed in some
-   cases
-
  - Updated crash version to 0.11.2 which contains following changes:
 
     - added ``--format`` command line option
@@ -26,6 +23,12 @@ Unreleased
 
  - Added support for the ``IF EXISTS`` clause to ``DROP TABLE`` and
    ``DROP BLOB TABLE``
+
+2015/02/17 0.47.3
+=================
+
+ - Fix: Inserting from a query which contains aggregation functions failed in some
+   cases
 
 2015/02/13 0.47.2
 =================
