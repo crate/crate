@@ -22,6 +22,7 @@
 package io.crate.executor.task.join;
 
 import com.google.common.base.Optional;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -34,6 +35,7 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
+import java.io.Closeable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -76,6 +78,16 @@ public class NestedLoopTask extends JobTask implements PageableTask {
                 Optional.of(pageInfo)),
                 new ForwardingFutureCallback<>(result)
         );
+    }
+
+    @Override
+    public void fetchMore(PageInfo pageInfo, Closeable context, FutureCallback callback) {
+
+    }
+
+    @Override
+    public void fetchNew(PageInfo pageInfo, FutureCallback callback) {
+
     }
 
     @Override

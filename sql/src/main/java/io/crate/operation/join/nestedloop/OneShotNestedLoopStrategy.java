@@ -124,27 +124,30 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
 
             if (taskResult.page().size() == 0) {
                 // reached last page of inner relation
-                if (ctx.advanceOuterRow()) {
-                    // advance to next outer row
-                    // and reiterate the inner relation
-                    Futures.addCallback(
-                            ctx.innerTaskResult.fetch(ctx.resetInnerPageInfo()),
-                            onInnerPage,
-                            nestedLoopExecutor
-                    );
-                    return;
-                } else {
-                    // fetch new outer page
-                    // and reiterate the inner relation
-                    Futures.addCallback(
-                            ctx.outerTaskResult.fetch(ctx.advanceOuterPageInfo()),
-                            onOuterPage,
-                            nestedLoopExecutor
-                    );
-                    return;
-                }
+                newOuterRow();
+            } else {
+                joinInnerPage();
             }
-            joinInnerPage();
+        }
+
+        private void newOuterRow() {
+            if (ctx.advanceOuterRow()) {
+                // advance to next outer row
+                // and reiterate the inner relation
+                Futures.addCallback(
+                        ctx.innerTaskResult.fetch(ctx.resetInnerPageInfo()),
+                        onInnerPage,
+                        nestedLoopExecutor
+                );
+            } else {
+                // fetch new outer page
+                // and reiterate the inner relation
+                Futures.addCallback(
+                        ctx.outerTaskResult.fetch(ctx.advanceOuterPageInfo()),
+                        onOuterPage,
+                        nestedLoopExecutor
+                );
+            }
         }
 
         @Override

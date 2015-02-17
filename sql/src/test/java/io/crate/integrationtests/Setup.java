@@ -304,7 +304,7 @@ public class Setup {
 
     public void setUpCharacters() {
         transportExecutor.exec("create table characters (id int primary key, name string, female boolean, details object)");
-        transportExecutor.ensureGreen();
+        transportExecutor.ensureYellow();
         transportExecutor.exec("insert into characters (id, name, female) values (?, ?, ?)",
                 new Object[][]{
                         new Object[] { 1, "Arthur", false},
@@ -318,7 +318,7 @@ public class Setup {
 
     public void setUpBooks() {
         transportExecutor.exec("create table books (id int primary key, title string, author string)");
-        transportExecutor.ensureGreen();
+        transportExecutor.ensureYellow();
         transportExecutor.exec("insert into books (id, title, author) values (?, ?, ?)", new Object[][]{
                 new Object[] { 1, "The Hitchhiker's Guide to the Galaxy", "Douglas Adams"},
                 new Object[] { 2, "The Restaurant at the End of the Universe", "Douglas Adams"},

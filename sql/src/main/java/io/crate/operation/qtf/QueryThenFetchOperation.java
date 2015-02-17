@@ -198,8 +198,7 @@ public class QueryThenFetchOperation {
         }
     }
 
-    public void executePageQuery(
-            final int from, final int size, final QueryThenFetchContext ctx, final FutureCallback<InternalSearchResponse> callback) {
+    public void fetchMoreRows(final int size, final QueryThenFetchContext ctx, final FutureCallback<InternalSearchResponse> callback) {
 
         final QueryThenFetchPageContext pageContext = new QueryThenFetchPageContext(ctx);
         final Scroll scroll = new Scroll(DEFAULT_KEEP_ALIVE);
@@ -209,7 +208,7 @@ public class QueryThenFetchOperation {
 
             DiscoveryNode node = ctx.nodes.get(entry.value.shardTarget().nodeId());
             final int currentId = requestId;
-            QueryShardScrollRequest request = new QueryShardScrollRequest(entry.value.id(), scroll, from, size);
+            QueryShardScrollRequest request = new QueryShardScrollRequest(entry.value.id(), scroll, size);
             transportQueryShardAction.executeScrollQuery(node.id(), request, new ActionListener<ScrollQuerySearchResult>() {
                 @Override
                 public void onResponse(ScrollQuerySearchResult scrollQuerySearchResult) {
@@ -220,7 +219,7 @@ public class QueryThenFetchOperation {
                         try {
                             executePageFetch(pageContext, callback);
                         } catch (Exception e) {
-                            logger.error("error fetching page results for page from={} size={}", e, from ,size);
+                            logger.error("error fetching page results for page size={}", e, size);
                             callback.onFailure(e);
                         }
                     } else if (logger.isTraceEnabled()) {
@@ -230,7 +229,7 @@ public class QueryThenFetchOperation {
 
                 @Override
                 public void onFailure(Throwable t) {
-                    logger.error("error querying page results for page from={} size={}", t, from ,size);
+                    logger.error("error querying page results for page from={} size={}", t, size);
                     callback.onFailure(t);
                 }
             });
@@ -401,7 +400,7 @@ public class QueryThenFetchOperation {
 
     public class QueryThenFetchContext implements Closeable {
 
-        private final Optional<PageInfo> pageInfo;
+        private Optional<PageInfo> pageInfo;
         private final DiscoveryNodes nodes;
         private final QueryThenFetchNode searchNode;
         private final List<Reference> outputs;
@@ -437,6 +436,10 @@ public class QueryThenFetchOperation {
             queryResults = new AtomicArray<>(numShards);
             fetchResults = new AtomicArray<>(numShards);
             numColumns = node.outputs().size();
+        }
+
+        public Optional<PageInfo> pageInfo() {
+            return pageInfo;
         }
 
         public void createSearchResponse(final FutureCallback<InternalSearchResponse> callback) {
@@ -585,8 +588,12 @@ public class QueryThenFetchOperation {
                 Arrays.fill(sortedShardList, null);
             }
             if (requests != null) {
-                requests.clear();
+                requests = null;
             }
+        }
+
+        public void pageInfo(PageInfo pageInfo) {
+            this.pageInfo = Optional.of(pageInfo);
         }
     }
 

@@ -29,6 +29,9 @@ import java.util.Iterator;
 
 public class BigArrayPage implements Page {
 
+
+    private final boolean isLastPage;
+
     private class ObjectArrayIterator<T> extends AbstractIterator<T>{
 
         private final ObjectArray<T> array;
@@ -60,20 +63,26 @@ public class BigArrayPage implements Page {
     private final long start;
     private final long size;
 
-    public BigArrayPage(ObjectArray<Object[]> page) {
-        this(page, 0, page.size());
+    public BigArrayPage(ObjectArray<Object[]> pageSource, boolean isLastPage) {
+        this(pageSource, 0, pageSource.size(), isLastPage);
     }
 
-    public BigArrayPage(ObjectArray<Object[]> page, long start, long size) {
+    public BigArrayPage(ObjectArray<Object[]> page, long start, long size, boolean isLastPage) {
         Preconditions.checkArgument(start <= page.size(), "start exceeds page");
         this.page = page;
         this.start = start;
         this.size = Math.min(size, page.size() - start);
+        this.isLastPage = isLastPage;
     }
 
     @Override
     public long size() {
         return size;
+    }
+
+    @Override
+    public boolean isLastPage() {
+        return isLastPage;
     }
 
     @Override
