@@ -554,6 +554,20 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
+        execute("create table nodes (count integer, name string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into nodes (count, name) (select count(*), name from sys.nodes group by name)");
+        refresh();
+        execute("select count, name from nodes order by name");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((int)response.rows()[0][0], is(1));
+        assertThat((String)response.rows()[0][1], is("node_0"));
+        assertThat((int)response.rows()[1][0], is(1));
+        assertThat((String)response.rows()[1][1], is("node_1"));
+    }
+
+    @Test
     public void testInsertFromSubQueryDistributedGroupBy() throws Exception {
         this.setup.setUpCharacters();
         waitNoPendingTasksOnAll();

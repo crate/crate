@@ -181,7 +181,17 @@ public class NonDistributedGroupByConsumer implements Consumer {
                 }
             }
 
-            if (context.consumerContext.rootRelation() == table){
+            /**
+             * If this is not the rootRelation this is a subquery (e.g. Insert by Query),
+             * so ordering and limiting is done by the rootRelation if required.
+             *
+             * If the querySpec outputs don't match the collectOutputs the query contains
+             * aggregations or scalar functions which can only be resolved by a TopNProjection,
+             * so a TopNProjection must be added.
+             */
+            boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
+                                    collectOutputs.containsAll(table.querySpec().outputs());
+            if (context.consumerContext.rootRelation() == table || !outputsMatch){
                 projections.add(projectionBuilder.topNProjection(
                         collectOutputs,
                         orderBy,

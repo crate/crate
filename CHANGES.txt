@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Inserting from a query which contains aggregation functions failed in some
+   cases
+
  - Updated crash version to 0.11.2 which contains following changes:
 
     - added ``--format`` command line option
