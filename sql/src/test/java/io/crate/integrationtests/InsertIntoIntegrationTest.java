@@ -543,13 +543,13 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select count, id from t order by id");
         assertThat(response.rowCount(), is(4L));
-        assertThat((int)response.rows()[0][0], is(2));
-        assertThat((int)response.rows()[1][0], is(2));
-        assertThat((int)response.rows()[2][0], is(2));
-        assertThat((int)response.rows()[3][0], is(2));
-        assertThat((int)response.rows()[0][1], is(1));
-        assertThat((int)response.rows()[1][1], is(2));
-        assertThat((int)response.rows()[2][1], is(3));
+        assertThat((int) response.rows()[0][0], is(2));
+        assertThat((int) response.rows()[1][0], is(2));
+        assertThat((int) response.rows()[2][0], is(2));
+        assertThat((int) response.rows()[3][0], is(2));
+        assertThat((int) response.rows()[0][1], is(1));
+        assertThat((int) response.rows()[1][1], is(2));
+        assertThat((int) response.rows()[2][1], is(3));
         assertThat((int)response.rows()[3][1], is(4));
     }
 
@@ -568,5 +568,46 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((String)response.rows()[3][1], is("Arthur"));
 
     }
+
+    @Test
+    public void testInsertFromQueryOnDuplicateKey() throws Exception {
+        setup.setUpCharacters();
+        waitNoPendingTasksOnAll();
+        execute("create table t (id integer primary key, name string, female boolean)");
+
+        // copy all over from 'characters' table
+        execute("insert into t (id, name, female) (select id, name, female from characters)");
+        assertThat(response.rowCount(), is(4L));
+        refresh();
+
+        execute("select female, count(*) from t group by female order by female");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Long)response.rows()[0][1], is(2L));
+        assertThat((Long)response.rows()[0][1], is(2L));
+
+        // set all 'female' values to true
+        execute("insert into t (id, name, female) (select id, name, female from characters) " +
+                "on duplicate key update female = ?",
+                new Object[]{ true });
+        assertThat(response.rowCount(), is(4L));
+        refresh();
+
+        execute("select female, count(*) from t group by female");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][1], is(4L));
+
+        // set all 'female' values back to their original values
+        execute("insert into t (id, name, female) (select id, name, female from characters) " +
+                        "on duplicate key update female = values(female)",
+                new Object[]{ true });
+        assertThat(response.rowCount(), is(4L));
+        refresh();
+
+        execute("select female, count(*) from t group by female order by female");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Long)response.rows()[0][1], is(2L));
+        assertThat((Long) response.rows()[0][1], is(2L));
+    }
+
 
 }

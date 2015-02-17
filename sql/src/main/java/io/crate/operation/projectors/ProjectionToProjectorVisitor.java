@@ -267,6 +267,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 projection.columnReferences(),
                 projection.columnSymbols(),
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+                projection.onDuplicateKeyAssignments(),
                 projection.bulkActions(),
                 projection.autoCreateIndices()
         );

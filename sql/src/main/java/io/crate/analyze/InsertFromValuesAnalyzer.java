@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
@@ -55,9 +53,6 @@ import java.util.Map;
 
 @Singleton
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
-
-    private ExpressionAnalyzer expressionAnalyzer;
-    private ExpressionAnalysisContext expressionAnalysisContext;
 
     private ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer;
     private ValuesResolver valuesResolver;
@@ -101,12 +96,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         validateTable(tableInfo);
 
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-        expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData,
-                analysis.parameterContext(),
-                fieldProvider);
-        expressionAnalyzer.resolveWritableFields(true);
-        expressionAnalysisContext = new ExpressionAnalysisContext();
+        initializeExpressionAnalyzer(analysis, fieldProvider);
 
         valuesResolver = new ValuesResolver(tableRelation);
         valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
@@ -120,15 +110,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             analyzeValues(tableRelation, valuesList, node.onDuplicateKeyAssignments(), statement, analysis.parameterContext());
         }
         return statement;
-    }
-
-    private void validateTable(TableInfo tableInfo) throws UnsupportedOperationException, IllegalArgumentException {
-        if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
-            throw new UnsupportedOperationException("aliases are read only.");
-        }
-        if (tableInfo.schemaInfo().systemSchema()) {
-            throw new UnsupportedOperationException("Can't insert into system tables, they are read only");
-        }
     }
 
     private void analyzeValues(TableRelation tableRelation,

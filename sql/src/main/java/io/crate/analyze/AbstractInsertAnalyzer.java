@@ -23,10 +23,14 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Insert;
@@ -37,6 +41,9 @@ import java.util.ArrayList;
 public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<AbstractInsertAnalyzedStatement, Analysis> {
 
     protected final AnalysisMetaData analysisMetaData;
+    protected ExpressionAnalyzer expressionAnalyzer;
+    protected ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+
 
     protected AbstractInsertAnalyzer(AnalysisMetaData analysisMetaData) {
         this.analysisMetaData = analysisMetaData;
@@ -136,4 +143,23 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
         analysis.expectsAffectedRows(true);
         return super.process(node, analysis);
     }
+
+    protected void validateTable(TableInfo tableInfo) throws UnsupportedOperationException, IllegalArgumentException {
+        if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
+            throw new UnsupportedOperationException("aliases are read only.");
+        }
+        if (tableInfo.schemaInfo().systemSchema()) {
+            throw new UnsupportedOperationException("Can't insert into system tables, they are read only");
+        }
+    }
+
+    protected void initializeExpressionAnalyzer(Analysis analysis, FieldProvider fieldProvider) {
+        expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData,
+                analysis.parameterContext(),
+                fieldProvider);
+        expressionAnalyzer.resolveWritableFields(true);
+
+    }
+
 }

@@ -22,25 +22,48 @@
 package io.crate.analyze;
 
 import com.google.common.collect.Iterators;
-import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.*;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Symbols;
+import io.crate.planner.symbol.*;
+import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.InsertFromSubquery;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Locale;
+import java.util.*;
 
 @Singleton
 public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
-
     private final RelationAnalyzer relationAnalyzer;
+
+    private static class ValuesResolver implements ValuesAwareExpressionAnalyzer.ValuesResolver {
+
+        private final TableRelation targetTableRelation;
+        private final List<Reference> targetColumns;
+        private final List<String> assignmentColumns = new ArrayList<>();
+
+        public ValuesResolver(TableRelation targetTableRelation, List<Reference> targetColumns) {
+            this.targetTableRelation = targetTableRelation;
+            this.targetColumns = targetColumns;
+        }
+
+        @Override
+        public Symbol allocateAndResolve(Field argumentColumn) {
+            Reference reference = targetTableRelation.resolveField(argumentColumn);
+            int i = targetColumns.indexOf(reference);
+            if (i < 0) {
+                throw new IllegalArgumentException(SymbolFormatter.format(
+                        "Column '%s' that is used in the VALUES() expression is not part of the target column list",
+                        argumentColumn));
+            }
+            assert reference != null;
+            assignmentColumns.add(reference.ident().columnIdent().fqn());
+            return new InputColumn(i, argumentColumn.valueType());
+        }
+    }
 
     @Inject
     protected InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
@@ -49,14 +72,14 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
     }
 
     @Override
-    public AbstractInsertAnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis context) {
-        if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            throw new UnsupportedOperationException("ON DUPLICATE KEY UPDATE clause is not supported");
-        }
+    public AbstractInsertAnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis analysis) {
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
+        TableRelation tableRelation = new TableRelation(tableInfo);
+        validateTable(tableInfo);
 
+        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 
-        QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), context);
+        QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), analysis);
         InsertFromSubQueryAnalyzedStatement insertStatement =
                 new InsertFromSubQueryAnalyzedStatement(source, tableInfo);
 
@@ -72,6 +95,12 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         handleInsertColumns(node, maxInsertValues, insertStatement);
 
         validateMatchingColumns(insertStatement, source.querySpec());
+
+        if (!node.onDuplicateKeyAssignments().isEmpty()) {
+            initializeExpressionAnalyzer(analysis, fieldProvider);
+            processUpdateAssignments(tableRelation, insertStatement, analysis, fieldProvider,
+                    node.onDuplicateKeyAssignments());
+        }
 
         return insertStatement;
     }
@@ -99,4 +128,32 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         }
     }
 
+    private void processUpdateAssignments(TableRelation tableRelation,
+                                          InsertFromSubQueryAnalyzedStatement statement,
+                                          Analysis analysis,
+                                          FieldProvider fieldProvider,
+                                          List<Assignment> assignments) {
+        ValuesResolver valuesResolver = new ValuesResolver(tableRelation, statement.columns());
+        ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
+                analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
+
+        Map<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
+        for (Assignment assignment : assignments) {
+            Reference columnName = tableRelation.resolveField(
+                    (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
+            assert columnName != null;
+
+            Symbol assignmentExpression = expressionAnalyzer.normalizeInputForReference(
+                    valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
+                    columnName,
+                    expressionAnalysisContext);
+            assignmentExpression = tableRelation.resolve(assignmentExpression);
+
+            UpdateStatementAnalyzer.ensureUpdateIsAllowed(
+                    tableRelation.tableInfo(), columnName.ident().columnIdent(), assignmentExpression);
+            updateAssignments.put(columnName, assignmentExpression);
+        }
+
+        statement.onDuplicateKeyAssignments(updateAssignments);
+    }
 }
