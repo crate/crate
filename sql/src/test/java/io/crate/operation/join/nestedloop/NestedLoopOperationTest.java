@@ -23,7 +23,6 @@ package io.crate.operation.join.nestedloop;
 
 import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -32,10 +31,10 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.core.bigarray.IterableBigArray;
 import io.crate.core.bigarray.MultiNativeArrayBigArray;
 import io.crate.executor.*;
+import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
@@ -59,6 +58,7 @@ import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -132,7 +132,12 @@ public class NestedLoopOperationTest {
         }
 
         @Override
-        public void fetchNew(PageInfo pageInfo, FutureCallback callback) {
+        public void startCached(PageInfo pageInfo) {
+            start(pageInfo);
+        }
+
+        @Override
+        public void fetchNew(PageInfo pageInfo, Closeable context, FutureCallback callback) {
 
         }
 
@@ -272,20 +277,26 @@ public class NestedLoopOperationTest {
             node.projections(ImmutableList.<Projection>of(projection));
         }
         TaskExecutor taskExecutor = new TestExecutor();
-        Job fakeJob = new Job(UUID.randomUUID());
-        Task outerTask = taskExecutor.newTasks((leftOuterNode ? leftPlan : rightPlan), fakeJob).get(0);
-        Task innerTask = taskExecutor.newTasks((leftOuterNode ? rightPlan : leftPlan), fakeJob).get(0);
+        Job fakeJob = new Job();
+        Job outerJob = new Job();
+        outerJob.addTasks(taskExecutor.newTasks((leftOuterNode ? leftPlan : rightPlan), fakeJob));
 
-        NestedLoopOperation nestedLoop = new NestedLoopOperation(
+        Job innerJob = new Job();
+        innerJob.addTasks(taskExecutor.newTasks((leftOuterNode ? rightPlan : leftPlan), fakeJob));
+
+        NestedLoopTask task = new NestedLoopTask(
+                fakeJob.id(),
+                "nestedloop",
                 node,
+                outerJob,
+                innerJob,
+                taskExecutor,
                 nestedLoopExecutorService,
-                Arrays.asList(outerTask),
-                Arrays.asList(innerTask),
-                new TestExecutor(),
                 projectionVisitor,
-                mock(RamAccountingContext.class));
+                mock(CircuitBreaker.class)
+        );
 
-        Object[][] result = executeNestedLoop(nestedLoop, limit);
+        Object[][] result = executeNestedLoop(task, limit);
 
         int i = 0;
         int leftIdx = 0;
@@ -357,14 +368,15 @@ public class NestedLoopOperationTest {
         assertNestedLoop(left, right, TopN.NO_LIMIT, 0, expectedRows, false);
     }
 
-    private Object[][] executeNestedLoop(NestedLoopOperation nestedLoop, int limit) throws Exception {
+    private Object[][] executeNestedLoop(NestedLoopTask nestedLoop, int limit) throws Exception {
+
         if (nestedLoopPaged) {
             int actualLimit = (limit == TopN.NO_LIMIT ? Constants.DEFAULT_SELECT_LIMIT : limit);
             int pageSize = actualLimit >= 10 ? actualLimit/10 : Math.max(actualLimit, 1);
             PageInfo pageInfo = new PageInfo(0, pageSize);
-            TaskResult pageableTaskResult = nestedLoop.execute(Optional.of(pageInfo)).get();
+            nestedLoop.start(pageInfo);
+            TaskResult pageableTaskResult = nestedLoop.result().get(0).get();
             List<Object[]> rows = new ArrayList<>();
-
             while (pageableTaskResult.page().size() > 0L) {
                 for (Object[] row : pageableTaskResult.page()) {
                     rows.add(row);
@@ -375,7 +387,8 @@ public class NestedLoopOperationTest {
             return rows.toArray(new Object[rows.size()][]);
 
         } else {
-            return nestedLoop.execute(Optional.<PageInfo>absent()).get().rows();
+            nestedLoop.start();
+            return nestedLoop.result().get(0).get().rows();
         }
     }
 

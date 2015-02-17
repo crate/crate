@@ -46,8 +46,6 @@ interface NestedLoopStrategy {
 
     void onFirstJoin(JoinContext joinContext);
 
-    TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext);
-
     String name();
 
     NestedLoopExecutor executor(JoinContext ctx, Optional<PageInfo> pageInfo, Projector downstream, FutureCallback<Void> callback);

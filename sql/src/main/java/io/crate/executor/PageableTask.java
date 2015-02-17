@@ -31,10 +31,15 @@ import java.io.Closeable;
 public interface PageableTask<T extends Closeable> extends Task {
 
     /**
-     * Start a paged execution.
+     * Start a paged execution without caching single pages.
      */
     public void start(PageInfo pageInfo);
 
-    public void fetchNew(PageInfo pageInfo, FutureCallback<TaskResult> callback);
+    /**
+     * Start a paged execution with an implementation dependent caching strategy
+     */
+    public void startCached(PageInfo pageInfo);
+
+    public void fetchNew(PageInfo pageInfo, T context, FutureCallback<TaskResult> callback);
     public void fetchMore(PageInfo pageInfo, T context, FutureCallback<TaskResult> callback);
 }

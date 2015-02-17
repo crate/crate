@@ -21,7 +21,11 @@
 
 package io.crate.operation.join.nestedloop;
 
-import io.crate.executor.*;
+import io.crate.executor.FetchedRowsPageableTaskResult;
+import io.crate.executor.Page;
+import io.crate.executor.PageInfo;
+import io.crate.executor.TaskResult;
+import org.elasticsearch.common.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -32,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * contains state needed during join execution
  * and must be portable between multiple execution steps
  */
-class JoinContext implements Closeable {
+public class JoinContext implements Closeable {
     private final NestedLoopOperation.RowCombinator rowCombinator;
     private final int innerPageSize;
     private final int outerPageSize;
@@ -50,6 +54,8 @@ class JoinContext implements Closeable {
     TaskResult innerTaskResult;
     TaskResult outerTaskResult;
 
+    @Nullable
+    protected Object[][] joinedRows = null;
 
     public JoinContext(TaskResult outerTaskResult,
                        PageInfo outerPageInfo,
@@ -139,5 +145,14 @@ class JoinContext implements Closeable {
 
     public void finishedFirstIteration() {
         this.inFirstIteration.set(false);
+    }
+
+    public Object[][] joinedRows() {
+        return joinedRows;
+    }
+
+    protected void joinedRows(Object[][] joinedPage) {
+        finishedFirstIteration();
+        this.joinedRows = joinedPage;
     }
 }

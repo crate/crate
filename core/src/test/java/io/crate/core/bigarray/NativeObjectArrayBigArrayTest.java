@@ -242,4 +242,22 @@ public class NativeObjectArrayBigArrayTest {
         assertThat(i, is(20));
     }
 
+    @Test
+    public void testEmptyArraysGet() throws Exception {
+        MultiNativeArrayBigArray<Object[]> bigArray = new MultiNativeArrayBigArray<Object[]>(0, 10);
+        assertThat(bigArray.size(), is(0L));
+        assertThat(bigArray.iterator().hasNext(), is(false));
+        assertThat(bigArray.ramBytesUsed(), is(0L));
+
+        expectedException.expect(ArrayIndexOutOfBoundsException.class);
+        bigArray.get(0L);
+    }
+
+    @Test
+    public void testEmptyArraysSet() throws Exception {
+        MultiNativeArrayBigArray<Object[]> bigArray = new MultiNativeArrayBigArray<Object[]>(0, 10);
+        expectedException.expect(ArrayIndexOutOfBoundsException.class);
+        bigArray.set(0L, new Object[]{1, 2, 3});
+    }
+
 }

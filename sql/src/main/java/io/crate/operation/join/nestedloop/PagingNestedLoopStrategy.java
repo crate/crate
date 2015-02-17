@@ -24,8 +24,6 @@ package io.crate.operation.join.nestedloop;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import io.crate.core.bigarray.IterableBigArray;
-import io.crate.core.bigarray.MultiNativeArrayBigArray;
 import io.crate.executor.PageInfo;
 import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.Projector;
@@ -63,13 +61,6 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
     @Override
     public void onFirstJoin(JoinContext joinContext) {
         // do nothing
-    }
-
-    @Override
-    public TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext) {
-        assert pageInfo.isPresent() : "pageInfo is not present for " + name();
-        IterableBigArray<Object[]> wrappedRows = new MultiNativeArrayBigArray<Object[]>(0, rows.length, rows);
-        return new NestedLoopOperation.NestedLoopPageableTaskResult(nestedLoopOperation, wrappedRows, pageInfo.get().position(), pageInfo.get(), joinContext);
     }
 
     @Override

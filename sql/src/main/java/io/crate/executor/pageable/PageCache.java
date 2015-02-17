@@ -19,33 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.join.nestedloop;
+package io.crate.executor.pageable;
 
-import java.io.IOException;
+import io.crate.executor.Page;
+import io.crate.executor.PageInfo;
+
+import javax.annotation.Nullable;
 
 /**
- * paging that loads both relations to ram and pages through the
- * fetched projection results.
+ * A cache for pages
  */
-class FetchedPagingNestedLoopStrategy extends OneShotNestedLoopStrategy {
+public interface PageCache {
 
-    public FetchedPagingNestedLoopStrategy(NestedLoopOperation nestedLoopOperation,
-                                           NestedLoopExecutorService nestedLoopExecutorService) {
-        super(nestedLoopOperation, nestedLoopExecutorService);
-    }
+    /**
+     * get a page for the given <code>pageInfo</code>.
+     */
+    @Nullable
+    public Page get(PageInfo pageInfo);
 
-    @Override
-    public void onFirstJoin(JoinContext joinContext) {
-        // we can close the context as we produced ALL results in one batch
-        try {
-            joinContext.close();
-        } catch (IOException e) {
-            nestedLoopOperation.logger.error("error closing joinContext after {} NestedLoop execution", e, name());
-        }
-    }
-
-    @Override
-    public String name() {
-        return "fetched paging";
-    }
+    /**
+     * put something into the cache.
+     */
+    public void put(PageInfo pageInfo, Page page);
 }

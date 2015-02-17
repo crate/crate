@@ -38,13 +38,13 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-cross-joins-history", labelWith = LabelType.CUSTOM_KEY)
@@ -146,10 +146,75 @@ public class CrossJoinBenchmark extends BenchmarkBase{
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testNoLimitThreeTables() {
-        SQLResponse res = execute("select articles.name, colors.name, info['size'] from small, articles, colors", new Object[0], true);
-        res.rows();
+    public void testLimit10() {
+        SQLResponse res = execute("select articles.name, colors.name from articles, colors limit 10", new Object[0], true);
+        assertThat(res.rowCount(), is(10L));
     }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testLimit100() {
+        SQLResponse res = execute("select articles.name, colors.name from articles, colors limit 100", new Object[0], true);
+        assertThat(res.rowCount(), is(100L));
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testLimit1000() {
+        SQLResponse res = execute("select articles.name, colors.name from articles, colors limit 1000", new Object[0], true);
+        assertThat(res.rowCount(), is(1000L));
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testLimit10000() {
+        SQLResponse res = execute("select articles.name, colors.name from articles, colors limit 10000", new Object[0], true);
+        assertThat(res.rowCount(), is(10000L));
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testLimit100000() {
+        SQLResponse res = execute("select articles.name, colors.name from articles, colors limit 100000", new Object[0], true);
+        assertThat(res.rowCount(), is(100000L));
+    }
+
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void test3Limit10() {
+        SQLResponse res = execute("select articles.name, colors.name, info['size'] from small, articles, colors limit 10", new Object[0], true);
+        assertThat(res.rowCount(), is(10L));
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void test3Limit100() {
+        SQLResponse res = execute("select articles.name, colors.name, info['size'] from small, articles, colors limit 100", new Object[0], true);
+        assertThat(res.rowCount(), is(100L));
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void test3Limit1000() {
+        SQLResponse res = execute("select articles.name, colors.name, info['size'] from small, articles, colors limit 1000", new Object[0], true);
+        assertThat(res.rowCount(), is(1000L));
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void test3Limit10000() {
+        SQLResponse res = execute("select articles.name, colors.name, info['size'] from small, articles, colors limit 10000", new Object[0], true);
+        assertThat(res.rowCount(), is(10000L));
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void test3Limit100000() {
+        SQLResponse res = execute("select articles.name, colors.name, info['size'] from small, articles, colors limit 100000", new Object[0], true);
+        assertThat(res.rowCount(), is(100000L));
+    }
+
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
@@ -195,17 +260,29 @@ public class CrossJoinBenchmark extends BenchmarkBase{
 
     private void executeConcurrently(int numConcurrent, final String stmt, int timeout, TimeUnit timeoutUnit) throws Exception {
         ExecutorService executor = Executors.newFixedThreadPool(numConcurrent);
-        List<Callable<Object>> tasks = Collections.nCopies(numConcurrent, Executors.callable(new Runnable() {
+        Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 getClient(false).execute(SQLAction.INSTANCE,
                         new SQLRequest(stmt)).actionGet();
             }
-        }));
-        executor.invokeAll(tasks);
+        };
+        while (numConcurrent > 0) {
+            executor.execute(runnable);
+            numConcurrent--;
+        }
         executor.shutdown();
         executor.awaitTermination(timeout, timeoutUnit);
         executor.shutdownNow();
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void test1Concurrent() throws Exception {
+        executeConcurrently(1,
+                "select articles.name, colors.name, articles.price from articles, colors limit 40000 offset 10000",
+                2, TimeUnit.MINUTES
+        );
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)

@@ -46,7 +46,6 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.util.ObjectArray;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -791,43 +790,42 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         TaskResult result = nestedLoopResultFuture.get();
         assertThat(result, instanceOf(TaskResult.class));
 
-        TaskResult pageableResult = (TaskResult)result;
-        closeMeWhenDone = pageableResult;
+        closeMeWhenDone = result;
 
-        Page firstPage = pageableResult.page();
+        Page firstPage = result.page();
         assertThat(firstPage.size(), is(2L));
 
-        Field pageSourceField = BigArrayPage.class.
-                getDeclaredField("page");
+        Field pageSourceField = ObjectArrayPage.class.
+                getDeclaredField("pageSource");
         pageSourceField.setAccessible(true);
-        ObjectArray<Object[]> pageSource = (ObjectArray<Object[]>) pageSourceField.get(firstPage);
-        assertThat(pageSource.size(), is((long)(pageInfo.position() + pageInfo.size())));
+        Object[][] pageSource = (Object[][]) pageSourceField.get(firstPage);
+        assertThat(pageSource.length, is((pageInfo.position() + pageInfo.size())));
 
         assertThat(TestingHelpers.printedPage(firstPage), is(
                 "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
                 "1| Arthur| false| The Restaurant at the End of the Universe\n"));
 
         pageInfo = pageInfo.nextPage(1);
-        pageableResult = pageableResult.fetch(pageInfo).get();
-        closeMeWhenDone = pageableResult;
+        result = result.fetch(pageInfo).get();
+        closeMeWhenDone = result;
 
-        Page secondPage = pageableResult.page();
+        Page secondPage = result.page();
         assertThat(secondPage.size(), is(1L));
-        pageSource = (ObjectArray<Object[]>) pageSourceField.get(secondPage);
-        assertThat(pageSource.size(), is((long)(pageInfo.size())));
+        pageSource = (Object[][]) pageSourceField.get(secondPage);
+        assertThat(pageSource.length, is((pageInfo.size())));
 
         assertThat(TestingHelpers.printedPage(secondPage), is(
                 "2| Ford| false| Life, the Universe and Everything\n"));
 
 
         pageInfo = pageInfo.nextPage(10);
-        pageableResult = pageableResult.fetch(pageInfo).get();
-        closeMeWhenDone = pageableResult;
+        result = result.fetch(pageInfo).get();
+        closeMeWhenDone = result;
 
-        Page lastPage = pageableResult.page();
+        Page lastPage = result.page();
         assertThat(lastPage.size(), is(5L));
-        pageSource = (ObjectArray<Object[]>) pageSourceField.get(lastPage);
-        assertThat(pageSource.size(), is(5L)); // only 5 left
+        pageSource = (Object[][]) pageSourceField.get(lastPage);
+        assertThat(pageSource.length, is(5)); // only 5 left
 
         assertThat(TestingHelpers.printedPage(lastPage), is(
                 "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
@@ -837,7 +835,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 "3| Trillian| true| The Restaurant at the End of the Universe\n"
         ));
 
-        assertThat(pageableResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
+        assertThat(result.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
     }
 
     @Test

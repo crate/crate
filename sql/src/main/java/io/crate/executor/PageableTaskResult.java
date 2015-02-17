@@ -22,6 +22,7 @@
 package io.crate.executor;
 
 
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,6 +35,7 @@ import java.io.Closeable;
 import java.io.IOException;
 
 public class PageableTaskResult<T extends Closeable> implements TaskResult {
+
 
     private final PageableTask<T> task;
     private final PageInfo pageInfo;
@@ -49,7 +51,7 @@ public class PageableTaskResult<T extends Closeable> implements TaskResult {
 
     @Override
     public Object[][] rows() {
-        return new Object[0][];
+        return Iterables.toArray(page, Object[].class);
     }
 
     @Override
@@ -57,6 +59,7 @@ public class PageableTaskResult<T extends Closeable> implements TaskResult {
         if (context == null) {
             throw new IllegalStateException("TaskResult already closed");
         }
+
         if (newPageInfo.position() == pageInfo.position()) {
             if (newPageInfo.size() == pageInfo.size()) {
                 return Futures.immediateFuture((TaskResult) this);
@@ -66,6 +69,7 @@ public class PageableTaskResult<T extends Closeable> implements TaskResult {
                 throw new UnsupportedOperationException("fetching a smaller page than the current one is not supported");
             }
         }
+
         if (newPageInfo.position() == (pageInfo.position() + pageInfo.size())) {
             final SettableFuture<TaskResult> future = SettableFuture.create();
             FutureCallback<TaskResult> forwardingFutureCallback = new ForwardingFutureCallback<>(future);
@@ -79,7 +83,7 @@ public class PageableTaskResult<T extends Closeable> implements TaskResult {
 
     private ListenableFuture<TaskResult> pageWithOverlap(final PageInfo newPageInfo) {
         final SettableFuture<TaskResult> future = SettableFuture.create();
-        PageInfo remainingPageInfo = new PageInfo(pageInfo.size(), newPageInfo.size() - pageInfo.size());
+        PageInfo remainingPageInfo = new PageInfo(pageInfo.position() + pageInfo.size(), newPageInfo.size() - pageInfo.size());
 
         task.fetchMore(remainingPageInfo, context, new FutureCallback<TaskResult>() {
             @Override
@@ -98,13 +102,8 @@ public class PageableTaskResult<T extends Closeable> implements TaskResult {
     private ListenableFuture<TaskResult> fetchNew(PageInfo newPageInfo) {
         final SettableFuture<TaskResult> future = SettableFuture.create();
         FutureCallback<TaskResult> forwardingFutureCallback = new ForwardingFutureCallback<>(future);
-        try {
-            context.close();
-            context = null;
-        } catch (IOException e) {
-            future.setException(e);
-        }
-        task.fetchNew(newPageInfo, forwardingFutureCallback);
+        task.fetchNew(newPageInfo, context, forwardingFutureCallback);
+        context = null;
         return future;
     }
 

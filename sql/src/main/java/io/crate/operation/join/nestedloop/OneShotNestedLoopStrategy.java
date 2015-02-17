@@ -25,7 +25,6 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.executor.PageInfo;
-import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.TopN;
@@ -52,7 +51,6 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
         private final FutureCallback<TaskResult> onInnerPage;
 
         public OneShotExecutor(JoinContext ctx,
-                                 Optional<PageInfo> globalPageInfo,
                                  Projector downstream,
                                  Executor nestedLoopExecutor,
                                  FutureCallback<Void> finalCallback) {
@@ -187,7 +185,7 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
 
     @Override
     public NestedLoopExecutor executor(JoinContext ctx, Optional<PageInfo> pageInfo, Projector downstream, FutureCallback<Void> callback) {
-        return new OneShotExecutor(ctx, pageInfo, downstream, nestedLoopExecutorService.executor(), callback);
+        return new OneShotExecutor(ctx, downstream, nestedLoopExecutorService.executor(), callback);
     }
 
     @Override
@@ -206,11 +204,6 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
         } catch (IOException e) {
             nestedLoopOperation.logger.error("error closing joinContext after {} NestedLoop execution", e, name());
         }
-    }
-
-    @Override
-    public TaskResult produceFirstResult(Object[][] rows, Optional<PageInfo> pageInfo, JoinContext joinContext) {
-        return new QueryResult(rows);
     }
 
     @Override

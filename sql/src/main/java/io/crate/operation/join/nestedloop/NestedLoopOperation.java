@@ -28,9 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.bigarray.MultiNativeArrayBigArray;
 import io.crate.executor.*;
-import io.crate.executor.transport.AbstractNonCachingPageableTaskResult;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -41,7 +39,6 @@ import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.util.ObjectArray;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -138,15 +135,15 @@ public class NestedLoopOperation implements ProjectorUpstream {
         this.innerRelationTasks = innerTasks;
     }
 
-    protected int limit() {
+    public int limit() {
         return this.limit;
     }
 
-    protected int offset() {
+    public int offset() {
         return this.offset;
     }
 
-    private boolean needsToFetchAllForPaging() {
+    public boolean needsToFetchAllForPaging() {
         return !this.projections.isEmpty();
     }
 
@@ -157,13 +154,17 @@ public class NestedLoopOperation implements ProjectorUpstream {
         return projectorChain;
     }
 
-    private List<ListenableFuture<TaskResult>> executeChildTasks(List<Task> tasks, PageInfo pageInfo) {
+    private List<ListenableFuture<TaskResult>> executeChildTasks(List<Task> tasks, PageInfo pageInfo, boolean cached) {
         assert !tasks.isEmpty() : "nested loop child tasks are empty";
         if (tasks.size() == 1 &&
                 tasks.get(0) instanceof PageableTask) {
             // one pageable task, page it
             PageableTask task = (PageableTask) tasks.get(0);
-            task.start(pageInfo);
+            if (cached) {
+                task.startCached(pageInfo);
+            } else {
+                task.start(pageInfo);
+            }
             return task.result();
         } else {
             logger.trace("fetching whole source relation - ignoring page", pageInfo);
@@ -183,7 +184,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
         }
     }
 
-    public ListenableFuture<TaskResult> execute(final Optional<PageInfo> pageInfo) {
+    public void execute(final Optional<PageInfo> pageInfo, final FutureCallback<JoinContext> callback) {
         // only optimize if no offset for this
         loadStrategy(pageInfo);
         if (logger.isTraceEnabled()) {
@@ -192,12 +193,6 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     pageInfo.isPresent() ? ", page: " + pageInfo.get().toString() : ""
             );
         }
-
-        if (limit() == 0) {
-            // shortcut
-            return Futures.immediateFuture((TaskResult) TaskResult.EMPTY_RESULT);
-        }
-
         FlatProjectorChain projectorChain = initializeProjectors();
 
         int rowsToProduce = strategy.rowsToProduce(pageInfo);
@@ -218,7 +213,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
         if (logger.isTraceEnabled()) {
             logger.trace("fetching page {} from outer relation {}", outerPageInfo, new PlanPrinter().print(nestedLoopNode.outer()));
         }
-        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, outerPageInfo);
+        List<ListenableFuture<TaskResult>> outerResults = executeChildTasks(outerRelationTasks, outerPageInfo, false);
 
         int innerPageSize = Math.max(MIN_PAGE_SIZE, Math.min(rowsToProduce / outerPageSize, MAX_PAGE_SIZE));
 
@@ -226,7 +221,8 @@ public class NestedLoopOperation implements ProjectorUpstream {
         if (logger.isTraceEnabled()) {
             logger.trace("fetching page {} from inner relation {}", innerPageInfo, new PlanPrinter().print(nestedLoopNode.inner()));
         }
-        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, innerPageInfo);
+        // TODO: no sorting + real paging Optimization: use non-caching TaskResults
+        List<ListenableFuture<TaskResult>> innerResults = executeChildTasks(innerRelationTasks, innerPageInfo, true);
 
         final SettableFuture<JoinContext> joinContextFuture = SettableFuture.create();
         Futures.addCallback(
@@ -241,7 +237,6 @@ public class NestedLoopOperation implements ProjectorUpstream {
                     public void onSuccess(List<TaskResult> results) {
                         assert results.size() == 2;
                         try {
-                            // TODO: no sorting + real paging Optimization: use non-caching TaskResults
                             final JoinContext joinContext = new JoinContext(
                                     results.get(0),
                                     outerPageInfo,
@@ -251,7 +246,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
                             );
                             joinContextFuture.set(joinContext);
 
-                            FutureCallback<Void> callback = new FutureCallback<Void>() {
+                            FutureCallback<Void> innerCallBack = new FutureCallback<Void>() {
                                 private void close() {
                                     try {
                                         joinContext.close();
@@ -276,9 +271,9 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
                             if (joinContext.hasZeroRowRelation()) {
                                 // shortcut
-                                callback.onSuccess(null);
+                                innerCallBack.onSuccess(null);
                             } else {
-                                executeAsync(joinContext, pageInfo, callback);
+                                executeAsync(joinContext, pageInfo, innerCallBack);
                             }
                         } catch (Throwable t) {
                             logger.error("Error during execution of CROSS JOIN", t);
@@ -292,30 +287,27 @@ public class NestedLoopOperation implements ProjectorUpstream {
                         downstream.upstreamFailed(t);
                     }
         });
-        final SettableFuture<TaskResult> future = SettableFuture.create();
         Futures.addCallback(projectorChain.result(), new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(final @Nullable Object[][] rows) {
                 if (rows == null) {
-                    future.setException(new NullPointerException("rows is null"));
+                    callback.onFailure(new NullPointerException("rows is null"));
                 } else {
                     Futures.addCallback(joinContextFuture, new FutureCallback<JoinContext>() {
                         @Override
                         public void onSuccess(@Nullable JoinContext joinContext) {
                             if (joinContext == null) {
-                                future.setException(new NullPointerException("joinContext is null"));
+                                callback.onFailure(new NullPointerException("joinContext is null"));
                                 return;
                             }
-                            joinContext.finishedFirstIteration();
-                            future.set(
-                                    strategy.produceFirstResult(rows, pageInfo, joinContext)
-                            );
+                            joinContext.joinedRows(rows);
+                            callback.onSuccess(joinContext);
                         }
 
                         @Override
                         public void onFailure(Throwable t) {
                             logger.error("error waiting for the join for the initial page to finish", t);
-                            future.setException(t);
+                            callback.onFailure(t);
                         }
                     });
                 }
@@ -323,10 +315,28 @@ public class NestedLoopOperation implements ProjectorUpstream {
 
             @Override
             public void onFailure(Throwable t) {
-                future.setException(t);
+                callback.onFailure(t);
             }
         });
-        return future;
+    }
+
+    public void fetchMoreRows(PageInfo pageInfo, JoinContext joinContext, final FutureCallback<Object[][]> callback) {
+        final FlatProjectorChain projectorChain = initializeProjectors();
+        final Projector downstream = projectorChain.firstProjector();
+        NestedLoopStrategy.NestedLoopExecutor executor = strategy.executor(joinContext, Optional.of(pageInfo), downstream, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(@Nullable Void result) {
+                downstream.upstreamFinished();
+                Futures.addCallback(projectorChain.result(), callback);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                callback.onFailure(t);
+            }
+        });
+        // directly carry on where we left of
+        executor.joinInnerPage();
     }
 
     /**
@@ -396,102 +406,6 @@ public class NestedLoopOperation implements ProjectorUpstream {
         @Override
         public Object[] combine(Object[] outer, Object[] inner) {
             return combine(inner, innerNumColumns, outer, outerNumColumns);
-        }
-    }
-
-    static class NestedLoopPageableTaskResult extends AbstractNonCachingPageableTaskResult<NestedLoopPageableTaskResult> {
-
-        private final JoinContext joinContext;
-        private final NestedLoopOperation operation;
-        private final ESLogger logger = Loggers.getLogger(getClass());
-
-        public NestedLoopPageableTaskResult(NestedLoopOperation operation,
-                                            ObjectArray<Object[]> backingArray,
-                                            long backingArrayStartIndex,
-                                            PageInfo pageInfo,
-                                            JoinContext joinContext) {
-            super(backingArray, backingArrayStartIndex, pageInfo);
-            this.operation = operation;
-            this.joinContext = joinContext;
-        }
-
-        @Override
-        public void close() {
-            try {
-                joinContext.close();
-                super.close();
-            } catch (Throwable e) {
-                logger.error("error closing NestedLoopPageableTaskResult", e);
-            }
-        }
-
-        @Override
-        protected void fetchFromSource(final int from, final int size, final FutureCallback<ObjectArray<Object[]>> callback) {
-            final FlatProjectorChain projectorChain = operation.initializeProjectors();
-            final Projector downstream = projectorChain.firstProjector();
-            PageInfo pageInfo = new PageInfo(from, size);
-            NestedLoopStrategy.NestedLoopExecutor executor = operation.strategy.executor(joinContext, Optional.of(pageInfo), downstream, new FutureCallback<Void>() {
-
-                @Override
-                public void onSuccess(@Nullable Void result) {
-                    downstream.upstreamFinished();
-                    Futures.addCallback(projectorChain.result(), new FutureCallback<Object[][]>() {
-                        @Override
-                        public void onSuccess(@Nullable Object[][] result) {
-                            if (result == null) {
-                                callback.onFailure(new NullPointerException("NestedLoop result page is null"));
-                            } else {
-                                if (logger.isTraceEnabled()) {
-                                    logger.trace("fetched {} new rows from NestedLoop for page from {} size {}.",
-                                            result.length, from, size);
-                                }
-                                ObjectArray<Object[]> resultArray = new MultiNativeArrayBigArray<Object[]>(0, result.length, result);
-                                callback.onSuccess(resultArray);
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Throwable t) {
-                            callback.onFailure(t);
-                        }
-                    });
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
-                    downstream.upstreamFailed(t);
-                    close();
-                    callback.onFailure(t);
-                }
-            });
-            // directly carry on where we left
-            executor.joinInnerPage();
-        }
-
-        @Override
-        protected ListenableFuture<TaskResult> fetchWithNewQuery(PageInfo pageInfo) {
-            if (operation.limit() != TopN.NO_LIMIT && operation.limit() - pageInfo.position() <= 0) {
-                closeSafe();
-                return Futures.immediateFuture((TaskResult) TaskResult.EMPTY_RESULT);
-            }
-            return operation.execute(Optional.of(pageInfo));
-        }
-
-        @Override
-        protected int maxGapSize() {
-            // it is always cheaper to iterate through the sources than to
-            // start a new query, as this query would have to iterate through the sources as well
-            return Integer.MAX_VALUE;
-        }
-
-        @Override
-        protected void closeSafe() {
-            close();
-        }
-
-        @Override
-        protected NestedLoopPageableTaskResult newTaskResult(PageInfo pageInfo, ObjectArray<Object[]> pageSource, long startIndexAtPageSource) {
-            return new NestedLoopPageableTaskResult(operation, pageSource, startIndexAtPageSource, pageInfo, joinContext);
         }
     }
 }

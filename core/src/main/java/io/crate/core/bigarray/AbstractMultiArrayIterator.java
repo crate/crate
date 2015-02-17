@@ -74,6 +74,10 @@ public abstract class AbstractMultiArrayIterator<T, ArrayType> extends AbstractI
     @Override
     protected T computeNext() {
         T value;
+        if (backingArraysIdx < 0) {
+            endOfData();
+            return null;
+        }
         if (backingArraysIdx < arraysLen && curArrayIdx >= getArrayLength(backingArraysIdx)) {
             if (!switchArray()) {
                 endOfData();

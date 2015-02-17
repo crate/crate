@@ -33,7 +33,7 @@ import java.util.concurrent.*;
 public class NestedLoopExecutorService extends AbstractLifecycleComponent<NestedLoopExecutorService> {
 
     public static final String MAX_THREADS_SETTING = "nestedloop.max_threads";
-    public static final int DEFAULT_MAX_THREADS = 100;
+    public static final int DEFAULT_MAX_THREADS = 20;
 
     public static final String THREAD_NAME = "io.crate.nestedloop";
 

@@ -25,8 +25,12 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Constants;
 import io.crate.core.concurrent.ForwardingFutureCallback;
 import io.crate.executor.*;
+import io.crate.executor.pageable.CachingPageCache;
+import io.crate.executor.pageable.NoOpPageCache;
+import io.crate.executor.pageable.PageCache;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
@@ -65,6 +69,8 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
 
     private List<Reference> references;
 
+    private PageCache pageCache;
+
     public QueryThenFetchTask(UUID jobId,
                               QueryThenFetchOperation operation,
                               Functions functions,
@@ -72,6 +78,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
         super(jobId);
         this.operation = operation;
         this.searchNode = searchNode;
+        this.pageCache = NoOpPageCache.INSTANCE;
 
         SearchHitExtractorContext context = new SearchHitExtractorContext(functions, searchNode.outputs().size(), searchNode.partitionBy(), searchNode.extractBytesRef());
         extractors = new ArrayList<>(searchNode.outputs().size());
@@ -95,8 +102,33 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
     }
 
     @Override
-    public void fetchNew(PageInfo pageInfo, FutureCallback<TaskResult> callback) {
-        doStart(Optional.of(pageInfo), callback);
+    public void startCached(PageInfo pageInfo) {
+        this.pageCache = new CachingPageCache(searchNode.limitOr(Constants.DEFAULT_SELECT_LIMIT));
+        doStart(Optional.of(pageInfo), new ForwardingFutureCallback<>(result));
+    }
+
+    @Override
+    public void fetchNew(PageInfo pageInfo,
+                         QueryThenFetchOperation.QueryThenFetchContext context,
+                         FutureCallback<TaskResult> callback) {
+        Page cached = pageCache.get(pageInfo);
+        if (cached != null) {
+            context.pageInfo(pageInfo);
+            TaskResult taskResult = new PageableTaskResult<>(
+                    QueryThenFetchTask.this,
+                    pageInfo,
+                    cached,
+                    context
+            );
+            callback.onSuccess(taskResult);
+        } else {
+            try {
+                context.close();
+                doStart(Optional.of(pageInfo), callback);
+            } catch (IOException e) {
+                callback.onFailure(e);
+            }
+        }
     }
 
     @Override
@@ -112,25 +144,40 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
         }
 
         context.pageInfo(pageInfo);
-        operation.fetchMoreRows(pageInfo.size(), context, new FutureCallback<InternalSearchResponse>() {
-            @Override
-            public void onSuccess(@Nullable InternalSearchResponse result) {
-                ObjectArray<Object[]> pageSource = context.toPage(result.hits().hits(), extractors);
-                TaskResult taskResult = new PageableTaskResult<>(
-                        QueryThenFetchTask.this,
-                        pageInfo,
-                        new BigArrayPage(pageSource, pageSource.size() < pageInfo.size()),
-                        context
-                );
-                callback.onSuccess(taskResult);
-            }
+        Page cached = pageCache.get(pageInfo);
+        if (cached != null) {
+            TaskResult taskResult = new PageableTaskResult<>(
+                    QueryThenFetchTask.this,
+                    pageInfo,
+                    cached,
+                    context
+            );
+            callback.onSuccess(taskResult);
+        } else {
 
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                callback.onFailure(t);
-            }
-        });
+            operation.fetchMoreRows(pageInfo.size(), context, new FutureCallback<InternalSearchResponse>() {
+                @Override
+                public void onSuccess(@Nullable InternalSearchResponse result) {
+                    ObjectArray<Object[]> pageSource = context.toPage(result.hits().hits(), extractors);
+                    Page page = new BigArrayPage(pageSource, pageSource.size() < pageInfo.size());
+                    pageCache.put(pageInfo, page);
+                    TaskResult taskResult = new PageableTaskResult<>(
+                            QueryThenFetchTask.this,
+                            pageInfo,
+                            page,
+                            context
+                    );
+                    callback.onSuccess(taskResult);
+                }
+
+                @Override
+                public void onFailure(@Nonnull Throwable t) {
+                    callback.onFailure(t);
+                }
+            });
+        }
     }
+
     private void doStart(final Optional<PageInfo> pageInfo, final FutureCallback<TaskResult> callback) {
         final FutureCallback<QueryThenFetchOperation.QueryThenFetchContext> innerCallback =
                 new FutureCallback<QueryThenFetchOperation.QueryThenFetchContext>() {
@@ -144,11 +191,12 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
                             PageInfo localPageInfo = pageInfo.get();
                             ObjectArray<Object[]> pageSource = context.toPage(searchResponse.hits().hits(), extractors);
                             context.cleanAfterFirstPage();
-
+                            Page page = new BigArrayPage(pageSource, pageSource.size() < localPageInfo.size());
+                            pageCache.put(localPageInfo, page);
                             TaskResult taskResult = new PageableTaskResult<>(
                                     QueryThenFetchTask.this,
                                     localPageInfo,
-                                    new BigArrayPage(pageSource, pageSource.size() < localPageInfo.size()),
+                                    page,
                                     context
                             );
                             callback.onSuccess(taskResult);

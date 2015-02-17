@@ -23,6 +23,7 @@ package io.crate.core.bigarray;
 
 import com.google.common.base.Preconditions;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 /**
@@ -50,7 +51,6 @@ public abstract class AbstractMultiArrayBigArray<T, ArrayType> implements Iterab
     @SafeVarargs
     public AbstractMultiArrayBigArray(long offset, long size, ArrayType ... backingArrays) {
         long arraysSize = arraysSize(backingArrays);
-        Preconditions.checkArgument(backingArrays.length > 0, "empty backing arrays");
         Preconditions.checkArgument(offset <= arraysSize, "offset exceeds backing arrays");
         this.backingArrays = backingArrays;
         this.offset = offset;
@@ -79,6 +79,7 @@ public abstract class AbstractMultiArrayBigArray<T, ArrayType> implements Iterab
         int arrayIdx = 0;
         long accumulatedSize = 0L;
 
+
         long curArrayLen;
         while (arrayIdx < arrays.length) {
             curArrayLen = arrayLength(arrays[arrayIdx]);
@@ -100,7 +101,7 @@ public abstract class AbstractMultiArrayBigArray<T, ArrayType> implements Iterab
 
     @Override
     public T get(long index) {
-        if (index >= size || index < 0) {
+        if (index >= size || index < 0 || backingArrays.length == 0) {
             throw new ArrayIndexOutOfBoundsException(
                     String.format(Locale.ENGLISH, "index %d exceeds bounds of backing arrays", index));
         }
@@ -110,7 +111,7 @@ public abstract class AbstractMultiArrayBigArray<T, ArrayType> implements Iterab
 
     @Override
     public T set(long index, T value) {
-        if (index > size) {
+        if (index > size || backingArrays.length == 0) {
             throw new ArrayIndexOutOfBoundsException(
                     String.format(Locale.ENGLISH, "index %d exceeds bounds of backing arrays", index));
         }
@@ -121,5 +122,28 @@ public abstract class AbstractMultiArrayBigArray<T, ArrayType> implements Iterab
     @Override
     public long size() {
         return size;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        AbstractMultiArrayBigArray that = (AbstractMultiArrayBigArray) o;
+
+        if (offset != that.offset) return false;
+        if (size != that.size) return false;
+        if (!Arrays.deepEquals(backingArrays, that.backingArrays))
+            return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.deepHashCode(backingArrays);
+        result = 31 * result + (int) (offset ^ (offset >>> 32));
+        result = 31 * result + (int) (size ^ (size >>> 32));
+        return result;
     }
 }
