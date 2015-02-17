@@ -520,4 +520,54 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
     }
 
+    @Test
+    public void testInsertFromQueryWithAggregateWithinScalarFunction() throws Exception {
+        this.setup.setUpCharacters();
+        waitNoPendingTasksOnAll();
+        execute("create table t (count int, id int) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (count, id) (select (count(*) + 1), id from characters group by id)");
+        refresh();
+        execute("select count, id from t order by id");
+        assertThat(response.rowCount(), is(4L));
+        assertThat((int)response.rows()[0][0], is(2));
+        assertThat((int)response.rows()[1][0], is(2));
+        assertThat((int)response.rows()[2][0], is(2));
+        assertThat((int)response.rows()[3][0], is(2));
+        assertThat((int)response.rows()[0][1], is(1));
+        assertThat((int)response.rows()[1][1], is(2));
+        assertThat((int)response.rows()[2][1], is(3));
+        assertThat((int)response.rows()[3][1], is(4));
+    }
+
+    @Test
+    public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
+        execute("create table nodes (count integer, name string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into nodes (count, name) (select count(*), name from sys.nodes group by name)");
+        refresh();
+        execute("select count, name from nodes order by name");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((int)response.rows()[0][0], is(1));
+        assertThat((String)response.rows()[0][1], is("node_0"));
+        assertThat((int)response.rows()[1][0], is(1));
+        assertThat((String)response.rows()[1][1], is("node_1"));
+    }
+
+    @Test
+    public void testInsertFromSubQueryDistributedGroupBy() throws Exception {
+        this.setup.setUpCharacters();
+        waitNoPendingTasksOnAll();
+        execute("create table t (id int, name string)");
+        ensureGreen();
+        execute("insert into t (id, name) (select id, name from characters group by id, name)");
+        assertThat(response.rowCount(), is(4L));
+        refresh();
+        execute("select id, name from t order by id");
+        assertThat(response.rowCount(), is(4L));
+        assertThat((int)response.rows()[3][0], is(4));
+        assertThat((String)response.rows()[3][1], is("Arthur"));
+
+    }
+
 }

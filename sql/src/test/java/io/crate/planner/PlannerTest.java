@@ -965,9 +965,10 @@ public class PlannerTest {
                 "insert into users (id, name) (select name, count(*) from sys.nodes where name='Ford' group by name)");
 
         MergeNode mergeNode = planNode.localMergeNode();
-        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
     }
 
     @Test (expected = UnsupportedFeatureException.class)

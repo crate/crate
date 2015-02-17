@@ -170,7 +170,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             fp.outputs(contextBuilder.genInputColumns(handlerGroupProjection.outputs(), handlerGroupProjection.outputs().size()));
             contextBuilder.addProjection(fp);
         }
-        if (!ignoreSorting) {
+        if (!ignoreSorting || contextBuilder.aggregationsWrappedInScalar) {
             OrderBy orderBy = table.querySpec().orderBy();
             int limit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN;
