@@ -29,19 +29,25 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.SubstrFunction;
 import io.crate.operation.scalar.cast.ToStringFunction;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
+import io.crate.types.StringType;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -197,8 +203,50 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        analyze("insert into users (id, name) (select id, name from users) on duplicate key update name = substr(values (name), 1, 1)");
+    public void testFromQueryWithOnDuplicateKey() throws Exception {
+        InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
+                analyze("insert into users (id, name) (select id, name from users) " +
+                        "on duplicate key update name = 'Arthur'");
+
+        Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+
+        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+            assertThat(entry.getKey(), isReference("name"));
+            assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
+        }
+    }
+
+    @Test
+    public void testFromQueryWithOnDuplicateKeyParameter() throws Exception {
+        InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
+                analyze("insert into users (id, name) (select id, name from users) " +
+                        "on duplicate key update name = ?",
+                        new Object[]{ "Arthur" });
+
+        Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+
+        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+            assertThat(entry.getKey(), isReference("name"));
+            assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
+        }
+    }
+
+    @Test
+    public void testFromQueryWithOnDuplicateKeyValues() throws Exception {
+        InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
+                analyze("insert into users (id, name) (select id, name from users) " +
+                        "on duplicate key update name = substr(values (name), 1, 1)");
+
+        Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+
+        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+            assertThat(entry.getKey(), isReference("name"));
+            assertThat(entry.getValue(), isFunction(SubstrFunction.NAME));
+            Function function = (Function) entry.getValue();
+            assertThat(function.arguments().get(0), instanceOf(InputColumn.class));
+            InputColumn inputColumn = (InputColumn) function.arguments().get(0);
+            assertThat(inputColumn.index(), is(1));
+            assertThat(inputColumn.valueType(), instanceOf(StringType.class));
+        }
     }
 }

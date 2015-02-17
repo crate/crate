@@ -78,6 +78,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     insertFromSubQueryAnalyzedStatement.tableInfo().ident().name(),
                     insertFromSubQueryAnalyzedStatement.tableInfo().primaryKey(),
                     insertFromSubQueryAnalyzedStatement.columns(),
+                    insertFromSubQueryAnalyzedStatement.onDuplicateKeyAssignments(),
                     insertFromSubQueryAnalyzedStatement.primaryKeyColumnIndices(),
                     insertFromSubQueryAnalyzedStatement.partitionedByIndices(),
                     insertFromSubQueryAnalyzedStatement.routingColumn(),

@@ -50,6 +50,8 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          List<Reference> columnReferences,
                                          List<Symbol> columnSymbols,
                                          CollectExpression<?>[] collectExpressions,
+                                         @Nullable
+                                         Map<Reference, Symbol> updateAssignments,
                                          @Nullable Integer bulkActions,
                                          boolean autoCreateIndices) {
         super(tableName, primaryKeyIdents, primaryKeySymbols,
@@ -69,7 +71,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 bulkActions,
                 autoCreateIndices,
                 false, // overwriteDuplicates
-                null,
+                updateAssignments,
                 insertAssignments);
     }
 

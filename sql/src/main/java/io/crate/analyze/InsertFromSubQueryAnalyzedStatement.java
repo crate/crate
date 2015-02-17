@@ -28,13 +28,18 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement implements AnalyzedRelation {
 
     private AnalyzedRelation subQueryRelation;
+    @Nullable
+    private Map<Reference, Symbol> onDuplicateKeyAssignments;
 
     public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation, TableInfo targetTableInfo) {
         tableInfo(targetTableInfo);
@@ -75,4 +80,14 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
     public List<Field> fields() {
         return ImmutableList.of();
     }
+
+    public void onDuplicateKeyAssignments(Map<Reference, Symbol> assignments) {
+        onDuplicateKeyAssignments = assignments;
+    }
+
+    @Nullable
+    public Map<Reference, Symbol> onDuplicateKeyAssignments() {
+        return onDuplicateKeyAssignments;
+    }
+
 }
