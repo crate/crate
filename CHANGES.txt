@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Parameter substitution within subscript notation is not
+   allowed anymore
+
  - Updated crash version to 0.11.2 which contains following changes:
 
     - added ``--format`` command line option

@@ -1432,25 +1432,20 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(scalarArguments.get(1), isLiteral(".*", DataTypes.STRING));
     }
 
-
     @Test
-    public void testNormalizedSubscriptOnArrayLiteral() throws Exception {
-        SelectAnalyzedStatement analysis;
-        for (long l = 1L; l < 4; l++) {
-            analysis = analyze("select [1,2,3][?] from sys.cluster", new Object[]{l});
-            assertThat(analysis.relation().querySpec().outputs().get(0), isLiteral(l, DataTypes.LONG));
-        }
+    public void testParameterSubcriptColumn() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Parameter substitution is not supported in subscript");
+        analyze("select friends[?] from users",
+                new Object[]{"id"});
     }
 
     @Test
-    public void testParameterSubcript() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select friends[?], counters[?], ['a','b','c'][?] from users",
-                new Object[]{"id", 2, 3});
-        assertThat(analysis.relation().querySpec().outputs().get(0),
-                isReference("friends['id']", new ArrayType(DataTypes.LONG)));
-        assertThat(analysis.relation().querySpec().outputs().get(1), isFunction(SubscriptFunction.NAME,
-                Arrays.<DataType>asList(new ArrayType(DataTypes.LONG), DataTypes.INTEGER)));
-        assertThat(analysis.relation().querySpec().outputs().get(2), isLiteral("c", DataTypes.STRING));
+    public void testParameterSubscriptLiteral() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Parameter substitution is not supported in subscript");
+        analyze("select ['a','b','c'][?] from users",
+                new Object[2]);
     }
 
 

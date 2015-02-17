@@ -60,6 +60,11 @@ expected under the ``args`` key::
     In this example the placeholders start with an backslash due to shell
     escaping.
 
+.. warning::
+
+    Parameter substition must not be used within subscript notation.
+    For example, column[?] is not allowed.
+
 The same query using question marks as placeholders looks like this::
 
     sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF

@@ -21,11 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.planner.symbol.Literal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
-import io.crate.types.DataTypes;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -33,9 +31,7 @@ import org.junit.rules.ExpectedException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 public class SubscriptVisitorTest {
@@ -45,12 +41,8 @@ public class SubscriptVisitorTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private Object currentParameter;
-
     private SubscriptContext analyzeSubscript(String expressionString) {
         ParameterContext parameterContext = mock(ParameterContext.class);
-        when(parameterContext.getAsSymbol(anyInt())).thenReturn(
-                Literal.newLiteral(DataTypes.guessType(currentParameter), currentParameter));
         SubscriptContext context = new SubscriptContext(parameterContext);
         Expression expression = SqlParser.createExpression(expressionString);
         expression.accept(visitor, context);
@@ -83,23 +75,17 @@ public class SubscriptVisitorTest {
     }
 
     @Test
-    public void testSubscriptParameter() throws Exception {
-        currentParameter = "y";
-        SubscriptContext ctx = analyzeSubscript("a['x'][?]");
-        assertThat(ctx.parts(), hasItems("x", "y"));
+    public void testNestedSubscriptParameter() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Parameter substitution is not supported in subscript");
+        analyzeSubscript("a['x'][?]");
     }
 
     @Test
     public void testArraySubscriptParameter() throws Exception {
-        currentParameter = 1;
-        SubscriptContext ctx = analyzeSubscript("a[?]");
-        assertThat(ctx.index(), is(1));
-
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Nested array access is not supported");
-
-        currentParameter = 2;
-        analyzeSubscript("a[1][?]");
+        expectedException.expectMessage("Parameter substitution is not supported in subscript");
+        analyzeSubscript("a[?]");
     }
 
     @Test

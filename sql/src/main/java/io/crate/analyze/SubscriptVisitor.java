@@ -23,10 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Locale;
 import java.util.Set;
@@ -83,18 +80,7 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
 
     @Override
     public Void visitParameterExpression(ParameterExpression node, SubscriptContext context) {
-        validateNestedArrayAccess(context);
-        Literal literal = context.parameterContext().getAsSymbol(node.index());
-        Object value = literal.value();
-
-        if (value instanceof Number) {
-            context.index(DataTypes.INTEGER.value(value));
-        } else if (literal.valueType().equals(DataTypes.STRING)) {
-            context.add(BytesRefs.toString(value));
-        } else {
-            throw new IllegalArgumentException("Illegal subscript parameter value");
-        }
-        return null;
+        throw new UnsupportedOperationException("Parameter substitution is not supported in subscript");
     }
 
     @Override
