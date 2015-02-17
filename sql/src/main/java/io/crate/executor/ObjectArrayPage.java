@@ -31,12 +31,14 @@ public class ObjectArrayPage implements Page {
     private final int start;
     private final int size;
     private final Object[][] pageSource;
+    private final boolean isLastPage;
 
     public ObjectArrayPage(Object[][] pageSource, int start, int size) {
         Preconditions.checkArgument(start <= pageSource.length, "start exceeds page");
         this.start = start;
         this.size = Math.min(size, pageSource.length - start);
         this.pageSource = pageSource;
+        this.isLastPage = pageSource.length <= size;
     }
 
     public ObjectArrayPage(Object[][] pageSource) {
@@ -51,5 +53,10 @@ public class ObjectArrayPage implements Page {
     @Override
     public long size() {
         return size;
+    }
+
+    @Override
+    public boolean isLastPage() {
+        return isLastPage;
     }
 }

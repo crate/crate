@@ -21,36 +21,32 @@
 
 package io.crate.executor;
 
-import java.util.Collections;
 import java.util.Iterator;
 
-/**
- * a Page represents a couple of rows
- */
-public interface Page extends Iterable<Object[]> {
+public class IteratorPage implements Page {
 
-    /**
-     * The number of rows that this page actually contains.
-     * Might be less that the requested size
-     */
-    public long size();
+    private final Iterable<Object[]> iterable;
+    private final long size;
+    private final boolean isLastPage;
 
-    public boolean isLastPage();
+    public IteratorPage(Iterable<Object[]> iterable, long size, boolean isLastPage) {
+        this.iterable = iterable;
+        this.size = size;
+        this.isLastPage = isLastPage;
+    }
 
-    public static final Page EMPTY = new Page() {
-        @Override
-        public long size() {
-            return 0;
-        }
+    @Override
+    public long size() {
+        return size;
+    }
 
-        @Override
-        public boolean isLastPage() {
-            return true;
-        }
+    @Override
+    public boolean isLastPage() {
+        return isLastPage;
+    }
 
-        @Override
-        public Iterator<Object[]> iterator() {
-            return Collections.emptyIterator();
-        }
-    };
+    @Override
+    public Iterator<Object[]> iterator() {
+        return iterable.iterator();
+    }
 }

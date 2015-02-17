@@ -21,13 +21,20 @@
 
 package io.crate.executor;
 
+import com.google.common.util.concurrent.FutureCallback;
+
+import java.io.Closeable;
+
 /**
  * A task that is able to return paged results.
  */
-public interface PageableTask extends Task {
+public interface PageableTask<T extends Closeable> extends Task {
 
     /**
      * Start a paged execution.
      */
     public void start(PageInfo pageInfo);
+
+    public void fetchNew(PageInfo pageInfo, FutureCallback<TaskResult> callback);
+    public void fetchMore(PageInfo pageInfo, T context, FutureCallback<TaskResult> callback);
 }

@@ -109,13 +109,12 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         TaskResult result = resultFuture.get();
         assertThat(result, instanceOf(TaskResult.class));
-        TaskResult pageableResult = (TaskResult) result;
-        assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
+        assertThat(TestingHelpers.printedPage(result.page()), is(
                 "1| Arthur| false\n" +
                 "4| Arthur| true\n"
         ));
         pageInfo = pageInfo.nextPage(2);
-        ListenableFuture<TaskResult> nextPageResultFuture = ((TaskResult)result).fetch(pageInfo);
+        ListenableFuture<TaskResult> nextPageResultFuture = result.fetch(pageInfo);
         TaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
@@ -126,7 +125,6 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         pageInfo = pageInfo.nextPage(2);
         Page nextPage = nextPageResult.fetch(pageInfo).get().page();
         assertThat(nextPage.size(), is(0L));
-
     }
 
     @Test
@@ -156,20 +154,20 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
         assertThat(result, instanceOf(TaskResult.class));
-        TaskResult pageableResult = (TaskResult)result;
-        closeMeWhenDone = pageableResult;
-        assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
+
+        assertThat(TestingHelpers.printedPage(result.page()), is(
                 "4| Arthur| true\n" +
                 "2| Ford| false\n"
         ));
         pageInfo = pageInfo.nextPage(2);
-        ListenableFuture<TaskResult> nextPageResultFuture = ((TaskResult)result).fetch(pageInfo);
+        ListenableFuture<TaskResult> nextPageResultFuture = result.fetch(pageInfo);
         TaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
                 "3| Trillian| true\n"
         ));
 
+        assertThat(nextPageResult.page().isLastPage(), is(true));
         pageInfo = pageInfo.nextPage(2);
         Page lastPage = nextPageResult.fetch(pageInfo).get().page();
         assertThat(lastPage.size(), is(0L));
@@ -203,12 +201,11 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
         assertThat(result, instanceOf(TaskResult.class));
-        closeMeWhenDone = (TaskResult)result;
-        TaskResult firstResult = (TaskResult)result;
-        assertThat(firstResult.page().size(), is(2L));
+        closeMeWhenDone = result;
+        assertThat(result.page().size(), is(2L));
 
         pageInfo = pageInfo.nextPage(2);
-        ListenableFuture<TaskResult> nextPageResultFuture = ((TaskResult)result).fetch(pageInfo);
+        ListenableFuture<TaskResult> nextPageResultFuture = result.fetch(pageInfo);
         TaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(nextPageResult.page().size(), is(1L));
@@ -1153,13 +1150,12 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
 
         TaskResult taskResult = resultFuture.get();
-        assertThat(taskResult, instanceOf(TaskResult.class));
-        TaskResult pageableTaskResult = (TaskResult)taskResult;
-        closeMeWhenDone = pageableTaskResult;
+        assertThat(taskResult, instanceOf(PageableTaskResult.class));
+        closeMeWhenDone = taskResult;
 
         int run = 0;
         while (run < 10) {
-            Page page = pageableTaskResult.page();
+            Page page = taskResult.page();
             Object[][] actual = Iterables.toArray(page, Object[].class);
             Object[][] expected = Arrays.copyOfRange(bulkArgs, Math.min(numRows, pageInfo.position()), Math.min(numRows, pageInfo.position() + pageInfo.size()));
 
@@ -1174,8 +1170,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                     randomIntBetween(0, numRows),
                     randomIntBetween(1, numRows)
             );
-            pageableTaskResult = pageableTaskResult.fetch(pageInfo).get();
-            closeMeWhenDone = pageableTaskResult;
+            taskResult = taskResult.fetch(pageInfo).get();
+            closeMeWhenDone = taskResult;
             run++;
         }
     }
@@ -1222,14 +1218,13 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         TaskResult taskResult = resultFuture.get();
         assertThat(taskResult, instanceOf(TaskResult.class));
-        TaskResult pageableTaskResult = (TaskResult)taskResult;
-        closeMeWhenDone = pageableTaskResult;
-        assertThat(TestingHelpers.printedPage(pageableTaskResult.page()),
+        closeMeWhenDone = taskResult;
+        assertThat(TestingHelpers.printedPage(taskResult.page()),
                 is("1| Arthur| false" + System.lineSeparator() +
                         "2| Ford| false" + System.lineSeparator())
         );
 
-        TaskResult samePageResult = pageableTaskResult.fetch(pageInfo).get();
+        TaskResult samePageResult = taskResult.fetch(pageInfo).get();
         closeMeWhenDone = samePageResult;
 
         assertThat(TestingHelpers.printedPage(samePageResult.page()),
@@ -1238,7 +1233,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         );
 
         pageInfo = new PageInfo(pageInfo.position(), pageInfo.size()+2);
-        TaskResult biggerPageResult = pageableTaskResult.fetch(pageInfo).get();
+        TaskResult biggerPageResult = taskResult.fetch(pageInfo).get();
         assertThat(TestingHelpers.printedPage(biggerPageResult.page()),
                 is("1| Arthur| false" + System.lineSeparator() +
                    "2| Ford| false" + System.lineSeparator() +

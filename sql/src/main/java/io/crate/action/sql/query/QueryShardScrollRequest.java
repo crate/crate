@@ -33,14 +33,12 @@ public class QueryShardScrollRequest extends ActionRequest<QueryShardScrollReque
 
     private long id;
     private Scroll scroll;
-    private int from;
     private int limit;
 
 
-    public QueryShardScrollRequest(long id, Scroll scroll, int from, int limit) {
+    public QueryShardScrollRequest(long id, Scroll scroll, int limit) {
         this.id = id;
         this.scroll = scroll;
-        this.from = from;
         this.limit = limit;
     }
 
@@ -60,10 +58,6 @@ public class QueryShardScrollRequest extends ActionRequest<QueryShardScrollReque
         return limit;
     }
 
-    public int from() {
-        return from;
-    }
-
     @Override
     public ActionRequestValidationException validate() {
         return null;
@@ -74,7 +68,6 @@ public class QueryShardScrollRequest extends ActionRequest<QueryShardScrollReque
         super.readFrom(in);
         id = in.readLong();
         scroll = Scroll.readScroll(in);
-        from = in.readInt();
         limit = in.readInt();
     }
 
@@ -83,7 +76,6 @@ public class QueryShardScrollRequest extends ActionRequest<QueryShardScrollReque
         super.writeTo(out);
         out.writeLong(id);
         scroll.writeTo(out);
-        out.writeInt(from);
         out.writeInt(limit);
     }
 }

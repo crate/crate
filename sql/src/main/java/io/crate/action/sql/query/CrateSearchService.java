@@ -142,8 +142,8 @@ public class CrateSearchService extends InternalSearchService {
 
     private void processScroll(QueryShardScrollRequest request, SearchContext context) {
         // process scroll
+        context.from(context.from() + context.size());
         context.size(request.limit());
-        context.from(request.from());
 
         context.scroll(request.scroll());
         // update the context keep alive based on the new scroll value

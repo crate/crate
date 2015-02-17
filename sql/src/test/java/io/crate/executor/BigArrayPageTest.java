@@ -50,11 +50,11 @@ public class BigArrayPageTest {
 
     @Test
     public void testEmptyArray() throws Exception {
-        BigArrayPage page = new BigArrayPage(bigArrays.<Object[]>newObjectArray(0), 0, 0);
+        BigArrayPage page = new BigArrayPage(bigArrays.<Object[]>newObjectArray(0), 0, 0, true);
         assertThat(page.size(), is(0L));
         assertThat(page.iterator().hasNext(), is(false));
 
-        page = new BigArrayPage(bigArrays.<Object[]>newObjectArray(0), 0, 10);
+        page = new BigArrayPage(bigArrays.<Object[]>newObjectArray(0), 0, 10, true);
         assertThat(page.size(), is(0L));
         assertThat(page.iterator().hasNext(), is(false));
     }
@@ -65,23 +65,23 @@ public class BigArrayPageTest {
         for (long i = 0; i < pageSource.size(); i++) {
             pageSource.set(i, new Object[]{ i });
         }
-        BigArrayPage page = new BigArrayPage(pageSource, 0, 10);
+        BigArrayPage page = new BigArrayPage(pageSource, 0, 10, false);
         assertThat(page.size(), is(10L));
         assertThat(Iterators.size(page.iterator()), is(10));
 
-        page = new BigArrayPage(pageSource, 10, 10);
+        page = new BigArrayPage(pageSource, 10, 10, false);
         assertThat(page.size(), is(10L));
         assertThat(Iterators.size(page.iterator()), is(10));
 
-        page = new BigArrayPage(pageSource, 0, 100);
+        page = new BigArrayPage(pageSource, 0, 100, false);
         assertThat(page.size(), is(100L));
         assertThat(Iterators.size(page.iterator()), is(100));
 
-        page = new BigArrayPage(pageSource, 10, 100);
+        page = new BigArrayPage(pageSource, 10, 100, false);
         assertThat(page.size(), is(90L));
         assertThat(Iterators.size(page.iterator()), is(90));
 
-        page = new BigArrayPage(pageSource);
+        page = new BigArrayPage(pageSource, true);
         assertThat(page.size(), is(100L));
         assertThat(Iterators.size(page.iterator()), is(100));
     }
@@ -90,6 +90,6 @@ public class BigArrayPageTest {
     public void testExceed() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("start exceeds page");
-        new BigArrayPage(bigArrays.<Object[]>newObjectArray(2), 3, 1);
+        new BigArrayPage(bigArrays.<Object[]>newObjectArray(2), 3, 1, false);
     }
 }

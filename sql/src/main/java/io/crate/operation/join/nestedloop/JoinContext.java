@@ -99,13 +99,13 @@ class JoinContext implements Closeable {
         innerTaskResult.close();
     }
 
-    public synchronized void newInnerPage(TaskResult taskResult) {
+    public void newInnerPage(TaskResult taskResult) {
         innerTaskResult = taskResult;
         innerPage = taskResult.page();
         innerPageIterator = innerPage.iterator();
     }
 
-    public synchronized void newOuterPage(TaskResult taskResult) {
+    public void newOuterPage(TaskResult taskResult) {
         outerTaskResult = taskResult;
         outerPage = taskResult.page();
         outerPageIterator = outerPage.iterator();

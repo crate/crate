@@ -27,6 +27,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -66,6 +67,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.io.Closeable;
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -122,6 +124,16 @@ public class NestedLoopOperationTest {
             result.set(
                     FetchedRowsPageableTaskResult.forArray(backingArray, 0, pageInfo)
             );
+        }
+
+        @Override
+        public void fetchMore(PageInfo pageInfo, Closeable context, FutureCallback callback) {
+
+        }
+
+        @Override
+        public void fetchNew(PageInfo pageInfo, FutureCallback callback) {
+
         }
 
         @Override

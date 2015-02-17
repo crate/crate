@@ -42,7 +42,7 @@ public abstract class AbstractBigArrayPageableTaskResult implements TaskResult {
                 "backingArray exceeded");
         this.backingArray = backingArray;
         this.backingArrayStartIdx = backingArrayStartIndex;
-        this.page = new BigArrayPage(backingArray, backingArrayStartIndex, size);
+        this.page = new BigArrayPage(backingArray, backingArrayStartIndex, size, false); // TODO
     }
 
     @Override

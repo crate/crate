@@ -130,7 +130,7 @@ public abstract class FetchedRowsPageableTaskResult<T> implements TaskResult {
 
         @Override
         protected Page newPage(PageInfo pageInfo) {
-            return new BigArrayPage(backingArray, backingArrayStartIndex + pageInfo.position(), pageInfo.size());
+            return new BigArrayPage(backingArray, backingArrayStartIndex + pageInfo.position(), pageInfo.size(), false); // TODO
         }
 
         @Override
