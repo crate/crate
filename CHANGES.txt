@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/02/17 0.47.3
+=================
+
  - Fix: Inserting from a query which contains aggregation functions failed in some
    cases
 
