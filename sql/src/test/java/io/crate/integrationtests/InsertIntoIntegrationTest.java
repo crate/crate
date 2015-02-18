@@ -623,5 +623,67 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][1], is(2L));
     }
 
+    @Test
+    public void testInsertFromSubQueryCrossJoin() throws Exception {
+        setup.setUpCharacters();
+        setup.setUpBooks();
+        waitNoPendingTasksOnAll();
+        execute("create table t (name string, title string)");
+        execute("insert into t (name, title) (select name, title from books, characters)");
+        assertThat(response.rowCount(), is(12L));
+        refresh();
+        execute("select title, name from t");
+        assertThat(response.rowCount(), is(12L));
+    }
 
+    @Test
+    public void testUpsertFromSubQueryCrossJoin() throws Exception {
+        setup.setUpCharacters();
+        setup.setUpBooks();
+        waitNoPendingTasksOnAll();
+        execute("create table t (name string primary key, title string, count integer)");
+        execute("insert into t (name, title, count) (select name, title, 1 from books, characters)" +
+                "   ON DUPLICATE KEY UPDATE" +
+                "       title = 'conflict'," +
+                "       count = count + VALUES(count)");
+        assertThat(response.rowCount(), is(12L));
+        refresh();
+        execute("select title, name, count from t order by name");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((String)response.rows()[0][0], is("conflict"));
+        assertThat((String)response.rows()[0][1], is("Arthur"));
+        assertThat((int)response.rows()[0][2], is(6));
+        assertThat((String)response.rows()[1][0], is("conflict"));
+        assertThat((String)response.rows()[1][1], is("Ford"));
+        assertThat((int)response.rows()[1][2], is(3));
+    }
+
+    @Test
+    public void testInsertFromSubQueryCrossJoinWithMaps() throws Exception {
+        setup.setUpCharacters();
+        setup.setUpObjectTable();
+        waitNoPendingTasksOnAll();
+        execute("create table t (name string, author object(dynamic))");
+        execute("insert into t (name, author) (select name, author from ot, characters)");
+        assertThat(response.rowCount(), is(4L));
+        refresh();
+        execute("select name, author from t");
+        assertThat(response.rowCount(), is(4L));
+    }
+
+    @Test
+    public void testInsertFromSubQueryCrossJoinESGet() throws Exception {
+        setup.setUpCharacters();
+        setup.setUpBooks();
+        waitNoPendingTasksOnAll();
+        execute("create table t (id integer, title string, name string)");
+        execute("insert into t (id, name, title) (select characters.id, name, title from books, characters where characters.id = 1)");
+        assertThat(response.rowCount(), is(3L));
+        refresh();
+        execute("select id, title, name from t order by id, title");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((int)response.rows()[0][0], is(1));
+        assertThat((String)response.rows()[0][1], is("Life, the Universe and Everything"));
+        assertThat((String)response.rows()[0][2], is("Arthur"));
+    }
 }

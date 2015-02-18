@@ -29,7 +29,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ValidationException;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.IterablePlan;
@@ -196,7 +195,7 @@ public class CrossJoinConsumer implements Consumer {
             // get new remaining order by
 
             boolean pushDownLimit = !hasRemainingOrderBy && !hasRemainingQuery;
-            NestedLoopNode nestedLoopNode = toNestedLoop(queriedTables, rootLimit, statement.querySpec().offset(), pushDownLimit);
+            NestedLoopNode nestedLoopNode = toNestedLoop(queriedTables, rootLimit, statement.querySpec().offset(), pushDownLimit, context);
             List<Symbol> queriedTablesOutputs = getAllOutputs(queriedTables);
 
             ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
@@ -259,6 +258,12 @@ public class CrossJoinConsumer implements Consumer {
             return nestedLoopNode;
         }
 
+        @Override
+        public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, ConsumerContext context) {
+            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
+            return null;
+        }
+
         private List<Symbol> getAllOutputs(Collection<QueriedTable> queriedTables) {
             ImmutableList.Builder<Symbol> builder = ImmutableList.builder();
             for (QueriedTable table : queriedTables) {
@@ -296,7 +301,8 @@ public class CrossJoinConsumer implements Consumer {
          *
          * The queriedTables must be ordered in such a way that the left node of the NL will always be the one to order by ("leftOuterLoop = true")
          */
-        private NestedLoopNode toNestedLoop(List<QueriedTable> queriedTables, int limit, int offset, boolean pushDownLimit) {
+        private NestedLoopNode toNestedLoop(List<QueriedTable> queriedTables, int limit, int offset, boolean pushDownLimit,
+                                            ConsumerContext context) {
             Iterator<QueriedTable> iterator = queriedTables.iterator();
             NestedLoopNode nl = null;
             Plan left;
@@ -315,8 +321,8 @@ public class CrossJoinConsumer implements Consumer {
                     currentLimit = iterator.hasNext() ? nestedLimit : limit;
                     currentOffset = iterator.hasNext() ? nestedOffset : offset;
 
-                    left = consumingPlanner.plan(next);
-                    right = consumingPlanner.plan(second);
+                    left = planSubRelation(next);
+                    right = planSubRelation(second);
                     assert left != null && right != null;
 
                     nl = new NestedLoopNode(left, right, true, currentLimit, currentOffset);
@@ -336,6 +342,22 @@ public class CrossJoinConsumer implements Consumer {
                 }
             }
             return nl;
+        }
+
+        /**
+         * uses the consumingPlanner to planSubRelation a subrelation.
+         *
+         * Therefore a new ConsumerContext is used with a null rootRelation,
+         * because the rootRelation is just used to write the result of the
+         * consumer and to check if the subRelation
+         * is the rootNode of the Plan (by comparing relation with rootRelation),
+         * but in this case it's always a childNode and we don't want that
+         * the real rootNode is overwritten.
+         *
+         */
+        private Plan planSubRelation(AnalyzedRelation relation) {
+            Plan plan = consumingPlanner.plan(relation, new ConsumerContext(null));
+            return plan;
         }
     }
 

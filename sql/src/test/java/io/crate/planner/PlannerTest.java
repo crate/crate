@@ -31,6 +31,7 @@ import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
@@ -317,6 +318,7 @@ public class PlannerTest {
         IterablePlan plan = (IterablePlan)  plan("select name from users where id = 1");
         Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
+        assertThat(node.extractBytesRef(), is(false));
         assertThat(node.index(), is("users"));
         assertThat(node.ids().get(0), is("1"));
         assertFalse(iterator.hasNext());
@@ -488,7 +490,7 @@ public class PlannerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(QueryThenFetchNode.class));
         QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
-
+        assertThat(searchNode.extractBytesRef(), is(false));
         assertThat(searchNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
         assertTrue(searchNode.whereClause().hasQuery());
@@ -1637,4 +1639,17 @@ public class PlannerTest {
         assertThat(item.updateAssignments().length, is(1));
         assertThat(item.updateAssignments()[0], isLiteral(null, DataTypes.STRING));
     }
+
+    @Test
+    public void testInsertFromSubQueryCrossJoinExtractBytesRef() throws Exception {
+        InsertFromSubQuery plan = (InsertFromSubQuery)plan(
+                "insert into users (id, name, date) (select characters.id, characters.name, parted.date from parted, characters where characters.id = 1)");
+        IterablePlan iterablePlan = (IterablePlan)plan.innerPlan();
+        NestedLoopNode nestedLoopNode = (NestedLoopNode)iterablePlan.iterator().next();
+        QueryThenFetchNode left = (QueryThenFetchNode) ((IterablePlan)nestedLoopNode.left()).iterator().next();
+        ESGetNode right = (ESGetNode) ((IterablePlan)nestedLoopNode.right()).iterator().next();
+        assertThat(left.extractBytesRef(), is(true));
+        assertThat(right.extractBytesRef(), is(true));
+    }
+
 }

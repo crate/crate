@@ -45,6 +45,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     private final Integer limit;
     private final int offset;
     private final List<ReferenceInfo> partitionBy;
+    private final boolean extractBytesRef;
 
     private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
     private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
@@ -57,7 +58,8 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
                      @Nullable Boolean[] nullsFirst,
                      @Nullable Integer limit,
                      int offset,
-                     @Nullable List<ReferenceInfo> partitionBy) {
+                     @Nullable List<ReferenceInfo> partitionBy,
+                     boolean extractBytesRef) {
         this.index = index;
         this.outputs = outputs;
         outputTypes(Symbols.extractTypes(outputs));
@@ -69,6 +71,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         this.limit = limit;
         this.offset = offset;
         this.partitionBy = MoreObjects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
+        this.extractBytesRef = extractBytesRef;
     }
 
     public String index() {
@@ -112,6 +115,10 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     public List<ReferenceInfo> partitionBy() {
         return partitionBy;
+    }
+
+    public boolean extractBytesRef() {
+        return extractBytesRef;
     }
 
     @Override

@@ -55,9 +55,13 @@ public class ConsumingPlanner {
     @Nullable
     public Plan plan(AnalyzedRelation rootRelation) {
         ConsumerContext consumerContext = new ConsumerContext(rootRelation);
+        return plan(rootRelation, consumerContext);
+    }
+
+    public Plan plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
         for (int i = 0; i < consumers.size(); i++) {
             Consumer consumer = consumers.get(i);
-            if (consumer.consume(consumerContext.rootRelation(), consumerContext)) {
+            if (consumer.consume(relation, consumerContext)) {
                 if (consumerContext.rootRelation() instanceof PlannedAnalyzedRelation) {
                     Plan plan = ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan();
                     assert plan != null;

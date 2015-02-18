@@ -82,6 +82,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 }
             }
 
+            boolean extractBytesRef = context.rootRelation() != table;
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
                 return new QueryThenFetchNode(
@@ -91,7 +92,8 @@ public class QueryThenFetchConsumer implements Consumer {
                         table.querySpec().limit(),
                         table.querySpec().offset(),
                         where,
-                        tableInfo.partitionedByColumns()
+                        tableInfo.partitionedByColumns(),
+                        extractBytesRef
                 );
             } else {
                 table.tableRelation().validateOrderBy(orderBy);
@@ -104,7 +106,8 @@ public class QueryThenFetchConsumer implements Consumer {
                         table.querySpec().limit(),
                         table.querySpec().offset(),
                         where,
-                        tableInfo.partitionedByColumns()
+                        tableInfo.partitionedByColumns(),
+                        extractBytesRef
                 );
             }
         }

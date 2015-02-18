@@ -143,7 +143,8 @@ public class QueryThenFetchTaskTest {
                         null,
                         null,
                         WhereClause.MATCH_ALL,
-                        null
+                        null,
+                        false
                 )
         );
     }

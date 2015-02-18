@@ -93,7 +93,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         Job fakeJob = new Job();
@@ -141,7 +142,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -187,7 +189,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -230,7 +233,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -279,7 +283,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                parted.partitionedByColumns()
+                parted.partitionedByColumns(),
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -344,7 +349,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 1,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -402,7 +408,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         leftNode.outputTypes(ImmutableList.of(
                         idRef.info().type(),
@@ -420,7 +427,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         rightNode.outputTypes(ImmutableList.of(
                         authorRef.info().type())
@@ -495,7 +503,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         leftNode.outputTypes(ImmutableList.of(
                         idRef.info().type(),
@@ -513,7 +522,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         rightNode.outputTypes(ImmutableList.of(
                         authorRef.info().type())
@@ -590,7 +600,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 5,
                 1,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         leftNode.outputTypes(ImmutableList.of(
                         idRef.info().type(),
@@ -608,7 +619,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         rightNode.outputTypes(ImmutableList.of(
                         authorRef.info().type())
@@ -718,7 +730,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 5,
                 1,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         leftNode.outputTypes(ImmutableList.of(
                         idRef.info().type(),
@@ -736,7 +749,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         rightNode.outputTypes(ImmutableList.of(
                         authorRef.info().type())
@@ -845,7 +859,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 20,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         leftQtfNode.outputTypes(ImmutableList.of(
                         idRef.info().type(),
@@ -863,7 +878,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
         rightQtfNode.outputTypes(ImmutableList.of(
                         authorRef.info().type())
@@ -997,7 +1013,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -1055,7 +1072,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -1134,7 +1152,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -1203,7 +1222,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
@@ -1271,7 +1291,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null
+                null,
+                false
         );
 
         List<Task> tasks = executor.newTasks(qtfNode, new Job());
