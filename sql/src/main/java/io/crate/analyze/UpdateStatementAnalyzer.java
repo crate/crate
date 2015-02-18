@@ -80,7 +80,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
-        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(analysis.parameterContext());
+        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(
+                analysis.parameterContext(), analysisMetaData);
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), relationAnalysisContext);
         if (Relations.isReadOnly(analyzedRelation)) {
             throw new UnsupportedOperationException(String.format(
