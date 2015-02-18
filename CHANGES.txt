@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/02/18 0.47.4
+=================
+
  - Fixed a race condition where some statements would break because of
    using a shared state internally.
 
