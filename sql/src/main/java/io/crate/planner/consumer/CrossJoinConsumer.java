@@ -195,7 +195,8 @@ public class CrossJoinConsumer implements Consumer {
             // get new remaining order by
 
             boolean pushDownLimit = !hasRemainingOrderBy && !hasRemainingQuery;
-            NestedLoopNode nestedLoopNode = toNestedLoop(queriedTables, rootLimit, statement.querySpec().offset(), pushDownLimit, context);
+            NestedLoopNode nestedLoopNode = toNestedLoop(queriedTables,
+                    orderByOrder, rootLimit, statement.querySpec().offset(), pushDownLimit);
             List<Symbol> queriedTablesOutputs = getAllOutputs(queriedTables);
 
             ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
@@ -301,8 +302,11 @@ public class CrossJoinConsumer implements Consumer {
          *
          * The queriedTables must be ordered in such a way that the left node of the NL will always be the one to order by ("leftOuterLoop = true")
          */
-        private NestedLoopNode toNestedLoop(List<QueriedTable> queriedTables, int limit, int offset, boolean pushDownLimit,
-                                            ConsumerContext context) {
+        private NestedLoopNode toNestedLoop(List<QueriedTable> queriedTables,
+                                            Map<Object, Integer> orderByOrder,
+                                            int limit,
+                                            int offset,
+                                            boolean pushDownLimit) {
             Iterator<QueriedTable> iterator = queriedTables.iterator();
             NestedLoopNode nl = null;
             Plan left;
@@ -325,7 +329,10 @@ public class CrossJoinConsumer implements Consumer {
                     right = planSubRelation(second);
                     assert left != null && right != null;
 
-                    nl = new NestedLoopNode(left, right, true, currentLimit, currentOffset);
+                    boolean isSorted = orderByOrder.containsKey(next.tableRelation())
+                            || orderByOrder.containsKey(second.tableRelation());
+
+                    nl = new NestedLoopNode(left, right, true, currentLimit, currentOffset, isSorted);
                     nl.outputTypes(ImmutableList.<DataType>builder()
                             .addAll(left.outputTypes())
                             .addAll(right.outputTypes()).build());
@@ -334,8 +341,9 @@ public class CrossJoinConsumer implements Consumer {
                     currentOffset = iterator.hasNext() ? nestedOffset : offset;
                     NestedLoopNode lastNL = nl;
                     right = consumingPlanner.plan(next);
+                    boolean isSorted = lastNL.isSorted() || orderByOrder.containsKey(next.tableRelation());
                     assert right != null;
-                    nl = new NestedLoopNode(new IterablePlan(lastNL), right, true, currentLimit, currentOffset);
+                    nl = new NestedLoopNode(new IterablePlan(lastNL), right, true, currentLimit, currentOffset, isSorted);
                     nl.outputTypes(ImmutableList.<DataType>builder()
                             .addAll(lastNL.outputTypes())
                             .addAll(right.outputTypes()).build());
@@ -356,8 +364,7 @@ public class CrossJoinConsumer implements Consumer {
          *
          */
         private Plan planSubRelation(AnalyzedRelation relation) {
-            Plan plan = consumingPlanner.plan(relation, new ConsumerContext(null));
-            return plan;
+            return consumingPlanner.plan(relation, new ConsumerContext(null));
         }
     }
 

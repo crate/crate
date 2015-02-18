@@ -70,6 +70,7 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
     private final Plan left;
     private final Plan right;
     private boolean leftOuterLoop = true;
+    private boolean isSorted = false;
     private final int limit;
     private final int offset;
 
@@ -107,13 +108,15 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
                           Plan right,
                           boolean leftOuterLoop,
                           int limit,
-                          int offset) {
+                          int offset,
+                          boolean isSorted) {
         super("nestedLoop");
         this.limit = limit;
         this.offset = offset;
         this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;
+        this.isSorted = isSorted;
     }
 
     public Plan left() {
@@ -212,5 +215,9 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
     @Override
     public DQLPlanNode resultNode() {
         throw new UnsupportedOperationException("resultNode is not supported in NestedLoopNode");
+    }
+
+    public boolean isSorted() {
+        return isSorted;
     }
 }

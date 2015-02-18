@@ -259,7 +259,7 @@ public class NestedLoopOperationTest {
         TestDQLNode leftPlan = new TestDQLNode(left);
         TestDQLNode rightPlan = new TestDQLNode(right);
 
-        NestedLoopNode node = new NestedLoopNode(leftPlan, rightPlan, leftOuterNode, limit, offset);
+        NestedLoopNode node = new NestedLoopNode(leftPlan, rightPlan, leftOuterNode, limit, offset, true);
         int numColumns = (left.length > 0 ? left[0].length : 0) + (right.length > 0 ? right[0].length : 0);
 
         if (applyTopN) {
