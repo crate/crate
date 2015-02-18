@@ -232,8 +232,8 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     @Test
     public void testEmptyClusteredByValue() throws Exception {
         WhereClauseContext ctx = analyzeSelectWhere("select * from bystring where name = ''");
-        assertThat(ctx.whereClause().clusteredBy().isPresent(), is(false));
-        assertThat(ctx.ids().size(), is(0));
+        assertTrue(ctx.whereClause().clusteredBy().isPresent());
+        assertThat(ctx.ids().size(), is(1));
     }
 
     @Test
