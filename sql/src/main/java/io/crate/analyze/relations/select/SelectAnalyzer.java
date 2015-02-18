@@ -27,6 +27,7 @@ import io.crate.analyze.OutputNameFormatter;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.metadata.OutputName;
 import io.crate.planner.symbol.Field;
@@ -42,10 +43,8 @@ public class SelectAnalyzer {
     private static final InnerVisitor INSTANCE = new InnerVisitor();
 
     public static SelectAnalysis analyzeSelect(Select select,
-                                               Map<QualifiedName, AnalyzedRelation> sources,
-                                               ExpressionAnalyzer expressionAnalyzer,
-                                               ExpressionAnalysisContext expressionAnalysisContext) {
-        SelectAnalysis selectAnalysis = new SelectAnalysis(sources, expressionAnalyzer, expressionAnalysisContext);
+                                               RelationAnalysisContext context){
+        SelectAnalysis selectAnalysis = new SelectAnalysis(context);
         INSTANCE.process(select, selectAnalysis);
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols);
         return selectAnalysis;
@@ -60,12 +59,10 @@ public class SelectAnalyzer {
         private List<Symbol> outputSymbols = new ArrayList<>();
         private Multimap<String, Symbol> outputMultiMap = HashMultimap.create();
 
-        private SelectAnalysis(Map<QualifiedName, AnalyzedRelation> sources,
-                               ExpressionAnalyzer expressionAnalyzer,
-                               ExpressionAnalysisContext expressionAnalysisContext) {
-            this.sources = sources;
-            this.expressionAnalyzer = expressionAnalyzer;
-            this.expressionAnalysisContext = expressionAnalysisContext;
+        private SelectAnalysis(RelationAnalysisContext context) {
+            this.sources = context.sources();
+            this.expressionAnalyzer = context.expressionAnalyzer();
+            this.expressionAnalysisContext = context.expressionAnalysisContext();
         }
 
         public List<OutputName> outputNames() {

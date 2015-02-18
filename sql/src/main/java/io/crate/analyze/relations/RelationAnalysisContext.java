@@ -21,7 +21,10 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.Arrays;
@@ -30,12 +33,17 @@ import java.util.Map;
 
 public class RelationAnalysisContext {
 
+    private final ExpressionAnalysisContext expressionAnalysisContext;
+    private ExpressionAnalyzer expressionAnalyzer;
     private Map<QualifiedName, AnalyzedRelation> sources = new HashMap<>();
     private ParameterContext parameterContext;
+    private AnalysisMetaData analysisMetaData;
+    private FullQualifedNameFieldProvider fieldProvider;
 
-    public RelationAnalysisContext(ParameterContext parameterContext) {
-
+    public RelationAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData) {
         this.parameterContext = parameterContext;
+        this.analysisMetaData = analysisMetaData;
+        this.expressionAnalysisContext = new ExpressionAnalysisContext();
     }
 
     public ParameterContext parameterContext() {
@@ -54,4 +62,22 @@ public class RelationAnalysisContext {
         return sources;
     }
 
+    public ExpressionAnalyzer expressionAnalyzer(){
+        if (expressionAnalyzer == null){
+            expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext(),
+                    fieldProvider());
+        }
+        return expressionAnalyzer;
+    }
+
+    FieldProvider fieldProvider(){
+        if (fieldProvider == null){
+            fieldProvider = new FullQualifedNameFieldProvider(sources());
+        }
+        return fieldProvider;
+    }
+
+    public ExpressionAnalysisContext expressionAnalysisContext() {
+        return expressionAnalysisContext;
+    }
 }

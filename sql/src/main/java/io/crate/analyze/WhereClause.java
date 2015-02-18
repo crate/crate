@@ -55,8 +55,6 @@ public class WhereClause extends QueryClause implements Streamable {
 
     }
 
-
-
     public WhereClause(StreamInput in) throws IOException {
         readFrom(in);
     }
