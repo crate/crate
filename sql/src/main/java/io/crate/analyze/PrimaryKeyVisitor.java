@@ -321,17 +321,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     }
 
     private void setClusterBy(Context context, Literal right) {
-        Object value = right.value();
-
-        /**
-         * Don't set the clusteredBy value for empty strings:
-         *      IndexRequest sets the routingValue to null if the value is an empty string;
-         *      If the clusteredBy value would be set here the routing value would be calculated using the hash("")
-         *      which is different from the value used in the index operation.
-         */
-        if (value != null && EMPTY_BYTES_REF.equals(value)) {
-            invalidate(context);
-        } else if (context.currentBucket.clusteredBy == null) {
+        if (context.currentBucket.clusteredBy == null) {
             context.currentBucket.clusteredBy = right;
         } else if (!context.currentBucket.clusteredBy.equals(right)) {
             invalidate(context);

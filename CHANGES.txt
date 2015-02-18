@@ -29,6 +29,11 @@ Unreleased
  - Added support for the ``IF EXISTS`` clause to ``DROP TABLE`` and
    ``DROP BLOB TABLE``
 
+ - Made zero length string routing consistent and route by the actual
+   hash of an empty string instead of handling it as null. CAUTION: If
+   you are using emtpy strings as routing values, affected records
+   need to be re-inserted.
+
 2015/02/17 0.47.3
 =================
 
