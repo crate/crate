@@ -22,8 +22,10 @@
 package io.crate.operation.projectors;
 
 import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableList;
-import io.crate.executor.transport.TransportShardUpsertAction;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -34,6 +36,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
@@ -80,7 +83,7 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardUpsertAction.class),
+                mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
                 "bulk_import",
                 rawSourceReference,
@@ -119,7 +122,7 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardUpsertAction.class),
+                mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
                 "bulk_import",
                 rawSourceReference,

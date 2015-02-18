@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class ShardUpsertRequestOld extends ShardReplicationOperationRequest<ShardUpsertRequestOld> implements Iterable<ShardUpsertRequestOld.Item> {
+public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequest<SymbolBasedShardUpsertRequest> implements Iterable<SymbolBasedShardUpsertRequest.Item> {
 
     /**
      * A single update item.
@@ -195,13 +195,13 @@ public class ShardUpsertRequestOld extends ShardReplicationOperationRequest<Shar
     @Nullable
     private Streamer[] insertValuesStreamer;
 
-    public ShardUpsertRequestOld() {
+    public SymbolBasedShardUpsertRequest() {
     }
 
-    public ShardUpsertRequestOld(ShardId shardId,
-                                 @Nullable
-                                 String[] updateColumns,
-                                 @Nullable Reference[] insertColumns) {
+    public SymbolBasedShardUpsertRequest(ShardId shardId,
+                                         @Nullable
+                                         String[] updateColumns,
+                                         @Nullable Reference[] insertColumns) {
         assert updateColumns != null || insertColumns != null
                 : "Missing updateAssignments, whether for update nor for insert";
         this.index = shardId.getIndex();
@@ -226,7 +226,7 @@ public class ShardUpsertRequestOld extends ShardReplicationOperationRequest<Shar
         return locations;
     }
 
-    public ShardUpsertRequestOld add(int location,
+    public SymbolBasedShardUpsertRequest add(int location,
                                   String id,
                                   @Nullable Symbol[] assignments,
                                   @Nullable Object[] missingAssignments,
@@ -237,7 +237,7 @@ public class ShardUpsertRequestOld extends ShardReplicationOperationRequest<Shar
         return this;
     }
 
-    public ShardUpsertRequestOld add(int location,
+    public SymbolBasedShardUpsertRequest add(int location,
                                   String id,
                                   Symbol[] assignments,
                                   @Nullable Long version,

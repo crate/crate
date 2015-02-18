@@ -135,6 +135,6 @@ public class UpsertByIdNode extends DMLPlanNode {
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitUpsertByIdNode2(this, context);
+        return visitor.visitUpsertByIdNode(this, context);
     }
 }

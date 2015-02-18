@@ -24,14 +24,14 @@ package io.crate.operation.projectors;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.transport.ShardUpsertRequestOld;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.TransportShardUpsertActionOld;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.mapper.Uid;
@@ -51,7 +51,7 @@ public class UpdateProjector implements Projector {
     private final List<SettableFuture<Long>> updateResults = new ArrayList<>();
 
     private final ShardId shardId;
-    private final TransportShardUpsertActionOld transportUpdateAction;
+    private final SymbolBasedTransportShardUpsertActionDelegate transportUpdateActionDelegate;
     private final CollectExpression<?> collectUidExpression;
     // The key of this map is expected to be a FQN columnIdent.
     private final String[] assignmentsColumns;
@@ -63,13 +63,13 @@ public class UpdateProjector implements Projector {
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     public UpdateProjector(ShardId shardId,
-                           TransportShardUpsertActionOld transportUpdateAction,
+                           SymbolBasedTransportShardUpsertActionDelegate transportUpdateActionDelegate,
                            CollectExpression<?> collectUidExpression,
                            String[] assignmentsColumns,
                            Symbol[] assignments,
                            @Nullable Long requiredVersion) {
         this.shardId = shardId;
-        this.transportUpdateAction = transportUpdateAction;
+        this.transportUpdateActionDelegate = transportUpdateActionDelegate;
         this.collectUidExpression = collectUidExpression;
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
@@ -95,10 +95,10 @@ public class UpdateProjector implements Projector {
         final SettableFuture<Long> future = SettableFuture.create();
         updateResults.add(future);
 
-        ShardUpsertRequestOld updateRequest = new ShardUpsertRequestOld(shardId, assignmentsColumns, null);
+        SymbolBasedShardUpsertRequest updateRequest = new SymbolBasedShardUpsertRequest(shardId, assignmentsColumns, null);
         updateRequest.add(0, uid.id(), assignments, requiredVersion, null);
 
-        transportUpdateAction.execute(updateRequest, new ActionListener<ShardUpsertResponse>() {
+        transportUpdateActionDelegate.execute(updateRequest, new ActionListener<ShardUpsertResponse>() {
             @Override
             public void onResponse(ShardUpsertResponse updateResponse) {
                 int location = updateResponse.locations().get(0);

@@ -548,9 +548,9 @@ public class PlannerTest {
 
         List<DQLPlanNode> childNodes = plan.nodes().get(0);
         assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(UpsertByIdNodeOld.class));
+        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        UpsertByIdNodeOld updateNode = (UpsertByIdNodeOld)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
 
         assertThat(updateNode.insertColumns().length, is(2));
         Reference idRef = updateNode.insertColumns()[0];
@@ -559,7 +559,7 @@ public class PlannerTest {
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(updateNode.items().size(), is(1));
-        UpsertByIdNodeOld.Item item = updateNode.items().get(0);
+        SymbolBasedUpsertByIdNode.Item item = updateNode.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("42"));
         assertThat(item.routing(), is("42"));
@@ -577,9 +577,9 @@ public class PlannerTest {
 
         List<DQLPlanNode> childNodes = plan.nodes().get(0);
         assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(UpsertByIdNodeOld.class));
+        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        UpsertByIdNodeOld updateNode = (UpsertByIdNodeOld)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
 
         assertThat(updateNode.insertColumns().length, is(2));
         Reference idRef = updateNode.insertColumns()[0];
@@ -589,7 +589,7 @@ public class PlannerTest {
 
         assertThat(updateNode.items().size(), is(2));
 
-        UpsertByIdNodeOld.Item item1 = updateNode.items().get(0);
+        SymbolBasedUpsertByIdNode.Item item1 = updateNode.items().get(0);
         assertThat(item1.index(), is("users"));
         assertThat(item1.id(), is("42"));
         assertThat(item1.routing(), is("42"));
@@ -597,7 +597,7 @@ public class PlannerTest {
         assertThat((Long)item1.insertValues()[0], is(42L));
         assertThat((BytesRef)item1.insertValues()[1], is(new BytesRef("Deep Thought")));
 
-        UpsertByIdNodeOld.Item item2 = updateNode.items().get(1);
+        SymbolBasedUpsertByIdNode.Item item2 = updateNode.items().get(1);
         assertThat(item2.index(), is("users"));
         assertThat(item2.id(), is("99"));
         assertThat(item2.routing(), is("99"));
@@ -825,14 +825,14 @@ public class PlannerTest {
 
         List<DQLPlanNode> childNodes = planNode.nodes().get(0);
         assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(UpsertByIdNodeOld.class));
+        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        UpsertByIdNodeOld updateNode = (UpsertByIdNodeOld)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
         assertThat(updateNode.items().size(), is(1));
 
         assertThat(updateNode.updateColumns()[0], is("name"));
 
-        UpsertByIdNodeOld.Item item = updateNode.items().get(0);
+        SymbolBasedUpsertByIdNode.Item item = updateNode.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
 
@@ -848,11 +848,11 @@ public class PlannerTest {
         List<DQLPlanNode> childNodes = planNode.nodes().get(0);
         assertThat(childNodes.size(), is(1));
 
-        assertThat(childNodes.get(0), instanceOf(UpsertByIdNodeOld.class));
-        UpsertByIdNodeOld updateNode = (UpsertByIdNodeOld)childNodes.get(0);
+        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
 
         List<String> ids = new ArrayList<>(3);
-        for (UpsertByIdNodeOld.Item item : updateNode.items()) {
+        for (SymbolBasedUpsertByIdNode.Item item : updateNode.items()) {
             ids.add(item.id());
             assertThat(item.updateAssignments().length, is(1));
             assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
@@ -1605,8 +1605,8 @@ public class PlannerTest {
         Upsert plan = (Upsert) plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
         assertThat(plan.nodes().size(), is(1));
         assertThat(plan.nodes().get(0).size(), is(1));
-        assertThat(plan.nodes().get(0).get(0), instanceOf(UpsertByIdNodeOld.class));
-        UpsertByIdNodeOld node = (UpsertByIdNodeOld) plan.nodes().get(0).get(0);
+        assertThat(plan.nodes().get(0).get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
+        SymbolBasedUpsertByIdNode node = (SymbolBasedUpsertByIdNode) plan.nodes().get(0).get(0);
 
         assertThat(node.updateColumns(), is(new String[]{ "name" }));
 
@@ -1617,7 +1617,7 @@ public class PlannerTest {
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(node.items().size(), is(1));
-        UpsertByIdNodeOld.Item item = node.items().get(0);
+        SymbolBasedUpsertByIdNode.Item item = node.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
         assertThat(item.routing(), is("1"));

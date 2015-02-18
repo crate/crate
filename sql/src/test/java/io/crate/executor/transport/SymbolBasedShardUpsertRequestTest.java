@@ -41,7 +41,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
-public class ShardUpsertRequestOldTest {
+public class SymbolBasedShardUpsertRequestTest {
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
 
@@ -55,7 +55,7 @@ public class ShardUpsertRequestOldTest {
         ShardId shardId = new ShardId("test", 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
-        ShardUpsertRequestOld request = new ShardUpsertRequestOld(
+        SymbolBasedShardUpsertRequest request = new SymbolBasedShardUpsertRequest(
                 shardId,
                 assignmentColumns,
                 missingAssignmentColumns);
@@ -74,7 +74,7 @@ public class ShardUpsertRequestOldTest {
         request.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        ShardUpsertRequestOld request2 = new ShardUpsertRequestOld();
+        SymbolBasedShardUpsertRequest request2 = new SymbolBasedShardUpsertRequest();
         request2.readFrom(in);
 
         assertThat(request2.index(), is(shardId.getIndex()));
@@ -88,7 +88,7 @@ public class ShardUpsertRequestOldTest {
 
         assertThat(request2.items().size(), is(2));
 
-        ShardUpsertRequestOld.Item item1 = request2.items().get(0);
+        SymbolBasedShardUpsertRequest.Item item1 = request2.items().get(0);
         assertThat(item1.id(), is("99"));
         assertNull(item1.updateAssignments());
         assertThat(item1.insertValues(), is(new Object[]{99, new BytesRef("Marvin")}));
@@ -96,7 +96,7 @@ public class ShardUpsertRequestOldTest {
         assertThat(item1.version(), is(Versions.MATCH_ANY));
         assertThat(item1.retryOnConflict(), is(Constants.UPDATE_RETRY_ON_CONFLICT));
 
-        ShardUpsertRequestOld.Item item2 = request2.items().get(1);
+        SymbolBasedShardUpsertRequest.Item item2 = request2.items().get(1);
         assertThat(item2.id(), is("42"));
         assertThat(item2.updateAssignments(), is(new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") }));
         assertNull(item2.insertValues());

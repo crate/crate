@@ -21,23 +21,23 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.TransportShardUpsertAction;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.executor.transport.SymbolBasedTransportShardUpsertAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 
-public class TransportShardUpsertActionDelegateImpl implements TransportShardUpsertActionDelegate {
+public class SymbolBasedTransportShardUpsertActionDelegateImpl implements SymbolBasedTransportShardUpsertActionDelegate {
 
-    private final TransportShardUpsertAction transportShardUpsertAction;
+    private final SymbolBasedTransportShardUpsertAction transportShardUpsertAction;
 
     @Inject
-    public TransportShardUpsertActionDelegateImpl(TransportShardUpsertAction transportShardUpsertAction) {
+    public SymbolBasedTransportShardUpsertActionDelegateImpl(SymbolBasedTransportShardUpsertAction transportShardUpsertAction) {
         this.transportShardUpsertAction = transportShardUpsertAction;
     }
 
     @Override
-    public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+    public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
         transportShardUpsertAction.execute(request, listener);
     }
 }

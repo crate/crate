@@ -31,7 +31,6 @@ import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.operation.collect.ShardingProjector;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
@@ -40,6 +39,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
@@ -59,7 +59,7 @@ import java.util.UUID;
 
 public class UpsertByIdTask extends JobTask {
 
-    private final TransportShardUpsertAction transportShardUpsertActionDelegate;
+    private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final ClusterService clusterService;
     private final UpsertByIdNode node;
@@ -74,7 +74,7 @@ public class UpsertByIdTask extends JobTask {
     public UpsertByIdTask(UUID jobId,
                           ClusterService clusterService,
                           Settings settings,
-                          TransportShardUpsertAction transportShardUpsertActionDelegate,
+                          TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                           TransportCreateIndexAction transportCreateIndexAction,
                           UpsertByIdNode node) {
         super(jobId);
