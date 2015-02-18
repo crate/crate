@@ -298,16 +298,6 @@ public class QueriedTable implements QueriedRelation {
         }
 
         @Override
-        public Symbol visitField(Field field, FieldReplacingCtx context) {
-            // need to check relation identity for fields to not replace fields of other relations in the self-join case
-            // (otherTableRelation.equals(thisTableRelation) would result in true...
-            if (field.relation() == context.relation) {
-                return super.visitField(field, context);
-            }
-            return field;
-        }
-
-        @Override
         protected Symbol visitSymbol(Symbol symbol, FieldReplacingCtx context) {
             Field field = context.get(symbol);
             if (field != null) {
