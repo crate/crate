@@ -179,7 +179,11 @@ public class NestedLoopOperation implements ProjectorUpstream {
                 strategy = new FetchedPagingNestedLoopStrategy(this, nestedLoopExecutorService);
             }
         } else {
-            strategy = new OneShotNestedLoopStrategy(this, nestedLoopExecutorService);
+            if (nestedLoopNode.isSorted()) {
+                strategy = new OneShotNestedLoopStrategy(this, nestedLoopExecutorService);
+            } else {
+                strategy = new UnsortedNestedLoopStrategy(this, nestedLoopExecutorService);
+            }
         }
     }
 

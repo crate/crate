@@ -150,8 +150,7 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
             };
         }
 
-        @Override
-        public void joinOuterPage() {
+        private void joinOuterPage() {
             if (ctx.innerIsFinished()) {
                 Futures.addCallback(
                         ctx.innerTaskResult.fetch(ctx.resetInnerPageInfo()),
@@ -174,8 +173,7 @@ class PagingNestedLoopStrategy implements NestedLoopStrategy {
             }
         }
 
-        @Override
-        public void onNewInnerPage(TaskResult taskResult) {
+        private void onNewInnerPage(TaskResult taskResult) {
             ctx.newInnerPage(taskResult);
 
             if (taskResult.page().size() == 0) {

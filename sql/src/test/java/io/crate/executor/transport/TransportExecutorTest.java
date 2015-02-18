@@ -819,7 +819,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new IterablePlan(rightNode),
                 true,
                 5,
-                3
+                3,
+                true
         );
         node.outputTypes(outputTypes);
         node.projections(ImmutableList.<Projection>of(projection));
@@ -862,7 +863,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new IterablePlan(rightNode),
                 false,
                 5,
-                0
+                0,
+                true
         );
         node2.outputTypes(outputTypes2);
         node2.projections(ImmutableList.<Projection>of(projection2));
@@ -945,7 +947,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new IterablePlan(rightNode),
                 true,
                 5,
-                0
+                0,
+                true
         );
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);

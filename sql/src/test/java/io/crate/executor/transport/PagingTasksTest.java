@@ -456,7 +456,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 new IterablePlan(rightNode),
                 true,
                 Constants.DEFAULT_SELECT_LIMIT,
-                0
+                0,
+                true
         );
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
@@ -552,7 +553,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 new IterablePlan(rightNode),
                 true,
                 10,
-                1
+                1,
+                true
         );
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
@@ -648,7 +650,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 new IterablePlan(rightNode),
                 true,
                 queryLimit,
-                queryOffset
+                queryOffset,
+                true
         );
         node.projections(ImmutableList.<Projection>of(projection));
         node.outputTypes(outputTypes);
@@ -771,7 +774,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 new IterablePlan(rightNode),
                 true,
                 queryLimit,
-                queryOffset
+                queryOffset,
+                true
         );
         node.outputTypes(outputTypes);
 
@@ -891,7 +895,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 new IterablePlan(leftQtfNode),
                 true,
                 TopN.NO_LIMIT,
-                TopN.NO_OFFSET
+                TopN.NO_OFFSET,
+                true
         );
         leftNestedLoopNode.outputTypes(
                 ImmutableList.<DataType>builder()
@@ -909,7 +914,8 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
                 new IterablePlan(rightQtfNode),
                 true,
                 queryLimit,
-                queryOffset
+                queryOffset,
+                true
         );
         TopNProjection projection = new TopNProjection(queryLimit, queryOffset);
         projection.outputs(ImmutableList.<Symbol>of(

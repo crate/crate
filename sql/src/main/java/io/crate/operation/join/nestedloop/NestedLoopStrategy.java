@@ -34,12 +34,8 @@ import io.crate.operation.projectors.Projector;
 interface NestedLoopStrategy {
 
     public static interface NestedLoopExecutor {
-        public void joinOuterPage();
         public void joinInnerPage();
-
         public void onNewOuterPage(TaskResult taskResult);
-        public void onNewInnerPage(TaskResult taskResult);
-
     }
 
     int rowsToProduce(Optional<PageInfo> pageInfo);

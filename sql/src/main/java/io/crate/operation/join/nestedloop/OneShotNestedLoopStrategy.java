@@ -92,8 +92,7 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
             };
         }
 
-        @Override
-        public void joinOuterPage() {
+        private void joinOuterPage() {
             // use current inner task result,
             // fetch another page/taskresult if necessary
             if (ctx.innerIsFinished()) {
@@ -118,8 +117,7 @@ class OneShotNestedLoopStrategy implements NestedLoopStrategy {
             }
         }
 
-        @Override
-        public void onNewInnerPage(TaskResult taskResult) {
+        private void onNewInnerPage(TaskResult taskResult) {
             ctx.newInnerPage(taskResult);
 
             if (taskResult.page().size() == 0) {
