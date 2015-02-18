@@ -48,7 +48,10 @@ public class InsertFromSubQueryConsumer implements Consumer {
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
         Context ctx = new Context(context);
-        context.rootRelation(visitor.process(context.rootRelation(), ctx));
+        AnalyzedRelation relation = visitor.process(rootRelation, ctx);
+        if (relation != null && ctx.result) {
+            context.rootRelation(relation);
+        }
         return ctx.result;
     }
 
