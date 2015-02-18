@@ -237,6 +237,68 @@ to refer to the current rows values::
     +----------+--------+------------+
     SELECT 2 rows in set (... sec)
 
+This can also be done when using a query instead of values::
+
+    cr> create table uservisits2 (
+    ...   id integer primary key,
+    ...   name string,
+    ...   visits integer,
+    ...   last_visit timestamp
+    ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);
+    CREATE OK (... sec)
+
+::
+
+    cr> insert into uservisits2 (id, name, visits, last_visit)
+    ... (
+    ...     select id, name, visits, last_visit
+    ...     from uservisits
+    ... );
+    INSERT OK, 2 rows affected (... sec)
+
+.. Hidden: refresh uservisits2
+
+    cr> refresh table uservisits2
+    REFRESH OK (... sec)
+
+::
+
+    cr> insert into uservisits2 (id, name, visits, last_visit)
+    ... (
+    ...     select id, name, visits, last_visit
+    ...     from uservisits
+    ... )
+    ... on duplicate key update
+    ...     visits = visits + VALUES(visits),
+    ...     last_visit = VALUES(last_visit);
+    INSERT OK, 2 rows affected (... sec)
+
+.. Hidden: refresh uservisits2
+
+    cr> refresh table uservisits2
+    REFRESH OK (... sec)
+
+::
+
+    cr> select
+    ...     name,
+    ...     visits,
+    ...     extract(year from last_visit) as last_visit
+    ... from uservisits order by name;
+    +----------+--------+------------+
+    | name     | visits | last_visit |
+    +----------+--------+------------+
+    | Ford     |      4 | 2016       |
+    | Trillian |      8 | 2016       |
+    +----------+--------+------------+
+    SELECT 2 rows in set (... sec)
+
+.. Hidden: drop previously created table
+
+   cr> drop table uservisits2
+    DROP OK (... sec)
+
+
 Updating Data
 =============
 
