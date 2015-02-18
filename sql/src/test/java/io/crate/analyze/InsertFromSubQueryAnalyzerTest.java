@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -248,5 +249,13 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
             assertThat(inputColumn.index(), is(1));
             assertThat(inputColumn.valueType(), instanceOf(StringType.class));
         }
+    }
+
+    @Test
+    public void testFromQueryWithUnknownOnDuplicateKeyValues() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column does_not_exist unknown");
+        analyze("insert into users (id, name) (select id, name from users) " +
+                "on duplicate key update name = values (does_not_exist)");
     }
 }
