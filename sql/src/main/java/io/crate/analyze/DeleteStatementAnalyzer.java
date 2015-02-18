@@ -77,7 +77,8 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     public AnalyzedStatement visitDelete(Delete node, Analysis context) {
         int numNested = 1;
 
-        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(context.parameterContext());
+        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(
+                context.parameterContext(), analysisMetaData);
 
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
         if (Relations.isReadOnly(analyzedRelation)) {
