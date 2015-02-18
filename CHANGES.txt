@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Support `ON DUPLICATE KEY UPDATE` while inserting using a query.
+
  - Fix: Parameter substitution within subscript notation is not
    allowed anymore
 
