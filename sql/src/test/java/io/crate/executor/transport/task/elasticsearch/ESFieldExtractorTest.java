@@ -36,7 +36,7 @@ public class ESFieldExtractorTest {
     @Test
     public void testPath2() throws Exception {
 
-        ESFieldExtractor.Source ex = new ESFieldExtractor.Source(new ColumnIdent("top", "child1"));
+        ESFieldExtractor.Source ex = new ESFieldExtractor.Source(new ColumnIdent("top", "child1"), false);
         Map<String, Object> source;
 
         source = ImmutableMap.of();
@@ -76,7 +76,7 @@ public class ESFieldExtractorTest {
     @Test
     public void testPath3() throws Exception {
         ColumnIdent ci = new ColumnIdent("a", ImmutableList.of("b", "c"));
-        ESFieldExtractor.Source ex = new ESFieldExtractor.Source(ci);
+        ESFieldExtractor.Source ex = new ESFieldExtractor.Source(ci, false);
         Map<String, Object> source;
 
         source = ImmutableMap.<String, Object>of(
@@ -97,7 +97,7 @@ public class ESFieldExtractorTest {
 
     @Test
     public void testNullInList() throws Exception {
-        ESFieldExtractor.Source ex = new ESFieldExtractor.Source(new ColumnIdent("top", "child1"));
+        ESFieldExtractor.Source ex = new ESFieldExtractor.Source(new ColumnIdent("top", "child1"), false);
         // test null value in list
         HashMap<String, Object> nullMap = new HashMap<String, Object>(1);
         nullMap.put("child1", null);

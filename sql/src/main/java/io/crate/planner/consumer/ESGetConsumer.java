@@ -109,6 +109,7 @@ public class ESGetConsumer implements Consumer {
                 }
             }
 
+            boolean extractBytesRef = context.rootRelation() != table;
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
                 return new ESGetNode(
@@ -118,7 +119,8 @@ public class ESGetConsumer implements Consumer {
                         null, null, null,
                         limit,
                         table.querySpec().offset(),
-                        tableInfo.partitionedByColumns()
+                        tableInfo.partitionedByColumns(),
+                        extractBytesRef
                 );
             } else {
                 table.tableRelation().validateOrderBy(orderBy);
@@ -131,7 +133,8 @@ public class ESGetConsumer implements Consumer {
                         orderBy.nullsFirst(),
                         limit,
                         table.querySpec().offset(),
-                        tableInfo.partitionedByColumns()
+                        tableInfo.partitionedByColumns(),
+                        extractBytesRef
                 );
             }
         }

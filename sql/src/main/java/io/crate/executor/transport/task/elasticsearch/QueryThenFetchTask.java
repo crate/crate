@@ -73,7 +73,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
         this.operation = operation;
         this.searchNode = searchNode;
 
-        SearchHitExtractorContext context = new SearchHitExtractorContext(functions, searchNode.outputs().size(), searchNode.partitionBy());
+        SearchHitExtractorContext context = new SearchHitExtractorContext(functions, searchNode.outputs().size(), searchNode.partitionBy(), searchNode.extractBytesRef());
         extractors = new ArrayList<>(searchNode.outputs().size());
         for (Symbol symbol : searchNode.outputs()) {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, context));
@@ -200,10 +200,14 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
 
     static class SearchHitExtractorContext extends SymbolToFieldExtractor.Context {
         private final List<ReferenceInfo> partitionBy;
+        public final boolean extractBytesRef;
 
-        public SearchHitExtractorContext(Functions functions, int size, List<ReferenceInfo> partitionBy) {
+        public SearchHitExtractorContext(Functions functions, int size,
+                                         List<ReferenceInfo> partitionBy,
+                                         boolean extractBytesRef) {
             super(functions, size);
             this.partitionBy = partitionBy;
+            this.extractBytesRef = extractBytesRef;
         }
 
         @Override
@@ -260,7 +264,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
             } else if (context.partitionBy.contains(field.info())) {
                 return new ESFieldExtractor.PartitionedByColumnExtractor(field, context.partitionBy);
             } else {
-                return new ESFieldExtractor.Source(columnIdent);
+                return new ESFieldExtractor.Source(columnIdent, context.extractBytesRef);
             }
         }
     }

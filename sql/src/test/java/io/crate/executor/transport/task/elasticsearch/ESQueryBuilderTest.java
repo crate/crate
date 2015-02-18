@@ -417,7 +417,7 @@ public class ESQueryBuilderTest {
                 Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(0.4))
         );
         QueryThenFetchNode node = new QueryThenFetchNode(new Routing(),
-                ImmutableList.<Symbol>of(), null, null, null, null, null, new WhereClause(whereClause), null);
+                ImmutableList.<Symbol>of(), null, null, null, null, null, new WhereClause(whereClause), null, false);
         BytesReference bytesReference = generator.convert(node);
 
         assertThat(bytesReference.toUtf8(),
@@ -438,7 +438,8 @@ public class ESQueryBuilderTest {
                 null,
                 null,
                 new WhereClause(whereClause),
-                null);
+                null,
+                false);
 
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
@@ -482,7 +483,8 @@ public class ESQueryBuilderTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null);
+                null,
+                false);
 
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
@@ -505,7 +507,8 @@ public class ESQueryBuilderTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null);
+                null,
+                false);
 
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
@@ -525,7 +528,8 @@ public class ESQueryBuilderTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                Arrays.asList(weight_ref.info()));
+                Arrays.asList(weight_ref.info()),
+                false);
 
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
@@ -669,7 +673,8 @@ public class ESQueryBuilderTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null);
+                null,
+                false);
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
         assertThat(actual, is(
@@ -693,7 +698,8 @@ public class ESQueryBuilderTest {
                 null,
                 null,
                 WhereClause.MATCH_ALL,
-                null);
+                null,
+                false);
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
         assertThat(actual, is(

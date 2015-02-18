@@ -43,9 +43,11 @@ public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
     public static class Source extends ESFieldExtractor {
 
         private final ColumnIdent ident;
+        private final boolean extractBytesRef;
 
-        public Source(ColumnIdent ident) {
+        public Source(ColumnIdent ident, boolean extractBytesRef) {
             this.ident = ident;
+            this.extractBytesRef = extractBytesRef;
         }
 
         @Override
@@ -91,6 +93,9 @@ public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
                 return null;
             }
             Object top = source.get(ident.name());
+            if(extractBytesRef && top instanceof String) {
+                top = new BytesRef((String)top);
+            }
             if (ident.isColumn()) {
                 return top;
             }

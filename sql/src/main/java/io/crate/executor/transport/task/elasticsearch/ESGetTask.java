@@ -43,6 +43,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
@@ -79,7 +80,7 @@ public class ESGetTask extends JobTask {
 
 
         Map<String, Object> partitionValues = preparePartitionValues(node);
-        final GetResponseContext ctx = new GetResponseContext(functions, node.outputs().size(), partitionValues);
+        final GetResponseContext ctx = new GetResponseContext(functions, node.outputs().size(), partitionValues, node.extractBytesRef());
         List<FieldExtractor> extractors = new ArrayList<>(node.outputs().size());
         for (Symbol symbol : node.outputs()) {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
@@ -326,10 +327,13 @@ public class ESGetTask extends JobTask {
 
     static class GetResponseContext extends SymbolToFieldExtractor.Context {
         private final Map<String, Object> partitionValues;
+        public final boolean extractBytesRef;
 
-        public GetResponseContext(Functions functions, int size, Map<String, Object> partitionValues) {
+        public GetResponseContext(Functions functions, int size, Map<String, Object> partitionValues,
+                                  boolean extractBytesRef) {
             super(functions, size);
             this.partitionValues = partitionValues;
+            this.extractBytesRef = extractBytesRef;
         }
 
         @Override
@@ -369,7 +373,11 @@ public class ESGetTask extends JobTask {
                     @Override
                     public Object extract(GetResponse response) {
                         assert response.getSourceAsMap() != null;
-                        return XContentMapValues.extractValue(field, response.getSourceAsMap());
+                        Object value = XContentMapValues.extractValue(field, response.getSourceAsMap());
+                        if (context.extractBytesRef && value instanceof String) {
+                            value = new BytesRef((String)value);
+                        }
+                        return value;
                     }
                 };
             }

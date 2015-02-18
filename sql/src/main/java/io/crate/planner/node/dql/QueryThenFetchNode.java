@@ -49,6 +49,7 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
     private final List<ReferenceInfo> partitionBy;
     private final Boolean[] nullsFirst;
     private final Routing routing;
+    private final boolean extractBytesRef;
 
     private static final Boolean[] EMPTY_OBJ_BOOLEAN_ARR = new Boolean[0];
     private static final boolean[] EMPTY_VALUE_BOOLEAN_ARR = new boolean[0];
@@ -66,7 +67,8 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
                               @Nullable Integer limit,
                               @Nullable Integer offset,
                               WhereClause whereClause,
-                              @Nullable List<ReferenceInfo> partitionBy
+                              @Nullable List<ReferenceInfo> partitionBy,
+                              boolean extractBytesRef
     ) {
         this.routing = routing;
         assert routing != null;
@@ -85,6 +87,7 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
         this.offset = MoreObjects.firstNonNull(offset, 0);
 
         this.partitionBy = MoreObjects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
+        this.extractBytesRef = extractBytesRef;
         outputTypes(Symbols.extractTypes(outputs));
     }
 
@@ -123,6 +126,10 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
 
     public WhereClause whereClause() {
         return whereClause;
+    }
+
+    public boolean extractBytesRef() {
+        return extractBytesRef;
     }
 
     @Override

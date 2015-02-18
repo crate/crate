@@ -41,8 +41,6 @@ import io.crate.test.integration.CrateTestCluster;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
 import org.junit.After;
 import org.junit.Before;
 
@@ -106,7 +104,8 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
                 new Boolean[0],
                 null,
                 0,
-                null
+                null,
+                false
         );
     }
 

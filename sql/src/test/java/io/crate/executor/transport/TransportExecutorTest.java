@@ -213,7 +213,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new boolean[]{false, false},
                 new Boolean[]{null, null},
                 null, null, WhereClause.MATCH_ALL,
-                null
+                null, false
         );
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
@@ -254,7 +254,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new Boolean[]{null},
                 null, null,
                 new WhereClause(whereClause),
-                null
+                null, false
         );
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
@@ -308,7 +308,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new Boolean[]{null},
                 null, null,
                 new WhereClause(whereClause),
-                null
+                null, false
         );
         MergeNode mergeNode = new MergeNode("merge", 1);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.TIMESTAMP));
@@ -346,7 +346,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new Boolean[]{null},
                 null, null,
                 WhereClause.MATCH_ALL,
-                Arrays.asList(partedDateRef.info())
+                Arrays.asList(partedDateRef.info()),
+                false
         );
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
@@ -401,7 +402,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new Boolean[]{null},
                 null, null,
                 new WhereClause(whereClause),
-                null
+                null, false
         );
         plan = new IterablePlan(searchNode);
         job = executor.newJob(plan);
@@ -769,7 +770,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null, false
         );
         leftNode.outputTypes(ImmutableList.of(
                         idRef.info().type(),
@@ -786,7 +787,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null, false
         );
         rightNode.outputTypes(ImmutableList.of(
                         booksIdRef.info().type(),
@@ -898,7 +899,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null, false
         );
         leftNode.outputTypes(ImmutableList.of(
                         idRef.info().type(),
@@ -916,7 +917,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 5,
                 0,
                 WhereClause.MATCH_ALL,
-                null
+                null, false
         );
         rightNode.outputTypes(ImmutableList.of(
                         authorRef.info().type())

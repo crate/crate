@@ -206,11 +206,11 @@ public class NestedLoopNode extends AbstractDQLPlanNode implements PlannedAnalyz
 
     @Override
     public boolean resultIsDistributed() {
-        throw new UnsupportedOperationException("resultIsDistributed is not supported on ESDQLPlanNode");
+        return false;
     }
 
     @Override
     public DQLPlanNode resultNode() {
-        throw new UnsupportedOperationException("resultNode is not supported on ESDQLPLanNode");
+        throw new UnsupportedOperationException("resultNode is not supported in NestedLoopNode");
     }
 }
