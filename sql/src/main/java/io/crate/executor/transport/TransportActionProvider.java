@@ -31,6 +31,8 @@ import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettin
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegateImpl;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
 import org.elasticsearch.action.count.CrateTransportCountAction;
@@ -58,8 +60,8 @@ public class TransportActionProvider {
 
     private final Provider<TransportGetAction> transportGetActionProvider;
     private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
-    private final Provider<TransportShardUpsertActionOld> transportShardUpsertActionProvider;
-    private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider2;
+    private final Provider<SymbolBasedTransportShardUpsertAction> symbolBasedTransportShardUpsertActionProvider;
+    private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider;
     private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
@@ -78,8 +80,8 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteAction> transportDeleteActionProvider,
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
-                                   Provider<TransportShardUpsertActionOld> transportShardUpsertActionProvider,
-                                   Provider<TransportShardUpsertAction> transportShardUpsertActionProvider2,
+                                   Provider<SymbolBasedTransportShardUpsertAction> symbolBasedTransportShardUpsertActionProvider,
+                                   Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
                                    Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
                                    Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider) {
@@ -94,8 +96,8 @@ public class TransportActionProvider {
         this.transportDeleteActionProvider = transportDeleteActionProvider;
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
+        this.symbolBasedTransportShardUpsertActionProvider = symbolBasedTransportShardUpsertActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
-        this.transportShardUpsertActionProvider2 = transportShardUpsertActionProvider2;
         this.transportCollectNodeActionProvider = transportCollectNodeActionProvider;
         this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
@@ -148,17 +150,12 @@ public class TransportActionProvider {
         return transportMultiGetActionProvider.get();
     }
 
-
-    public TransportShardUpsertActionOld transportShardUpsertAction() {
-        return transportShardUpsertActionProvider.get();
-    }
-
-    public TransportShardUpsertAction transportShardUpsertAction2() {
-        return transportShardUpsertActionProvider2.get();
-    }
-
     public TransportShardUpsertActionDelegate transportShardUpsertActionDelegate() {
         return new TransportShardUpsertActionDelegateImpl(transportShardUpsertActionProvider.get());
+    }
+
+    public SymbolBasedTransportShardUpsertActionDelegate symbolBasedTransportShardUpsertActionDelegate() {
+        return new SymbolBasedTransportShardUpsertActionDelegateImpl(symbolBasedTransportShardUpsertActionProvider.get());
     }
 
     public TransportCollectNodeAction transportCollectNodeAction() {

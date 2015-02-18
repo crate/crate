@@ -76,9 +76,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TransportShardUpsertActionOld extends TransportShardReplicationOperationAction<ShardUpsertRequestOld, ShardUpsertRequestOld, ShardUpsertResponse> {
+public class SymbolBasedTransportShardUpsertAction extends TransportShardReplicationOperationAction<SymbolBasedShardUpsertRequest, SymbolBasedShardUpsertRequest, ShardUpsertResponse> {
 
-    private final static String ACTION_NAME = "indices:crate/data/write/upsert_old";
+    private final static String ACTION_NAME = "indices:crate/data/write/upsert_symbol_based";
     private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR = new SymbolToFieldExtractor(new GetResultFieldExtractorFactory());
 
     private final TransportIndexAction indexAction;
@@ -86,15 +86,15 @@ public class TransportShardUpsertActionOld extends TransportShardReplicationOper
     private final Functions functions;
 
     @Inject
-    public TransportShardUpsertActionOld(Settings settings,
-                                         ThreadPool threadPool,
-                                         ClusterService clusterService,
-                                         TransportService transportService,
-                                         ActionFilters actionFilters,
-                                         TransportIndexAction indexAction,
-                                         IndicesService indicesService,
-                                         ShardStateAction shardStateAction,
-                                         Functions functions) {
+    public SymbolBasedTransportShardUpsertAction(Settings settings,
+                                                 ThreadPool threadPool,
+                                                 ClusterService clusterService,
+                                                 TransportService transportService,
+                                                 ActionFilters actionFilters,
+                                                 TransportIndexAction indexAction,
+                                                 IndicesService indicesService,
+                                                 ShardStateAction shardStateAction,
+                                                 Functions functions) {
         super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
         this.indexAction = indexAction;
         this.indicesService = indicesService;
@@ -107,13 +107,13 @@ public class TransportShardUpsertActionOld extends TransportShardReplicationOper
     }
 
     @Override
-    protected ShardUpsertRequestOld newRequestInstance() {
-        return new ShardUpsertRequestOld();
+    protected SymbolBasedShardUpsertRequest newRequestInstance() {
+        return new SymbolBasedShardUpsertRequest();
     }
 
     @Override
-    protected ShardUpsertRequestOld newReplicaRequestInstance() {
-        return new ShardUpsertRequestOld();
+    protected SymbolBasedShardUpsertRequest newReplicaRequestInstance() {
+        return new SymbolBasedShardUpsertRequest();
     }
 
     @Override
@@ -143,12 +143,12 @@ public class TransportShardUpsertActionOld extends TransportShardReplicationOper
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequestOld> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
+    protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse(shardRequest.shardId.getIndex());
-        ShardUpsertRequestOld request = shardRequest.request;
+        SymbolBasedShardUpsertRequest request = shardRequest.request;
         for (int i = 0; i < request.locations().size(); i++) {
             int location = request.locations().get(i);
-            ShardUpsertRequestOld.Item item = request.items().get(i);
+            SymbolBasedShardUpsertRequest.Item item = request.items().get(i);
             try {
                 IndexResponse indexResponse = indexItem(
                         request,
@@ -183,8 +183,8 @@ public class TransportShardUpsertActionOld extends TransportShardReplicationOper
 
     }
 
-    public IndexResponse indexItem(ShardUpsertRequestOld request,
-                          ShardUpsertRequestOld.Item item,
+    public IndexResponse indexItem(SymbolBasedShardUpsertRequest request,
+                          SymbolBasedShardUpsertRequest.Item item,
                           ShardId shardId,
                           boolean tryInsertFirst,
                           int retryCount) throws ElasticsearchException {
@@ -224,7 +224,7 @@ public class TransportShardUpsertActionOld extends TransportShardReplicationOper
      * TODO: detect a NOOP and return an update response if true
      */
     @SuppressWarnings("unchecked")
-    public IndexRequest prepareUpdate(ShardUpsertRequestOld request, ShardUpsertRequestOld.Item item, ShardId shardId) throws ElasticsearchException {
+    public IndexRequest prepareUpdate(SymbolBasedShardUpsertRequest request, SymbolBasedShardUpsertRequest.Item item, ShardId shardId) throws ElasticsearchException {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         final GetResult getResult = indexShard.getService().get(request.type(), item.id(),
@@ -276,7 +276,7 @@ public class TransportShardUpsertActionOld extends TransportShardReplicationOper
         return indexRequest;
     }
 
-    private IndexRequest prepareInsert(ShardUpsertRequestOld request, ShardUpsertRequestOld.Item item) throws IOException {
+    private IndexRequest prepareInsert(SymbolBasedShardUpsertRequest request, SymbolBasedShardUpsertRequest.Item item) throws IOException {
         BytesRef rawSource = null;
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
         for (int i = 0; i < item.insertValues().length; i++) {

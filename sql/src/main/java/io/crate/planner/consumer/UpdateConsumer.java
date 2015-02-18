@@ -38,7 +38,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertByIdNodeOld;
+import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -105,7 +105,7 @@ public class UpdateConsumer implements Consumer {
             }
 
             List<List<DQLPlanNode>> childNodes = new ArrayList<>(statement.nestedStatements().size());
-            UpsertByIdNodeOld upsertByIdNode = null;
+            SymbolBasedUpsertByIdNode upsertByIdNode = null;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
                 WhereClause whereClause = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
@@ -115,7 +115,7 @@ public class UpdateConsumer implements Consumer {
                 if (whereClause.primaryKeys().isPresent()) {
                     if (upsertByIdNode == null) {
                         Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
-                        upsertByIdNode = new UpsertByIdNodeOld(false, statement.nestedStatements().size() > 1, assignments.v1(), null);
+                        upsertByIdNode = new SymbolBasedUpsertByIdNode(false, statement.nestedStatements().size() > 1, assignments.v1(), null);
                         childNodes.add(ImmutableList.<DQLPlanNode>of(upsertByIdNode));
                     }
                     upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);
@@ -175,7 +175,7 @@ public class UpdateConsumer implements Consumer {
         private void upsertById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
                                              TableInfo tableInfo,
                                              WhereClause whereClause,
-                                             UpsertByIdNodeOld upsertByIdNode) {
+                                             SymbolBasedUpsertByIdNode upsertByIdNode) {
             String[] indices = Planner.indices(tableInfo, whereClause);
             assert indices.length == 1;
 

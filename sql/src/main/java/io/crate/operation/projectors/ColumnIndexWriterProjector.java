@@ -21,13 +21,13 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -40,7 +40,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
 
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Settings settings,
-                                         TransportShardUpsertAction transportShardUpsertActionDelegate,
+                                         TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                          TransportCreateIndexAction transportCreateIndexAction,
                                          String tableName,
                                          List<ColumnIdent> primaryKeyIdents,

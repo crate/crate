@@ -49,9 +49,9 @@ public class UpsertTask extends JobTask {
         this.transportExecutor = transportExecutor;
         this.subTasks = subTasks;
 
-        if (subTasks.size() == 1 && subTasks.get(0) instanceof UpsertByIdTaskOld) {
+        if (subTasks.size() == 1 && subTasks.get(0) instanceof SymbolBasedUpsertByIdTask) {
             // just forward results from sub task because UpsertByIdTask already handles all
-            UpsertByIdTaskOld upsertByIdTask = (UpsertByIdTaskOld)subTasks.get(0);
+            SymbolBasedUpsertByIdTask upsertByIdTask = (SymbolBasedUpsertByIdTask)subTasks.get(0);
             resultList = upsertByIdTask.result();
             forwardResultsFromSubTask = true;
         } else {

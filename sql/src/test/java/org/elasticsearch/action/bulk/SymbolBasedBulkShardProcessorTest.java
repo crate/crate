@@ -21,20 +21,14 @@
 
 package org.elasticsearch.action.bulk;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.collect.ShardingProjector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
-import io.crate.types.IntegerType;
-import io.crate.types.StringType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.ClusterService;
@@ -50,8 +44,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.*;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -63,12 +55,9 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BulkShardProcessorTest {
+public class SymbolBasedBulkShardProcessorTest {
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
-
-    Reference idRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));
 
     Reference fooRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(charactersIdent, "foo"), RowGranularity.DOC, DataTypes.STRING));
@@ -93,44 +82,31 @@ public class BulkShardProcessorTest {
         expectedException.expectMessage("a random exception");
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        TransportShardUpsertActionDelegate transportShardBulkActionDelegate = new TransportShardUpsertActionDelegate() {
+        SymbolBasedTransportShardUpsertActionDelegate transportShardBulkActionDelegate = new SymbolBasedTransportShardUpsertActionDelegate() {
             @Override
-            public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+            public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
             }
         };
 
-        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
-            put(idRef, new InputColumn(0, IntegerType.INSTANCE));
-            put(fooRef, new InputColumn(1, StringType.INSTANCE));
-        }};
-
-        ShardingProjector shardingProjector = new ShardingProjector(
-                ImmutableList.of(idRef.ident().columnIdent()),
-                ImmutableList.<Symbol>of(new InputColumn(0, IntegerType.INSTANCE)),
-                null
-        );
-        shardingProjector.startProjection();
-
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        final SymbolBasedBulkShardProcessor bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 transportShardBulkActionDelegate,
                 mock(TransportCreateIndexAction.class),
-                shardingProjector,
                 false,
                 false,
                 1,
                 false,
                 null,
-                insertAssignments
+                new Reference[]{fooRef}
         );
-        bulkShardProcessor.add("foo", new Object[]{1, "bar1"}, null);
+        bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
 
         ActionListener<ShardUpsertResponse> listener = ref.get();
         listener.onFailure(new RuntimeException("a random exception"));
 
-        assertFalse(bulkShardProcessor.add("foo", new Object[]{2, "bar2"}, null));
+        assertFalse(bulkShardProcessor.add("foo", "2", new Object[]{"bar2"}, null, null));
 
         try {
             bulkShardProcessor.result().get();
@@ -150,40 +126,27 @@ public class BulkShardProcessorTest {
         when(clusterService.operationRouting()).thenReturn(operationRouting);
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        TransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new TransportShardUpsertActionDelegate() {
+        SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new SymbolBasedTransportShardUpsertActionDelegate() {
             @Override
-            public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+            public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
             }
         };
 
-        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
-            put(idRef, new InputColumn(0, IntegerType.INSTANCE));
-            put(fooRef, new InputColumn(1, StringType.INSTANCE));
-        }};
-
-        ShardingProjector shardingProjector = new ShardingProjector(
-                ImmutableList.of(idRef.ident().columnIdent()),
-                ImmutableList.<Symbol>of(new InputColumn(0, IntegerType.INSTANCE)),
-                null
-        );
-        shardingProjector.startProjection();
-
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        final SymbolBasedBulkShardProcessor bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 transportShardUpsertActionDelegate,
                 mock(TransportCreateIndexAction.class),
-                shardingProjector,
                 false,
                 false,
                 1,
                 false,
                 null,
-                insertAssignments
+                new Reference[]{ fooRef }
         );
 
-        bulkShardProcessor.add("foo", new Object[]{1, "bar1"}, null);
+        bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
         final ActionListener<ShardUpsertResponse> listener = ref.get();
 
         listener.onFailure(new EsRejectedExecutionException());
@@ -204,7 +167,7 @@ public class BulkShardProcessorTest {
                         latch.countDown();
                     }
                 }, 10, TimeUnit.MILLISECONDS);
-                bulkShardProcessor.add("foo", new Object[]{2, "bar2"}, null);
+                bulkShardProcessor.add("foo", "2", new Object[]{"bar2"}, null, null);
                 hasBlocked.set(false);
             }
         });

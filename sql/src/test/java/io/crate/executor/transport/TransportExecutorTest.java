@@ -31,6 +31,7 @@ import io.crate.executor.Job;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.join.NestedLoopTask;
+import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
@@ -46,6 +47,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
@@ -944,4 +946,242 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                         "1| Arthur| false| Douglas Adams\n" +
                         "1| Arthur| false| Douglas Adams\n"));
     }
+
+    @Test
+    public void testInsertWithSymbolBasedUpsertByIdTask() throws Exception {
+        execute("create table characters (id int primary key, name string)");
+        ensureGreen();
+
+        /* insert into characters (id, name) values (99, 'Marvin'); */
+
+        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                false,
+                false,
+                null,
+                new Reference[]{idRef, nameRef});
+        updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
+
+        Plan plan = new IterablePlan(updateNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
+
+        // verify insertion
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
+        ESGetNode getNode = newGetNode("characters", outputs, "99");
+        plan = new IterablePlan(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer) objects[0][0], is(99));
+        assertThat((String)objects[0][1], is("Marvin"));
+    }
+
+    @Test
+    public void testInsertIntoPartitionedTableWithSymbolBasedUpsertByIdTask() throws Exception {
+        execute("create table parted (" +
+                "  id int, " +
+                "  name string, " +
+                "  date timestamp" +
+                ") partitioned by (date)");
+        ensureGreen();
+
+        /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
+
+        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                true,
+                false,
+                null,
+                new Reference[]{idRef, nameRef});
+
+        PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
+        updateNode.add(partitionName.stringValue(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
+
+        Plan plan = new IterablePlan(updateNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] indexResult = taskResult.rows();
+        assertThat(indexResult.length, is(1));
+        assertThat(((Long) indexResult[0][0]), is(1L));
+
+        refresh();
+
+        assertTrue(
+                client().admin().indices().prepareExists(partitionName.stringValue())
+                        .execute().actionGet().isExists()
+        );
+        assertTrue(
+                client().admin().indices().prepareAliasesExist("parted")
+                        .execute().actionGet().exists()
+        );
+        SearchHits hits = client().prepareSearch(partitionName.stringValue())
+                .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                .addFields("id", "name")
+                .setQuery(new MapBuilder<String, Object>()
+                                .put("match_all", new HashMap<String, Object>())
+                                .map()
+                ).execute().actionGet().getHits();
+        assertThat(hits.getTotalHits(), is(1L));
+        assertThat((Integer) hits.getHits()[0].field("id").getValues().get(0), is(0));
+        assertThat((String)hits.getHits()[0].field("name").getValues().get(0), is("Trillian"));
+    }
+
+    @Test
+    public void testInsertMultiValuesWithSymbolBasedUpsertByIdTask() throws Exception {
+        execute("create table characters (id int primary key, name string)");
+        ensureGreen();
+
+        /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
+
+        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                false,
+                false,
+                null,
+                new Reference[]{idRef, nameRef});
+
+        updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
+        updateNode.add("characters", "42", "42", null, null, new Object[]{42, new BytesRef("Deep Thought")});
+
+        Plan plan = new IterablePlan(updateNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+        assertThat(((Long) rows[0][0]), is(2L));
+        assertThat(rows.length, is(1));
+
+        // verify insertion
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
+        ESGetNode getNode = newGetNode("characters", outputs, Arrays.asList("99", "42"));
+        plan = new IterablePlan(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
+
+        assertThat(objects.length, is(2));
+        assertThat((Integer)objects[0][0], is(99));
+        assertThat((String)objects[0][1], is("Marvin"));
+
+        assertThat((Integer)objects[1][0], is(42));
+        assertThat((String)objects[1][1], is("Deep Thought"));
+    }
+
+    @Test
+    public void testUpdateWithSymbolBasedUpsertByIdTask() throws Exception {
+        setup.setUpCharacters();
+
+        // update characters set name='Vogon lyric fan' where id=1
+        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
+        updateNode.add("characters", "1", "1", new Symbol[]{ Literal.newLiteral("Vogon lyric fan")}, null);
+        Plan plan = new IterablePlan(updateNode);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
+
+        // verify update
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
+        ESGetNode getNode = newGetNode("characters", outputs, "1");
+        plan = new IterablePlan(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(1));
+        assertThat((String)objects[0][1], is("Vogon lyric fan"));
+    }
+
+    @Test
+    public void testInsertOnDuplicateWithSymbolBasedUpsertByIdTask() throws Exception {
+        setup.setUpCharacters();
+        /* insert into characters (id, name, female) values (5, 'Zaphod Beeblebrox', false)
+           on duplicate key update set name = 'Zaphod Beeblebrox'; */
+        Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
+        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                false,
+                false,
+                new String[]{nameRef.ident().columnIdent().fqn()},
+                new Reference[]{idRef, nameRef, femaleRef});
+
+        updateNode.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
+        Plan plan = new IterablePlan(updateNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
+
+        // verify insert
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
+        ESGetNode getNode = newGetNode("characters", outputs, "5");
+        plan = new IterablePlan(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(5));
+        assertThat((String)objects[0][1], is("Zaphod Beeblebrox"));
+        assertThat((boolean)objects[0][2], is(false));
+    }
+
+    @Test
+    public void testUpdateOnDuplicateWithSymbolBasedUpsertByIdTask() throws Exception {
+        setup.setUpCharacters();
+        /* insert into characters (id, name, female) values (1, 'Zaphod Beeblebrox', false)
+           on duplicate key update set name = 'Zaphod Beeblebrox'; */
+        Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
+        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                false,
+                false,
+                new String[]{femaleRef.ident().columnIdent().fqn()},
+                new Reference[]{idRef, nameRef, femaleRef});
+        updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
+        Plan plan = new IterablePlan(updateNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
+
+        // verify update
+        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
+        ESGetNode getNode = newGetNode("characters", outputs, "1");
+        plan = new IterablePlan(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(1));
+        assertThat((String)objects[0][1], is("Arthur"));
+        // Existing document is updated
+        assertThat((boolean)objects[0][2], is(true));
+    }
+
 }

@@ -28,7 +28,6 @@ import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.operation.collect.ShardingProjector;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
@@ -69,7 +68,7 @@ public class BulkShardProcessor {
     private static final AssignmentVisitor assignmentVisitor = new AssignmentVisitor();
 
     private final ClusterService clusterService;
-    private final TransportShardUpsertAction transportShardUpsertActionDelegate;
+    private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
     private final int bulkSize;
@@ -105,7 +104,7 @@ public class BulkShardProcessor {
 
     public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,
-                              TransportShardUpsertAction transportShardUpsertActionDelegate,
+                              TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                               TransportCreateIndexAction transportCreateIndexAction,
                               ShardingProjector shardingProjector,
                               boolean autoCreateIndices,

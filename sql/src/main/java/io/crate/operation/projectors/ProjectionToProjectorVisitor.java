@@ -228,7 +228,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new IndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportShardUpsertAction2(),
+                transportActionProvider.transportShardUpsertActionDelegate(),
                 transportActionProvider.transportCreateIndexAction(),
                 projection.tableName(),
                 projection.rawSourceReference(),
@@ -257,7 +257,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new ColumnIndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportShardUpsertAction2(),
+                transportActionProvider.transportShardUpsertActionDelegate(),
                 transportActionProvider.transportCreateIndexAction(),
                 projection.tableName(),
                 projection.primaryKeys(),
@@ -301,7 +301,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
         return new UpdateProjector(
                 shardId,
-                transportActionProvider.transportShardUpsertAction(),
+                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
                 ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()])[0],
                 projection.assignmentsColumns(),
                 projection.assignments(),

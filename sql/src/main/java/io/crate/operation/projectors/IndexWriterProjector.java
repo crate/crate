@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -30,6 +29,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -54,7 +54,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
-                                TransportShardUpsertAction transportShardUpsertActionDelegate,
+                                TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                 TransportCreateIndexAction transportCreateIndexAction,
                                 String tableName,
                                 Reference rawSourceReference,

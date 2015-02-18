@@ -42,6 +42,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
@@ -101,7 +102,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
 
     protected void createBulkShardProcessor(ClusterService clusterService,
                                             Settings settings,
-                                            TransportShardUpsertAction transportShardUpsertAction,
+                                            TransportShardUpsertActionDelegate transportShardUpsertAction,
                                             TransportCreateIndexAction transportCreateIndexAction,
                                             @Nullable Integer bulkActions,
                                             boolean autoCreateIndices,

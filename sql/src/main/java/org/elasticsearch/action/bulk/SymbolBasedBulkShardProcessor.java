@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
-import io.crate.executor.transport.ShardUpsertRequestOld;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -62,14 +62,14 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
-public class BulkShardProcessorOld {
+public class SymbolBasedBulkShardProcessor {
 
     private final ClusterService clusterService;
-    private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
+    private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
     private final int bulkSize;
-    private final Map<ShardId, ShardUpsertRequestOld> requestsByShard = new HashMap<>();
+    private final Map<ShardId, SymbolBasedShardUpsertRequest> requestsByShard = new HashMap<>();
     private final AutoCreateIndex autoCreateIndex;
     private final AtomicInteger globalCounter = new AtomicInteger(0);
     private final AtomicInteger counter = new AtomicInteger(0);
@@ -85,7 +85,7 @@ public class BulkShardProcessorOld {
     private final ReadWriteLock retryLock = new ReadWriteLock();
     private final Semaphore executeLock = new Semaphore(1);
     private final ScheduledExecutorService scheduledExecutorService =
-            Executors.newSingleThreadScheduledExecutor(daemonThreadFactory("bulkShardProcessor"));
+            Executors.newSingleThreadScheduledExecutor(daemonThreadFactory("symbolBasedBulkShardProcessor"));
     private final TimeValue requestTimeout;
     private final boolean continueOnError;
 
@@ -95,16 +95,16 @@ public class BulkShardProcessorOld {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
-    public BulkShardProcessorOld(ClusterService clusterService,
-                                 Settings settings,
-                                 TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
-                                 TransportCreateIndexAction transportCreateIndexAction,
-                                 boolean autoCreateIndices,
-                                 boolean overwriteDuplicates,
-                                 int bulkSize,
-                                 boolean continueOnError,
-                                 @Nullable String[] assignmentsColumns,
-                                 @Nullable Reference[] missingAssignmentsColumns) {
+    public SymbolBasedBulkShardProcessor(ClusterService clusterService,
+                                         Settings settings,
+                                         SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
+                                         TransportCreateIndexAction transportCreateIndexAction,
+                                         boolean autoCreateIndices,
+                                         boolean overwriteDuplicates,
+                                         int bulkSize,
+                                         boolean continueOnError,
+                                         @Nullable String[] assignmentsColumns,
+                                         @Nullable Reference[] missingAssignmentsColumns) {
         assert assignmentsColumns != null | missingAssignmentsColumns != null;
         this.clusterService = clusterService;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
@@ -176,9 +176,9 @@ public class BulkShardProcessorOld {
 
         try {
             executeLock.acquire();
-            ShardUpsertRequestOld updateRequest = requestsByShard.get(shardId);
+            SymbolBasedShardUpsertRequest updateRequest = requestsByShard.get(shardId);
             if (updateRequest == null) {
-                updateRequest = new ShardUpsertRequestOld(shardId, assignmentsColumns, missingAssignmentsColumns);
+                updateRequest = new SymbolBasedShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns);
                 updateRequest.timeout(requestTimeout);
                 updateRequest.continueOnError(continueOnError);
                 updateRequest.overwriteDuplicates(overwriteDuplicates);
@@ -239,11 +239,11 @@ public class BulkShardProcessorOld {
     private void executeRequests() {
         try {
             executeLock.acquire();
-            for (Iterator<Map.Entry<ShardId, ShardUpsertRequestOld>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
-                Map.Entry<ShardId, ShardUpsertRequestOld> entry = it.next();
-                ShardUpsertRequestOld shardUpsertRequestOld = entry.getValue();
+            for (Iterator<Map.Entry<ShardId, SymbolBasedShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<ShardId, SymbolBasedShardUpsertRequest> entry = it.next();
+                SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest = entry.getValue();
                 //shardUpdateRequest.timeout(requestTimeout);
-                execute(shardUpsertRequestOld);
+                execute(symbolBasedShardUpsertRequest);
                 it.remove();
             }
         } catch (InterruptedException e) {
@@ -254,12 +254,12 @@ public class BulkShardProcessorOld {
         }
     }
 
-    private void execute(ShardUpsertRequestOld updateRequest) {
+    private void execute(SymbolBasedShardUpsertRequest updateRequest) {
         trace(String.format("execute shard request %d", updateRequest.shardId()));
         transportShardUpsertActionDelegate.execute(updateRequest, new ResponseListener(updateRequest));
     }
 
-    private void doRetry(final ShardUpsertRequestOld request, final boolean repeatingRetry) {
+    private void doRetry(final SymbolBasedShardUpsertRequest request, final boolean repeatingRetry) {
         trace("doRetry");
         if (repeatingRetry) {
             try {
@@ -289,7 +289,7 @@ public class BulkShardProcessorOld {
     private void createIndexIfRequired(final String indexName) {
         if (!indicesCreated.contains(indexName) || autoCreateIndex.shouldAutoCreate(indexName, clusterService.state())) {
             try {
-                transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("bulkShardProcessor")).actionGet();
+                transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("symbolBasedBulkShardProcessor")).actionGet();
                 indicesCreated.add(indexName);
             } catch (Throwable e) {
                 e = ExceptionsHelper.unwrapCause(e);
@@ -320,12 +320,12 @@ public class BulkShardProcessorOld {
         setResultIfDone(shardUpsertResponse.locations().size());
     }
 
-    private void processFailure(Throwable e, ShardUpsertRequestOld shardUpsertRequestOld, boolean repeatingRetry) {
+    private void processFailure(Throwable e, SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest, boolean repeatingRetry) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
         if (e instanceof EsRejectedExecutionException) {
             logger.trace("{}, retrying", e.getMessage());
-            doRetry(shardUpsertRequestOld, repeatingRetry);
+            doRetry(symbolBasedShardUpsertRequest, repeatingRetry);
         } else {
             if (repeatingRetry) {
                 // release failed retry
@@ -335,7 +335,7 @@ public class BulkShardProcessorOld {
                     Thread.interrupted();
                 }
             }
-            Iterator<IntCursor> it = shardUpsertRequestOld.locations().iterator();
+            Iterator<IntCursor> it = symbolBasedShardUpsertRequest.locations().iterator();
             while (it.hasNext()) {
                 synchronized (responsesLock) {
                     responses.set(it.next().value, false);
@@ -347,10 +347,10 @@ public class BulkShardProcessorOld {
 
     class ResponseListener implements ActionListener<ShardUpsertResponse> {
 
-        protected final ShardUpsertRequestOld shardUpsertRequestOld;
+        protected final SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest;
 
-        public ResponseListener(ShardUpsertRequestOld shardUpsertRequestOld) {
-            this.shardUpsertRequestOld = shardUpsertRequestOld;
+        public ResponseListener(SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest) {
+            this.symbolBasedShardUpsertRequest = symbolBasedShardUpsertRequest;
         }
 
         @Override
@@ -360,7 +360,7 @@ public class BulkShardProcessorOld {
 
         @Override
         public void onFailure(Throwable e) {
-            processFailure(e, shardUpsertRequestOld, false);
+            processFailure(e, symbolBasedShardUpsertRequest, false);
         }
     }
 
@@ -373,8 +373,8 @@ public class BulkShardProcessorOld {
 
     class RetryResponseListener extends ResponseListener {
 
-        public RetryResponseListener(ShardUpsertRequestOld shardUpsertRequestOld) {
-            super(shardUpsertRequestOld);
+        public RetryResponseListener(SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest) {
+            super(symbolBasedShardUpsertRequest);
         }
 
         @Override
@@ -392,7 +392,7 @@ public class BulkShardProcessorOld {
         @Override
         public void onFailure(Throwable e) {
             trace("BulkShardProcessor retry failure");
-            processFailure(e, shardUpsertRequestOld, true);
+            processFailure(e, symbolBasedShardUpsertRequest, true);
         }
     }
 

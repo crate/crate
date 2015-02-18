@@ -29,16 +29,16 @@ import io.crate.Constants;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.ShardUpsertRequestOld;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.planner.node.dml.UpsertByIdNodeOld;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.BulkShardProcessorOld;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
@@ -56,25 +56,25 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.UUID;
 
-public class UpsertByIdTaskOld extends JobTask {
+public class SymbolBasedUpsertByIdTask extends JobTask {
 
-    private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
+    private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final ClusterService clusterService;
-    private final UpsertByIdNodeOld node;
+    private final SymbolBasedUpsertByIdNode node;
     private final List<ListenableFuture<TaskResult>> resultList;
     private final AutoCreateIndex autoCreateIndex;
     @Nullable
-    private BulkShardProcessorOld bulkShardProcessor;
+    private SymbolBasedBulkShardProcessor bulkShardProcessor;
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
-    public UpsertByIdTaskOld(UUID jobId,
-                             ClusterService clusterService,
-                             Settings settings,
-                             TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
-                             TransportCreateIndexAction transportCreateIndexAction,
-                             UpsertByIdNodeOld node) {
+    public SymbolBasedUpsertByIdTask(UUID jobId,
+                                     ClusterService clusterService,
+                                     Settings settings,
+                                     SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
+                                     TransportCreateIndexAction transportCreateIndexAction,
+                                     SymbolBasedUpsertByIdNode node) {
         super(jobId);
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
@@ -99,7 +99,7 @@ public class UpsertByIdTaskOld extends JobTask {
             // directly execute upsert request without usage of bulk processor
             @SuppressWarnings("unchecked")
             SettableFuture<TaskResult> futureResult = (SettableFuture)resultList.get(0);
-            UpsertByIdNodeOld.Item item = node.items().get(0);
+            SymbolBasedUpsertByIdNode.Item item = node.items().get(0);
             if (node.isPartitionedTable()
                     && autoCreateIndex.shouldAutoCreate(item.index(), clusterService.state())) {
                 createIndexAndExecuteUpsertRequest(item, futureResult);
@@ -108,7 +108,7 @@ public class UpsertByIdTaskOld extends JobTask {
             }
 
         } else if (bulkShardProcessor != null) {
-            for (UpsertByIdNodeOld.Item item : node.items()) {
+            for (SymbolBasedUpsertByIdNode.Item item : node.items()) {
                 bulkShardProcessor.add(
                         item.index(),
                         item.id(),
@@ -121,7 +121,7 @@ public class UpsertByIdTaskOld extends JobTask {
         }
     }
 
-    private void executeUpsertRequest(final UpsertByIdNodeOld.Item item, final SettableFuture futureResult) {
+    private void executeUpsertRequest(final SymbolBasedUpsertByIdNode.Item item, final SettableFuture futureResult) {
         ShardId shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 item.index(),
@@ -130,7 +130,7 @@ public class UpsertByIdTaskOld extends JobTask {
                 item.routing()
         ).shardId();
 
-        ShardUpsertRequestOld upsertRequest = new ShardUpsertRequestOld(shardId, node.updateColumns(), node.insertColumns());
+        SymbolBasedShardUpsertRequest upsertRequest = new SymbolBasedShardUpsertRequest(shardId, node.updateColumns(), node.insertColumns());
         upsertRequest.continueOnError(false);
         upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version(), item.routing());
 
@@ -169,7 +169,7 @@ public class UpsertByIdTaskOld extends JobTask {
     }
 
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
-        bulkShardProcessor = new BulkShardProcessorOld(
+        bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
                 settings,
                 transportShardUpsertActionDelegate,
@@ -243,7 +243,7 @@ public class UpsertByIdTaskOld extends JobTask {
         }
     }
 
-    private void createIndexAndExecuteUpsertRequest(final UpsertByIdNodeOld.Item item,
+    private void createIndexAndExecuteUpsertRequest(final SymbolBasedUpsertByIdNode.Item item,
                                                     final SettableFuture futureResult) {
         transportCreateIndexAction.execute(
                 new CreateIndexRequest(item.index()).cause("upsert single item"),

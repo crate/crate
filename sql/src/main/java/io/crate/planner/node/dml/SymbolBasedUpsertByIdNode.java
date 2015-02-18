@@ -30,7 +30,7 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UpsertByIdNodeOld extends DMLPlanNode {
+public class SymbolBasedUpsertByIdNode extends DMLPlanNode {
 
     /**
      * A single update item.
@@ -98,10 +98,10 @@ public class UpsertByIdNodeOld extends DMLPlanNode {
     @Nullable
     private final Reference[] insertColumns;
 
-    public UpsertByIdNodeOld(boolean partitionedTable,
-                             boolean bulkRequest,
-                             String[] updateColumns,
-                             @Nullable Reference[] insertColumns) {
+    public SymbolBasedUpsertByIdNode(boolean partitionedTable,
+                                     boolean bulkRequest,
+                                     String[] updateColumns,
+                                     @Nullable Reference[] insertColumns) {
         this.partitionedTable = partitionedTable;
         this.bulkRequest = bulkRequest;
         this.updateColumns = updateColumns;
@@ -149,6 +149,6 @@ public class UpsertByIdNodeOld extends DMLPlanNode {
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitUpsertByIdNode(this, context);
+        return visitor.visitSymbolBasedUpsertByIdNode(this, context);
     }
 }

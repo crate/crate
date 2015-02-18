@@ -61,11 +61,11 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitUpsertByIdNode(UpsertByIdNodeOld node, C context) {
+    public R visitSymbolBasedUpsertByIdNode(SymbolBasedUpsertByIdNode node, C context) {
         return visitPlanNode(node, context);
     }
 
-    public R visitUpsertByIdNode2(UpsertByIdNode node, C context) {
+    public R visitUpsertByIdNode(UpsertByIdNode node, C context) {
         return visitPlanNode(node, context);
     }
 
