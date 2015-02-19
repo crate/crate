@@ -273,4 +273,28 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         String directoryUri = Paths.get(folder.newFolder().toURI()).toUri().toString();
         execute("COPY characters TO ?", new Object[]{directoryUri});
     }
+
+    @Test
+    public void testCopyFromWithRoutingInPK() throws Exception {
+        execute("create table t (i int primary key, c string primary key, a int)" +
+                " clustered by (c) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i, c) values (1, 'clusteredbyvalue'), (2, 'clusteredbyvalue')");
+        refresh();
+
+        String uri = Paths.get(folder.getRoot().toURI()).toString();
+        SQLResponse response = execute("copy t to directory ? with(shared=true)", new Object[] { uri });
+        assertThat(response.rowCount(), is(2L));
+
+        execute("delete from t");
+        refresh();
+
+        execute("copy t from ? with (shared=true)", new Object[] { uri + "/t_*" });
+        refresh();
+
+        // only one shard should have all imported rows, since we have the same routing for both rows
+        response = execute("select count(*) from sys.shards where num_docs>0 and table_name='t'");
+        assertThat((long) response.rows()[0][0], is(1L));
+
+    }
 }

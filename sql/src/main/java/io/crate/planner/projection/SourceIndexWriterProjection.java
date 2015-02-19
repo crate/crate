@@ -84,7 +84,11 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
         idSymbols = new ArrayList<>(primaryKeys.size());
         for (int i = 0; i < primaryKeys.size(); i++) {
-            idSymbols.add(new InputColumn(i, null));
+            InputColumn ic = new InputColumn(i, null);
+            idSymbols.add(ic);
+            if (i==clusteredByIdx){
+                clusteredBySymbol = ic;
+            }
         }
 
         partitionedBySymbols = new ArrayList<>(partitionedBy.size());
