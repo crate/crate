@@ -442,6 +442,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("update test set coolness['y'] = ?", new Object[]{new_map});
         assertEquals(1, response.rowCount());
         refresh();
+        waitNoPendingTasksOnAll();
 
         execute("select coolness['y'], coolness['x'] from test");
         assertEquals(1, response.rowCount());
