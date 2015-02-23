@@ -25,8 +25,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
@@ -94,10 +92,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (Relation relation : node.getFrom()) {
             process(relation, context);
         }
-        FieldProvider fieldProvider = new FullQualifedNameFieldProvider(context.sources());
-        expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, context.parameterContext(), fieldProvider);
-        expressionAnalysisContext = new ExpressionAnalysisContext();
-
         WhereClause whereClause = analyzeWhere(node.getWhere(), context);
         if (whereClause.hasQuery()) {
             WhereClauseValidator whereClauseValidator = new WhereClauseValidator();
@@ -106,7 +100,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         SelectAnalyzer.SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
         List<Symbol> groupBy = analyzeGroupBy(selectAnalysis, node.getGroupBy(), context);
 
-        if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
+        if (!node.getGroupBy().isEmpty() || context.expressionAnalysisContext().hasAggregates) {
             ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), groupBy);
         }
         if (node.getSelect().isDistinct() && groupBy.isEmpty()) {
@@ -121,7 +115,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 .outputs(selectAnalysis.outputSymbols())
                 .where(whereClause)
                 .groupBy(groupBy)
-                .hasAggregates(expressionAnalysisContext.hasAggregates);
+                .hasAggregates(context.expressionAnalysisContext().hasAggregates);
 
         if (context.sources().size()==1){
             Map.Entry<QualifiedName, AnalyzedRelation> entry = Iterables.getOnlyElement(context.sources().entrySet());
