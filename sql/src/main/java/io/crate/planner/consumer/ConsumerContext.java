@@ -24,16 +24,18 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.ValidationException;
+import io.crate.planner.Planner;
 import org.elasticsearch.common.Nullable;
 
 public class ConsumerContext {
 
     private AnalyzedRelation rootRelation;
-
     private ValidationException validationException;
+    private Planner.Context plannerContext;
 
-    public ConsumerContext(AnalyzedRelation rootRelation) {
+    public ConsumerContext(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
         this.rootRelation = rootRelation;
+        this.plannerContext = plannerContext;
     }
 
     public void rootRelation(AnalyzedRelation relation) {
@@ -51,5 +53,9 @@ public class ConsumerContext {
     @Nullable
     public ValidationException validationException(){
         return validationException;
+    }
+
+    public Planner.Context plannerContext() {
+        return plannerContext;
     }
 }

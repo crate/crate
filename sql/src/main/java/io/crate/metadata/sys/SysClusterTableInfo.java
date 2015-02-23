@@ -23,13 +23,13 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -39,9 +39,9 @@ public class SysClusterTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "cluster");
     public static final Routing ROUTING = new Routing(
-            MapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder().put(
-                    null,
-                    MapBuilder.<String, Set<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
+            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
+                    NULL_NODE_ID,
+                    TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
             ).map()
     );
     private static final String[] PARTITIONS = new String[]{IDENT.name()};

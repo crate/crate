@@ -35,6 +35,12 @@ import java.util.List;
 public interface TableInfo extends Iterable<ReferenceInfo> {
 
     /**
+     * Because {@link java.util.TreeMap} does not support <code>null</code> keys,
+     * we use a placeholder(empty) string instead.
+     */
+    public static final String NULL_NODE_ID = "";
+
+    /**
      * the schemaInfo for the schema that contains this table.
      */
     public SchemaInfo schemaInfo();
