@@ -143,7 +143,7 @@ public class QueryThenFetchOperation {
 
     private void prepareRequests(QueryThenFetchContext ctx) {
         ctx.requests = new ArrayList<>();
-        Map<String, Map<String, Set<Integer>>> locations = ctx.searchNode.routing().locations();
+        Map<String, Map<String, List<Integer>>> locations = ctx.searchNode.routing().locations();
         if (locations == null) {
             return;
         }
@@ -166,11 +166,11 @@ public class QueryThenFetchOperation {
         }
 
 
-        for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
+        for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
             String node = entry.getKey();
-            for (Map.Entry<String, Set<Integer>> indexEntry : entry.getValue().entrySet()) {
+            for (Map.Entry<String, List<Integer>> indexEntry : entry.getValue().entrySet()) {
                 String index = indexEntry.getKey();
-                Set<Integer> shards = indexEntry.getValue();
+                List<Integer> shards = indexEntry.getValue();
 
                 for (Integer shard : shards) {
                     ctx.requests.add(new Tuple<>(

@@ -90,9 +90,9 @@ public class QueryThenFetchTaskTest {
     public void prepare() {
         MockitoAnnotations.initMocks(this);
         QueryThenFetchNode searchNode = mock(QueryThenFetchNode.class);
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
-        HashMap<String, Set<Integer>> location1 = new HashMap<>();
-        location1.put("loc1", new HashSet<>(Arrays.asList(1)));
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        Map<String, List<Integer>> location1 = new TreeMap<>();
+        location1.put("loc1", Arrays.asList(1));
         locations.put("node_1", location1);
         Routing routing = new Routing(locations);
         when(searchNode.routing()).thenReturn(routing);

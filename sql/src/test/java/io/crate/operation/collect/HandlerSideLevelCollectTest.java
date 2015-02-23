@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -41,7 +42,6 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -85,8 +85,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInformationSchemaTables() throws Exception {
-        Routing routing = new Routing(MapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder().put(
-                null, MapBuilder.<String, Set<Integer>>newMapBuilder().put("information_schema.tables", null).map()
+        Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
+                TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.tables", null).map()
         ).map());
         CollectNode collectNode = new CollectNode("tablesCollect", routing);
 
@@ -114,8 +114,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInformationSchemaColumns() throws Exception {
-        Routing routing = new Routing(MapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder().put(
-                null, MapBuilder.<String, Set<Integer>>newMapBuilder().put("information_schema.columns", null).map()
+        Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
+                TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.columns", null).map()
         ).map());
         CollectNode collectNode = new CollectNode("columnsCollect", routing);
 
