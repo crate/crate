@@ -50,10 +50,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -71,6 +68,8 @@ public class PlanNodeStreamerVisitorTest {
     private FunctionInfo maxInfo;
     private FunctionInfo countInfo;
 
+    final static Routing EMPTY_ROUTING = new Routing(new TreeMap<String, Map<String, Set<Integer>>>());
+
     @Before
     public void prepare() {
         Injector injector = new ModulesBuilder()
@@ -84,7 +83,7 @@ public class PlanNodeStreamerVisitorTest {
 
     @Test
     public void testGetOutputStreamersFromCollectNode() throws Exception {
-        CollectNode collectNode = new CollectNode("bla", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
+        CollectNode collectNode = new CollectNode("bla", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.FLOAT, DataTypes.OBJECT));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode, ramAccountingContext);
         Streamer<?>[] streamers = ctx.outputStreamers();
@@ -97,7 +96,7 @@ public class PlanNodeStreamerVisitorTest {
     @Test
     public void testGetOutputStreamersFromCollectNodeWithWrongNull() throws Exception {
         // null means we expect an aggstate here
-        CollectNode collectNode = new CollectNode("bla", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
+        CollectNode collectNode = new CollectNode("bla", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, DataTypes.OBJECT));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode, ramAccountingContext);
         // assume an unknown column
@@ -106,7 +105,7 @@ public class PlanNodeStreamerVisitorTest {
 
     @Test
     public void testGetOutputStreamersFromCollectNodeWithAggregations() throws Exception {
-        CollectNode collectNode = new CollectNode("bla", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
+        CollectNode collectNode = new CollectNode("bla", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, null, DataTypes.DOUBLE));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList( // not a real use case, only for test convenience, sorry
@@ -125,7 +124,7 @@ public class PlanNodeStreamerVisitorTest {
 
     @Test
     public void testGetOutputStreamersFromCollectNodeWithGroupAndTopNProjection() throws Exception {
-        CollectNode collectNode = new CollectNode("mynode", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
+        CollectNode collectNode = new CollectNode("mynode", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED));
         GroupProjection groupProjection = new GroupProjection(
                 Arrays.<Symbol>asList(Literal.newLiteral("key")),

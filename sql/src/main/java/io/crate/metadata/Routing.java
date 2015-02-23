@@ -1,6 +1,6 @@
 package io.crate.metadata;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -8,21 +8,23 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class Routing implements Streamable {
 
     private Map<String, Map<String, Set<Integer>>> locations;
     private volatile int numShards = -1;
+    private int fetchIdBase = -1;
 
     public Routing() {
 
     }
 
     public Routing(@Nullable Map<String, Map<String, Set<Integer>>> locations) {
+        assert assertLocationsAllTreeMap(locations) : "locations must be a TreeMap only and must contain only TreeMap's";
         this.locations = locations;
     }
 
@@ -103,9 +105,17 @@ public class Routing implements Streamable {
         return false;
     }
 
+    public void fetchIdBase(int fetchIdBase) {
+        this.fetchIdBase = fetchIdBase;
+    }
+
+    public int fetchIdBase() {
+        return fetchIdBase;
+    }
+
     @Override
     public String toString() {
-        Objects.ToStringHelper helper = Objects.toStringHelper(this);
+        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this);
         if (hasLocations()) {
             helper.add("locations", locations);
         }
@@ -117,15 +127,15 @@ public class Routing implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         int numLocations = in.readVInt();
         if (numLocations > 0) {
-            locations = new HashMap<>(numLocations);
+            locations = new TreeMap<>();
 
             String nodeId;
             int numInner;
             Map<String, Set<Integer>> innerMap;
             for (int i = 0; i < numLocations; i++) {
-                nodeId = in.readOptionalString();
+                nodeId = in.readString();
                 numInner = in.readVInt();
-                innerMap = new HashMap<>(numInner);
+                innerMap = new TreeMap<>();
 
                 locations.put(nodeId, innerMap);
                 for (int j = 0; j < numInner; j++) {
@@ -140,6 +150,9 @@ public class Routing implements Streamable {
                 }
             }
         }
+        if (in.readBoolean()) {
+            fetchIdBase = in.readVInt();
+        }
     }
 
     @Override
@@ -148,7 +161,7 @@ public class Routing implements Streamable {
             out.writeVInt(locations.size());
 
             for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
-                out.writeOptionalString(entry.getKey());
+                out.writeString(entry.getKey());
 
                 if (entry.getValue() == null) {
                     out.writeVInt(0);
@@ -172,5 +185,25 @@ public class Routing implements Streamable {
         } else {
             out.writeVInt(0);
         }
+        if (fetchIdBase > -1) {
+            out.writeBoolean(true);
+            out.writeVInt(fetchIdBase);
+        } else {
+            out.writeBoolean(false);
+        }
+    }
+
+    private boolean assertLocationsAllTreeMap(@Nullable Map<String, Map<String, Set<Integer>>> locations) {
+        if (locations != null) {
+            if (!(locations instanceof TreeMap)) {
+                return false;
+            }
+            for (Map<String, Set<Integer>> innerMap : locations.values()) {
+                if (!(innerMap instanceof TreeMap)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

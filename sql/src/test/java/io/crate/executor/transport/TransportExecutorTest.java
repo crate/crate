@@ -102,10 +102,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     @Test
     public void testRemoteCollectTask() throws Exception {
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(2);
+        Map<String, Map<String, Set<Integer>>> locations = new TreeMap<>();
 
         for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
-            locations.put(discoveryNode.id(), new HashMap<String, Set<Integer>>());
+            locations.put(discoveryNode.id(), new TreeMap<String, Set<Integer>>());
         }
 
         Routing routing = new Routing(locations);

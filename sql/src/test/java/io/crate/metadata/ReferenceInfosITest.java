@@ -154,7 +154,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterTable() throws Exception {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
-        assertTrue(ti.getRouting(null, null).locations().containsKey(null));
+        assertTrue(ti.getRouting(null, null).locations().containsKey(TableInfo.NULL_NODE_ID));
     }
 
     @Test

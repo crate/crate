@@ -131,7 +131,7 @@ public class BlobTableInfo implements TableInfo {
         node = shardRouting.currentNodeId();
         Map<String, Set<Integer>> nodeMap = locations.get(node);
         if (nodeMap == null) {
-            nodeMap = new HashMap<>();
+            nodeMap = new TreeMap<>();
             locations.put(shardRouting.currentNodeId(), nodeMap);
         }
 
@@ -145,7 +145,7 @@ public class BlobTableInfo implements TableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        Map<String, Map<String, Set<Integer>>> locations = new TreeMap<>();
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
                 clusterService.state(),
                 Strings.EMPTY_ARRAY,

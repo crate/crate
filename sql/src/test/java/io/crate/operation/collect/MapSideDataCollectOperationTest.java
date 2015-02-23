@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.planner.node.dql.FileUriCollectNode;
@@ -97,7 +98,9 @@ public class MapSideDataCollectOperationTest {
         }
 
         Routing routing = new Routing(
-                ImmutableMap.<String, Map<String, Set<Integer>>>of("dummyNodeId", new HashMap<String, Set<Integer>>())
+                TreeMapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder()
+                .put("dummyNodeId", new TreeMap<String, Set<Integer>>())
+                .map()
         );
         FileUriCollectNode collectNode = new FileUriCollectNode(
                 "test",

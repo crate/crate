@@ -101,11 +101,11 @@ public class SysShardsTableInfo extends SysTableInfo {
 
         node = shardRouting.currentNodeId();
         if (!shardRouting.active()) {
-            node = null;
+            node = NULL_NODE_ID;
         }
         Map<String, Set<Integer>> nodeMap = routing.get(node);
         if (nodeMap == null) {
-            nodeMap = new HashMap<>();
+            nodeMap = new TreeMap<>();
             routing.put(node, nodeMap);
         }
 
@@ -132,7 +132,7 @@ public class SysShardsTableInfo extends SysTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         // TODO: filter on whereClause
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        Map<String, Map<String, Set<Integer>>> locations = new TreeMap<>();
         for (ShardRouting shardRouting : clusterService.state().routingTable().allShards()) {
             processShardRouting(locations, shardRouting, null);
         }

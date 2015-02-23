@@ -27,6 +27,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CircuitBreakerModule;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -265,19 +266,22 @@ public class DistributingCollectTest {
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
     }
 
-    private final Routing nodeRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(1){{
-        put(TEST_NODE_ID, new HashMap<String, Set<Integer>>());
-    }});
+    private final Routing nodeRouting = new Routing(TreeMapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder()
+        .put(TEST_NODE_ID, new TreeMap<String, Set<Integer>>())
+        .map());
 
     private Routing shardRouting(final Integer ... shardIds) {
-        return new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
-            put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
-                put(TEST_TABLE_NAME, ImmutableSet.copyOf(shardIds));
-            }});
-            put(OTHER_NODE_ID, new HashMap<String, Set<Integer>>(){{
-                put(TEST_TABLE_NAME, ImmutableSet.copyOf(shardIds));
-            }});
-        }});
+        return new Routing(TreeMapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder()
+            .put(TEST_NODE_ID, TreeMapBuilder.<String, Set<Integer>>newMapBuilder()
+                            .put(TEST_TABLE_NAME, ImmutableSet.copyOf(shardIds))
+                            .map()
+            )
+            .put(OTHER_NODE_ID, TreeMapBuilder.<String, Set<Integer>>newMapBuilder()
+                .put(TEST_TABLE_NAME, ImmutableSet.copyOf(shardIds))
+                .map()
+            )
+            .map()
+        );
     }
 
 

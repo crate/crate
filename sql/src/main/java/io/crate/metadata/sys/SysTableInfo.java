@@ -21,15 +21,14 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.Map;
 import java.util.Set;
@@ -47,14 +46,14 @@ public abstract class SysTableInfo extends AbstractTableInfo {
 
     protected Routing tableRouting(WhereClause whereClause) {
         DiscoveryNodes nodes = clusterService.state().nodes();
-        ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
+        TreeMapBuilder<String, Map<String, Set<Integer>>> builder = TreeMapBuilder.newMapBuilder();
         for (DiscoveryNode node : nodes) {
             builder.put(
                     node.id(),
-                    MapBuilder.<String, Set<Integer>>newMapBuilder().put(ident().fqn(), null).map()
+                    TreeMapBuilder.<String, Set<Integer>>newMapBuilder().put(ident().fqn(), null).map()
             );
         }
-        return new Routing(builder.build());
+        return new Routing(builder.map());
     }
 
     @Override

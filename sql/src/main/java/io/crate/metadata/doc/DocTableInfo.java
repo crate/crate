@@ -155,7 +155,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         String node = shardRouting.currentNodeId();
         Map<String, Set<Integer>> nodeMap = locations.get(node);
         if (nodeMap == null) {
-            nodeMap = new HashMap<>();
+            nodeMap = new TreeMap<>();
             locations.put(shardRouting.currentNodeId(), nodeMap);
         }
 
@@ -183,7 +183,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     private Routing getRouting(
             final ClusterStateObserver observer, final WhereClause whereClause, @Nullable final String preference) {
         ClusterState clusterState = observer.observedState();
-        final Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        final Map<String, Map<String, Set<Integer>>> locations = new TreeMap<>();
 
         String[] routingIndices = concreteIndices;
         if (whereClause.partitions().size() > 0) {

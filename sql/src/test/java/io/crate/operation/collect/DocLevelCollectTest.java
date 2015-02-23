@@ -114,12 +114,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Routing routing(String table) {
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        Map<String, Map<String, Set<Integer>>> locations = new TreeMap<>();
 
         for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(table)) {
             Map<String, Set<Integer>> shardIds = locations.get(shardRouting.currentNodeId());
             if (shardIds == null) {
-                shardIds = new HashMap<>();
+                shardIds = new TreeMap<>();
                 locations.put(shardRouting.currentNodeId(), shardIds);
             }
 

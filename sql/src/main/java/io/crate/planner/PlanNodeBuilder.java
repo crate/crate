@@ -126,10 +126,10 @@ public class PlanNodeBuilder {
     private static Routing filterRouting(Routing routing, String includeTableName) {
         assert routing.hasLocations();
         assert includeTableName != null;
-        Map<String, Map<String, Set<Integer>>> newLocations = new HashMap<>();
+        Map<String, Map<String, Set<Integer>>> newLocations = new TreeMap<>();
 
         for (Map.Entry<String, Map<String, Set<Integer>>> entry : routing.locations().entrySet()) {
-            Map<String, Set<Integer>> tableMap = new HashMap<>();
+            Map<String, Set<Integer>> tableMap = new TreeMap<>();
             for (Map.Entry<String, Set<Integer>> tableEntry : entry.getValue().entrySet()) {
                 if (includeTableName.equals(tableEntry.getKey())) {
                     tableMap.put(tableEntry.getKey(), tableEntry.getValue());
