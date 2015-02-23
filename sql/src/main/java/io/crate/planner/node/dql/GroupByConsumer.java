@@ -31,7 +31,6 @@ import io.crate.planner.symbol.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class GroupByConsumer {
 
@@ -40,7 +39,7 @@ public class GroupByConsumer {
     public static boolean requiresDistribution(TableInfo tableInfo, Routing routing) {
         if (tableInfo.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()) return false;
         if (!routing.hasLocations()) return false;
-        Map<String, Map<String, Set<Integer>>> locations = routing.locations();
+        Map<String, Map<String, List<Integer>>> locations = routing.locations();
         return (locations != null && locations.size() > 1);
     }
 
