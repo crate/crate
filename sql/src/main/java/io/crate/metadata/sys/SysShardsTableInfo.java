@@ -93,7 +93,7 @@ public class SysShardsTableInfo extends SysTableInfo {
         return columns;
     }
 
-    private void processShardRouting(Map<String, Map<String, Set<Integer>>> routing, ShardRouting shardRouting, ShardId shardId) {
+    private void processShardRouting(Map<String, Map<String, List<Integer>>> routing, ShardRouting shardRouting, ShardId shardId) {
         String node;
         if (shardRouting == null) {
             throw new NoShardAvailableActionException(shardId);
@@ -101,17 +101,17 @@ public class SysShardsTableInfo extends SysTableInfo {
 
         node = shardRouting.currentNodeId();
         if (!shardRouting.active()) {
-            node = null;
+            node = NULL_NODE_ID;
         }
-        Map<String, Set<Integer>> nodeMap = routing.get(node);
+        Map<String, List<Integer>> nodeMap = routing.get(node);
         if (nodeMap == null) {
-            nodeMap = new HashMap<>();
+            nodeMap = new TreeMap<>();
             routing.put(node, nodeMap);
         }
 
-        Set<Integer> shards = nodeMap.get(shardRouting.getIndex());
+        List<Integer> shards = nodeMap.get(shardRouting.getIndex());
         if (shards == null) {
-            shards = new HashSet<>();
+            shards = new ArrayList<>();
             nodeMap.put(shardRouting.getIndex(), shards);
         }
         shards.add(shardRouting.id());
@@ -132,7 +132,7 @@ public class SysShardsTableInfo extends SysTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         // TODO: filter on whereClause
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         for (ShardRouting shardRouting : clusterService.state().routingTable().allShards()) {
             processShardRouting(locations, shardRouting, null);
         }

@@ -22,8 +22,8 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
@@ -188,13 +188,13 @@ public class SysNodesTableInfo extends SysTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         DiscoveryNodes nodes = clusterService.state().nodes();
-        ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
+        TreeMapBuilder<String, Map<String, List<Integer>>> builder = TreeMapBuilder.newMapBuilder();
 
         for (DiscoveryNode node : nodes) {
-            builder.put(node.id(), ImmutableMap.<String, Set<Integer>>of());
+            builder.put(node.id(), new TreeMap<String, List<Integer>>());
         }
 
-        return new Routing(builder.build());
+        return new Routing(builder.map());
     }
 
     @Override

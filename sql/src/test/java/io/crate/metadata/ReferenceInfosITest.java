@@ -32,10 +32,7 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.isOneOf;
@@ -75,8 +72,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         assertThat(nodes.size(), isOneOf(1, 2)); // for the rare case
                                                  // where all shards are on 1 node
         int numShards = 0;
-        for (Map.Entry<String, Map<String, Set<Integer>>> nodeEntry : routing.locations().entrySet()) {
-            for (Map.Entry<String, Set<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
+        for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
+            for (Map.Entry<String, List<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
                 assertThat(indexEntry.getKey(), is("t1"));
                 numShards += indexEntry.getValue().size();
             }
@@ -124,7 +121,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         Routing routing = ti.getRouting(null, null);
         assertTrue(routing.hasLocations());
         assertEquals(2, routing.nodes().size());
-        for (Map<String, Set<Integer>> indices : routing.locations().values()) {
+        for (Map<String, List<Integer>> indices : routing.locations().values()) {
             assertEquals(0, indices.size());
         }
     }
@@ -141,8 +138,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         Set<String> tables = new HashSet<>();
         Set<String> expectedTables = Sets.newHashSet("t2", "t3");
         int numShards = 0;
-        for (Map.Entry<String, Map<String, Set<Integer>>> nodeEntry : routing.locations().entrySet()) {
-            for (Map.Entry<String, Set<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
+        for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
+            for (Map.Entry<String, List<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
                 tables.add(indexEntry.getKey());
                 numShards += indexEntry.getValue().size();
             }
@@ -154,7 +151,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterTable() throws Exception {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
-        assertTrue(ti.getRouting(null, null).locations().containsKey(null));
+        assertTrue(ti.getRouting(null, null).locations().containsKey(TableInfo.NULL_NODE_ID));
     }
 
     @Test
