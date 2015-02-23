@@ -56,10 +56,10 @@ public class InformationTableInfo extends AbstractTableInfo {
         this.references = references;
         this.columns = columns;
         this.concreteIndices = new String[]{ident.esName()};
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(1);
-        Map<String, Set<Integer>> tableLocation = new HashMap<>(1);
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        Map<String, List<Integer>> tableLocation = new TreeMap<>();
         tableLocation.put(ident.fqn(), null);
-        locations.put(null, tableLocation);
+        locations.put(NULL_NODE_ID, tableLocation);
         this.routing = new Routing(locations);
     }
 

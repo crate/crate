@@ -30,8 +30,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class CollectServiceResolver {
 
@@ -50,7 +50,7 @@ public class CollectServiceResolver {
     }
 
     public CollectService getService(Routing routing) {
-        Map<String, Set<Integer>> tables = routing.locations().get(discoveryService.localNode().id());
+        Map<String, List<Integer>> tables = routing.locations().get(discoveryService.localNode().id());
         if (tables == null) return null;
         if (tables.size() == 0) return null;
         assert tables.size() == 1;
