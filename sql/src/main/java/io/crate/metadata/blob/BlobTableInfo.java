@@ -122,21 +122,21 @@ public class BlobTableInfo implements TableInfo {
         return ident;
     }
 
-    private void processShardRouting(Map<String, Map<String, Set<Integer>>> locations, ShardRouting shardRouting, ShardId shardId) {
+    private void processShardRouting(Map<String, Map<String, List<Integer>>> locations, ShardRouting shardRouting, ShardId shardId) {
         String node;
         if (shardRouting == null) {
             throw new NoShardAvailableActionException(shardId);
         }
         node = shardRouting.currentNodeId();
-        Map<String, Set<Integer>> nodeMap = locations.get(node);
+        Map<String, List<Integer>> nodeMap = locations.get(node);
         if (nodeMap == null) {
-            nodeMap = new HashMap<>();
+            nodeMap = new TreeMap<>();
             locations.put(shardRouting.currentNodeId(), nodeMap);
         }
 
-        Set<Integer> shards = nodeMap.get(shardRouting.getIndex());
+        List<Integer> shards = nodeMap.get(shardRouting.getIndex());
         if (shards == null) {
-            shards = new HashSet<>();
+            shards = new ArrayList<>();
             nodeMap.put(shardRouting.getIndex(), shards);
         }
         shards.add(shardRouting.id());
@@ -144,7 +144,7 @@ public class BlobTableInfo implements TableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
                 clusterService.state(),
                 Strings.EMPTY_ARRAY,

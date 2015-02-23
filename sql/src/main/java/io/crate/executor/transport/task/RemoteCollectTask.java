@@ -35,6 +35,7 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.NodeCollectRequest;
 import io.crate.executor.transport.NodeCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.CollectNode;
@@ -89,7 +90,7 @@ public class RemoteCollectTask extends JobTask {
         for (int i = 0; i < nodeIds.length; i++) {
             final int resultIdx = i;
 
-            if (nodeIds[i] == null) {
+            if (nodeIds[i] == TableInfo.NULL_NODE_ID) {
                 handlerSideCollect(resultIdx);
                 continue;
             }
