@@ -21,11 +21,8 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.collect.Iterators;
 import io.crate.analyze.WhereClause;
-import io.crate.core.StringUtils;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 
@@ -42,14 +39,7 @@ public class ESCountNode extends ESDQLPlanNode {
     public ESCountNode(String[] indices, WhereClause whereClause) {
         this.indices = indices;
         this.whereClause = whereClause;
-        if (whereClause.clusteredBy().isPresent()){
-            routing = StringUtils.ROUTING_JOINER.join(Iterators.transform(
-                    whereClause.clusteredBy().get().iterator(), StringValueSymbolVisitor.PROCESS_FUNCTION));
-        } else {
-            this.routing = null;
-        }
-
-
+        this.routing = noCommaStringRouting(whereClause.clusteredBy());
     }
 
     @Override
