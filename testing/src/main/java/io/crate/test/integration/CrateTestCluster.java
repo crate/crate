@@ -518,7 +518,7 @@ public class CrateTestCluster implements Iterable<Client> {
             NodeAndClient nodeAndClient = nodes.get(buildNodeName);
             if (nodeAndClient == null) {
                 changed = true;
-                nodeAndClient = buildNode(i, sharedNodesSeeds[i], defaultSettings);
+                nodeAndClient = buildNode(i, sharedNodesSeeds[i], ImmutableSettings.EMPTY);
                 nodeAndClient.node.start();
                 logger.info("Start Shared Node [{}] not shared", nodeAndClient.name);
             }

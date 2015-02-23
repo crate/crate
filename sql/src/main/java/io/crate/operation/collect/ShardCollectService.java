@@ -57,11 +57,13 @@ import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-public class ShardCollectService {
+public class ShardCollectService implements Closeable {
 
     public static final String EXPIRATION_SETTING = "collect.context_keep_alive";
     public static final TimeValue EXPIRATION_DEFAULT = new TimeValue(5, TimeUnit.MINUTES);
@@ -223,5 +225,10 @@ public class ShardCollectService {
                 functions,
                 collectNode.whereClause(),
                 downstream);
+    }
+
+    @Override
+    public void close() throws IOException {
+        contexts.invalidateAll();
     }
 }
