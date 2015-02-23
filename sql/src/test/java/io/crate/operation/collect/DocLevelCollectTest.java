@@ -137,6 +137,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectDocLevel() throws Exception {
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
+        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.DOC);
 
         Object[][] result = operation.collect(collectNode, null).get();
@@ -158,6 +159,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
+        collectNode.jobId(UUID.randomUUID());
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.whereClause(new WhereClause(new Function(
@@ -177,6 +179,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         Set shardIds = routing.locations().get(clusterService().localNode().id()).get(TEST_TABLE_NAME);
 
         CollectNode collectNode = new CollectNode("docCollect", routing);
+        collectNode.jobId(UUID.randomUUID());
         collectNode.toCollect(Arrays.<Symbol>asList(
                 testDocLevelReference,
                 new Reference(SysNodesTableInfo.INFOS.get(new ColumnIdent("name"))),
@@ -207,6 +210,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL);
         TableIdent tableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
         CollectNode collectNode = new CollectNode("docCollect", routing);
+        collectNode.jobId(UUID.randomUUID());
         collectNode.toCollect(Arrays.<Symbol>asList(
                 new Reference(new ReferenceInfo(
                         new ReferenceIdent(tableIdent, "id"),

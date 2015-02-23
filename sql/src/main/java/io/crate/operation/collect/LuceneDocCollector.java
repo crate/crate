@@ -98,13 +98,14 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         }
     }
 
-    private final SearchContext searchContext;
+    private final ShardCollectContext shardCollectContext;
     private Projector downstream;
     private final List<Input<?>> topLevelInputs;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
 
     public LuceneDocCollector(ThreadPool threadPool,
                               ClusterService clusterService,
+                              ShardCollectContext shardCollectorContext,
                               ShardId shardId,
                               IndexService indexService,
                               ScriptService scriptService,
@@ -122,29 +123,36 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         this.topLevelInputs = inputs;
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
+        this.shardCollectContext = shardCollectorContext;
 
-        ShardSearchLocalRequest searchRequest = new ShardSearchLocalRequest(
-                new String[] { Constants.DEFAULT_MAPPING_TYPE },
-                System.currentTimeMillis()
-        );
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
-        searchContext = new DefaultSearchContext(0, searchRequest,
-                searchShardTarget,
-                EngineSearcher.getSearcherWithRetry(indexShard, null),
-                indexService,
-                indexShard,
-                scriptService,
-                cacheRecycler,
-                pageCacheRecycler,
-                bigArrays,
-                threadPool.estimatedTimeInMillisCounter()
-        );
-        LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, searchContext, indexService.cache());
-        LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
-        searchContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
-        Float minScore = ctx.minScore();
-        if (minScore != null) {
-            searchContext.minimumScore(minScore);
+
+        if (!this.shardCollectContext.context().isPresent()) {
+            // create a new SearchContext
+            ShardSearchLocalRequest searchRequest = new ShardSearchLocalRequest(
+                    new String[] { Constants.DEFAULT_MAPPING_TYPE },
+                    System.currentTimeMillis()
+            );
+            IndexShard indexShard = indexService.shardSafe(shardId.id());
+
+            SearchContext searchContext = new DefaultSearchContext(0, searchRequest,
+                    searchShardTarget,
+                    EngineSearcher.getSearcherWithRetry(indexShard, null),
+                    indexService,
+                    indexShard,
+                    scriptService,
+                    cacheRecycler,
+                    pageCacheRecycler,
+                    bigArrays,
+                    threadPool.estimatedTimeInMillisCounter()
+            );
+            LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, searchContext, indexService.cache());
+            LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
+            searchContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
+            Float minScore = ctx.minScore();
+            if (minScore != null) {
+                searchContext.minimumScore(minScore);
+            }
+            this.shardCollectContext.context(searchContext);
         }
     }
 
@@ -198,8 +206,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
 
     @Override
     public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+        assert shardCollectContext.context().isPresent() : "no SearchContext present";
         this.ramAccountingContext = ramAccountingContext;
         // start collect
+        SearchContext searchContext = shardCollectContext.context().get();
         CollectorContext collectorContext = new CollectorContext()
                 .searchContext(searchContext)
                 .visitor(fieldsVisitor);

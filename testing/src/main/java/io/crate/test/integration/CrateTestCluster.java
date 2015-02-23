@@ -132,6 +132,7 @@ public class CrateTestCluster implements Iterable<Client> {
             .put("index.store.type", MockFSIndexStoreModule.class.getName()) // no RAM dir for now!
             .put(IndexEngineModule.EngineSettings.ENGINE_TYPE, MockEngineModule.class.getName())
             .put("cluster.name", clusterName)
+            .put("collect.context_keep_alive", "0ms") // don't cache SearchContexts
             .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED, false)
                 // decrease the routing schedule so new nodes will be added quickly - some random value between 30 and 80 ms
             .put("cluster.routing.schedule", "30ms")
@@ -517,7 +518,7 @@ public class CrateTestCluster implements Iterable<Client> {
             NodeAndClient nodeAndClient = nodes.get(buildNodeName);
             if (nodeAndClient == null) {
                 changed = true;
-                nodeAndClient = buildNode(i, sharedNodesSeeds[i], defaultSettings);
+                nodeAndClient = buildNode(i, sharedNodesSeeds[i], ImmutableSettings.EMPTY);
                 nodeAndClient.node.start();
                 logger.info("Start Shared Node [{}] not shared", nodeAndClient.name);
             }
