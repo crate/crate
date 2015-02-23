@@ -21,13 +21,14 @@
 
 package io.crate.planner;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -61,6 +62,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -77,12 +79,45 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private Functions functions;
     private AggregationProjection localMergeProjection;
 
-    protected static class Context {
+    public static class Context {
 
-        private final Analysis analysis;
+        private final IntObjectOpenHashMap<ShardId> fetchIdShardId = new IntObjectOpenHashMap<>();
+        private int fetchBaseIdSeq = 0;
 
-        Context(Analysis analysis) {
-            this.analysis = analysis;
+        /**
+         * Increase current {@link #fetchBaseIdSeq} by number of shards affected by given
+         * <code>routing</code> parameter and register a {@link org.elasticsearch.index.shard.ShardId}
+         * under each incremented fetchId.
+         * The current {@link #fetchBaseIdSeq} is set on the {@link io.crate.metadata.Routing} instance,
+         * in order to be able to re-generate fetchId's for every shard in a deterministic way.
+         *
+         * Skip generating fetchId's if {@link io.crate.metadata.Routing#fetchIdBase} is already
+         * set on the given <code>routing</code>.
+         */
+        public void allocateFetchIds(Routing routing) {
+            if (routing.fetchIdBase() > -1) {
+                return;
+            }
+            int fetchIdBase = fetchBaseIdSeq;
+            fetchBaseIdSeq += routing.numShards();
+            routing.fetchIdBase(fetchIdBase);
+            for (Map<String, List<Integer>> nodeRouting : routing.locations().values()) {
+                if (nodeRouting != null) {
+                    for (Map.Entry<String, List<Integer>> entry : nodeRouting.entrySet()) {
+                        for (Integer shardId : entry.getValue()) {
+                            fetchIdShardId.put(fetchIdBase++, new ShardId(entry.getKey(), shardId));
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Return a {@link org.elasticsearch.index.shard.ShardId} for a given <code>fetchId</code>
+         * if exists at the fetchId-to-shardId registry map.
+         */
+        public ShardId shardId(int fetchId) {
+            return fetchIdShardId.get(fetchId);
         }
     }
 
@@ -101,7 +136,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(analysis));
+        return process(analyzedStatement, new Context());
     }
 
     @Override
@@ -111,23 +146,23 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitSelectStatement(SelectAnalyzedStatement statement, Context context) {
-        return consumingPlanner.plan(statement.relation());
+        return consumingPlanner.plan(statement.relation(), context);
     }
 
     @Override
-    protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
-        Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
-        return processInsertStatement(analysis);
+    protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement statement, Context context) {
+        Preconditions.checkState(!statement.sourceMaps().isEmpty(), "no values given");
+        return processInsertStatement(statement);
     }
 
     @Override
-    protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement analysis, Context context) {
-        return consumingPlanner.plan(analysis);
+    protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, Context context) {
+        return consumingPlanner.plan(statement, context);
     }
 
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
-        return consumingPlanner.plan(statement);
+        return consumingPlanner.plan(statement, context);
     }
 
     @Override
@@ -305,12 +340,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {
         final AtomicInteger counter = new AtomicInteger(maxNodes);
-        final Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         allNodes.dataNodes().keys().forEach(new ObjectProcedure<String>() {
             @Override
             public void apply(String value) {
                 if (counter.getAndDecrement() > 0) {
-                    locations.put(value, ImmutableMap.<String, Set<Integer>>of());
+                    locations.put(value, TreeMapBuilder.<String, List<Integer>>newMapBuilder().map());
                 }
             }
         });

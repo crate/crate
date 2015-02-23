@@ -200,9 +200,9 @@ public class InformationSchemaCollectService implements CollectService {
             return new NoopCrateCollector(downstream);
         }
         Routing routing =  collectNode.routing();
-        assert routing.locations().containsKey(null);
-        assert routing.locations().get(null).size() == 1;
-        String fqTableName = routing.locations().get(null).keySet().iterator().next();
+        assert routing.locations().containsKey(TableInfo.NULL_NODE_ID);
+        assert routing.locations().get(TableInfo.NULL_NODE_ID).size() == 1;
+        String fqTableName = routing.locations().get(TableInfo.NULL_NODE_ID).keySet().iterator().next();
         Iterable<?> iterator = iterables.get(fqTableName);
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
 

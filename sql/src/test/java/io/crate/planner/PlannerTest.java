@@ -1,12 +1,11 @@
 package io.crate.planner;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
@@ -46,6 +45,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
@@ -73,25 +73,25 @@ public class PlannerTest {
 
     private Analyzer analyzer;
     private Planner planner;
-    Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
-            .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
-            .build());
+    Routing shardRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
+            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
+            .map());
 
-    Routing nodesRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
-            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
-            .build());
+    Routing nodesRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+            .map());
 
-    final Routing partedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.parted.04232chj", ImmutableSet.of(1, 2)))
-            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
-            .build());
+    final Routing partedRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
+            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+            .map());
 
-    final Routing clusteredPartedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", ImmutableSet.of(1, 2)))
-            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", ImmutableSet.of(3)))
-            .build());
+    final Routing clusteredPartedRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g",  Arrays.asList(1, 2)).map())
+            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g",  Arrays.asList(3)).map())
+            .map());
 
 
     class TestModule extends MetaDataModule {
@@ -507,8 +507,8 @@ public class PlannerTest {
         QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
 
         List<String> indices = new ArrayList<>();
-        Map<String, Map<String, Set<Integer>>> locations = searchNode.routing().locations();
-        for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
+        Map<String, Map<String, List<Integer>>> locations = searchNode.routing().locations();
+        for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices, Matchers.contains(
@@ -1630,7 +1630,7 @@ public class PlannerTest {
         // only one partition hit
         Plan optimizedPlan = plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
         assertThat(optimizedPlan, instanceOf(NonDistributedGroupBy.class));
-        NonDistributedGroupBy optimizedGroupBy = (NonDistributedGroupBy)optimizedPlan;
+        NonDistributedGroupBy optimizedGroupBy = (NonDistributedGroupBy) optimizedPlan;
 
         assertThat(optimizedGroupBy.collectNode().isPartitioned(), is(true));
         assertThat(optimizedGroupBy.collectNode().projections().size(), is(1));
@@ -1642,5 +1642,35 @@ public class PlannerTest {
         // > 1 partition hit
         Plan plan = plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
         assertThat(plan, instanceOf(DistributedGroupBy.class));
+    }
+
+    @Test
+    public void testAllocatedFetchIdsOnCollectNode() throws Exception {
+        CollectNode collectNode = new CollectNode("collect", shardRouting);
+        int shardNum = collectNode.routing().numShards();
+
+        Planner.Context plannerContext = new Planner.Context();
+        plannerContext.allocateFetchIds(collectNode.routing());
+
+        java.lang.reflect.Field f = plannerContext.getClass().getDeclaredField("fetchBaseIdSeq");
+        f.setAccessible(true);
+        int fetchBaseIdSeq = (Integer)f.get(plannerContext);
+
+        assertThat(fetchBaseIdSeq, is(shardNum));
+        assertThat(collectNode.routing().fetchIdBase(), is(fetchBaseIdSeq-shardNum));
+
+        int idx = 0;
+        for (Map<String, List<Integer>> locations : collectNode.routing().locations().values()) {
+            for (Map.Entry<String, List<Integer>> entry : locations.entrySet()) {
+                for (Integer shardId : entry.getValue()) {
+                    assertThat(plannerContext.shardId(idx++), is(new ShardId(entry.getKey(), shardId)));
+                }
+            }
+        }
+
+        // fetchIdBase must only set once on a Routing instance
+        int fetchIdBase = collectNode.routing().fetchIdBase();
+        plannerContext.allocateFetchIds(collectNode.routing());
+        assertThat(collectNode.routing().fetchIdBase(), is(fetchIdBase));
     }
 }
