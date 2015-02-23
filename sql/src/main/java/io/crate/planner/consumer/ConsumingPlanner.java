@@ -25,6 +25,7 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.planner.Plan;
+import io.crate.planner.Planner;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -52,8 +53,8 @@ public class ConsumingPlanner {
     }
 
     @Nullable
-    public Plan plan(AnalyzedRelation rootRelation) {
-        ConsumerContext consumerContext = new ConsumerContext(rootRelation);
+    public Plan plan(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
+        ConsumerContext consumerContext = new ConsumerContext(rootRelation, plannerContext);
         for (int i = 0; i < consumers.size(); i++) {
             Consumer consumer = consumers.get(i);
             if (consumer.consume(consumerContext.rootRelation(), consumerContext)) {

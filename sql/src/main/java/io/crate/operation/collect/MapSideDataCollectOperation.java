@@ -255,8 +255,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
 
         // get shardCollectors from single shards
-        Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
-        for (Map.Entry<String, Set<Integer>> entry : shardIdMap.entrySet()) {
+        Map<String, List<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
+        for (Map.Entry<String, List<Integer>> entry : shardIdMap.entrySet()) {
             String indexName = entry.getKey();
             IndexService indexService;
             try {

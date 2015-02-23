@@ -114,18 +114,18 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Routing routing(String table) {
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
 
         for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(table)) {
-            Map<String, Set<Integer>> shardIds = locations.get(shardRouting.currentNodeId());
+            Map<String, List<Integer>> shardIds = locations.get(shardRouting.currentNodeId());
             if (shardIds == null) {
-                shardIds = new HashMap<>();
+                shardIds = new TreeMap<>();
                 locations.put(shardRouting.currentNodeId(), shardIds);
             }
 
-            Set<Integer> shardIdSet = shardIds.get(shardRouting.index());
+            List<Integer> shardIdSet = shardIds.get(shardRouting.index());
             if (shardIdSet == null) {
-                shardIdSet = new HashSet<>();
+                shardIdSet = new ArrayList<>();
                 shardIds.put(shardRouting.index(), shardIdSet);
             }
             shardIdSet.add(shardRouting.id());
@@ -174,7 +174,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectWithShardAndNodeExpressions() throws Exception {
         Routing routing = routing(TEST_TABLE_NAME);
-        Set shardIds = routing.locations().get(clusterService().localNode().id()).get(TEST_TABLE_NAME);
+        List shardIds = routing.locations().get(clusterService().localNode().id()).get(TEST_TABLE_NAME);
 
         CollectNode collectNode = new CollectNode("docCollect", routing);
         collectNode.toCollect(Arrays.<Symbol>asList(

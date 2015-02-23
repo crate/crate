@@ -141,17 +141,17 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         return ident;
     }
 
-    private void processShardRouting(Map<String, Map<String, Set<Integer>>> locations, ShardRouting shardRouting) {
+    private void processShardRouting(Map<String, Map<String, List<Integer>>> locations, ShardRouting shardRouting) {
         String node = shardRouting.currentNodeId();
-        Map<String, Set<Integer>> nodeMap = locations.get(node);
+        Map<String, List<Integer>> nodeMap = locations.get(node);
         if (nodeMap == null) {
-            nodeMap = new HashMap<>();
+            nodeMap = new TreeMap<>();
             locations.put(shardRouting.currentNodeId(), nodeMap);
         }
 
-        Set<Integer> shards = nodeMap.get(shardRouting.getIndex());
+        List<Integer> shards = nodeMap.get(shardRouting.getIndex());
         if (shards == null) {
-            shards = new HashSet<>();
+            shards = new ArrayList<>();
             nodeMap.put(shardRouting.getIndex(), shards);
         }
         shards.add(shardRouting.id());
@@ -173,7 +173,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     private Routing getRouting(
             final ClusterStateObserver observer, final WhereClause whereClause, @Nullable final String preference) {
         ClusterState clusterState = observer.observedState();
-        final Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
 
         String[] routingIndices = concreteIndices;
         if (whereClause.partitions().size() > 0) {
