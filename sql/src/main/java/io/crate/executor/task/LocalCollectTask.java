@@ -21,6 +21,7 @@
 
 package io.crate.executor.task;
 
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -55,6 +56,7 @@ public class LocalCollectTask extends JobTask {
                             CollectOperation<Object[][]> collectOperation, CollectNode collectNode,
                             CircuitBreaker circuitBreaker) {
         super(jobId);
+        Preconditions.checkArgument(collectNode.jobId().isPresent(), "collectNode does not have a jobId");
         this.collectNode = collectNode;
         this.collectOperation = collectOperation;
         this.resultList = new ArrayList<>(1);

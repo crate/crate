@@ -21,10 +21,12 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.cache.*;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -44,18 +46,27 @@ import io.crate.planner.symbol.Literal;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
-public class ShardCollectService {
+public class ShardCollectService implements Closeable {
+
+    public static final String EXPIRATION_SETTING = "collect.context_keep_alive";
+    public static final TimeValue EXPIRATION_DEFAULT = new TimeValue(5, TimeUnit.MINUTES);
 
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final ThreadPool threadPool;
@@ -72,6 +83,8 @@ public class ShardCollectService {
     private final boolean isBlobShard;
     private final Functions functions;
     private final BlobIndices blobIndices;
+
+    private final LoadingCache<UUID, ShardCollectContext> contexts;
 
     @Inject
     public ShardCollectService(ThreadPool threadPool,
@@ -92,6 +105,20 @@ public class ShardCollectService {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.shardId = shardId;
+        this.contexts = CacheBuilder.newBuilder().expireAfterAccess(
+                settings.getAsTime(EXPIRATION_SETTING, EXPIRATION_DEFAULT).millis(),
+                TimeUnit.MILLISECONDS
+        ).removalListener(new RemovalListener<UUID, ShardCollectContext>() {
+            @Override
+            public void onRemoval(@Nonnull RemovalNotification<UUID, ShardCollectContext> notification) {
+                Releasables.close(notification.getValue());
+            }
+        }).build(new CacheLoader<UUID, ShardCollectContext>() {
+            @Override
+            public ShardCollectContext load(@Nonnull UUID key) throws Exception {
+                return new ShardCollectContext();
+            }
+        });
 
         this.indexService = indexService;
         this.scriptService = scriptService;
@@ -136,7 +163,7 @@ public class ShardCollectService {
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode,
-                                       ShardProjectorChain projectorChain) throws Exception {
+                                       ShardProjectorChain projectorChain) throws Throwable {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
         Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
@@ -175,11 +202,18 @@ public class ShardCollectService {
         );
     }
 
-    private CrateCollector getLuceneIndexCollector(CollectNode collectNode, Projector downstream) throws Exception {
+    private CrateCollector getLuceneIndexCollector(CollectNode collectNode, Projector downstream) throws Throwable {
         CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+        ShardCollectContext collectContext;
+        try {
+            collectContext = contexts.get(collectNode.jobId().get());
+        } catch (ExecutionException|UncheckedExecutionException e) {
+            throw Exceptions.unwrap(e);
+        }
         return new LuceneDocCollector(
                 threadPool,
                 clusterService,
+                collectContext,
                 shardId,
                 indexService,
                 scriptService,
@@ -191,5 +225,10 @@ public class ShardCollectService {
                 functions,
                 collectNode.whereClause(),
                 downstream);
+    }
+
+    @Override
+    public void close() throws IOException {
+        contexts.invalidateAll();
     }
 }
