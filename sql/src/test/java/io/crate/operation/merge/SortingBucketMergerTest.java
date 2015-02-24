@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
 import static io.crate.testing.TestingHelpers.createPage;
+import static io.crate.testing.TestingHelpers.isSorted;
 import static org.hamcrest.Matchers.is;
 
 
@@ -387,6 +388,26 @@ public class SortingBucketMergerTest extends CrateUnitTest {
             merger.finish();
         }
         assertRows(collectingProjector.result().get(), "A| 0", "D| 1", "C| 1", "A| 1","C| 2", "C| 6", "C| 8", "B| 8", "NULL| 9", "A| 9");
+    }
+
+    @Test
+    public void testDifferentSizeBucketsDifferentValues() throws Exception {
+        Object[][] bucket1 = TestingHelpers.range(0, 32, 2);
+        Object[][] bucket2 = TestingHelpers.range(1, 100, 2);
+        BucketPage page1 = createPage(Arrays.asList(bucket1), Arrays.asList(bucket2));
+        Bucket merged = mergeWith(2, null, page1);
+        assertThat(merged, isSorted(0));
+        assertThat(merged.size(), is(bucket1.length + bucket2.length));
+    }
+
+    @Test
+    public void testDifferentSizeBucketsDifferentValues2() throws Exception {
+        Object[][] bucket1 = TestingHelpers.range(0, 32, 1);
+        Object[][] bucket2 = TestingHelpers.range(32, 100, 1);
+        BucketPage page1 = createPage(Arrays.asList(bucket1), Arrays.asList(bucket2));
+        Bucket merged = mergeWith(2, null, page1);
+        assertThat(merged, isSorted(0));
+        assertThat(merged.size(), is(bucket1.length + bucket2.length));
     }
 
     @Test

@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -835,10 +836,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 " \"avgDuration\" int" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
+        Object[][] bulkArgs = new Object[100][];
         for (int i = 0; i<100; i++) {
-            execute("insert into rankings (\"pageURL\", \"pageRank\", \"avgDuration\") values (?, ?, ?)",
-                    new Object[]{randomAsciiOfLength(i+1), randomIntBetween(i, i*i),  randomInt(i) });
+             bulkArgs[i] = new Object[]{
+                     randomAsciiOfLength(i+1),
+                     randomIntBetween(i, i*i),
+                     randomInt(i)
+             };
         }
+        SQLBulkResponse bulkResponse = execute("insert into rankings (\"pageURL\", \"pageRank\", \"avgDuration\") values (?, ?, ?)", bulkArgs);
+        assertThat(bulkResponse.results().length, is(100));
         execute("refresh table rankings");
         execute("select count(*), \"pageURL\" from rankings group by \"pageURL\" order by 1 desc limit 100");
         assertThat(response.rowCount(), is(100L));

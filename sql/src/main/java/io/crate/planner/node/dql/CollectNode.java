@@ -25,6 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
@@ -36,7 +37,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * A plan node which collects data.
@@ -51,6 +55,9 @@ public class CollectNode extends AbstractDQLPlanNode {
     private List<String> downStreamNodes;
     private boolean isPartitioned = false;
     private boolean keepContextForFetcher = false;
+
+    private Integer limit = null;
+    private OrderBy orderBy = null;
 
     public CollectNode(String id) {
         super(id);
@@ -87,6 +94,22 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     public CollectNode(String id, Routing routing) {
         this(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    }
+
+    public @Nullable Integer limit() {
+        return limit;
+    }
+
+    public void limit(int limit) {
+        this.limit = limit;
+    }
+
+    public @Nullable OrderBy orderBy() {
+        return orderBy;
+    }
+
+    public void orderBy(@Nullable OrderBy orderBy) {
+        this.orderBy = orderBy;
     }
 
     public CollectNode(String id, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
@@ -192,6 +215,14 @@ public class CollectNode extends AbstractDQLPlanNode {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
         keepContextForFetcher = in.readBoolean();
+
+        if( in.readBoolean()) {
+            limit = in.readVInt();
+        }
+
+        if (in.readBoolean()) {
+            orderBy = OrderBy.fromStream(in);
+        }
     }
 
     @Override
@@ -228,6 +259,18 @@ public class CollectNode extends AbstractDQLPlanNode {
             out.writeLong(jobId.get().getLeastSignificantBits());
         }
         out.writeBoolean(keepContextForFetcher);
+        if (limit != null ) {
+            out.writeBoolean(true);
+            out.writeVInt(limit);
+        } else {
+            out.writeBoolean(false);
+        }
+        if (orderBy != null) {
+            out.writeBoolean(true);
+            OrderBy.toStream(orderBy, out);
+        } else {
+            out.writeBoolean(false);
+        }
     }
 
     /**

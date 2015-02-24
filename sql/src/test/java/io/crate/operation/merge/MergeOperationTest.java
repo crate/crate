@@ -63,6 +63,7 @@ import org.mockito.Answers;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 
 import static io.crate.testing.TestingHelpers.isRow;
@@ -116,6 +117,7 @@ public class MergeOperationTest extends CrateUnitTest {
                 groupProjection,
                 topNProjection
         ));
+        mergeNode.jobId(UUID.randomUUID());
 
         Object[][] objs = new Object[20][];
         for (int i = 0; i < objs.length; i++) {
@@ -160,6 +162,7 @@ public class MergeOperationTest extends CrateUnitTest {
         mergeNode.projections(Arrays.<Projection>asList(
                 groupProjection
         ));
+        mergeNode.jobId(UUID.randomUUID());
         final MergeOperation mergeOperation = new MergeOperation(
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
