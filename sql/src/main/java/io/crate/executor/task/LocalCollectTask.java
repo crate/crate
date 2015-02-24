@@ -26,8 +26,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.QueryResult;
 import io.crate.executor.JobTask;
+import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.node.dql.CollectNode;
@@ -41,7 +41,7 @@ import java.util.UUID;
 
 
 /**
- * A collect task which returns one future and runs a  collectOperation locally and synchronous
+ * A collect task which returns one future and runs a collectOperation locally
  */
 public class LocalCollectTask extends JobTask {
 
