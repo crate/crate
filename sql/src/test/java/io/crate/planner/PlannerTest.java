@@ -1645,19 +1645,19 @@ public class PlannerTest {
     }
 
     @Test
-    public void testAllocatedFetchIdsOnCollectNode() throws Exception {
+    public void testAllocatedJobSearchContextIds() throws Exception {
         CollectNode collectNode = new CollectNode("collect", shardRouting);
         int shardNum = collectNode.routing().numShards();
 
         Planner.Context plannerContext = new Planner.Context();
-        plannerContext.allocateFetchIds(collectNode.routing());
+        plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
-        java.lang.reflect.Field f = plannerContext.getClass().getDeclaredField("fetchBaseIdSeq");
+        java.lang.reflect.Field f = plannerContext.getClass().getDeclaredField("jobSearchContextIdBaseSeq");
         f.setAccessible(true);
-        int fetchBaseIdSeq = (Integer)f.get(plannerContext);
+        int jobSearchContextIdBaseSeq = (Integer)f.get(plannerContext);
 
-        assertThat(fetchBaseIdSeq, is(shardNum));
-        assertThat(collectNode.routing().fetchIdBase(), is(fetchBaseIdSeq-shardNum));
+        assertThat(jobSearchContextIdBaseSeq, is(shardNum));
+        assertThat(collectNode.routing().jobSearchContextIdBase(), is(jobSearchContextIdBaseSeq-shardNum));
 
         int idx = 0;
         for (Map<String, List<Integer>> locations : collectNode.routing().locations().values()) {
@@ -1668,9 +1668,9 @@ public class PlannerTest {
             }
         }
 
-        // fetchIdBase must only set once on a Routing instance
-        int fetchIdBase = collectNode.routing().fetchIdBase();
-        plannerContext.allocateFetchIds(collectNode.routing());
-        assertThat(collectNode.routing().fetchIdBase(), is(fetchIdBase));
+        // jobSearchContextIdBase must only set once on a Routing instance
+        int jobSearchContextIdBase = collectNode.routing().jobSearchContextIdBase();
+        plannerContext.allocateJobSearchContextIds(collectNode.routing());
+        assertThat(collectNode.routing().jobSearchContextIdBase(), is(jobSearchContextIdBase));
     }
 }

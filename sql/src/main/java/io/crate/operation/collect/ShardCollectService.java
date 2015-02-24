@@ -137,7 +137,8 @@ public class ShardCollectService {
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode,
-                                       ShardProjectorChain projectorChain) throws Exception {
+                                       ShardProjectorChain projectorChain,
+                                       int jobSearchContextId) throws Exception {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
         Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
@@ -149,7 +150,7 @@ public class ShardCollectService {
                 if (isBlobShard) {
                     return getBlobIndexCollector(normalizedCollectNode, downstream);
                 } else {
-                    return getLuceneIndexCollector(normalizedCollectNode, downstream);
+                    return getLuceneIndexCollector(normalizedCollectNode, downstream, jobSearchContextId);
                 }
             } else if (granularity == RowGranularity.SHARD) {
                 ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedCollectNode);
@@ -176,7 +177,9 @@ public class ShardCollectService {
         );
     }
 
-    private CrateCollector getLuceneIndexCollector(CollectNode collectNode, RowDownstream downstream) throws Exception {
+    private CrateCollector getLuceneIndexCollector(CollectNode collectNode,
+                                                   RowDownstream downstream,
+                                                   int jobSearchContextId) throws Exception {
         CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
         return new LuceneDocCollector(
                 collectNode.jobId().get(),
@@ -193,6 +196,7 @@ public class ShardCollectService {
                 docCtx.docLevelExpressions(),
                 functions,
                 collectNode.whereClause(),
-                downstream);
+                downstream,
+                jobSearchContextId);
     }
 }
