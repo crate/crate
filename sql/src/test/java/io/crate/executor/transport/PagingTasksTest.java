@@ -25,25 +25,17 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Constants;
 import io.crate.action.sql.SQLResponse;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.*;
-import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.dql.QueryThenFetchNode;
-import io.crate.planner.node.dql.join.NestedLoopNode;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Rule;
@@ -51,8 +43,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.Closeable;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -382,300 +376,6 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         // no further pages
         assertThat(nextPageResult.fetch(pageInfo.nextPage()).get().page().size(), is(0L));
-    }
-
-    @Test
-    public void testNestedLoopBothSidesPageableNoLimit() throws Exception {
-        setup.setUpCharacters();
-        setup.setUpBooks();
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        QueryThenFetchNode leftNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
-                Arrays.<Symbol>asList(nameRef, femaleRef),
-                new boolean[]{false, true},
-                new Boolean[]{null, null},
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        leftNode.outputTypes(ImmutableList.of(
-                        idRef.info().type(),
-                        nameRef.info().type(),
-                        femaleRef.info().type())
-        );
-
-        DocTableInfo books = docSchemaInfo.getTableInfo("books");
-        QueryThenFetchNode rightNode = new QueryThenFetchNode(
-                books.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(titleRef),
-                Arrays.<Symbol>asList(titleRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null,
-                null,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        rightNode.outputTypes(ImmutableList.of(
-                        authorRef.info().type())
-        );
-
-        TopNProjection projection = new TopNProjection(Constants.DEFAULT_SELECT_LIMIT, 0);
-        projection.outputs(ImmutableList.<Symbol>of(
-                new InputColumn(0, DataTypes.INTEGER),
-                new InputColumn(1, DataTypes.STRING),
-                new InputColumn(2, DataTypes.BOOLEAN),
-                new InputColumn(3, DataTypes.STRING)
-        ));
-        List<DataType> outputTypes = ImmutableList.of(
-                idRef.info().type(),
-                nameRef.info().type(),
-                femaleRef.info().type(),
-                titleRef.info().type());
-
-
-        // SELECT characters.id, characters.name, characters.female, books.title
-        // FROM characters CROSS JOIN books
-        // ORDER BY character.name, character.female, books.title
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, Constants.DEFAULT_SELECT_LIMIT, 0);
-        node.projections(ImmutableList.<Projection>of(projection));
-        node.outputTypes(outputTypes);
-
-        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
-        assertThat(tasks.size(), is(1));
-        assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
-
-        NestedLoopTask nestedLoopTask = (NestedLoopTask) tasks.get(0);
-
-        List<ListenableFuture<TaskResult>> results = nestedLoopTask.result();
-        assertThat(results.size(), is(1));
-        nestedLoopTask.start();
-        TaskResult result = results.get(0).get();
-        assertThat(result, instanceOf(QueryResult.class));
-        assertThat(TestingHelpers.printedTable(result.rows()), is(
-                        "4| Arthur| true| Life, the Universe and Everything\n" +
-                        "4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
-                        "4| Arthur| true| The Restaurant at the End of the Universe\n" +
-                        "1| Arthur| false| Life, the Universe and Everything\n" +
-                        "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
-                        "1| Arthur| false| The Restaurant at the End of the Universe\n" +
-                        "2| Ford| false| Life, the Universe and Everything\n" +
-                        "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
-                        "2| Ford| false| The Restaurant at the End of the Universe\n" +
-                        "3| Trillian| true| Life, the Universe and Everything\n" +
-                        "3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
-                        "3| Trillian| true| The Restaurant at the End of the Universe\n"));
-    }
-
-    @Test
-    public void testNestedLoopBothSidesPageableLimitAndOffset() throws Exception {
-        setup.setUpCharacters();
-        setup.setUpBooks();
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        QueryThenFetchNode leftNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
-                Arrays.<Symbol>asList(nameRef, femaleRef),
-                new boolean[]{false, true},
-                new Boolean[]{null, null},
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        leftNode.outputTypes(ImmutableList.of(
-                        idRef.info().type(),
-                        nameRef.info().type(),
-                        femaleRef.info().type())
-        );
-
-        DocTableInfo books = docSchemaInfo.getTableInfo("books");
-        QueryThenFetchNode rightNode = new QueryThenFetchNode(
-                books.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(titleRef),
-                Arrays.<Symbol>asList(titleRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null,
-                null,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        rightNode.outputTypes(ImmutableList.of(
-                        authorRef.info().type())
-        );
-
-        TopNProjection projection = new TopNProjection(10, 1);
-        projection.outputs(ImmutableList.<Symbol>of(
-                new InputColumn(0, DataTypes.INTEGER),
-                new InputColumn(1, DataTypes.STRING),
-                new InputColumn(2, DataTypes.BOOLEAN),
-                new InputColumn(3, DataTypes.STRING)
-        ));
-        List<DataType> outputTypes = ImmutableList.of(
-                idRef.info().type(),
-                nameRef.info().type(),
-                femaleRef.info().type(),
-                titleRef.info().type());
-
-
-        // SELECT characters.id, characters.name, characters.female, books.title
-        // FROM characters CROSS JOIN books
-        // ORDER BY character.name, character.female, books.title
-        // limit 10 offset 1
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 10, 1);
-        node.projections(ImmutableList.<Projection>of(projection));
-        node.outputTypes(outputTypes);
-
-        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
-        assertThat(tasks.size(), is(1));
-        assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
-
-        NestedLoopTask nestedLoopTask = (NestedLoopTask) tasks.get(0);
-
-        List<ListenableFuture<TaskResult>> results = nestedLoopTask.result();
-        assertThat(results.size(), is(1));
-        nestedLoopTask.start();
-        TaskResult result = results.get(0).get();
-        assertThat(result, instanceOf(QueryResult.class));
-        assertThat(TestingHelpers.printedTable(result.rows()), is(
-                        "4| Arthur| true| The Hitchhiker's Guide to the Galaxy\n" +
-                        "4| Arthur| true| The Restaurant at the End of the Universe\n" +
-                        "1| Arthur| false| Life, the Universe and Everything\n" +
-                        "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
-                        "1| Arthur| false| The Restaurant at the End of the Universe\n" +
-                        "2| Ford| false| Life, the Universe and Everything\n" +
-                        "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
-                        "2| Ford| false| The Restaurant at the End of the Universe\n" +
-                        "3| Trillian| true| Life, the Universe and Everything\n" +
-                        "3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n"));
-    }
-
-    @Test
-    public void testPagedNestedLoopWithProjectionsBothSidesPageable() throws Exception {
-        setup.setUpCharacters();
-        setup.setUpBooks();
-
-        int queryOffset = 1;
-        int queryLimit = 10;
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        QueryThenFetchNode leftNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
-                Arrays.<Symbol>asList(nameRef, femaleRef),
-                new boolean[]{false, true},
-                new Boolean[]{null, null},
-                5,
-                1,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        leftNode.outputTypes(ImmutableList.of(
-                        idRef.info().type(),
-                        nameRef.info().type(),
-                        femaleRef.info().type())
-        );
-
-        DocTableInfo books = docSchemaInfo.getTableInfo("books");
-        QueryThenFetchNode rightNode = new QueryThenFetchNode(
-                books.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(titleRef),
-                Arrays.<Symbol>asList(titleRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null,
-                null,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        rightNode.outputTypes(ImmutableList.of(
-                        authorRef.info().type())
-        );
-
-        TopNProjection projection = new TopNProjection(queryLimit, queryOffset);
-        projection.outputs(ImmutableList.<Symbol>of(
-                new InputColumn(0, DataTypes.INTEGER),
-                new InputColumn(1, DataTypes.STRING),
-                new InputColumn(2, DataTypes.BOOLEAN),
-                new InputColumn(3, DataTypes.STRING)
-        ));
-        List<DataType> outputTypes = ImmutableList.of(
-                idRef.info().type(),
-                nameRef.info().type(),
-                femaleRef.info().type(),
-                titleRef.info().type());
-
-        // SELECT c.id, c.name, c.female, b.title
-        // FROM characters AS c CROSS JOIN books as b
-        // ORDER BY c.name, c.female, b.title
-        // LIMIT 10 OFFSET 1
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, queryLimit, queryOffset);
-        node.projections(ImmutableList.<Projection>of(projection));
-        node.outputTypes(outputTypes);
-
-        List<Task> tasks = executor.newTasks(node, UUID.randomUUID());
-        assertThat(tasks.size(), is(1));
-        assertThat(tasks.get(0), instanceOf(NestedLoopTask.class));
-
-        NestedLoopTask nestedLoopTask = (NestedLoopTask) tasks.get(0);
-
-        List<ListenableFuture<TaskResult>> results = nestedLoopTask.result();
-        assertThat(results.size(), is(1));
-
-        ListenableFuture<TaskResult> nestedLoopResultFuture = results.get(0);
-        PageInfo pageInfo = new PageInfo(0, 2);
-        nestedLoopTask.start(pageInfo);
-
-        TaskResult result = nestedLoopResultFuture.get();
-        assertThat(result, instanceOf(PageableTaskResult.class));
-
-        PageableTaskResult pageableResult = (PageableTaskResult)result;
-        closeMeWhenDone = pageableResult;
-
-        Page firstPage = pageableResult.page();
-        assertThat(firstPage.size(), is(2L));
-
-        assertThat(TestingHelpers.printedPage(firstPage), is(
-                "1| Arthur| false| The Hitchhiker's Guide to the Galaxy\n" +
-                "1| Arthur| false| The Restaurant at the End of the Universe\n"));
-
-        pageInfo = pageInfo.nextPage(1);
-        pageableResult = pageableResult.fetch(pageInfo).get();
-        closeMeWhenDone = pageableResult;
-
-        Page secondPage = pageableResult.page();
-        assertThat(secondPage.size(), is(1L));
-
-        assertThat(TestingHelpers.printedPage(secondPage), is(
-                "2| Ford| false| Life, the Universe and Everything\n"));
-
-
-        pageInfo = pageInfo.nextPage(10);
-        pageableResult = pageableResult.fetch(pageInfo).get();
-        closeMeWhenDone = pageableResult;
-
-        Page lastPage = pageableResult.page();
-        assertThat(lastPage.size(), is(5L));
-
-        assertThat(TestingHelpers.printedPage(lastPage), is(
-                "2| Ford| false| The Hitchhiker's Guide to the Galaxy\n" +
-                "2| Ford| false| The Restaurant at the End of the Universe\n" +
-                "3| Trillian| true| Life, the Universe and Everything\n" +
-                "3| Trillian| true| The Hitchhiker's Guide to the Galaxy\n" +
-                "3| Trillian| true| The Restaurant at the End of the Universe\n"
-        ));
-
-        expectedException.expect(ExecutionException.class);
-        expectedException.expectCause(TestingHelpers.cause(NoSuchElementException.class, "backingArray exceeded"));
-        pageableResult.fetch(pageInfo.nextPage()).get();
     }
 
     @Test

@@ -30,7 +30,6 @@ import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.task.NoopTask;
-import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
@@ -46,7 +45,6 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
-import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -280,24 +278,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     queryThenFetchOperation,
                     functions,
                     node));
-        }
-
-        @Override
-        public ImmutableList<Task> visitNestedLoopNode(NestedLoopNode node, UUID jobId) {
-            // TODO: optimize for outer and inner being the same relation
-            List<Task> outerTasks = node.outer().accept(this, jobId);
-            List<Task> innerTasks = node.inner().accept(this, jobId);
-            return singleTask(
-                    new NestedLoopTask(
-                            jobId,
-                            clusterService.localNode().id(),
-                            node,
-                            outerTasks,
-                            innerTasks,
-                            TransportExecutor.this,
-                            globalProjectionToProjectionVisitor,
-                            circuitBreaker)
-            );
         }
 
         @Override
