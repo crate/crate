@@ -25,6 +25,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.executor.transport.CollectContextService;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -70,6 +71,8 @@ public class ShardCollectService {
     private final Functions functions;
     private final BlobIndices blobIndices;
 
+    private final CollectContextService collectContextService;
+
     @Inject
     public ShardCollectService(ThreadPool threadPool,
                                ClusterService clusterService,
@@ -85,11 +88,11 @@ public class ShardCollectService {
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
                                BlobShardReferenceResolver blobShardReferenceResolver,
-                               CrateCircuitBreakerService breakerService) {
+                               CrateCircuitBreakerService breakerService,
+                               CollectContextService collectContextService) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.shardId = shardId;
-
         this.indexService = indexService;
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
@@ -122,6 +125,7 @@ public class ShardCollectService {
                 shardNormalizer,
                 shardId,
                 docInputSymbolVisitor);
+        this.collectContextService = collectContextService;
     }
 
     /**
@@ -175,8 +179,10 @@ public class ShardCollectService {
     private CrateCollector getLuceneIndexCollector(CollectNode collectNode, RowDownstream downstream) throws Exception {
         CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
         return new LuceneDocCollector(
+                collectNode.jobId().get(),
                 threadPool,
                 clusterService,
+                collectContextService,
                 shardId,
                 indexService,
                 scriptService,

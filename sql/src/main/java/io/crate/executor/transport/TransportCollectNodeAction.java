@@ -105,11 +105,11 @@ public class TransportCollectNodeAction {
             operationId = UUID.randomUUID();
             statsTables.operationStarted(operationId, node.jobId().get(), node.id());
         } else {
-            operationId = null;
+            collectResponse.onFailure(new IllegalArgumentException("no jobId given for CollectOperation"));
+            return;
         }
         String ramAccountingContextId = String.format("%s: %s", node.id(), operationId);
-        final RamAccountingContext ramAccountingContext =
-                new RamAccountingContext(ramAccountingContextId, circuitBreaker);
+        final RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
         try {
             if (node.hasDownstreams()) {
