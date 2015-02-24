@@ -98,15 +98,17 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
-    private final CollectorFieldsVisitor fieldsVisitor;
-    private final InputRow inputRow;
+    private final SearchContext searchContext;
+    private final RowDownstreamHandle downstream;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
     private RamAccountingContext ramAccountingContext;
-    private final SearchContext searchContext;
-    private final RowDownstreamHandle downstream;
+
+    private final CollectorFieldsVisitor fieldsVisitor;
+    private final InputRow inputRow;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
     private Scorer scorer;
+    private final int jobSearchContextId;
 
     public LuceneDocCollector(final UUID jobId,
                               final ThreadPool threadPool,
@@ -122,13 +124,15 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               List<LuceneCollectorExpression<?>> collectorExpressions,
                               final Functions functions,
                               final WhereClause whereClause,
-                              RowDownstream downStreamProjector) throws Exception {
+                              RowDownstream downStreamProjector,
+                              int jobSearchContextId) throws Exception {
         this.downstream = downStreamProjector.registerUpstream(this);
         final SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
         this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
+        this.jobSearchContextId = jobSearchContextId;
 
         final IndexShard indexShard = indexService.shardSafe(shardId.id());
         final int searchContextId = Objects.hash(jobId, shardId);
@@ -221,7 +225,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         // start collect
         CollectorContext collectorContext = new CollectorContext()
                 .searchContext(searchContext)
-                .visitor(fieldsVisitor);
+                .visitor(fieldsVisitor)
+                .jobSearchContextId(jobSearchContextId);
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
