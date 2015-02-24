@@ -147,6 +147,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     @Override
     public ListenableFuture<Object[][]> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
+        assert collectNode.jobId().isPresent() : "no jobId present for collect operation";
         String localNodeId = clusterService.localNode().id();
         if (collectNode.executionNodes().contains(localNodeId)) {
             if (!collectNode.routing().containsShards(localNodeId)) {
