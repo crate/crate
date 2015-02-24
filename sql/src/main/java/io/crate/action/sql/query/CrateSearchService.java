@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
+import io.crate.analyze.OrderBy;
 import io.crate.core.StringUtils;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -326,7 +327,7 @@ public class CrateSearchService extends InternalSearchService {
         }
     }
 
-    private static final Map<DataType, SortField.Type> luceneTypeMap = ImmutableMap.<DataType, SortField.Type>builder()
+    public static final Map<DataType, SortField.Type> luceneTypeMap = ImmutableMap.<DataType, SortField.Type>builder()
             .put(DataTypes.STRING, SortField.Type.STRING)
             .put(DataTypes.LONG, SortField.Type.LONG)
             .put(DataTypes.INTEGER, SortField.Type.INT)
@@ -340,6 +341,15 @@ public class CrateSearchService extends InternalSearchService {
                                     List<Symbol> symbols,
                                     boolean[] reverseFlags,
                                     Boolean[] nullsFirst) {
+        return generateLuceneSort(context, symbols, reverseFlags, nullsFirst, sortSymbolVisitor);
+    }
+
+    @Nullable
+    private static Sort generateLuceneSort(SearchContext context,
+                                           List<Symbol> symbols,
+                                           boolean[] reverseFlags,
+                                           Boolean[] nullsFirst,
+                                           SortSymbolVisitor sortSymbolVisitor) {
         if (symbols.isEmpty()) {
             return null;
         }
@@ -349,6 +359,14 @@ public class CrateSearchService extends InternalSearchService {
                     symbols.get(i), new SortSymbolContext(context, reverseFlags[i], nullsFirst[i]));
         }
         return new Sort(sortFields);
+    }
+
+    @Nullable
+    public static Sort generateLuceneSort(SearchContext context,
+                                     OrderBy orderBy,
+                                     CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor) {
+        SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
+        return generateLuceneSort(context, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst(), sortSymbolVisitor);
     }
 
     private static class SortSymbolContext {

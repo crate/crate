@@ -25,6 +25,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
@@ -43,10 +44,12 @@ import java.util.*;
 public class PlanNodeBuilder {
 
     public static CollectNode distributingCollect(TableInfo tableInfo,
-                                           WhereClause whereClause,
-                                           List<Symbol> toCollect,
-                                           List<String> downstreamNodes,
-                                           ImmutableList<Projection> projections) {
+                                                  WhereClause whereClause,
+                                                  List<Symbol> toCollect,
+                                                  List<String> downstreamNodes,
+                                                  ImmutableList<Projection> projections,
+                                                  @Nullable OrderBy orderBy,
+                                                  @Nullable Integer limit) {
         CollectNode node = new CollectNode("distributing collect", tableInfo.getRouting(whereClause, null));
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
@@ -56,6 +59,8 @@ public class PlanNodeBuilder {
 
         node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
+        node.orderBy(orderBy);
+        node.limit(limit);
         return node;
     }
 
@@ -106,7 +111,9 @@ public class PlanNodeBuilder {
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections,
                                @Nullable String partitionIdent,
-                               @Nullable String routingPreference) {
+                               @Nullable String routingPreference,
+                               @Nullable OrderBy orderBy,
+                               @Nullable Integer limit) {
         assert !Iterables.any(toCollect, Predicates.instanceOf(InputColumn.class)) : "cannot collect inputcolumns";
         Routing routing = tableInfo.getRouting(whereClause, routingPreference);
         if (partitionIdent != null && routing.hasLocations()) {
@@ -120,6 +127,8 @@ public class PlanNodeBuilder {
         node.projections(projections);
         node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
+        node.orderBy(orderBy);
+        node.limit(limit);
         return node;
     }
 
@@ -149,10 +158,28 @@ public class PlanNodeBuilder {
     }
 
     public static CollectNode collect(TableInfo tableInfo,
+                                      WhereClause whereClause,
+                                      List<Symbol> toCollect,
+                                      ImmutableList<Projection> projections,
+                                      @Nullable String partitionIdent,
+                                      @Nullable String routingPreference) {
+        return collect(tableInfo, whereClause, toCollect, projections, partitionIdent, routingPreference, null, null);
+    }
+
+    public static CollectNode collect(TableInfo tableInfo,
                                WhereClause whereClause,
                                List<Symbol> toCollect,
-                               ImmutableList<Projection> projections) {
-        return collect(tableInfo, whereClause, toCollect, projections, null, null);
+                               ImmutableList<Projection> projections,
+                               @Nullable OrderBy orderBy,
+                               @Nullable Integer limit) {
+        return collect(tableInfo, whereClause, toCollect, projections, null, null, orderBy, limit);
+    }
+
+    public static CollectNode collect(TableInfo tableInfo,
+                                      WhereClause whereClause,
+                                      List<Symbol> toCollect,
+                                      ImmutableList<Projection> projections) {
+        return collect(tableInfo, whereClause, toCollect, projections, null, null, null, null);
     }
 
     public static CollectNode collect(TableInfo tableInfo,
@@ -160,6 +187,6 @@ public class PlanNodeBuilder {
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections,
                                @Nullable String partitionIdent) {
-        return collect(tableInfo, whereClause, toCollect, projections, partitionIdent, null);
+        return collect(tableInfo, whereClause, toCollect, projections, partitionIdent, null, null, null);
     }
 }

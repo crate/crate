@@ -41,7 +41,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
 
         protected ArrayList<Input<?>> topLevelInputs = new ArrayList<>();
 
-        protected void add(Input<?> input) {
+        public void add(Input<?> input) {
             topLevelInputs.add(input);
         }
 

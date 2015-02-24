@@ -191,7 +191,7 @@ public class ShardCollectService {
                 docCtx.topLevelInputs(),
                 docCtx.docLevelExpressions(),
                 functions,
-                collectNode.whereClause(),
+                collectNode,
                 downstream);
     }
 }
