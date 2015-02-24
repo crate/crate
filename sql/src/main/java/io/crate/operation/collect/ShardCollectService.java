@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.executor.transport.CollectContextService;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
@@ -57,18 +58,21 @@ public class ShardCollectService {
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
-    private LuceneQueryBuilder luceneQueryBuilder;
+    private final LuceneQueryBuilder luceneQueryBuilder;
     private final ShardId shardId;
     private final IndexService indexService;
     private final ScriptService scriptService;
     private final CacheRecycler cacheRecycler;
     private final PageCacheRecycler pageCacheRecycler;
     private final BigArrays bigArrays;
+    private final Functions functions;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final boolean isBlobShard;
     private final BlobIndices blobIndices;
+
+    private final CollectContextService collectContextService;
 
     @Inject
     public ShardCollectService(ThreadPool threadPool,
@@ -85,17 +89,18 @@ public class ShardCollectService {
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
-                               BlobShardReferenceResolver blobShardReferenceResolver) {
+                               BlobShardReferenceResolver blobShardReferenceResolver,
+                               CollectContextService collectContextService) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.shardId = shardId;
-
         this.indexService = indexService;
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
         this.pageCacheRecycler = pageCacheRecycler;
         this.bigArrays = bigArrays;
+        this.functions = functions;
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
@@ -122,6 +127,7 @@ public class ShardCollectService {
                 shardNormalizer,
                 shardId
         );
+        this.collectContextService = collectContextService;
     }
 
     /**
@@ -175,9 +181,10 @@ public class ShardCollectService {
     private CrateCollector getLuceneIndexCollector(CollectNode collectNode, RowDownstream downstream) throws Exception {
         CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
         return new LuceneDocCollector(
+                collectNode.jobId().get(),
                 threadPool,
                 clusterService,
-                luceneQueryBuilder,
+                collectContextService,
                 shardId,
                 indexService,
                 scriptService,
@@ -186,6 +193,7 @@ public class ShardCollectService {
                 bigArrays,
                 docCtx.topLevelInputs(),
                 docCtx.docLevelExpressions(),
+                functions,
                 collectNode.whereClause(),
                 downstream);
     }

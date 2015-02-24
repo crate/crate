@@ -146,11 +146,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
         Bucket result = collect(collectNode);
         assertThat(result, contains(
-                isRow(2,  "{\"id\":1,\"doc\":2}", "1"),
-                isRow(4,  "{\"id\":3,\"doc\":4}", "3")
+                isRow(2, "{\"id\":1,\"doc\":2}", "1"),
+                isRow(4, "{\"id\":3,\"doc\":4}", "3")
         ));
     }
 
@@ -165,8 +166,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
+        collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
-
 
         Bucket result = collect(collectNode);
         assertThat(result, contains(isRow(2)));
@@ -188,6 +189,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.isPartitioned(true);
+        collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
 
         Bucket result = collect(collectNode);
