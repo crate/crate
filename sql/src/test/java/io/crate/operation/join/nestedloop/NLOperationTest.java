@@ -27,6 +27,7 @@ import io.crate.executor.ObjectArrayPage;
 import io.crate.executor.Page;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.testing.TestingHelpers;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
@@ -35,6 +36,8 @@ import rx.functions.Action1;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
 
@@ -89,14 +92,14 @@ public class NLOperationTest extends RandomizedTest {
     @Test
     public void testEmptyOuter() throws Exception {
         NLOperation nlOperation = new NLOperation(Observable.<Page>empty(), inner);
-        List<Object[]> rows = consumeRows(nlOperation.execute(10));
+        List<Object[]> rows = consumeRows(nlOperation.execute(0, 10, 100));
         assertThat(rows.size(), is(0));
     }
 
     @Test
     public void testEmptyInner() throws Exception {
         NLOperation nlOperation = new NLOperation(outer, Observable.<Page>empty());
-        List<Object[]> rows = consumeRows(nlOperation.execute(10));
+        List<Object[]> rows = consumeRows(nlOperation.execute(0, 10, 100));
         assertThat(rows.size(), is(0));
     }
 
@@ -118,8 +121,8 @@ public class NLOperationTest extends RandomizedTest {
                 new Object[] { "Arthur" },
                 new Object[] { "Trillian" }
         });
-        NLOperation nlOperation = new NLOperation(innerNLOperation.execute(100), Observable.just(page));
-        List<Object[]> rows = consumeRows(nlOperation.execute(100));
+        NLOperation nlOperation = new NLOperation(innerNLOperation.execute(0, 100, 2), Observable.just(page));
+        List<Object[]> rows = consumeRows(nlOperation.execute(0, 100, 2));
         assertThat(
                 TestingHelpers.printedTable(rows.toArray(new Object[rows.size()][])),
                 is("Green| small| Arthur\n" +
@@ -158,7 +161,7 @@ public class NLOperationTest extends RandomizedTest {
     @Test
     public void testConsumeOnlyFirstPage() throws Exception {
         NLOperation nlOperation = new NLOperation(outer, inner);
-        Observable<Page> result = nlOperation.execute(100);
+        Observable<Page> result = nlOperation.execute(0, 100, 10);
 
         Observable<Page> take = result.take(1);
         final List<Object[]> rows = new ArrayList<>();
@@ -176,11 +179,46 @@ public class NLOperationTest extends RandomizedTest {
     @Test
     public void testConsumeAll() throws Exception {
         NLOperation nlOperation = new NLOperation(outer, inner);
-        Observable<Page> result = nlOperation.execute(100);
+        Observable<Page> result = nlOperation.execute(0, 100, 3);
         List<Object[]> rows = consumeRows(result);
         assertThat(rows.size(), is(15));
 
         assertThat(TestingHelpers.printedTable(rows.toArray(new Object[rows.size()][])), is(outerXInnerOutput));
+    }
+
+    @Test
+    public void testConsumeAllWithOffset() throws Exception {
+        List<Object[]> rows = consumeRows(new NLOperation(outer, inner).execute(10, 100, 100));
+        assertThat(rows.size(), is(5));
+        assertThat(TestingHelpers.printedTable(rows.toArray(new Object[rows.size()][])),
+                is("Red| small\n" +
+                "Red| medium\n" +
+                "Red| large\n" +
+                "Red| very large\n" +
+                "Red| very very large\n"));
+    }
+
+    @Test
+    public void testPageSizeIsCorrect() throws Throwable {
+        Observable<Page> observable = new NLOperation(outer, inner).execute(0, 100, 2);
+        final AtomicInteger pages = new AtomicInteger(0);
+        final AtomicReference<Throwable> lastException = new AtomicReference<>();
+        observable.subscribe(new Action1<Page>() {
+            @Override
+            public void call(Page objects) {
+                try {
+                    assertThat(objects.size(), Matchers.anyOf(is(2L), is(1L)));
+                } catch (Throwable e) {
+                    lastException.set(e);
+                }
+                pages.incrementAndGet();
+            }
+        });
+        Throwable throwable = lastException.get();
+        if (throwable != null) {
+            throw throwable;
+        }
+        assertThat(pages.get(), is(8));
     }
 
     private List<Object[]> consumeRows(Observable<Page> result) {
@@ -212,7 +250,7 @@ public class NLOperationTest extends RandomizedTest {
         Observable<Page> inner = Observable.from(fluentIterable);
         NLOperation nlOperation = new NLOperation(outer, inner);
 
-        Observable<Page> result = nlOperation.execute(15_000).take(5);
+        Observable<Page> result = nlOperation.execute(0, 15_000, 3000).take(5);
         List<Object[]> objects = consumeRows(result);
         assertThat(objects.size(), is(15_000));
     }

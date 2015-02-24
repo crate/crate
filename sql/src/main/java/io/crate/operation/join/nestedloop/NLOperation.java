@@ -21,6 +21,7 @@
 
 package io.crate.operation.join.nestedloop;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.executor.IteratorPage;
 import io.crate.executor.Page;
 import io.crate.operation.projectors.Projector;
@@ -42,8 +43,8 @@ public class NLOperation {
         this.innerPageObservable = innerPageObservable;
     }
 
-    public Observable<Page> execute(int limit) {
-        return Observable.create(new NestedLoopOnSubscribe(outerPageObservable, innerPageObservable, limit));
+    public Observable<Page> execute(int offset, int limit, int pageSize) {
+        return Observable.create(new NestedLoopOnSubscribe(outerPageObservable, innerPageObservable, offset, limit, pageSize));
     }
 
     public void execute(final Projector downstream) {
@@ -92,12 +93,20 @@ public class NLOperation {
 
         private final Observable<Page> outerPageObservable;
         private final Observable<Page> innerPageObservable;
+        private final int offset;
         private final int limit;
+        private final int pageSize;
 
-        public NestedLoopOnSubscribe(Observable<Page> outerPageObservable, Observable<Page> innerPageObservable, int limit) {
+        public NestedLoopOnSubscribe(Observable<Page> outerPageObservable,
+                                     Observable<Page> innerPageObservable,
+                                     int offset,
+                                     int limit,
+                                     int pageSize) {
             this.outerPageObservable = outerPageObservable;
             this.innerPageObservable = innerPageObservable;
+            this.offset = offset;
             this.limit = limit;
+            this.pageSize = pageSize;
         }
 
         @Override
@@ -106,6 +115,8 @@ public class NLOperation {
             final AtomicBoolean fetchedAllInner = new AtomicBoolean(false);
             final List<Page> innerPages = new ArrayList<>();
             final AtomicInteger rowsProduced = new AtomicInteger(0);
+            final AtomicInteger rowsSkipped = new AtomicInteger(0);
+            final List<Object[]> rowBuffer = new ArrayList<>(pageSize);
 
             outerPageObservable.subscribe(new OuterSubscriber(subscriber, fetchedAllOuter, fetchedAllInner) {
 
@@ -114,50 +125,67 @@ public class NLOperation {
                     subscriber.onCompleted();
                 }
 
-                private Page toPage(List<Object[]> rows) {
-                    return new IteratorPage(rows, rows.size(), false);
+                @Override
+                public void onCompleted() {
+                    if (fetchedAllInner.get()) {
+                        sendLastPageAndComplete(rowBuffer);
+                    } else {
+                        fetchedAllOuter.set(true);
+                    }
                 }
 
                 @Override
                 public void onNext(final Page outerPage) {
-                    final List<Object[]> rows = new ArrayList<>();
                     for (final Object[] outerRow : outerPage) {
                         if (fetchedAllInner.get()) {
                             for (Page innerPage : innerPages) {
-                                consumeInnerPage(innerPage, rows, outerRow);
+                                consumeInnerPage(innerPage, rowBuffer, outerRow);
                             }
                         } else {
                             final Subscriber<Page> outerSubscriber = this;
                             innerPageObservable.subscribe(
                                     new InnerSubscriber(subscriber, outerSubscriber, fetchedAllOuter, fetchedAllInner) {
 
-                                @Override
-                                public void onNext(Page innerPage) {
-                                    if (subscriber.isUnsubscribed()) {
-                                        unsubscribe();
-                                        return;
-                                    }
+                                        @Override
+                                        public void onCompleted() {
+                                            if (fetchedAllOuter.get()) {
+                                                sendLastPageAndComplete(rowBuffer);
+                                            } else {
+                                                fetchedAllInner.set(true);
+                                            }
+                                        }
 
-                                    innerPages.add(innerPage);
-                                    consumeInnerPage(innerPage, rows, outerRow);
-                                }
+                                        @Override
+                                        public void onNext(Page innerPage) {
+                                            if (subscriber.isUnsubscribed()) {
+                                                unsubscribe();
+                                                return;
+                                            }
+
+                                            innerPages.add(innerPage);
+                                            consumeInnerPage(innerPage, rowBuffer, outerRow);
+                                        }
                             });
                         }
                     }
-                    if (!subscriber.isUnsubscribed()) {
-                        subscriber.onNext(toPage(rows));
-                    } else {
+                    if (subscriber.isUnsubscribed()) {
                         unsubscribe();
                     }
                 }
 
                 private void consumeInnerPage(Page innerPage, List<Object[]> rows, Object[] outerRow) {
                     for (Object[] innerRow : innerPage) {
-                        rows.add(combineRow(innerRow, outerRow));
+                        if (rowsSkipped.getAndIncrement() < offset) {
+                            continue;
+                        }
 
+                        rows.add(combineRow(innerRow, outerRow));
                         if (rowsProduced.incrementAndGet() >= limit) {
                             sendLastPageAndComplete(rows);
                             return;
+                        } else if (rows.size() == pageSize) {
+                            subscriber.onNext(new IteratorPage(ImmutableList.copyOf(rows), rows.size(), true));
+                            rows.clear();
                         }
                     }
                 }
