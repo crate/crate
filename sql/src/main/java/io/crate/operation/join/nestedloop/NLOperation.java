@@ -23,6 +23,7 @@ package io.crate.operation.join.nestedloop;
 
 import io.crate.executor.IteratorPage;
 import io.crate.executor.Page;
+import io.crate.operation.projectors.Projector;
 import rx.Observable;
 import rx.Subscriber;
 
@@ -33,14 +34,58 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class NLOperation {
 
-    private final NestedLoopOnSubscribe nestedLoopOnSubscribe;
+    private final Observable<Page> outerPageObservable;
+    private final Observable<Page> innerPageObservable;
 
-    public NLOperation(Observable<Page> outerPageObservable, Observable<Page> innerPageObservable, int limit) {
-        nestedLoopOnSubscribe = new NestedLoopOnSubscribe(outerPageObservable, innerPageObservable, limit);
+    public NLOperation(Observable<Page> outerPageObservable, Observable<Page> innerPageObservable) {
+        this.outerPageObservable = outerPageObservable;
+        this.innerPageObservable = innerPageObservable;
     }
 
-    public Observable<Page> execute() {
-        return Observable.create(nestedLoopOnSubscribe);
+    public Observable<Page> execute(int limit) {
+        return Observable.create(new NestedLoopOnSubscribe(outerPageObservable, innerPageObservable, limit));
+    }
+
+    public void execute(final Projector downstream) {
+        final AtomicBoolean fetchedAllOuter = new AtomicBoolean(false);
+        final AtomicBoolean fetchedAllInner = new AtomicBoolean(false);
+        final ProjectorBridge bridge = new ProjectorBridge(downstream);
+        final List<Page> innerPages = new ArrayList<>();
+
+        outerPageObservable.subscribe(new OuterSubscriber(bridge, fetchedAllOuter, fetchedAllInner) {
+
+            private boolean sendPageToDownstream(Object[] outerRow, Page innerPage) {
+                for (Object[] innerRow : innerPage) {
+                    boolean canContinue = downstream.setNextRow(combineRow(innerRow, outerRow));
+                    if (!canContinue) {
+                        onCompleted();
+                        return true;
+                    }
+                }
+                return false;
+            }
+            @Override
+            public void onNext(Page outerPage) {
+                for (final Object[] outerRow : outerPage) {
+                    if (fetchedAllInner.get()) {
+                        for (Page innerPage : innerPages) {
+                            if (sendPageToDownstream(outerRow, innerPage)) return;
+                        }
+                    } else {
+                        final Subscriber<Page> outerSubscriber = this;
+                        innerPageObservable.subscribe(
+                                new InnerSubscriber(bridge, outerSubscriber, fetchedAllOuter, fetchedAllInner) {
+
+                                    @Override
+                                    public void onNext(Page innerPage) {
+                                        if (sendPageToDownstream(outerRow, innerPage)) return;
+                                        innerPages.add(innerPage);
+                                    }
+                                });
+                    }
+                }
+            }
+        });
     }
 
     private static class NestedLoopOnSubscribe implements Observable.OnSubscribe<Page> {
@@ -62,29 +107,15 @@ public class NLOperation {
             final List<Page> innerPages = new ArrayList<>();
             final AtomicInteger rowsProduced = new AtomicInteger(0);
 
-            outerPageObservable.subscribe(new Subscriber<Page>() {
+            outerPageObservable.subscribe(new OuterSubscriber(subscriber, fetchedAllOuter, fetchedAllInner) {
 
                 private void sendLastPageAndComplete(List<Object[]> rows) {
                     subscriber.onNext(new IteratorPage(rows, rows.size(), true));
-                    subscriber.onCompleted();;
+                    subscriber.onCompleted();
                 }
 
                 private Page toPage(List<Object[]> rows) {
                     return new IteratorPage(rows, rows.size(), false);
-                }
-
-                @Override
-                public void onCompleted() {
-                    if (fetchedAllInner.get()) {
-                        subscriber.onCompleted();
-                    } else {
-                        fetchedAllOuter.set(true);
-                    }
-                }
-
-                @Override
-                public void onError(Throwable e) {
-                    subscriber.onError(e);
                 }
 
                 @Override
@@ -97,20 +128,8 @@ public class NLOperation {
                             }
                         } else {
                             final Subscriber<Page> outerSubscriber = this;
-                            innerPageObservable.subscribe(new Subscriber<Page>() {
-                                @Override
-                                public void onCompleted() {
-                                    if (fetchedAllOuter.get()) {
-                                        subscriber.onCompleted();
-                                    } else {
-                                        fetchedAllInner.set(true);
-                                    }
-                                }
-
-                                @Override
-                                public void onError(Throwable e) {
-                                    outerSubscriber.onError(e);
-                                }
+                            innerPageObservable.subscribe(
+                                    new InnerSubscriber(subscriber, outerSubscriber, fetchedAllOuter, fetchedAllInner) {
 
                                 @Override
                                 public void onNext(Page innerPage) {
@@ -143,6 +162,91 @@ public class NLOperation {
                     }
                 }
             });
+        }
+    }
+
+    private static class ProjectorBridge extends Subscriber<Page> {
+
+        private final Projector downstream;
+
+        public ProjectorBridge(Projector downstream) {
+            this.downstream = downstream;
+        }
+
+        @Override
+        public void onCompleted() {
+            downstream.upstreamFinished();
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            downstream.upstreamFailed(e);
+        }
+
+        @Override
+        public void onNext(Page rows) {
+            throw new UnsupportedOperationException("onNext not supported on ProjectorBridge.. call setNextRow directly");
+        }
+    }
+
+    private abstract static class InnerSubscriber extends Subscriber<Page> {
+
+        private final Subscriber<? super Page> subscriber;
+        private final Subscriber<? super Page> outerSubscriber;
+        private final AtomicBoolean fetchedAllOuter;
+        private final AtomicBoolean fetchedAllInner;
+
+        public InnerSubscriber(Subscriber<? super Page> subscriber,
+                               Subscriber<? super Page> outerSubscriber,
+                               AtomicBoolean fetchedAllOuter,
+                               AtomicBoolean fetchedAllInner) {
+            this.subscriber = subscriber;
+            this.outerSubscriber = outerSubscriber;
+            this.fetchedAllOuter = fetchedAllOuter;
+            this.fetchedAllInner = fetchedAllInner;
+        }
+
+        @Override
+        public void onCompleted() {
+            if (fetchedAllOuter.get()) {
+                subscriber.onCompleted();
+            } else {
+                fetchedAllInner.set(true);
+            }
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            outerSubscriber.onError(e);
+        }
+    }
+
+    private abstract static class OuterSubscriber extends Subscriber<Page> {
+
+        private final Subscriber<? super Page> subscriber;
+        private final AtomicBoolean fetchedAllOuter;
+        private final AtomicBoolean fetchedAllInner;
+
+        public OuterSubscriber(Subscriber<? super Page> subscriber,
+                               AtomicBoolean fetchedAllOuter,
+                               AtomicBoolean fetchedAllInner) {
+            this.subscriber = subscriber;
+            this.fetchedAllOuter = fetchedAllOuter;
+            this.fetchedAllInner = fetchedAllInner;
+        }
+
+        @Override
+        public void onCompleted() {
+            if (fetchedAllInner.get()) {
+                subscriber.onCompleted();
+            } else {
+                fetchedAllOuter.set(true);
+            }
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            subscriber.onError(e);
         }
     }
 

@@ -21,9 +21,11 @@
 
 package io.crate.operation.join.nestedloop;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.FluentIterable;
 import io.crate.executor.ObjectArrayPage;
 import io.crate.executor.Page;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.testing.TestingHelpers;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,14 +37,13 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 
-public class NLOperationTest {
-
+public class NLOperationTest extends RandomizedTest {
 
     private Observable<Page> inner;
     private Observable<Page> outer;
+    private String outerXInnerOutput;
 
     @Before
     public void setUp() throws Exception {
@@ -67,17 +68,58 @@ public class NLOperationTest {
                 new Object[]{"very very large"}
         });
         inner = Observable.just(innerPage1, innerPage2, innerPage3);
+
+        outerXInnerOutput = "Green| small\n" +
+                "Green| medium\n" +
+                "Green| large\n" +
+                "Green| very large\n" +
+                "Green| very very large\n" +
+                "Blue| small\n" +
+                "Blue| medium\n" +
+                "Blue| large\n" +
+                "Blue| very large\n" +
+                "Blue| very very large\n" +
+                "Red| small\n" +
+                "Red| medium\n" +
+                "Red| large\n" +
+                "Red| very large\n" +
+                "Red| very very large\n";
+    }
+
+    @Test
+    public void testEmptyOuter() throws Exception {
+        NLOperation nlOperation = new NLOperation(Observable.<Page>empty(), inner);
+        List<Object[]> rows = consumeRows(nlOperation.execute(10));
+        assertThat(rows.size(), is(0));
+    }
+
+    @Test
+    public void testEmptyInner() throws Exception {
+        NLOperation nlOperation = new NLOperation(outer, Observable.<Page>empty());
+        List<Object[]> rows = consumeRows(nlOperation.execute(10));
+        assertThat(rows.size(), is(0));
+    }
+
+    @Test
+    public void testNLOperationWithDownstream() throws Exception {
+        NLOperation nlOperation = new NLOperation(outer, inner);
+
+        CollectingProjector collectingProjector = new CollectingProjector();
+        nlOperation.execute(collectingProjector);
+
+        Object[][] rows = collectingProjector.result().get();
+        assertThat(TestingHelpers.printedTable(rows), is(outerXInnerOutput));
     }
 
     @Test
     public void testNestedNestedLoopOperation() throws Exception {
-        NLOperation innerNLOperation = new NLOperation(outer, inner, 100);
+        NLOperation innerNLOperation = new NLOperation(outer, inner);
         Page page = new ObjectArrayPage(new Object[][] {
                 new Object[] { "Arthur" },
                 new Object[] { "Trillian" }
         });
-        NLOperation nlOperation = new NLOperation(innerNLOperation.execute(), Observable.just(page), 100);
-        List<Object[]> rows = consumeRows(nlOperation.execute());
+        NLOperation nlOperation = new NLOperation(innerNLOperation.execute(100), Observable.just(page));
+        List<Object[]> rows = consumeRows(nlOperation.execute(100));
         assertThat(
                 TestingHelpers.printedTable(rows.toArray(new Object[rows.size()][])),
                 is("Green| small| Arthur\n" +
@@ -115,8 +157,8 @@ public class NLOperationTest {
 
     @Test
     public void testConsumeOnlyFirstPage() throws Exception {
-        NLOperation nlOperation = new NLOperation(outer, inner, 100);
-        Observable<Page> result = nlOperation.execute();
+        NLOperation nlOperation = new NLOperation(outer, inner);
+        Observable<Page> result = nlOperation.execute(100);
 
         Observable<Page> take = result.take(1);
         final List<Object[]> rows = new ArrayList<>();
@@ -133,28 +175,12 @@ public class NLOperationTest {
 
     @Test
     public void testConsumeAll() throws Exception {
-        NLOperation nlOperation = new NLOperation(outer, inner, 100);
-        Observable<Page> result = nlOperation.execute();
+        NLOperation nlOperation = new NLOperation(outer, inner);
+        Observable<Page> result = nlOperation.execute(100);
         List<Object[]> rows = consumeRows(result);
         assertThat(rows.size(), is(15));
-        assertThat(
-                TestingHelpers.printedTable(rows.toArray(new Object[rows.size()][])),
-                is("Green| small\n" +
-                        "Green| medium\n" +
-                        "Green| large\n" +
-                        "Green| very large\n" +
-                        "Green| very very large\n" +
-                        "Blue| small\n" +
-                        "Blue| medium\n" +
-                        "Blue| large\n" +
-                        "Blue| very large\n" +
-                        "Blue| very very large\n" +
-                        "Red| small\n" +
-                        "Red| medium\n" +
-                        "Red| large\n" +
-                        "Red| very large\n" +
-                        "Red| very very large\n")
-        );
+
+        assertThat(TestingHelpers.printedTable(rows.toArray(new Object[rows.size()][])), is(outerXInnerOutput));
     }
 
     private List<Object[]> consumeRows(Observable<Page> result) {
@@ -184,9 +210,9 @@ public class NLOperationTest {
 
         fluentIterable = FluentIterable.of(new Page[] { page, page, page });
         Observable<Page> inner = Observable.from(fluentIterable);
-        NLOperation nlOperation = new NLOperation(outer, inner, 15_000);
+        NLOperation nlOperation = new NLOperation(outer, inner);
 
-        Observable<Page> result = nlOperation.execute().take(5);
+        Observable<Page> result = nlOperation.execute(15_000).take(5);
         List<Object[]> objects = consumeRows(result);
         assertThat(objects.size(), is(15_000));
     }
