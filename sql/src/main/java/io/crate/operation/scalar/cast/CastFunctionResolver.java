@@ -66,4 +66,5 @@ public class CastFunctionResolver {
         }
         return new FunctionInfo(new FunctionIdent(functionName, ImmutableList.of(dataType)), returnType);
     }
+
 }

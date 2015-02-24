@@ -104,8 +104,8 @@ public class ToFloatFunctionTest {
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
-        expectedException.expect(NumberFormatException.class);
-        expectedException.expectMessage("For input string: \"hello\"");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot cast 'hello' to float");
         normalize("hello", DataTypes.STRING);
     }
 }

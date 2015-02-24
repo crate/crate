@@ -22,8 +22,8 @@ public class Literal<ReturnType>
     protected DataType type;
 
     public final static Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
-    private final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
-    private final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
+    public final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
+    public final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
 
     public static final SymbolFactory<Literal> FACTORY = new SymbolFactory<Literal>() {
         @Override

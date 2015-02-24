@@ -70,6 +70,10 @@ public class PartitionName {
         }
     };
 
+    public PartitionName (TableIdent tableIdent, List<BytesRef> values){
+        this(tableIdent.schema(), tableIdent.name(), values);
+    }
+
     public PartitionName(String tableName, List<BytesRef> values) {
         this(null, tableName, values);
     }

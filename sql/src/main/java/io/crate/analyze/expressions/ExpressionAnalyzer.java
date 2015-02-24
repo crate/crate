@@ -30,7 +30,6 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -74,11 +73,11 @@ public class ExpressionAnalyzer {
 
     private final static Map<ComparisonExpression.Type, ComparisonExpression.Type> SWAP_OPERATOR_TABLE =
             ImmutableMap.<ComparisonExpression.Type, ComparisonExpression.Type>builder()
-            .put(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN)
-            .put(ComparisonExpression.Type.LESS_THAN, ComparisonExpression.Type.GREATER_THAN)
-            .put(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL)
-            .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
-            .build();
+                    .put(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN)
+                    .put(ComparisonExpression.Type.LESS_THAN, ComparisonExpression.Type.GREATER_THAN)
+                    .put(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL)
+                    .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
+                    .build();
 
     private final static DataTypeAnalyzer DATA_TYPE_ANALYZER = new DataTypeAnalyzer();
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
@@ -123,12 +122,12 @@ public class ExpressionAnalyzer {
      * <h2>Converts a expression into a symbol.</h2>
      *
      * <p>
-     *     Expressions like QualifiedName that reference a column are resolved using the fieldResolver that were passed
-     *     to the constructor.
+     * Expressions like QualifiedName that reference a column are resolved using the fieldResolver that were passed
+     * to the constructor.
      * </p>
      *
      * <p>
-     *      Some information (like resolved function symbols) are written onto the given expressionAnalysisContext
+     * Some information (like resolved function symbols) are written onto the given expressionAnalysisContext
      * </p>
      */
     public Symbol convert(Expression expression, ExpressionAnalysisContext expressionAnalysisContext) {
@@ -138,12 +137,9 @@ public class ExpressionAnalyzer {
     public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context,
                                            TableRelation tableRelation) {
         if (whereExpression.isPresent()) {
-            WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)), null, null, null);
-            if(whereClause.hasQuery()){
-                WhereClauseValidator whereClauseValidator = new WhereClauseValidator();
-                whereClauseValidator.validate(whereClause);
-            }
-            return tableRelation.resolve(whereClause);
+            WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)), null, null);
+            whereClause = tableRelation.resolve(whereClause);
+            return whereClause;
         } else {
             return WhereClause.MATCH_ALL;
         }
@@ -157,7 +153,7 @@ public class ExpressionAnalyzer {
      * normalize and validate given value according to the corresponding {@link io.crate.planner.symbol.Reference}
      *
      * @param valueSymbol the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
-     * @param reference  the reference to which the value has to comply in terms of type-compatibility
+     * @param reference   the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
@@ -229,12 +225,13 @@ public class ExpressionAnalyzer {
 
     /**
      * validate input types to not be nested arrays/collection types
+     *
      * @throws ColumnValidationException if input type is a nested array type
      */
     private void validateInputType(DataType dataType, ColumnIdent columnIdent) throws ColumnValidationException {
         if (dataType != null
                 && DataTypes.isCollectionType(dataType)
-                && DataTypes.isCollectionType(((CollectionType)dataType).innerType())) {
+                && DataTypes.isCollectionType(((CollectionType) dataType).innerType())) {
             throw new ColumnValidationException(columnIdent.sqlFqn(),
                     String.format(Locale.ENGLISH, "Invalid datatype '%s'", dataType));
         }
@@ -245,7 +242,7 @@ public class ExpressionAnalyzer {
      * normalize and validate the given value according to the given {@link io.crate.types.DataType}
      *
      * @param inputValue any {@link io.crate.planner.symbol.Symbol} that evaluates to a Literal or Parameter
-     * @param dataType the type to convert this input to
+     * @param dataType   the type to convert this input to
      * @return a {@link io.crate.planner.symbol.Literal} of type <code>dataType</code>
      */
     public Literal normalizeInputForType(Symbol inputValue, DataType dataType) {
@@ -285,7 +282,7 @@ public class ExpressionAnalyzer {
             if (nestedInfo.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
                 value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, forWrite));
             } else if (isObjectArray(nestedInfo.type()) && entry.getValue() instanceof Object[]) {
-                value.put(entry.getKey(), normalizeObjectArrayValue((Object[])entry.getValue(), nestedInfo, forWrite));
+                value.put(entry.getKey(), normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo, forWrite));
             } else {
                 value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
@@ -294,14 +291,14 @@ public class ExpressionAnalyzer {
     }
 
     private boolean isObjectArray(DataType type) {
-        return type.id() == ArrayType.ID && ((ArrayType)type).innerType().id() == ObjectType.ID;
+        return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
     }
 
     private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo, boolean forWrite) {
         for (Object arrayItem : value) {
             Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
             // return value not used and replaced in value as arrayItem is a map that is mutated
-            normalizeObjectValue((Map<String, Object>)arrayItem, arrayInfo, forWrite);
+            normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo, forWrite);
         }
         return value;
     }
@@ -430,7 +427,10 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitInPredicate(InPredicate node, ExpressionAnalysisContext context) {
+
             Symbol left = process(node.getValue(), context);
+
+
             DataType leftType = left.valueType();
             if (leftType.equals(DataTypes.UNDEFINED)) {
                 // dynamic or null values cannot be queried, in scalar use-cases (system tables)
@@ -438,26 +438,37 @@ public class ExpressionAnalyzer {
                 return Literal.NULL;
             }
 
-            Set<Object> rightValues = new HashSet<>();
+            InListExpression listExpression = ((InListExpression) node.getValueList());
+
+            Set<Function> comparisons = new HashSet<>(listExpression.getValues().size());
+            FunctionInfo eqInfo = new FunctionInfo(
+                    new FunctionIdent(EqOperator.NAME, Arrays.asList(leftType, leftType)),
+                    DataTypes.BOOLEAN);
             for (Expression expression : ((InListExpression) node.getValueList()).getValues()) {
                 Symbol right = expression.accept(this, context);
-                Literal rightLiteral;
-                try {
-                    rightLiteral = Literal.convert(right, leftType);
-                    rightValues.add(rightLiteral.value());
-                } catch (IllegalArgumentException | ClassCastException e) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",
-                                    SymbolFormatter.format(right),
-                                    leftType.getName()));
+                if (!right.valueType().equals(leftType)) {
+                    if (right.valueType().isConvertableTo(leftType)) {
+                        right = context.allocateFunction(CastFunctionResolver.functionInfo(right.valueType(), leftType),
+                                Arrays.asList(right));
+                    } else {
+                        throw new IllegalArgumentException(
+                                String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",
+                                        SymbolFormatter.format(right),
+                                        leftType.getName()));
+                    }
                 }
+                comparisons.add(context.allocateFunction(eqInfo, Arrays.asList(left, right)));
             }
-            SetType setType = new SetType(leftType);
-            FunctionIdent functionIdent = new FunctionIdent(InOperator.NAME, Arrays.asList(leftType, setType));
-            FunctionInfo functionInfo = getFunctionInfo(functionIdent);
-            return context.allocateFunction(
-                    functionInfo,
-                    Arrays.asList(left, newLiteral(setType, rightValues)));
+            if (comparisons.size() == 1) {
+                return comparisons.iterator().next();
+            } else {
+                Iterator<Function> iter = comparisons.iterator();
+                Symbol result = iter.next();
+                while (iter.hasNext()) {
+                    result = context.allocateFunction(OrOperator.INFO, Arrays.asList(result, iter.next()));
+                }
+                return result;
+            }
         }
 
         @Override
@@ -833,7 +844,7 @@ public class ExpressionAnalyzer {
         /**
          * swaps the comparison so that references are on the left side.
          * e.g.:
-         *      eq(2, name)  becomes  eq(name, 2)
+         * eq(2, name)  becomes  eq(name, 2)
          */
         private void swapIfNecessary() {
             if (!(left.symbolType().isValueSymbol() && (right instanceof Reference || right instanceof Field))) {

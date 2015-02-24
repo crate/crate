@@ -19,30 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.analyze.where;
 
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
+import com.google.common.collect.ImmutableList;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import org.junit.Test;
 
-public class BytesRefValueSymbolVisitor extends SymbolVisitor<Void, BytesRef> {
+import java.util.List;
 
-    public static final BytesRefValueSymbolVisitor INSTANCE = new BytesRefValueSymbolVisitor();
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
-    private BytesRefValueSymbolVisitor() {
+public class DocKeysTest {
+
+    @Test
+    public void testClusteredIsFirstInId() throws Exception {
+        // if a the table is clustered and has a pk, the clustering value is put in front in the id computation
+        List<List<Symbol>> pks = ImmutableList.<List<Symbol>>of(
+                ImmutableList.<Symbol>of(Literal.newLiteral(1), Literal.newLiteral("Ford"))
+        );
+        DocKeys docKeys = new DocKeys(pks, false, 1, null);
+        DocKeys.DocKey key = docKeys.getOnlyKey();
+        assertThat(key.routing(), is("Ford"));
+        assertThat(key.id(), is("AgRGb3JkATE="));
     }
 
-    public BytesRef process(Symbol symbol) {
-        return process(symbol, null);
-    }
-
-    @Override
-    protected BytesRef visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException(
-                SymbolFormatter.format("Unable to get string value from symbol: %s", symbol));
-    }
-
-    @Override
-    public BytesRef visitLiteral(Literal symbol, Void context) {
-        return BytesRefs.toBytesRef(symbol.value());
-    }
 }

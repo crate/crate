@@ -24,17 +24,16 @@ package io.crate.planner.node.dql;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbolVisitor;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -54,12 +53,12 @@ public abstract class ESDQLPlanNode implements DQLPlanNode, PlannedAnalyzedRelat
     }
 
     @Nullable
-    public static String noCommaStringRouting(Optional<Set<Literal>> clusteredBy) {
+    public static String noCommaStringRouting(Optional<Set<Symbol>> clusteredBy) {
         if (clusteredBy.isPresent()){
             StringBuilder sb = new StringBuilder();
             boolean first = true;
             for (Symbol symbol : clusteredBy.get()) {
-                String s = StringValueSymbolVisitor.INSTANCE.process(symbol);
+                String s = ValueSymbolVisitor.STRING.process(symbol);
                 if (s.indexOf(COMMA)>-1){
                     return null;
                 }

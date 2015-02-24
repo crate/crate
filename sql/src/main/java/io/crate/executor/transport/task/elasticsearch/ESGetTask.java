@@ -21,18 +21,20 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.analyze.where.DocKeys;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -43,6 +45,8 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbolVisitor;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
@@ -74,12 +78,11 @@ public class ESGetTask extends JobTask {
         assert multiGetAction != null;
         assert getAction != null;
         assert node != null;
-        assert node.ids().size() > 0;
+        assert node.docKeys().size() > 0;
         assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
 
-        Map<String, Object> partitionValues = preparePartitionValues(node);
-        final GetResponseContext ctx = new GetResponseContext(functions, node.outputs().size(), partitionValues);
+        final GetResponseContext ctx = new GetResponseContext(functions, node);
         List<FieldExtractor> extractors = new ArrayList<>(node.outputs().size());
         for (Symbol symbol : node.outputs()) {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
@@ -91,7 +94,7 @@ public class ESGetTask extends JobTask {
         final FetchSourceContext fsc = new FetchSourceContext(ctx.referenceNames());
         final SettableFuture<TaskResult> result = SettableFuture.create();
         results = Arrays.<ListenableFuture<TaskResult>>asList(result);
-        if (node.ids().size() > 1) {
+        if (node.docKeys().size() > 1) {
             MultiGetRequest multiGetRequest = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
             request = multiGetRequest;
@@ -105,40 +108,32 @@ public class ESGetTask extends JobTask {
         }
     }
 
-    private Map<String, Object> preparePartitionValues(ESGetNode node) {
-        Map<String, Object> partitionValues;
-        if (node.partitionBy().isEmpty()) {
-            partitionValues = ImmutableMap.of();
+    public static String indexName(TableInfo tableInfo, Optional<List<BytesRef>> values){
+        if (tableInfo.isPartitioned()){
+            return new PartitionName(tableInfo.ident(), values.get()).stringValue();
         } else {
-            PartitionName partitionName = PartitionName.fromStringSafe(node.index());
-            int numPartitionColumns = node.partitionBy().size();
-            partitionValues = new HashMap<>(numPartitionColumns);
-            for (int i = 0; i < node.partitionBy().size(); i++) {
-                ReferenceInfo info = node.partitionBy().get(i);
-                partitionValues.put(
-                        info.ident().columnIdent().fqn(),
-                        info.type().value(partitionName.values().get(i))
-                );
-            }
+            return tableInfo.ident().name();
         }
-        return partitionValues;
     }
 
     private GetRequest prepareGetRequest(ESGetNode node, FetchSourceContext fsc) {
-        GetRequest getRequest = new GetRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
+        DocKeys.DocKey docKey = node.docKeys().getOnlyKey();
+        GetRequest getRequest = new GetRequest(indexName(node.tableInfo(), docKey.partitionValues()),
+                Constants.DEFAULT_MAPPING_TYPE, docKey.id());
         getRequest.fetchSourceContext(fsc);
         getRequest.realtime(true);
-        getRequest.routing(node.routingValues().get(0));
+        getRequest.routing(docKey.routing());
         return getRequest;
     }
 
     private MultiGetRequest prepareMultiGetRequest(ESGetNode node, FetchSourceContext fsc) {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
-        for (int i = 0; i < node.ids().size(); i++) {
-            String id = node.ids().get(i);
-            MultiGetRequest.Item item = new MultiGetRequest.Item(node.index(), Constants.DEFAULT_MAPPING_TYPE, id);
+        for (DocKeys.DocKey key : node.docKeys()) {
+            String id = key.id();
+            MultiGetRequest.Item item = new MultiGetRequest.Item(
+                    indexName(node.tableInfo(), key.partitionValues()), Constants.DEFAULT_MAPPING_TYPE, key.id());
             item.fetchSourceContext(fsc);
-            item.routing(node.routingValues().get(i));
+            item.routing(key.routing());
             multiGetRequest.add(item);
         }
         multiGetRequest.realtime(true);
@@ -152,7 +147,7 @@ public class ESGetTask extends JobTask {
             List<Symbol> orderBySymbols = new ArrayList<>(node.sortSymbols().size());
             for (Symbol symbol : node.sortSymbols()) {
                 int i = node.outputs().indexOf(symbol);
-                if (i < 0 ) {
+                if (i < 0) {
                     orderBySymbols.add(new InputColumn(node.outputs().size() + orderBySymbols.size()));
                 } else {
                     orderBySymbols.add(new InputColumn(i));
@@ -282,7 +277,7 @@ public class ESGetTask extends JobTask {
         @Override
         public void onResponse(GetResponse response) {
             if (!response.isExists()) {
-                result.set( TaskResult.EMPTY_RESULT);
+                result.set(TaskResult.EMPTY_RESULT);
                 return;
             }
 
@@ -325,11 +320,26 @@ public class ESGetTask extends JobTask {
     }
 
     static class GetResponseContext extends SymbolToFieldExtractor.Context {
-        private final Map<String, Object> partitionValues;
+        private final HashMap<String, DocKeys.DocKey> ids2Keys;
+        private final ESGetNode node;
+        private final HashMap<ColumnIdent, Integer> partitionPositions;
 
-        public GetResponseContext(Functions functions, int size, Map<String, Object> partitionValues) {
-            super(functions, size);
-            this.partitionValues = partitionValues;
+        public GetResponseContext(Functions functions, ESGetNode node) {
+            super(functions, node.outputs().size());
+            this.node = node;
+            ids2Keys = new HashMap<>(node.docKeys().size());
+            for (DocKeys.DocKey key : node.docKeys()) {
+                ids2Keys.put(key.id(), key);
+            }
+
+            if (node.tableInfo().isPartitioned()) {
+                partitionPositions = new HashMap<>(node.tableInfo().partitionedByColumns().size());
+                for (Integer idx : node.docKeys().partitionIdx().get()) {
+                    partitionPositions.put(node.tableInfo().primaryKey().get(idx), idx);
+                }
+            } else {
+                partitionPositions = null;
+            }
         }
 
         @Override
@@ -357,22 +367,25 @@ public class ESGetTask extends JobTask {
                         return response.getId();
                     }
                 };
-            } else if (context.partitionValues.containsKey(field)) {
-                return new FieldExtractor<GetResponse>() {
-                    @Override
-                    public Object extract(GetResponse response) {
-                        return context.partitionValues.get(field);
-                    }
-                };
-            } else {
-                return new FieldExtractor<GetResponse>() {
-                    @Override
-                    public Object extract(GetResponse response) {
-                        assert response.getSourceAsMap() != null;
-                        return XContentMapValues.extractValue(field, response.getSourceAsMap());
-                    }
-                };
+            } else if (context.node.tableInfo().isPartitioned()
+                    && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {
+                final int pos = context.node.tableInfo().primaryKey().indexOf(reference.ident().columnIdent());
+                if (pos >= 0) {
+                    return new FieldExtractor<GetResponse>() {
+                        @Override
+                        public Object extract(GetResponse response) {
+                            return ValueSymbolVisitor.VALUE.process(context.ids2Keys.get(response.getId()).values().get(pos));
+                        }
+                    };
+                }
             }
+            return new FieldExtractor<GetResponse>() {
+                @Override
+                public Object extract(GetResponse response) {
+                    assert response.getSourceAsMap() != null;
+                    return XContentMapValues.extractValue(field, response.getSourceAsMap());
+                }
+            };
         }
     }
 

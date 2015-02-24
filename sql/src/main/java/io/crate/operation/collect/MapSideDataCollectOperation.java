@@ -44,7 +44,7 @@ import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
-import io.crate.planner.symbol.StringValueSymbolVisitor;
+import io.crate.planner.symbol.ValueSymbolVisitor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -202,7 +202,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     new String[fileUriCollectNode.executionNodes().size()]);
             Arrays.sort(readers);
             return new FileReadingCollector(
-                    StringValueSymbolVisitor.INSTANCE.process(fileUriCollectNode.targetUri()),
+                    ValueSymbolVisitor.STRING.process(fileUriCollectNode.targetUri()),
                     context.topLevelInputs(),
                     context.expressions(),
                     projectorChain.firstProjector(),

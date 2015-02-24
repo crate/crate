@@ -30,9 +30,9 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolFormatter;
+import io.crate.planner.symbol.ValueSymbolVisitor;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -162,7 +162,7 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
             if (!v.symbolType().isValueSymbol()) {
                 throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
             }
-            builder.put(key, StringValueSymbolVisitor.INSTANCE.process(v));
+            builder.put(key, ValueSymbolVisitor.STRING.process(v));
         }
         return builder.build();
     }

@@ -21,11 +21,12 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.*;
+import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -68,41 +69,37 @@ public class QueryThenFetchConsumer implements Consumer {
                 return null;
             }
 
-            WhereClause where = table.querySpec().where();
-            if (where != null){
-                WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-                WhereClause whereClause = whereClauseAnalyzer.analyze(where);
-                if(whereClause.version().isPresent()){
-                    context.validationException(new VersionInvalidException());
-                    return null;
-                }
-                where = whereClause;
-                if (where.noMatch()){
-                    return new NoopPlannedAnalyzedRelation(table);
-                }
+            if(table.querySpec().where().hasVersions()){
+                context.validationException(new VersionInvalidException());
+                return null;
             }
+
+            if (table.querySpec().where().noMatch()) {
+                return new NoopPlannedAnalyzedRelation(table);
+            }
+
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
                 return new QueryThenFetchNode(
-                        tableInfo.getRouting(where, null),
+                        tableInfo.getRouting(table.querySpec().where(), null),
                         table.querySpec().outputs(),
                         null, null, null,
                         table.querySpec().limit(),
                         table.querySpec().offset(),
-                        where,
+                        table.querySpec().where(),
                         tableInfo.partitionedByColumns()
                 );
             } else {
                 table.tableRelation().validateOrderBy(orderBy);
                 return new QueryThenFetchNode(
-                        tableInfo.getRouting(where, null),
+                        tableInfo.getRouting(table.querySpec().where(), null),
                         table.querySpec().outputs(),
                         orderBy.orderBySymbols(),
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst(),
                         table.querySpec().limit(),
                         table.querySpec().offset(),
-                        where,
+                        table.querySpec().where(),
                         tableInfo.partitionedByColumns()
                 );
             }

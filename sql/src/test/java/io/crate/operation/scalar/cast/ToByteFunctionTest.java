@@ -102,8 +102,8 @@ public class ToByteFunctionTest {
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
-        expectedException.expect(NumberFormatException.class);
-        expectedException.expectMessage("For input string: \"hello\"");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot cast 'hello' to byte");
         normalize("hello", DataTypes.STRING);
     }
 }

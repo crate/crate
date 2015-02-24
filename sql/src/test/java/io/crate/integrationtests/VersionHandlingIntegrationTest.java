@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.analyze.UpdateStatementAnalyzer;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -126,36 +127,12 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testUpdateWhereVersionWithoutPrimaryKey() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-
-        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
-
-        execute("select \"_version\" from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-
         execute("update test set col2 = ? where \"_version\" = ?",
                 new Object[]{"ok now panic", 1});
-        assertEquals(1L, response.rowCount());
-
-        // Validate that the row is really updated
-        refresh();
-        execute("select col2 from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("ok now panic", response.rows()[0][0]);
-
-        // Update with version conflict
-        execute("update test set col2 = ? where \"_version\" = ?",
-                new Object[]{"panic", 1});
-        assertEquals(0L, response.rowCount());
-
-        // Validate that the row is really NOT updated
-        refresh();
-        execute("select col2 from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("ok now panic", response.rows()[0][0]);
     }
 
     @Test
@@ -175,9 +152,10 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         assertEquals(1L, response.rowCount());
         refresh();
 
-        execute("update test set col2 = ? where col2 = ? and \"_version\" = ?",
-                new Object[]{"already in panic", "ok now panic", 1});
-        assertEquals(0, response.rowCount());
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"hopefully not updated", 1, 1});
+        assertEquals(0L, response.rowCount());
+        refresh();
 
         // Validate that the row is really NOT updated
         refresh();
@@ -190,7 +168,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     public void testSelectWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause");
         execute("select _version from test where col2 = 'hello' and _version = 1");
     }
 

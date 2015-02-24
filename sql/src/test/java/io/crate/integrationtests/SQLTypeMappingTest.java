@@ -209,11 +209,20 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("invalid IN LIST value 'a'. expected type 'byte'");
+        expectedException.expectMessage("cannot cast 'a' to byte");
 
         setUpSimple();
         execute("update t1 set byte_field=0 where byte_field in ('a')");
     }
+
+    @Test
+    public void testInvalidTypeWhereClause() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("cannot cast 'a' to byte");
+        setUpSimple();
+        execute("update t1 set byte_field=0 where byte_field in ('a')");
+    }
+
 
     @Test
     public void testSetUpdate() throws Exception {

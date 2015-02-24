@@ -21,10 +21,10 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import io.crate.analyze.Id;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.DocKeys;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.integrationtests.Setup;
 import io.crate.metadata.ColumnIdent;
@@ -32,21 +32,20 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
 import org.junit.After;
 import org.junit.Before;
 
-import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -86,28 +85,21 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     Reference partedDateRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(partedTable, "date"), RowGranularity.DOC, DataTypes.TIMESTAMP));
 
-    protected static ESGetNode newGetNode(String index, List<Symbol> outputs, String id) {
-        return newGetNode(index, outputs, Arrays.asList(id));
+    protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, String singleStringKey) {
+        return newGetNode(tableInfo, outputs, Arrays.asList(singleStringKey));
     }
 
-    protected static ESGetNode newGetNode(String index, List<Symbol> outputs, List<String> ids) {
-        return new ESGetNode(
-                index,
-                outputs,
-                Lists.transform(ids, new Function<String, Id>() {
-                    @Nullable
-                    @Override
-                    public Id apply(String input) {
-                        return new Id(Arrays.asList(new BytesRef(input)));
-                    }
-                }),
-                ImmutableList.<Symbol>of(),
-                new boolean[0],
-                new Boolean[0],
-                null,
-                0,
-                null
-        );
+    protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys) {
+        QuerySpec querySpec = new QuerySpec();
+        querySpec.outputs(outputs);
+        List<List<Symbol>> keys = new ArrayList<>(singleStringKeys.size());
+        for (String v : singleStringKeys) {
+            keys.add(ImmutableList.<Symbol>of(Literal.newLiteral(v)));
+        }
+        WhereClause whereClause = new WhereClause();
+        whereClause.docKeys(new DocKeys(keys, false, -1, null));
+        querySpec.where(whereClause);
+        return new ESGetNode(tableInfo, querySpec);
     }
 
     @Before

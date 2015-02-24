@@ -28,10 +28,12 @@ import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+import java.util.Locale;
 
 public abstract class ToPrimitiveFunction<T> extends Scalar<T, Object> {
 
@@ -61,8 +63,14 @@ public abstract class ToPrimitiveFunction<T> extends Scalar<T, Object> {
         assert symbol.arguments().size() == 1;
         Symbol argument = symbol.arguments().get(0);
         if (argument.symbolType().isValueSymbol()) {
-
-            return Literal.newLiteral (returnType, returnType.value( ((Input)argument).value()));
+            Object value = ((Input) argument).value();
+            try {
+                return Literal.newLiteral(returnType, returnType.value(value));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "cannot cast %s to %s",
+                                SymbolFormatter.format(argument), returnType), e);
+            }
         }
         return symbol;
     }

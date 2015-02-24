@@ -181,13 +181,13 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), symbolContext);
 
         projection = projection.normalize(normalizer);
-        String uri = StringValueSymbolVisitor.INSTANCE.process(projection.uri());
+        String uri = ValueSymbolVisitor.STRING.process(projection.uri());
         if (projection.isDirectoryUri()) {
             StringBuilder sb = new StringBuilder(uri);
             Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME);
             assert resolvedFileName instanceof Literal;
             assert resolvedFileName.valueType() == StringType.INSTANCE;
-            String fileName = StringValueSymbolVisitor.INSTANCE.process(resolvedFileName);
+            String fileName = ValueSymbolVisitor.STRING.process(resolvedFileName);
             if (!uri.endsWith("/")) {
                 sb.append("/");
             }

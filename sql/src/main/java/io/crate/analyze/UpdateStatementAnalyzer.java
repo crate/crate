@@ -26,10 +26,14 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
+import io.crate.analyze.where.HasColumn;
+import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -52,6 +56,12 @@ import java.util.Map;
 @Singleton
 public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
+    public static final String VERSION_SEARCH_EX_MSG =
+            "_version is not allowed in update queries without specifying a primary key";
+    private static final UnsupportedFeatureException VERSION_SEARCH_EX = new UnsupportedFeatureException(
+            VERSION_SEARCH_EX_MSG);
+
+
     private static final Predicate<ReferenceInfo> IS_OBJECT_ARRAY = new Predicate<ReferenceInfo>() {
         @Override
         public boolean apply(@Nullable ReferenceInfo input) {
@@ -60,6 +70,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                     && ((ArrayType)input.type()).innerType().equals(DataTypes.OBJECT);
         }
     };
+
 
     private final AnalysisMetaData analysisMetaData;
     private final RelationAnalyzer relationAnalyzer;
@@ -106,12 +117,27 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         if (analysis.parameterContext().bulkParameters.length > 0) {
             numNested = analysis.parameterContext().bulkParameters.length;
         }
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
         List<UpdateAnalyzedStatement.NestedAnalyzedStatement> nestedAnalyzedStatements = new ArrayList<>(numNested);
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
 
-            UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement = new UpdateAnalyzedStatement.NestedAnalyzedStatement(
-                    expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext, tableRelation));
+            WhereClause whereClause = expressionAnalyzer.generateWhereClause(
+                    node.whereClause(),
+                    expressionAnalysisContext,
+                    tableRelation);
+
+            whereClause = whereClauseAnalyzer.analyze(whereClause);
+
+            if (!whereClause.docKeys().isPresent() && HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION)) {
+                throw VERSION_SEARCH_EX;
+            }
+
+            UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement =
+                    new UpdateAnalyzedStatement.NestedAnalyzedStatement(whereClause);
+
+
+
             for (Assignment assignment : node.assignements()) {
                 analyzeAssignment(
                         assignment,

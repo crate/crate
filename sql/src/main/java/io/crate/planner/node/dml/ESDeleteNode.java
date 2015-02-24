@@ -21,33 +21,27 @@
 
 package io.crate.planner.node.dml;
 
-import com.google.common.base.Optional;
+import io.crate.analyze.where.DocKeys;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.PlanNodeVisitor;
 
 public class ESDeleteNode extends DMLPlanNode {
 
-    private String index;
-    private String id;
-    private String routing;
-    private Optional<Long> version;
+    private final TableInfo tableInfo;
+    private final DocKeys.DocKey key;
 
-    public ESDeleteNode(String index, String id, String routing, Optional<Long> version) {
-        this.index = index;
-        this.id = id;
-        this.routing = routing;
-        this.version = version;
+    public ESDeleteNode(TableInfo tableInfo,
+                        DocKeys.DocKey key) {
+        this.tableInfo = tableInfo;
+        this.key = key;
     }
 
-    public String index() {
-        return index;
+    public TableInfo tableInfo() {
+        return tableInfo;
     }
 
-    public String id() {
-        return id;
-    }
-
-    public String routing() {
-        return routing;
+    public DocKeys.DocKey key() {
+        return key;
     }
 
     @Override
@@ -55,7 +49,4 @@ public class ESDeleteNode extends DMLPlanNode {
         return visitor.visitESDeleteNode(this, context);
     }
 
-    public Optional<Long> version() {
-        return version;
-    }
 }
