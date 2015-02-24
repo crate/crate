@@ -24,7 +24,6 @@ package io.crate.planner.node;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
-import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.common.Nullable;
 
 public class PlanNodeVisitor<C, R> {
@@ -98,10 +97,6 @@ public class PlanNodeVisitor<C, R> {
     }
 
     public R visitGenericDDLNode(GenericDDLNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
-    public R visitNestedLoopNode(NestedLoopNode node, C context) {
         return visitPlanNode(node, context);
     }
 

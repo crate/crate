@@ -22,14 +22,11 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
-import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
@@ -48,12 +45,10 @@ import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.*;
-import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateTestCluster;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
@@ -732,200 +727,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // Existing document is updated
         assertThat((String) objects[0][1], is("Zaphod Beeblebrox"));
         assertThat((boolean) objects[0][2], is(true));
-    }
-
-    @Test
-    public void testNestedLoopTask() throws Exception {
-        setup.setUpCharacters();
-        setup.setUpBooks();
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        QueryThenFetchNode leftNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef),
-                Arrays.<Symbol>asList(nameRef, idRef),
-                new boolean[]{false, true},
-                new Boolean[] { null, null },
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        leftNode.outputTypes(ImmutableList.of(
-                        idRef.info().type(),
-                        nameRef.info().type())
-        );
-
-        DocTableInfo books = docSchemaInfo.getTableInfo("books");
-        QueryThenFetchNode rightNode = new QueryThenFetchNode(
-                books.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(booksIdRef, titleRef, authorRef),
-                Arrays.<Symbol>asList(titleRef),
-                new boolean[]{false},
-                new Boolean[] { null },
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        rightNode.outputTypes(ImmutableList.of(
-                        booksIdRef.info().type(),
-                        titleRef.info().type(),
-                        authorRef.info().type())
-        );
-
-        // SELECT c.id, c.name, b.id, b.title, b.author
-        // FROM characters as c CROSS JOIN books as b
-        // ORDER BY c.name, c.id, b.title
-
-        TopNProjection projection = new TopNProjection(5, 3);
-        projection.outputs(ImmutableList.<Symbol>of(
-                new InputColumn(0, DataTypes.INTEGER),
-                new InputColumn(1, DataTypes.STRING),
-                new InputColumn(2, DataTypes.INTEGER),
-                new InputColumn(3, DataTypes.STRING),
-                new InputColumn(4, DataTypes.STRING)
-        ));
-        List<DataType> outputTypes = ImmutableList.of(
-                idRef.info().type(),
-                nameRef.info().type(),
-                booksIdRef.info().type(),
-                titleRef.info().type(),
-                authorRef.info().type());
-
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 3);
-        node.outputTypes(outputTypes);
-        node.projections(ImmutableList.<Projection>of(projection));
-
-        Plan plan = new IterablePlan(node);
-
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(NestedLoopTask.class));
-        List<TaskResult> results = Futures.allAsList(executor.execute(job)).get();
-        assertThat(results.size(), is(1));
-        assertThat(results.get(0), instanceOf(QueryResult.class));
-        QueryResult result = (QueryResult)results.get(0);
-        assertThat(TestingHelpers.printedTable(result.rows()), is(
-                        "1| Arthur| 3| Life, the Universe and Everything| Douglas Adams\n" +
-                        "1| Arthur| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams\n" +
-                        "1| Arthur| 2| The Restaurant at the End of the Universe| Douglas Adams\n" +
-                        "2| Ford| 3| Life, the Universe and Everything| Douglas Adams\n" +
-                        "2| Ford| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams\n"));
-
-
-        // SELECT c.id, b.id, b.title, b.author, c.name
-        // FROM characters as c CROSS JOIN books as b
-        // ORDER BY b.title, c.name, c.id
-        TopNProjection projection2 = new TopNProjection(5, 0);
-        projection2.outputs(ImmutableList.<Symbol>of(
-                new InputColumn(0, DataTypes.INTEGER),
-                new InputColumn(2, DataTypes.INTEGER),
-                new InputColumn(3, DataTypes.STRING),
-                new InputColumn(4, DataTypes.STRING),
-                new InputColumn(1, DataTypes.STRING)
-        ));
-        List<DataType> outputTypes2 = ImmutableList.of(
-                idRef.info().type(),
-                booksIdRef.info().type(),
-                titleRef.info().type(),
-                authorRef.info().type(),
-                nameRef.info().type());
-        NestedLoopNode node2 = new NestedLoopNode(leftNode, rightNode, false, 5, 0);
-        node2.outputTypes(outputTypes2);
-        node2.projections(ImmutableList.<Projection>of(projection2));
-
-        Plan plan2 = new IterablePlan(node2);
-
-        Job job2 = executor.newJob(plan2);
-        assertThat(job2.tasks().get(0), instanceOf(NestedLoopTask.class));
-        List<TaskResult> results2 = Futures.allAsList(executor.execute(job2)).get();
-        assertThat(results2.size(), is(1));
-        assertThat(results2.get(0), instanceOf(QueryResult.class));
-        QueryResult result2 = (QueryResult)results2.get(0);
-        assertThat(TestingHelpers.printedTable(result2.rows()), is(
-                        "4| 3| Life, the Universe and Everything| Douglas Adams| Arthur\n" +
-                        "1| 3| Life, the Universe and Everything| Douglas Adams| Arthur\n" +
-                        "2| 3| Life, the Universe and Everything| Douglas Adams| Ford\n" +
-                        "3| 3| Life, the Universe and Everything| Douglas Adams| Trillian\n" +
-                        "4| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams| Arthur\n"));
-    }
-
-    @Test
-    public void testNestedLoopMixedSorting() throws Exception {
-        setup.setUpCharacters();
-        setup.setUpBooks();
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        QueryThenFetchNode leftNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
-                Arrays.<Symbol>asList(nameRef, femaleRef),
-                new boolean[]{false, true},
-                new Boolean[]{null, null},
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        leftNode.outputTypes(ImmutableList.of(
-                        idRef.info().type(),
-                        nameRef.info().type(),
-                        femaleRef.info().type())
-        );
-
-        DocTableInfo books = docSchemaInfo.getTableInfo("books");
-        QueryThenFetchNode rightNode = new QueryThenFetchNode(
-                books.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(authorRef),
-                Arrays.<Symbol>asList(authorRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                5,
-                0,
-                WhereClause.MATCH_ALL,
-                null
-        );
-        rightNode.outputTypes(ImmutableList.of(
-                        authorRef.info().type())
-        );
-
-        // SELECT c.id, c.name, c.female, b.author
-        // FROM characters as c CROSS JOIN books as b
-        // ORDER BY c.name, b.author, c.female
-
-        TopNProjection projection = new TopNProjection(5, 0);
-        projection.outputs(ImmutableList.<Symbol>of(
-                new InputColumn(0, DataTypes.INTEGER),
-                new InputColumn(1, DataTypes.STRING),
-                new InputColumn(2, DataTypes.BOOLEAN),
-                new InputColumn(3, DataTypes.STRING)
-        ));
-        List<DataType> outputTypes = ImmutableList.of(
-                idRef.info().type(),
-                nameRef.info().type(),
-                femaleRef.info().type(),
-                authorRef.info().type());
-
-        NestedLoopNode node = new NestedLoopNode(leftNode, rightNode, true, 5, 0);
-        node.projections(ImmutableList.<Projection>of(projection));
-        node.outputTypes(outputTypes);
-
-        Plan plan = new IterablePlan(node);
-
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(NestedLoopTask.class));
-        List<TaskResult> results = Futures.allAsList(executor.execute(job)).get();
-        assertThat(results.size(), is(1));
-        assertThat(results.get(0), instanceOf(QueryResult.class));
-        QueryResult result = (QueryResult) results.get(0);
-        assertThat(TestingHelpers.printedTable(result.rows()), is(
-                        "4| Arthur| true| Douglas Adams\n" +
-                        "4| Arthur| true| Douglas Adams\n" +
-                        "4| Arthur| true| Douglas Adams\n" +
-                        "1| Arthur| false| Douglas Adams\n" +
-                        "1| Arthur| false| Douglas Adams\n"));
     }
 
     @Test
