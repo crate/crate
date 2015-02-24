@@ -28,6 +28,7 @@ public class CollectorContext {
 
     private SearchContext searchContext;
     private LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
+    private int jobSearchContextId;
 
     public CollectorContext() {
     }
@@ -50,4 +51,13 @@ public class CollectorContext {
         return fieldsVisitor;
     }
 
+
+    public CollectorContext jobSearchContextId(int jobSearchContextId) {
+        this.jobSearchContextId = jobSearchContextId;
+        return this;
+    }
+
+    public int jobSearchContextId() {
+        return jobSearchContextId;
+    }
 }

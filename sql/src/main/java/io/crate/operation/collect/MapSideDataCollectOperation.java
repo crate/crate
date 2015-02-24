@@ -280,36 +280,50 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
             return result;
         }
 
-        final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
+        int jobSearchContextId = collectNode.routing().jobSearchContextIdBase();
 
         // get shardCollectors from single shards
-        Map<String, List<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
-        for (Map.Entry<String, List<Integer>> entry : shardIdMap.entrySet()) {
-            String indexName = entry.getKey();
-            IndexService indexService;
-            try {
-                indexService = indicesService.indexServiceSafe(indexName);
-            } catch (IndexMissingException e) {
-                throw new TableUnknownException(entry.getKey(), e);
-            }
+        final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
+        for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : collectNode.routing().locations().entrySet()) {
+            if (nodeEntry.getKey().equals(localNodeId)) {
+                Map<String, List<Integer>> shardIdMap = nodeEntry.getValue();
+                for (Map.Entry<String, List<Integer>> entry : shardIdMap.entrySet()) {
+                    String indexName = entry.getKey();
+                    IndexService indexService;
+                    try {
+                        indexService = indicesService.indexServiceSafe(indexName);
+                    } catch (IndexMissingException e) {
+                        throw new TableUnknownException(entry.getKey(), e);
+                    }
 
-            for (Integer shardId : entry.getValue()) {
-                Injector shardInjector;
-                try {
-                    shardInjector = indexService.shardInjectorSafe(shardId);
-                    ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                    CrateCollector collector = shardCollectService.getCollector(
-                            collectNode,
-                            projectorChain
-                    );
-                    shardCollectors.add(collector);
-                } catch (IndexShardMissingException e) {
-                    throw new UnhandledServerException(
-                            String.format(Locale.ENGLISH, "unknown shard id %d on index '%s'",
-                                    shardId, entry.getKey()), e);
-                } catch (Exception e) {
-                    logger.error("Error while getting collector", e);
-                    throw new UnhandledServerException(e);
+                    for (Integer shardId : entry.getValue()) {
+                        Injector shardInjector;
+                        try {
+                            shardInjector = indexService.shardInjectorSafe(shardId);
+                            ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
+                            CrateCollector collector = shardCollectService.getCollector(
+                                    collectNode,
+                                    projectorChain,
+                                    jobSearchContextId
+                            );
+                            if (jobSearchContextId > -1) {
+                                jobSearchContextId++;
+                            }
+                            shardCollectors.add(collector);
+                        } catch (IndexShardMissingException e) {
+                            throw new UnhandledServerException(
+                                    String.format(Locale.ENGLISH, "unknown shard id %d on index '%s'",
+                                            shardId, entry.getKey()), e);
+                        } catch (Exception e) {
+                            logger.error("Error while getting collector", e);
+                            throw new UnhandledServerException(e);
+                        }
+                    }
+                }
+            } else if (jobSearchContextId > -1) {
+                // just increase jobSearchContextId by shard size of foreign node(s) indices
+                for (List<Integer> shardIdMap : nodeEntry.getValue().values()) {
+                    jobSearchContextId += shardIdMap.size();
                 }
             }
         }
