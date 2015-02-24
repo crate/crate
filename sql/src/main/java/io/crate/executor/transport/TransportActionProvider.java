@@ -35,9 +35,9 @@ import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelega
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegateImpl;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
-import org.elasticsearch.action.count.CrateTransportCountAction;
+import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.action.delete.TransportDeleteAction;
-import org.elasticsearch.action.deletebyquery.CrateTransportDeleteByQueryAction;
+import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.common.inject.Inject;
@@ -54,8 +54,8 @@ public class TransportActionProvider {
     private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider;
     private final Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider;
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
-    private final Provider<CrateTransportCountAction> transportCountActionProvider;
-    private final Provider<CrateTransportDeleteByQueryAction> transportDeleteByQueryActionProvider;
+    private final Provider<TransportCountAction> transportCountActionProvider;
+    private final Provider<TransportDeleteByQueryAction> transportDeleteByQueryActionProvider;
     private final Provider<TransportDeleteAction> transportDeleteActionProvider;
 
     private final Provider<TransportGetAction> transportGetActionProvider;
@@ -75,8 +75,8 @@ public class TransportActionProvider {
                                    Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider,
                                    Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider,
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
-                                   Provider<CrateTransportCountAction> transportCountActionProvider,
-                                   Provider<CrateTransportDeleteByQueryAction> transportDeleteByQueryActionProvider,
+                                   Provider<TransportCountAction> transportCountActionProvider,
+                                   Provider<TransportDeleteByQueryAction> transportDeleteByQueryActionProvider,
                                    Provider<TransportDeleteAction> transportDeleteActionProvider,
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
@@ -130,11 +130,11 @@ public class TransportActionProvider {
         return transportClusterUpdateSettingsActionProvider.get();
     }
 
-    public CrateTransportCountAction transportCountAction() {
+    public TransportCountAction transportCountAction() {
         return transportCountActionProvider.get();
     }
 
-    public CrateTransportDeleteByQueryAction transportDeleteByQueryAction() {
+    public TransportDeleteByQueryAction transportDeleteByQueryAction() {
         return transportDeleteByQueryActionProvider.get();
     }
 

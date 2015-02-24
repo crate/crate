@@ -25,14 +25,14 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.FailedShardsException;
-import io.crate.executor.QueryResult;
 import io.crate.executor.JobTask;
+import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.dql.ESCountNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.count.CrateTransportCountAction;
+import org.elasticsearch.action.count.TransportCountAction;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -41,14 +41,14 @@ import java.util.UUID;
 
 public class ESCountTask extends JobTask {
 
-    private final CrateTransportCountAction transportCountAction;
+    private final TransportCountAction transportCountAction;
     private final List<ListenableFuture<TaskResult>> results;
     private CountRequest request;
     private ActionListener<CountResponse> listener;
     private final static ESQueryBuilder queryBuilder = new ESQueryBuilder();
     private final static TaskResult ZERO_RESULT = new QueryResult(new Object[][] { new Object[] { 0L }});
 
-    public ESCountTask(UUID jobId, ESCountNode node, CrateTransportCountAction transportCountAction) {
+    public ESCountTask(UUID jobId, ESCountNode node, TransportCountAction transportCountAction) {
         super(jobId);
         this.transportCountAction = transportCountAction;
         assert node != null;

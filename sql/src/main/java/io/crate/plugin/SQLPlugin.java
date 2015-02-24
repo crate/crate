@@ -55,10 +55,6 @@ import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
-import org.elasticsearch.action.count.CrateCountAction;
-import org.elasticsearch.action.count.CrateTransportCountAction;
-import org.elasticsearch.action.deletebyquery.CrateDeleteByQueryAction;
-import org.elasticsearch.action.deletebyquery.CrateTransportDeleteByQueryAction;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -184,10 +180,5 @@ public class SQLPlugin extends AbstractPlugin {
     public void onModule(ActionModule actionModule) {
         actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
         actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
-
-        // overridden classes fixing handling the routing parameter differently
-        // always interpret it as a single value, no multiple routing values allowed here
-        actionModule.registerAction(CrateCountAction.INSTANCE, CrateTransportCountAction.class);
-        actionModule.registerAction(CrateDeleteByQueryAction.INSTANCE, CrateTransportDeleteByQueryAction.class);
     }
 }
