@@ -21,11 +21,13 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.executor.transport.CollectContextService;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
@@ -35,6 +37,7 @@ import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.*;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
@@ -53,9 +56,12 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchLocalRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * collect documents from ES shard, a lucene index
@@ -98,54 +104,72 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         }
     }
 
-    private final SearchContext searchContext;
     private Projector downstream;
     private final List<Input<?>> topLevelInputs;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
+    private final SearchContext searchContext;
 
-    public LuceneDocCollector(ThreadPool threadPool,
+    public LuceneDocCollector(final UUID jobId,
+                              final ThreadPool threadPool,
                               ClusterService clusterService,
+                              CollectContextService collectorContextService,
                               ShardId shardId,
-                              IndexService indexService,
-                              ScriptService scriptService,
-                              CacheRecycler cacheRecycler,
-                              PageCacheRecycler pageCacheRecycler,
-                              BigArrays bigArrays,
+                              final IndexService indexService,
+                              final ScriptService scriptService,
+                              final CacheRecycler cacheRecycler,
+                              final PageCacheRecycler pageCacheRecycler,
+                              final BigArrays bigArrays,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              Functions functions,
-                              WhereClause whereClause,
+                              final Functions functions,
+                              final WhereClause whereClause,
                               Projector downStreamProjector) throws Exception {
         downstream(downStreamProjector);
-        SearchShardTarget searchShardTarget = new SearchShardTarget(
+        final SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
         this.topLevelInputs = inputs;
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
 
-        ShardSearchLocalRequest searchRequest = new ShardSearchLocalRequest(
-                new String[] { Constants.DEFAULT_MAPPING_TYPE },
-                System.currentTimeMillis()
+        final IndexShard indexShard = indexService.shardSafe(shardId.id());
+        final int searchContextId = Objects.hash(jobId, shardId);
+        this.searchContext = collectorContextService.getOrCreateContext(
+                jobId,
+                searchContextId,
+                new Function<IndexReader, SearchContext>() {
+
+                    @Nullable
+                    @Override
+                    public SearchContext apply(@Nullable IndexReader indexReader) {
+                        // TODO: handle IndexReader
+                        ShardSearchLocalRequest searchRequest = new ShardSearchLocalRequest(
+                                new String[] { Constants.DEFAULT_MAPPING_TYPE },
+                                System.currentTimeMillis()
+                        );
+                        SearchContext localContext = new DefaultSearchContext(
+                                searchContextId,
+                                searchRequest,
+                                searchShardTarget,
+                                EngineSearcher.getSearcherWithRetry(indexShard, null), // TODO: use same searcher/reader for same jobId and searchContextId
+                                indexService,
+                                indexShard,
+                                scriptService,
+                                cacheRecycler,
+                                pageCacheRecycler,
+                                bigArrays,
+                                threadPool.estimatedTimeInMillisCounter()
+                        );
+                        LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, localContext, indexService.cache());
+                        LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
+                        localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
+                        Float minScore = ctx.minScore();
+                        if (minScore != null) {
+                            localContext.minimumScore(minScore);
+                        }
+                        return localContext;
+                    }
+                }
         );
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
-        searchContext = new DefaultSearchContext(0, searchRequest,
-                searchShardTarget,
-                EngineSearcher.getSearcherWithRetry(indexShard, null),
-                indexService,
-                indexShard,
-                scriptService,
-                cacheRecycler,
-                pageCacheRecycler,
-                bigArrays,
-                threadPool.estimatedTimeInMillisCounter()
-        );
-        LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, searchContext, indexService.cache());
-        LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
-        searchContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
-        Float minScore = ctx.minScore();
-        if (minScore != null) {
-            searchContext.minimumScore(minScore);
-        }
     }
 
     @Override

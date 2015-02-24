@@ -43,10 +43,7 @@ import org.mockito.Answers;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
@@ -91,8 +88,7 @@ public class MapSideDataCollectOperationTest {
                             functions,
                             new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                     )
-                )
-        );
+                ));
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
         try (FileWriter writer = new FileWriter(tmpFile)) {
@@ -115,6 +111,7 @@ public class MapSideDataCollectOperationTest {
                 null,
                 false
         );
+        collectNode.jobId(UUID.randomUUID());
         ListenableFuture<Object[][]> resultFuture = collectOperation.collect(collectNode, null);
         Object[][] objects = resultFuture.get();
 
