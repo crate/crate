@@ -62,7 +62,6 @@ public class RemoteCollectTask extends JobTask {
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                              StatsTables statsTables, CircuitBreaker circuitBreaker) {
         super(jobId);
-        Preconditions.checkArgument(collectNode.jobId().isPresent(), "collectNode does not have a jobId");
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;

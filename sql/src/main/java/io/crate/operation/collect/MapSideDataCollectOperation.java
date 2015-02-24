@@ -278,9 +278,9 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     throw new UnhandledServerException(
                             String.format("unknown shard id %d on index '%s'",
                                     shardId, entry.getKey()), e);
-                } catch (Throwable t) {
-                    logger.error("Error while getting collector", t);
-                    throw new UnhandledServerException(t);
+                } catch (Exception e) {
+                    logger.error("Error while getting collector", e);
+                    throw new UnhandledServerException(e);
                 }
             }
         }
