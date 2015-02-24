@@ -14,7 +14,7 @@ public class Routing implements Streamable {
 
     private Map<String, Map<String, List<Integer>>> locations;
     private volatile int numShards = -1;
-    private int fetchIdBase = -1;
+    private int jobSearchContextIdBase = -1;
 
     public Routing() {
 
@@ -102,12 +102,12 @@ public class Routing implements Streamable {
         return false;
     }
 
-    public void fetchIdBase(int fetchIdBase) {
-        this.fetchIdBase = fetchIdBase;
+    public void jobSearchContextIdBase(int jobSearchContextIdBase) {
+        this.jobSearchContextIdBase = jobSearchContextIdBase;
     }
 
-    public int fetchIdBase() {
-        return fetchIdBase;
+    public int jobSearchContextIdBase() {
+        return jobSearchContextIdBase;
     }
 
     @Override
@@ -116,6 +116,7 @@ public class Routing implements Streamable {
         if (hasLocations()) {
             helper.add("locations", locations);
         }
+        helper.add("jobSearchContextIdBase", jobSearchContextIdBase);
         return helper.toString();
 
     }
@@ -147,7 +148,7 @@ public class Routing implements Streamable {
             }
         }
         if (in.readBoolean()) {
-            fetchIdBase = in.readVInt();
+            jobSearchContextIdBase = in.readVInt();
         }
     }
 
@@ -181,9 +182,9 @@ public class Routing implements Streamable {
         } else {
             out.writeVInt(0);
         }
-        if (fetchIdBase > -1) {
+        if (jobSearchContextIdBase > -1) {
             out.writeBoolean(true);
-            out.writeVInt(fetchIdBase);
+            out.writeVInt(jobSearchContextIdBase);
         } else {
             out.writeBoolean(false);
         }
