@@ -81,31 +81,31 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     public static class Context {
 
-        private final IntObjectOpenHashMap<ShardId> fetchIdShardId = new IntObjectOpenHashMap<>();
-        private int fetchBaseIdSeq = 0;
+        private final IntObjectOpenHashMap<ShardId> jobSearchContextIds = new IntObjectOpenHashMap<>();
+        private int jobSearchContextIdBaseSeq = 0;
 
         /**
-         * Increase current {@link #fetchBaseIdSeq} by number of shards affected by given
+         * Increase current {@link #jobSearchContextIdBaseSeq} by number of shards affected by given
          * <code>routing</code> parameter and register a {@link org.elasticsearch.index.shard.ShardId}
-         * under each incremented fetchId.
-         * The current {@link #fetchBaseIdSeq} is set on the {@link io.crate.metadata.Routing} instance,
-         * in order to be able to re-generate fetchId's for every shard in a deterministic way.
+         * under each incremented jobSearchContextId.
+         * The current {@link #jobSearchContextIdBaseSeq} is set on the {@link io.crate.metadata.Routing} instance,
+         * in order to be able to re-generate jobSearchContextId's for every shard in a deterministic way.
          *
-         * Skip generating fetchId's if {@link io.crate.metadata.Routing#fetchIdBase} is already
+         * Skip generating jobSearchContextId's if {@link io.crate.metadata.Routing#jobSearchContextIdBase} is already
          * set on the given <code>routing</code>.
          */
-        public void allocateFetchIds(Routing routing) {
-            if (routing.fetchIdBase() > -1) {
+        public void allocateJobSearchContextIds(Routing routing) {
+            if (routing.jobSearchContextIdBase() > -1) {
                 return;
             }
-            int fetchIdBase = fetchBaseIdSeq;
-            fetchBaseIdSeq += routing.numShards();
-            routing.fetchIdBase(fetchIdBase);
+            int jobSearchContextId = jobSearchContextIdBaseSeq;
+            jobSearchContextIdBaseSeq += routing.numShards();
+            routing.jobSearchContextIdBase(jobSearchContextId);
             for (Map<String, List<Integer>> nodeRouting : routing.locations().values()) {
                 if (nodeRouting != null) {
                     for (Map.Entry<String, List<Integer>> entry : nodeRouting.entrySet()) {
                         for (Integer shardId : entry.getValue()) {
-                            fetchIdShardId.put(fetchIdBase++, new ShardId(entry.getKey(), shardId));
+                            jobSearchContextIds.put(jobSearchContextId++, new ShardId(entry.getKey(), shardId));
                         }
                     }
                 }
@@ -113,11 +113,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         /**
-         * Return a {@link org.elasticsearch.index.shard.ShardId} for a given <code>fetchId</code>
-         * if exists at the fetchId-to-shardId registry map.
+         * Return a {@link org.elasticsearch.index.shard.ShardId} for a given <code>jobSearchContextId</code>
+         * if exists at the {@link #jobSearchContextIds} registry map.
          */
-        public ShardId shardId(int fetchId) {
-            return fetchIdShardId.get(fetchId);
+        public ShardId shardId(int jobSearchContextId) {
+            return jobSearchContextIds.get(jobSearchContextId);
         }
     }
 
