@@ -566,6 +566,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByAggregateOnNestedColumn() throws Exception {
         this.setup.groupBySetup();
+        waitNoPendingTasksOnAll();
         execute("select race, count(details['job']) from characters group by race order by race");
         assertEquals(3, response.rowCount());
         assertEquals("Android", response.rows()[0][0]);

@@ -333,7 +333,8 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     }
 
     @Override
-    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
+    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode,
+                                                              RamAccountingContext ramAccountingContext) {
         assert collectNode.hasDownstreams() : "no downstreams";
         return super.handleShardCollect(collectNode, ramAccountingContext);
     }

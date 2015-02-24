@@ -138,7 +138,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
-
+        collectNode.jobId(UUID.randomUUID());
         Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(2));
 
@@ -164,7 +164,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
-
+        collectNode.jobId(UUID.randomUUID());
         Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(1));
         assertThat(result[0].length, is(1));
@@ -184,6 +184,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")))
         ));
         collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.jobId(UUID.randomUUID());
 
         Object[][] result = operation.collect(collectNode, null).get();
 
@@ -217,6 +218,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.isPartitioned(true);
+        collectNode.jobId(UUID.randomUUID());
 
         Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(2));
