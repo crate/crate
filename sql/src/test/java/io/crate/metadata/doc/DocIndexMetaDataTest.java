@@ -160,7 +160,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
         assertThat(md.columns().size(), is(4));
-        assertThat(md.references().size(), is(16));
+        assertThat(md.references().size(), is(17));
         assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
         assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
         assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy(), is(ColumnPolicy.IGNORED));
@@ -220,7 +220,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertEquals(6, md.columns().size());
-        assertEquals(15, md.references().size());
+        assertEquals(16, md.references().size());
 
         ImmutableList<ReferenceInfo> columns = ImmutableList.copyOf(md.columns());
 
@@ -248,7 +248,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         });
 
         assertThat(fqns, Matchers.<List<String>>is(
-                ImmutableList.of("_doc", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
+                ImmutableList.of("_doc", "_docid", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
                         "person", "person.birthday", "person.first_name", "title")));
 
     }
@@ -306,7 +306,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertEquals(6, md.columns().size());
-        assertEquals(15, md.references().size());
+        assertEquals(16, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
         assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).type());
         assertThat(md.partitionedByColumns().get(0).ident().columnIdent().fqn(), is("datum"));
@@ -342,7 +342,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
         // partitioned by column is not added twice
         assertEquals(2, md.columns().size());
-        assertEquals(8, md.references().size());
+        assertEquals(9, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
     }
 
@@ -378,7 +378,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
         // partitioned by column is not added twice
         assertEquals(2, md.columns().size());
-        assertEquals(9, md.references().size());
+        assertEquals(10, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
     }
 

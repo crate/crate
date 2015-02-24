@@ -55,14 +55,14 @@ public class RoutingTest {
         routing2.readFrom(in);
 
         assertThat(routing1.locations(), is(routing2.locations()));
-        assertThat(routing1.fetchIdBase(), is(routing2.fetchIdBase()));
+        assertThat(routing1.jobSearchContextIdBase(), is(routing2.jobSearchContextIdBase()));
     }
 
     @Test
     public void testStreamingWithoutLocations() throws Exception {
         BytesStreamOutput out = new BytesStreamOutput();
         Routing routing1 = new Routing(null);
-        routing1.fetchIdBase(10);
+        routing1.jobSearchContextIdBase(10);
         routing1.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
@@ -70,6 +70,6 @@ public class RoutingTest {
         routing2.readFrom(in);
 
         assertThat(routing1.locations(), is(routing2.locations()));
-        assertThat(routing1.fetchIdBase(), is(routing2.fetchIdBase()));
+        assertThat(routing1.jobSearchContextIdBase(), is(routing2.jobSearchContextIdBase()));
     }
 }
