@@ -435,6 +435,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test values (?)", new Object[]{map});
         assertEquals(1, response.rowCount());
         refresh();
+        waitNoPendingTasksOnAll();
 
         Map<String, Object> new_map = new HashMap<>();
         new_map.put("a", 1);
