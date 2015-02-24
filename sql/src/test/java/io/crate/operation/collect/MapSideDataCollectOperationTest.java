@@ -45,10 +45,7 @@ import org.mockito.Answers;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
@@ -120,12 +117,12 @@ public class MapSideDataCollectOperationTest {
                 null,
                 false
         );
+        collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
         Bucket objects = collectOperation.collect(collectNode, null).get();
         assertThat(objects, contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)
-
         ));
     }
 }

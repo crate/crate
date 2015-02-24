@@ -42,7 +42,7 @@ import java.util.UUID;
 
 
 /**
- * A collect task which returns one future and runs a  collectOperation locally and synchronous
+ * A collect task which returns one future and runs a collectOperation locally
  */
 public class LocalCollectTask extends JobTask {
 
