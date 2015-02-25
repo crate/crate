@@ -102,6 +102,7 @@ public class DistributedGroupByConsumer implements Consumer {
 
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                     tableInfo,
+                    context.consumerContext.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
                     Lists.newArrayList(routing.nodes()),

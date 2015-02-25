@@ -234,10 +234,11 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Mu
                                         TransportService transportService,
                                         PlanNodeStreamerVisitor streamerVisitor,
                                         CollectServiceResolver collectServiceResolver,
+                                        CollectContextService collectContextService,
                                         CrateCircuitBreakerService breakerService) {
         super(clusterService, settings, transportActionProvider,
                 functions, referenceResolver, indicesService,
-                threadPool, collectServiceResolver, streamerVisitor);
+                threadPool, collectServiceResolver, streamerVisitor, collectContextService);
         this.transportService = transportService;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
     }

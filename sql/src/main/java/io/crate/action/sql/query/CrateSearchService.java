@@ -24,7 +24,6 @@ package io.crate.action.sql.query;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Constants;
 import io.crate.core.StringUtils;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -217,8 +216,6 @@ public class CrateSearchService extends InternalSearchService {
         }
         SearchContext context = new CrateSearchContext(
                 idGenerator.incrementAndGet(),
-                0, // TODO: is this necessary? seems not, wasn't set before
-                new String[] { Constants.DEFAULT_MAPPING_TYPE },
                 System.currentTimeMillis(),
                 searchShardTarget,
                 engineSearcher,

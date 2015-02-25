@@ -93,6 +93,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -277,6 +280,7 @@ public class LocalDataCollectTest {
         protected void configure() {
             IndexShard shard = mock(InternalIndexShard.class);
             bind(IndexShard.class).toInstance(shard);
+            when(shard.shardId()).thenReturn(shardId);
             Index index = new Index(TEST_TABLE_NAME);
             bind(Index.class).toInstance(index);
             bind(ShardId.class).toInstance(shardId);
@@ -321,6 +325,13 @@ public class LocalDataCollectTest {
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
+        CollectContextService collectContextService = mock(CollectContextService.class);
+        when(collectContextService.acquireContext(Mockito.any(UUID.class))).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                return new JobCollectContext((UUID)invocation.getArguments()[0]);
+            }
+        });
 
         operation = new LocalCollectOperation(
                 injector.getInstance(ClusterService.class),
@@ -333,7 +344,8 @@ public class LocalDataCollectTest {
                                 functions,
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService))
                 ),
-                null
+                null,
+                collectContextService
         );
     }
 

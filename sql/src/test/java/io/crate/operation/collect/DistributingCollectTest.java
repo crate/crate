@@ -229,6 +229,7 @@ public class DistributingCollectTest {
         protected void configure() {
             IndexShard shard = mock(InternalIndexShard.class);
             bind(IndexShard.class).toInstance(shard);
+            when(shard.shardId()).thenReturn(shardId);
             Index index = new Index(TEST_TABLE_NAME);
             bind(Index.class).toInstance(index);
             bind(ShardId.class).toInstance(shardId);
