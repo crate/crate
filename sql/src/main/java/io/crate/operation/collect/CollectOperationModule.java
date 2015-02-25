@@ -21,14 +21,11 @@
 
 package io.crate.operation.collect;
 
-import io.crate.executor.transport.CollectContextService;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class CollectOperationModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(CollectContextService.class).asEagerSingleton();
-
         bind(MapSideDataCollectOperation.class).asEagerSingleton();
         bind(HandlerSideDataCollectOperation.class).asEagerSingleton();
         bind(InformationSchemaCollectService.class).asEagerSingleton();

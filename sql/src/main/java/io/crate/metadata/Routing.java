@@ -57,7 +57,9 @@ public class Routing implements Streamable {
             Map<String, List<Integer>> nodeRouting = locations.get(nodeId);
             if (nodeRouting != null) {
                 for (List<Integer> shardIds : nodeRouting.values()) {
-                    count += shardIds.size();
+                    if (shardIds != null) {
+                        count += shardIds.size();
+                    }
                 }
             }
         }
@@ -75,7 +77,9 @@ public class Routing implements Streamable {
                 for (Map<String, List<Integer>> nodeRouting : locations.values()) {
                     if (nodeRouting != null) {
                         for (List<Integer> shardIds : nodeRouting.values()) {
-                            count += shardIds.size();
+                            if (shardIds != null) {
+                                count += shardIds.size();
+                            }
                         }
                     }
                 }

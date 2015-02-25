@@ -140,6 +140,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableInfo,
+                    context.consumerContext.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
                     ImmutableList.<Projection>of(groupProjection)

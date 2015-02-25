@@ -101,7 +101,7 @@ public class QueryAndFetchConsumer implements Consumer {
             }
             if (table.querySpec().hasAggregates()) {
                 context.result = true;
-                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, table.querySpec().where());
+                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, table.querySpec().where(), context.consumerContext);
             } else {
                context.result = true;
                return normalSelect(table, table.querySpec().where(), tableRelation, context);
@@ -163,7 +163,9 @@ public class QueryAndFetchConsumer implements Consumer {
                         "Analyzer should have thrown an exception already.";
 
                 ImmutableList<Projection> projections = ImmutableList.<Projection>of();
-                collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, projections);
+                collectNode = PlanNodeBuilder.collect(tableInfo,
+                        context.consumerContext.plannerContext(),
+                        whereClause, outputSymbols, projections);
             } else if (querySpec.isLimited() || orderBy != null) {
                 /**
                  * select id, name, order by id, date
@@ -217,7 +219,9 @@ public class QueryAndFetchConsumer implements Consumer {
                     );
                 }
                 tnp.outputs(allOutputs);
-                collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, toCollect, ImmutableList.<Projection>of(tnp));
+                collectNode = PlanNodeBuilder.collect(tableInfo,
+                        context.consumerContext.plannerContext(),
+                        whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
                 if (orderBy == null) {
                     tnp = new TopNProjection(limit, querySpec.offset());
@@ -230,7 +234,9 @@ public class QueryAndFetchConsumer implements Consumer {
                 tnp.outputs(finalOutputs);
                 mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode);
             } else {
-                collectNode = PlanNodeBuilder.collect(tableInfo, whereClause, outputSymbols, ImmutableList.<Projection>of());
+                collectNode = PlanNodeBuilder.collect(tableInfo,
+                        context.consumerContext.plannerContext(),
+                        whereClause, outputSymbols, ImmutableList.<Projection>of());
                 mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
             }
             return new QueryAndFetch(collectNode, mergeNode);

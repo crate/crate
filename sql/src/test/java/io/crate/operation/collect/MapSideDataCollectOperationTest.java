@@ -75,6 +75,7 @@ public class MapSideDataCollectOperationTest {
         };
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
+        CollectContextService collectContextService = mock(CollectContextService.class);
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
                 clusterService,
                 ImmutableSettings.EMPTY,
@@ -89,7 +90,8 @@ public class MapSideDataCollectOperationTest {
                             functions,
                             new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                     )
-                ));
+                ),
+                collectContextService);
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
         try (FileWriter writer = new FileWriter(tmpFile)) {

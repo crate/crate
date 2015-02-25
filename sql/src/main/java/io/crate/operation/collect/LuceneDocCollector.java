@@ -21,15 +21,8 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
-import io.crate.Constants;
-import io.crate.analyze.WhereClause;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.transport.CollectContextService;
-import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -37,31 +30,17 @@ import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.*;
-import org.elasticsearch.cache.recycler.CacheRecycler;
-import org.elasticsearch.cache.recycler.PageCacheRecycler;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.util.BigArrays;
+import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Scorer;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
-import org.elasticsearch.index.query.ParsedQuery;
-import org.elasticsearch.index.service.IndexService;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.service.IndexShard;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.internal.ShardSearchLocalRequest;
-import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 
 /**
  * collect documents from ES shard, a lucene index
@@ -107,80 +86,23 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     private final CollectorFieldsVisitor fieldsVisitor;
     private final List<Input<?>> topLevelInputs;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
+    private final JobCollectContext jobCollectContext;
     private final SearchContext searchContext;
     private final int jobSearchContextId;
 
-    public LuceneDocCollector(final UUID jobId,
-                              final ThreadPool threadPool,
-                              ClusterService clusterService,
-                              CollectContextService collectorContextService,
-                              ShardId shardId,
-                              final IndexService indexService,
-                              final ScriptService scriptService,
-                              final CacheRecycler cacheRecycler,
-                              final PageCacheRecycler pageCacheRecycler,
-                              final BigArrays bigArrays,
-                              List<Input<?>> inputs,
+    public LuceneDocCollector(List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              final Functions functions,
-                              final WhereClause whereClause,
                               Projector downStreamProjector,
+                              JobCollectContext jobCollectContext,
+                              SearchContext searchContext,
                               int jobSearchContextId) throws Exception {
         downstream(downStreamProjector);
-        final SearchShardTarget searchShardTarget = new SearchShardTarget(
-                clusterService.localNode().id(), shardId.getIndex(), shardId.id());
         this.topLevelInputs = inputs;
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
         this.jobSearchContextId = jobSearchContextId;
-
-        final IndexShard indexShard = indexService.shardSafe(shardId.id());
-        final int searchContextId = Objects.hash(jobId, shardId);
-        this.searchContext = collectorContextService.getOrCreateContext(
-                jobId,
-                searchContextId,
-                new Function<IndexReader, SearchContext>() {
-
-                    @Nullable
-                    @Override
-                    public SearchContext apply(@Nullable IndexReader indexReader) {
-                        // TODO: handle IndexReader
-                        ShardSearchLocalRequest searchRequest = new ShardSearchLocalRequest(
-                                new String[] { Constants.DEFAULT_MAPPING_TYPE },
-                                System.currentTimeMillis()
-                        );
-                        SearchContext localContext = null;
-                        try {
-                            localContext = new DefaultSearchContext(
-                                    searchContextId,
-                                    searchRequest,
-                                    searchShardTarget,
-                                    EngineSearcher.getSearcherWithRetry(indexShard, null), // TODO: use same searcher/reader for same jobId and searchContextId
-                                    indexService,
-                                    indexShard,
-                                    scriptService,
-                                    cacheRecycler,
-                                    pageCacheRecycler,
-                                    bigArrays,
-                                    threadPool.estimatedTimeInMillisCounter()
-                            );
-                            LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, localContext, indexService.cache());
-                            LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
-                            localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
-                            Float minScore = ctx.minScore();
-                            if (minScore != null) {
-                                localContext.minimumScore(minScore);
-                            }
-                        } catch (Throwable t) {
-                            if (localContext != null) {
-                                localContext.close();
-                            }
-                            throw t;
-                        }
-                        return localContext;
-                    }
-                }
-        );
+        this.jobCollectContext = jobCollectContext;
+        this.searchContext = searchContext;
     }
 
     @Override
@@ -243,7 +165,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
             collectorExpression.startCollect(collectorContext);
         }
         visitorEnabled = fieldsVisitor.required();
-        SearchContext.setCurrent(searchContext);
+        jobCollectContext.acquireContext(searchContext);
         Query query = searchContext.query();
         if (query == null) {
             query = new MatchAllDocsQuery();
@@ -260,8 +182,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
             downstream.upstreamFailed(e);
             throw e;
         } finally {
-            searchContext.close();
-            SearchContext.removeCurrent();
+            jobCollectContext.releaseContext(searchContext);
+            // should only be done on QAF not QTF!
+            jobCollectContext.closeContext(jobSearchContextId);
         }
     }
+
 }

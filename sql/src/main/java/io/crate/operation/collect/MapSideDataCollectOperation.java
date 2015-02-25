@@ -68,17 +68,17 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public class MapSideDataCollectOperation implements CollectOperation<Object[][]> {
 
-    private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
-    private final CollectServiceResolver collectServiceResolver;
-    private final ProjectionToProjectorVisitor projectorVisitor;
-    private final ThreadPoolExecutor executor;
-    private final int poolSize;
-    private ESLogger logger = Loggers.getLogger(getClass());
-
     private static class SimpleShardCollectFuture extends ShardCollectFuture {
 
-        public SimpleShardCollectFuture(int numShards, ShardProjectorChain projectorChain) {
+        private final CollectContextService collectContextService;
+        private final UUID jobId;
+
+        public SimpleShardCollectFuture(int numShards, ShardProjectorChain projectorChain,
+                                        CollectContextService collectContextService,
+                                        UUID jobId) {
             super(numShards, projectorChain);
+            this.collectContextService = collectContextService;
+            this.jobId = jobId;
         }
 
         @Override
@@ -86,11 +86,13 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             Futures.addCallback(resultProvider.result(), new FutureCallback<Object[][]>() {
                 @Override
                 public void onSuccess(@Nullable Object[][] result) {
+                    collectContextService.releaseContext(jobId);
                     set(result);
                 }
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
+                    collectContextService.releaseContext(jobId);
                     setException(t);
                 }
             });
@@ -101,6 +103,13 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     protected final EvaluatingNormalizer nodeNormalizer;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
+    private final CollectContextService collectContextService;
+    private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
+    private final CollectServiceResolver collectServiceResolver;
+    private final ProjectionToProjectorVisitor projectorVisitor;
+    private final ThreadPoolExecutor executor;
+    private final int poolSize;
+    private ESLogger logger = Loggers.getLogger(getClass());
 
     @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
@@ -110,11 +119,13 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                        ReferenceResolver referenceResolver,
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
-                                       CollectServiceResolver collectServiceResolver) {
+                                       CollectServiceResolver collectServiceResolver,
+                                       CollectContextService collectContextService) {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getPoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
+        this.collectContextService = collectContextService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.collectServiceResolver = collectServiceResolver;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -252,8 +263,10 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             return result;
         }
 
-        int jobSearchContextId = collectNode.routing().jobSearchContextIdBase();
+        assert collectNode.jobId().isPresent() : "jobId must be set on CollectNode";
+        JobCollectContext jobCollectContext = collectContextService.acquireContext(collectNode.jobId().get());
 
+        int jobSearchContextId = collectNode.routing().jobSearchContextIdBase();
         // get shardCollectors from single shards
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : collectNode.routing().locations().entrySet()) {
@@ -269,6 +282,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     }
 
                     for (Integer shardId : entry.getValue()) {
+                        jobCollectContext.registerJobContextId(
+                                indexService.shardSafe(shardId).shardId(), jobSearchContextId);
                         Injector shardInjector;
                         try {
                             shardInjector = indexService.shardInjectorSafe(shardId);
@@ -276,11 +291,9 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                             CrateCollector collector = shardCollectService.getCollector(
                                     collectNode,
                                     projectorChain,
+                                    jobCollectContext,
                                     jobSearchContextId
                             );
-                            if (jobSearchContextId > -1) {
-                                jobSearchContextId++;
-                            }
                             shardCollectors.add(collector);
                         } catch (IndexShardMissingException e) {
                             throw new UnhandledServerException(
@@ -290,6 +303,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                             logger.error("Error while getting collector", e);
                             throw new UnhandledServerException(e);
                         }
+                        jobSearchContextId++;
                     }
                 }
             } else if (jobSearchContextId > -1) {
@@ -384,7 +398,9 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * @param collectNode in case any other properties need to be extracted
      * @return a fancy ShardCollectFuture implementation
      */
-    protected ShardCollectFuture getShardCollectFuture(int numShards, ShardProjectorChain projectorChain, CollectNode collectNode) {
-        return new SimpleShardCollectFuture(numShards, projectorChain);
+    protected ShardCollectFuture getShardCollectFuture(int numShards,
+                                                       ShardProjectorChain projectorChain,
+                                                       CollectNode collectNode) {
+        return new SimpleShardCollectFuture(numShards, projectorChain, collectContextService, collectNode.jobId().get());
     }
 }

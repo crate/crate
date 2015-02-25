@@ -187,6 +187,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableInfo,
+                    context.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
                     ImmutableList.copyOf(projections)

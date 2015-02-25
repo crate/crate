@@ -21,12 +21,16 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.WhereClause;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.executor.transport.CollectContextService;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
@@ -41,16 +45,25 @@ import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
+import org.apache.lucene.search.Filter;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.Scroll;
+import org.elasticsearch.search.SearchShardTarget;
+import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import javax.annotation.Nullable;
 
 public class ShardCollectService {
 
@@ -70,8 +83,6 @@ public class ShardCollectService {
     private final Functions functions;
     private final BlobIndices blobIndices;
 
-    private final CollectContextService collectContextService;
-
     @Inject
     public ShardCollectService(ThreadPool threadPool,
                                ClusterService clusterService,
@@ -86,9 +97,7 @@ public class ShardCollectService {
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
-                               BlobShardReferenceResolver blobShardReferenceResolver,
-                               CrateCircuitBreakerService breakerService,
-                               CollectContextService collectContextService) {
+                               BlobShardReferenceResolver blobShardReferenceResolver) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.shardId = shardId;
@@ -124,7 +133,6 @@ public class ShardCollectService {
                 shardNormalizer,
                 shardId,
                 docInputSymbolVisitor);
-        this.collectContextService = collectContextService;
     }
 
     /**
@@ -137,6 +145,7 @@ public class ShardCollectService {
      */
     public CrateCollector getCollector(CollectNode collectNode,
                                        ShardProjectorChain projectorChain,
+                                       JobCollectContext jobCollectContext,
                                        int jobSearchContextId) throws Exception {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
         Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
@@ -149,7 +158,7 @@ public class ShardCollectService {
                 if (isBlobShard) {
                     return getBlobIndexCollector(normalizedCollectNode, downstream);
                 } else {
-                    return getLuceneIndexCollector(normalizedCollectNode, downstream, jobSearchContextId);
+                    return getLuceneIndexCollector(normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId);
                 }
             } else if (granularity == RowGranularity.SHARD) {
                 ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedCollectNode);
@@ -178,24 +187,68 @@ public class ShardCollectService {
 
     private CrateCollector getLuceneIndexCollector(CollectNode collectNode,
                                                    Projector downstream,
+                                                   JobCollectContext jobCollectContext,
                                                    int jobSearchContextId) throws Exception {
         CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+        SearchContext searchContext = getSearchContext(jobCollectContext, jobSearchContextId,
+                collectNode.whereClause());
         return new LuceneDocCollector(
-                collectNode.jobId().get(),
-                threadPool,
-                clusterService,
-                collectContextService,
-                shardId,
-                indexService,
-                scriptService,
-                cacheRecycler,
-                pageCacheRecycler,
-                bigArrays,
                 docCtx.topLevelInputs(),
                 docCtx.docLevelExpressions(),
-                functions,
-                collectNode.whereClause(),
                 downstream,
+                jobCollectContext,
+                searchContext,
                 jobSearchContextId);
+    }
+
+    private SearchContext getSearchContext(JobCollectContext jobCollectContext,
+                                           final int jobSearchContextId,
+                                           final WhereClause whereClause) {
+        final SearchShardTarget searchShardTarget = new SearchShardTarget(
+                clusterService.localNode().id(), shardId.getIndex(), shardId.id());
+        final IndexShard indexShard = indexService.shardSafe(shardId.id());
+        return jobCollectContext.createContext(
+                indexShard,
+                jobSearchContextId,
+                new Function<Engine.Searcher, CrateSearchContext>() {
+
+                    @Nullable
+                    @Override
+                    public CrateSearchContext apply(Engine.Searcher engineSearcher) {
+                        CrateSearchContext localContext = null;
+                        try {
+                            localContext = new CrateSearchContext(
+                                    jobSearchContextId,
+                                    System.currentTimeMillis(),
+                                    searchShardTarget,
+                                    engineSearcher,
+                                    indexService,
+                                    indexShard,
+                                    scriptService,
+                                    cacheRecycler,
+                                    pageCacheRecycler,
+                                    bigArrays,
+                                    threadPool.estimatedTimeInMillisCounter(),
+                                    Optional.<Scroll>absent(),
+                                    CollectContextService.DEFAULT_KEEP_ALIVE
+                            );
+                            LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, localContext, indexService.cache());
+                            LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
+                            localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
+                            Float minScore = ctx.minScore();
+                            if (minScore != null) {
+                                localContext.minimumScore(minScore);
+                            }
+                        } catch (Throwable t) {
+                            if (localContext != null) {
+                                localContext.close();
+                            }
+                            throw t;
+                        }
+                        return localContext;
+                    }
+                }
+        );
+
     }
 }
