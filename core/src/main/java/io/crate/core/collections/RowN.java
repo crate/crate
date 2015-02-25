@@ -19,31 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors.sorting;
+package io.crate.core.collections;
 
-import org.apache.lucene.util.PriorityQueue;
+import java.util.Arrays;
 
-import java.util.Comparator;
+public class RowN implements Row {
 
-public class RowPriorityQueue<T> extends PriorityQueue<T> {
+    private final Object[] cells;
 
-    private final Comparator[] comparators;
-
-    public RowPriorityQueue(int maxSize, Comparator[] comparators) {
-        super(maxSize);
-        this.comparators = comparators;
+    public RowN(Object... cells) {
+        this.cells = cells;
     }
 
     @Override
-    public boolean lessThan(T a, T b) {
-        for (Comparator c : comparators) {
-            //noinspection unchecked
-            int compared = c.compare(a, b);
+    public int size() {
+        return cells.length;
+    }
 
-            if (compared < 0) return true;
-            if (compared == 0) continue;
-            if (compared > 0) return false;
-        }
-        return false;
+    @Override
+    public Object get(int index) {
+        return cells[index];
+    }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(cells);
     }
 }
