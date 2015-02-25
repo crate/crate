@@ -30,7 +30,7 @@ import io.crate.operation.collect.CollectExpression;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class SimpleTopNProjector implements Projector {
+public class SimpleTopNProjector implements Projector, ProjectorUpstream {
 
     private final Input<?>[] inputs;
     private final CollectExpression<?>[] collectExpressions;

@@ -26,6 +26,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -108,7 +109,7 @@ public class ProjectionToProjectorVisitorTest {
         CollectingProjector collectingProjector = new CollectingProjector();
         Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
         projector.registerUpstream(null);
-        projector.downstream(collectingProjector);
+        ((ProjectorUpstream)projector).downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
         projector.startProjection();
@@ -174,7 +175,7 @@ public class ProjectionToProjectorVisitorTest {
         ));
         Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
         CollectingProjector collectingProjector = new CollectingProjector();
-        projector.downstream(collectingProjector);
+        ((ProjectorUpstream)projector).downstream(collectingProjector);
         assertThat(projector, instanceOf(AggregationProjector.class));
 
         projector.startProjection();
@@ -210,7 +211,7 @@ public class ProjectionToProjectorVisitorTest {
                 new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
                 new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
         SortingTopNProjector topNProjector = (SortingTopNProjector)visitor.process(topNProjection, RAM_ACCOUNTING_CONTEXT);
-        projector.downstream(topNProjector);
+        ((ProjectorUpstream)projector).downstream(topNProjector);
         topNProjector.startProjection();
 
         assertThat(projector, instanceOf(GroupingProjector.class));
@@ -257,7 +258,7 @@ public class ProjectionToProjectorVisitorTest {
         CollectingProjector collectingProjector = new CollectingProjector();
         Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
         projector.registerUpstream(null);
-        projector.downstream(collectingProjector);
+        ((ProjectorUpstream)projector).downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));
 
         projector.startProjection();

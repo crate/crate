@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class AggregationProjector implements Projector {
+public class AggregationProjector implements Projector, ProjectorUpstream {
 
     private final Aggregator[] aggregators;
     private final Set<CollectExpression<?>> collectExpressions;

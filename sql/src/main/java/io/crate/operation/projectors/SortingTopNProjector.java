@@ -39,7 +39,7 @@ import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SortingTopNProjector implements Projector, ResultProvider {
+public class SortingTopNProjector implements Projector, ProjectorUpstream, ResultProvider {
 
 
     class RowPriorityQueue extends PriorityQueue<Object[]> {

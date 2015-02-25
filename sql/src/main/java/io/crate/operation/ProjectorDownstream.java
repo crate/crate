@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,29 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors;
-
-import io.crate.operation.ProjectorDownstream;
+package io.crate.operation;
 
 /**
- * Executes a Projection.
- * Can always act as downstream to other projectors
+ * Can act as a downstream to a projector.
+ * Has an upstream.
  */
-public interface Projector extends ProjectorDownstream {
+public interface ProjectorDownstream {
 
     /**
-     * initialize anything needed for proper projecting the projection
+     * register an upstream at this downstream, effectively chaining them.
+     * @param upstream the upstream to be registered
      */
-    public void startProjection();
+    public void registerUpstream(ProjectorUpstream upstream);
 
     /**
-     * feed this Projector with the next input row.
-     * If this projection does not need any more rows, it returns <code>false</code>,
-     * <code>true</code> otherwise.
-     *
-     * This method must be thread safe.
-     *
-     * @return false if this projection does not need any more rows, true otherwise.
+     * Has to be called from upstreams to indicate that they sent all rows.
+     * After this has been called an upstream must not send any more rows to the downstream.
      */
-    public boolean setNextRow(Object ... row);
+    public void upstreamFinished();
+
+    /**
+     * Has to be called by the upstream if an exception occurred.
+     * Should be called once the upstream is finished with any other concurrently running actions.
+     */
+    public void upstreamFailed(Throwable throwable);
 }

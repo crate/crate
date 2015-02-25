@@ -46,7 +46,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class GroupingProjector implements Projector {
+public class GroupingProjector implements Projector, ProjectorUpstream {
 
     private final CollectExpression[] collectExpressions;
 
