@@ -22,10 +22,11 @@
 package io.crate.operation.projectors.sorting;
 
 import com.google.common.collect.Ordering;
+import io.crate.core.collections.Row;
 
 import javax.annotation.Nullable;
 
-public class OrderingByPosition extends Ordering<Object[]> {
+public class OrderingByPosition extends Ordering<Row> {
 
     private final int position;
     private final Ordering<Comparable> ordering;
@@ -55,9 +56,9 @@ public class OrderingByPosition extends Ordering<Object[]> {
     }
 
     @Override
-    public int compare(@Nullable Object[] left, @Nullable Object[] right) {
-        Comparable l = left != null ? (Comparable) left[position] : null;
-        Comparable r = right != null ? (Comparable) right[position] : null;
+    public int compare(@Nullable Row left, @Nullable Row right) {
+        Comparable l = left != null ? (Comparable) left.get(position) : null;
+        Comparable r = right != null ? (Comparable) right.get(position) : null;
         return ordering.compare(l, r);
     }
 }
