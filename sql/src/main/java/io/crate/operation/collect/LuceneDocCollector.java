@@ -148,25 +148,33 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                                 new String[] { Constants.DEFAULT_MAPPING_TYPE },
                                 System.currentTimeMillis()
                         );
-                        SearchContext localContext = new DefaultSearchContext(
-                                searchContextId,
-                                searchRequest,
-                                searchShardTarget,
-                                EngineSearcher.getSearcherWithRetry(indexShard, null), // TODO: use same searcher/reader for same jobId and searchContextId
-                                indexService,
-                                indexShard,
-                                scriptService,
-                                cacheRecycler,
-                                pageCacheRecycler,
-                                bigArrays,
-                                threadPool.estimatedTimeInMillisCounter()
-                        );
-                        LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, localContext, indexService.cache());
-                        LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
-                        localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
-                        Float minScore = ctx.minScore();
-                        if (minScore != null) {
-                            localContext.minimumScore(minScore);
+                        SearchContext localContext = null;
+                        try {
+                            localContext = new DefaultSearchContext(
+                                    searchContextId,
+                                    searchRequest,
+                                    searchShardTarget,
+                                    EngineSearcher.getSearcherWithRetry(indexShard, null), // TODO: use same searcher/reader for same jobId and searchContextId
+                                    indexService,
+                                    indexShard,
+                                    scriptService,
+                                    cacheRecycler,
+                                    pageCacheRecycler,
+                                    bigArrays,
+                                    threadPool.estimatedTimeInMillisCounter()
+                            );
+                            LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, localContext, indexService.cache());
+                            LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
+                            localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
+                            Float minScore = ctx.minScore();
+                            if (minScore != null) {
+                                localContext.minimumScore(minScore);
+                            }
+                        } catch (Throwable t) {
+                            if (localContext != null) {
+                                localContext.close();
+                            }
+                            throw t;
                         }
                         return localContext;
                     }
