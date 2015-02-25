@@ -24,8 +24,10 @@ package io.crate.core.collections;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+
 
 public class CollectionBucket implements Bucket {
 
@@ -55,6 +57,11 @@ public class CollectionBucket implements Bucket {
                 public Object get(int index) {
                     return current[index];
                 }
+
+                @Override
+                public String toString() {
+                    return Arrays.toString(current);
+                }
             };
 
             @Override
@@ -65,4 +72,3 @@ public class CollectionBucket implements Bucket {
         });
     }
 }
-
