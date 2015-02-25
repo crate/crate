@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -76,7 +77,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
     }
 
     @Override
-    protected void updateRow(Object... row) {
-        // nothing to do
+    protected Row updateRow(Row row) {
+        return row;
     }
 }

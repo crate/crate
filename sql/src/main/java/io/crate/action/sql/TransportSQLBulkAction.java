@@ -86,9 +86,9 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
         assert expectsAffectedRows : "bulk operations only works with statements that return rowcounts";
         SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[result.size()];
         for (int i = 0, resultSize = result.size(); i < resultSize; i++) {
-            TaskResult taskResult = result.get(i);
-            assert taskResult instanceof RowCountResult : "Query operation not supported with bulk requests";
-            results[i] = new SQLBulkResponse.Result(taskResult.errorMessage(), (Long) taskResult.rows()[0][0]);
+            assert result.get(i) instanceof RowCountResult : "Query operation not supported with bulk requests";
+            RowCountResult taskResult = (RowCountResult) result.get(i);
+            results[i] = new SQLBulkResponse.Result(taskResult.errorMessage(), taskResult.rowCount());
         }
         return new SQLBulkResponse(
                 outputNames, results, request.creationTime(), dataTypes, request.includeTypesOnResponse());

@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
@@ -132,7 +133,7 @@ public class BulkShardProcessor {
     }
 
     public boolean add(String indexName,
-                       Object[] row,
+                       Row row,
                        @Nullable Long version) {
         pending.incrementAndGet();
         Throwable throwable = failure.get();
@@ -161,7 +162,7 @@ public class BulkShardProcessor {
 
     private void partitionRequestByShard(String indexName,
                                          String id,
-                                         Object[] row,
+                                         Row row,
                                          @Nullable String routing,
                                          @Nullable Long version) {
         ShardId shardId = clusterService.operationRouting().indexShards(

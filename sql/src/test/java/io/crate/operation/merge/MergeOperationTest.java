@@ -22,6 +22,8 @@
 package io.crate.operation.merge;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -46,6 +48,7 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.hamcrest.collection.IsIterableContainingInOrder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -53,9 +56,10 @@ import org.mockito.Answers;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 
 public class MergeOperationTest {
@@ -97,7 +101,7 @@ public class MergeOperationTest {
     @Test
     public void testMergeSingleResult() throws Exception {
         TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET,
-                Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[] { null });
+                Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         MergeNode mergeNode = new MergeNode("merge", 2); // no need for inputTypes here
@@ -115,23 +119,21 @@ public class MergeOperationTest {
                 ramAccountingContext
         );
 
-        Object[][] rows = new Object[20][];
-        for (int i=0; i<rows.length; i++) {
-            rows[i] = new Object[]{ i%4, i + 0.5d};
+        Object[][] objs = new Object[20][];
+        for (int i = 0; i < objs.length; i++) {
+            objs[i] = new Object[]{i % 4, i + 0.5d};
         }
+        Bucket rows = new ArrayBucket(objs);
+
         assertTrue(mergeOperation.addRows(rows));
 
         mergeOperation.finished();
-        Object[][] mergeResult = mergeOperation.result().get();
-        assertThat(mergeResult.length, is(3));
-        assertThat((Integer)mergeResult[0][0], is(0));
-        assertThat((Double)mergeResult[0][1], is(0.5d));
-
-        assertThat((Integer)mergeResult[1][0], is(1));
-        assertThat((Double)mergeResult[1][1], is(1.5d));
-
-        assertThat((Integer)mergeResult[2][0], is(2));
-        assertThat((Double)mergeResult[2][1], is(2.5d));
+        Bucket mergeResult = mergeOperation.result().get();
+        assertThat(mergeResult, IsIterableContainingInOrder.contains(
+                isRow(0, 0.5d),
+                isRow(1, 1.5d),
+                isRow(2, 2.5d)
+        ));
     }
 
     @Test
@@ -148,19 +150,16 @@ public class MergeOperationTest {
                 mergeNode,
                 ramAccountingContext
         );
-        Object[][] rows = new Object[1][];
-        rows[0] = new Object[]{0, 100.0d};
+
+        Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
         assertTrue(mergeOperation.addRows(rows));
 
-        Object[][] otherRows = new Object[1][];
-        otherRows[0] = new Object[]{0, 2.5d};
+        Bucket otherRows = new ArrayBucket(new Object[][]{{0, 2.5d}});
         assertTrue(mergeOperation.addRows(otherRows));
         mergeOperation.finished();
 
-        Object[][] mergeResult = mergeOperation.result().get();
-        assertThat(mergeResult.length, is(1));
-        assertThat((Integer)mergeResult[0][0], is(0));
-        assertThat((Double)mergeResult[0][1], is(2.5d));
+        Bucket mergeResult = mergeOperation.result().get();
+        assertThat(mergeResult, contains(isRow(0, 2.5)));
     }
 
 }

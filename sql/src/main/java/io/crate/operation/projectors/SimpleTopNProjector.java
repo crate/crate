@@ -23,17 +23,20 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
+import io.crate.core.collections.Row;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class SimpleTopNProjector implements Projector, ProjectorUpstream {
 
-    private final Input<?>[] inputs;
     private final CollectExpression<?>[] collectExpressions;
+    private final InputRow inputRow;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private Projector downstream;
 
@@ -41,13 +44,13 @@ public class SimpleTopNProjector implements Projector, ProjectorUpstream {
     private int toCollect;
     private AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
-    public SimpleTopNProjector(Input<?>[] inputs,
+    public SimpleTopNProjector(List<Input<?>> inputs,
                                CollectExpression<?>[] collectExpressions,
                                int limit,
                                int offset) {
         Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
         Preconditions.checkArgument(offset>=0, "invalid offset");
-        this.inputs = inputs;
+        this.inputRow = new InputRow(inputs);
         this.collectExpressions = collectExpressions;
         if (limit == TopN.NO_LIMIT) {
             limit = Constants.DEFAULT_SELECT_LIMIT;
@@ -65,13 +68,11 @@ public class SimpleTopNProjector implements Projector, ProjectorUpstream {
 
     @Override
     public void startProjection() {
-        if (remainingUpstreams.get() <= 0) {
-            upstreamFinished();
-        }
+        assert remainingUpstreams.get()>0;
     }
 
     @Override
-    public synchronized boolean setNextRow(Object[] row) {
+    public synchronized boolean setNextRow(Row row) {
         if (toCollect<1){
             return false;
         }
@@ -79,29 +80,15 @@ public class SimpleTopNProjector implements Projector, ProjectorUpstream {
             remainingOffset--;
             return true;
         }
-
-        if (downstream != null) {
-            Object[] evaluatedRow = generateNextRow(row);
-            if (!downstream.setNextRow(evaluatedRow)) {
-                toCollect = -1;
-            }
-        }
-
-        toCollect--;
-
-        return toCollect > 0 && failure.get() == null;
-    }
-
-    private Object[] generateNextRow(Object[] row) {
-        Object[] evaluatedRow = new Object[inputs.length];
+        assert downstream != null;
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
-        int i = 0;
-        for (Input<?> input : inputs) {
-            evaluatedRow[i++] = input.value();
+        if (!downstream.setNextRow(this.inputRow)) {
+            toCollect = -1;
         }
-        return evaluatedRow;
+        toCollect--;
+        return toCollect > 0 && failure.get() == null;
     }
 
     @Override

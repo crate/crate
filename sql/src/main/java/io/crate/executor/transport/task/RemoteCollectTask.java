@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
@@ -41,7 +42,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -100,12 +100,12 @@ public class RemoteCollectTask extends JobTask {
                     new ActionListener<NodeCollectResponse>() {
                         @Override
                         public void onResponse(NodeCollectResponse response) {
-                            ((SettableFuture<TaskResult>)result.get(resultIdx)).set(new QueryResult(response.rows()));
+                            ((SettableFuture<TaskResult>) result.get(resultIdx)).set(new QueryResult(response.rows()));
                         }
 
                         @Override
                         public void onFailure(Throwable e) {
-                            ((SettableFuture<TaskResult>)result.get(resultIdx)).setException(e);
+                            ((SettableFuture<TaskResult>) result.get(resultIdx)).setException(e);
                         }
                     }
             );
@@ -123,11 +123,13 @@ public class RemoteCollectTask extends JobTask {
         String ramAccountingContextId = String.format("%s: %s", collectNode.id(), operationId);
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        ListenableFuture<Object[][]> future = handlerSideDataCollectOperation.collect(collectNode,
-                ramAccountingContext);
-        Futures.addCallback(future, new FutureCallback<Object[][]>() {
+
+
+        ListenableFuture<Bucket> future = handlerSideDataCollectOperation.collect(
+                collectNode, ramAccountingContext);
+        Futures.addCallback(future, new FutureCallback<Bucket>() {
             @Override
-            public void onSuccess(@Nullable Object[][] rows) {
+            public void onSuccess(Bucket rows) {
                 ramAccountingContext.close();
                 ((SettableFuture<TaskResult>) result.get(resultIdx)).set(new QueryResult(rows));
                 statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
@@ -136,7 +138,7 @@ public class RemoteCollectTask extends JobTask {
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 ramAccountingContext.close();
-                ((SettableFuture<TaskResult>)result.get(resultIdx)).setException(t);
+                ((SettableFuture<TaskResult>) result.get(resultIdx)).setException(t);
                 statsTables.operationFinished(operationId, Exceptions.messageOf(t),
                         ramAccountingContext.totalBytes());
             }

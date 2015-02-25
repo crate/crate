@@ -21,6 +21,8 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
@@ -66,7 +68,7 @@ public class WriterProjector implements Projector, ProjectorUpstream {
 
     /**
      * @param inputs a list of {@link io.crate.operation.Input}.
-     *               If null the row that is received in {@link #setNextRow(Object...)}
+     *               If null the row that is received in {@link #setNextRow(Row)}
      *               is expected to contain the raw source in its first column.
      *               That raw source is then written to the output
      *
@@ -94,7 +96,7 @@ public class WriterProjector implements Projector, ProjectorUpstream {
         }
     }
 
-    protected static Map<String,Object> toNestedStringObjectMap(Map<ColumnIdent, Object> columnIdentObjectMap) {
+    protected static Map<String, Object> toNestedStringObjectMap(Map<ColumnIdent, Object> columnIdentObjectMap) {
         Map<String, Object> nestedMap = new HashMap<>();
         Map<String, Object> parent = nestedMap;
 
@@ -122,7 +124,7 @@ public class WriterProjector implements Projector, ProjectorUpstream {
                         parent = child;
                     } else {
                         assert o instanceof Map;
-                        parent = (Map)o;
+                        parent = (Map) o;
                     }
                 }
             }
@@ -139,15 +141,15 @@ public class WriterProjector implements Projector, ProjectorUpstream {
             if (!overwrites.isEmpty()) {
                 rowWriter = new DocWriter(
                         output.getOutputStream(), collectExpressions, overwrites, failure);
-            }
-            else if (inputs != null && !inputs.isEmpty()) {
+            } else if (inputs != null && !inputs.isEmpty()) {
                 rowWriter = new ColumnRowWriter(output.getOutputStream(), collectExpressions, inputs, failure);
             } else {
                 rowWriter = new RawRowWriter(output.getOutputStream(), failure);
             }
         } catch (IOException e) {
-            failure.set(new UnhandledServerException(
-                    String.format("Failed to open output: '%s'", e.getMessage()), e));
+            UnhandledServerException t = new UnhandledServerException(
+                    String.format("Failed to open output: '%s'", e.getMessage()), e);
+            failure.set(t);
         }
     }
 
@@ -161,8 +163,8 @@ public class WriterProjector implements Projector, ProjectorUpstream {
             failure.set(new UnhandledServerException("Failed to close output", e));
         }
         if (downstream != null) {
-            if (failure.get() == null){
-                downstream.setNextRow(counter.get());
+            if (failure.get() == null) {
+                downstream.setNextRow(new Row1(counter.get()));
                 downstream.upstreamFinished();
             } else {
                 downstream.upstreamFailed(failure.get());
@@ -171,8 +173,8 @@ public class WriterProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public synchronized boolean setNextRow(Object... row) {
-        if (failure.get()!=null){
+    public synchronized boolean setNextRow(Row row) {
+        if (failure.get() != null) {
             return false;
         }
         rowWriter.write(row);
@@ -206,7 +208,8 @@ public class WriterProjector implements Projector, ProjectorUpstream {
 
 
     interface RowWriter {
-        void write(Object[] row);
+        void write(Row row);
+
         void close();
     }
 
@@ -231,11 +234,11 @@ public class WriterProjector implements Projector, ProjectorUpstream {
 
         @Override
         @SuppressWarnings("unchecked")
-        public void write(Object[] row) {
+        public void write(Row row) {
             for (CollectExpression<?> collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }
-            Map doc = (Map)row[0];
+            Map doc = (Map) row.get(0);
             XContentHelper.update(doc, overwrites, false);
             try {
                 builder.map(doc);
@@ -262,8 +265,8 @@ public class WriterProjector implements Projector, ProjectorUpstream {
         }
 
         @Override
-        public void write(Object[] row) {
-            BytesRef value = (BytesRef)row[0];
+        public void write(Row row) {
+            BytesRef value = (BytesRef) row.get(0);
             try {
                 outputStream.write(value.bytes, value.offset, value.length);
                 outputStream.write(NEW_LINE);
@@ -286,9 +289,9 @@ public class WriterProjector implements Projector, ProjectorUpstream {
         private final XContentBuilder builder;
 
         ColumnRowWriter(OutputStream outputStream,
-                  Set<CollectExpression<?>> collectExpressions,
-                  List<Input<?>> inputs,
-                  AtomicReference<Throwable> failure) throws IOException {
+                        Set<CollectExpression<?>> collectExpressions,
+                        List<Input<?>> inputs,
+                        AtomicReference<Throwable> failure) throws IOException {
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
             this.inputs = inputs;
@@ -296,7 +299,7 @@ public class WriterProjector implements Projector, ProjectorUpstream {
             builder = XContentFactory.jsonBuilder(outputStream);
         }
 
-        public void write(Object[] row) {
+        public void write(Row row) {
             for (CollectExpression<?> collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }

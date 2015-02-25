@@ -29,6 +29,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -63,6 +64,7 @@ import java.util.List;
 public class LuceneDocCollector extends Collector implements CrateCollector {
 
     private final CollectorFieldsVisitor fieldsVisitor;
+    private final InputRow inputRow;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
     private RamAccountingContext ramAccountingContext;
@@ -76,12 +78,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
             requiredFields = new HashSet<>(size);
         }
 
-        public boolean addField(String name){
+        public boolean addField(String name) {
             required = true;
             return requiredFields.add(name);
         }
 
-        public boolean required(){
+        public boolean required() {
             return required;
         }
 
@@ -100,7 +102,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
 
     private final SearchContext searchContext;
     private Projector downstream;
-    private final List<Input<?>> topLevelInputs;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
 
     public LuceneDocCollector(ThreadPool threadPool,
@@ -119,12 +120,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         downstream(downStreamProjector);
         SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
-        this.topLevelInputs = inputs;
+        this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
 
         ShardSearchLocalRequest searchRequest = new ShardSearchLocalRequest(
-                new String[] { Constants.DEFAULT_MAPPING_TYPE },
+                new String[]{Constants.DEFAULT_MAPPING_TYPE},
                 System.currentTimeMillis()
         );
         IndexShard indexShard = indexService.shardSafe(shardId.id());
@@ -147,7 +148,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
             if (minScore != null) {
                 searchContext.minimumScore(minScore);
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             searchContext.close();
             SearchContext.removeCurrent();
             throw e;
@@ -161,7 +162,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     }
 
     @Override
-    public void setScorer(Scorer scorer) throws IOException {}
+    public void setScorer(Scorer scorer) throws IOException {
+    }
 
     @Override
     public void collect(int doc) throws IOException {
@@ -171,19 +173,14 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                     CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
                             ramAccountingContext.limit()));
         }
-        Object[] newRow = new Object[topLevelInputs.size()];
-        if (visitorEnabled){
+        if (visitorEnabled) {
             fieldsVisitor.reset();
             currentReader.document(doc, fieldsVisitor);
         }
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
         }
-        int i = 0;
-        for (Input<?> input : topLevelInputs) {
-            newRow[i++] = input.value();
-        }
-        if (!downstream.setNextRow(newRow)) {
+        if (!downstream.setNextRow(inputRow)) {
             // no more rows required, we can stop here
             throw new CollectionAbortedException();
         }

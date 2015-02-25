@@ -22,9 +22,11 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
@@ -65,7 +67,10 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
@@ -124,9 +129,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(result.size(), is(2));
         for (ListenableFuture<TaskResult> nodeResult : result) {
-            assertEquals(1, nodeResult.get().rows().length);
+            assertEquals(1, nodeResult.get().rows().size());
             if (!OsUtils.WINDOWS) {
-                assertThat((Double) nodeResult.get().rows()[0][0], is(greaterThan(0.0)));
+                assertThat((Double) Iterables.getOnlyElement(nodeResult.get().rows()).get(0), is(greaterThan(0.0)));
             }
         }
     }
@@ -145,13 +150,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(plan);
 
         List<ListenableFuture<TaskResult>> results = executor.execute(job);
-        assertThat(results.size(), is(1));
-        Object[][] result = results.get(0).get().rows();
-        assertThat(result.length, is(1));
-        assertThat(result[0].length, is(2));
-
-        assertThat(((BytesRef) result[0][0]).utf8ToString(), is(clusterName.value()));
-        assertThat((Float) result[0][1], is(2.3f));
+        Bucket result = results.get(0).get().rows();
+        assertThat(result, contains(isRow(clusterName.value(), 2.3f)));
     }
 
     @Test
@@ -163,11 +163,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
-
-        assertThat(objects.length, is(1));
-        assertThat((Integer) objects[0][0], is(2));
-        assertThat((String) objects[0][1], is("Ford"));
+        Bucket rows = result.get(0).get().rows();
+        assertThat(rows, contains(isRow(2, "Ford")));
     }
 
     @Test
@@ -180,11 +177,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
-
-        assertThat(objects.length, is(1));
-        assertThat((Integer) objects[0][0], is(2));
-        assertNull(objects[0][1]);
+        Bucket rows = result.get(0).get().rows();
+        assertThat(rows, contains(isRow(2, null)));
     }
 
     @Test
@@ -195,9 +189,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
 
-        assertThat(objects.length, is(2));
+        assertThat(objects.size(), is(2));
     }
 
     @Test
@@ -220,20 +214,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
-        Object[][] rows = task.result().get(0).get().rows();
-        assertThat(rows.length, is(4));
-
-        assertThat((Integer) rows[0][0], is(1));
-        assertThat((String) rows[0][1], is("Arthur"));
-
-        assertThat((Integer) rows[1][0], is(4));
-        assertThat((String) rows[1][1], is("Arthur"));
-
-        assertThat((Integer) rows[2][0], is(2));
-        assertThat((String) rows[2][1], is("Ford"));
-
-        assertThat((Integer) rows[3][0], is(3));
-        assertThat((String) rows[3][1], is("Trillian"));
+        Bucket rows = task.result().get(0).get().rows();
+        assertThat(rows, contains(
+                isRow(1, "Arthur"),
+                isRow(4, "Arthur"),
+                isRow(2, "Ford"),
+                isRow(3, "Trillian")
+        ));
     }
 
     @Test
@@ -261,11 +248,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
-        Object[][] rows = task.result().get(0).get().rows();
-        assertThat(rows.length, is(1));
-
-        assertThat((Integer) rows[0][0], is(2));
-        assertThat((String) rows[0][1], is("Ford"));
+        Bucket rows = task.result().get(0).get().rows();
+        assertThat(rows, contains(isRow(2, "Ford")));
     }
 
     @Test
@@ -321,12 +305,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(job.tasks().size(), is(2));
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get().rows();
-        assertThat(rows.length, is(1));
-
-        assertThat((Integer) rows[0][0], is(2));
-        assertEquals(315619200000L, rows[0][1]);
-
+        Bucket rows = result.get(0).get().rows();
+        assertThat(rows, contains(isRow(2, 315619200000L)));
     }
 
     @Test
@@ -353,20 +333,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
-        Object[][] rows = task.result().get(0).get().rows();
-        assertThat(rows.length, is(3));
-
-        assertThat((Integer) rows[0][0], is(3));
-        assertThat((String) rows[0][1], is("Ford"));
-        assertThat((Long) rows[0][2], is(1396388720242L));
-
-        assertThat((Integer) rows[1][0], is(1));
-        assertThat((String) rows[1][1], is("Trillian"));
-        assertNull(rows[1][2]);
-
-        assertThat((Integer) rows[2][0], is(2));
-        assertNull(rows[2][1]);
-        assertThat((Long) rows[2][2], is(0L));
+        Bucket rows = task.result().get(0).get().rows();
+        assertThat(rows, contains(
+                isRow(3, "Ford", 1396388720242L),
+                isRow(1, "Trillian", null),
+                isRow(2, null, 0L)
+        ));
     }
 
     @Test
@@ -387,9 +359,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         task.start();
         TaskResult taskResult = task.result().get(0).get();
-        Object[][] rows = taskResult.rows();
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(-1L));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(-1L)));
 
         // verify deletion
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
@@ -409,7 +380,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         searchTask.start();
         rows = searchTask.result().get(0).get().rows();
-        assertThat(rows.length, is(0));
+        assertThat(rows, emptyIterable());
     }
 
     @Test
@@ -420,7 +391,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name) values (99, 'Marvin'); */
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>() {{
             put(idRef, new InputColumn(0, IntegerType.INSTANCE));
             put(nameRef, new InputColumn(1, StringType.INSTANCE));
         }};
@@ -441,9 +412,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(1L)));
+
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
@@ -451,11 +422,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
-
-        assertThat(objects.length, is(1));
-        assertThat((Integer) objects[0][0], is(99));
-        assertThat((String) objects[0][1], is("Marvin"));
+        Bucket objects = result.get(0).get().rows();
+        assertThat(objects, contains(isRow(99, "Marvin")));
     }
 
     @Test
@@ -470,7 +438,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("parted");
-        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>() {{
             put(idRef, new InputColumn(0, IntegerType.INSTANCE));
             put(nameRef, new InputColumn(1, StringType.INSTANCE));
             put(partedDateRef, new InputColumn(2, TimestampType.INSTANCE));
@@ -494,10 +462,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] indexResult = taskResult.rows();
-        assertThat(indexResult.length, is(1));
-        assertThat(((Long) indexResult[0][0]), is(1L));
-
+        Bucket indexResult = taskResult.rows();
+        assertThat(indexResult, contains(isRow(1L)));
         refresh();
 
         assertTrue(
@@ -526,10 +492,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         WhereClause whereClause = new WhereClause(null, false);
         Plan plan = new IterablePlan(new ESCountNode(new String[]{"characters"}, whereClause));
         List<ListenableFuture<TaskResult>> result = executor.execute(executor.newJob(plan));
-        Object[][] rows = result.get(0).get().rows();
-
-        assertThat(rows.length, is(1));
-        assertThat((Long) rows[0][0], is(4L));
+        Bucket rows = result.get(0).get().rows();
+        assertThat(rows, contains(isRow(4L)));
     }
 
     @Test
@@ -540,7 +504,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>() {{
             put(idRef, new InputColumn(0, IntegerType.INSTANCE));
             put(nameRef, new InputColumn(1, StringType.INSTANCE));
         }};
@@ -562,9 +526,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-        assertThat(((Long) rows[0][0]), is(2L));
-        assertThat(rows.length, is(1));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(2L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
@@ -572,14 +535,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
 
-        assertThat(objects.length, is(2));
-        assertThat((Integer) objects[0][0], is(99));
-        assertThat((String) objects[0][1], is("Marvin"));
-
-        assertThat((Integer) objects[1][0], is(42));
-        assertThat((String) objects[1][1], is("Deep Thought"));
+        assertThat(objects, contains(
+                isRow(99, "Marvin"),
+                isRow(42, "Deep Thought")
+        ));
     }
 
     @Test
@@ -591,7 +552,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         final Reference detailsDescRef = new Reference(new ReferenceInfo(
                 new ReferenceIdent(charactersIdent, "details", ImmutableList.of("description")), RowGranularity.DOC, DataTypes.STRING));
 
-        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{
+        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>() {{
             put(detailsDescRef, new InputColumn(0, StringType.INSTANCE));
         }};
 
@@ -611,10 +572,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, detailsDescRef);
@@ -622,11 +581,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
-
-        assertThat(objects.length, is(1));
-        assertThat((Integer)objects[0][0], is(1));
-        assertThat((String)objects[0][1], is("Vogon lyric fan"));
+        Bucket objects = result.get(0).get().rows();
+        assertThat(objects, contains(isRow(1, "Vogon lyric fan")));
     }
 
     @Test
@@ -635,10 +591,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name, female) values (5, 'Zaphod Beeblebrox', false)
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{
+        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>() {{
             put(nameRef, new InputColumn(1, StringType.INSTANCE));
         }};
-        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>() {{
             put(idRef, new InputColumn(0, IntegerType.INSTANCE));
             put(nameRef, new InputColumn(1, StringType.INSTANCE));
             put(femaleRef, new InputColumn(2, BooleanType.INSTANCE));
@@ -659,10 +615,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(1L)));
 
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
@@ -670,12 +624,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
 
-        assertThat(objects.length, is(1));
-        assertThat((Integer) objects[0][0], is(5));
-        assertThat((String) objects[0][1], is("Zaphod Beeblebrox"));
-        assertThat((boolean) objects[0][2], is(false));
+        assertThat(objects, contains(isRow(5, "Zaphod Beeblebrox", false)));
     }
 
     @Test
@@ -684,11 +635,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name, female) values (1, 'Zaphod Beeblebrox', false)
            on duplicate key update name = 'Zaphod Beeblebrox', female = true; */
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{
+        Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>() {{
             put(nameRef, new InputColumn(1, StringType.INSTANCE));
             put(femaleRef, new InputColumn(3, BooleanType.INSTANCE));
         }};
-        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
+        Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>() {{
             put(idRef, new InputColumn(0, IntegerType.INSTANCE));
             put(nameRef, new InputColumn(1, StringType.INSTANCE));
             put(femaleRef, new InputColumn(2, BooleanType.INSTANCE));
@@ -709,24 +660,18 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
-
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(1L)));
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         ESGetNode getNode = newGetNode("characters", outputs, "1");
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
 
-        assertThat(objects.length, is(1));
-        assertThat((Integer) objects[0][0], is(1));
-        // Existing document is updated
-        assertThat((String) objects[0][1], is("Zaphod Beeblebrox"));
-        assertThat((boolean) objects[0][2], is(true));
+        assertThat(objects, contains(isRow(1, "Zaphod Beeblebrox", true)));
+
     }
 
     @Test
@@ -749,9 +694,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(1L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
@@ -759,11 +703,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
 
-        assertThat(objects.length, is(1));
-        assertThat((Integer) objects[0][0], is(99));
-        assertThat((String)objects[0][1], is("Marvin"));
+        assertThat(objects, contains(isRow(99, "Marvin")));
     }
 
     @Test
@@ -792,9 +734,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] indexResult = taskResult.rows();
-        assertThat(indexResult.length, is(1));
-        assertThat(((Long) indexResult[0][0]), is(1L));
+        Bucket indexResult = taskResult.rows();
+        assertThat(indexResult, contains(isRow(1L)));
 
         refresh();
 
@@ -815,7 +756,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 ).execute().actionGet().getHits();
         assertThat(hits.getTotalHits(), is(1L));
         assertThat((Integer) hits.getHits()[0].field("id").getValues().get(0), is(0));
-        assertThat((String)hits.getHits()[0].field("name").getValues().get(0), is("Trillian"));
+        assertThat((String) hits.getHits()[0].field("name").getValues().get(0), is("Trillian"));
     }
 
     @Test
@@ -840,9 +781,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-        assertThat(((Long) rows[0][0]), is(2L));
-        assertThat(rows.length, is(1));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(2L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
@@ -850,14 +790,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
 
-        assertThat(objects.length, is(2));
-        assertThat((Integer)objects[0][0], is(99));
-        assertThat((String)objects[0][1], is("Marvin"));
-
-        assertThat((Integer)objects[1][0], is(42));
-        assertThat((String)objects[1][1], is("Deep Thought"));
+        assertThat(objects, contains(
+                isRow(99, "Marvin"),
+                isRow(42, "Deep Thought")
+        ));
     }
 
     @Test
@@ -867,17 +805,15 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // update characters set name='Vogon lyric fan' where id=1
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
                 false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
-        updateNode.add("characters", "1", "1", new Symbol[]{ Literal.newLiteral("Vogon lyric fan")}, null);
+        updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
         Plan plan = new IterablePlan(updateNode);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
@@ -885,11 +821,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
 
-        assertThat(objects.length, is(1));
-        assertThat((Integer)objects[0][0], is(1));
-        assertThat((String)objects[0][1], is("Vogon lyric fan"));
+        assertThat(objects, contains(isRow(1, "Vogon lyric fan")));
     }
 
     @Test
@@ -910,10 +844,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(1L)));
 
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
@@ -921,12 +853,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
+        assertThat(objects, contains(isRow(5, "Zaphod Beeblebrox", false)));
 
-        assertThat(objects.length, is(1));
-        assertThat((Integer)objects[0][0], is(5));
-        assertThat((String)objects[0][1], is("Zaphod Beeblebrox"));
-        assertThat((boolean)objects[0][2], is(false));
     }
 
     @Test
@@ -946,10 +875,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
+        Bucket rows = taskResult.rows();
+        assertThat(rows, contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
@@ -957,13 +884,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
+        Bucket objects = result.get(0).get().rows();
 
-        assertThat(objects.length, is(1));
-        assertThat((Integer)objects[0][0], is(1));
-        assertThat((String)objects[0][1], is("Arthur"));
-        // Existing document is updated
-        assertThat((boolean)objects[0][2], is(true));
+        assertThat(objects, contains(isRow(1, "Arthur", true)));
     }
 
 }

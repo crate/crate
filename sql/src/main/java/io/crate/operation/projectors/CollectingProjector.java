@@ -21,14 +21,12 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.CollectionBucket;
+import io.crate.core.collections.Row;
+import io.crate.executor.transport.distributed.ResultProviderBase;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Vector;
 
 /**
  * A projector which simply collects any rows it gets and makes them available afterwards.
@@ -36,58 +34,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  * there are no other projectors in a chain but the result needs to be fetched at once after all
  * upstreams provided their rows.
  */
-public class CollectingProjector implements ResultProvider, Projector {
+public class CollectingProjector extends ResultProviderBase {
 
-    private final AtomicInteger upstreamsRemaining;
-    public List<Object[]> rows = new ArrayList<>();
-    private SettableFuture<Object[][]> result = SettableFuture.create();
-
-    public CollectingProjector() {
-        this.upstreamsRemaining = new AtomicInteger(0);
-    }
+    public final Vector<Object[]> rows = new Vector<>();
 
     @Override
-    public void startProjection() {
-        if (upstreamsRemaining.get() <= 0) {
-            upstreamFinished();
-        }
-    }
-
-    @Override
-    public synchronized boolean setNextRow(Object... row) {
-        rows.add(row);
+    public boolean setNextRow(Row row) {
+        rows.add(Buckets.materialize(row));
         return true;
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
-        upstreamsRemaining.incrementAndGet();
+    public void finishProjection() {
+        result.set(new CollectionBucket(rows));
     }
 
-    @Override
-    public void upstreamFinished() {
-        if (upstreamsRemaining.decrementAndGet() <= 0) {
-            result.set(rows.toArray(new Object[rows.size()][]));
-        }
-    }
-
-    @Override
-    public void upstreamFailed(Throwable throwable) {
-        if (upstreamsRemaining.decrementAndGet() <= 0) {
-            result.setException(throwable);
-        }
-    }
-
-    @Override
-    public ListenableFuture<Object[][]> result() {
-        return result;
-    }
-
-    @Override
-    public Iterator<Object[]> iterator() throws IllegalStateException {
-        if (!result.isDone()) {
-            throw new IllegalStateException("result not ready yet");
-        }
-        return rows.iterator();
-    }
 }

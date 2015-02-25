@@ -23,6 +23,7 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
@@ -57,8 +58,9 @@ import org.mockito.Answers;
 
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 
 public class LocalMergeTaskTest {
@@ -95,8 +97,8 @@ public class LocalMergeTaskTest {
 
     private ListenableFuture<TaskResult> getUpstreamResult(int numRows) {
         Object[][] rows = new Object[numRows][];
-        for (int i=0; i<numRows; i++) {
-            double d = (double)numRows*i;
+        for (int i = 0; i < numRows; i++) {
+            double d = (double) numRows * i;
             rows[i] = new Object[]{
                     d % 4,
                     d
@@ -112,7 +114,7 @@ public class LocalMergeTaskTest {
                     TopN.NO_OFFSET,
                     Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
                     new boolean[]{true, true},
-                    new Boolean[] { null, null });
+                    new Boolean[]{null, null});
             topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
             MergeNode mergeNode = new MergeNode("merge", 2);
@@ -121,7 +123,7 @@ public class LocalMergeTaskTest {
                     topNProjection
             ));
             List<ListenableFuture<TaskResult>> upstreamResults = new ArrayList<>(1);
-            for (int i=1; i<14; i++) {
+            for (int i = 1; i < 14; i++) {
                 upstreamResults.add(getUpstreamResult(i));
             }
 
@@ -141,19 +143,13 @@ public class LocalMergeTaskTest {
             localMergeTask.start();
 
             ListenableFuture<List<TaskResult>> allAsList = Futures.allAsList(localMergeTask.result());
-            Object[][] result = allAsList.get().get(0).rows();
+            Bucket result = allAsList.get().get(0).rows();
 
-            assertThat(result.length, is(3));
-            assertThat(result[0].length, is(2));
-
-            assertThat((Double)result[0][0], is(3.0));
-            assertThat((Double)result[0][1], is(3.0));
-
-            assertThat((Double)result[1][0], is(2.0));
-            assertThat((Double)result[1][1], is(2.0));
-
-            assertThat((Double)result[2][0], is(1.0));
-            assertThat((Double)result[2][1], is(5.0));
+            assertThat(result, contains(
+                    isRow(3.0, 3.0),
+                    isRow(2.0, 2.0),
+                    isRow(1.0, 5.0)
+            ));
         }
     }
 }

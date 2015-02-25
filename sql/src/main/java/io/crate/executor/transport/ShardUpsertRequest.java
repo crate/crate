@@ -111,12 +111,12 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
     public ShardUpsertRequest add(int location,
                                   String id,
-                                  Object[] row,
+                                  Row row,
                                   @Nullable Long version,
                                   @Nullable String routing) {
         locations.add(location);
         ids.add(id);
-        rows.add(row);
+        rows.addSafe(row);
         if (version != null) {
             versions.add(version);
         } else {

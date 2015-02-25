@@ -25,5 +25,13 @@ public interface Row {
 
     public abstract int size();
 
+    /**
+     * Returns the element at the specified column
+     *
+     * @param index index of the column to return
+     * @return the value at the specified position in this list
+     * @throws IndexOutOfBoundsException if the index is out of range
+     *         (<tt>index &lt; 0 || index &gt;= size()</tt>)
+     */
     public abstract Object get(int index);
 }

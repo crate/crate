@@ -22,6 +22,8 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
@@ -40,6 +42,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -72,14 +76,12 @@ public class WriterProjectorTest {
 
         projector.registerUpstream(null);
         for (int i = 0; i < 5; i++) {
-            projector.setNextRow(new BytesRef(String.format("input line %02d", i)));
+            projector.setNextRow(new Row1(new BytesRef(String.format("input line %02d", i))));
         }
         projector.upstreamFinished();
 
-        Object[][] rows = ((ResultProvider) downstream).result().get();
-
-        assertEquals(1, rows.length);
-        assertEquals(5L, rows[0][0]);
+        Bucket rows = ((ResultProvider) downstream).result().get();
+        assertThat(rows, contains(isRow(5L)));
 
         assertEquals("input line 00\n" +
                 "input line 01\n" +

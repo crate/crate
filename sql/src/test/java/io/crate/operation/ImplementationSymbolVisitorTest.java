@@ -21,6 +21,7 @@
 
 package io.crate.operation;
 
+import io.crate.core.collections.RowN;
 import io.crate.metadata.*;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -147,8 +148,10 @@ public class ImplementationSymbolVisitorTest {
 
         // keyExpressions: [ in0, in1 ]
         CollectExpression[] keyExpressions = context.collectExpressions().toArray(new CollectExpression[2]);
-        keyExpressions[0].setNextRow(1L, 2L);
-        keyExpressions[1].setNextRow(1L, 2L);
+
+        RowN row = new RowN(new Object[]{1L, 2L});
+        keyExpressions[0].setNextRow(row);
+        keyExpressions[1].setNextRow(row);
         assertThat((Long) keyExpressions[0].value(), is(1L));
         assertThat((Long) keyExpressions[1].value(), is(2L)); // raw input value
 
@@ -197,8 +200,9 @@ public class ImplementationSymbolVisitorTest {
         assertThat(allInputs.size(), is(2)); // only 2 because count is no input
 
         CollectExpression[] collectExpressions = context.collectExpressions().toArray(new CollectExpression[2]);
-        collectExpressions[0].setNextRow(1L, 2L);
-        collectExpressions[1].setNextRow(1L, 2L);
+        RowN row = new RowN(new Object[]{1L, 2L});
+        collectExpressions[0].setNextRow(row);
+        collectExpressions[1].setNextRow(row);
         assertThat((Long) collectExpressions[0].value(), is(1L));
         assertThat((Long) collectExpressions[1].value(), is(2L)); // raw input value
 

@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
@@ -121,9 +122,9 @@ public class LocalMergeTask extends JobTask {
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
 
-        Futures.addCallback(mergeOperation.result(), new FutureCallback<Object[][]>() {
+        Futures.addCallback(mergeOperation.result(), new FutureCallback<Bucket>() {
             @Override
-            public void onSuccess(@Nullable Object[][] rows) {
+            public void onSuccess(Bucket rows) {
                 ramAccountingContext.close();
                 statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
                 result.set(new QueryResult(rows));
@@ -179,7 +180,7 @@ public class LocalMergeTask extends JobTask {
                         if (input == null) {
                             return "";
                         } else {
-                            return Arrays.toString(input.rows());
+                            return input.rows().toString();
                         }
                     }
                 })

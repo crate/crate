@@ -23,6 +23,7 @@ package io.crate.module.sql.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -60,6 +61,21 @@ public class GroupingProjectorBenchmark {
     @Rule
     public BenchmarkRule benchmarkRule = new BenchmarkRule();
 
+    class SpareRow implements Row {
+
+        Object value;
+
+        @Override
+        public int size() {
+            return 1;
+        }
+
+        @Override
+        public Object get(int index) {
+            return value;
+        }
+    }
+
 
     @Test
     public void testGroupByMinBytesRef() throws Exception {
@@ -90,8 +106,10 @@ public class GroupingProjectorBenchmark {
             keys.add(new BytesRef(s));
         }
 
+        SpareRow row = new SpareRow();
         for (int i = 0; i < 20_000_000; i++) {
-            groupingProjector.setNextRow(keys.get(i % keys.size()));
+            row.value = keys.get(i % keys.size());
+            groupingProjector.setNextRow(row);
         }
 
         groupingProjector.upstreamFinished();
@@ -121,9 +139,10 @@ public class GroupingProjectorBenchmark {
         groupingProjector.registerUpstream(null);
         groupingProjector.startProjection();
 
-
+        SpareRow row = new SpareRow();
         for (int i = 0; i < 20_000_000; i++) {
-            groupingProjector.setNextRow(i % 200);
+            row.value = i % 200;
+            groupingProjector.setNextRow(row);
         }
 
         groupingProjector.upstreamFinished();

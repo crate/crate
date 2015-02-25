@@ -25,6 +25,7 @@ import io.crate.blob.BlobContainer;
 import io.crate.blob.v2.BlobShard;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
 
@@ -65,20 +66,15 @@ public class BlobDocCollector implements CrateCollector {
 
     private class FileListingsFileVisitor implements BlobContainer.FileVisitor {
 
+        private final InputRow row = new InputRow(inputs);
+
         @Override
         public boolean visit(File file) {
             for (BlobCollectorExpression expression : expressions) {
                 expression.setNextBlob(file);
             }
             if (condition.value()) {
-                Object[] newRow = new Object[inputs.size()];
-
-                int i = 0;
-                for (Input<?> input : inputs) {
-                    newRow[i++] = input.value();
-                }
-
-                return downstream.setNextRow(newRow);
+                return downstream.setNextRow(row);
             }
             return true;
         }

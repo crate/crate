@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
@@ -51,7 +52,7 @@ public class FilterProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public synchronized boolean setNextRow(Object... row) {
+    public synchronized boolean setNextRow(Row row) {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }

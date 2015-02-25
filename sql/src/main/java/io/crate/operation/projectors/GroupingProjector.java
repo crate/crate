@@ -26,6 +26,8 @@ import com.google.common.collect.Iterables;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
@@ -116,7 +118,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public synchronized boolean setNextRow(final Object... row) {
+    public synchronized boolean setNextRow(Row row) {
         try {
             return grouper.setNextRow(row);
         } catch (CircuitBreakingException e) {
@@ -179,8 +181,8 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
     }
 
     private static void singleTransformToRow(Map.Entry<Object, Object[]> entry,
-                                       Object[] row,
-                                       Aggregator[] aggregators) {
+                                             Object[] row,
+                                             Aggregator[] aggregators) {
         int c = 0;
         row[c] = entry.getKey();
         c++;
@@ -196,8 +198,9 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
     }
 
     private interface Grouper {
-        boolean setNextRow(final Object... row);
-        Object[][] finish();
+        boolean setNextRow(final Row row);
+
+        void finish();
     }
 
     private class SingleKeyGrouper implements Grouper {
@@ -220,9 +223,9 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
         }
 
         @Override
-        public boolean setNextRow(Object... row) {
+        public boolean setNextRow(Row row) {
             for (CollectExpression collectExpression : collectExpressions) {
-               collectExpression.setNextRow(row);
+                collectExpression.setNextRow(row);
             }
 
             Object key = keyInput.value();
@@ -249,34 +252,32 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
         }
 
         @Override
-        public Object[][] finish() {
+        public void finish() {
+            if (downstream == null) {
+                return;
+            }
             Throwable throwable = failure.get();
-            if (throwable != null && downstream != null) {
+            if (throwable != null) {
                 downstream.upstreamFailed(throwable);
             }
 
+            // TODO: check ram accounting
             // account the multi-dimension `rows` array
             // 1st level
             ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
             // 2nd level
             ramAccountingContext.addBytes(RamAccountingContext.roundUp(
                     (1 + aggregators.length) * 4 + 12));
-            Object[][] rows = new Object[result.size()][1 + aggregators.length];
-            boolean sendToDownStream = downstream != null;
-            int r = 0;
-
+            RowN row = new RowN(1 + aggregators.length);
             for (Map.Entry<Object, Object[]> entry : result.entrySet()) {
-                Object[] row = rows[r];
-                singleTransformToRow(entry, row, aggregators);
-                if (sendToDownStream) {
-                    sendToDownStream = downstream.setNextRow(row);
+                Object[] cells = new Object[row.size()];
+                singleTransformToRow(entry, cells, aggregators);
+                row.cells(cells);
+                if (!downstream.setNextRow(row)) {
+                    break;
                 }
-                r++;
             }
-            if (downstream != null) {
-                downstream.upstreamFinished();
-            }
-            return rows;
+            downstream.upstreamFinished();
         }
     }
 
@@ -303,7 +304,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
         }
 
         @Override
-        public boolean setNextRow(Object... row) {
+        public boolean setNextRow(Row row) {
             for (CollectExpression collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }
@@ -344,9 +345,12 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
         }
 
         @Override
-        public Object[][] finish() {
+        public void finish() {
+            if (downstream == null){
+                return;
+            }
             Throwable throwable = failure.get();
-            if (throwable != null && downstream != null) {
+            if (throwable != null) {
                 downstream.upstreamFailed(throwable);
             }
             // account the multi-dimension `rows` array
@@ -355,21 +359,17 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
             // 2nd level
             ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 +
                     (keyInputs.size() + aggregators.length) * 4));
-            Object[][] rows = new Object[result.size()][keyInputs.size() + aggregators.length];
-            boolean sendToDownStream = downstream != null;
-            int r = 0;
+            //Object[][] rows = new Object[result.size()][keyInputs.size() + aggregators.length];
+            RowN row = new RowN(keyInputs.size() + aggregators.length);
             for (Map.Entry<List<Object>, Object[]> entry : result.entrySet()) {
-                Object[] row = rows[r];
-                transformToRow(entry, row, aggregators);
-                if (sendToDownStream) {
-                    sendToDownStream = downstream.setNextRow(row);
+                Object[] cells = new Object[row.size()];
+                transformToRow(entry, cells, aggregators);
+                row.cells(cells);
+                if (!downstream.setNextRow(row)){
+                    return;
                 }
-                r++;
             }
-            if (downstream != null) {
-                downstream.upstreamFinished();
-            }
-            return rows;
+            downstream.upstreamFinished();
         }
     }
 }

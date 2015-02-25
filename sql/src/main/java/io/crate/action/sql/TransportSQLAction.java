@@ -23,6 +23,9 @@ package io.crate.action.sql;
 
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.Row;
 import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
@@ -74,7 +77,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                                      String[] outputNames,
                                      @Nullable DataType[] types) {
         return new SQLResponse(outputNames,
-                TaskResult.EMPTY_RESULT.rows(),
+                TaskResult.EMPTY_OBJS,
                 types,
                 0L,
                 request.creationTime(),
@@ -89,20 +92,26 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                                                    SQLRequest request) {
         assert result.size() == 1;
         TaskResult taskResult = result.get(0);
-        Object[][] rows = taskResult.rows();
+        Bucket rows = taskResult.rows();
+
+        Object[][] objs;
         long rowCount = 0;
         if (expectsAffectedRows) {
-            if (rows.length >= 1 && rows[0].length >= 1) {
-                rowCount = ((Number) rows[0][0]).longValue();
+            if (rows.size() >= 1){
+                Row first = rows.iterator().next();
+                if (first.size()>=1){
+                    rowCount = ((Number) first.get(0)).longValue();
+                }
             }
-            rows = TaskResult.EMPTY_ROWS;
+            objs = TaskResult.EMPTY_OBJS;
         } else {
-            rowCount = rows.length;
+            rowCount = rows.size();
+            objs = Buckets.materialize(rows);
         }
-        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rows);
+        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, objs);
         return new SQLResponse(
                 outputNames,
-                rows,
+                objs,
                 outputTypes,
                 rowCount,
                 request.creationTime(),

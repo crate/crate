@@ -22,9 +22,11 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
+import io.crate.planner.PlanNodeBuilder;
+import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
@@ -49,7 +51,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.core.Is.is;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -77,7 +80,8 @@ public class MapSideDataCollectOperationTest {
         };
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
-        MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
+
+        LocalCollectOperation collectOperation = new LocalCollectOperation(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
@@ -86,12 +90,13 @@ public class MapSideDataCollectOperationTest {
                 indicesService,
                 new ThreadPool(ImmutableSettings.builder().put("name", getClass().getName()).build(), null),
                 new CollectServiceResolver(discoveryService,
-                    new SystemCollectService(
-                            discoveryService,
-                            functions,
-                            new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
-                    )
-                )
+                        new SystemCollectService(
+                                discoveryService,
+                                functions,
+                                new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
+                        )
+                ),
+                new PlanNodeStreamerVisitor(functions)
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
@@ -115,14 +120,12 @@ public class MapSideDataCollectOperationTest {
                 null,
                 false
         );
-        ListenableFuture<Object[][]> resultFuture = collectOperation.collect(collectNode, null);
-        Object[][] objects = resultFuture.get();
+        PlanNodeBuilder.setOutputTypes(collectNode);
+        Bucket objects = collectOperation.collect(collectNode, null).get();
+        assertThat(objects, contains(
+                isRow("Arthur", 38),
+                isRow("Trillian", 33)
 
-        assertThat((String)objects[0][0], is("Arthur"));
-        assertThat((Integer)objects[0][1], is(38));
-
-        assertThat((String)objects[1][0], is("Trillian"));
-        assertThat((Integer)objects[1][1], is(33));
-
+        ));
     }
 }

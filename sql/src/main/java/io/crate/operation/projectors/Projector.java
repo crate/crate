@@ -21,7 +21,9 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Row;
 import io.crate.operation.ProjectorDownstream;
+
 
 /**
  * Executes a Projection.
@@ -43,5 +45,6 @@ public interface Projector extends ProjectorDownstream {
      *
      * @return false if this projection does not need any more rows, true otherwise.
      */
-    public boolean setNextRow(Object ... row);
+
+    public boolean setNextRow(Row row);
 }

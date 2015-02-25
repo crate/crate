@@ -95,7 +95,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testRefreshSystemTable() throws Exception {
         SQLResponse response = executor.exec("refresh table sys.shards");
         assertFalse(response.hasRowCount());
-        assertThat(response.rows(), is(TaskResult.EMPTY_RESULT.rows()));
+        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
     }
 
     @Test
@@ -209,19 +209,19 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse secondResp = executor.exec("select sum(age) from characters where age is not null");
 
         assertEquals(
-            firstResp.rowCount(),
-            secondResp.rowCount()
+                firstResp.rowCount(),
+                secondResp.rowCount()
         );
         assertEquals(
-            firstResp.rows()[0][0],
-            secondResp.rows()[0][0]
+                firstResp.rows()[0][0],
+                secondResp.rows()[0][0]
         );
     }
 
     @Test
     public void testGlobalAggregateNullRowWithoutMatchingRows() throws Exception {
         SQLResponse response = executor.exec(
-            "select sum(age), avg(age) from characters where characters.age > 112");
+                "select sum(age), avg(age) from characters where characters.age > 112");
         assertEquals(1, response.rowCount());
         assertNull(response.rows()[0][0]);
         assertNull(response.rows()[0][1]);
@@ -240,7 +240,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertEquals(55.25d, response.rows()[0][3]);
     }
 
-    @Test (expected = SQLActionException.class)
+    @Test(expected = SQLActionException.class)
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
         executor.exec("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
@@ -248,7 +248,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testGroupByNestedObject() throws Exception {
         SQLResponse response = executor.exec("select count(*), details['job'] from characters " +
-            "group by details['job'] order by count(*), details['job']");
+                "group by details['job'] order by count(*), details['job']");
         assertEquals(3, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
         assertEquals("Mathematician", response.rows()[0][1]);
@@ -261,7 +261,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testCountWithGroupByOrderOnKeyDescAndLimit() throws Exception {
         SQLResponse response = executor.exec(
-            "select count(*), race from characters group by race order by race desc limit 2");
+                "select count(*), race from characters group by race order by race desc limit 2");
 
         assertEquals(2L, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
@@ -273,7 +273,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
         SQLResponse response = executor.exec(
-            "select count(*), race from characters group by race order by race asc limit 2");
+                "select count(*), race from characters group by race order by race asc limit 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
@@ -284,7 +284,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testCountWithGroupByNullArgs() throws Exception {
-        SQLResponse response = executor.exec("select count(*), race from characters group by race", new Object[] { null });
+        SQLResponse response = executor.exec("select count(*), race from characters group by race", new Object[]{null});
         assertEquals(3, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
@@ -292,26 +292,26 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testGroupByAndOrderByAlias() throws Exception {
         SQLResponse response = executor.exec(
-            "select characters.race as test_race from characters group by characters.race order by characters.race");
+                "select characters.race as test_race from characters group by characters.race order by characters.race");
         assertEquals(3, response.rowCount());
 
         response = executor.exec(
-            "select characters.race as test_race from characters group by characters.race order by test_race");
+                "select characters.race as test_race from characters group by characters.race order by test_race");
         assertEquals(3, response.rowCount());
     }
 
     @Test
     public void testCountWithGroupByWithWhereClause() throws Exception {
         SQLResponse response = executor.exec(
-            "select count(*), race from characters where race = 'Human' group by race");
+                "select count(*), race from characters where race = 'Human' group by race");
         assertEquals(1, response.rowCount());
     }
 
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
         SQLResponse response = executor.exec("select count(*), race from characters " +
-                "group by race order by count(*) asc limit ?",
-            new Object[]{2});
+                        "group by race order by count(*) asc limit ?",
+                new Object[]{2});
 
         assertEquals(2, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
@@ -323,7 +323,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
         SQLResponse response = executor.exec("select count(*), gender, race from characters " +
-            "group by race, gender order by count(*) desc, race, gender asc limit 2");
+                "group by race, gender order by count(*) desc, race, gender asc limit 2");
 
         assertEquals(2L, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
@@ -337,7 +337,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndOffset() throws Exception {
         SQLResponse response = executor.exec("select count(*), gender, race from characters " +
-            "group by race, gender order by count(*) desc, race asc limit 2 offset 2");
+                "group by race, gender order by count(*) desc, race asc limit 2 offset 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
@@ -407,7 +407,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         List<String> lines = new ArrayList<>(2);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
-        for (Path entry: stream) {
+        for (Path entry : stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
         assertThat(lines.size(), is(2));
@@ -427,7 +427,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         List<String> lines = new ArrayList<>(5);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
-        for (Path entry: stream) {
+        for (Path entry : stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
         assertThat(lines.size(), is(5));
@@ -445,15 +445,15 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testArithmeticFunctions() throws Exception {
         SQLResponse response = executor.exec("select ((2 * 4 - 2 + 1) / 2) % 3 from sys.cluster");
         assertThat(response.cols()[0], is("(((((2 * 4) - 2) + 1) / 2) % 3)"));
-        assertThat((Long)response.rows()[0][0], is(0L));
+        assertThat((Long) response.rows()[0][0], is(0L));
 
         response = executor.exec("select ((2 * 4.0 - 2 + 1) / 2) % 3 from sys.cluster");
-        assertThat((Double)response.rows()[0][0], is(0.5));
+        assertThat((Double) response.rows()[0][0], is(0.5));
 
         response = executor.exec("select ? + 2 from sys.cluster", 1);
-        assertThat((Long)response.rows()[0][0], is(3L));
+        assertThat((Long) response.rows()[0][0], is(3L));
 
-        if(!OsUtils.WINDOWS) {
+        if (!OsUtils.WINDOWS) {
             response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
             assertEquals(response.rows()[0][0], (Double) response.rows()[0][1] + (Double) response.rows()[0][2]);
         }
@@ -462,7 +462,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testJobLog() throws Exception {
         executor.exec("select name from sys.cluster");
-        SQLResponse response= executor.exec("select * from sys.jobs_log");
+        SQLResponse response = executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L)); // default length is zero
 
         executor.exec("set global transient stats.enabled = true, stats.jobs_log_size=1");
@@ -470,16 +470,16 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         executor.exec("select id from sys.cluster");
         executor.exec("select id from sys.cluster");
         executor.exec("select id from sys.cluster");
-        response= executor.exec("select stmt from sys.jobs_log order by ended desc");
+        response = executor.exec("select stmt from sys.jobs_log order by ended desc");
 
         // there are 2 nodes so depending on whether both nodes were hit this should be either 1 or 2
         // but never 3 because the queue size is only 1
         assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
-        assertThat((String)response.rows()[0][0], is("select id from sys.cluster"));
+        assertThat((String) response.rows()[0][0], is("select id from sys.cluster"));
 
         executor.exec("reset global stats.enabled, stats.jobs_log_size");
         waitNoPendingTasksOnAll();
-        response= executor.exec("select * from sys.jobs_log");
+        response = executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -487,14 +487,14 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testSetSingleStatement() throws Exception {
         SQLResponse response = executor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
+        assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
 
         response = executor.exec("set global persistent stats.enabled= true, stats.jobs_log_size=7");
         assertThat(response.rowCount(), is(1L));
 
         response = executor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(7));
+        assertThat((Integer) response.rows()[0][0], is(7));
 
         response = executor.exec("reset global stats.enabled, stats.jobs_log_size");
         assertThat(response.rowCount(), is(1L));
@@ -502,8 +502,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         response = executor.exec("select settings['stats']['enabled'], settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Boolean)response.rows()[0][0], is(CrateSettings.STATS_ENABLED.defaultValue()));
-        assertThat((Integer)response.rows()[0][1], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean) response.rows()[0][0], is(CrateSettings.STATS_ENABLED.defaultValue()));
+        assertThat((Integer) response.rows()[0][1], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
 
     }
 
@@ -512,8 +512,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response = executor.exec(
                 "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
-        assertThat((Boolean)response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
+        assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean) response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
 
         response = executor.exec("set global persistent stats.operations_log_size=1024, stats.enabled=false");
         assertThat(response.rowCount(), is(1L));
@@ -521,8 +521,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         response = executor.exec(
                 "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(1024));
-        assertThat((Boolean)response.rows()[0][1], is(false));
+        assertThat((Integer) response.rows()[0][0], is(1024));
+        assertThat((Boolean) response.rows()[0][1], is(false));
 
         response = executor.exec("reset global stats.operations_log_size, stats.enabled");
         assertThat(response.rowCount(), is(1L));
@@ -531,8 +531,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         response = executor.exec(
                 "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
-        assertThat((Boolean)response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
+        assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean) response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
     }
 
     @Test
@@ -552,20 +552,20 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testSysOperationsLog() throws Exception {
         executor.exec(
-            "select count(*), race from characters group by race order by count(*) desc limit 2");
+                "select count(*), race from characters group by race order by count(*) desc limit 2");
         SQLResponse resp = executor.exec("select count(*) from sys.operations_log");
-        assertThat((Long)resp.rows()[0][0], is(0L));
+        assertThat((Long) resp.rows()[0][0], is(0L));
 
         executor.exec("set global transient stats.enabled = true, stats.operations_log_size=10");
         waitNoPendingTasksOnAll();
 
         executor.exec(
-            "select count(*), race from characters group by race order by count(*) desc limit 2");
+                "select count(*), race from characters group by race order by count(*) desc limit 2");
         resp = executor.exec("select * from sys.operations_log");
 
         List<String> names = new ArrayList<>();
         for (Object[] objects : resp.rows()) {
-            names.add((String)objects[2]);
+            names.add((String) objects[2]);
         }
         assertTrue((names.contains("distributing collect") && names.contains("distributed merge")) || names.contains("collect"));
         assertTrue(names.contains("localMerge"));
@@ -614,10 +614,10 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         for (Object[] objects : resp.rows()) {
             names.add((String) objects[0]);
         }
-        assertThat(names, Matchers.contains("Anjie", "Ford Perfect", "Jeltz" ,"Kwaltz", "Marving"));
+        assertThat(names, Matchers.contains("Anjie", "Ford Perfect", "Jeltz", "Kwaltz", "Marving"));
 
         resp = executor.exec("select count(*) from characters where details is not null");
-        assertThat((Long)resp.rows()[0][0], is(2L));
+        assertThat((Long) resp.rows()[0][0], is(2L));
     }
 
     @Test
@@ -640,11 +640,11 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
                 "version['build_hash'], version['build_snapshot'] " +
                 "from sys.nodes");
         assertThat(response.rowCount(), is(2L));
-        for (int i = 0; i <=1 ; i++) {
+        for (int i = 0; i <= 1; i++) {
             assertThat(response.rows()[i][0], instanceOf(Map.class));
             assertThat((Map<String, Object>) response.rows()[i][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
             assertThat((String) response.rows()[i][1], Matchers.is(Version.CURRENT.number()));
-            assertThat((String)response.rows()[i][2], is(Build.CURRENT.hash()));
+            assertThat((String) response.rows()[i][2], is(Build.CURRENT.hash()));
             assertThat((Boolean) response.rows()[i][3], is(Version.CURRENT.snapshot()));
         }
     }
@@ -656,7 +656,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         long after = System.currentTimeMillis();
 
         assertThat(response.cols(), arrayContaining("current_timestamp"));
-        assertThat((Long)response.rows()[0][0], allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
+        assertThat((Long) response.rows()[0][0], allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
     }
 
     @Test

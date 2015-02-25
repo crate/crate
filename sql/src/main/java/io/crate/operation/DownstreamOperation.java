@@ -22,6 +22,7 @@
 package io.crate.operation;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Bucket;
 
 
 public interface DownstreamOperation extends ProjectorUpstream {
@@ -30,8 +31,8 @@ public interface DownstreamOperation extends ProjectorUpstream {
      * add more rows to merge
      * implementation needs to make sure that this operation is thread-safe
      */
-    public boolean addRows(Object[][] rows) throws Exception;
+    public boolean addRows(Bucket rows) throws Exception;
     public int numUpstreams();
     public void finished();
-    public ListenableFuture<Object[][]> result();
+    public ListenableFuture<Bucket> result();
 }

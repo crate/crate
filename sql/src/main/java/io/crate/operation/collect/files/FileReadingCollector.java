@@ -21,13 +21,14 @@
 
 package io.crate.operation.collect.files;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectionAbortedException;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
@@ -54,10 +55,10 @@ public class FileReadingCollector implements CrateCollector {
     private final Boolean shared;
     private final int numReaders;
     private final int readerNumber;
+    private final InputRow row;
     private URI preGlobUri;
     private Projector downstream;
     private final boolean compressed;
-    private final List<Input<?>> inputs;
     private final List<LineCollectorExpression<?>> collectorExpressions;
 
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("(.*)[^\\\\]\\*.*");
@@ -95,9 +96,9 @@ public class FileReadingCollector implements CrateCollector {
         }
         downstream(downstream);
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.inputs = inputs;
+        this.row = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
-        this.fileInputFactoryMap = new HashMap<>(ImmutableMap.<String, FileInputFactory>of(
+        this.fileInputFactoryMap = new HashMap<>(ImmutableMap.of(
                 "s3", new FileInputFactory() {
                     @Override
                     public FileInput create() throws IOException {
@@ -155,7 +156,6 @@ public class FileReadingCollector implements CrateCollector {
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
-        Object[] newRow;
         String line;
         List<URI> uris;
         uris = getUris(fileInput, uriPredicate);
@@ -171,15 +171,10 @@ public class FileReadingCollector implements CrateCollector {
                 try {
                     while ((line = reader.readLine()) != null) {
                         collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
-                        newRow = new Object[inputs.size()];
                         for (LineCollectorExpression expression : collectorExpressions) {
                             expression.setNextLine(line);
                         }
-                        int i = 0;
-                        for (Input<?> input : inputs) {
-                            newRow[i++] = input.value();
-                        }
-                        if (!downstream.setNextRow(newRow)) {
+                        if (!downstream.setNextRow(row)) {
                             throw new CollectionAbortedException();
                         }
                     }
@@ -217,7 +212,7 @@ public class FileReadingCollector implements CrateCollector {
 
     private Predicate<URI> generateUriPredicate(FileInput fileInput) {
         Predicate<URI> moduloPredicate;
-        boolean sharedStorage = Objects.firstNonNull(shared, fileInput.sharedStorageDefault());
+        boolean sharedStorage = MoreObjects.firstNonNull(shared, fileInput.sharedStorageDefault());
         if (sharedStorage) {
             moduloPredicate = new Predicate<URI>() {
                 @Override

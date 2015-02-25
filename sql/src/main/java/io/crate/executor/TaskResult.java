@@ -21,20 +21,23 @@
 
 package io.crate.executor;
 
+import io.crate.core.collections.Bucket;
+
 import javax.annotation.Nullable;
 
 /**
  * The result of executing a {@linkplain io.crate.executor.Task}.
  */
 public interface TaskResult {
-    Object[][] EMPTY_ROWS = new Object[0][];
+
+    public static final Object[][] EMPTY_OBJS = new Object[0][];
     RowCountResult ZERO = new RowCountResult(0L);
     RowCountResult ONE_ROW = new RowCountResult(1L);
     RowCountResult ROW_COUNT_UNKNOWN = new RowCountResult(-1L);
     RowCountResult FAILURE = new RowCountResult(-2L);
-    QueryResult EMPTY_RESULT = new QueryResult(EMPTY_ROWS);
+    QueryResult EMPTY_RESULT = new QueryResult(EMPTY_OBJS);
 
-    Object[][] rows();
+    Bucket rows();
 
     /**
      * can be set in bulk operations to set the error for a single operation

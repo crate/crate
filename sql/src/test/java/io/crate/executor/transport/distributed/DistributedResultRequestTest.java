@@ -23,6 +23,7 @@ package io.crate.executor.transport.distributed;
 
 import com.google.common.base.Optional;
 import io.crate.Streamer;
+import io.crate.core.collections.ArrayBucket;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -31,13 +32,15 @@ import org.junit.Test;
 
 import java.util.UUID;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static junit.framework.TestCase.assertEquals;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("NullArgumentToVariableArgMethod")
 public class DistributedResultRequestTest {
 
 
@@ -55,17 +58,22 @@ public class DistributedResultRequestTest {
         UUID uuid = UUID.randomUUID();
 
         DistributedResultRequest r1 = new DistributedResultRequest(uuid, streamers);
-        r1.rows(rows);
+        r1.rows(new ArrayBucket(rows));
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
         DistributedResultRequest r2 = new DistributedResultRequest(cm);
         r2.readFrom(in);
+        r2.streamers(streamers);
 
-        assertEquals(r1.rows().length, r2.rows().length);
+        assertEquals(r1.rows().size(), r2.rows().size());
 
-        assertThat(r1.rows(), is(r2.rows()));
+        assertThat(r2.rows(), contains(
+                isRow("ab"),
+                isRow(null),
+                isRow("cd")
+        ));
     }
 
 }

@@ -22,6 +22,7 @@
 package org.elasticsearch.action.bulk;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.core.collections.RowN;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.metadata.ReferenceIdent;
@@ -125,12 +126,12 @@ public class BulkShardProcessorTest {
                 null,
                 insertAssignments
         );
-        bulkShardProcessor.add("foo", new Object[]{1, "bar1"}, null);
+        bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);
 
         ActionListener<ShardUpsertResponse> listener = ref.get();
         listener.onFailure(new RuntimeException("a random exception"));
 
-        assertFalse(bulkShardProcessor.add("foo", new Object[]{2, "bar2"}, null));
+        assertFalse(bulkShardProcessor.add("foo", new RowN(new Object[]{2, "bar2"}), null));
 
         try {
             bulkShardProcessor.result().get();
@@ -183,7 +184,7 @@ public class BulkShardProcessorTest {
                 insertAssignments
         );
 
-        bulkShardProcessor.add("foo", new Object[]{1, "bar1"}, null);
+        bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);
         final ActionListener<ShardUpsertResponse> listener = ref.get();
 
         listener.onFailure(new EsRejectedExecutionException());
@@ -204,7 +205,7 @@ public class BulkShardProcessorTest {
                         latch.countDown();
                     }
                 }, 10, TimeUnit.MILLISECONDS);
-                bulkShardProcessor.add("foo", new Object[]{2, "bar2"}, null);
+                bulkShardProcessor.add("foo", new RowN(new Object[]{2, "bar2"}), null);
                 hasBlocked.set(false);
             }
         });

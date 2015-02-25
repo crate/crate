@@ -91,7 +91,7 @@ public class DistributedMergeTask extends JobTask {
                     @Override
                     public void onSuccess(@Nullable TaskResult result) {
                         assert result != null;
-                        logger.trace("successful collect Future size: " + result.rows().length);
+                        logger.trace("successful collect Future size: " + result.rows().size());
                         countDownLatch.countDown();
                     }
 

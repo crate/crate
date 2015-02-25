@@ -25,6 +25,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.metadata.DynamicFunctionResolver;
@@ -59,8 +61,9 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
+import static io.crate.testing.TestingHelpers.isRow;
+import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -87,9 +90,9 @@ public class DistributedResultRequestTest {
         functions = new ModulesBuilder().add(new EmptyFunctionsModule()).createInjector().getInstance(Functions.class);
 
         rows = new Object[3][];
-        rows[0] = new Object[] {1, new BytesRef("Arthur")};
-        rows[1] = new Object[] {2, new BytesRef("Trillian")};
-        rows[2] = new Object[] {3, new BytesRef("Marvin")};
+        rows[0] = new Object[]{1, new BytesRef("Arthur")};
+        rows[1] = new Object[]{2, new BytesRef("Trillian")};
+        rows[2] = new Object[]{3, new BytesRef("Marvin")};
 
         contextId = UUID.randomUUID();
         dummyMergeNode = new MergeNode("dummy", 1);
@@ -105,12 +108,12 @@ public class DistributedResultRequestTest {
         streamers[1] = DataTypes.STRING.streamer();
 
         Object[][] rows = new Object[3][];
-        rows[0] = new Object[] {1, new BytesRef("Arthur")};
-        rows[1] = new Object[] {2, new BytesRef("Trillian")};
-        rows[2] = new Object[] {3, new BytesRef("Marvin")};
+        rows[0] = new Object[]{1, new BytesRef("Arthur")};
+        rows[1] = new Object[]{2, new BytesRef("Trillian")};
+        rows[2] = new Object[]{3, new BytesRef("Marvin")};
 
         DistributedResultRequest requestSender = new DistributedResultRequest(contextId, streamers);
-        requestSender.rows(rows);
+        requestSender.rows(new ArrayBucket(rows));
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         requestSender.writeTo(streamOutput);
@@ -119,20 +122,19 @@ public class DistributedResultRequestTest {
 
         // receiver
         DistributedRequestContextManager contextManager =
-                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions,
+                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(new ArrayBucket(rows)), functions,
                         new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)),
                         new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
         BytesStreamInput streamInput = new BytesStreamInput(streamOutput.bytes());
         DistributedResultRequest requestReceiver = new DistributedResultRequest(contextManager);
         requestReceiver.readFrom(streamInput);
 
-        assertFalse(requestReceiver.rowsRead());
-        assertNotNull(requestReceiver.memoryStream());
-        assertTrue(requestReceiver.memoryStream().size() > 0);
+        assertFalse(requestReceiver.rowsCanBeRead());
+        assertThat(requestReceiver.rows().size(), is(3));
 
 
         contextManager.addToContext(requestReceiver);
-        final SettableFuture<Object[][]> result = SettableFuture.create();
+        final SettableFuture<Bucket> result = SettableFuture.create();
 
         contextManager.createContext(dummyMergeNode, new ActionListener<NodeMergeResponse>() {
             @Override
@@ -145,11 +147,14 @@ public class DistributedResultRequestTest {
             }
         });
 
-        Object[][] receivedRows = result.get();
-        assertThat(receivedRows.length, is(3));
-        for (int i = 0; i < rows.length; i++) {
-            assertTrue(Arrays.equals(rows[i], receivedRows[i]));
-        }
+        Bucket receivedRows = result.get();
+        assertThat(receivedRows.size(), is(3));
+        assertThat(receivedRows, contains(
+                isRow(1, "Arthur"),
+                isRow(2, "Trillian"),
+                isRow(3, "Marvin")
+
+        ));
     }
 
     @Test
@@ -165,7 +170,7 @@ public class DistributedResultRequestTest {
         dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
 
         DistributedRequestContextManager contextManager =
-                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions,
+                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(new ArrayBucket(rows)), functions,
                         new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)),
                         new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
@@ -176,21 +181,29 @@ public class DistributedResultRequestTest {
         streamers[1] = DataTypes.STRING.streamer();
 
         DistributedResultRequest requestSender = new DistributedResultRequest(contextId, streamers);
-        requestSender.rows(rows);
+        requestSender.rows(new ArrayBucket(rows));
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         requestSender.writeTo(streamOutput);
 
         BytesStreamInput streamInput = new BytesStreamInput(streamOutput.bytes());
 
+
         DistributedResultRequest requestReceiver = new DistributedResultRequest(contextManager);
         requestReceiver.readFrom(streamInput);
+        assertThat(requestReceiver.rows().size(), is(3));
 
+        contextManager.addToContext(requestReceiver);
+        assertTrue(requestReceiver.rowsCanBeRead());
 
-        Object[][] receiverRows = requestReceiver.rows();
-        for (int i = 0; i < rows.length; i++) {
-            assertTrue(Arrays.equals(rows[i], receiverRows[i]));
-        }
+        Bucket receiverRows = requestReceiver.rows();
+
+        assertThat(receiverRows, contains(
+                isRow(1, "Arthur"),
+                isRow(2, "Trillian"),
+                isRow(3, "Marvin")
+
+        ));
     }
 
     class NoopActionListener implements ActionListener<NodeMergeResponse> {
@@ -206,10 +219,10 @@ public class DistributedResultRequestTest {
 
     class DummyDownstreamOperationFactory implements DownstreamOperationFactory<MergeNode> {
 
-        private final SettableFuture<Object[][]> futureResult = SettableFuture.create();
-        private final Object[][] result;
+        private final SettableFuture<Bucket> futureResult = SettableFuture.create();
+        private final Bucket result;
 
-        DummyDownstreamOperationFactory(Object[][] result) {
+        DummyDownstreamOperationFactory(Bucket result) {
             this.result = result;
         }
 
@@ -217,7 +230,7 @@ public class DistributedResultRequestTest {
         public DownstreamOperation create(final MergeNode node, RamAccountingContext ramAccountingContext) {
             return new DownstreamOperation() {
                 @Override
-                public boolean addRows(Object[][] rows) {
+                public boolean addRows(Bucket rows) {
                     return true;
                 }
 
@@ -232,7 +245,7 @@ public class DistributedResultRequestTest {
                 }
 
                 @Override
-                public ListenableFuture<Object[][]> result() {
+                public ListenableFuture<Bucket> result() {
                     return futureResult;
                 }
 

@@ -23,13 +23,14 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.operator.EqOperator;
+import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
@@ -39,18 +40,17 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.hamcrest.core.IsNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
 
-import static org.hamcrest.collection.IsIn.isIn;
-import static org.hamcrest.collection.IsIn.isOneOf;
-import static org.hamcrest.core.Is.is;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
 public class DocLevelCollectTest extends SQLTransportIntegrationTest {
@@ -79,13 +79,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String PARTITIONED_TABLE_NAME = "parted_table";
 
-    private MapSideDataCollectOperation operation;
+    private NonDistributingCollectOperation operation;
     private Functions functions;
     private DocSchemaInfo docSchemaInfo;
 
     @Before
     public void prepare() {
-        operation = cluster().getInstance(MapSideDataCollectOperation.class);
+        operation = cluster().getInstance(NonDistributingCollectOperation.class);
         functions = cluster().getInstance(Functions.class);
         docSchemaInfo = cluster().getInstance(DocSchemaInfo.class);
 
@@ -146,19 +146,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
-
-        Object[][] result = operation.collect(collectNode, null).get();
-        assertThat(result.length, is(2));
-
-        assertThat(result[0].length, is(3));
-        assertThat((Integer) result[0][0], isOneOf(2, 4));
-        assertThat(((BytesRef) result[0][1]).utf8ToString(), IsNull.notNullValue());
-        assertThat(((BytesRef) result[0][2]).utf8ToString(), isOneOf("1", "3"));
-
-        assertThat(result[1].length, is(3));
-        assertThat((Integer) result[1][0], isOneOf(2, 4));
-        assertThat(((BytesRef) result[1][1]).utf8ToString(), IsNull.notNullValue());
-        assertThat(((BytesRef) result[1][2]).utf8ToString(), isOneOf("1", "3"));
+        PlanNodeBuilder.setOutputTypes(collectNode);
+        Bucket result = collect(collectNode);
+        assertThat(result, contains(
+                isRow(2,  "{\"id\":1,\"doc\":2}", "1"),
+                isRow(4,  "{\"id\":3,\"doc\":4}", "3")
+        ));
     }
 
     @Test
@@ -172,43 +165,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
+        PlanNodeBuilder.setOutputTypes(collectNode);
 
-        Object[][] result = operation.collect(collectNode, null).get();
-        assertThat(result.length, is(1));
-        assertThat(result[0].length, is(1));
-        assertThat((Integer) result[0][0], is(2));
+
+        Bucket result = collect(collectNode);
+        assertThat(result, contains(isRow(2)));
     }
 
-    @Test
-    public void testCollectWithShardAndNodeExpressions() throws Exception {
-        Routing routing = routing(TEST_TABLE_NAME);
-        Set shardIds = routing.locations().get(clusterService().localNode().id()).get(TEST_TABLE_NAME);
-
-        CollectNode collectNode = new CollectNode("docCollect", routing);
-        collectNode.toCollect(Arrays.<Symbol>asList(
-                testDocLevelReference,
-                new Reference(SysNodesTableInfo.INFOS.get(new ColumnIdent("name"))),
-                new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id"))),
-                new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")))
-        ));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-
-        Object[][] result = operation.collect(collectNode, null).get();
-
-        assertThat(result.length, is(2));
-        assertThat(result[0].length, is(4));
-        assertThat((Integer) result[0][0], isOneOf(2, 4));
-        assertThat(((BytesRef) result[0][1]).utf8ToString(), is(clusterService().localNode().name()));
-        assertThat(result[0][2], isIn(shardIds));
-        assertThat(((BytesRef) result[0][3]).utf8ToString(), is(cluster().clusterName()));
-
-        assertThat((Integer) result[1][0], isOneOf(2, 4));
-        assertThat(((BytesRef) result[1][1]).utf8ToString(), is(clusterService().localNode().name()));
-        assertThat(result[1][2], isIn(shardIds));
-
-        assertThat(((BytesRef) result[1][3]).utf8ToString(), is(cluster().clusterName()));
-
-    }
 
     @Test
     public void testCollectWithPartitionedColumns() throws Exception {
@@ -225,13 +188,20 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.isPartitioned(true);
+        PlanNodeBuilder.setOutputTypes(collectNode);
 
-        Object[][] result = operation.collect(collectNode, null).get();
-        assertThat(result.length, is(2));
-        assertThat((Integer)result[0][0], isOneOf(1,2));
-        assertThat((Integer)result[1][0], isOneOf(1,2));
+        Bucket result = collect(collectNode);
+        for (Row row : result) {
+            System.out.println("Row:" + Arrays.toString(Buckets.materialize(row)));
+        }
 
-        assertThat((Long)result[0][1], isOneOf(0L, 1L));
-        assertThat((Long)result[1][1], isOneOf(0L, 1L));
+        assertThat(result, containsInAnyOrder(
+                isRow(1, 0L),
+                isRow(2, 1L)
+        ));
+    }
+
+    private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+        return operation.collect(collectNode, null).get();
     }
 }

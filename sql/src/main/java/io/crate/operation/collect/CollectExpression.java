@@ -33,8 +33,6 @@ public abstract class CollectExpression<ReturnType> implements Input<ReturnType>
     public void startCollect() {
     }
 
-    public abstract boolean setNextRow(Object... args);
-
     public abstract boolean setNextRow(Row row);
 }
 

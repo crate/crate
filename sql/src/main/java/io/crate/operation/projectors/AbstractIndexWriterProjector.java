@@ -29,6 +29,8 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.Input;
@@ -128,10 +130,10 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
         shardingProjector.startProjection();
     }
 
-    protected abstract void updateRow(Object... row);
+    protected abstract Row updateRow(Row row);
 
     @Override
-    public boolean setNextRow(Object... row) {
+    public boolean setNextRow(Row row) {
         String indexName;
         boolean result;
 
@@ -141,7 +143,7 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
             }
 
             indexName = getIndexName();
-            updateRow(row);
+            row = updateRow(row);
             result = bulkShardProcessor.add(indexName, row, null);
         }
 
@@ -174,7 +176,7 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
             @Override
             public void onSuccess(@Nullable BitSet result) {
                 long rowCount = result == null ? 0L : result.cardinality();
-                downstream.setNextRow(rowCount);
+                downstream.setNextRow(new Row1(rowCount));
                 downstream.upstreamFinished();
             }
 

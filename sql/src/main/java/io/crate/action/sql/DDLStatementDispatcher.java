@@ -23,6 +23,7 @@ package io.crate.action.sql;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -30,6 +31,8 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
@@ -131,8 +134,9 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                 @Override
                 public void onSuccess(@Nullable List<TaskResult> resultList) {
                     assert resultList != null && resultList.size() == 1;
-                    Object[][] rows = resultList.get(0).rows();
-                    if ((Long) rows[0][0] == 0L) {
+                    Bucket rows = resultList.get(0).rows();
+                    Row row = Iterables.getOnlyElement(rows);
+                    if ((Long) row.get(0) == 0L) {
                         addColumnToTable(analysis, result);
                     } else {
                         result.setException(new UnsupportedOperationException(

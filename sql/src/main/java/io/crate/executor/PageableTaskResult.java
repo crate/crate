@@ -23,6 +23,7 @@ package io.crate.executor;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Bucket;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;
@@ -48,7 +49,7 @@ public interface PageableTaskResult extends TaskResult, Closeable {
         }
 
         @Override
-        public Object[][] rows() {
+        public Bucket rows() {
             throw new UnsupportedOperationException("rows() is not supported on PageableTaskResut");
         }
 

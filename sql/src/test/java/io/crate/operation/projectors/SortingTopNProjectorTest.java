@@ -21,112 +21,165 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.symbol.Literal;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
-import static org.junit.Assert.assertNull;
 
+@SuppressWarnings({"unchecked", "NullArgumentToVariableArgMethod"})
 public class SortingTopNProjectorTest {
 
     private static final Input<Integer> INPUT = new InputCollectExpression<>(0);
     private static final Literal<Boolean> TRUE_LITERAL = Literal.newLiteral(true);
 
+    private final RowN spare = new RowN(new Object[]{});
+
+    private Row spare(Object... cells) {
+        if (cells == null) {
+            cells = new Object[]{null};
+        }
+        spare.cells(cells);
+        return spare;
+    }
+
     @Test
     public void testOrderByWithoutLimitAndOffset() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>)INPUT},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 2,
                 new int[]{0},
                 new boolean[]{false},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
         projector.registerUpstream(null);
         projector.startProjection();
         int i;
-        for (i = 10; i>0; i--) {   // 10 --> 1
-            if (!projector.setNextRow(i)) {
+        for (i = 10; i > 0; i--) {   // 10 --> 1
+            if (!projector.setNextRow(spare(i))) {
                 break;
             }
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.upstreamFinished();
-        Object[][] rows = projector.result().get();
-        assertThat(rows.length, is(10));
-        for (int j = 0; j<10; j++) {
-            // 1 --> 10
-            assertThat((Integer)rows[j][0], is(j+1));
-        }
-
+        Bucket rows = projector.result().get();
+        assertThat(rows.size(), is(10));
         int iterateLength = 0;
-        for (Object[] row : projector) {
-            assertThat((Integer)row[0], is(iterateLength+1));
+        for (Row row : projector.result().get()) {
+            assertThat(row, isRow(iterateLength + 1, true));
             iterateLength++;
         }
         assertThat(iterateLength, is(10));
     }
 
     @Test
+    public void testDownstreamResultEqualsResultProviderResult() throws Exception {
+        SortingTopNProjector[] projectors = new SortingTopNProjector[2];
+        CollectingProjector collector = new CollectingProjector();
+        for (int i = 0; i < projectors.length; i++) {
+            SortingTopNProjector projector = new SortingTopNProjector(
+                    new Input<?>[]{INPUT},
+                    new CollectExpression[]{(CollectExpression<?>) INPUT},
+                    1,
+                    new int[]{0},
+                    new boolean[]{false},
+                    new Boolean[]{null},
+                    2,
+                    1
+            );
+            projectors[i] = projector;
+            projector.registerUpstream(null);
+
+            if (i == 1) {
+                projector.downstream(collector);
+            }
+
+            projector.startProjection();
+            projector.setNextRow(spare(1));
+            projector.setNextRow(spare(2));
+            projector.setNextRow(spare(3));
+            projector.setNextRow(spare(4));
+            projector.upstreamFinished();
+        }
+
+        Matcher<Iterable<? extends Row>> expected = contains(
+                isRow(2),
+                isRow(3)
+        );
+
+
+        Bucket rowsFromBucket = projectors[0].result().get();
+        assertThat(rowsFromBucket, expected);
+
+        Bucket rowsFromIter = collector.result().get();
+        assertThat(rowsFromIter, expected);
+
+
+    }
+
+
+    @Test
     public void testWithHighOffset() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[] { INPUT, TRUE_LITERAL },
-                new CollectExpression[] { (CollectExpression<?>)INPUT },
+                new Input<?>[]{INPUT, TRUE_LITERAL},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 2,
-                new int[] { 0 },
-                new boolean[] { false },
-                new Boolean[] { null },
+                new int[]{0},
+                new boolean[]{false},
+                new Boolean[]{null},
                 2,
                 30
         );
         projector.registerUpstream(null);
         projector.startProjection();
         for (int i = 0; i < 10; i++) {
-            if (!projector.setNextRow(i)) {
+            if (!projector.setNextRow(spare(i))) {
                 break;
             }
         }
 
         projector.upstreamFinished();
-        assertThat(projector.result().get().length, is(0));
+        assertThat(projector.result().get().size(), is(0));
     }
 
     @Test
     public void testOrderByWithoutLimit() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>)INPUT},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 2,
                 new int[]{0},
                 new boolean[]{false},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 TopN.NO_LIMIT,
                 5);
         projector.registerUpstream(null);
         projector.startProjection();
         int i;
-        for (i = 10; i>0; i--) {   // 10 --> 1
-            if (!projector.setNextRow(i)) {
+        for (i = 10; i > 0; i--) {   // 10 --> 1
+            if (!projector.setNextRow(spare(i))) {
                 break;
             }
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.upstreamFinished();
-        Object[][] rows = projector.result().get();
-        assertThat(rows.length, is(5));
-        for (int j = 0; j<5; j++) {
-            assertThat((Integer)rows[j][0], is(j+6));
-        }
-
+        Bucket rows = projector.result().get();
+        assertThat(rows.size(), is(5));
         int iterateLength = 0;
-        for (Object[] row : projector) {
-            assertThat((Integer)row[0], is(iterateLength+6));
+        for (Row row : rows) {
+            assertThat(row, isRow(iterateLength + 6, true));
             iterateLength++;
         }
         assertThat(iterateLength, is(5));
@@ -136,31 +189,27 @@ public class SortingTopNProjectorTest {
     public void testOrderBy() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>)INPUT},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 1,
                 new int[]{0},
                 new boolean[]{false},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 3,
                 5);
         projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
-            projector.setNextRow(i);
+            projector.setNextRow(spare(i));
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.upstreamFinished();
-        Object[][] rows = projector.result().get();
-        assertThat(rows.length, is(3));
-        assertThat(rows[0].length, is(1));
-        for (int j = 0; j < 3; j++) {
-            assertThat((Integer)rows[j][0], is(j + 6));
-        }
+        Bucket rows = projector.result().get();
+        assertThat(rows.size(), is(3));
 
         int iterateLength = 0;
-        for (Object[] row : projector) {
-            assertThat((Integer)row[0], is(iterateLength + 6));
+        for (Row row : rows) {
+            assertThat(row, isRow(iterateLength + 6));
             iterateLength++;
         }
         assertThat(iterateLength, is(3));
@@ -169,140 +218,149 @@ public class SortingTopNProjectorTest {
     @Test
     public void testOrderByAscNullsFirst() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{ INPUT },
-                new CollectExpression[] {(CollectExpression<?>)INPUT},
+                new Input<?>[]{INPUT},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 1,
                 new int[]{0},
-                new boolean[] { false },
-                new Boolean[] { true },
+                new boolean[]{false},
+                new Boolean[]{true},
                 100,
                 0);
         projector.registerUpstream(null);
         projector.startProjection();
-        projector.setNextRow(1);
-        projector.setNextRow(new Object[] { null });
+        projector.setNextRow(spare(1));
+        projector.setNextRow(spare(null));
         projector.upstreamFinished();
 
-        Object[][] rows = projector.result().get();
-        assertNull(rows[0][0]);
+        Bucket rows = projector.result().get();
+        assertThat(rows, contains(isRow(null), isRow(1)));
     }
 
     @Test
     public void testOrderByAscNullsLast() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{ INPUT },
-                new CollectExpression[] {(CollectExpression<?>)INPUT},
+                new Input<?>[]{INPUT},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 1,
                 new int[]{0},
-                new boolean[] { false },
-                new Boolean[] { false },
+                new boolean[]{false},
+                new Boolean[]{false},
                 100,
                 0);
         projector.registerUpstream(null);
         projector.startProjection();
-        projector.setNextRow(1);
-        projector.setNextRow(new Object[] { null });
+        projector.setNextRow(spare(1));
+        projector.setNextRow(spare(null));
         projector.upstreamFinished();
 
-        Object[][] rows = projector.result().get();
-        assertNull(rows[1][0]);
+        Bucket rows = projector.result().get();
+        assertThat(rows, contains(isRow(1), isRow(null)));
     }
 
     @Test
     public void testOrderByDescNullsLast() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{ INPUT },
-                new CollectExpression[] {(CollectExpression<?>)INPUT},
+                new Input<?>[]{INPUT},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 1,
                 new int[]{0},
-                new boolean[] { true },
-                new Boolean[] { false },
+                new boolean[]{true},
+                new Boolean[]{false},
                 100,
                 0);
         projector.registerUpstream(null);
         projector.startProjection();
-        projector.setNextRow(1);
-        projector.setNextRow(new Object[] { null });
+        projector.setNextRow(spare(1));
+        projector.setNextRow(spare(null));
         projector.upstreamFinished();
 
-        Object[][] rows = projector.result().get();
-        assertNull(rows[1][0]);
+        Bucket rows = projector.result().get();
+        assertThat(rows, contains(isRow(1), isRow(null)));
     }
 
     @Test
     public void testOrderByDescNullsFirst() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{ INPUT },
-                new CollectExpression[] {(CollectExpression<?>)INPUT},
+                new Input<?>[]{INPUT},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 1,
                 new int[]{0},
-                new boolean[] { true },
-                new Boolean[] { true },
+                new boolean[]{true},
+                new Boolean[]{true},
                 100,
                 0);
         projector.registerUpstream(null);
         projector.startProjection();
-        projector.setNextRow(1);
-        projector.setNextRow(new Object[] { null });
+        projector.setNextRow(spare(1));
+        projector.setNextRow(spare(null));
         projector.upstreamFinished();
 
-        Object[][] rows = projector.result().get();
-        assertNull(rows[0][0]);
+        Bucket rows = projector.result().get();
+        assertThat(rows, contains(isRow(null), isRow(1)));
     }
 
     @Test
     public void testOrderByAsc() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>)INPUT},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
                 2,
                 new int[]{0},
                 new boolean[]{true},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 3,
                 5);
         projector.registerUpstream(null);
         projector.startProjection();
         int i;
-        for (i = 0; i<10; i++) {   // 0 --> 9
-            projector.setNextRow(i);
+        for (i = 0; i < 10; i++) {   // 0 --> 9
+            projector.setNextRow(spare(i));
         }
         assertThat(i, is(10)); // needs to collect all it can get
         projector.upstreamFinished();
-        Object[][] rows = projector.result().get();
-        assertThat(rows.length, is(3));
-
-        assertThat((Integer)rows[0][0], is(4));
-        assertThat((Integer)rows[1][0], is(3));
-        assertThat((Integer)rows[2][0], is(2));
-
-        int iterateLength = 0;
-        int value = 4;
-        for (Object[] row : projector) {
-            assertThat((Integer)row[0], is(value--));
-            iterateLength++;
-        }
-        assertThat(iterateLength, is(3));
+        Bucket rows = projector.result().get();
+        assertThat(rows, contains(
+                isRow(4, true),
+                isRow(3, true),
+                isRow(2, true)
+        ));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeOffset() {
-        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<?>)INPUT}, 2,
+        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<?>) INPUT}, 2,
                 new int[]{0},
                 new boolean[]{true},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 TopN.NO_LIMIT,
                 -10);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeLimit() {
-        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<?>)INPUT}, 2,
-                new int[] {0},
+        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<?>) INPUT}, 2,
+                new int[]{0},
                 new boolean[]{true},
-                new Boolean[] { null },
+                new Boolean[]{null},
                 -100,
                 TopN.NO_OFFSET);
+    }
+
+
+    @Test
+    public void testNoUpstreams() throws Exception {
+        SortingTopNProjector projector = new SortingTopNProjector(
+                new Input<?>[]{INPUT, TRUE_LITERAL},
+                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                2,
+                new int[]{0},
+                new boolean[]{false},
+                new Boolean[]{null},
+                2,
+                0
+        );
+        projector.startProjection();
+        assertThat(projector.result().get(), emptyIterable());
     }
 
     @Test
@@ -311,46 +369,29 @@ public class SortingTopNProjectorTest {
         Input<Integer> input = new InputCollectExpression<>(1);
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{input, INPUT, /* order By input */input, INPUT},
-                new CollectExpression[]{(CollectExpression<?>)INPUT, (CollectExpression<?>)input},
+                new CollectExpression[]{(CollectExpression<?>) INPUT, (CollectExpression<?>) input},
                 2,
                 new int[]{2, 3},
                 new boolean[]{false, false},
-                new Boolean[] { null, null },
+                new Boolean[]{null, null},
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
         projector.registerUpstream(null);
         projector.startProjection();
         int i;
-        for (i=0; i<20; i++) {
-            projector.setNextRow(i, i%4);
+        for (i = 0; i < 7; i++) {
+            projector.setNextRow(spare(i, i % 4));
         }
-        assertThat(i, is(20));
         projector.upstreamFinished();
-        Object[][] rows = projector.result().get();
-        assertThat(rows.length, is(20));
-
-        Object[] formerRow = null;
-        for (Object[] row : rows) {
-            if (formerRow==null) { formerRow = row; continue; }
-            assertThat((Integer)formerRow[0], lessThanOrEqualTo((Integer)row[0]));
-            if ((formerRow[0]).equals(row[0])) {
-                assertThat((Integer)formerRow[1], lessThanOrEqualTo((Integer)row[1]));
-            }
-            formerRow = row;
-        }
-
-        int iterateLength = 0;
-        formerRow = null;
-        for (Object[] row : projector) {
-            iterateLength++;
-            if (formerRow==null) { formerRow = row; continue; }
-            assertThat((Integer)formerRow[0], lessThanOrEqualTo((Integer)row[0]));
-            if ((formerRow[0]).equals(row[0])) {
-                assertThat((Integer)formerRow[1], lessThanOrEqualTo((Integer)row[1]));
-            }
-            formerRow = row;
-        }
-        assertThat(iterateLength, is(20));
-
+        Bucket rows = projector.result().get();
+        assertThat(rows, contains(
+                isRow(0, 0),
+                isRow(0, 4),
+                isRow(1, 1),
+                isRow(1, 5),
+                isRow(2, 2),
+                isRow(2, 6),
+                isRow(3, 3)
+        ));
     }
 }

@@ -22,8 +22,11 @@
 package io.crate.executor.transport.merge;
 
 import io.crate.Streamer;
+import io.crate.core.collections.Bucket;
+import io.crate.executor.transport.StreamBucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.TransportResponse;
@@ -34,10 +37,10 @@ public class NodeMergeResponse extends TransportResponse {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final Streamer<?>[] streamers;
-    private Object[][] rows;
+    private Bucket rows;
 
 
-    public NodeMergeResponse(Streamer<?>[] streamers, Object[][] rows) {
+    public NodeMergeResponse(Streamer<?>[] streamers, Bucket rows) {
         this.streamers = streamers;
         this.rows = rows;
     }
@@ -46,42 +49,25 @@ public class NodeMergeResponse extends TransportResponse {
         this.streamers = streamers;
     }
 
-    public Object[][] rows() {
+    public Bucket rows() {
         return rows;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        final int numColumns = streamers.length;
-        rows = new Object[in.readVInt()][];
-
-        for (int r = 0; r < rows.length; r++) {
-            rows[r] = new Object[numColumns];
-            for (int c = 0; c < numColumns; c++) {
-                rows[r][c] = streamers[c].readValueFrom(in);
-            }
-        }
+        StreamBucket bucket = new StreamBucket(streamers);
+        bucket.readFrom(in);
+        rows = bucket;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-
-        final int numColumns = streamers.length;
-
-        out.writeVInt(rows.length);
-        for (Object[] row : rows) {
-            for (int c = 0; c < numColumns; c++) {
-                try {
-                    streamers[c].writeValueTo(out, row[c]);
-                } catch (ClassCastException e) {
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("streamer pos {} failed. Got {} for streamer {}",
-                                e, c, row[c].getClass().getName(), streamers[c]);
-                    }
-                }
-            }
+        if (rows instanceof Streamable){
+            ((Streamable) rows).writeTo(out);
         }
+        StreamBucket.StreamWriter writer = new StreamBucket.StreamWriter(out, streamers, rows.size());
+        writer.addAll(rows);
     }
 }

@@ -22,6 +22,8 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
@@ -34,6 +36,7 @@ import java.util.List;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
+@SuppressWarnings("NullArgumentToVariableArgMethod")
 public class ShardingProjectorTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("_id");
@@ -41,12 +44,19 @@ public class ShardingProjectorTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    private Row row(Object ... cells){
+        if (cells==null){
+            cells = new Object[]{null};
+        }
+        return new RowN(cells);
+    }
+
     @Test
     public void testNoPrimaryKeyNoRouting() {
         ShardingProjector shardingProjector =
                 new ShardingProjector(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), null);
         shardingProjector.startProjection();
-        shardingProjector.setNextRow(new Object[]{});
+        shardingProjector.setNextRow(row());
 
         // auto-generated id, no special routing
         assertNotNull(shardingProjector.id());
@@ -58,7 +68,7 @@ public class ShardingProjectorTest {
         ShardingProjector shardingProjector =
                 new ShardingProjector(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), new InputColumn(1));
         shardingProjector.startProjection();
-        shardingProjector.setNextRow(new Object[]{1, "hoschi"});
+        shardingProjector.setNextRow(row(1, "hoschi"));
 
         // auto-generated id, special routing
         assertNotNull(shardingProjector.id());
@@ -71,7 +81,7 @@ public class ShardingProjectorTest {
         ShardingProjector shardingProjector =
                 new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, null);
         shardingProjector.startProjection();
-        shardingProjector.setNextRow(new Object[]{1, "hoschi"});
+        shardingProjector.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, no special routing
         assertThat(shardingProjector.id(), is("AgExBmhvc2NoaQ=="));
@@ -84,7 +94,7 @@ public class ShardingProjectorTest {
         ShardingProjector shardingProjector =
                 new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, new InputColumn(1));
         shardingProjector.startProjection();
-        shardingProjector.setNextRow(new Object[]{1, "hoschi"});
+        shardingProjector.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, special routing
         assertThat(shardingProjector.id(), is("AgZob3NjaGkBMQ=="));
@@ -98,11 +108,11 @@ public class ShardingProjectorTest {
                 new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, new InputColumn(1));
         shardingProjector.startProjection();
 
-        shardingProjector.setNextRow(new Object[]{1, "hoschi"});
+        shardingProjector.setNextRow(row(1, "hoschi"));
         assertThat(shardingProjector.id(), is("AgZob3NjaGkBMQ=="));
         assertThat(shardingProjector.routing(), is("hoschi"));
 
-        shardingProjector.setNextRow(new Object[]{2, "galoschi"});
+        shardingProjector.setNextRow(row(2, "galoschi"));
         assertThat(shardingProjector.id(), is("AghnYWxvc2NoaQEy"));
         assertThat(shardingProjector.routing(), is("galoschi"));
     }
@@ -111,9 +121,9 @@ public class ShardingProjectorTest {
     public void testIdPrimaryKeyNull() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(2));
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(ID_IDENT), primaryKeySymbols, new InputColumn(1));
+                new ShardingProjector(ImmutableList.of(ID_IDENT), primaryKeySymbols, new InputColumn(1));
         shardingProjector.startProjection();
-        shardingProjector.setNextRow(new Object[]{1, "hoschi", null});
+        shardingProjector.setNextRow(row(1, "hoschi", null));
 
         // generated _id, special routing
         assertNotNull(shardingProjector.id());
@@ -129,7 +139,7 @@ public class ShardingProjectorTest {
         ShardingProjector shardingProjector =
                 new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, null);
         shardingProjector.startProjection();
-        shardingProjector.setNextRow(new Object[]{null});
+        shardingProjector.setNextRow(row(null));
     }
 
     @Test
@@ -141,6 +151,6 @@ public class ShardingProjectorTest {
         ShardingProjector shardingProjector =
                 new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, new InputColumn(1));
         shardingProjector.startProjection();
-        shardingProjector.setNextRow(new Object[]{1, null});
+        shardingProjector.setNextRow(row(1, null));
     }
 }

@@ -22,12 +22,13 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CircuitBreakerModule;
-import io.crate.executor.TaskResult;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
@@ -38,6 +39,7 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.reference.sys.shard.ShardIdExpression;
+import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
@@ -91,18 +93,20 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -283,7 +287,7 @@ public class DistributingCollectTest {
 
     @Test
     public void testCollectFromShardsToBuckets() throws Exception {
-        final Map<String, Object[][]> buckets = new HashMap<>();
+        final Map<String, Bucket> buckets = new HashMap<>();
         final CountDownLatch countDown = new CountDownLatch(2);
         Mockito.doAnswer(new Answer() {
             @Override
@@ -308,7 +312,7 @@ public class DistributingCollectTest {
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
 
 
-        assertThat(operation.collect(collectNode, null).get(), is(TaskResult.EMPTY_RESULT.rows()));
+        assertThat(operation.collect(collectNode, null).get(), emptyIterable());
         countDown.await();
         assertThat(buckets.size(), is(2));
         assertTrue(buckets.containsKey(TEST_NODE_ID));
@@ -318,38 +322,38 @@ public class DistributingCollectTest {
     @Test
     public void testCollectFromNodes() throws Exception {
 
-        Mockito.doReturn(null).when(transportService).submitRequest(any(DiscoveryNode.class), Matchers.same(TransportMergeNodeAction.mergeRowsAction),
-                Matchers.<TransportRequest>any(),
+        ArgumentCaptor<DistributedResultRequest> capture = ArgumentCaptor.forClass(DistributedResultRequest.class);
+        Mockito.doNothing().when(transportService).sendRequest(
+                any(DiscoveryNode.class),
+                Matchers.same(TransportMergeNodeAction.mergeRowsAction),
+                capture.capture(),
+                //Matchers.<DistributedResultRequest>any(),
                 any(TransportResponseHandler.class));
-
         CollectNode collectNode = new CollectNode("dcollect", nodeRouting);
         collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(Literal.newLiteral(true)));
-        Object[][] objects = operation.collect(collectNode, null).get();
-        assertThat((Boolean) objects[0][0], is(true));
-
+        PlanNodeBuilder.setOutputTypes(collectNode);
+        Bucket pseudoResult = operation.collect(collectNode, null).get();
+        // empty rows, since this projector sends data and does not return it
+        assertThat(pseudoResult, emptyIterable());
+        assertThat(Lists.transform(capture.getAllValues(), new com.google.common.base.Function<DistributedResultRequest, Bucket>() {
+            @Nullable
+            @Override
+            public Bucket apply(DistributedResultRequest input) {
+                return input.rows();
+            }
+        }), containsInAnyOrder(emptyIterable(), contains(isRow(true))));
     }
 
     @Test
     public void testCollectWithFalseWhereClause() throws Exception {
-        final Map<String, Object[][]> buckets = new HashMap<>();
-        final CountDownLatch countDown = new CountDownLatch(2);
-        Mockito.doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                Object[] args = invocation.getArguments();
-                // gather buckets to verify calls
-                buckets.put(
-                        ((DiscoveryNode) args[0]).id(),
-                        ((DistributedResultRequest) args[2]).rows()
-                );
-                countDown.countDown();
-                return null;
-            }
-        }).when(transportService).submitRequest(any(DiscoveryNode.class), Matchers.same(TransportMergeNodeAction.mergeRowsAction),
-                Matchers.<TransportRequest>any(),
+        ArgumentCaptor<DistributedResultRequest> capture = ArgumentCaptor.forClass(DistributedResultRequest.class);
+        Mockito.doReturn(null).when(transportService).submitRequest(
+                any(DiscoveryNode.class),
+                Matchers.same(TransportMergeNodeAction.mergeRowsAction),
+                capture.capture(),
                 any(TransportResponseHandler.class));
 
         CollectNode collectNode = new CollectNode("collect all the things", shardRouting(0, 1));
@@ -362,13 +366,15 @@ public class DistributingCollectTest {
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
         )));
+        PlanNodeBuilder.setOutputTypes(collectNode);
+        operation.collect(collectNode, null).get();
 
-        Object[][] pseudoResult = operation.collect(collectNode, null).get();
-        assertThat(pseudoResult, is(TaskResult.EMPTY_RESULT.rows()));
-        countDown.await(2, TimeUnit.SECONDS);
-        assertThat(buckets.size(), is(2));
-        assertThat(buckets.get(TEST_NODE_ID), is(TaskResult.EMPTY_RESULT.rows()));
-        assertThat(buckets.get(OTHER_NODE_ID), is(TaskResult.EMPTY_RESULT.rows()));
-
+        assertThat(Lists.transform(capture.getAllValues(), new com.google.common.base.Function<DistributedResultRequest, Bucket>() {
+            @Nullable
+            @Override
+            public Bucket apply(DistributedResultRequest input) {
+                return input.rows();
+            }
+        }), containsInAnyOrder(emptyIterable(), emptyIterable()));
     }
 }

@@ -21,8 +21,11 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.executor.TaskResult;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -38,14 +41,15 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertArrayEquals;
 
 public class SimpleTopNProjectorTest {
 
     private static final Input<Integer> input = new InputCollectExpression<>(0);
-    private static final Object[] row = new Object[]{42};
+    private static final Row row = new Row1(42);
 
     private static class TestFunction extends Scalar<Integer, Integer> {
 
@@ -81,7 +85,7 @@ public class SimpleTopNProjectorTest {
     @Test
     public void testProjectLimitOnly() throws Throwable {
         CollectingProjector collectingProjector = new CollectingProjector();
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
@@ -94,11 +98,11 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(9));
         projector.upstreamFinished();
-        Object[][] projected = collectingProjector.result().get();
-        assertThat(projected.length, is(10));
+        Bucket projected = collectingProjector.result().get();
+        assertThat(projected.size(), is(10));
 
         int iterateLength = 0;
-        for (Object[] row : collectingProjector) {
+        for (Row row : collectingProjector.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(10));
@@ -108,7 +112,7 @@ public class SimpleTopNProjectorTest {
     @Test
     public void testProjectLimitOnlyLessThanLimit() throws Throwable {
         CollectingProjector collectingProjector = new CollectingProjector();
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
@@ -121,11 +125,11 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(5));
         projector.upstreamFinished();
-        Object[][] projected = collectingProjector.result().get();
-        assertThat(projected.length, is(5));
+        Bucket projected = collectingProjector.result().get();
+        assertThat(projected.size(), is(5));
 
         int iterateLength = 0;
-        for (Object[] row : collectingProjector) {
+        for (Row row : collectingProjector.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(5));
@@ -135,7 +139,7 @@ public class SimpleTopNProjectorTest {
     @Test
     public void testProjectLimitOnlyExactlyLimit() throws Throwable {
         CollectingProjector collectingProjector = new CollectingProjector();
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
@@ -148,11 +152,11 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(9));
         projector.upstreamFinished();
-        Object[][] projected = collectingProjector.result().get();
-        assertThat(projected.length, is(10));
+        Bucket projected = collectingProjector.result().get();
+        assertThat(projected.size(), is(10));
 
         int iterateLength = 0;
-        for (Object[] row : collectingProjector) {
+        for (Row row : collectingProjector.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(10));
@@ -162,17 +166,17 @@ public class SimpleTopNProjectorTest {
     @Test
     public void testProjectLimitOnly0() throws Throwable {
         CollectingProjector collectingProjector = new CollectingProjector();
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
         projector.startProjection();
         projector.upstreamFinished();
-        Object[][] projected = collectingProjector.result().get();
-        assertArrayEquals(TaskResult.EMPTY_RESULT.rows(), projected);
+        Bucket projected = collectingProjector.result().get();
+        assertThat(projected, emptyIterable());
 
         int iterateLength = 0;
-        for (Object[] row : collectingProjector) {
+        for (Row row : collectingProjector.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(0));
@@ -181,7 +185,7 @@ public class SimpleTopNProjectorTest {
     @Test
     public void testProjectLimitOnly1() throws Throwable {
         CollectingProjector collectingProjector = new CollectingProjector();
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 1, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
@@ -194,11 +198,11 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(0));
         projector.upstreamFinished();
-        Object[][] projected = collectingProjector.result().get();
-        assertThat(projected.length, is(1));
+        Bucket projected = collectingProjector.result().get();
+        assertThat(projected.size(), is(1));
 
         int iterateLength = 0;
-        for (Object[] row : collectingProjector) {
+        for (Row row : collectingProjector.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(1));
@@ -207,7 +211,7 @@ public class SimpleTopNProjectorTest {
     @Test
     public void testProjectOffsetBigger0() throws Throwable {
         CollectingProjector collectingProjector = new CollectingProjector();
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
@@ -218,11 +222,11 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(100));
         projector.upstreamFinished();
-        Object[][] projected = collectingProjector.result().get();
-        assertThat(projected.length, is(90));
+        Bucket projected = collectingProjector.result().get();
+        assertThat(projected.size(), is(90));
 
         int iterateLength = 0;
-        for (Object[] row : collectingProjector) {
+        for (Row row : collectingProjector.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(90));
@@ -231,7 +235,7 @@ public class SimpleTopNProjectorTest {
     @Test
     public void testProjectNoLimitNoOffset() throws Throwable {
         CollectingProjector collectingProjector = new CollectingProjector();
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input},
                 TopN.NO_LIMIT, TopN.NO_OFFSET);
         projector.registerUpstream(null);
@@ -245,10 +249,10 @@ public class SimpleTopNProjectorTest {
         } while(carryOn);
         assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT));
         projector.upstreamFinished();
-        assertThat(collectingProjector.result().get().length, is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(collectingProjector.result().get().size(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         int iterateLength = 0;
-        for (Object[] row : collectingProjector) {
+        for (Row row : collectingProjector.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(Constants.DEFAULT_SELECT_LIMIT));
@@ -256,13 +260,13 @@ public class SimpleTopNProjectorTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeOffset() {
-        new SimpleTopNProjector(new Input<?>[]{input}, new CollectExpression[]{(CollectExpression)input},
+        new SimpleTopNProjector(ImmutableList.<Input<?>>of(input), new CollectExpression[]{(CollectExpression)input},
                 TopN.NO_LIMIT, -10);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeLimit() {
-        new SimpleTopNProjector(new Input<?>[]{input}, new CollectExpression[]{(CollectExpression)input},
+        new SimpleTopNProjector(ImmutableList.<Input<?>>of(input), new CollectExpression[]{(CollectExpression)input},
                 -100, TopN.NO_OFFSET);
     }
 
@@ -270,7 +274,8 @@ public class SimpleTopNProjectorTest {
     public void testFunctionExpression() throws Throwable {
         FunctionExpression<Integer, ?> funcExpr = new FunctionExpression<>(new TestFunction(), new Input[]{input});
         CollectingProjector collectingProjector = new CollectingProjector();
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{funcExpr}, new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(funcExpr),
+                new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
         projector.startProjection();
@@ -282,21 +287,15 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(9));
         projector.upstreamFinished();
-        Object[][] rows = collectingProjector.result().get();
-        assertThat(rows.length, is(10));
-        assertThat((Integer)rows[0][0], is(1));
-
-        int iterateLength = 0;
-        for (Object[] row : collectingProjector) {
-            iterateLength++;
-        }
-        assertThat(iterateLength, is(10));
+        Bucket rows = collectingProjector.result().get();
+        assertThat(rows.size(), is(10));
+        assertThat(rows.iterator().next(), isRow(1));
 
     }
 
     @Test
     public void testProjectLimitOnlyUpStream() throws Throwable {
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         CollectingProjector noop = new CollectingProjector();
         projector.downstream(noop);
@@ -310,11 +309,11 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(9));
         projector.upstreamFinished();
-        Object[][] projected = noop.result().get();
-        assertThat(projected.length, is(10));
+        Bucket projected = noop.result().get();
+        assertThat(projected.size(), is(10));
 
         int iterateLength = 0;
-        for (Object[] row : noop) {
+        for (Row row : noop.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(10));
@@ -322,7 +321,7 @@ public class SimpleTopNProjectorTest {
 
     @Test
     public void testProjectLimitLessThanLimitUpStream() throws Throwable {
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         CollectingProjector noop = new CollectingProjector();
         projector.downstream(noop);
@@ -336,11 +335,11 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(5));
         projector.upstreamFinished();
-        Object[][] projected = noop.result().get();
-        assertThat(projected.length, is(5));
+        Bucket projected = noop.result().get();
+        assertThat(projected.size(), is(5));
 
         int iterateLength = 0;
-        for (Object[] row : noop) {
+        for (Row row : noop.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(5));
@@ -348,26 +347,20 @@ public class SimpleTopNProjectorTest {
 
     @Test
     public void testProjectLimitOnly0UpStream() throws Throwable {
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         CollectingProjector noop = new CollectingProjector();
         projector.downstream(noop);
         projector.registerUpstream(null);
         projector.startProjection();
         projector.upstreamFinished();
-        Object[][] projected = noop.result().get();
-        assertArrayEquals(TaskResult.EMPTY_RESULT.rows(), projected);
-
-        int iterateLength = 0;
-        for (Object[] row : noop) {
-            iterateLength++;
-        }
-        assertThat(iterateLength, is(0));
+        Bucket projected = noop.result().get();
+        assertThat(projected, emptyIterable());
     }
 
     @Test
     public void testProjectOffsetBigger0UpStream() throws Throwable {
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
         CollectingProjector noop = new CollectingProjector();
         projector.downstream(noop);
@@ -379,11 +372,11 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(i, is(100));
         projector.upstreamFinished();
-        Object[][] projected = noop.result().get();
-        assertThat(projected.length, is(90));
+        Bucket projected = noop.result().get();
+        assertThat(projected.size(), is(90));
 
         int iterateLength = 0;
-        for (Object[] row : noop) {
+        for (Row row : noop.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(90));
@@ -391,7 +384,7 @@ public class SimpleTopNProjectorTest {
 
     @Test
     public void testProjectNoLimitNoOffsetUpStream() throws Throwable {
-        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+        SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input},
                 TopN.NO_LIMIT, TopN.NO_OFFSET);
         CollectingProjector noop = new CollectingProjector();
@@ -406,10 +399,10 @@ public class SimpleTopNProjectorTest {
         } while(carryOn);
         assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT));
         projector.upstreamFinished();
-        assertThat(noop.result().get().length, is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(noop.result().get().size(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         int iterateLength = 0;
-        for (Object[] row : noop) {
+        for (Row row : noop.result().get()) {
             iterateLength++;
         }
         assertThat(iterateLength, is(Constants.DEFAULT_SELECT_LIMIT));

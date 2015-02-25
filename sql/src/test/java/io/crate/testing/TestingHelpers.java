@@ -23,6 +23,9 @@ package io.crate.testing;
 
 import com.google.common.collect.Lists;
 import io.crate.analyze.where.DocKeys;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.Row;
 import io.crate.executor.Page;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
@@ -41,10 +44,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -61,6 +61,10 @@ public class TestingHelpers {
      */
     public static String printedTable(Object[][] result) {
         return printRows(Arrays.asList(result));
+    }
+
+    public static String printedTable(Bucket result) {
+        return printRows(Arrays.asList(Buckets.materialize(result)));
     }
 
     public static String printedPage(Page page) {
@@ -253,6 +257,43 @@ public class TestingHelpers {
                     return input;
                 }
             };
+
+    public static Matcher<Row> isRow(Object... cells) {
+        if (cells == null) {
+            cells = new Object[]{null};
+        }
+        final List<Object> expected = Lists.transform(Arrays.asList(cells), bytesRefToString);
+        return new TypeSafeDiagnosingMatcher<Row>() {
+            @Override
+            protected boolean matchesSafely(Row item, Description mismatchDescription) {
+                if (item.size() != expected.size()) {
+                    mismatchDescription.appendText("row size does not match: ")
+                            .appendValue(item.size()).appendText(" != ").appendValue(expected.size());
+                    return false;
+                }
+                for (int i = 0; i < item.size(); i++) {
+                    Object actual = bytesRefToString.apply(item.get(i));
+                    if (!Objects.equals(expected.get(i), actual)) {
+                        mismatchDescription.appendText("value at pos ")
+                                .appendValue(i)
+                                .appendText(" does not match: ")
+                                .appendValue(expected.get(i))
+                                .appendText(" != ")
+                                .appendValue(actual);
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("is Row with cells: ")
+                        .appendValue(expected);
+            }
+        };
+    }
+
 
     public static Matcher<DocKeys.DocKey> isDocKey(Object... keys) {
         final List<Object> expected = Arrays.asList(keys);

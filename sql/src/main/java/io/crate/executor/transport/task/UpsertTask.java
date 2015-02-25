@@ -82,7 +82,7 @@ public class UpsertTask extends JobTask {
                         return;
                     }
                     assert results.size() == 1 : "Last sub-task is expected to have 1 result only";
-                    result.set(new RowCountResult(((Number) results.get(0).rows()[0][0]).longValue()));
+                    result.set(new RowCountResult(((Number) results.get(0).rows().iterator().next().get(0)).longValue()));
                 }
 
                 @Override

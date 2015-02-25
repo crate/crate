@@ -21,6 +21,8 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.RowN;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
@@ -44,6 +46,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -61,7 +65,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         CollectingProjector collectingProjector = new CollectingProjector();
         InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
         InputColumn sourceInputColumn = new InputColumn(1, StringType.INSTANCE);
-        CollectExpression[] collectExpressions = new CollectExpression[]{ sourceInput };
+        CollectExpression[] collectExpressions = new CollectExpression[]{sourceInput};
 
         ReferenceInfos referenceInfos = cluster().getInstance(ReferenceInfos.class);
 
@@ -92,8 +96,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             @Override
             public void run() {
                 for (int i = 0; i < 100; i++) {
-                    indexWriter.setNextRow(i,
-                            new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}"));
+                    indexWriter.setNextRow(
+                            new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}));
                 }
             }
         });
@@ -101,8 +105,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             @Override
             public void run() {
                 for (int i = 100; i < 200; i++) {
-                    indexWriter.setNextRow(i,
-                            new BytesRef("{\"id\": " + i + ", \"name\": \"Trillian\"}"));
+                    indexWriter.setNextRow(
+                            new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Trillian\"}")}));
                 }
             }
         });
@@ -112,12 +116,13 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         t1.join();
         t2.join();
         indexWriter.upstreamFinished();
-        Object[][] objects = collectingProjector.result().get();
-        assertThat((Long)objects[0][0], is(200L));
+        Bucket objects = collectingProjector.result().get();
+
+        assertThat(objects, contains(isRow(200L)));
 
         execute("refresh table bulk_import");
         execute("select count(*) from bulk_import");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Long)response.rows()[0][0], is(200L));
+        assertThat((Long) response.rows()[0][0], is(200L));
     }
 }

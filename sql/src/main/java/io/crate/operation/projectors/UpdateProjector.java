@@ -24,6 +24,8 @@ package io.crate.operation.projectors;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.operation.ProjectorUpstream;
@@ -84,7 +86,7 @@ public class UpdateProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public boolean setNextRow(Object... row) {
+    public boolean setNextRow(Row row) {
         final Uid uid;
         synchronized (lock) {
             // resolve the Uid
@@ -168,7 +170,7 @@ public class UpdateProjector implements Projector, ProjectorUpstream {
                 for (Long val : result) {
                     rowCount += val;
                 }
-                downstream.setNextRow(rowCount);
+                downstream.setNextRow(new Row1(rowCount));
                 Throwable throwable = upstreamFailure.get();
                 if (throwable == null) {
                     downstream.upstreamFinished();
@@ -179,7 +181,7 @@ public class UpdateProjector implements Projector, ProjectorUpstream {
 
             @Override
             public void onFailure(Throwable t) {
-                downstream.setNextRow(0L);
+                downstream.setNextRow(new Row1(0L));
                 downstream.upstreamFailed(t);
             }
         });
