@@ -19,31 +19,39 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors.sorting;
+package io.crate.operation.projectors;
 
-import org.apache.lucene.util.PriorityQueue;
+import io.crate.operation.ProjectorUpstream;
 
-import java.util.Comparator;
+/**
+ * a projector that does nothing.
+ * Can be used by classes that implement ProjectorUpstream to have a "default" downstream
+ * to avoid null checks
+ */
+public class NoOpProjector implements Projector {
 
-public class RowPriorityQueue<T> extends PriorityQueue<T> {
+    @Override
+    public void startProjection() {
 
-    private final Comparator[] comparators;
-
-    public RowPriorityQueue(int maxSize, Comparator[] comparators) {
-        super(maxSize);
-        this.comparators = comparators;
     }
 
     @Override
-    public boolean lessThan(T a, T b) {
-        for (Comparator c : comparators) {
-            //noinspection unchecked
-            int compared = c.compare(a, b);
-
-            if (compared < 0) return true;
-            if (compared == 0) continue;
-            if (compared > 0) return false;
-        }
+    public boolean setNextRow(Object... row) {
         return false;
+    }
+
+    @Override
+    public void registerUpstream(ProjectorUpstream upstream) {
+
+    }
+
+    @Override
+    public void upstreamFinished() {
+
+    }
+
+    @Override
+    public void upstreamFailed(Throwable throwable) {
+
     }
 }
