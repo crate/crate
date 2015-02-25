@@ -95,7 +95,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
          * set on the given <code>routing</code>.
          */
         public void allocateJobSearchContextIds(Routing routing) {
-            if (routing.jobSearchContextIdBase() > -1) {
+            if (routing.jobSearchContextIdBase() > -1 || routing.hasLocations() == false
+                    || routing.numShards() == 0) {
                 return;
             }
             int jobSearchContextId = jobSearchContextIdBaseSeq;
@@ -189,15 +190,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     protected Plan visitCopyStatement(final CopyAnalyzedStatement analysis, Context context) {
         IterablePlan plan = new IterablePlan();
         if (analysis.mode() == CopyAnalyzedStatement.Mode.FROM) {
-            copyFromPlan(analysis, plan);
+            copyFromPlan(analysis, plan, context);
         } else if (analysis.mode() == CopyAnalyzedStatement.Mode.TO) {
-            copyToPlan(analysis, plan);
+            copyToPlan(analysis, plan, context);
         }
 
         return plan;
     }
 
-    private void copyToPlan(CopyAnalyzedStatement analysis, IterablePlan plan) {
+    private void copyToPlan(CopyAnalyzedStatement analysis, IterablePlan plan, Context context) {
         TableInfo tableInfo = analysis.table();
         WriterProjection projection = new WriterProjection();
         projection.uri(analysis.uri());
@@ -230,6 +231,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableInfo,
+                context,
                 WhereClause.MATCH_ALL,
                 outputs,
                 ImmutableList.<Projection>of(projection),
@@ -241,7 +243,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         plan.add(mergeNode);
     }
 
-    private void copyFromPlan(CopyAnalyzedStatement analysis, IterablePlan plan) {
+    private void copyFromPlan(CopyAnalyzedStatement analysis, IterablePlan plan, Context context) {
         /**
          * copy from has two "modes":
          *
