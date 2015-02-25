@@ -22,7 +22,6 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
@@ -30,9 +29,9 @@ import io.crate.core.collections.ArrayIterator;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
-import org.apache.lucene.util.PriorityQueue;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -40,63 +39,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SortingTopNProjector implements Projector, ProjectorUpstream, ResultProvider {
-
-
-    class RowPriorityQueue extends PriorityQueue<Object[]> {
-
-        public RowPriorityQueue(int maxSize) {
-            super(maxSize);
-        }
-
-        @Override
-        protected boolean lessThan(Object[] a, Object[] b) {
-            for (Comparator c : comparators) {
-                int compared = c.compare(a, b);
-                if (compared < 0) return true;
-                if (compared == 0) continue;
-                if (compared > 0) return false;
-            }
-            return false;
-        }
-    }
-
-    static class ColOrdering extends Ordering<Object[]> {
-
-        private final int col;
-        private final Ordering<Comparable> ordering;
-
-        ColOrdering(int col, boolean reverse, Boolean nullFirst) {
-            this.col = col;
-
-            // note, that we are reverse for the queue so this conditional is by intent
-            Ordering<Comparable> ordering;
-            nullFirst = nullFirst != null ? !nullFirst : null; // swap because queue is reverse
-            if (reverse) {
-                ordering = Ordering.natural();
-                if (nullFirst == null || !nullFirst) {
-                    ordering = ordering.nullsLast();
-                } else {
-                    ordering = ordering.nullsFirst();
-                }
-            } else {
-                ordering = Ordering.natural().reverse();
-                if (nullFirst == null || nullFirst) {
-                    ordering = ordering.nullsFirst();
-                } else {
-                    ordering = ordering.nullsLast();
-                }
-            }
-            this.ordering = ordering;
-        }
-
-        @Override
-        public int compare(@Nullable Object[] left, @Nullable Object[] right) {
-            Comparable l = left != null ? (Comparable) left[col] : null;
-            Comparable r = right != null ? (Comparable) right[col] : null;
-            return ordering.compare(l, r);
-        }
-    }
-
 
     private final int offset;
     private final int maxSize;
@@ -143,16 +85,15 @@ public class SortingTopNProjector implements Projector, ProjectorUpstream, Resul
         for (int i = 0; i < orderBy.length; i++) {
             int col = orderBy[i];
             boolean reverse = reverseFlags[i];
-            comparators[i] = new ColOrdering(col, reverse, nullsFirst[i]);
+            comparators[i] = new OrderingByPosition(col, reverse, nullsFirst[i]);
         }
     }
 
     @Override
     public void startProjection() {
-        pq = new RowPriorityQueue(maxSize);
+        pq = new RowPriorityQueue(maxSize, comparators);
         if (remainingUpstreams.get() <= 0) {
             upstreamFinished();
-            return;
         }
     }
 
