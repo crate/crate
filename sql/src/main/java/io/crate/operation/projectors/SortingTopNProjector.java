@@ -45,7 +45,7 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
 
     private RowDownstreamHandle downstream;
 
-    private RowPriorityQueue pq;
+    private RowPriorityQueue<Object[]> pq;
     private final Comparator[] comparators;
     private final Input<?>[] inputs;
     private final CollectExpression<?>[] collectExpressions;
@@ -94,7 +94,7 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
         super.startProjection();
         synchronized (this){
             if (pq==null) {
-                pq = new RowPriorityQueue(maxSize, comparators);
+                pq = new RowPriorityQueue<>(maxSize, comparators);
             }
         }
     }
