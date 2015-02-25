@@ -44,7 +44,7 @@ public class SortingTopNProjector implements Projector, ProjectorUpstream, Resul
     private final int maxSize;
     private final int numOutputs;
 
-    private RowPriorityQueue pq;
+    private RowPriorityQueue<Object[]> pq;
     private final Comparator[] comparators;
     private final Input<?>[] inputs;
     private final CollectExpression<?>[] collectExpressions;
@@ -91,7 +91,7 @@ public class SortingTopNProjector implements Projector, ProjectorUpstream, Resul
 
     @Override
     public void startProjection() {
-        pq = new RowPriorityQueue(maxSize, comparators);
+        pq = new RowPriorityQueue<>(maxSize, comparators);
         if (remainingUpstreams.get() <= 0) {
             upstreamFinished();
         }
