@@ -71,21 +71,21 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public abstract class MapSideDataCollectOperation<T extends ResultProvider> implements CollectOperation {
 
-    protected final PlanNodeStreamerVisitor streamerVisitor;
-    private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
-    private final CollectServiceResolver collectServiceResolver;
-    private final ProjectionToProjectorVisitor projectorVisitor;
-    private final ThreadPoolExecutor executor;
-    private final int poolSize;
-    private static final ESLogger logger = Loggers.getLogger(MapSideDataCollectOperation.class);
-
     private static class SimpleShardCollectFuture extends ShardCollectFuture {
 
+        private final CollectContextService collectContextService;
+        private final UUID jobId;
         private ListenableFuture<Bucket> upstreamResult;
 
-        public SimpleShardCollectFuture(int numShards, ListenableFuture<Bucket> upstreamResult) {
+        public SimpleShardCollectFuture(int numShards,
+                                        ListenableFuture<Bucket> upstreamResult,
+                                        CollectContextService collectContextService,
+                                        UUID jobId) {
             super(numShards);
             this.upstreamResult = upstreamResult;
+            this.collectContextService = collectContextService;
+            this.jobId = jobId;
+
         }
 
         @Override
@@ -93,21 +93,31 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
             Futures.addCallback(upstreamResult, new FutureCallback<Bucket>() {
                 @Override
                 public void onSuccess(@Nullable Bucket result) {
+                    collectContextService.releaseContext(jobId);
                     set(result);
                 }
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
+                    collectContextService.releaseContext(jobId);
                     setException(t);
                 }
             });
         }
     }
 
+    protected final PlanNodeStreamerVisitor streamerVisitor;
     private final IndicesService indicesService;
     protected final EvaluatingNormalizer nodeNormalizer;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
+    private final CollectContextService collectContextService;
+    private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
+    private final CollectServiceResolver collectServiceResolver;
+    private final ProjectionToProjectorVisitor projectorVisitor;
+    private final ThreadPoolExecutor executor;
+    private final int poolSize;
+    private ESLogger logger = Loggers.getLogger(getClass());
 
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Settings settings,
@@ -117,11 +127,13 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver,
-                                       PlanNodeStreamerVisitor streamerVisitor) {
+                                       PlanNodeStreamerVisitor streamerVisitor,
+                                       CollectContextService collectContextService) {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getPoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
+        this.collectContextService = collectContextService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.collectServiceResolver = collectServiceResolver;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -280,8 +292,10 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
             return result;
         }
 
-        int jobSearchContextId = collectNode.routing().jobSearchContextIdBase();
+        assert collectNode.jobId().isPresent() : "jobId must be set on CollectNode";
+        JobCollectContext jobCollectContext = collectContextService.acquireContext(collectNode.jobId().get());
 
+        int jobSearchContextId = collectNode.routing().jobSearchContextIdBase();
         // get shardCollectors from single shards
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : collectNode.routing().locations().entrySet()) {
@@ -297,6 +311,8 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                     }
 
                     for (Integer shardId : entry.getValue()) {
+                        jobCollectContext.registerJobContextId(
+                                indexService.shardSafe(shardId).shardId(), jobSearchContextId);
                         Injector shardInjector;
                         try {
                             shardInjector = indexService.shardInjectorSafe(shardId);
@@ -304,11 +320,9 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                             CrateCollector collector = shardCollectService.getCollector(
                                     collectNode,
                                     projectorChain,
+                                    jobCollectContext,
                                     jobSearchContextId
                             );
-                            if (jobSearchContextId > -1) {
-                                jobSearchContextId++;
-                            }
                             shardCollectors.add(collector);
                         } catch (IndexShardMissingException e) {
                             throw new UnhandledServerException(
@@ -318,6 +332,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                             logger.error("Error while getting collector", e);
                             throw new UnhandledServerException(e);
                         }
+                        jobSearchContextId++;
                     }
                 }
             } else if (jobSearchContextId > -1) {
@@ -412,9 +427,11 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
      * @param collectNode    in case any other properties need to be extracted
      * @return a fancy ShardCollectFuture implementation
      */
-    protected ShardCollectFuture getShardCollectFuture(
-            int numShards, ShardProjectorChain projectorChain, CollectNode collectNode) {
-        return new SimpleShardCollectFuture(numShards, projectorChain.resultProvider().result());
+    protected ShardCollectFuture getShardCollectFuture(int numShards,
+                                                       ShardProjectorChain projectorChain,
+                                                       CollectNode collectNode) {
+        return new SimpleShardCollectFuture(numShards, projectorChain.resultProvider().result(),
+                collectContextService, collectNode.jobId().get());
     }
 
     protected Streamer<?>[] getStreamers(CollectNode node) {

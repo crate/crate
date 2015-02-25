@@ -35,6 +35,7 @@ import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.collect.CollectContextService;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
