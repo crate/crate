@@ -26,10 +26,12 @@ import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
+import io.crate.executor.transport.CollectContextService;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.types.DataType;
 import io.crate.types.StringType;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.TransportService;
@@ -63,12 +65,12 @@ public class CrateClientTest extends CrateIntegrationTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void cleanUp() throws Exception {
         if (client != null) {
             client.close();
             client = null;
         }
-        super.tearDown();
+        Releasables.close(cluster().getInstances(CollectContextService.class));
     }
 
     @Test
