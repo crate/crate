@@ -6,12 +6,11 @@ Migrating from MySQL
 ====================
 
 There are various ways to migrate your existing data from MySQL_ to Crate_.
-However, these methods may differ in performance. A fast and reliable way
-to migrate is to use the existing export and import tools.
+However, these methods may differ in performance. A fast and reliable way to migrate is to use Crate's existing export and import tools.
 
-This best practice shows how to migrate your data without hassle.
+This best practice example shows how to migrate your data without any hassle.
 
-Assuming we have an existing table ``foo`` in MySQL with the following schema::
+We are assuming we have an existing table ``foo`` in MySQL with the following schema::
 
   CREATE TABLE foo (
     id integer primary key,
@@ -30,7 +29,7 @@ Sampledata::
 Exporting Data from MySQL
 =========================
 
-MySQL does not support ``JSON`` as output format, but it is possible to
+MySQL does not support ``JSON`` as an output format, but it is possible to
 write to a file using the ``csv`` format.
 
 Example::
@@ -42,13 +41,11 @@ Example::
       LINES TERMINATED BY '\n'
     FROM foo;
 
-Also make sure fields are terminated by a colon (``,``), values are quoted with ``"``
-and lines are terminated by the newline character ``\n``.
+Make sure fields are seperated by a comma (``,``), that values are quoted with a pair of ``"`` and that lines are terminated by the newline character ``\n``.
 
-Note that we specify ``utf8`` as encoding for writing into the outfile!
-This is important because Crate requires ``utf8`` encoding.
+Note that we specify ``utf8`` as encoding for writing into the outfile. This is important because Crate requires ``utf8`` encoding.
 
-You probably need to set the character encoding of the client and ``mysqld`` in the ``my.cnf``, too::
+You may need to set the character encoding of the client and ``mysqld`` in the ``my.cnf``, too::
 
   [client]
   default-character-set=utf8
@@ -56,20 +53,16 @@ You probably need to set the character encoding of the client and ``mysqld`` in 
   character-set-server=utf8
 
 All values written to ``csv`` are quoted and therefore interpreted as strings
-when read from the convert script later on.
+when read from the convert script later.
 
 Date/Time Types
 ---------------
 
 The standard output for `date/time types in MySQL <http://dev.mysql.com/doc/refman/5.0/en/date-and-time-types.html>`_
-is a string, Crate however uses a ``long`` type to store timestamps (millisecond precision).
-To prevent problems with dates that have timezone information,
-just use MySQL's builtin ``UNIX_TIMESTAMP`` function to convert
-``date``, ``time``, ``datetime``, ``timestamp`` and ``year`` types
-into UNIX timestamps directly in the ``SELECT`` statement.
+is a string, However, Crate uses a ``long`` type to store timestamps (millisecond precision).
+To prevent problems with dates that have timezone information, use MySQL's builtin ``UNIX_TIMESTAMP`` function to convert ``date``, ``time``, ``datetime``, ``timestamp`` and ``year`` types into UNIX timestamps directly in the ``SELECT`` statement.
 
-The output of this function must be multiplied by ``1000`` (convert ``s`` to ``ms``)
-to obtain the correct ``long`` value that can be used for importing into Crate.
+The output of this function must be multiplied by ``1000`` (converting ``s`` to ``ms``) to obtain the correct ``long`` value that can be used for importing into Crate.
 
 ::
 
@@ -94,14 +87,14 @@ The script requires ``csv`` input from ``stdin`` and prints the converted lines
 to ``stdout``. Each line is a separate JSON string.
 
 The ``--columns`` argument specifies the column names and column types for the conversion.
+
 The format for this argument is:
 
 .. code-block:: sh
 
   column_name:column_type
 
-where ``column_name`` must match the column name and ``column_type`` must match the JSON type
-that the value should be converted to. Supported ``column_type`` values are:
+where ``column_name`` must match the column name and ``column_type`` must match the JSON type that the value should be converted to. Supported ``column_type`` values are:
 
 .. code-block:: sh
 
@@ -115,7 +108,7 @@ that the value should be converted to. Supported ``column_type`` values are:
   array
   timestamp (same as long)
 
-For our example the usage looks like that:
+For our example the usage looks like:
 
 .. code-block:: sh
 
