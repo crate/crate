@@ -431,7 +431,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(201L, response.rowCount());
+        assertEquals(203L, response.rowCount());
     }
 
     @Test
@@ -800,9 +800,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(3, response.rowCount());
 
-        Object[] row1 = new Object[] { "my_table", "doc", "04132", ImmutableMap.of("par", 1) };
-        Object[] row2 = new Object[] { "my_table", "doc", "04134", ImmutableMap.of("par", 2) };
-        Object[] row3 = new Object[] { "my_table", "doc", "04136", ImmutableMap.of("par", 3) };
+        Object[] row1 = new Object[] { "my_table", "doc", "04132", ImmutableMap.of("par", 1), 5, "1"};
+        Object[] row2 = new Object[] { "my_table", "doc", "04134", ImmutableMap.of("par", 2), 5, "1"};
+        Object[] row3 = new Object[] { "my_table", "doc", "04136", ImmutableMap.of("par", 3), 5, "1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);
@@ -816,17 +816,21 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("insert into my_table (par, par_str, content) values (1, 'bar', 'content2')");
         execute("insert into my_table (par, par_str, content) values (2, 'foo', 'content3')");
         execute("insert into my_table (par, par_str, content) values (2, 'bar', 'content4')");
-        execute("insert into my_table (par, par_str, content) values (2, 'asdf', 'content5')");
         ensureGreen();
+        refresh();
+        execute("alter table my_table set (number_of_shards=4)");
+        waitNoPendingTasksOnAll();
+        execute("insert into my_table (par, par_str, content) values (2, 'asdf', 'content5')");
+        ensureYellow();
 
         execute("select * from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(5, response.rowCount());
 
-        Object[] row1 = new Object[] { "my_table", "doc", "08132132c5p0", ImmutableMap.of("par", 1, "par_str", "bar") };
-        Object[] row2 = new Object[] { "my_table", "doc", "08132136dtng", ImmutableMap.of("par", 1, "par_str", "foo") };
-        Object[] row3 = new Object[] { "my_table", "doc", "08134132c5p0", ImmutableMap.of("par", 2, "par_str", "bar") };
-        Object[] row4 = new Object[] { "my_table", "doc", "08134136dtng", ImmutableMap.of("par", 2, "par_str", "foo") };
-        Object[] row5 = new Object[] { "my_table", "doc", "081341b1edi6c", ImmutableMap.of("par", 2, "par_str", "asdf") };
+        Object[] row1 = new Object[] { "my_table", "doc", "08132132c5p0", ImmutableMap.of("par", 1, "par_str", "bar"), 5, "1"};
+        Object[] row2 = new Object[] { "my_table", "doc", "08132136dtng", ImmutableMap.of("par", 1, "par_str", "foo"), 5, "1"};
+        Object[] row3 = new Object[] { "my_table", "doc", "08134132c5p0", ImmutableMap.of("par", 2, "par_str", "bar"), 5, "1"};
+        Object[] row4 = new Object[] { "my_table", "doc", "08134136dtng", ImmutableMap.of("par", 2, "par_str", "foo"), 5, "1"};
+        Object[] row5 = new Object[] { "my_table", "doc", "081341b1edi6c", ImmutableMap.of("par", 2, "par_str", "asdf"), 4, "1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);
@@ -850,8 +854,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(2, response.rowCount());
 
-        Object[] row1 = new Object[] { "my_table", "doc", "04130", ImmutableMap.of("metadata['date']", 0L) };
-        Object[] row2 = new Object[] { "my_table", "doc", "04732d1g64p36d9i60o30c1g", ImmutableMap.of("metadata['date']", 1401235200000L) };
+        Object[] row1 = new Object[] { "my_table", "doc", "04130", ImmutableMap.of("metadata['date']", 0L), 5, "1" };
+        Object[] row2 = new Object[] { "my_table", "doc", "04732d1g64p36d9i60o30c1g", ImmutableMap.of("metadata['date']", 1401235200000L), 5, "1" };
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);

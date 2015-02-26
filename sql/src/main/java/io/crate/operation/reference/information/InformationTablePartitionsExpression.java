@@ -20,21 +20,25 @@
  */
 package io.crate.operation.reference.information;
 
+import com.google.common.base.MoreObjects;
+import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TablePartitionInfo;
-import io.crate.metadata.information.RowCollectExpression;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.information.InformationPartitionsTableInfo;
+import io.crate.metadata.information.RowCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
 
 public abstract class InformationTablePartitionsExpression<T>
-        extends RowCollectExpression<TablePartitionInfo, T> {
+        extends RowCollectExpression<PartitionInfo, T> {
 
     public static final PartitionsTableNameExpression TABLE_NAME_EXPRESSION = new PartitionsTableNameExpression();
     public static final PartitionsSchemaNameExpression SCHEMA_NAME_EXPRESSION = new PartitionsSchemaNameExpression();
     public static final PartitionsPartitionIdentExpression PARTITION_IDENT_EXPRESSION = new PartitionsPartitionIdentExpression();
     public static final PartitionsValuesExpression VALUES_EXPRESSION = new PartitionsValuesExpression();
+    public static final PartitionsNumberOfShardsExpression NUMBER_OF_SHARDS_EXPRESSION = new PartitionsNumberOfShardsExpression();
+    public static final PartitionsNumberOfReplicasExpression NUMBER_OF_REPLICAS_EXPRESSION = new PartitionsNumberOfReplicasExpression();
 
     protected InformationTablePartitionsExpression(ReferenceInfo info) {
         super(info);
@@ -47,7 +51,7 @@ public abstract class InformationTablePartitionsExpression<T>
 
         @Override
         public BytesRef value() {
-            return new BytesRef(row.tableName());
+            return new BytesRef(row.name().tableName());
         }
     }
 
@@ -58,7 +62,9 @@ public abstract class InformationTablePartitionsExpression<T>
 
         @Override
         public BytesRef value() {
-            return new BytesRef(row.schemaName());
+            return new BytesRef(
+                    MoreObjects.firstNonNull(row.name().schemaName(), ReferenceInfos.DEFAULT_SCHEMA_NAME)
+            );
         }
     }
     public static class PartitionsPartitionIdentExpression extends InformationTablePartitionsExpression<BytesRef> {
@@ -68,7 +74,7 @@ public abstract class InformationTablePartitionsExpression<T>
 
         @Override
         public BytesRef value() {
-            return new BytesRef(row.partitionIdent());
+            return new BytesRef(row.name().ident());
         }
     }
     public static class PartitionsValuesExpression extends InformationTablePartitionsExpression<Map<String, Object>> {
@@ -79,6 +85,29 @@ public abstract class InformationTablePartitionsExpression<T>
         @Override
         public Map<String, Object> value() {
             return row.values();
+        }
+    }
+    public static class PartitionsNumberOfShardsExpression extends InformationTablePartitionsExpression<Integer> {
+
+        protected PartitionsNumberOfShardsExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.NUMBER_OF_SHARDS);
+        }
+
+        @Override
+        public Integer value() {
+            return row.numberOfShards();
+        }
+    }
+
+    public static class PartitionsNumberOfReplicasExpression extends InformationTablePartitionsExpression<BytesRef> {
+
+        protected PartitionsNumberOfReplicasExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.NUMBER_OF_REPLICAS);
+        }
+
+        @Override
+        public BytesRef value() {
+            return row.numberOfReplicas();
         }
     }
 }

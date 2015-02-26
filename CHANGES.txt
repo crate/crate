@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added columns ``number_of_shards`` and ``number_of_replicas`` to
+   table ``information_schema.table_partitions``
+
  - Support `ON DUPLICATE KEY UPDATE` while inserting using a query.
 
  - Fix: Parameter substitution within subscript notation is not

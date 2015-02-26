@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
-import io.crate.metadata.PartitionName;
+import io.crate.core.NumberOfReplicas;
 import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
@@ -39,12 +39,10 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -112,12 +110,7 @@ public class DocIndexMetaData {
         this.isAlias = !metaData.getIndex().equals(ident.esName());
         this.numberOfShards = metaData.numberOfShards();
         Settings settings = metaData.getSettings();
-        String autoExpandReplicas = settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
-        if (autoExpandReplicas != null && !Booleans.isExplicitFalse(autoExpandReplicas)) {
-            this.numberOfReplicas = new BytesRef(autoExpandReplicas);
-        } else {
-            this.numberOfReplicas = new BytesRef(settings.get(IndexMetaData.SETTING_NUMBER_OF_REPLICAS));
-        }
+        this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);
         this.aliases = ImmutableSet.copyOf(metaData.aliases().keys().toArray(String.class));
         this.defaultMappingMetaData = this.metaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
         if (defaultMappingMetaData == null) {
@@ -201,9 +194,7 @@ public class DocIndexMetaData {
      * @param columnProperties map of String to Object containing column properties
      * @return dataType of the column with columnProperties
      */
-    private DataType getColumnDataType(String columnName,
-                                       @Nullable ColumnIdent columnIdent,
-                                       Map<String, Object> columnProperties) {
+    public static DataType getColumnDataType(Map<String, Object> columnProperties) {
         DataType type;
         String typeName = (String) columnProperties.get("type");
 
@@ -214,8 +205,9 @@ public class DocIndexMetaData {
                 return DataTypes.NOT_SUPPORTED;
             }
         } else if (typeName.equalsIgnoreCase("array")) {
-            Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.get("inner");
-            DataType innerType = getColumnDataType(columnName, columnIdent, innerProperties);
+
+            Map<String, Object> innerProperties = getNested(columnProperties, "inner");
+            DataType innerType = getColumnDataType(innerProperties);
             type = new ArrayType(innerType);
         } else {
             typeName = typeName.toLowerCase(Locale.ENGLISH);
@@ -271,7 +263,7 @@ public class DocIndexMetaData {
 
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
-            DataType columnDataType = getColumnDataType(columnEntry.getKey(), columnIdent, columnProperties);
+            DataType columnDataType = getColumnDataType(columnProperties);
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
 
             columnProperties = furtherColumnProperties(columnProperties);
@@ -395,12 +387,8 @@ public class DocIndexMetaData {
     }
 
     private void extractPartitionedByColumns() {
-        for (List<String> partitioned : partitionedByList) {
-            ColumnIdent ident = ColumnIdent.fromPath(partitioned.get(0));
-            DataType type = getColumnDataType(ident.fqn(),
-                    ident,
-                    new MapBuilder<String, Object>().put("type", partitioned.get(1)).map());
-            addPartitioned(ident, type);
+        for (Tuple<ColumnIdent, DataType> partitioned : PartitionedByMappingExtractor.extractPartitionedByColumns(partitionedByList)) {
+            addPartitioned(partitioned.v1(), partitioned.v2());
         }
     }
 
@@ -505,7 +493,6 @@ public class DocIndexMetaData {
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
                 .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
                 .create(false)
-                .settings(md.metaData.settings())
                 .template(templateName + "*");
         for (String alias : md.aliases()) {
             request = request.alias(new Alias(alias));

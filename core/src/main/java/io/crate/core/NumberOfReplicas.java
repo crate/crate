@@ -21,8 +21,12 @@
 
 package io.crate.core;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.Booleans;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.regex.Pattern;
 
@@ -42,11 +46,15 @@ public class NumberOfReplicas {
 
     public NumberOfReplicas(String replicas) {
         assert replicas != null;
-        Preconditions.checkArgument(EXPAND_REPLICA_PATTERN.matcher(replicas).matches(),
-                "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
+        validateExpandReplicaSetting(replicas);
 
         this.esSettingKey = AUTO_EXPAND_REPLICAS;
         this.esSettingsValue = replicas;
+    }
+
+    private static void validateExpandReplicaSetting(String replicas) {
+        Preconditions.checkArgument(EXPAND_REPLICA_PATTERN.matcher(replicas).matches(),
+                "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
     }
 
     public String esSettingKey() {
@@ -55,5 +63,17 @@ public class NumberOfReplicas {
 
     public String esSettingValue() {
         return esSettingsValue;
+    }
+
+    public static BytesRef fromSettings(Settings settings) {
+        BytesRef numberOfReplicas;
+        String autoExpandReplicas = settings.get(AUTO_EXPAND_REPLICAS);
+        if (autoExpandReplicas != null && !Booleans.isExplicitFalse(autoExpandReplicas)) {
+            validateExpandReplicaSetting(autoExpandReplicas);
+            numberOfReplicas = new BytesRef(autoExpandReplicas);
+        } else {
+            numberOfReplicas = new BytesRef(MoreObjects.firstNonNull(settings.get(NUMBER_OF_REPLICAS), "1"));
+        }
+        return numberOfReplicas;
     }
 }

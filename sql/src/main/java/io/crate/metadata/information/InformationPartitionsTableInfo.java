@@ -41,6 +41,8 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
         public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
         public static final ColumnIdent VALUES = new ColumnIdent("values");
+        public static final ColumnIdent NUMBER_OF_SHARDS = new ColumnIdent("number_of_shards");
+        public static final ColumnIdent NUMBER_OF_REPLICAS = new ColumnIdent("number_of_replicas");
     }
 
     public static class ReferenceInfos {
@@ -48,6 +50,8 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         public static final ReferenceInfo SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
         public static final ReferenceInfo PARTITION_IDENT = info(Columns.PARTITION_IDENT, DataTypes.STRING);
         public static final ReferenceInfo VALUES = info(Columns.VALUES, DataTypes.OBJECT);
+        public static final ReferenceInfo NUMBER_OF_SHARDS = info(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
+        public static final ReferenceInfo NUMBER_OF_REPLICAS = info(Columns.NUMBER_OF_REPLICAS, DataTypes.STRING);
     }
 
     private static ReferenceInfo info(ColumnIdent columnIdent, DataType dataType) {
@@ -59,16 +63,20 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableMap.<ColumnIdent, ReferenceInfo>builder()
-                    .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
-                    .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
-                    .put(Columns.PARTITION_IDENT, ReferenceInfos.PARTITION_IDENT)
-                    .put(Columns.VALUES, ReferenceInfos.VALUES)
-                .build(),
+                        .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
+                        .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
+                        .put(Columns.PARTITION_IDENT, ReferenceInfos.PARTITION_IDENT)
+                        .put(Columns.VALUES, ReferenceInfos.VALUES)
+                        .put(Columns.NUMBER_OF_SHARDS, ReferenceInfos.NUMBER_OF_SHARDS)
+                        .put(Columns.NUMBER_OF_REPLICAS, ReferenceInfos.NUMBER_OF_REPLICAS)
+                        .build(),
                 ImmutableList.<ReferenceInfo>builder()
-                    .add(ReferenceInfos.TABLE_NAME)
-                    .add(ReferenceInfos.SCHEMA_NAME)
-                    .add(ReferenceInfos.PARTITION_IDENT)
-                    .add(ReferenceInfos.VALUES)
-                .build());
+                        .add(ReferenceInfos.TABLE_NAME)
+                        .add(ReferenceInfos.SCHEMA_NAME)
+                        .add(ReferenceInfos.PARTITION_IDENT)
+                        .add(ReferenceInfos.VALUES)
+                        .add(ReferenceInfos.NUMBER_OF_SHARDS)
+                        .add(ReferenceInfos.NUMBER_OF_REPLICAS)
+                        .build());
     }
 }

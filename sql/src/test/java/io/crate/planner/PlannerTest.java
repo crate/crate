@@ -607,7 +607,7 @@ public class PlannerTest {
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
+        assertThat(((Reference) collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
 
         MergeNode mergeNode = globalAggregate.mergeNode();
         assertThat(mergeNode.projections().size(), is(2));

@@ -181,13 +181,18 @@ For further information see :ref:`sql_ddl_partitioned_by`.
 
 ::
 
+    cr> alter table a_partitioned_table set (number_of_shards=4);
+    ALTER OK (... sec)
+
+::
+
     cr> insert into a_partitioned_table (id, content) values (2, 'content_b');
     INSERT OK, 1 row affected (... sec)
 
 The following example shows a table where the column 'content' of table
 'a_partitioned_table' has been used to partition the table. The table has two
 partitions. The partitions are introduced when data is inserted where
-'content' is 'content_a', and 'content_b'::
+'content' is 'content_a', and 'content_b'.::
 
     cr> select table_name, schema_name as schema, partition_ident, "values"
     ... from information_schema.table_partitions
@@ -199,6 +204,23 @@ partitions. The partitions are introduced when data is inserted where
     | a_partitioned_table | doc    | 04566rreehimst2vc8 | {"content": "content_b"} |
     +---------------------+--------+--------------------+--------------------------+
     SELECT 2 rows in set (... sec)
+
+The second partition has been created
+after the number of shards for future partitions have been changed on the
+partitioned table, so they show ``4`` instead of ``5``::
+
+    cr> select table_name, partition_ident,
+    ... number_of_shards, number_of_replicas
+    ... from information_schema.table_partitions
+    ... order by table_name, partition_ident;
+    +---------------------+--------------------+------------------+--------------------+
+    | table_name          | partition_ident    | number_of_shards | number_of_replicas |
+    +---------------------+--------------------+------------------+--------------------+
+    | a_partitioned_table | 04566rreehimst2vc4 |                5 |                  1 |
+    | a_partitioned_table | 04566rreehimst2vc8 |                4 |                  1 |
+    +---------------------+--------------------+------------------+--------------------+
+    SELECT 2 rows in set (... sec)
+
 
 
 Routines
