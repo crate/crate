@@ -60,6 +60,8 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
         add(builder, InformationTablePartitionsExpression.SCHEMA_NAME_EXPRESSION);
         add(builder, InformationTablePartitionsExpression.PARTITION_IDENT_EXPRESSION);
         add(builder, InformationTablePartitionsExpression.VALUES_EXPRESSION);
+        add(builder, InformationTablePartitionsExpression.NUMBER_OF_SHARDS_EXPRESSION);
+        add(builder, InformationTablePartitionsExpression.NUMBER_OF_REPLICAS_EXPRESSION);
 
         // information_schema.table_constraints
         add(builder, InformationTableConstraintsExpression.SCHEMA_NAME_EXPRESSION);

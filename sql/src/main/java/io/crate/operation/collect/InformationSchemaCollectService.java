@@ -37,6 +37,7 @@ import io.crate.operation.reference.information.InformationDocLevelReferenceReso
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
 import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -52,7 +53,8 @@ public class InformationSchemaCollectService implements CollectService {
     protected InformationSchemaCollectService(Functions functions,
                                               ReferenceInfos referenceInfos,
                                               InformationDocLevelReferenceResolver refResolver,
-                                              FulltextAnalyzerResolver ftResolver) {
+                                              FulltextAnalyzerResolver ftResolver,
+                                              ClusterService clusterService) {
 
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, refResolver);
@@ -73,7 +75,7 @@ public class InformationSchemaCollectService implements CollectService {
                         });
                     }
                 });
-        Iterable<TablePartitionInfo> tablePartitionsIterable = FluentIterable.from(new TablePartitionInfos(tablesIterable));
+        Iterable<PartitionInfo> tablePartitionsIterable = new PartitionInfos(clusterService);
         Iterable<ColumnContext> columnsIterable = FluentIterable
                 .from(tablesIterable)
                 .transformAndConcat(new Function<TableInfo, Iterable<ColumnContext>>() {

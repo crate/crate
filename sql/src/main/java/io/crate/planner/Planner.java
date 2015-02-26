@@ -518,8 +518,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
             // all partitions
             indices = new String[tableInfo.partitions().size()];
-            for (int i = 0; i < tableInfo.partitions().size(); i++) {
-                indices[i] = tableInfo.partitions().get(i).stringValue();
+            int i = 0;
+            for (PartitionName partitionName: tableInfo.partitions()) {
+                indices[i] = partitionName.stringValue();
+                i++;
             }
         } else {
             indices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);

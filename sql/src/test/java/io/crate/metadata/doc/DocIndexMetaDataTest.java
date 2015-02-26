@@ -1,11 +1,15 @@
 package io.crate.metadata.doc;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.CreateTableStatementAnalyzer;
+import io.crate.analyze.ParameterContext;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
@@ -15,11 +19,13 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.*;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -37,11 +43,10 @@ import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DocIndexMetaDataTest {
+public class DocIndexMetaDataTest extends RandomizedTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -1002,6 +1007,47 @@ public class DocIndexMetaDataTest {
                 is((DataType) new ArrayType(DataTypes.TIMESTAMP)));
     }
 
+    @Test
+    public void testMergePartitionWithDifferentShardsAndReplicas() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("_meta")
+                    .field("primary_keys", "id")
+                    .startArray("partitioned_by")
+                        .startArray()
+                            .value("datum").value("date")
+                        .endArray()
+                    .endArray()
+                .endObject()
+                .startObject("properties")
+                    .startObject("id")
+                        .field("type", "integer")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                .endObject();
+        Settings templateSettings =  ImmutableSettings.builder()
+                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
+                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
+                .build();
+        IndexMetaData metaData = getIndexMetaData("test1", builder, templateSettings, null);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        PartitionName partitionName = new PartitionName("test1", Arrays.asList(new BytesRef("0")));
+        Settings partitionSettings =  ImmutableSettings.builder()
+                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 10)
+                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 50)
+                .build();
+        AliasMetaData aliasMetaData = AliasMetaData.newAliasMetaDataBuilder("test1")
+                .build();
+        IndexMetaData partitionMetaData = getIndexMetaData(partitionName.stringValue(), builder,
+               partitionSettings, aliasMetaData);
+        DocIndexMetaData partitionMD = newMeta(partitionMetaData, partitionName.stringValue());
+
+        DocIndexMetaData merged = md.merge(partitionMD, mock(TransportPutIndexTemplateAction.class), true);
+
+        assertThat(merged.numberOfReplicas(), is(BytesRefs.toBytesRef(1)));
+        assertThat(merged.numberOfShards(),is(5));
+    }
 }
 
 

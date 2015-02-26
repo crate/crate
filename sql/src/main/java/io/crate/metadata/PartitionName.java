@@ -161,6 +161,14 @@ public class PartitionName {
         return ident;
     }
 
+    public String tableName() {
+        return tableName;
+    }
+
+    public @Nullable String schemaName() {
+        return schemaName;
+    }
+
     @Nullable
     public String toString() {
         return stringValue();
