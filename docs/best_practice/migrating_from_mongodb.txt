@@ -7,27 +7,24 @@ Migrating from MongoDB
 Exporting Data from MongoDB
 ===========================
 
-MongoDB ships with a commandline tool called mongoexport_. This tool can be
-used to export the data in the ``MongoDB Extended JSON`` file format.
+MongoDB ships with a commandline tool called mongoexport_. This tool can be used to export data in the ``MongoDB Extended JSON`` file format.
 
 The Extended JSON format is a custom format from MongoDB that includes type
 information.
 
-In order to export the data invoke the mongoexport tool like this:
+In order to export the data invoke the mongoexport tool:
 
 .. code-block:: sh
 
     mongoexport --db <dbname> --collection <data> --out out.json
 
-To import the data into crate the additional type information has to be
-stripped away. In order to do so download the conversion script from the
-`crate-utils repo on github`_:
+To import the data into crate the additional type information must be stripped away. In order to do so download the conversion script from the `crate-utils repo on github`_:
 
 .. code-block:: sh
 
     curl https://raw.githubusercontent.com/crate/crate-utils/master/migrations/mongodb/convert_json.py -o convert_json.py
 
-Once the script is downloaded convert the data like this:
+Once the script is downloaded convert the data:
 
 .. code-block:: sh
 
@@ -65,13 +62,13 @@ off::
 
 For fields that contain text consider using a full-text analyzer. This will
 enable great full-text search capabilities. See :ref:`indices_and_fulltext` for
-more information on that.
+more information.
 
-Crate is also able to dynamically extend the schema, so it is not necessary to
+Crate is able to dynamically extend the schema, so it is not necessary to
 define all columns up-front.
 
 Given the table above, it is possible to insert new columns at the top level of
-the table and also insert arbitrary objects into the obj column::
+the table and insert arbitrary objects into the obj column::
 
     cr> insert into mytable2 (name, obj, newcol, dummy) values
     ... ('Trillian', {gender = 'female'}, 2804, 'dummy');
@@ -107,8 +104,7 @@ fields up-front.
 After the table has been created the file can be imported using
 :ref:`copy_from`.
 
-There is an entire section dedicated on how to do a data import efficiently.
-Best continue reading there: :ref:`efficient_data_import`.
+There is an entire section dedicated on how to do a data import efficiently. Continue reading there: :ref:`efficient_data_import`.
 
 .. _mongoexport: http://docs.mongodb.org/manual/reference/program/mongoexport/
 .. _crate-utils repo on github: https://github.com/crate/crate-utils/tree/master/migrations/mongodb
