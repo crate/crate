@@ -449,6 +449,11 @@ public class DocIndexMetaData {
         return routingCol;
     }
 
+    /**
+     * Returns true if the schema of this and <code>other</code> is the same,
+     * this includes the table name, as this is reflected in the ReferenceIdents of
+     * the columns.
+     */
     public boolean schemaEquals(DocIndexMetaData other) {
         if (this == other) return true;
         if (other == null) return false;
@@ -483,7 +488,7 @@ public class DocIndexMetaData {
             // other is older, just return this
             return this;
         } else {
-            throw new TableAliasSchemaException(other.name());
+            throw new TableAliasSchemaException(other.ident.name());
         }
     }
 
@@ -498,10 +503,6 @@ public class DocIndexMetaData {
             request = request.alias(new Alias(alias));
         }
         transportPutIndexTemplateAction.execute(request);
-    }
-
-    private String name() {
-        return ident.name();
     }
 
     /**

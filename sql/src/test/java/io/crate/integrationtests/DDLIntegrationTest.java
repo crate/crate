@@ -21,14 +21,6 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.core.Is.is;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -44,6 +36,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.skyscreamer.jsonassert.JSONAssert;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {

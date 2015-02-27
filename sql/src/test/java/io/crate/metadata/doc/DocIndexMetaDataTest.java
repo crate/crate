@@ -319,6 +319,9 @@ public class DocIndexMetaDataTest extends RandomizedTest {
         assertEquals(1, md.partitionedByColumns().size());
         assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).type());
         assertThat(md.partitionedByColumns().get(0).ident().columnIdent().fqn(), is("datum"));
+
+        assertThat(md.partitionedBy().size(), is(1));
+        assertThat(md.partitionedBy().get(0), is(ColumnIdent.fromPath("datum")));
     }
 
     @Test
@@ -523,6 +526,81 @@ public class DocIndexMetaDataTest extends RandomizedTest {
     }
 
     @Test
+    public void testExtractMultiplePrimaryKeys() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                    .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                        .startObject("_meta")
+                            .array("primary_keys", "id", "title")
+                        .endObject()
+                        .startObject("properties")
+                            .startObject("id")
+                                .field("type", "integer")
+                                .field("index", "not_analyzed")
+                            .endObject()
+                            .startObject("title")
+                                .field("type", "string")
+                                .field("index", "no")
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject();
+        IndexMetaData metaData = getIndexMetaData("test_multi_pk", builder);
+        DocIndexMetaData md = newMeta(metaData, "test_multi_pk");
+        assertThat(md.primaryKey().size(), is(2));
+        assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("id"), ColumnIdent.fromPath("title")));
+    }
+
+    @Test
+    public void testExtractNoPrimaryKey() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("_meta")
+                .endObject()
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("title")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        IndexMetaData metaData = getIndexMetaData("test_no_pk", builder);
+        DocIndexMetaData md = newMeta(metaData, "test_no_pk");
+        assertThat(md.primaryKey().size(), is(1));
+        assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("_id")));
+
+
+        builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("_meta")
+                .array("primary_keys") // results in empty list
+                .endObject()
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("title")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        metaData = getIndexMetaData("test_no_pk2", builder);
+        md = newMeta(metaData, "test_no_pk2");
+        assertThat(md.primaryKey().size(), is(1));
+        assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("_id")));
+    }
+
+    @Test
     public void extractRoutingColumn() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()
@@ -594,15 +672,17 @@ public class DocIndexMetaDataTest extends RandomizedTest {
                 .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
                 .startObject("_meta")
-                .field("primary_keys", "id")
-                .endObject()
-                .startObject("_routing")
-                .field("path", "id")
+                    .array("primary_keys", "id", "num")
+                    .field("routing", "num")
                 .endObject()
                 .startObject("properties")
                 .startObject("id")
                 .field("type", "integer")
                 .field("index", "not_analyzed")
+                .endObject()
+                .startObject("num")
+                .field("type", "long")
+                    .field("index", "not_analyzed")
                 .endObject()
                 .startObject("content")
                 .field("type", "string")
@@ -613,7 +693,7 @@ public class DocIndexMetaDataTest extends RandomizedTest {
                 .endObject();
 
         md = newMeta(getIndexMetaData("test10", builder), "test10");
-        assertThat(md.routingCol(), is(new ColumnIdent("id")));
+        assertThat(md.routingCol(), is(new ColumnIdent("num")));
     }
 
     @Test
@@ -649,8 +729,8 @@ public class DocIndexMetaDataTest extends RandomizedTest {
                 .field("primary_keys", "id")
                 .endObject()
                 .startObject("properties")
-                .startObject("field")
-                .field("id", "integer")
+                .startObject("id")
+                .field("type", "integer")
                 .field("index", "not_analyzed")
                 .endObject()
                 .endObject()
@@ -659,6 +739,31 @@ public class DocIndexMetaDataTest extends RandomizedTest {
         assertThat(md.primaryKey().size(), is(1));
         assertThat(md.primaryKey().get(0), is(new ColumnIdent("id")));
         assertThat(md.hasAutoGeneratedPrimaryKey(), is(false));
+    }
+
+    @Test
+    public void testAnalyzedColumnWithAnalyzer() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("properties")
+                .startObject("content_de")
+                .field("type", "string")
+                .field("index", "analyzed")
+                .field("analyzer", "german")
+                .endObject()
+                .startObject("content_en")
+                .field("type", "string")
+                .field("analyzer", "english")
+                .endObject()
+                .endObject()
+                .endObject();
+        DocIndexMetaData md = newMeta(getIndexMetaData("test_analyzer", builder), "test_analyzer");
+        assertThat(md.columns().size(), is(2));
+        assertThat(md.columns().get(0).indexType(), is(ReferenceInfo.IndexType.ANALYZED));
+        assertThat(md.columns().get(0).ident().columnIdent().fqn(), is("content_de"));
+        assertThat(md.columns().get(1).indexType(), is(ReferenceInfo.IndexType.ANALYZED));
+        assertThat(md.columns().get(1).ident().columnIdent().fqn(), is("content_en"));
     }
 
     @Test
@@ -1042,11 +1147,34 @@ public class DocIndexMetaDataTest extends RandomizedTest {
         IndexMetaData partitionMetaData = getIndexMetaData(partitionName.stringValue(), builder,
                partitionSettings, aliasMetaData);
         DocIndexMetaData partitionMD = newMeta(partitionMetaData, partitionName.stringValue());
-
+        assertThat(partitionMD.aliases().size(), is(1));
+        assertThat(partitionMD.aliases(), hasItems("test1"));
+        assertThat(partitionMD.isAlias(), is(false));
+        assertThat(partitionMD.concreteIndexName(), is(partitionName.stringValue()));
         DocIndexMetaData merged = md.merge(partitionMD, mock(TransportPutIndexTemplateAction.class), true);
 
         assertThat(merged.numberOfReplicas(), is(BytesRefs.toBytesRef(1)));
-        assertThat(merged.numberOfShards(),is(5));
+        assertThat(merged.numberOfShards(), is(5));
+    }
+
+    @Test
+    public void testSchemaEquals() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
+        DocIndexMetaData mdSame = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
+        DocIndexMetaData mdOther = getDocIndexMetaDataFromStatement("create table schema_equals2 (id byte, tags array(string))");
+        DocIndexMetaData mdWithPk = getDocIndexMetaDataFromStatement("create table schema_equals3 (id byte primary key, tags array(string))");
+        DocIndexMetaData mdWithStringCol = getDocIndexMetaDataFromStatement("create table schema_equals4 (id byte, tags array(string), col string)");
+        DocIndexMetaData mdWithStringColNotAnalyzed = getDocIndexMetaDataFromStatement("create table schema_equals5 (id byte, tags array(string), col string index off)");
+        DocIndexMetaData mdWithStringColNotAnalyzedAndIndex = getDocIndexMetaDataFromStatement("create table schema_equals6 (id byte, tags array(string), col string index off, index ft_index using fulltext(col))");
+        assertThat(md.schemaEquals(md), is(true));
+        assertThat(md == mdSame, is(false));
+        assertThat(md.schemaEquals(mdSame), is(true));   // same table name
+        assertThat(md.schemaEquals(mdOther), is(false)); // different table name
+        assertThat(md.schemaEquals(mdWithPk), is(false));
+        assertThat(md.schemaEquals(mdWithStringCol), is(false));
+        assertThat(mdWithPk.schemaEquals(mdWithStringCol), is(false));
+        assertThat(mdWithStringCol.schemaEquals(mdWithStringColNotAnalyzed), is(false));
+        assertThat(mdWithStringColNotAnalyzed.schemaEquals(mdWithStringColNotAnalyzedAndIndex), is(false));
     }
 }
 
