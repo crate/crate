@@ -29,8 +29,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -39,10 +37,9 @@ import io.crate.operation.projectors.NoOpProjector;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 
-import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class BucketMerger implements ProjectorUpstream {
 
@@ -115,34 +112,23 @@ public class BucketMerger implements ProjectorUpstream {
         assert buckets.size() == numBuckets :
                 "number of buckets received in merge call must match the number given in the constructor";
 
-        final AtomicReference<Throwable> throwable = new AtomicReference<>();
-        Futures.addCallback(Futures.allAsList(buckets), new FutureCallback<List<Bucket>>() {
-            @Override
-            public void onSuccess(List<Bucket> result) {
-                try {
-                    emitBuckets(result);
-                } catch (Throwable t) {
-                    throwable.set(t);
+        try {
+            if (numBuckets == 1) {
+                emitSingleBucket(buckets.get(0).get());
+            } else {
+                ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(numBuckets);
+                for (int i = 0; i < buckets.size(); i++) {
+                    Iterator<Row> remainingBucketIt = remainingBucketIts[i];
+                    if (remainingBucketIt == null) {
+                        bucketIts.add(buckets.get(i).get().iterator());
+                    } else {
+                        bucketIts.add(Iterators.concat(remainingBucketIt, new FutureBackedRowIterator(buckets.get(i))));
+                    }
                 }
+                emitBuckets(bucketIts);
             }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                downstream.upstreamFailed(t);
-            }
-        });
-        Throwable t = throwable.get();
-        if (t != null) {
-            throw Throwables.propagate(t);
-        }
-    }
-
-    private void emitBuckets(List<Bucket> buckets) {
-        if (buckets.size() == 1) {
-            emitSingleBucket(buckets.get(0));
-        } else {
-            ArrayList<Iterator<Row>> bucketIts = getIterators(buckets);
-            emitBuckets(bucketIts);
+        } catch (Throwable t) {
+            downstream.upstreamFailed(t);
         }
     }
 
@@ -335,5 +321,44 @@ public class BucketMerger implements ProjectorUpstream {
             rowArray[j] = row.get(j);
         }
         return rowArray;
+    }
+
+    private static class FutureBackedRowIterator implements Iterator<Row> {
+
+        private final ListenableFuture<Bucket> bucketFuture;
+        private Iterator<Row> bucketIt = null;
+
+        public FutureBackedRowIterator(ListenableFuture<Bucket> bucketFuture) {
+            this.bucketFuture = bucketFuture;
+
+        }
+
+        @Override
+        public boolean hasNext() {
+            waitForFuture();
+            return bucketIt.hasNext();
+        }
+
+        private void waitForFuture() {
+            if (bucketIt == null) {
+                try {
+                    bucketIt = bucketFuture.get().iterator();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        }
+
+        @Override
+        public Row next() {
+            waitForFuture();
+            return bucketIt.next();
+        }
+
+        @Override
+        public void remove() {
+            waitForFuture();
+            bucketIt.remove();
+        }
     }
 }
