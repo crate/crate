@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JobCollectContext implements Releasable {
 
     private final UUID id;
-    private final Map<Integer, CrateSearchContext> activeContexts = new HashMap<>();
+    private final Map<Integer, LuceneDocCollector> activeCollectors = new HashMap<>();
     private final ConcurrentMap<ShardId, List<Integer>> shardsMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, ShardId> jobContextIdMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<ShardId, Integer> engineSearchersRefCount = new ConcurrentHashMap<>();
@@ -80,14 +80,14 @@ public class JobCollectContext implements Releasable {
         }
     }
 
-    public CrateSearchContext createContext(IndexShard indexShard,
+    public LuceneDocCollector createCollectorAndContext(IndexShard indexShard,
                                             int jobSearchContextId,
-                                            Function<Engine.Searcher, CrateSearchContext> createSearchContextFunction) {
+                                            Function<Engine.Searcher, LuceneDocCollector> createCollectorFunction) throws Exception {
         assert shardsMap.containsKey(indexShard.shardId()) : "all jobSearchContextId's must be registered first using registerJobContextId(..)";
-        CrateSearchContext searchContext;
+        LuceneDocCollector docCollector;
         synchronized (lock) {
-            searchContext = activeContexts.get(jobSearchContextId);
-            if (searchContext == null) {
+            docCollector = activeCollectors.get(jobSearchContextId);
+            if (docCollector == null) {
                 boolean sharedEngineSearcher = true;
                 Engine.Searcher engineSearcher = acquireSearcher(indexShard);
                 if (engineSearcher == null) {
@@ -95,22 +95,22 @@ public class JobCollectContext implements Releasable {
                     engineSearcher = acquireNewSearcher(indexShard);
                     engineSearchersRefCount.put(indexShard.shardId(), 1);
                 }
-                searchContext = createSearchContextFunction.apply(engineSearcher);
-                assert searchContext != null; // should be never null, but interface marks it as nullable
-                searchContext.sharedEngineSearcher(sharedEngineSearcher);
-                activeContexts.put(jobSearchContextId, searchContext);
+                docCollector = createCollectorFunction.apply(engineSearcher);
+                assert docCollector != null; // should be never null, but interface marks it as nullable
+                docCollector.searchContext().sharedEngineSearcher(sharedEngineSearcher);
+                activeCollectors.put(jobSearchContextId, docCollector);
                 if (logger.isTraceEnabled()) {
-                    logger.trace("Created context {} on shard {} for job {}",
+                    logger.trace("Created doc collector with context {} on shard {} for job {}",
                             jobSearchContextId, indexShard.shardId(), id);
                 }
             }
         }
-        return searchContext;
+        return docCollector;
     }
 
     @Nullable
-    public CrateSearchContext findContext(int jobSearchContextId) {
-        return activeContexts.get(jobSearchContextId);
+    public LuceneDocCollector findCollector(int jobSearchContextId) {
+        return activeCollectors.get(jobSearchContextId);
     }
 
     public void closeContext(int jobSearchContextId) {
@@ -119,9 +119,9 @@ public class JobCollectContext implements Releasable {
                     jobSearchContextId, jobContextIdMap.get(jobSearchContextId), id);
         }
         synchronized (lock) {
-            CrateSearchContext searchContext = activeContexts.get(jobSearchContextId);
-            if (searchContext != null) {
-                if (searchContext.isEngineSearcherShared()) {
+            LuceneDocCollector docCollector = activeCollectors.get(jobSearchContextId);
+            if (docCollector != null) {
+                if (docCollector.searchContext().isEngineSearcherShared()) {
                     ShardId shardId = jobContextIdMap.get(jobSearchContextId);
                     Integer refCount = engineSearchersRefCount.get(shardId);
                     assert refCount != null : "refCount should be initialized while creating context";
@@ -133,11 +133,11 @@ public class JobCollectContext implements Releasable {
                         refCount = engineSearchersRefCount.get(shardId);
                     }
                     if (engineSearchersRefCount.get(shardId) == 0) {
-                        searchContext.sharedEngineSearcher(false);
+                        docCollector.searchContext().sharedEngineSearcher(false);
                     }
                 }
-                activeContexts.remove(jobSearchContextId);
-                searchContext.close();
+                activeCollectors.remove(jobSearchContextId);
+                docCollector.searchContext().close();
             }
         }
     }
@@ -155,7 +155,10 @@ public class JobCollectContext implements Releasable {
                 Iterator<Integer> it = jobSearchContextIds.iterator();
                 while (searchContext == null && it.hasNext()) {
                     jobSearchContextId = it.next();
-                    searchContext = activeContexts.get(jobSearchContextId);
+                    LuceneDocCollector docCollector = activeCollectors.get(jobSearchContextId);
+                    if (docCollector != null) {
+                        searchContext = docCollector.searchContext();
+                    }
                 }
             }
             if (searchContext != null) {
@@ -189,7 +192,7 @@ public class JobCollectContext implements Releasable {
     @Override
     public void close() {
         if (closed.compareAndSet(false, true)) { // prevent double release
-            for (Integer jobSearchContextId : activeContexts.keySet()) {
+            for (Integer jobSearchContextId : activeCollectors.keySet()) {
                 closeContext(jobSearchContextId);
             }
         }
