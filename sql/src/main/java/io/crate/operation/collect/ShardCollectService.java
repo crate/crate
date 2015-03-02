@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -61,7 +62,6 @@ import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -187,35 +187,23 @@ public class ShardCollectService {
     }
 
     private CrateCollector getLuceneIndexCollector(CollectNode collectNode,
-                                                   RowDownstream downstream,
-                                                   JobCollectContext jobCollectContext,
-                                                   int jobSearchContextId) throws Exception {
-        CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
-        SearchContext searchContext = getSearchContext(jobCollectContext, jobSearchContextId,
-                collectNode.whereClause());
-        return new LuceneDocCollector(
-                docCtx.topLevelInputs(),
-                docCtx.docLevelExpressions(),
-                downstream,
-                jobCollectContext,
-                searchContext,
-                jobSearchContextId);
-    }
-
-    private SearchContext getSearchContext(JobCollectContext jobCollectContext,
-                                           final int jobSearchContextId,
-                                           final WhereClause whereClause) {
+                                                   final RowDownstream downstream,
+                                                   final JobCollectContext jobCollectContext,
+                                                   final int jobSearchContextId) throws Exception {
+        final CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+        final WhereClause whereClause = collectNode.whereClause();
         final SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
         final IndexShard indexShard = indexService.shardSafe(shardId.id());
-        return jobCollectContext.createContext(
+
+        return jobCollectContext.createCollectorAndContext(
                 indexShard,
                 jobSearchContextId,
-                new Function<Engine.Searcher, CrateSearchContext>() {
+                new Function<Engine.Searcher, LuceneDocCollector>() {
 
                     @Nullable
                     @Override
-                    public CrateSearchContext apply(Engine.Searcher engineSearcher) {
+                    public LuceneDocCollector apply(Engine.Searcher engineSearcher) {
                         CrateSearchContext localContext = null;
                         try {
                             localContext = new CrateSearchContext(
@@ -240,13 +228,19 @@ public class ShardCollectService {
                             if (minScore != null) {
                                 localContext.minimumScore(minScore);
                             }
+                            return new LuceneDocCollector(
+                                    docCtx.topLevelInputs(),
+                                    docCtx.docLevelExpressions(),
+                                    downstream,
+                                    jobCollectContext,
+                                    localContext,
+                                    jobSearchContextId);
                         } catch (Throwable t) {
                             if (localContext != null) {
                                 localContext.close();
                             }
-                            throw t;
+                            throw Throwables.propagate(t);
                         }
-                        return localContext;
                     }
                 }
         );
