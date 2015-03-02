@@ -19,30 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.operation.projectors.sorting;
 
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
+import org.apache.lucene.util.PriorityQueue;
 
-public class BytesRefValueSymbolVisitor extends SymbolVisitor<Void, BytesRef> {
+import java.util.Comparator;
 
-    public static final BytesRefValueSymbolVisitor INSTANCE = new BytesRefValueSymbolVisitor();
+public class RowPriorityQueue extends PriorityQueue<Object[]> {
 
-    private BytesRefValueSymbolVisitor() {
-    }
+    private final Comparator[] comparators;
 
-    public BytesRef process(Symbol symbol) {
-        return process(symbol, null);
-    }
-
-    @Override
-    protected BytesRef visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException(
-                SymbolFormatter.format("Unable to get string value from symbol: %s", symbol));
+    public RowPriorityQueue(int maxSize, Comparator[] comparators) {
+        super(maxSize);
+        this.comparators = comparators;
     }
 
     @Override
-    public BytesRef visitLiteral(Literal symbol, Void context) {
-        return BytesRefs.toBytesRef(symbol.value());
+    protected boolean lessThan(Object[] a, Object[] b) {
+        for (Comparator c : comparators) {
+            //noinspection unchecked
+            int compared = c.compare(a, b);
+
+            if (compared < 0) return true;
+            if (compared == 0) continue;
+            if (compared > 0) return false;
+        }
+        return false;
     }
 }

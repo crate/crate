@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class WriterProjector implements Projector {
+public class WriterProjector implements Projector, ProjectorUpstream {
 
     private static final byte NEW_LINE = (byte) '\n';
 

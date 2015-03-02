@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.analyze.UpdateStatementAnalyzer;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -435,6 +436,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test values (?)", new Object[]{map});
         assertEquals(1, response.rowCount());
         refresh();
+        waitNoPendingTasksOnAll();
 
         Map<String, Object> new_map = new HashMap<>();
         new_map.put("a", 1);
@@ -481,7 +483,6 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 new Object[]{"Don't panic"});
         assertEquals(1L, response.rowCount());
         refresh();
-
         execute("select quote from quotes where id=1 and author='Ford'");
         assertEquals(1L, response.rowCount());
         assertThat((String) response.rows()[0][0], is("Don't panic"));
@@ -530,19 +531,32 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][0], is(2L));
         assertThat((Integer) response.rows()[0][1], is(2));
 
-
-        // without primary key optimization:
-        execute("update test set c = 4 where _version = 2"); // this one works
-        assertThat(response.rowCount(), is(1L));
-        execute("update test set c = 5 where _version = 2"); // this doesn't
-        assertThat(response.rowCount(), is(0L));
-
-
-        execute("refresh table test");
-        execute("select _version, c from test");
-        assertThat((Long) response.rows()[0][0], is(3L));
-        assertThat((Integer) response.rows()[0][1], is(4));
     }
+
+    @Test
+    public void testUpdateVersionOrOperator() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+
+        execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
+        ensureGreen();
+        execute("insert into test (id, c) values (1, 1)");
+        execute("refresh table test");
+        execute("update test set c = 4 where _version = 2 or _version=1"); // this one works
+    }
+
+    @Test
+    public void testUpdateVersionInOperator() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+
+        execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
+        ensureGreen();
+        execute("insert into test (id, c) values (1, 1)");
+        execute("refresh table test");
+        execute("update test set c = 4 where _version in (1,2)");
+    }
+
 
     @Test
     public void testUpdateRetryOnVersionConflict() throws Exception {

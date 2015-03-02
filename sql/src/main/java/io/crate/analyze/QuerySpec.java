@@ -53,13 +53,16 @@ public class QuerySpec {
         return this;
     }
 
-    @Nullable
     public WhereClause where() {
         return where;
     }
 
     public QuerySpec where(@Nullable WhereClause where) {
-        this.where = where;
+        if (where == null) {
+            this.where = WhereClause.MATCH_ALL;
+        } else {
+            this.where = where;
+        }
         return this;
     }
 
@@ -141,8 +144,8 @@ public class QuerySpec {
         if (outputs != null) {
             normalizer.normalizeInplace(outputs);
         }
-        if (where != null) {
-            where = where.normalize(normalizer);
+        if (where != null && where != WhereClause.MATCH_ALL) {
+            this.where(where.normalize(normalizer));
         }
         if (having != null) {
             having = having.normalize(normalizer);

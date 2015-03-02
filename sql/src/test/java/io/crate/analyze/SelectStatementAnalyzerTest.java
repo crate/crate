@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -58,7 +57,6 @@ import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
@@ -497,12 +495,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis = analyze("select load from sys.nodes where load['1'] in (1.0, 2.0, 4.0, 8.0, 16.0)");
 
         Function whereClause = (Function) analysis.relation().querySpec().where().query();
-        assertEquals(InOperator.NAME, whereClause.info().ident().name());
-        assertThat(whereClause.arguments().get(0), isReference("load['1']"));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-
-        Literal setLiteral = (Literal) whereClause.arguments().get(1);
-        assertEquals(new SetType(DataTypes.DOUBLE), setLiteral.valueType());
+        assertEquals(OrOperator.NAME, whereClause.info().ident().name());
     }
 
     @Test
@@ -1284,7 +1277,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(andFunction.info().ident().name(), is("op_and"));
         assertThat(andFunction.arguments().size(), is(2));
 
-        assertThat(andFunction.arguments().get(0), isFunction("op_in"));
+        assertThat(andFunction.arguments().get(0), isFunction("op_or"));
         assertThat(andFunction.arguments().get(1), isFunction("op_not"));
     }
 
@@ -1298,14 +1291,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGlobalAggregateHaving() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats) from users having sum(bytes) in (42, 43, 44)");
-        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_in"));
         Function havingFunction = (Function) analysis.relation().querySpec().having().query();
 
-        assertThat(havingFunction.info().ident().name(), is("op_in"));
-        assertThat(havingFunction.arguments().size(), is(2));
-
-        assertThat(havingFunction.arguments().get(0), isFunction("sum"));
-        assertLiteralSymbol(havingFunction.arguments().get(1), Sets.newHashSet(42.0D, 43.0D, 44.0D), new SetType(DataTypes.DOUBLE));
+        // assert that the in was converted to or
+        assertThat(havingFunction.info().ident().name(), is("op_or"));
     }
 
     @Test

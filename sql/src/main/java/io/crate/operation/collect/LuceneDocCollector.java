@@ -140,11 +140,17 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                 threadPool.estimatedTimeInMillisCounter()
         );
         LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, searchContext, indexService.cache());
-        LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
-        searchContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
-        Float minScore = ctx.minScore();
-        if (minScore != null) {
-            searchContext.minimumScore(minScore);
+        try {
+            LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
+            searchContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
+            Float minScore = ctx.minScore();
+            if (minScore != null) {
+                searchContext.minimumScore(minScore);
+            }
+        } catch (Exception e){
+            searchContext.close();
+            SearchContext.removeCurrent();
+            throw e;
         }
     }
 

@@ -122,15 +122,15 @@ Insert
 
 ::
 
-    cr> SELECT partition_ident, "values"
+    cr> SELECT partition_ident, "values", number_of_shards
     ... FROM information_schema.table_partitions
     ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
     ... ORDER BY partition_ident;
-    +--------------------------+------------------------+
-    | partition_ident          | values                 |
-    +--------------------------+------------------------+
-    | 04732cpp6osj2d9i60o30c1g | {"day": 1396915200000} |
-    +--------------------------+------------------------+
+    +--------------------------+------------------------+------------------+
+    | partition_ident          | values                 | number_of_shards |
+    +--------------------------+------------------------+------------------+
+    | 04732cpp6osj2d9i60o30c1g | {"day": 1396915200000} |                4 |
+    +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
 On subsequent inserts with the same ``PARTITIONED BY`` column values,
@@ -147,15 +147,15 @@ no additional partition is created::
 
 ::
 
-    cr> SELECT partition_ident, "values"
+    cr> SELECT partition_ident, "values", number_of_shards
     ... FROM information_schema.table_partitions
     ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
     ... ORDER BY partition_ident;
-    +--------------------------+------------------------+
-    | partition_ident          | values                 |
-    +--------------------------+------------------------+
-    | 04732cpp6osj2d9i60o30c1g | {"day": 1396915200000} |
-    +--------------------------+------------------------+
+    +--------------------------+------------------------+------------------+
+    | partition_ident          | values                 | number_of_shards |
+    +--------------------------+------------------------+------------------+
+    | 04732cpp6osj2d9i60o30c1g | {"day": 1396915200000} |                4 |
+    +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -276,6 +276,19 @@ on **future** partitions.
     +------------+----------+
     |         10 |      1.0 |
     +------------+----------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> SELECT partition_ident, "values", number_of_shards
+    ... FROM information_schema.table_partitions
+    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
+    ... ORDER BY partition_ident;
+    +--------------------------+------------------------+------------------+
+    | partition_ident          | values                 | number_of_shards |
+    +--------------------------+------------------------+------------------+
+    | 04732cpp6osj2d9i60o30c1g | {"day": 1396915200000} |               10 |
+    +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
 Alter Partitions

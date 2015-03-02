@@ -91,8 +91,8 @@ public class ToLongFunctionTest {
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
-        expectedException.expect(NumberFormatException.class);
-        expectedException.expectMessage("For input string: \"hello\"");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot cast 'hello' to long");
         TestingHelpers.assertLiteralSymbol(normalize("hello", DataTypes.STRING), 123L);
     }
 

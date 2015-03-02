@@ -19,27 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.action.count;
+package io.crate.analyze.where;
 
-import org.elasticsearch.action.ClientAction;
-import org.elasticsearch.client.Client;
+import com.google.common.collect.ImmutableList;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import org.junit.Test;
 
-public class CrateCountAction extends ClientAction<CountRequest, CountResponse, CountRequestBuilder> {
+import java.util.List;
 
-    public static final CrateCountAction INSTANCE = new CrateCountAction();
-    public static final String NAME = "crate:indices:data/read/count";
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
-    private CrateCountAction() {
-        super(NAME);
+public class DocKeysTest {
+
+    @Test
+    public void testClusteredIsFirstInId() throws Exception {
+        // if a the table is clustered and has a pk, the clustering value is put in front in the id computation
+        List<List<Symbol>> pks = ImmutableList.<List<Symbol>>of(
+                ImmutableList.<Symbol>of(Literal.newLiteral(1), Literal.newLiteral("Ford"))
+        );
+        DocKeys docKeys = new DocKeys(pks, false, 1, null);
+        DocKeys.DocKey key = docKeys.getOnlyKey();
+        assertThat(key.routing(), is("Ford"));
+        assertThat(key.id(), is("AgRGb3JkATE="));
     }
 
-    @Override
-    public CountResponse newResponse() {
-        return new CountResponse();
-    }
-
-    @Override
-    public CountRequestBuilder newRequestBuilder(Client client) {
-        return new CountRequestBuilder(client);
-    }
 }

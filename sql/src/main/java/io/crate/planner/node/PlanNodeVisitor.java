@@ -104,5 +104,4 @@ public class PlanNodeVisitor<C, R> {
     public R visitNestedLoopNode(NestedLoopNode node, C context) {
         return visitPlanNode(node, context);
     }
-
 }

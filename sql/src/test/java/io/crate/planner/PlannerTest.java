@@ -319,10 +319,10 @@ public class PlannerTest {
         Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.extractBytesRef(), is(false));
-        assertThat(node.index(), is("users"));
-        assertThat(node.ids().get(0), is("1"));
-        assertFalse(iterator.hasNext());
+        assertThat(node.tableInfo().ident().name(), is("users"));
+        assertThat(node.docKeys().getOnlyKey(), isDocKey(1L));
         assertThat(node.outputs().size(), is(1));
+        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
@@ -337,8 +337,8 @@ public class PlannerTest {
         IterablePlan plan = (IterablePlan) plan("select name from characters where id = 'one'");
         Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
-        assertThat(node.index(), is("characters"));
-        assertThat(node.ids().get(0), is("one"));
+        assertThat(node.tableInfo().ident().name(), is("characters"));
+        assertThat(node.docKeys().getOnlyKey(), isDocKey("one"));
         assertFalse(iterator.hasNext());
         assertThat(node.outputs().size(), is(1));
     }
@@ -350,8 +350,10 @@ public class PlannerTest {
         PlanNode node = iterator.next();
         assertThat(node, instanceOf(ESGetNode.class));
         ESGetNode getNode = (ESGetNode) node;
-        assertThat(getNode.index(),
-                is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue()));
+        assertThat(getNode.tableInfo().ident().name(), is("parted"));
+        assertThat(getNode.docKeys().getOnlyKey(), isDocKey("one", 0L));
+
+        //is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue()));
         assertEquals(DataTypes.STRING, getNode.outputTypes().get(0));
         assertEquals(DataTypes.TIMESTAMP, getNode.outputTypes().get(1));
     }
@@ -361,10 +363,8 @@ public class PlannerTest {
         IterablePlan plan = (IterablePlan) plan("select name from users where id in (1, 2)");
         Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
-        assertThat(node.index(), is("users"));
-        assertThat(node.ids().size(), is(2));
-        assertThat(node.ids().get(0), is("1"));
-        assertThat(node.ids().get(1), is("2"));
+        assertThat(node.docKeys().size(), is(2));
+        assertThat(node.docKeys(), containsInAnyOrder(isDocKey(1L), isDocKey(2L)));
     }
 
     @Test
@@ -372,8 +372,8 @@ public class PlannerTest {
         IterablePlan plan = (IterablePlan) plan("delete from users where id = 1");
         Iterator<PlanNode> iterator = plan.iterator();
         ESDeleteNode node = (ESDeleteNode) iterator.next();
-        assertThat(node.index(), is("users"));
-        assertThat(node.id(), is("1"));
+        assertThat(node.tableInfo().ident().name(), is("users"));
+        assertThat(node.key(), isDocKey(1L));
         assertFalse(iterator.hasNext());
     }
 
@@ -426,13 +426,6 @@ public class PlannerTest {
 
         assertEquals(DataTypes.UNDEFINED, mergeNode.inputTypes().get(0));
         assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
-    }
-
-    @Test
-    public void testGlobalAggregationVersion() throws Exception {
-        expectedException.expect(VersionInvalidException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
-        plan("select count(name) from users where _version=1");
     }
 
     @Test
@@ -497,13 +490,6 @@ public class PlannerTest {
         assertThat(searchNode.partitionBy().size(), is(0));
 
         assertFalse(iterator.hasNext());
-    }
-
-    @Test
-    public void testESSEarchPlanWithVersion() throws Exception {
-        expectedException.expect(VersionInvalidException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
-        plan("select name from users where name = 'x' and _version = 1");
     }
 
     @Test
@@ -632,7 +618,7 @@ public class PlannerTest {
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
+        assertThat(((Reference) collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
 
         MergeNode mergeNode = globalAggregate.mergeNode();
         assertThat(mergeNode.projections().size(), is(2));
@@ -1218,13 +1204,6 @@ public class PlannerTest {
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
-    }
-
-    @Test
-    public void testInsertFromSubQueryWithVersion() throws Exception {
-        expectedException.expect(VersionInvalidException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
-        plan("insert into users (date, id, name) (select date, id, name from users where _version = 1)");
     }
 
     @Test

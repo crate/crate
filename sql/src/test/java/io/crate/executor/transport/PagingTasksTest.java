@@ -365,15 +365,14 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         ListenableFuture<TaskResult> resultFuture = results.get(0);
         TaskResult result = resultFuture.get();
         assertThat(result, instanceOf(TaskResult.class));
-        TaskResult pageableResult = (TaskResult)result;
-        closeMeWhenDone = pageableResult;
+        closeMeWhenDone = result;
 
         // the two first records were hit by the query and page offset
-        assertThat(TestingHelpers.printedPage(pageableResult.page()), is(
+        assertThat(TestingHelpers.printedPage(result.page()), is(
                 "3| Trillian| true\n"));
 
         pageInfo = pageInfo.nextPage(1);
-        ListenableFuture<TaskResult> nextPageResultFuture = pageableResult.fetch(pageInfo);
+        ListenableFuture<TaskResult> nextPageResultFuture = result.fetch(pageInfo);
         TaskResult nextPageResult = nextPageResultFuture.get();
         closeMeWhenDone = nextPageResult;
         assertThat(TestingHelpers.printedPage(nextPageResult.page()), is(
@@ -946,7 +945,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         TaskResult result = nestedLoopResultFuture.get();
         assertThat(result, instanceOf(TaskResult.class));
 
-        TaskResult pageableResult = (TaskResult)result;
+        TaskResult pageableResult = result;
         closeMeWhenDone = pageableResult;
 
         Page firstPage = pageableResult.page();

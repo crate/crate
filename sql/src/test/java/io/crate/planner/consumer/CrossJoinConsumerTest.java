@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.DocKeys;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.operator.OrOperator;
@@ -60,6 +61,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
@@ -326,13 +328,27 @@ public class CrossJoinConsumerTest {
 
         ESGetNode left = (ESGetNode) ((IterablePlan) nl.left()).iterator().next();
         ESGetNode right = (ESGetNode) ((IterablePlan) nl.right()).iterator().next();
-        if (left.index().equals("t1")) {
-            assertThat(left.ids(), containsInAnyOrder("1", "2"));
-            assertThat(right.ids(), containsInAnyOrder("3", "4"));
+
+        Iterator<DocKeys.DocKey> t1DocKeyIter;
+        Iterator<DocKeys.DocKey> t2DocKeyIter;
+        if (left.tableInfo().ident().name().equals("t1")) {
+            assertThat(left.querySpec().where().docKeys().isPresent(), is(true));
+            t1DocKeyIter = left.querySpec().where().docKeys().get().iterator();
+            assertThat(right.querySpec().where().docKeys().isPresent(), is(true));
+            t2DocKeyIter = right.querySpec().where().docKeys().get().iterator();
         } else {
-            assertThat(left.ids(), containsInAnyOrder("3", "4"));
-            assertThat(right.ids(), containsInAnyOrder("1", "2"));
+            assertThat(right.querySpec().where().docKeys().isPresent(), is(true));
+            t1DocKeyIter = right.querySpec().where().docKeys().get().iterator();
+            assertThat(left.querySpec().where().docKeys().isPresent(), is(true));
+            t2DocKeyIter = left.querySpec().where().docKeys().get().iterator();
         }
+        assertThat(t1DocKeyIter.next().values(), contains(anyOf(isLiteral(1L, DataTypes.LONG), isLiteral(2L, DataTypes.LONG))));
+        assertThat(t1DocKeyIter.next().values(), contains(anyOf(isLiteral(1L, DataTypes.LONG), isLiteral(2L, DataTypes.LONG))));
+        assertThat(t1DocKeyIter.hasNext(), is(false));
+
+        assertThat(t2DocKeyIter.next().values(), contains(anyOf(isLiteral(3L, DataTypes.LONG), isLiteral(4L, DataTypes.LONG))));
+        assertThat(t2DocKeyIter.next().values(), contains(anyOf(isLiteral(3L, DataTypes.LONG), isLiteral(4L, DataTypes.LONG))));
+        assertThat(t2DocKeyIter.hasNext(), is(false));
     }
 
     @Test

@@ -23,9 +23,10 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import io.crate.analyze.Id;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.where.DocKeys;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
@@ -36,46 +37,40 @@ import java.util.List;
 
 public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
-    private final String index;
-    private final List<String> ids;
-    private final List<String> routingValues;
+    private final TableInfo tableInfo;
+    private final QuerySpec querySpec;
     private final List<Symbol> sortSymbols;
     private final boolean[] reverseFlags;
     private final Boolean[] nullsFirst;
-    private final Integer limit;
-    private final int offset;
-    private final List<ReferenceInfo> partitionBy;
     private final boolean extractBytesRef;
 
     private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
     private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
+    private final DocKeys docKeys;
 
-    public ESGetNode(String index,
-                     List<Symbol> outputs,
-                     List<Id> ids,
-                     @Nullable List<Symbol> sortSymbols,
-                     @Nullable boolean[] reverseFlags,
-                     @Nullable Boolean[] nullsFirst,
-                     @Nullable Integer limit,
-                     int offset,
-                     @Nullable List<ReferenceInfo> partitionBy,
+    public ESGetNode(TableInfo tableInfo,
+                     QuerySpec querySpec,
                      boolean extractBytesRef) {
-        this.index = index;
-        this.outputs = outputs;
-        outputTypes(Symbols.extractTypes(outputs));
-        this.ids = Lists.transform(ids, Id.ID_STRING_FUNCTION);
-        this.routingValues = Lists.transform(ids, Id.ROUTING_VALUES_FUNCTION);
-        this.sortSymbols = MoreObjects.firstNonNull(sortSymbols, ImmutableList.<Symbol>of());
-        this.reverseFlags = MoreObjects.firstNonNull(reverseFlags, EMPTY_REVERSE_FLAGS);
-        this.nullsFirst = MoreObjects.firstNonNull(nullsFirst, EMPTY_NULLS_FIRST);
-        this.limit = limit;
-        this.offset = offset;
-        this.partitionBy = MoreObjects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
-        this.extractBytesRef = extractBytesRef;
-    }
 
-    public String index() {
-        return index;
+        assert querySpec.where().docKeys().isPresent();
+        this.tableInfo = tableInfo;
+        this.querySpec = querySpec;
+        this.outputs = querySpec.outputs();
+        this.docKeys = querySpec.where().docKeys().get();
+        this.extractBytesRef = extractBytesRef;
+
+        outputTypes(Symbols.extractTypes(outputs));
+
+        OrderBy orderBy = querySpec.orderBy();
+        if (orderBy != null && orderBy.isSorted()){
+            this.sortSymbols = orderBy.orderBySymbols();
+            this.reverseFlags = orderBy.reverseFlags();
+            this.nullsFirst = orderBy.nullsFirst();
+        } else {
+            this.sortSymbols = ImmutableList.<Symbol>of();
+            this.reverseFlags = EMPTY_REVERSE_FLAGS;
+            this.nullsFirst = EMPTY_NULLS_FIRST;
+        }
     }
 
     @Override
@@ -83,21 +78,25 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         return visitor.visitESGetNode(this, context);
     }
 
-    public List<String> ids() {
-        return ids;
+    public TableInfo tableInfo() {
+        return tableInfo;
     }
 
-    public List<String> routingValues() {
-        return routingValues;
+    public QuerySpec querySpec() {
+        return querySpec;
+    }
+
+    public DocKeys docKeys() {
+        return docKeys;
     }
 
     @Nullable
     public Integer limit() {
-        return limit;
+        return querySpec().limit();
     }
 
     public int offset() {
-        return offset;
+        return querySpec().offset();
     }
 
     public List<Symbol> sortSymbols() {
@@ -113,10 +112,6 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     }
 
 
-    public List<ReferenceInfo> partitionBy() {
-        return partitionBy;
-    }
-
     public boolean extractBytesRef() {
         return extractBytesRef;
     }
@@ -124,10 +119,8 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("index", index)
-                .add("ids", ids)
+                .add("docKeys", docKeys)
                 .add("outputs", outputs)
-                .add("partitionBy", partitionBy)
                 .toString();
     }
 }

@@ -19,27 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.action.deletebyquery;
+package io.crate.operation;
 
-import org.elasticsearch.action.ClientAction;
-import org.elasticsearch.client.Client;
+/**
+ * Can act as a downstream to a projector.
+ * Has an upstream.
+ */
+public interface ProjectorDownstream {
 
-public class CrateDeleteByQueryAction extends ClientAction<DeleteByQueryRequest, DeleteByQueryResponse, DeleteByQueryRequestBuilder> {
+    /**
+     * register an upstream at this downstream, effectively chaining them.
+     * @param upstream the upstream to be registered
+     */
+    public void registerUpstream(ProjectorUpstream upstream);
 
-    public static final CrateDeleteByQueryAction INSTANCE = new CrateDeleteByQueryAction();
-    public static final String NAME = "crate:indices:data/write/delete/by_query";
+    /**
+     * Has to be called from upstreams to indicate that they sent all rows.
+     * After this has been called an upstream must not send any more rows to the downstream.
+     */
+    public void upstreamFinished();
 
-    private CrateDeleteByQueryAction() {
-        super(NAME);
-    }
-
-    @Override
-    public DeleteByQueryResponse newResponse() {
-        return new DeleteByQueryResponse();
-    }
-
-    @Override
-    public DeleteByQueryRequestBuilder newRequestBuilder(Client client) {
-        return new DeleteByQueryRequestBuilder(client);
-    }
+    /**
+     * Has to be called by the upstream if an exception occurred.
+     * Should be called once the upstream is finished with any other concurrently running actions.
+     */
+    public void upstreamFailed(Throwable throwable);
 }

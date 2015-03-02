@@ -21,12 +21,13 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.ProjectorDownstream;
 
 /**
- * executing a Projection
+ * Executes a Projection.
+ * Can always act as downstream to other projectors
  */
-public interface Projector extends ProjectorUpstream {
+public interface Projector extends ProjectorDownstream {
 
     /**
      * initialize anything needed for proper projecting the projection
@@ -43,18 +44,4 @@ public interface Projector extends ProjectorUpstream {
      * @return false if this projection does not need any more rows, true otherwise.
      */
     public boolean setNextRow(Object ... row);
-
-    public void registerUpstream(ProjectorUpstream upstream);
-
-    /**
-     * Has to be called from upstream projectors to indicate that they sent all rows.
-     * After this has been called a upstream projector must not send any more rows to the downstream.
-     */
-    public void upstreamFinished();
-
-    /**
-     * Has to be called by the upstream if an exception occurred.
-     * Should be called once the upstream is finished with any other concurrently running actions.
-     */
-    public void upstreamFailed(Throwable throwable);
 }

@@ -30,7 +30,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -46,19 +45,26 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
+import static io.crate.testing.TestingHelpers.isDocKey;
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("unchecked")
 public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private Analyzer analyzer;
     private AnalysisMetaData ctxMetaData;
@@ -107,7 +113,21 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                                     new PartitionName("parted", new ArrayList<BytesRef>() {{
                                         add(null);
                                     }}).stringValue())
-                    .build());
+                            .build());
+            when(schemaInfo.getTableInfo("parted_pk")).thenReturn(
+                    TestingTableInfo.builder(new TableIdent("doc", "parted"), RowGranularity.DOC, twoNodeRouting)
+                            .addPrimaryKey("id").addPrimaryKey("date")
+                            .add("id", DataTypes.INTEGER, null)
+                            .add("name", DataTypes.STRING, null)
+                            .add("date", DataTypes.TIMESTAMP, null, true)
+                            .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
+                            .addPartitions(
+                                    new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
+                                    new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395961200000"))).stringValue(),
+                                    new PartitionName("parted_pk", new ArrayList<BytesRef>() {{
+                                        add(null);
+                                    }}).stringValue())
+                            .build());
             when(schemaInfo.getTableInfo("bystring")).thenReturn(
                     TestingTableInfo.builder(new TableIdent("doc", "bystring"), RowGranularity.DOC, twoNodeRouting)
                             .add("name", DataTypes.STRING, null)
@@ -116,25 +136,25 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                             .clusteredBy("name")
                             .build());
             when(schemaInfo.getTableInfo("users_multi_pk")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "users_multi_pk"), RowGranularity.DOC, twoNodeRouting)
-                        .add("id", DataTypes.LONG, null)
-                        .add("name", DataTypes.STRING, null)
-                        .add("details", DataTypes.OBJECT, null)
-                        .add("awesome", DataTypes.BOOLEAN, null)
-                        .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
-                        .addPrimaryKey("id")
-                        .addPrimaryKey("name")
-                        .clusteredBy("id")
-                        .build());
+                    TestingTableInfo.builder(new TableIdent("doc", "users_multi_pk"), RowGranularity.DOC, twoNodeRouting)
+                            .add("id", DataTypes.LONG, null)
+                            .add("name", DataTypes.STRING, null)
+                            .add("details", DataTypes.OBJECT, null)
+                            .add("awesome", DataTypes.BOOLEAN, null)
+                            .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
+                            .addPrimaryKey("id")
+                            .addPrimaryKey("name")
+                            .clusteredBy("id")
+                            .build());
             when(schemaInfo.getTableInfo("users_clustered_by_only")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "users_clustered_by_only"), RowGranularity.DOC, twoNodeRouting)
-                    .add("id", DataTypes.LONG, null)
-                    .add("name", DataTypes.STRING, null)
-                    .add("details", DataTypes.OBJECT, null)
-                    .add("awesome", DataTypes.BOOLEAN, null)
-                    .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
-                    .clusteredBy("id")
-                    .build());
+                    TestingTableInfo.builder(new TableIdent("doc", "users_clustered_by_only"), RowGranularity.DOC, twoNodeRouting)
+                            .add("id", DataTypes.LONG, null)
+                            .add("name", DataTypes.STRING, null)
+                            .add("details", DataTypes.OBJECT, null)
+                            .add("awesome", DataTypes.BOOLEAN, null)
+                            .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
+                            .clusteredBy("id")
+                            .build());
             schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
@@ -152,14 +172,14 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                 SqlParser.createStatement(stmt), new Object[0], new Object[0][]).analyzedStatement();
     }
 
-    private WhereClause analyzeSelectWhere(String stmt) {
+    private WhereClause analyzeSelect(String stmt, Object... args) {
         SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(
-                SqlParser.createStatement(stmt), new Object[0], new Object[0][]).analyzedStatement();
-        QueriedTable sourceRelation = (QueriedTable) statement.relation();
-        TableRelation tableRelation = sourceRelation.tableRelation();
-        TableInfo tableInfo = tableRelation.tableInfo();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        return whereClauseAnalyzer.analyze(statement.relation().querySpec().where());
+                SqlParser.createStatement(stmt), args, new Object[0][]).analyzedStatement();
+        return statement.relation().querySpec().where();
+    }
+
+    private WhereClause analyzeSelectWhere(String stmt) {
+        return analyzeSelect(stmt);
     }
 
     @Test
@@ -169,20 +189,45 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                 new Object[]{2},
                 new Object[]{3},
         });
-        TableRelation tableRelation = (TableRelation) statement.analyzedRelation();
+        TableRelation tableRelation = statement.analyzedRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0)).docKeys().get(), contains(isDocKey("1")));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1)).docKeys().get(), contains(isDocKey("2")));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2)).docKeys().get(), contains(isDocKey("3")));
+    }
 
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0)).primaryKeys().get().get(0).stringValue(), is("1"));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1)).primaryKeys().get().get(0).stringValue(), is("2"));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2)).primaryKeys().get().get(0).stringValue(), is("3"));
+
+
+
+    @Test
+    public void testSelectById() throws Exception {
+        WhereClause whereClause = analyzeSelect("select name from users_clustered_by_only where _id=1");
+        assertTrue(whereClause.docKeys().isPresent());
+        assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey("1"));
+    }
+
+    @Test
+    public void testSelectWherePartitionedByColumn() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select id from parted where date = 1395874800000");
+        assertThat(whereClause.hasQuery(), is(false));
+        assertThat(whereClause.noMatch(), is(false));
+        assertThat(whereClause.partitions(),
+                Matchers.contains(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()));
+    }
+
+    @Test
+    public void testSelectPartitionedByPK() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select id from parted_pk where id = 1 and date = 1395874800000");
+        assertThat(whereClause.docKeys().get(), contains(isDocKey(1, 1395874800000L)));
+        // not partitions if docKeys are there
+        assertThat(whereClause.partitions(), empty());
+
     }
 
     @Test
     public void testWherePartitionedByColumn() throws Exception {
         DeleteAnalyzedStatement statement = analyzeDelete("delete from parted where date = 1395874800000");
-        TableRelation tableRelation = (TableRelation) statement.analyzedRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        WhereClause whereClause = whereClauseAnalyzer.analyze(statement.whereClauses().get(0));
+        WhereClause whereClause = statement.whereClauses().get(0);
 
         assertThat(whereClause.hasQuery(), is(false));
         assertThat(whereClause.noMatch(), is(false));
@@ -191,110 +236,88 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     }
 
     @Test
-    public void testUpdateWithVersionZeroIsNoMatch() throws Exception {
-        UpdateAnalyzedStatement updateAnalyzedStatement = analyzeUpdate("update users set awesome = true where name = 'Ford' and _version = 0");
-        TableRelation tableRelation = (TableRelation) updateAnalyzedStatement.sourceRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        assertThat(updateAnalyzedStatement.nestedStatements().get(0).whereClause().noMatch(), is(false));
-
-        WhereClause whereClause = whereClauseAnalyzer.analyze(updateAnalyzedStatement.nestedStatements().get(0).whereClause());
-        assertThat(whereClause.noMatch(), is(true));
-    }
-
-    @Test
     public void testUpdateWherePartitionedByColumn() throws Exception {
         UpdateAnalyzedStatement updateAnalyzedStatement = analyzeUpdate("update parted set id = 2 where date = 1395874800000");
         UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement = updateAnalyzedStatement.nestedStatements().get(0);
 
-        assertThat(nestedAnalyzedStatement.whereClause().hasQuery(), is(true));
+        assertThat(nestedAnalyzedStatement.whereClause().hasQuery(), is(false));
         assertThat(nestedAnalyzedStatement.whereClause().noMatch(), is(false));
-
-        TableRelation tableRelation = (TableRelation) updateAnalyzedStatement.sourceRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        WhereClause whereClause = whereClauseAnalyzer.analyze(nestedAnalyzedStatement.whereClause());
-
-        assertThat(whereClause.hasQuery(), is(false));
-        assertThat(whereClause.noMatch(), is(false));
 
         assertEquals(ImmutableList.of(
                         new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
-                whereClause.partitions()
+                nestedAnalyzedStatement.whereClause().partitions()
         );
     }
 
     @Test
     public void testClusteredByValueContainsComma() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from bystring where name = 'a,b,c'");
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("a,b,c", DataTypes.STRING)));
-        assertThat(whereClause.primaryKeys().get().size(), is(1));
-        assertThat(whereClause.primaryKeys().get().get(0).stringValue(), is("a,b,c"));
+        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("a,b,c")));
+        assertThat(whereClause.docKeys().get().size(), is(1));
+        assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey("a,b,c"));
     }
 
     @Test
     public void testEmptyClusteredByValue() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from bystring where name = ''");
-        assertTrue(whereClause.clusteredBy().isPresent());
-        assertTrue(whereClause.primaryKeys().isPresent());
+        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("")));
+        assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey(""));
     }
 
     @Test
     public void testClusteredBy() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users where id=1");
-        assertThat(whereClause.primaryKeys().get().get(0).stringValue(), is("1"));
         assertThat(whereClause.clusteredBy().get(), contains(isLiteral("1")));
+        assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey("1"));
 
         whereClause = analyzeSelectWhere("select name from users where id=1 or id=2");
 
-        assertThat(whereClause.primaryKeys().get().size(),is(2));
-        assertThat(whereClause.primaryKeys().get(), containsInAnyOrder(hasToString("1"), hasToString("2")));
+        assertThat(whereClause.docKeys().get().size(), is(2));
+        assertThat(whereClause.docKeys().get(), containsInAnyOrder(isDocKey("1"), isDocKey("2")));
 
         assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(isLiteral("1"), isLiteral("2")));
-
     }
 
 
     @Test
     public void testClusteredByOnly() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1");
-
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertThat(whereClause.clusteredBy().get(),  contains(isLiteral(1L)));
 
         whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1 or id=2");
-        assertFalse(whereClause.primaryKeys().isPresent());
-        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(
-                isLiteral(1L), isLiteral(2L)));
+        assertFalse(whereClause.docKeys().isPresent());
+        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(isLiteral(1L), isLiteral(2L)));
 
-
-        // TODO: optimize this case: routing should be 3,4,5
         whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id in (3,4,5)");
-        assertFalse(whereClause.primaryKeys().isPresent());
-        assertFalse(whereClause.clusteredBy().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
+        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(
+                isLiteral(3L), isLiteral(4L), isLiteral(5L)));
 
 
         // TODO: optimize this case: there are two routing values here, which are currently not set
         whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1 and id=2");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertFalse(whereClause.clusteredBy().isPresent());
     }
 
     @Test
     public void testCompositePrimaryKey() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertThat(whereClause.clusteredBy().get(), contains(isLiteral(1L)));
 
         whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas'");
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("AgExB0RvdWdsYXM=")));
+        assertThat(whereClause.docKeys().get(), contains(isDocKey(1L, "Douglas")));
         assertThat(whereClause.clusteredBy().get(), contains(isLiteral(1L)));
 
-        // TODO: optimize this case, since the routing values are 1,2
         whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 or id=2 and name='Douglas'");
-        assertFalse(whereClause.primaryKeys().isPresent());
-        assertFalse(whereClause.clusteredBy().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
+        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(
+                isLiteral(1L), isLiteral(2L)));
 
         whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas' or name='Arthur'");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertFalse(whereClause.clusteredBy().isPresent());
     }
 
@@ -302,15 +325,14 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     public void testPrimaryKeyAndVersion() throws Exception {
         WhereClause whereClause = analyzeSelectWhere(
                 "select name from users where id = 2 and \"_version\" = 1");
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("2")));
-        assertThat(whereClause.version().get(), is(1L));
+        assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey("2", 1L));
     }
 
     @Test
     public void testMultiplePrimaryKeys() throws Exception {
         WhereClause whereClause = analyzeSelectWhere(
                 "select name from users where id = 2 or id = 1");
-        assertThat(whereClause.primaryKeys().get(), containsInAnyOrder(hasToString("1"), hasToString("2")));
+        assertThat(whereClause.docKeys().get(), containsInAnyOrder(isDocKey("1"), isDocKey("2")));
         assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(isLiteral("1"), isLiteral("2")));
     }
 
@@ -318,13 +340,13 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     public void testMultiplePrimaryKeysAndInvalidColumn() throws Exception {
         WhereClause whereClause = analyzeSelectWhere(
                 "select name from users where id = 2 or id = 1 and name = 'foo'");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
     }
 
     @Test
     public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users where id != 1");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertFalse(whereClause.clusteredBy().isPresent());
     }
 
@@ -334,14 +356,15 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                 "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo' and partition_ident='') " +
                         "or (schema_name='doc' and id = 2 and table_name = 'bla' and partition_ident='')");
 
-        assertThat(whereClause.primaryKeys().get(), containsInAnyOrder(hasToString("BANkb2MDZm9vATEA"),
-                hasToString("BANkb2MDYmxhATIA")));
+        assertThat(whereClause.docKeys().get(), containsInAnyOrder(
+                isDocKey("doc", "foo", 1, ""), isDocKey("doc", "bla", 2, "")
+        ));
         assertFalse(whereClause.clusteredBy().isPresent());
 
         whereClause = analyzeSelectWhere(
                 "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo') " +
                         "or (schema_name='doc' and id = 2 and table_name = 'bla') or id = 1");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertFalse(whereClause.clusteredBy().isPresent());
     }
 
@@ -349,51 +372,57 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     public void test1ColPrimaryKey() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla'");
 
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("jalla")));
+        assertThat(whereClause.docKeys().get(), contains(isDocKey("jalla")));
 
         whereClause = analyzeSelectWhere("select name from sys.nodes where 'jalla'=id");
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("jalla")));
+        assertThat(whereClause.docKeys().get(), contains(isDocKey("jalla")));
 
         whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla' and id='jalla'");
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("jalla")));
+        assertThat(whereClause.docKeys().get(), contains(isDocKey("jalla")));
 
         whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla' and (id='jalla' or 1=1)");
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("jalla")));
+        assertThat(whereClause.docKeys().get(), contains(isDocKey("jalla")));
 
-        // a no match results in undefined key literals, since those are ambiguous
+        // since the id is unique it is not possible to have a result here, this is not optimized and just results in
+        // no found primary keys
         whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla' and id='kelle'");
-        assertFalse(whereClause.primaryKeys().isPresent());
-        assertTrue(whereClause.noMatch());
+        assertFalse(whereClause.docKeys().isPresent());
+
 
         whereClause = analyzeSelectWhere("select name from sys.nodes where id='jalla' or name = 'something'");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertFalse(whereClause.noMatch());
 
         whereClause = analyzeSelectWhere("select name from sys.nodes where name = 'something'");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertFalse(whereClause.noMatch());
 
     }
 
     @Test
     public void test3ColPrimaryKey() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
+        WhereClause whereClause = analyzeSelectWhere(
+                "select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
         // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("BANkb2MFamFsbGEBMQA=")));
+        assertThat(whereClause.docKeys().get(), contains(isDocKey("doc", "jalla", 1, "")));
         assertFalse(whereClause.noMatch());
 
-        whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc' and partition_ident=''");
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("BANkb2MFamFsbGEBMQA=")));
+        whereClause = analyzeSelectWhere(
+                "select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc' and partition_ident=''");
+        assertThat(whereClause.docKeys().get(), contains(isDocKey("doc", "jalla", 1, "")));
         assertFalse(whereClause.noMatch());
 
 
         whereClause = analyzeSelectWhere("select id from sys.shards where id=1");
-        assertFalse(whereClause.primaryKeys().isPresent());
+        assertFalse(whereClause.docKeys().isPresent());
         assertFalse(whereClause.noMatch());
 
-        whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2 and partition_ident=''");
-        assertFalse(whereClause.primaryKeys().isPresent());
-        assertTrue(whereClause.noMatch());
+
+        whereClause = analyzeSelectWhere(
+                "select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2 and partition_ident=''");
+        assertFalse(whereClause.docKeys().isPresent());
+        // currently we do not check against primary key combinations which cannot match
+        // assertTrue(whereClause.noMatch());
     }
 
     @Test
@@ -401,7 +430,7 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         WhereClause whereClause = analyzeSelectWhere(
                 "select name from sys.nodes where id in ('jalla', 'kelle') and id in ('jalla', 'something')");
         assertFalse(whereClause.noMatch());
-        assertThat(whereClause.primaryKeys().get(), contains(hasToString("jalla")));
+        assertThat(whereClause.docKeys().get(), contains(isDocKey("jalla")));
     }
 
 
@@ -409,23 +438,41 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     public void test1ColPrimaryKeySetLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from sys.nodes where id in ('jalla', 'kelle')");
         assertFalse(whereClause.noMatch());
-        assertThat(whereClause.primaryKeys().get(), containsInAnyOrder(hasToString("jalla"), hasToString("kelle")));
+        assertThat(whereClause.docKeys().get(), containsInAnyOrder(isDocKey("jalla"), isDocKey("kelle")));
+    }
+
+    @Test
+    public void test1ColPrimaryKeyNotSetLiteral() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select name from sys.nodes where id not in ('jalla', 'kelle')");
+        assertFalse(whereClause.noMatch());
+        assertFalse(whereClause.docKeys().isPresent());
+        assertFalse(whereClause.clusteredBy().isPresent());
     }
 
     @Test
     public void test3ColPrimaryKeySetLiteral() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
-        assertEquals(2, whereClause.primaryKeys().get().size());
-        // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
-        assertThat(whereClause.primaryKeys().get(), containsInAnyOrder(
-                hasToString("BANkb2MFamFsbGEBMQA="), hasToString("BANkb2MFa2VsbGUBMQA=")));
+        WhereClause whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and schema_name='doc' and" +
+                " table_name in ('jalla', 'kelle') and partition_ident=''");
+        assertThat(whereClause.docKeys().get(), containsInAnyOrder(
+                isDocKey("doc", "jalla", 1, ""), isDocKey("doc", "kelle", 1, "")));
+    }
+
+    @Test
+    public void test3ColPrimaryKeyWithOr() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select id from sys.shards where id=1 and schema_name='doc' and " +
+                "(table_name = 'jalla' or table_name='kelle') and partition_ident=''");
+        assertEquals(2, whereClause.docKeys().get().size());
+        assertThat(whereClause.docKeys().get(), containsInAnyOrder(
+                isDocKey("doc", "jalla", 1, ""), isDocKey("doc", "kelle", 1, "")));
     }
 
     @Test
     public void testSelectFromPartitionedTable() throws Exception {
         String partition1 = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue();
         String partition2 = new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue();
-        String partition3 = new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue();
+        String partition3 = new PartitionName("parted", new ArrayList<BytesRef>() {{
+            add(null);
+        }}).stringValue();
 
         WhereClause whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000");
         assertEquals(ImmutableList.of(partition1), whereClause.partitions());
@@ -529,8 +576,8 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
             fail("Expected UnsupportedOperationException");
         } catch (UnsupportedOperationException e) {
             assertThat(e.getMessage(),
-                is("logical conjunction of the conditions in the WHERE clause which involve " +
-                    "partitioned columns led to a query that can't be executed."));
+                    is("logical conjunction of the conditions in the WHERE clause which involve " +
+                            "partitioned columns led to a query that can't be executed."));
         }
 
         try {
@@ -538,8 +585,9 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
             fail("Expected UnsupportedOperationException");
         } catch (UnsupportedOperationException e) {
             assertThat(e.getMessage(),
-                is("logical conjunction of the conditions in the WHERE clause which involve " +
-                    "partitioned columns led to a query that can't be executed."));
+                    is("logical conjunction of the conditions in the WHERE clause which involve " +
+                            "partitioned columns led to a query that can't be executed."));
         }
     }
-}
+
+ }

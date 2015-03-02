@@ -28,7 +28,7 @@ import io.crate.operation.collect.CollectExpression;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class FilterProjector implements Projector {
+public class FilterProjector implements Projector, ProjectorUpstream {
 
     private final CollectExpression[] collectExpressions;
     private final Input<Boolean> condition;

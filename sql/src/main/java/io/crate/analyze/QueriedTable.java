@@ -27,6 +27,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.planner.consumer.QuerySplitter;
@@ -62,9 +63,11 @@ public class QueriedTable implements QueriedRelation {
         return tableRelation;
     }
 
-    public QueriedRelation normalize(AnalysisMetaData analysisMetaData){
+    public QueriedTable normalize(AnalysisMetaData analysisMetaData){
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
-        this.querySpec().normalize(normalizer);
+        querySpec().normalize(normalizer);
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+        querySpec().where(whereClauseAnalyzer.analyze(querySpec().where()));
         return this;
     }
 

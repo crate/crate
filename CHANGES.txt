@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added columns ``number_of_shards`` and ``number_of_replicas`` to
+   table ``information_schema.table_partitions``
+
  - Support `ON DUPLICATE KEY UPDATE` while inserting using a query.
 
  - Fix: Parameter substitution within subscript notation is not
@@ -25,6 +28,9 @@ Unreleased
     - added coloured printing when in interactive shell
 
  - Optimize OR queries which involve the cluster column.
+
+ - Removed support for ``_version`` column in where clause if no
+   primary key is specified in a query.
 
  - Added support for the ``IF EXISTS`` clause to ``DROP TABLE`` and
    ``DROP BLOB TABLE``

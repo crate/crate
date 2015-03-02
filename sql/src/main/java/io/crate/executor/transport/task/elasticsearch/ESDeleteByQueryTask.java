@@ -25,9 +25,9 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AsyncChainedTask;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.deletebyquery.CrateTransportDeleteByQueryAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
+import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -35,12 +35,12 @@ import java.util.UUID;
 public class ESDeleteByQueryTask extends AsyncChainedTask {
 
     private final ESDeleteByQueryNode deleteByQueryNode;
-    private final CrateTransportDeleteByQueryAction transportDeleteByQueryAction;
+    private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final ESQueryBuilder queryBuilder;
 
     public ESDeleteByQueryTask(UUID jobId,
                                ESDeleteByQueryNode deleteByQueryNode,
-                               CrateTransportDeleteByQueryAction transportDeleteByQueryAction) {
+                               TransportDeleteByQueryAction transportDeleteByQueryAction) {
         super(jobId);
         this.deleteByQueryNode = deleteByQueryNode;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;

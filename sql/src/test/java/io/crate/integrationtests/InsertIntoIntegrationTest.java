@@ -682,8 +682,16 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select id, title, name from t order by id, title");
         assertThat(response.rowCount(), is(3L));
-        assertThat((int)response.rows()[0][0], is(1));
-        assertThat((String)response.rows()[0][1], is("Life, the Universe and Everything"));
-        assertThat((String)response.rows()[0][2], is("Arthur"));
+        assertThat((int) response.rows()[0][0], is(1));
+        assertThat((String) response.rows()[0][1], is("Life, the Universe and Everything"));
+        assertThat((String) response.rows()[0][2], is("Arthur"));
+    }
+
+    @Test
+    public void testInsertFromSubQueryWithVersion() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause");
+        execute("create table users (name string)");
+        execute("insert into users (name) (select name from users where _version = 1)");
     }
 }

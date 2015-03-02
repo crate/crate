@@ -29,7 +29,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.Input;
@@ -55,7 +54,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractIndexWriterProjector implements Projector {
+public abstract class AbstractIndexWriterProjector implements Projector, ProjectorUpstream {
 
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<?>[] collectExpressions;

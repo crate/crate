@@ -21,11 +21,11 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.*;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -34,15 +34,11 @@ import io.crate.planner.node.dql.QueryThenFetchNode;
 
 public class QueryThenFetchConsumer implements Consumer {
 
-    private final Visitor visitor;
-
-    public QueryThenFetchConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(analysisMetaData);
-    }
+    private static final Visitor VISITOR = new Visitor();
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation plannedAnalyzedRelation = visitor.process(rootRelation, context);
+        PlannedAnalyzedRelation plannedAnalyzedRelation = VISITOR.process(rootRelation, context);
         if (plannedAnalyzedRelation == null) {
             return false;
         }
@@ -51,12 +47,6 @@ public class QueryThenFetchConsumer implements Consumer {
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData) {
-            this.analysisMetaData = analysisMetaData;
-        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
@@ -68,44 +58,39 @@ public class QueryThenFetchConsumer implements Consumer {
                 return null;
             }
 
-            WhereClause where = table.querySpec().where();
-            if (where != null){
-                WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-                WhereClause whereClause = whereClauseAnalyzer.analyze(where);
-                if(whereClause.version().isPresent()){
-                    context.validationException(new VersionInvalidException());
-                    return null;
-                }
-                where = whereClause;
-                if (where.noMatch()){
-                    return new NoopPlannedAnalyzedRelation(table);
-                }
+            if(table.querySpec().where().hasVersions()){
+                context.validationException(new VersionInvalidException());
+                return null;
+            }
+
+            if (table.querySpec().where().noMatch()) {
+                return new NoopPlannedAnalyzedRelation(table);
             }
 
             boolean extractBytesRef = context.rootRelation() != table;
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
                 return new QueryThenFetchNode(
-                        tableInfo.getRouting(where, null),
+                        tableInfo.getRouting(table.querySpec().where(), null),
                         table.querySpec().outputs(),
                         null, null, null,
                         table.querySpec().limit(),
                         table.querySpec().offset(),
-                        where,
+                        table.querySpec().where(),
                         tableInfo.partitionedByColumns(),
                         extractBytesRef
                 );
             } else {
                 table.tableRelation().validateOrderBy(orderBy);
                 return new QueryThenFetchNode(
-                        tableInfo.getRouting(where, null),
+                        tableInfo.getRouting(table.querySpec().where(), null),
                         table.querySpec().outputs(),
                         orderBy.orderBySymbols(),
                         orderBy.reverseFlags(),
                         orderBy.nullsFirst(),
                         table.querySpec().limit(),
                         table.querySpec().offset(),
-                        where,
+                        table.querySpec().where(),
                         tableInfo.partitionedByColumns(),
                         extractBytesRef
                 );

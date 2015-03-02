@@ -28,14 +28,45 @@ buildscript {
     }
 }
 
-test {
-    testLogging {
-        // show standard out and standard error of the test JVM(s) on the console
-        showStandardStreams = true
-        exceptionFormat = 'full'
-        // Show that tests are run in the command-line output
-        events 'started', 'passed'
+
+final testOutputs = [:].withDefault {[]}
+
+
+project.gradle.addListener(new TestOutputListener() {
+    @Override
+    void onOutput(TestDescriptor test, TestOutputEvent outputEvent) {
+        testOutputs[test] << outputEvent.getMessage()
     }
+})
+
+project.gradle.addListener(new TestListener() {
+
+    @Override
+    void beforeSuite(TestDescriptor suite) {
+        logger.lifecycle('Running: ' + suite)
+    }
+
+    @Override
+    void afterSuite(TestDescriptor suite, TestResult result) {
+    }
+
+    @Override
+    void beforeTest(TestDescriptor test) {
+    }
+
+    @Override
+    void afterTest(TestDescriptor test, TestResult result) {
+        if (result.getResultType() == TestResult.ResultType.FAILURE) {
+            logger.error('## FAILURE: ' + test)
+            testOutputs[test].each { e ->
+                print e
+            }
+        }
+        testOutputs.remove(test)
+    }
+})
+
+test {
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }
 

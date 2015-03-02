@@ -21,6 +21,8 @@
 
 package io.crate.testing;
 
+import com.google.common.collect.Lists;
+import io.crate.analyze.where.DocKeys;
 import io.crate.executor.Page;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
@@ -53,6 +55,7 @@ public class TestingHelpers {
 
     /**
      * prints the contents of a result array as a human readable table
+     *
      * @param result the data to be printed
      * @return a string representing a table
      */
@@ -130,10 +133,10 @@ public class TestingHelpers {
     @SuppressWarnings("unchecked")
     public static void assertLiteralSymbol(Symbol symbol, String expectedValue) {
         assertThat(symbol, instanceOf(Literal.class));
-        Object value = ((Literal)symbol).value();
+        Object value = ((Literal) symbol).value();
 
         if (value instanceof String) {
-            assertThat((String)value, is(expectedValue));
+            assertThat((String) value, is(expectedValue));
         } else {
             assertThat(((BytesRef) value).utf8ToString(), is(expectedValue));
         }
@@ -167,7 +170,7 @@ public class TestingHelpers {
     @SuppressWarnings("unchecked")
     private static <T> void assertLiteral(Symbol symbol, T expectedValue, DataType type) {
         assertThat(symbol, instanceOf(Literal.class));
-        assertEquals(type, ((Literal)symbol).valueType());
+        assertEquals(type, ((Literal) symbol).valueType());
         assertThat((T) ((Literal) symbol).value(), is(expectedValue));
     }
 
@@ -177,7 +180,7 @@ public class TestingHelpers {
 
     public static void assertLiteralSymbol(Symbol symbol, Object expectedValue, DataType type) {
         assertThat(symbol, instanceOf(Literal.class));
-        assertEquals(type, ((Literal)symbol).valueType());
+        assertEquals(type, ((Literal) symbol).valueType());
         assertThat(((Literal) symbol).value(), is(expectedValue));
     }
 
@@ -226,12 +229,12 @@ public class TestingHelpers {
     }
 
     private static final com.google.common.base.Function bytesRefToString =
-            new com.google.common.base.Function<Object, Object>(){
+            new com.google.common.base.Function<Object, Object>() {
 
                 @Nullable
                 @Override
                 public Object apply(@Nullable Object input) {
-                    if (input instanceof BytesRef){
+                    if (input instanceof BytesRef) {
                         return ((BytesRef) input).utf8ToString();
                     }
                     return input;
@@ -239,17 +242,39 @@ public class TestingHelpers {
             };
 
     private static final com.google.common.base.Function stringToBytesRef =
-            new com.google.common.base.Function<Object, Object>(){
+            new com.google.common.base.Function<Object, Object>() {
 
                 @Nullable
                 @Override
                 public Object apply(@Nullable Object input) {
-                    if (input instanceof String){
+                    if (input instanceof String) {
                         return new BytesRef(input.toString());
                     }
                     return input;
                 }
             };
+
+    public static Matcher<DocKeys.DocKey> isDocKey(Object... keys) {
+        final List<Object> expected = Arrays.asList(keys);
+        return new TypeSafeDiagnosingMatcher<DocKeys.DocKey>() {
+            @Override
+            protected boolean matchesSafely(DocKeys.DocKey item, Description mismatchDescription) {
+                List objects = Lists.transform(
+                        Lists.transform(item.values(), ValueSymbolVisitor.VALUE.function), bytesRefToString);
+                if (!expected.equals(objects)) {
+                    mismatchDescription.appendText("is DocKey with values: ").appendValue(objects);
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("is DocKey with values: ")
+                        .appendValue(expected);
+            }
+        };
+    }
 
 
     public static Matcher<Symbol> isField(final String expectedName) {
@@ -286,7 +311,6 @@ public class TestingHelpers {
             }
         };
     }
-
 
 
     public static Matcher<Symbol> isReference(String expectedName) {
@@ -376,13 +400,15 @@ public class TestingHelpers {
     /**
      * Get the values at column index <code>index</code> within all <code>rows</code>
      */
-    public static @Nullable Object[] getColumn(Object[][] rows, int index) throws Exception {
+    public static
+    @Nullable
+    Object[] getColumn(Object[][] rows, int index) throws Exception {
         if (rows.length == 0 || rows[0].length <= index) {
             throw new NoSuchElementException("no column with index " + index);
         }
         Object[] column = new Object[rows.length];
-        for (int i = 0; i< rows.length; i++) {
-           column[i] = rows[i][index];
+        for (int i = 0; i < rows.length; i++) {
+            column[i] = rows[i][index];
         }
         return column;
     }
@@ -407,7 +433,7 @@ public class TestingHelpers {
         public void describeTo(Description description) {
             description.appendText("expects type ")
                     .appendValue(type);
-            if(expectedMessage != null) {
+            if (expectedMessage != null) {
                 description.appendText(" and a message ")
                         .appendValue(expectedMessage);
             }

@@ -21,9 +21,9 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.operation.ProjectorUpstream;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.operation.ProjectorUpstream;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -44,11 +44,6 @@ public class CollectingProjector implements ResultProvider, Projector {
 
     public CollectingProjector() {
         this.upstreamsRemaining = new AtomicInteger(0);
-    }
-
-    // TODO: further split Projector interface so that this projector doesn't have downstream / setDownstream
-    @Override
-    public void downstream(Projector downstream) {
     }
 
     @Override

@@ -29,7 +29,6 @@ import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
-import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
@@ -93,11 +92,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             process(relation, context);
         }
         WhereClause whereClause = analyzeWhere(node.getWhere(), context);
-        if (whereClause.hasQuery()) {
-            WhereClauseValidator whereClauseValidator = new WhereClauseValidator();
-            whereClauseValidator.validate(whereClause);
-        }
+
         SelectAnalyzer.SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
+
         List<Symbol> groupBy = analyzeGroupBy(selectAnalysis, node.getGroupBy(), context);
 
         if (!node.getGroupBy().isEmpty() || context.expressionAnalysisContext().hasAggregates) {
@@ -122,7 +119,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             if (entry.getValue() instanceof TableRelation){
                 QueriedTable relation = new QueriedTable(entry.getKey(), (TableRelation) entry.getValue(),
                         selectAnalysis.outputNames(), querySpec);
-                return relation.normalize(analysisMetaData);
+                relation = relation.normalize(analysisMetaData);
+                return relation;
             } else {
                 throw new UnsupportedOperationException
                         ("Only tables are allowed in the FROM clause, got: " + entry.getValue());
@@ -255,8 +253,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         return new WhereClause(
                 context.expressionAnalyzer().normalize(context.expressionAnalyzer().convert(where.get(),
-                        context.expressionAnalysisContext())),
-                null, null, null);
+                                context.expressionAnalysisContext())),
+                null, null);
     }
 
 

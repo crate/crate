@@ -209,8 +209,7 @@ public abstract class BaseAnalyzerTest {
     static final FunctionInfo YEAR_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("year", Arrays.<DataType>asList(DataTypes.TIMESTAMP)),
             DataTypes.STRING);
-
-    Injector injector;
+    protected Injector injector;
     Analyzer analyzer;
 
     static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
@@ -310,7 +309,8 @@ public abstract class BaseAnalyzerTest {
     }
 
     protected AnalyzedStatement analyze(String statement, Object[] params) {
-        return analyzer.analyze(SqlParser.createStatement(statement), params, new Object[0][]).analyzedStatement();
+        AnalyzedStatement stmt = analyzer.analyze(SqlParser.createStatement(statement), params, new Object[0][]).analyzedStatement();
+        return stmt;
     }
 
     protected AnalyzedStatement analyze(String statement, Object[][] bulkArgs) {

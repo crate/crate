@@ -41,7 +41,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardingProjector implements Projector {
+public class ShardingProjector implements Projector, ProjectorUpstream {
 
     private final Visitor visitor;
     private final List<Symbol> primaryKeySymbols;

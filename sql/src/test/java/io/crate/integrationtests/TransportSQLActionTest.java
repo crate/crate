@@ -385,7 +385,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
-        execute("select \"_id\" from test where \"_id\"='id1'");
+        execute("select _id from test where _id='id1'");
         assertEquals(1, response.rowCount());
         assertEquals("id1", response.rows()[0][0]);
     }
@@ -796,6 +796,33 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertEquals(response.rows()[0][0], "3");
 
+    }
+
+
+    @Test
+    public void testDeleteToRoutedRequestByPlannerWhereOr() throws Exception {
+        this.setup.createTestTableWithPrimaryKey();
+        execute("insert into test (pk_col, message) values ('1', 'foo'), ('2', 'bar'), ('3', 'baz')");
+        refresh();
+        execute("DELETE FROM test WHERE pk_col=? or pk_col=? or pk_col=?", new Object[]{"1", "2", "4"});
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        refresh();
+        execute("SELECT pk_col FROM test");
+        assertThat(response.rowCount(), is(1L));
+        assertEquals(response.rows()[0][0], "3");
+    }
+
+    @Test
+    public void testUpdateToRoutedRequestByPlannerWhereOr() throws Exception {
+        this.setup.createTestTableWithPrimaryKey();
+        execute("insert into test (pk_col, message) values ('1', 'foo'), ('2', 'bar'), ('3', 'baz')");
+        refresh();
+        execute("update test set message='new' WHERE pk_col='1' or pk_col='2' or pk_col='4'");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        refresh();
+        execute("SELECT distinct message FROM test");
+        assertThat(response.rowCount(), is(2L));
     }
 
 

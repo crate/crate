@@ -99,7 +99,7 @@ public class LuceneQueryBuilder {
         visitor.searchContext = searchContext;
     }
 
-    public Context convert(WhereClause whereClause) {
+    public Context convert(WhereClause whereClause) throws UnsupportedFeatureException {
         Context ctx = new Context();
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery();

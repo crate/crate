@@ -21,6 +21,8 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.ThreadFilter;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import io.crate.blob.PutChunkAction;
 import io.crate.blob.PutChunkRequest;
 import io.crate.blob.StartBlobAction;
@@ -43,6 +45,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ElasticsearchThreadFilter;
 import org.junit.Test;
 
 import java.security.MessageDigest;
@@ -60,7 +63,15 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
+@ThreadLeakFilters(defaultFilters = true, filters = {ElasticsearchThreadFilter.class, RecoveryTests.RecoveryTestThreadFilter.class})
 public class RecoveryTests extends CrateIntegrationTest {
+
+    public static class RecoveryTestThreadFilter implements ThreadFilter {
+        @Override
+        public boolean reject(Thread t) {
+            return (t.getName().contains("blob-uploader"));
+        }
+    }
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
 

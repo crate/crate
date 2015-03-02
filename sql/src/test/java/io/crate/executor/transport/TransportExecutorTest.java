@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -46,7 +45,6 @@ import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.*;
@@ -99,6 +97,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         clusterName = null;
     }
 
+    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey) {
+        return newGetNode(tableName, outputs, Arrays.asList(singleStringKey));
+    }
+
+    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys) {
+        return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys);
+    }
 
     @Test
     public void testRemoteCollectTask() throws Exception {
@@ -411,30 +416,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         searchTask.start();
         rows = searchTask.result().get(0).get().rows();
         assertThat(rows.length, is(0));
-    }
-
-    @Test
-    public void testESDeleteTask() throws Exception {
-        setup.setUpCharacters();
-
-        ESDeleteNode node = new ESDeleteNode("characters", "2", "2", Optional.<Long>absent());
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        TaskResult taskResult = result.get(0).get();
-        Object[][] rows = taskResult.rows();
-        assertThat(rows.length, is(1));
-        assertThat(((Long) rows[0][0]), is(1L));
-
-        // verify deletion
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "2");
-        plan = new IterablePlan(getNode);
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
-
-        assertThat(objects.length, is(0));
     }
 
     @Test

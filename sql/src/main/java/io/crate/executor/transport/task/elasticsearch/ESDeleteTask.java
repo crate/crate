@@ -43,11 +43,12 @@ public class ESDeleteTask extends AsyncChainedTask {
     public ESDeleteTask(UUID jobId, ESDeleteNode node, TransportDeleteAction transport) {
         super(jobId);
         this.transport = transport;
-
-        request = new DeleteRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.id());
-        request.routing(node.routing());
-        if (node.version().isPresent()) {
-            request.version(node.version().get());
+        request = new DeleteRequest(
+                ESGetTask.indexName(node.tableInfo(), node.key().partitionValues()),
+                Constants.DEFAULT_MAPPING_TYPE, node.key().id());
+        request.routing(node.key().routing());
+        if (node.key().version().isPresent()) {
+            request.version(node.key().version().get());
         }
         listener = new DeleteResponseListener(result);
     }

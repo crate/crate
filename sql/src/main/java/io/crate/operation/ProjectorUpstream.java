@@ -23,13 +23,16 @@ package io.crate.operation;
 
 import io.crate.operation.projectors.Projector;
 
+/**
+ * An upstream for a projector, feeding rows to its downstream using {@linkplain Projector#setNextRow(Object...)}.
+ */
 public interface ProjectorUpstream {
 
     /**
      * set the Projector to hand over the projected rows.
      * If no downstream Projector was set, rows are simply gathered.
      *
-     * @param downstream the Projector to hand over projected rows
+     * @param downstream the downstream to hand over projected rows
      */
     public void downstream(Projector downstream);
 }

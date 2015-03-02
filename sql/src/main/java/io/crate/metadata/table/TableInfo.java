@@ -21,7 +21,6 @@
 
 package io.crate.metadata.table;
 
-import io.crate.metadata.PartitionName;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
@@ -94,7 +93,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      * returns <code>true</code> if this table is a partitioned table,
      * <code>false</code> otherwise
      *
-     * if so, {@linkplain #partitions()} returns the concrete indices that make
+     * if so, {@linkplain #partitions()} returns infos about the concrete indices that make
      * up this virtual partitioned table
      */
     public boolean isPartitioned();

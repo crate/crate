@@ -70,6 +70,10 @@ public class PartitionName {
         }
     };
 
+    public PartitionName (TableIdent tableIdent, List<BytesRef> values){
+        this(tableIdent.schema(), tableIdent.name(), values);
+    }
+
     public PartitionName(String tableName, List<BytesRef> values) {
         this(null, tableName, values);
     }
@@ -159,6 +163,14 @@ public class PartitionName {
             ident = encodeIdent();
         }
         return ident;
+    }
+
+    public String tableName() {
+        return tableName;
+    }
+
+    public @Nullable String schemaName() {
+        return schemaName;
     }
 
     @Nullable

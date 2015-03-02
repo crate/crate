@@ -21,11 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.action.deletebyquery.CrateTransportDeleteByQueryAction;
-import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -215,33 +212,13 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table explicit_routing");
 
         // does not delete anything - goes to shard 1
-        execute("delete from explicit_routing where name='A,W,'");
+        execute("delete from explicit_routing where name='A,W'");
         assertThat(response.rowCount(), is(-1L));
         execute("refresh table explicit_routing");
 
         execute("select * from explicit_routing");
         assertThat(response.rowCount(), is(2L));
 
-        // deletes no rows - goes to shard 1
-        CrateTransportDeleteByQueryAction action = cluster().getInstance(CrateTransportDeleteByQueryAction.class);
-        action.execute(new DeleteByQueryRequest("explicit_routing")
-                .types(Constants.DEFAULT_MAPPING_TYPE)
-                .source("{\"query\":{\"match_all\":{}}}")
-                .routing("A,W,")).actionGet();
-        execute("refresh table explicit_routing");
-
-        execute("select * from explicit_routing");
-        assertThat(response.rowCount(), is(2L));
-
-        // deletes one row from shard 2
-        action.execute(new DeleteByQueryRequest("explicit_routing")
-                .types(Constants.DEFAULT_MAPPING_TYPE)
-                .source("{\"query\":{\"match_all\":{}}}")
-                .routing("A")).actionGet();
-        execute("refresh table explicit_routing");
-
-        execute("select * from explicit_routing");
-        assertThat(response.rowCount(), is(1L));
     }
 }
 

@@ -148,17 +148,13 @@ public class LocalMergeTask extends JobTask {
 
                     try {
                         shouldContinue = mergeOperation.addRows(rows.rows());
-                    } catch (Throwable ex) {
-                        ramAccountingContext.close();
-                        statsTables.operationFinished(operationId, Exceptions.messageOf(ex),
-                                ramAccountingContext.totalBytes());
-                        result.setException(ex);
-                        logger.error("Failed to add rows", ex);
-                        return;
-                    }
 
-                    if (countdown.decrementAndGet() == 0 || !shouldContinue) {
-                        mergeOperation.finished();
+                        if (countdown.decrementAndGet() == 0 || !shouldContinue) {
+                            mergeOperation.finished();
+                        }
+                    } catch (Throwable ex) {
+                        onFailure(ex);
+                        logger.error("Failed to add rows", ex);
                     }
                 }
 

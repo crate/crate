@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class UpdateProjector implements Projector {
+public class UpdateProjector implements Projector, ProjectorUpstream {
 
     private Projector downstream;
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
