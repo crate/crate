@@ -32,3 +32,4 @@ public class BulkModule extends AbstractModule {
         bind(TransportBulkCreateIndicesAction.class).asEagerSingleton();
     }
 }
+
