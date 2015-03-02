@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
@@ -36,7 +37,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
-import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -87,14 +87,14 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     private final List<Input<?>> topLevelInputs;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
     private final JobCollectContext jobCollectContext;
-    private final SearchContext searchContext;
+    private final CrateSearchContext searchContext;
     private final int jobSearchContextId;
 
     public LuceneDocCollector(List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
                               Projector downStreamProjector,
                               JobCollectContext jobCollectContext,
-                              SearchContext searchContext,
+                              CrateSearchContext searchContext,
                               int jobSearchContextId) throws Exception {
         downstream(downStreamProjector);
         this.topLevelInputs = inputs;
@@ -188,4 +188,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         }
     }
 
+    public CrateSearchContext searchContext() {
+        return searchContext;
+    }
 }

@@ -58,17 +58,19 @@ import static org.powermock.api.mockito.PowerMockito.*;
 @PrepareForTest(CrateSearchContext.class)
 public class JobCollectContextTest {
 
-    static final Function<Engine.Searcher, CrateSearchContext> CONTEXT_FUNCTION =
-            new Function<Engine.Searcher, CrateSearchContext>() {
+    static final Function<Engine.Searcher, LuceneDocCollector> CONTEXT_FUNCTION =
+            new Function<Engine.Searcher, LuceneDocCollector>() {
                 @Nullable
                 @Override
-                public CrateSearchContext apply(Engine.Searcher input) {
+                public LuceneDocCollector apply(Engine.Searcher input) {
                     CrateSearchContext searchContext = mock(CrateSearchContext.class);
                     when(searchContext.engineSearcher()).thenReturn(input);
                     when(searchContext.isEngineSearcherShared()).thenCallRealMethod();
                     doCallRealMethod().when(searchContext).sharedEngineSearcher(Mockito.anyBoolean());
                     doNothing().when(searchContext).close();
-                    return searchContext;
+                    LuceneDocCollector docCollector = mock(LuceneDocCollector.class);
+                    when(docCollector.searchContext()).thenReturn(searchContext);
+                    return docCollector;
                 }
             };
 
@@ -122,36 +124,39 @@ public class JobCollectContextTest {
     }
 
     @Test
-    public void testCreateAndCloseContext() throws Exception {
-        final Field activeContexts = JobCollectContext.class.getDeclaredField("activeContexts");
-        activeContexts.setAccessible(true);
+    public void testCreateAndCloseCollectorWithContext() throws Exception {
+        final Field activeCollectors = JobCollectContext.class.getDeclaredField("activeCollectors");
+        activeCollectors.setAccessible(true);
 
         int jobSearchContextId = 1;
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
 
-        CrateSearchContext ctx1 = jobCollectContext.createContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
-        assertThat(ctx1, instanceOf(CrateSearchContext.class));
+        LuceneDocCollector collector1 = jobCollectContext.createCollectorAndContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
+        assertThat(collector1, instanceOf(LuceneDocCollector.class));
+        assertThat(collector1.searchContext(), instanceOf(CrateSearchContext.class));
 
         // calling again with same arguments results in same context
-        CrateSearchContext ctx2 = jobCollectContext.createContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
-        assertEquals(ctx1, ctx2);
-        assertThat(((Map)activeContexts.get(jobCollectContext)).size(), is(1));
+        LuceneDocCollector collector2 = jobCollectContext.createCollectorAndContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
+        assertEquals(collector1, collector2);
+        assertEquals(collector1.searchContext(), collector2.searchContext());
+        assertThat(((Map)activeCollectors.get(jobCollectContext)).size(), is(1));
 
         jobCollectContext.closeContext(jobSearchContextId);
-        assertThat(((Map) activeContexts.get(jobCollectContext)).size(), is(0));
+        assertThat(((Map) activeCollectors.get(jobCollectContext)).size(), is(0));
     }
 
     @Test
-    public void testFindContext() throws Exception {
+    public void testFindCollector() throws Exception {
         int jobSearchContextId = 1;
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
 
         // no context created, expect null
-        assertNull(jobCollectContext.findContext(1));
+        assertNull(jobCollectContext.findCollector(1));
 
-        CrateSearchContext ctx1 = jobCollectContext.createContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
-        CrateSearchContext ctx2 = jobCollectContext.findContext(jobSearchContextId);
-        assertEquals(ctx1, ctx2);
+        LuceneDocCollector collector1 = jobCollectContext.createCollectorAndContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
+        LuceneDocCollector collector2 = jobCollectContext.findCollector(jobSearchContextId);
+        assertEquals(collector1, collector2);
+        assertEquals(collector1.searchContext(), collector2.searchContext());
     }
 
     @Test
@@ -162,10 +167,8 @@ public class JobCollectContextTest {
         jobCollectContext.registerJobContextId(shardId, 1);
         jobCollectContext.registerJobContextId(shardId, 2);
 
-        CrateSearchContext ctx1 = jobCollectContext.createContext(indexShard, 1, CONTEXT_FUNCTION);
-        assertThat(ctx1, instanceOf(CrateSearchContext.class));
-
-        CrateSearchContext ctx2 = jobCollectContext.createContext(indexShard, 2, CONTEXT_FUNCTION);
+        CrateSearchContext ctx1 = jobCollectContext.createCollectorAndContext(indexShard, 1, CONTEXT_FUNCTION).searchContext();
+        CrateSearchContext ctx2 = jobCollectContext.createCollectorAndContext(indexShard, 2, CONTEXT_FUNCTION).searchContext();
 
         assertEquals(ctx1.engineSearcher(), ctx2.engineSearcher());
         assertThat(ctx1.isEngineSearcherShared(), is(true));
@@ -193,7 +196,7 @@ public class JobCollectContextTest {
             tasks.add(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    jobCollectContext.createContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
+                    jobCollectContext.createCollectorAndContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
                     latch.countDown();
                     return null;
                 }
@@ -226,20 +229,20 @@ public class JobCollectContextTest {
     public void testClose() throws Exception {
         final Field closed = JobCollectContext.class.getDeclaredField("closed");
         closed.setAccessible(true);
-        final Field activeContexts = JobCollectContext.class.getDeclaredField("activeContexts");
-        activeContexts.setAccessible(true);
+        final Field activeCollectors = JobCollectContext.class.getDeclaredField("activeCollectors");
+        activeCollectors.setAccessible(true);
 
         assertThat(((AtomicBoolean)closed.get(jobCollectContext)).get(), is(false));
 
         int jobSearchContextId = 1;
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
 
-        CrateSearchContext ctx1 = jobCollectContext.createContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
+        CrateSearchContext ctx1 = jobCollectContext.createCollectorAndContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION).searchContext();
         assertThat(ctx1, instanceOf(CrateSearchContext.class));
 
         jobCollectContext.close();
         assertThat(((AtomicBoolean) closed.get(jobCollectContext)).get(), is(true));
-        assertThat(((Map) activeContexts.get(jobCollectContext)).size(), is(0));
+        assertThat(((Map) activeCollectors.get(jobCollectContext)).size(), is(0));
     }
 
     @Test
@@ -247,7 +250,7 @@ public class JobCollectContextTest {
         int jobSearchContextId = 1;
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
 
-        SearchContext ctx1 = jobCollectContext.createContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION);
+        SearchContext ctx1 = jobCollectContext.createCollectorAndContext(indexShard, jobSearchContextId, CONTEXT_FUNCTION).searchContext();
         assertThat(ctx1, instanceOf(CrateSearchContext.class));
 
         jobCollectContext.acquireContext(ctx1);
