@@ -175,8 +175,13 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         SQLBulkResponse res = sqlExecutor.exec(request);
         assertThat(res.results()[0].rowCount(), is(1L));
         assertThat(res.results()[1].rowCount(), is(1L));
-        refresh();
-        execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
+
+        waitNoPendingTasksOnAll(); // wait for schema update
+        int retries = 0;
+        do {
+            execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
+            retries++;
+        } while (response.rowCount() == 0 && retries < 10);
         assertThat((String)response.rows()[0][0], is("long_array"));
     }
 
