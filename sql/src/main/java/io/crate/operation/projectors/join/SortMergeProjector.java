@@ -32,8 +32,10 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -83,7 +85,18 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
         public boolean matches(Side other);
         public Side other();
 
-        static Side BOTH = new Side() {
+        /**
+         * wait for this side to proceed
+         * @throws InterruptedException
+         */
+        public void await() throws InterruptedException;
+
+        /**
+         * signal all threads waiting for this side proceeding
+         */
+        public void signalWaiters();
+
+        public static Side BOTH = new Side() {
             @Override
             public void finish() {
 
@@ -112,7 +125,17 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
 
             @Override
             public Side other() {
-                return null;
+                return this;
+            }
+
+            @Override
+            public void await() {
+
+            }
+
+            @Override
+            public void signalWaiters() {
+
             }
         };
     }
@@ -121,9 +144,11 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
         private final AtomicBoolean finished = new AtomicBoolean(false);
         private final AtomicReference<List<Object[]>> currentRows = new AtomicReference<>();
         private final String name;
+        private final Condition condition;
 
-        protected AbstractSide(String name) {
+        protected AbstractSide(String name, Condition condition) {
             this.name = name;
+            this.condition = condition;
         }
 
         @Override
@@ -156,6 +181,16 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
         public String toString() {
             return name;
         }
+
+        @Override
+        public void await() throws InterruptedException {
+            condition.await();
+        }
+
+        @Override
+        public void signalWaiters() {
+            condition.signalAll();
+        }
     }
 
     private static List<Object[]> SENTINEL = new ArrayList<>(0);
@@ -176,8 +211,6 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
     private final Ordering[] comparators;
 
     private final ReentrantLock lock;
-    private final Condition leftCanContinue;
-    private final Condition rightCanContinue;
     private final AtomicBoolean projectionStarted;
 
     private final Side left;
@@ -203,15 +236,13 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
         this.leftCollectExpressions = leftCollectExpressions;
         this.rightCollectExpressions = rightCollectExpressions;
         this.lock = new ReentrantLock();
-        this.leftCanContinue = lock.newCondition();
-        this.rightCanContinue = lock.newCondition();
-        this.left = new AbstractSide("left") {
+        this.left = new AbstractSide("left", lock.newCondition()) {
             @Override
             public Side other() {
                 return right;
             }
         };
-        this.right = new AbstractSide("right") {
+        this.right = new AbstractSide("right", lock.newCondition()) {
             @Override
             public Side other() {
                 return left;
@@ -295,24 +326,6 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
         return right.isFinished() || left.isFinished();
     }
 
-    /**
-     * @return true if we can continue, false if we should stop because projection is finished
-     * @throws InterruptedException
-     */
-    private boolean waitForSide(Side side) throws InterruptedException{
-        assert side != Side.BOTH;
-        Condition condition = side.matches(left) ? rightCanContinue : leftCanContinue;
-        do {
-            logger.trace("waiting for {} to proceed", side);
-            // releases the lock
-            if (condition.await(100, TimeUnit.MILLISECONDS)) {
-                // can continue
-                return true;
-            }
-        } while (!internalProjectorsFinished());
-        return false;
-    }
-
     private boolean setNextEqualRows(Side source, List<Object[]> rows) {
         try {
             lock.lockInterruptibly();
@@ -320,6 +333,7 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
                 if (rows == SENTINEL) {
                     source.finish();
                     this.wantMore.set(false);
+                    source.signalWaiters();
                     onProjectorFinished();
                 } else if (!internalProjectorsFinished()) {
                     if (logger.isTraceEnabled()) {
@@ -328,7 +342,8 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
                     source.currentRows(rows);
                     List<Object[]> otherRows = source.other().currentRows();
                     if (otherRows == null) {
-                        if (!waitForSide(source.other())) {
+                        source.other().await();
+                        if (!internalProjectorsFinished()) {
                             // remove and optionally finish this projector if we're done
                             removeFromSide(source);
                         }
@@ -338,7 +353,7 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
                                 ? consumeRows(rows, otherRows)
                                 : consumeRows(otherRows, rows));
                         if (!toProceed.matches(source)) {
-                            waitForSide(source.other());
+                            source.other().await();
                         }
                     }
                 }
@@ -370,7 +385,7 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
             if (compared < 0) {
                 // left rows are smaller than right, skip to next left set
                 removeFromSide(left);
-                leftCanContinue.signal();
+                right.signalWaiters();
                 return left;
             } else if (compared == 0) {
                 // both groups have same join conditions
@@ -390,12 +405,12 @@ public class SortMergeProjector implements YProjector, ProjectorUpstream {
                 }
                 removeFromSide(left);
                 removeFromSide(right);
-                leftCanContinue.signal();
-                rightCanContinue.signal();
+                left.signalWaiters();
+                right.signalWaiters();
             } else {
                 // right rows are smaller than left, skip to next right set
                 removeFromSide(right);
-                rightCanContinue.signal();
+                left.signalWaiters();
                 return right;
             }
         }
