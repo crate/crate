@@ -30,3 +30,4 @@ public class RowCombinator {
         return newRow;
     }
 }
+
