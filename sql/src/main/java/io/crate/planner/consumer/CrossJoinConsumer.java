@@ -170,7 +170,6 @@ public class CrossJoinConsumer implements Consumer {
                 orderBy = statement.querySpec().orderBy();
                 // erase limit and offset if this relation is part of remaining query or of remaining order by
                 queriedTables.add(queriedTable);
-
             }
             boolean hasRemainingQuery = where.hasQuery() && !(where.query() instanceof Literal);
             boolean hasRemainingOrderBy = orderBy != null && orderBy.isSorted();

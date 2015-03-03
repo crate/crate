@@ -22,9 +22,15 @@
 package io.crate.testing;
 
 import com.google.common.collect.Lists;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.executor.Page;
 import io.crate.metadata.*;
+import io.crate.operation.operator.AndOperator;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.LtOperator;
+import io.crate.operation.operator.OrOperator;
+import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
@@ -115,6 +121,34 @@ public class TestingHelpers {
                 RowGranularity.DOC,
                 dataType
         ));
+    }
+
+    public static Field field(AnalyzedRelation relation, String name, DataType type) {
+        return new Field(relation, ColumnIdent.fromPath(name), type);
+    }
+
+    public static Function and(Symbol left, Symbol right) {
+        return new Function(AndOperator.INFO, Arrays.asList(left, right));
+    }
+
+    public static Function eq(Symbol left, Symbol right) {
+        return new Function(
+                new FunctionInfo(new FunctionIdent(EqOperator.NAME, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
+                        Arrays.asList(left, right));
+    }
+
+    public static Function lt(Symbol left, Symbol right) {
+        return new Function(
+                new FunctionInfo(new FunctionIdent(LtOperator.NAME, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
+                Arrays.asList(left, right));
+    }
+
+    public static Function or(Symbol left, Symbol right) {
+        return new Function(OrOperator.INFO, Arrays.asList(left, right));
+    }
+
+    public static Function not(Symbol predicate) {
+        return new Function(NotPredicate.INFO, Arrays.asList(predicate));
     }
 
     public static String readFile(String path) throws IOException {
