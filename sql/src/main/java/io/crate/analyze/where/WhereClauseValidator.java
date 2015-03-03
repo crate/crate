@@ -97,7 +97,7 @@ public abstract class WhereClauseValidator {
             }
             assert function.arguments().size() == 2;
             Symbol right = function.arguments().get(1);
-            if(!right.symbolType().isValueSymbol()){
+            if(!right.symbolType().isLiteral()){
                 throw new UnsupportedOperationException(error);
             }
         }

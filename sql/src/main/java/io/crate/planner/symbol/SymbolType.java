@@ -43,7 +43,7 @@ public enum SymbolType {
         return factory.newInstance();
     }
 
-    public boolean isValueSymbol() {
+    public boolean isLiteral() {
         return ordinal() == LITERAL.ordinal();
     }
 }

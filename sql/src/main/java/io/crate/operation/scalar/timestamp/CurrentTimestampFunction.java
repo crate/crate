@@ -92,7 +92,7 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
             return Literal.newLiteral(INFO.returnType(), evaluate());
         }
         Symbol precision = symbol.arguments().get(0);
-        if (precision.symbolType().isValueSymbol()) {
+        if (precision.symbolType().isLiteral()) {
             return Literal.newLiteral(INFO.returnType(), evaluate((Input) precision));
         } else {
             throw new IllegalArgumentException(String.format("Invalid argument to %s", NAME));

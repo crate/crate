@@ -103,7 +103,7 @@ public abstract class LogFunction extends Scalar<Number,Number> {
             assert (symbol.arguments().size() == 2);
             Symbol base = symbol.arguments().get(0);
             Symbol value = symbol.arguments().get(1);
-            if (value.symbolType().isValueSymbol() && base.symbolType().isValueSymbol()) {
+            if (value.symbolType().isLiteral() && base.symbolType().isLiteral()) {
                 return Literal.newLiteral(info.returnType(), evaluate((Input) base, (Input) value));
             }
             return symbol;
@@ -144,7 +144,7 @@ public abstract class LogFunction extends Scalar<Number,Number> {
         public Symbol normalizeSymbol(Function symbol) {
             assert (symbol.arguments().size() == 1);
             Symbol value = symbol.arguments().get(0);
-            if (value.symbolType().isValueSymbol()) {
+            if (value.symbolType().isLiteral()) {
                 return Literal.newLiteral(info.returnType(), evaluate((Input)value));
             }
             return symbol;

@@ -50,7 +50,7 @@ public abstract class CeilFunction extends Scalar<Number, Number> {
     @Override
     public Symbol normalizeSymbol(Function symbol) {
         Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
+        if (argument.symbolType().isLiteral()) {
             return Literal.newLiteral(info().returnType(), evaluate((Input) argument));
         }
         return symbol;

@@ -288,7 +288,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
         }
         symbol = context.expressionAnalyzer().convert(expression, context.expressionAnalysisContext());
-        if (symbol.symbolType().isValueSymbol()) {
+        if (symbol.symbolType().isLiteral()) {
             Literal longLiteral;
             try {
                 longLiteral = io.crate.planner.symbol.Literal.convert(symbol, DataTypes.LONG);

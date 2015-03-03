@@ -229,7 +229,7 @@ public class QuerySplitter {
                 if (AndOperator.NAME.equals(function.info().ident().name())) {
                     List<Symbol> newArgs = new ArrayList<>(function.arguments().size());
                     for (Symbol argument : function.arguments()) {
-                        if (!argument.symbolType().isValueSymbol()) {
+                        if (!argument.symbolType().isLiteral()) {
                             RelationCount argumentCount = context.countMap.get(argument);
                             assert argumentCount != null : "relationCount for argument must be available";
                             if (argumentCount.numOther == 0) {

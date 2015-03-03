@@ -101,7 +101,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         boolean literalConverted = false;
         short numLiterals = 0;
 
-        if (left.symbolType().isValueSymbol()) {
+        if (left.symbolType().isLiteral()) {
             numLiterals++;
             if (leftType.equals(DataTypes.STRING)) {
                 left = Literal.convert(left, DataTypes.GEO_SHAPE);
@@ -111,7 +111,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
             ensureShapeOrPoint(leftType);
         }
 
-        if (right.symbolType().isValueSymbol()) {
+        if (right.symbolType().isLiteral()) {
             numLiterals++;
             if (rightType.equals(DataTypes.STRING)) {
                 right = Literal.convert(right, DataTypes.GEO_SHAPE);

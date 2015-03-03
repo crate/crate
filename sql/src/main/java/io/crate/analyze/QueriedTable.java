@@ -359,7 +359,7 @@ public class QueriedTable implements QueriedRelation {
                             }
                         }
                     }
-                    if (!newArg.symbolType().isValueSymbol()) {
+                    if (!newArg.symbolType().isLiteral()) {
                         context.mixedSplit.add(newArg);
                     }
                 }

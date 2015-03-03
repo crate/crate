@@ -64,7 +64,7 @@ public class VersionRewriter {
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
 
-                if (left.symbolType() != SymbolType.REFERENCE || !right.symbolType().isValueSymbol()) {
+                if (left.symbolType() != SymbolType.REFERENCE || !right.symbolType().isLiteral()) {
                     return function;
                 }
 

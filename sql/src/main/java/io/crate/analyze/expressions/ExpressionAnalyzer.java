@@ -381,7 +381,7 @@ public class ExpressionAnalyzer {
     }
 
     private static Symbol cast(Symbol sourceSymbol, DataType targetType, ExpressionAnalysisContext context) {
-        if (sourceSymbol.symbolType().isValueSymbol()) {
+        if (sourceSymbol.symbolType().isLiteral()) {
             return Literal.convert(sourceSymbol, targetType);
         }
         FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType);
@@ -583,7 +583,7 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException("ANY on object arrays is not supported");
             }
 
-            if (right.symbolType().isValueSymbol()) {
+            if (right.symbolType().isLiteral()) {
                 right = Literal.convert(right, leftInnerType);
             } else {
                 throw new IllegalArgumentException(
@@ -625,7 +625,7 @@ public class ExpressionAnalyzer {
                 }
             }
 
-            if (right.symbolType().isValueSymbol()) {
+            if (right.symbolType().isLiteral()) {
                 right = normalizeInputForType(right, leftInnerType);
             } else {
                 throw new IllegalArgumentException(
@@ -650,7 +650,7 @@ public class ExpressionAnalyzer {
             }
             expression = castIfNeededOrFail(expression, DataTypes.STRING, context);
             Symbol pattern = normalize(castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING, context));
-            if (!pattern.symbolType().isValueSymbol()) {
+            if (!pattern.symbolType().isLiteral()) {
                 throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");
             }
             FunctionIdent functionIdent = FunctionIdent.of(LikeOperator.NAME, expression.valueType(), pattern.valueType());
@@ -662,7 +662,7 @@ public class ExpressionAnalyzer {
             Symbol value = process(node.getValue(), context);
 
             // currently there will be no result for dynamic references, so return here
-            if (!value.symbolType().isValueSymbol() && value.valueType().equals(DataTypes.UNDEFINED)) {
+            if (!value.symbolType().isLiteral() && value.valueType().equals(DataTypes.UNDEFINED)) {
                 return Literal.NULL;
             }
 
@@ -847,7 +847,7 @@ public class ExpressionAnalyzer {
          * eq(2, name)  becomes  eq(name, 2)
          */
         private void swapIfNecessary() {
-            if (!(left.symbolType().isValueSymbol() && (right instanceof Reference || right instanceof Field))) {
+            if (!(left.symbolType().isLiteral() && (right instanceof Reference || right instanceof Field))) {
                 return;
             }
             ComparisonExpression.Type type = SWAP_OPERATOR_TABLE.get(comparisonExpressionType);

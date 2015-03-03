@@ -45,7 +45,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
 
     protected static boolean anyNonLiterals(List<Symbol> arguments) {
         for (Symbol symbol : arguments) {
-            if (!symbol.symbolType().isValueSymbol()) {
+            if (!symbol.symbolType().isLiteral()) {
                 return true;
             }
         }

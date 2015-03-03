@@ -173,9 +173,9 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
     }
 
     private static boolean anyNonLiterals(Symbol input, Symbol beginIdx, List<Symbol> arguments) {
-        return !input.symbolType().isValueSymbol() ||
-                !beginIdx.symbolType().isValueSymbol() ||
-                (arguments.size() == 3 && !arguments.get(2).symbolType().isValueSymbol());
+        return !input.symbolType().isLiteral() ||
+                !beginIdx.symbolType().isLiteral() ||
+                (arguments.size() == 3 && !arguments.get(2).symbolType().isLiteral());
     }
 
     @Override

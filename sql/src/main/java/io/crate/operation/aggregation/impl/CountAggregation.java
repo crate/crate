@@ -93,7 +93,7 @@ public class CountAggregation extends AggregationFunction<Long, Long> {
         assert (function.arguments().size() <= 1);
 
         if (function.arguments().size() == 1) {
-            if (function.arguments().get(0).symbolType().isValueSymbol()) {
+            if (function.arguments().get(0).symbolType().isLiteral()) {
                 if ((function.arguments().get(0)).valueType() == DataTypes.UNDEFINED) {
                     return Literal.newLiteral(0L);
                 } else{

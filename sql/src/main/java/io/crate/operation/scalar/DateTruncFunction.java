@@ -62,7 +62,7 @@ public class DateTruncFunction extends BaseDateTruncFunction {
         isValidInterval(interval, symbol);
         Symbol tsSymbol = symbol.arguments().get(1);
 
-        if (tsSymbol.symbolType().isValueSymbol()) {
+        if (tsSymbol.symbolType().isLiteral()) {
             return Literal.newLiteral(
                     DataTypes.TIMESTAMP,
                     evaluate((BytesRef)interval.value(), DataTypes.TIMESTAMP.value(((Input) tsSymbol).value()))

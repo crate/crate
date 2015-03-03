@@ -317,7 +317,7 @@ public class ESQueryBuilder {
                 String functionName = function.info().ident().name();
                 Symbol functionSymbol = function.arguments().get(0);
                 Symbol valueSymbol = function.arguments().get(1);
-                if (functionSymbol.symbolType().isValueSymbol()) {
+                if (functionSymbol.symbolType().isLiteral()) {
                     valueSymbol = functionSymbol;
                     functionSymbol = function.arguments().get(1);
                     if (functionSymbol.symbolType() != SymbolType.FUNCTION) {
@@ -379,7 +379,7 @@ public class ESQueryBuilder {
                 } else {
                     Symbol functionSymbol = function.arguments().get(0);
                     Symbol valueSymbol;
-                    if (functionSymbol.symbolType().isValueSymbol()) {
+                    if (functionSymbol.symbolType().isLiteral()) {
                         valueSymbol = functionSymbol;
                         functionSymbol = function.arguments().get(1);
                         if (functionSymbol.symbolType() != SymbolType.FUNCTION) {
@@ -387,7 +387,7 @@ public class ESQueryBuilder {
                         }
                     } else {
                         valueSymbol = function.arguments().get(1);
-                        if (!valueSymbol.symbolType().isValueSymbol()) {
+                        if (!valueSymbol.symbolType().isLiteral()) {
                             throw new IllegalArgumentException("Can't compare two within functions");
                         }
                     }
@@ -486,7 +486,7 @@ public class ESQueryBuilder {
 
                 Symbol valueSymbol;
                 Symbol functionSymbol = function.arguments().get(0);
-                if (functionSymbol.symbolType().isValueSymbol()) {
+                if (functionSymbol.symbolType().isLiteral()) {
                     valueSymbol = functionSymbol;
                     functionSymbol = function.arguments().get(1);
                     if (functionSymbol.symbolType() != SymbolType.FUNCTION) {
@@ -494,7 +494,7 @@ public class ESQueryBuilder {
                     }
                 } else {
                     valueSymbol = function.arguments().get(1);
-                    if (!valueSymbol.symbolType().isValueSymbol()) {
+                    if (!valueSymbol.symbolType().isLiteral()) {
                         throw new IllegalArgumentException("Can't compare two distance functions");
                     }
                 }
@@ -515,7 +515,7 @@ public class ESQueryBuilder {
                 for (Symbol distanceArgument : functionSymbol.arguments()) {
                     if (distanceArgument instanceof Reference) {
                         fieldName = ((Reference)distanceArgument).info().ident().columnIdent().fqn();
-                    } else if (distanceArgument.symbolType().isValueSymbol()) {
+                    } else if (distanceArgument.symbolType().isLiteral()) {
                         point = ((Input) distanceArgument).value();
                     }
                 }
@@ -600,7 +600,7 @@ public class ESQueryBuilder {
                         value = ((BytesRef)value).utf8ToString();
                     }
                 } else {
-                    assert right.symbolType().isValueSymbol();
+                    assert right.symbolType().isLiteral();
                     value = ((Literal) right).value();
                 }
                 return new Tuple<>(((Reference) left).info().ident().columnIdent().fqn(), value);
@@ -944,7 +944,7 @@ public class ESQueryBuilder {
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
 
-                if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
+                if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isLiteral()) {
                     String columnName = ((Reference) left).info().ident().columnIdent().name();
                     if (context.filteredFields.contains(columnName)) {
                         context.ignoredFields.put(columnName, ((Literal) right).value());

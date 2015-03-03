@@ -57,7 +57,7 @@ public class LikeOperator extends Operator<BytesRef> {
         assert (symbol != null);
         assert (symbol.arguments().size() == 2);
 
-        if (!symbol.arguments().get(0).symbolType().isValueSymbol()) {
+        if (!symbol.arguments().get(0).symbolType().isLiteral()) {
             return symbol;
         }
 

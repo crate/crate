@@ -62,7 +62,7 @@ public class InOperator extends Operator<Object> {
         // arguments.get(0) ... id
         // arguments.get(1) ... SetLiteral<Literal> (1,2,3,4,...)
         Symbol left = function.arguments().get(0);
-        if (!left.symbolType().isValueSymbol()) {
+        if (!left.symbolType().isLiteral()) {
             return function;
         }
         Object inValue = ((Literal) left).value();

@@ -62,7 +62,7 @@ public abstract class ToPrimitiveFunction<T> extends Scalar<T, Object> {
     public Symbol normalizeSymbol(Function symbol) {
         assert symbol.arguments().size() == 1;
         Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
+        if (argument.symbolType().isLiteral()) {
             Object value = ((Input) argument).value();
             try {
                 return Literal.newLiteral(returnType, returnType.value(value));

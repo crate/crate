@@ -72,7 +72,7 @@ public class DateTruncTimeZoneAwareFunction extends BaseDateTruncFunction {
         }
 
         Symbol tsSymbol = symbol.arguments().get(2);
-        if (tsSymbol.symbolType().isValueSymbol()) {
+        if (tsSymbol.symbolType().isLiteral()) {
             return Literal.newLiteral(
                     DataTypes.TIMESTAMP,
                     evaluate((BytesRef)interval.value(),

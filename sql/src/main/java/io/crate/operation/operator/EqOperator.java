@@ -98,7 +98,7 @@ public class EqOperator extends CmpOperator {
             Symbol left = symbol.arguments().get(0);
             Symbol right = symbol.arguments().get(1);
 
-            if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
+            if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
                 return Literal.newLiteral(evaluate(new Input[] {(Input)left, (Input)right}));
             }
             return symbol;

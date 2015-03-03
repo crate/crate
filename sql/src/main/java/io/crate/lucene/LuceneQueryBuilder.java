@@ -208,7 +208,7 @@ public class LuceneQueryBuilder {
                 Symbol left = input.arguments().get(0);
                 Symbol right = input.arguments().get(1);
 
-                if (!(left instanceof Reference) || !(right.symbolType().isValueSymbol())) {
+                if (!(left instanceof Reference) || !(right.symbolType().isLiteral())) {
                     return null;
                 }
                 assert right.symbolType() == SymbolType.LITERAL;
@@ -846,7 +846,7 @@ public class LuceneQueryBuilder {
 
             Symbol left = function.arguments().get(0);
             Symbol right = function.arguments().get(1);
-            if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
+            if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isLiteral()) {
                 String columnName = ((Reference) left).info().ident().columnIdent().name();
                 if (Context.FILTERED_FIELDS.contains(columnName)) {
                     context.filteredFieldValues.put(columnName, ((Input) right).value());
@@ -867,7 +867,7 @@ public class LuceneQueryBuilder {
             }
             Symbol left = function.arguments().get(0);
             Symbol right = function.arguments().get(1);
-            if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
+            if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isLiteral()) {
                 String columnName = ((Reference) left).info().ident().columnIdent().name();
                 String unsupportedMessage = context.unsupportedMessage(columnName);
                 if(unsupportedMessage != null){
@@ -1011,9 +1011,9 @@ public class LuceneQueryBuilder {
                 function = null;
             }
 
-            if (left.symbolType().isValueSymbol()) {
+            if (left.symbolType().isLiteral()) {
                 input = (Input) left;
-            } else if (right.symbolType().isValueSymbol()) {
+            } else if (right.symbolType().isLiteral()) {
                 input = (Input) right;
             } else {
                 input = null;
@@ -1051,9 +1051,9 @@ public class LuceneQueryBuilder {
                 reference = null;
             }
 
-            if (left.symbolType().isValueSymbol()) {
+            if (left.symbolType().isLiteral()) {
                 input = (Input) left;
-            } else if (right.symbolType().isValueSymbol()) {
+            } else if (right.symbolType().isLiteral()) {
                 input = (Input) right;
             } else {
                 input = null;

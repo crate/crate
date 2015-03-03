@@ -80,7 +80,7 @@ public class RegexpMatchOperator extends Operator<BytesRef> {
         if (containsNull(sourceSymbol, patternSymbol)) {
             return Literal.NULL;
         }
-        if (!sourceSymbol.symbolType().isValueSymbol() || !patternSymbol.symbolType().isValueSymbol()) {
+        if (!sourceSymbol.symbolType().isLiteral() || !patternSymbol.symbolType().isLiteral()) {
             return symbol;
         }
 

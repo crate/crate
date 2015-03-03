@@ -47,7 +47,7 @@ public abstract class CmpOperator extends Operator<Object> {
             return Literal.NULL;
         }
 
-        if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
+        if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
             // must be true due to the function registration (argument DataType signature)
             if (compare(((Literal) left).compareTo((Literal) right))){
                 return Literal.BOOLEAN_TRUE;

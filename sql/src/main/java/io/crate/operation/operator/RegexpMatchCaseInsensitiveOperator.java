@@ -28,8 +28,6 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.automaton.ByteRunAutomaton;
-import org.apache.lucene.util.automaton.RegExp;
 
 import java.util.regex.Pattern;
 
@@ -76,7 +74,7 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<BytesRef> {
         if (containsNull(sourceSymbol, patternSymbol)) {
             return Literal.NULL;
         }
-        if (!sourceSymbol.symbolType().isValueSymbol() || !patternSymbol.symbolType().isValueSymbol()) {
+        if (!sourceSymbol.symbolType().isLiteral() || !patternSymbol.symbolType().isLiteral()) {
             return symbol;
         }
 

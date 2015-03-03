@@ -208,7 +208,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         }
         if (protectedColumnIdent.isChildOf(columnUpdated)) {
             if (newValue.valueType().equals(DataTypes.OBJECT)
-                    && newValue.symbolType().isValueSymbol()
+                    && newValue.symbolType().isLiteral()
                     && StringObjectMaps.fromMapByPath((Map) ((Literal) newValue).value(), protectedColumnIdent.path()) == null) {
                 return;
             }

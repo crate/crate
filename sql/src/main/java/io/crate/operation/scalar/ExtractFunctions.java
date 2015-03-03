@@ -117,7 +117,7 @@ public class ExtractFunctions {
         public Symbol normalizeSymbol(Function symbol) {
             assert symbol.arguments().size() == 1 : "extract only takes one argument";
             Symbol arg = symbol.arguments().get(0);
-            if (arg.symbolType().isValueSymbol()) {
+            if (arg.symbolType().isLiteral()) {
                 return Literal.newLiteral(evaluate(((Input) arg)));
             }
             return symbol;

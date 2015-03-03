@@ -94,7 +94,7 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
         List<Symbol> arguments = function.arguments().subList(1, function.arguments().size());
 
         for (Symbol argument : arguments) {
-            if (!argument.symbolType().isValueSymbol()) {
+            if (!argument.symbolType().isLiteral()) {
                 return function; // can't normalize if arguments still contain non-literals
             }
 
