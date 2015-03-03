@@ -42,6 +42,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.hamcrest.core.IsNull;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -111,6 +112,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         execute(String.format("insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{1, 2});
         execute(String.format("insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{3, 4});
         refresh();
+    }
+
+    @After
+    public void cleanUp() {
+        operation = null;
+        functions = null;
+        docSchemaInfo = null;
     }
 
     private Routing routing(String table) {

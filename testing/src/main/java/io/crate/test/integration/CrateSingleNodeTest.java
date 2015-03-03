@@ -31,7 +31,6 @@ import org.junit.After;
 
 public class CrateSingleNodeTest extends ElasticsearchSingleNodeTest {
 
-
     @Override
     @After
     public void tearDown() throws Exception {

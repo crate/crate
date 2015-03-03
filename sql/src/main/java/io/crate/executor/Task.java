@@ -24,7 +24,6 @@ package io.crate.executor;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * A task gets executed as part of or in the context of a
