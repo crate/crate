@@ -25,9 +25,11 @@ import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.Page;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
+import rx.Observable;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -66,5 +68,10 @@ public abstract class AsyncChainedTask extends JobTask {
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         resultList.addAll(result);
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 }

@@ -198,6 +198,11 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
         throw new UnsupportedOperationException("Can't have upstreamResults");
     }
 
+    @Override
+    public rx.Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
+    }
+
     static class SearchHitExtractorContext extends SymbolToFieldExtractor.Context {
         private final List<ReferenceInfo> partitionBy;
         public final boolean extractBytesRef;
@@ -268,5 +273,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask<QueryThe
             }
         }
     }
+
+
 
 }

@@ -23,6 +23,7 @@ package io.crate.operation.join.nestedloop;
 
 import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -66,7 +67,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import rx.Observable;
 
+import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.util.*;
 
@@ -95,6 +98,17 @@ public class NestedLoopOperationTest {
         @Override
         public void start() {
             // ignore
+        }
+
+        @Override
+        public Observable<Page> asObservable() {
+            return Observable.from(Futures.transform(result.get(0), new Function<TaskResult, Page>() {
+                @Nullable
+                @Override
+                public Page apply(TaskResult input) {
+                    return input.page();
+                }
+            }));
         }
 
         @Override
@@ -139,6 +153,18 @@ public class NestedLoopOperationTest {
         @Override
         public void start() {
             // ignore
+        }
+
+        @Override
+        public Observable<Page> asObservable() {
+            return Observable.from(Futures.transform(result, new Function<TaskResult, Page>() {
+                @Nullable
+                @Override
+                public Page apply(@Nullable TaskResult input) {
+                    assert input != null;
+                    return input.page();
+                }
+            }));
         }
 
         @Override

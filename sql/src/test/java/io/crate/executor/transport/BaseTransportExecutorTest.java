@@ -46,6 +46,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -95,6 +96,14 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         whereClause.docKeys(new DocKeys(keys, false, -1, null));
         querySpec.where(whereClause);
         return new ESGetNode(tableInfo, querySpec, false);
+    }
+
+    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey) {
+        return newGetNode(tableName, outputs, Arrays.asList(singleStringKey));
+    }
+
+    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys) {
+        return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys);
     }
 
     @Before

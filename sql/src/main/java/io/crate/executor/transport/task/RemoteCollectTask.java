@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
+import io.crate.executor.Page;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.NodeCollectRequest;
@@ -39,6 +40,7 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import rx.Observable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -151,5 +153,10 @@ public class RemoteCollectTask extends JobTask {
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("RemoteCollectTask does not support upstream results");
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 }

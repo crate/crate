@@ -97,14 +97,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         clusterName = null;
     }
 
-    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey) {
-        return newGetNode(tableName, outputs, Arrays.asList(singleStringKey));
-    }
-
-    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys) {
-        return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys);
-    }
-
     @Test
     public void testRemoteCollectTask() throws Exception {
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(2);
@@ -157,52 +149,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(((BytesRef) result[0][0]).utf8ToString(), is(clusterName.value()));
         assertThat((Float) result[0][1], is(2.3f));
-    }
-
-    @Test
-    public void testESGetTask() throws Exception {
-        setup.setUpCharacters();
-
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode node = newGetNode("characters", outputs, "2");
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
-
-        assertThat(objects.length, is(1));
-        assertThat((Integer) objects[0][0], is(2));
-        assertThat((String) objects[0][1], is("Ford"));
-    }
-
-    @Test
-    public void testESGetTaskWithDynamicReference() throws Exception {
-        setup.setUpCharacters();
-
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
-                new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
-        ESGetNode node = newGetNode("characters", outputs, "2");
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
-
-        assertThat(objects.length, is(1));
-        assertThat((Integer) objects[0][0], is(2));
-        assertNull(objects[0][1]);
-    }
-
-    @Test
-    public void testESMultiGet() throws Exception {
-        setup.setUpCharacters();
-        ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode node = newGetNode("characters", outputs, asList("1", "2"));
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get().rows();
-
-        assertThat(objects.length, is(2));
     }
 
     @Test

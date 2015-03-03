@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
+import io.crate.executor.Page;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
@@ -44,6 +45,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
+import rx.Observable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -196,5 +198,10 @@ public class LocalMergeTask extends JobTask {
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         upstreamResults = result;
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 }

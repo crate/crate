@@ -34,6 +34,7 @@ import io.crate.operation.join.nestedloop.NestedLoopOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import rx.Observable;
 
 import java.io.Closeable;
 import java.util.Arrays;
@@ -106,5 +107,10 @@ public class NestedLoopTask extends JobTask implements PageableTask {
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         // ignore
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 }

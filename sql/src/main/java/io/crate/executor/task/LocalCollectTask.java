@@ -26,12 +26,14 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.executor.Page;
 import io.crate.executor.QueryResult;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import rx.Observable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -88,5 +90,10 @@ public class LocalCollectTask extends JobTask {
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         // ignored, comes always first
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 }

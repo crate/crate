@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -29,6 +30,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
 import io.crate.executor.JobTask;
+import io.crate.executor.Page;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.ColumnIdent;
@@ -53,6 +55,8 @@ import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
+import rx.Observable;
+import rx.Subscriber;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -128,7 +132,6 @@ public class ESGetTask extends JobTask {
     private MultiGetRequest prepareMultiGetRequest(ESGetNode node, FetchSourceContext fsc) {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         for (DocKeys.DocKey key : node.docKeys()) {
-            String id = key.id();
             MultiGetRequest.Item item = new MultiGetRequest.Item(
                     indexName(node.tableInfo(), key.partitionValues()), Constants.DEFAULT_MAPPING_TYPE, key.id());
             item.fetchSourceContext(fsc);
@@ -139,6 +142,7 @@ public class ESGetTask extends JobTask {
         return multiGetRequest;
     }
 
+    @Nullable
     private FlatProjectorChain getFlatProjectorChain(ProjectionToProjectorVisitor projectionToProjectorVisitor,
                                                      ESGetNode node) {
         FlatProjectorChain projectorChain = null;
@@ -153,7 +157,7 @@ public class ESGetTask extends JobTask {
                 }
             }
             TopNProjection topNProjection = new TopNProjection(
-                    com.google.common.base.Objects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    MoreObjects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     node.offset(),
                     orderBySymbols,
                     node.reverseFlags(),
@@ -304,6 +308,34 @@ public class ESGetTask extends JobTask {
     @SuppressWarnings("unchecked")
     public void start() {
         transportAction.execute(request, listener);
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        return Observable.create(new Observable.OnSubscribe<Page>() {
+            @Override
+            public void call(final Subscriber<? super Page> subscriber) {
+                start();
+                Futures.addCallback(results.get(0), new FutureCallback<TaskResult>() {
+                    @Override
+                    public void onSuccess(@Nullable TaskResult result) {
+                        if (!subscriber.isUnsubscribed()) {
+                            if (result != null) {
+                                subscriber.onNext(result.page());
+                            }
+                            subscriber.onCompleted();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        if (!subscriber.isUnsubscribed()) {
+                            subscriber.onError(t);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     @Override

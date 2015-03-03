@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.google.common.base.Joiner;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
@@ -567,8 +568,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         for (Object[] objects : resp.rows()) {
             names.add((String)objects[2]);
         }
-        assertTrue((names.contains("distributing collect") && names.contains("distributed merge")) || names.contains("collect"));
-        assertTrue(names.contains("localMerge"));
+        assertTrue(Joiner.on(",").join(names), (names.contains("distributing collect") && names.contains("distributed merge")) || names.contains("collect"));
+        assertTrue(Joiner.on(",").join(names), names.contains("localMerge"));
 
         executor.exec("reset global stats.enabled, stats.operations_log_size");
         waitNoPendingTasksOnAll();

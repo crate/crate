@@ -28,9 +28,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.TaskExecutionException;
 import io.crate.executor.JobTask;
+import io.crate.executor.Page;
 import io.crate.executor.TaskResult;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import rx.Observable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -89,6 +91,11 @@ public abstract class AbstractChainedTask extends JobTask {
     @Override
     public List<ListenableFuture<TaskResult>> result() {
         return resultList;
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 
     protected void warnNotAcknowledged(String operationName) {

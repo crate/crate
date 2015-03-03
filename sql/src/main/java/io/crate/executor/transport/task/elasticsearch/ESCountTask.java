@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.JobTask;
+import io.crate.executor.Page;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.dql.ESCountNode;
@@ -33,6 +34,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.count.TransportCountAction;
+import rx.Observable;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -110,5 +112,10 @@ public class ESCountTask extends JobTask {
         public void onFailure(Throwable e) {
             result.setException(e);
         }
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 }

@@ -22,9 +22,9 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import rx.Observable;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * A task gets executed as part of or in the context of a
@@ -48,6 +48,8 @@ public interface Task {
      * start the execution
      */
     void start();
+
+    Observable<Page> asObservable();
 
     /**
      * Get the result of the task execution as a list of

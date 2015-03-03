@@ -25,11 +25,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.JobTask;
-import io.crate.executor.RowCountResult;
-import io.crate.executor.Task;
-import io.crate.executor.TaskResult;
+import io.crate.executor.*;
 import io.crate.executor.transport.TransportExecutor;
+import rx.Observable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -106,5 +104,10 @@ public class UpsertTask extends JobTask {
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         // should be only called for bulk update-by-query tasks where multiple UpsertTasks could exist
         resultList.addAll(result);
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 }

@@ -23,6 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.Page;
 import io.crate.executor.TaskResult;
 import io.crate.executor.JobTask;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -30,6 +31,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
+import rx.Observable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -98,5 +100,10 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
                         getClass().getSimpleName()));
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        throw new UnsupportedOperationException("asObservable() not supported.");
     }
 }

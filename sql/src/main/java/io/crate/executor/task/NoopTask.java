@@ -24,8 +24,10 @@ package io.crate.executor.task;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.Page;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import rx.Observable;
 
 import java.util.List;
 
@@ -54,5 +56,10 @@ public class NoopTask implements Task {
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
 
+    }
+
+    @Override
+    public Observable<Page> asObservable() {
+        return Observable.empty();
     }
 }
