@@ -81,7 +81,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     public static class Context {
 
-        private final IntObjectOpenHashMap<ShardId> jobSearchContextIds = new IntObjectOpenHashMap<>();
+        private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
+        private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
         private int jobSearchContextIdBaseSeq = 0;
 
         /**
@@ -102,11 +103,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             int jobSearchContextId = jobSearchContextIdBaseSeq;
             jobSearchContextIdBaseSeq += routing.numShards();
             routing.jobSearchContextIdBase(jobSearchContextId);
-            for (Map<String, List<Integer>> nodeRouting : routing.locations().values()) {
+            for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
+                String nodeId = nodeEntry.getKey();
+                Map<String, List<Integer>> nodeRouting = nodeEntry.getValue();
                 if (nodeRouting != null) {
                     for (Map.Entry<String, List<Integer>> entry : nodeRouting.entrySet()) {
                         for (Integer shardId : entry.getValue()) {
-                            jobSearchContextIds.put(jobSearchContextId++, new ShardId(entry.getKey(), shardId));
+                            jobSearchContextIdToShard.put(jobSearchContextId, new ShardId(entry.getKey(), shardId));
+                            jobSearchContextIdToNode.put(jobSearchContextId, nodeId);
+                            jobSearchContextId++;
                         }
                     }
                 }
@@ -114,11 +119,19 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         /**
-         * Return a {@link org.elasticsearch.index.shard.ShardId} for a given <code>jobSearchContextId</code>
-         * if exists at the {@link #jobSearchContextIds} registry map.
+         * Return a {@link ShardId} for a given <code>jobSearchContextId</code>
+         * if exists at the {@link #jobSearchContextIdToShard} registry map.
          */
         public ShardId shardId(int jobSearchContextId) {
-            return jobSearchContextIds.get(jobSearchContextId);
+            return jobSearchContextIdToShard.get(jobSearchContextId);
+        }
+
+        /**
+         * Return a nodeId string for a given <code>jobSearchContextId</code>
+         * if exists at the {@link #jobSearchContextIdToNode} registry map.
+         */
+        public String nodeId(int jobSearchContextId) {
+            return jobSearchContextIdToNode.get(jobSearchContextId);
         }
     }
 

@@ -89,13 +89,15 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     private final JobCollectContext jobCollectContext;
     private final CrateSearchContext searchContext;
     private final int jobSearchContextId;
+    private final boolean closeContext;
 
     public LuceneDocCollector(List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
                               Projector downStreamProjector,
                               JobCollectContext jobCollectContext,
                               CrateSearchContext searchContext,
-                              int jobSearchContextId) throws Exception {
+                              int jobSearchContextId,
+                              boolean closeContext) throws Exception {
         downstream(downStreamProjector);
         this.topLevelInputs = inputs;
         this.collectorExpressions = collectorExpressions;
@@ -103,6 +105,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         this.jobSearchContextId = jobSearchContextId;
         this.jobCollectContext = jobCollectContext;
         this.searchContext = searchContext;
+        this.closeContext = closeContext;
     }
 
     @Override
@@ -184,11 +187,15 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         } finally {
             jobCollectContext.releaseContext(searchContext);
             // should only be done on QAF not QTF!
-            jobCollectContext.closeContext(jobSearchContextId);
+            if (closeContext) {
+                jobCollectContext.closeContext(jobSearchContextId);
+            }
         }
     }
 
     public CrateSearchContext searchContext() {
         return searchContext;
     }
+
+
 }

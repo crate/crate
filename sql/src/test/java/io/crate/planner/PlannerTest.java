@@ -1624,10 +1624,13 @@ public class PlannerTest {
         assertThat(collectNode.routing().jobSearchContextIdBase(), is(jobSearchContextIdBaseSeq-shardNum));
 
         int idx = 0;
-        for (Map<String, List<Integer>> locations : collectNode.routing().locations().values()) {
-            for (Map.Entry<String, List<Integer>> entry : locations.entrySet()) {
+        for (Map.Entry<String, Map<String, List<Integer>>> locations : collectNode.routing().locations().entrySet()) {
+            String nodeId = locations.getKey();
+            for (Map.Entry<String, List<Integer>> entry : locations.getValue().entrySet()) {
                 for (Integer shardId : entry.getValue()) {
-                    assertThat(plannerContext.shardId(idx++), is(new ShardId(entry.getKey(), shardId)));
+                    assertThat(plannerContext.shardId(idx), is(new ShardId(entry.getKey(), shardId)));
+                    assertThat(plannerContext.nodeId(idx), is(nodeId));
+                    idx++;
                 }
             }
         }

@@ -68,7 +68,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public class MapSideDataCollectOperation implements CollectOperation<Object[][]> {
 
-    private static class SimpleShardCollectFuture extends ShardCollectFuture {
+    public static class SimpleShardCollectFuture extends ShardCollectFuture {
 
         private final CollectContextService collectContextService;
         private final UUID jobId;
@@ -82,7 +82,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         }
 
         @Override
-        protected void onAllShardsFinished() {
+        public void onAllShardsFinished() {
             Futures.addCallback(resultProvider.result(), new FutureCallback<Object[][]>() {
                 @Override
                 public void onSuccess(@Nullable Object[][] result) {
@@ -401,6 +401,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     protected ShardCollectFuture getShardCollectFuture(int numShards,
                                                        ShardProjectorChain projectorChain,
                                                        CollectNode collectNode) {
-        return new SimpleShardCollectFuture(numShards, projectorChain, collectContextService, collectNode.jobId().get());
+        return new SimpleShardCollectFuture(numShards, projectorChain, collectContextService,
+                collectNode.jobId().get());
     }
 }

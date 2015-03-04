@@ -42,13 +42,13 @@ public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
         this.resultProvider = resultProvider;
     }
 
-    protected void shardFinished() {
+    public void shardFinished() {
         if (numShards.decrementAndGet() <= 0) {
             onAllShardsFinished();
         }
     }
 
-    protected void shardFailure(Throwable t) {
+    public void shardFailure(Throwable t) {
         lastException.set(t);
         if (numShards.decrementAndGet() <= 0) {
             onAllShardsFinished();
@@ -64,5 +64,5 @@ public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
      * take action when all shards finished collecting
      * and all data is completely put into projectors
      */
-    protected abstract void onAllShardsFinished();
+    public abstract void onAllShardsFinished();
 }
