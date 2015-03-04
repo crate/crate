@@ -77,7 +77,10 @@ public class CollectContextService extends AbstractLifecycleComponent<CollectCon
     /**
      * Return a {@link JobCollectContext} for given <code>jobId</code>, create new one if not found.
      */
-    public JobCollectContext acquireContext(UUID jobId) {
+    public JobCollectContext acquireContext(UUID jobId, boolean create) {
+        if (create == false) {
+            return activeContexts.get(jobId);
+        }
         JobCollectContext jobCollectContext = new JobCollectContext(jobId);
         jobCollectContext.keepAlive(DEFAULT_KEEP_ALIVE);
         JobCollectContext jobCollectContextExisting =
@@ -87,6 +90,10 @@ public class CollectContextService extends AbstractLifecycleComponent<CollectCon
         }
         contextProcessing(jobCollectContext);
         return jobCollectContext;
+    }
+
+    public JobCollectContext acquireContext(UUID jobId) {
+        return acquireContext(jobId, true);
     }
 
     /**

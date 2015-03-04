@@ -21,14 +21,22 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.NodeFetchRequest;
+import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.TransportExecutor;
+import io.crate.executor.transport.TransportFetchNodeAction;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
@@ -39,12 +47,16 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateTestCluster;
+import io.crate.types.IntegerType;
+import io.crate.types.StringType;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.ActionListener;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.*;
@@ -56,9 +68,6 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
-
-
-    Setup setup = new Setup(sqlExecutor);
 
     TransportExecutor executor;
     DocSchemaInfo docSchemaInfo;
@@ -76,9 +85,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         docSchemaInfo = null;
     }
 
-
-    @Test
-    public void testCollectDocId() throws Exception {
+    private void setUpCharacters() {
         sqlExecutor.exec("create table characters (id int primary key, name string) " +
                 "clustered into 2 shards with(number_of_replicas=0)");
         sqlExecutor.ensureGreen();
@@ -89,6 +96,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 }
         );
         sqlExecutor.refresh("characters");
+    }
+
+
+    @Test
+    public void testCollectDocId() throws Exception {
+        setUpCharacters();
 
         TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
         ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
@@ -129,5 +142,101 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     }
 
+    @Test
+    public void testFetchAction() throws Exception {
+        setUpCharacters();
+
+        TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
+        ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
+        Symbol docIdRef = new Reference(docIdRefInfo);
+        Planner.Context plannerContext = new Planner.Context();
+
+        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
+        collectNode.toCollect(Arrays.asList(docIdRef));
+        collectNode.outputTypes(asList(docIdRefInfo.type()));
+        collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.closeContext(false);
+        plannerContext.allocateJobSearchContextIds(collectNode.routing());
+
+        Plan plan = new IterablePlan(collectNode);
+        Job job = executor.newJob(plan);
+
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+
+        // extract docIds by nodeId and jobSearchContextId
+        Map<String, Map<Integer, IntArrayList>> jobSearchContextDocIds = new TreeMap<>();
+        for (ListenableFuture<TaskResult> nodeResult : result) {
+            TaskResult taskResult = nodeResult.get();
+            long docId = (long)taskResult.rows()[0][0];
+            // unpack jobSearchContextId and reader doc id from docId
+            int jobSearchContextId = (int)(docId >> 32);
+            int doc = (int)docId;
+            String nodeId = plannerContext.nodeId(jobSearchContextId);
+            Map<Integer, IntArrayList> perNode = jobSearchContextDocIds.get(nodeId);
+            if (perNode == null) {
+                perNode = new TreeMap<>();
+                jobSearchContextDocIds.put(nodeId, perNode);
+            }
+            IntArrayList docIds = perNode.get(jobSearchContextId);
+            if (docIds == null) {
+                docIds = new IntArrayList();
+                perNode.put(jobSearchContextId, docIds);
+            }
+            docIds.add(doc);
+        }
+
+        TransportFetchNodeAction transportFetchNodeAction = cluster().getInstance(TransportFetchNodeAction.class);
+
+        ReferenceInfo idRefInfo = new ReferenceInfo(
+                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("id")),
+                RowGranularity.DOC,
+                IntegerType.INSTANCE
+                );
+        ReferenceInfo nameRefInfo = new ReferenceInfo(
+                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("name")),
+                RowGranularity.DOC,
+                StringType.INSTANCE
+        );
+        List<Symbol> toFetchSymbols = ImmutableList.<Symbol>of(new Reference(idRefInfo), new Reference(nameRefInfo));
+
+
+        final CountDownLatch latch = new CountDownLatch(jobSearchContextDocIds.size());
+
+        final List<Object[]> rows = new ArrayList<>();
+        for (Map.Entry<String, Map<Integer, IntArrayList>> nodeEntry : jobSearchContextDocIds.entrySet()) {
+            NodeFetchRequest nodeFetchRequest = new NodeFetchRequest();
+            nodeFetchRequest.jobId(collectNode.jobId().get());
+            nodeFetchRequest.toFetchSymbols(toFetchSymbols);
+            nodeFetchRequest.closeContext(true);
+            for (Map.Entry<Integer, IntArrayList> entry : nodeEntry.getValue().entrySet()) {
+                for (IntCursor cursor : entry.getValue()) {
+                    nodeFetchRequest.addDocId(entry.getKey(), cursor.value);
+                }
+            }
+
+            transportFetchNodeAction.execute(nodeEntry.getKey(), nodeFetchRequest, new ActionListener<NodeFetchResponse>() {
+                @Override
+                public void onResponse(NodeFetchResponse nodeFetchResponse) {
+                    for (Object[] row : nodeFetchResponse.rows()) {
+                        rows.add(row);
+                    }
+                    latch.countDown();
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    latch.countDown();
+                    fail(e.getMessage());
+                }
+            });
+        }
+        latch.await();
+
+        assertThat(rows.size(), is(2));
+        assertThat((Integer)rows.get(0)[0], anyOf(is(1), is(2)));
+        assertThat((BytesRef) rows.get(0)[1], anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
+        assertThat((Integer)rows.get(1)[0], anyOf(is(1), is(2)));
+        assertThat((BytesRef) rows.get(1)[1], anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
+    }
 
 }

@@ -72,7 +72,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public abstract class MapSideDataCollectOperation<T extends ResultProvider> implements CollectOperation {
 
 
-    private static class SimpleShardCollectFuture extends ShardCollectFuture {
+    public static class SimpleShardCollectFuture extends ShardCollectFuture {
 
         private final CollectContextService collectContextService;
         private final UUID jobId;
@@ -90,7 +90,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
         }
 
         @Override
-        protected void onAllShardsFinished() {
+        public void onAllShardsFinished() {
             Futures.addCallback(upstreamResult, new FutureCallback<Bucket>() {
                 @Override
                 public void onSuccess(@Nullable Bucket result) {

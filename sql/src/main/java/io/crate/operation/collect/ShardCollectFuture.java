@@ -40,13 +40,13 @@ public abstract class ShardCollectFuture extends AbstractFuture<Bucket> {
         this.numShards = new AtomicInteger(numShards);
     }
 
-    protected void shardFinished() {
+    public void shardFinished() {
         if (numShards.decrementAndGet() <= 0) {
             onAllShardsFinished();
         }
     }
 
-    protected void shardFailure(Throwable t) {
+    public void shardFailure(Throwable t) {
         lastException.set(t);
         setException(t);
         if (numShards.decrementAndGet() <= 0) {
@@ -62,5 +62,5 @@ public abstract class ShardCollectFuture extends AbstractFuture<Bucket> {
      * take action when all shards finished collecting
      * and all data is completely put into projectors
      */
-    protected abstract void onAllShardsFinished();
+    public abstract void onAllShardsFinished();
 }
