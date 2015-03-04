@@ -27,7 +27,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.WhereClause;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
@@ -189,12 +188,11 @@ public class ShardCollectService {
         );
     }
 
-    private CrateCollector getLuceneIndexCollector(CollectNode collectNode,
+    private CrateCollector getLuceneIndexCollector(final CollectNode collectNode,
                                                    final RowDownstream downstream,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId) throws Exception {
         final CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
-        final WhereClause whereClause = collectNode.whereClause();
         final SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
         final IndexShard indexShard = indexService.shardSafe(shardId.id());
@@ -224,7 +222,8 @@ public class ShardCollectService {
                                     Optional.<Scroll>absent(),
                                     CollectContextService.DEFAULT_KEEP_ALIVE
                             );
-                            LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(whereClause, localContext, indexService.cache());
+                            LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(
+                                    collectNode.whereClause(), localContext, indexService.cache());
                             localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
                             Float minScore = ctx.minScore();
                             if (minScore != null) {
@@ -236,7 +235,8 @@ public class ShardCollectService {
                                     downstream,
                                     jobCollectContext,
                                     localContext,
-                                    jobSearchContextId);
+                                    jobSearchContextId,
+                                    collectNode.closeContext());
                         } catch (Throwable t) {
                             if (localContext != null) {
                                 localContext.close();
