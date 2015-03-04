@@ -105,7 +105,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Mu
         }
 
         @Override
-        protected void onAllShardsFinished() {
+        public void onAllShardsFinished() {
             Throwable throwable = lastException.get();
             if (throwable != null) {
                 setException(throwable);
