@@ -30,6 +30,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
@@ -50,7 +51,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     @Nullable
     private final ShardId shardId;
     @Nullable
-
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
@@ -146,6 +146,16 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                     projection.offset());
         }
         return projector;
+    }
+
+    @Override
+    public Projector visitMergeProjection(MergeProjection projection, Context context) {
+        int[] orderByIndices = OrderByPositionVisitor.orderByPositions(projection.orderBy(),
+                (List<Symbol>)projection.outputs());
+        return new MergeProjector(
+                orderByIndices,
+                projection.reverseFlags(),
+                projection.nullsFirst());
     }
 
     @Override
