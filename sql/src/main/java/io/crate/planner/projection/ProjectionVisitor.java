@@ -69,5 +69,9 @@ public class ProjectionVisitor<C, R> {
     public R visitFetchProjection(FetchProjection projection, C context) {
         return visitProjection(projection, context);
     }
+
+    public R visitMergeProjection(MergeProjection projection, C context) {
+        return visitProjection(projection, context);
+    }
 }
 

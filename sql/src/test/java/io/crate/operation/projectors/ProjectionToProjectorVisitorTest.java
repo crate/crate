@@ -36,10 +36,7 @@ import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
@@ -84,6 +81,10 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     private Row spare(Object... cells) {
         spare.cells(cells);
         return spare;
+    }
+
+    private Row row(Object... cells) {
+        return new RowN(cells);
     }
 
     @Before
@@ -267,6 +268,48 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
         Bucket rows = collectingProjector.result().get();
         assertThat(rows.size(), is(1));
+    }
+
+    @Test
+    public void testMergeProjection() throws Exception {
+        // select a,b from t order by b,c
+        Symbol a = new InputColumn(0, DataTypes.INTEGER);
+        Symbol b = new InputColumn(1, DataTypes.INTEGER);
+        Symbol c = new InputColumn(2, DataTypes.INTEGER);
+
+        MergeProjection projection = new MergeProjection(
+                Arrays.<Symbol>asList(a,b),
+                Arrays.<Symbol>asList(b,c),
+                new boolean[]{false, false},
+                new Boolean[]{false, false}
+        );
+        MergeProjector projector = (MergeProjector)visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+
+        CollectingProjector collectingProjector = new CollectingProjector();
+        projector.downstream(collectingProjector);
+
+        RowDownstreamHandle handle1 = projector.registerUpstream(null);
+        RowDownstreamHandle handle2 = projector.registerUpstream(null);
+        RowDownstreamHandle handle3 = projector.registerUpstream(null);
+
+        projector.startProjection();
+
+        handle1.setNextRow(row(5, 1, 1));
+        handle2.setNextRow(row(0, 1, 2));
+        handle3.setNextRow(row(7, 0, 2));
+
+        // 7, 0, 2 is the lowest row and is emitted
+        assertThat(collectingProjector.rows.size(), is(1));
+        assertThat((int)collectingProjector.rows.get(0)[0], is(7));
+        handle3.finish();
+
+        // 5, 1, 1 is emitted
+        assertThat(collectingProjector.rows.size(), is(2));
+        assertThat((int)collectingProjector.rows.get(1)[0], is(5));
+        handle1.finish();
+
+        assertThat(collectingProjector.rows.size(), is(3));
+        assertThat((int)collectingProjector.rows.get(2)[0], is(0));
     }
 
 }

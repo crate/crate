@@ -31,7 +31,8 @@ public enum ProjectionType {
     INDEX_WRITER(SourceIndexWriterProjection.FACTORY),
     COLUMN_INDEX_WRITER(ColumnIndexWriterProjection.FACTORY),
     UPDATE(UpdateProjection.FACTORY),
-    FETCH(FetchProjection.FACTORY);
+    FETCH(FetchProjection.FACTORY),
+    MERGE(MergeProjection.FACTORY);
 
     private final Projection.ProjectionFactory factory;
 
