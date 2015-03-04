@@ -47,9 +47,10 @@ public class CollectNode extends AbstractDQLPlanNode {
     private Routing routing;
     private List<Symbol> toCollect;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
-    private RowGranularity maxRowgranularity = RowGranularity.CLUSTER;
+    private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
     private List<String> downStreamNodes;
     private boolean isPartitioned = false;
+    private boolean closeContext = true;
 
     public CollectNode(String id) {
         super(id);
@@ -137,12 +138,12 @@ public class CollectNode extends AbstractDQLPlanNode {
     }
 
     public RowGranularity maxRowGranularity() {
-        return maxRowgranularity;
+        return maxRowGranularity;
     }
 
     public void maxRowGranularity(RowGranularity newRowGranularity) {
-        if (maxRowgranularity.compareTo(newRowGranularity) < 0) {
-            maxRowgranularity = newRowGranularity;
+        if (maxRowGranularity.compareTo(newRowGranularity) < 0) {
+            maxRowGranularity = newRowGranularity;
         }
     }
 
@@ -173,7 +174,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             toCollect = ImmutableList.of();
         }
 
-        maxRowgranularity = RowGranularity.fromStream(in);
+        maxRowGranularity = RowGranularity.fromStream(in);
 
         if (in.readBoolean()) {
             routing = new Routing();
@@ -190,6 +191,7 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (in.readBoolean()) {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
+        closeContext = in.readBoolean();
     }
 
     @Override
@@ -202,7 +204,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             Symbol.toStream(toCollect.get(i), out);
         }
 
-        RowGranularity.toStream(maxRowgranularity, out);
+        RowGranularity.toStream(maxRowGranularity, out);
 
         if (routing != null) {
             out.writeBoolean(true);
@@ -225,6 +227,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             out.writeLong(jobId.get().getMostSignificantBits());
             out.writeLong(jobId.get().getLeastSignificantBits());
         }
+        out.writeBoolean(closeContext);
     }
 
     /**
@@ -244,10 +247,18 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (changed) {
             result = new CollectNode(id(), routing, newToCollect, projections);
             result.downStreamNodes = downStreamNodes;
-            result.maxRowgranularity = maxRowgranularity;
+            result.maxRowGranularity = maxRowGranularity;
             result.jobId = jobId;
             result.whereClause(newWhereClause);
         }
         return result;
+    }
+
+    public void closeContext(boolean closeContext) {
+        this.closeContext = closeContext;
+    }
+
+    public boolean closeContext() {
+        return closeContext;
     }
 }

@@ -76,7 +76,7 @@ public class DocCollectorExpression extends
         };
     }
 
-    abstract static class ChildDocCollectorExpression<ReturnType> extends
+    public abstract static class ChildDocCollectorExpression<ReturnType> extends
             LuceneCollectorExpression<ReturnType> implements ColumnReferenceExpression {
 
         protected SourceLookup sourceLookup;
