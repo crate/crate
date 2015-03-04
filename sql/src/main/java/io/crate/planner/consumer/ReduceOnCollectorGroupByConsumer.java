@@ -23,7 +23,10 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
@@ -39,6 +42,7 @@ import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
@@ -150,21 +154,31 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 table.tableRelation().validateOrderBy(orderBy);
             }
 
-            PlanNodeBuilder.CollectorOrderByAndLimit collectorOrderByAndLimit;
+            PlanNodeBuilder.GroupByCollectNodeInfo groupByCollectNodeInfo;
             if(context.rootRelation() == table && !tableInfo.schemaInfo().systemSchema()) {
-                collectorOrderByAndLimit = PlanNodeBuilder.createCollectorOrderAndLimit(table.querySpec());
+                groupByCollectNodeInfo = PlanNodeBuilder.createGroupByCollectNodeInfo(
+                        table.querySpec(), splitPoints
+                );
             } else {
-                collectorOrderByAndLimit = new PlanNodeBuilder.CollectorOrderByAndLimit(null, null);
+                groupByCollectNodeInfo = new PlanNodeBuilder.GroupByCollectNodeInfo(splitPoints.leaves(), null, null);
             }
 
             List<Projection> projections = new ArrayList<>();
+            if (groupByCollectNodeInfo.requiresMerge()) {
+                MergeProjection mergeProjection = projectionBuilder.mergeProjection(
+                        splitPoints.leaves(),
+                        groupByCollectNodeInfo.orderBy()
+                );
+                projections.add(mergeProjection);
+            }
+
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                     splitPoints.leaves(),
                     table.querySpec().groupBy(),
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
                     Aggregation.Step.FINAL,
-                    collectorOrderByAndLimit.limit()
+                    groupByCollectNodeInfo.groupProjectionLimit()
             );
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
             projections.add(groupProjection);
@@ -201,10 +215,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableInfo,
                     table.querySpec().where(),
-                    splitPoints.leaves(),
+                    groupByCollectNodeInfo.toCollect(),
                     ImmutableList.copyOf(projections),
-                    collectorOrderByAndLimit.orderBy(),
-                    collectorOrderByAndLimit.limit()
+                    groupByCollectNodeInfo.orderBy(),
+                    null
             );
             // handler
             List<Projection> handlerProjections = new ArrayList<>();

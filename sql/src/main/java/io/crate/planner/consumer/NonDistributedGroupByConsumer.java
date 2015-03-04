@@ -34,6 +34,7 @@ import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
@@ -119,11 +120,13 @@ public class NonDistributedGroupByConsumer implements Consumer {
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
-            PlanNodeBuilder.CollectorOrderByAndLimit collectorOrderByAndLimit;
+            PlanNodeBuilder.GroupByCollectNodeInfo groupByCollectNodeInfo;
             if(context.consumerContext.rootRelation() == table && !tableInfo.schemaInfo().systemSchema()) {
-                collectorOrderByAndLimit = PlanNodeBuilder.createCollectorOrderAndLimit(table.querySpec());
+                groupByCollectNodeInfo = PlanNodeBuilder.createGroupByCollectNodeInfo(
+                        table.querySpec(), splitPoints
+                );
             } else {
-                collectorOrderByAndLimit = new PlanNodeBuilder.CollectorOrderByAndLimit(null, null);
+                groupByCollectNodeInfo = new PlanNodeBuilder.GroupByCollectNodeInfo(splitPoints.leaves(), null, null);
             }
 
             // mapper / collect
@@ -133,15 +136,24 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL,
-                    collectorOrderByAndLimit.limit());
+                    groupByCollectNodeInfo.groupProjectionLimit());
+
+            ImmutableList<Projection> collectorProjections = ImmutableList.<Projection>of(groupProjection);
+            if (groupByCollectNodeInfo.requiresMerge()) {
+                MergeProjection mergeProjection = projectionBuilder.mergeProjection(
+                        splitPoints.leaves(),
+                        groupByCollectNodeInfo.orderBy()
+                );
+                collectorProjections = ImmutableList.of(mergeProjection, groupProjection);
+            }
 
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableInfo,
                     table.querySpec().where(),
-                    splitPoints.leaves(),
-                    ImmutableList.<Projection>of(groupProjection),
-                    collectorOrderByAndLimit.orderBy(),
-                    collectorOrderByAndLimit.limit()
+                    groupByCollectNodeInfo.toCollect(),
+                    collectorProjections,
+                    groupByCollectNodeInfo.orderBy(),
+                    null
             );
             // handler
             List<Symbol> collectOutputs = new ArrayList<>(

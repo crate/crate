@@ -21,10 +21,12 @@
 
 package io.crate.planner;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
@@ -35,6 +37,7 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
@@ -191,36 +194,65 @@ public class PlanNodeBuilder {
         return collect(tableInfo, whereClause, toCollect, projections, partitionIdent, null, null, null);
     }
 
-    public static class CollectorOrderByAndLimit {
-
-        private final OrderBy orderBy;
-        private final Integer limit;
-
-        public CollectorOrderByAndLimit(@Nullable OrderBy orderBy, @Nullable Integer limit) {
-            this.orderBy = orderBy;
-            this.limit = limit;
+    public static GroupByCollectNodeInfo createGroupByCollectNodeInfo(QuerySpec querySpec, SplitPoints splitPoints) {
+        OrderBy orderBy = null;
+        Integer limit = null;
+        if (!querySpec.hasAggregates()) {
+            orderBy = querySpec.orderBy();
+            if(orderBy == null) {
+                // No orderBy given, order by groupKeys
+                orderBy = OrderBy.fromSymbols(querySpec.groupBy());
+            }
+            orderBy = orderBy != null && orderBy.hasAggregation() ? null : orderBy;
+            limit = orderBy == null ? null : querySpec.offset() + MoreObjects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
         }
 
-        public OrderBy orderBy() {
+        List<Symbol> toCollect;
+        if (orderBy != null) {
+            toCollect = new ArrayList<>();
+            toCollect.addAll(splitPoints.leaves());
+            for (Symbol symbol : orderBy.orderBySymbols()) {
+                if (!splitPoints.leaves().contains(symbol)) {
+                    toCollect.add(symbol);
+                }
+            }
+        } else {
+            toCollect = splitPoints.leaves();
+        }
+        return new GroupByCollectNodeInfo(toCollect, orderBy, limit);
+
+    }
+
+    public static class GroupByCollectNodeInfo {
+
+        private final List<Symbol> toCollect;
+
+        private final OrderBy orderBy;
+
+        private final Integer groupProjectionLimit;
+
+        public GroupByCollectNodeInfo(List<Symbol> toCollect,
+                                      @Nullable OrderBy orderBy,
+                                      @Nullable Integer groupProjectionLimit) {
+            this.toCollect = toCollect;
+            this.orderBy = orderBy;
+            this.groupProjectionLimit = groupProjectionLimit;
+        }
+
+        public List<Symbol> toCollect() {
+            return toCollect;
+        }
+
+        public @Nullable OrderBy orderBy() {
             return orderBy;
         }
 
-        public Integer limit() {
-            return limit;
+        public Integer groupProjectionLimit() {
+            return groupProjectionLimit;
         }
-    }
 
-    public static CollectorOrderByAndLimit createCollectorOrderAndLimit(QuerySpec querySpec) {
-        if (querySpec.limit() == null || querySpec.hasAggregates()) {
-            return new CollectorOrderByAndLimit(null, null);
+        public boolean requiresMerge() {
+            return orderBy != null;
         }
-        OrderBy collectOrderBy = querySpec.orderBy();
-        if(collectOrderBy == null) {
-            // No orderBy given, order by groupKeys
-            collectOrderBy = OrderBy.fromSymbols(querySpec.groupBy());
-        }
-        collectOrderBy = collectOrderBy != null && collectOrderBy.hasAggregation() ? null : collectOrderBy;
-        Integer collectorLimit = collectOrderBy == null ? null : querySpec.offset() + querySpec.limit();
-        return new CollectorOrderByAndLimit(collectOrderBy, collectorLimit);
     }
 }

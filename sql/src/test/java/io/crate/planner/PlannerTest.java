@@ -1285,11 +1285,12 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select id from users group by id having id > 0");
         CollectNode collectNode = planNode.collectNode();
-        assertThat(collectNode.projections().size(), is(2));
-        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(collectNode.projections().get(1), instanceOf(FilterProjection.class));
+        assertThat(collectNode.projections().size(), is(3));
+        assertThat(collectNode.projections().get(0), instanceOf(MergeProjection.class));
+        assertThat(collectNode.projections().get(1), instanceOf(GroupProjection.class));
+        assertThat(collectNode.projections().get(2), instanceOf(FilterProjection.class));
 
-        FilterProjection filterProjection = (FilterProjection)collectNode.projections().get(1);
+        FilterProjection filterProjection = (FilterProjection)collectNode.projections().get(2);
         assertThat(filterProjection.requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(filterProjection.outputs().size(), is(1));
         assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
@@ -1307,10 +1308,10 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select id from users group by id order by id limit 2 offset 2");
         CollectNode collectNode = planNode.collectNode();
-        assertThat(collectNode.limit(), is(4)); // limit + offset
+        assertThat(collectNode.limit(), is(nullValue()));
         assertThat(collectNode.orderBy().orderBySymbols().size(), is(1));
         assertThat(((Reference)collectNode.orderBy().orderBySymbols().get(0)).ident().columnIdent().name(), is("id"));
-        assertThat(((GroupProjection)collectNode.projections().get(0)).limit(), is(4));
+        assertThat(((GroupProjection)collectNode.projections().get(1)).limit(), is(4));
     }
 
     @Test
@@ -1328,10 +1329,11 @@ public class PlannerTest extends CrateUnitTest {
         DistributedGroupBy distributedGroupBy = (DistributedGroupBy) plan(
                 "select name from users group by name order by name desc limit 1 offset 3");
         CollectNode collectNode = distributedGroupBy.collectNode();
-        assertThat(collectNode.limit(), is(4));
+        assertThat(collectNode.limit(), is(nullValue()));
         assertThat(collectNode.orderBy().orderBySymbols().size(), is(1));
         assertThat(((Reference)collectNode.orderBy().orderBySymbols().get(0)).ident().columnIdent().name(), is("name"));
-        assertThat(((GroupProjection)collectNode.projections().get(0)).limit(), is(4));
+        assertThat(collectNode.projections().get(0), is(instanceOf(MergeProjection.class)));
+        assertThat(((GroupProjection)collectNode.projections().get(1)).limit(), is(4));
     }
 
     @Test

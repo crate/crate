@@ -54,7 +54,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     @Nullable
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
 
-
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -136,6 +135,25 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                     projection.offset());
         }
         return projector;
+    }
+
+    @Override
+    public Projector visitMergeProjection(MergeProjection projection, Context context) {
+        int[] orderByIndices = new int[projection.orderBy().size()];
+        int notInOutputs = 0;
+        for (int i = 0; i < projection.orderBy().size(); i++) {
+            int idx = projection.outputs().indexOf(projection.orderBy().get(i));
+            if (idx >= 0) {
+                orderByIndices[i] = idx;
+            } else { // symbol is not in the outputs so it must be appended to the inputs
+                orderByIndices[i] = projection.outputs().size() + notInOutputs;
+                notInOutputs++;
+            }
+        }
+        return new MergeProjector(
+                orderByIndices,
+                projection.reverseFlags(),
+                projection.nullsFirst());
     }
 
     @Override
