@@ -1026,8 +1026,8 @@ public class DocIndexMetaDataTest extends RandomizedTest {
                     .endObject()
                 .endObject();
         Settings templateSettings =  ImmutableSettings.builder()
-                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
-                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
+                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 2)
+                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 6)
                 .build();
         IndexMetaData metaData = getIndexMetaData("test1", builder, templateSettings, null);
         DocIndexMetaData md = newMeta(metaData, "test1");
@@ -1045,8 +1045,28 @@ public class DocIndexMetaDataTest extends RandomizedTest {
 
         DocIndexMetaData merged = md.merge(partitionMD, mock(TransportPutIndexTemplateAction.class), true);
 
-        assertThat(merged.numberOfReplicas(), is(BytesRefs.toBytesRef(1)));
-        assertThat(merged.numberOfShards(),is(5));
+        assertThat(merged.numberOfReplicas(), is(BytesRefs.toBytesRef(2)));
+        assertThat(merged.numberOfShards(), is(6));
+    }
+
+    @Test
+    public void testSchemaEquals() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
+        DocIndexMetaData mdSame = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
+        DocIndexMetaData mdOther = getDocIndexMetaDataFromStatement("create table schema_equals2 (id byte, tags array(string))");
+        DocIndexMetaData mdWithPk = getDocIndexMetaDataFromStatement("create table schema_equals3 (id byte primary key, tags array(string))");
+        DocIndexMetaData mdWithStringCol = getDocIndexMetaDataFromStatement("create table schema_equals4 (id byte, tags array(string), col string)");
+        DocIndexMetaData mdWithStringColNotAnalyzed = getDocIndexMetaDataFromStatement("create table schema_equals5 (id byte, tags array(string), col string index off)");
+        DocIndexMetaData mdWithStringColNotAnalyzedAndIndex = getDocIndexMetaDataFromStatement("create table schema_equals6 (id byte, tags array(string), col string index off, index ft_index using fulltext(col))");
+        assertThat(md.schemaEquals(md), is(true));
+        assertThat(md == mdSame, is(false));
+        assertThat(md.schemaEquals(mdSame), is(true));   // same table name
+        assertThat(md.schemaEquals(mdOther), is(false)); // different table name
+        assertThat(md.schemaEquals(mdWithPk), is(false));
+        assertThat(md.schemaEquals(mdWithStringCol), is(false));
+        assertThat(mdWithPk.schemaEquals(mdWithStringCol), is(false));
+        assertThat(mdWithStringCol.schemaEquals(mdWithStringColNotAnalyzed), is(false));
+        assertThat(mdWithStringColNotAnalyzed.schemaEquals(mdWithStringColNotAnalyzedAndIndex), is(false));
     }
 }
 

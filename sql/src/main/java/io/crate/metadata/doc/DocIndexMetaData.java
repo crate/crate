@@ -52,7 +52,6 @@ public class DocIndexMetaData {
     private static final ColumnIdent ID_IDENT = new ColumnIdent(ID);
     private final IndexMetaData metaData;
 
-
     private final MappingMetaData defaultMappingMetaData;
     private final Map<String, Object> defaultMappingMap;
 
@@ -472,12 +471,16 @@ public class DocIndexMetaData {
         } else if (thisIsCreatedFromTemplate) {
             if (this.references.size() < other.references.size()) {
                 // this is older, update template and return other
-                updateTemplate(other, transportPutIndexTemplateAction);
-                return other;
+                // settings in template are always authoritative for table information about
+                // number_of_shards and number_of_replicas
+                updateTemplate(other, transportPutIndexTemplateAction, this.metaData.settings());
+                // merge the new mapping with the template settings
+                return new DocIndexMetaData(IndexMetaData.builder(other.metaData).settings(this.metaData.settings()).build(), other.ident).build();
             } else if (references().size() == other.references().size() &&
                     !references().keySet().equals(other.references().keySet())) {
                 XContentHelper.update(defaultMappingMap, other.defaultMappingMap, false);
-                updateTemplate(this, transportPutIndexTemplateAction);
+                // update the template with new information
+                updateTemplate(this, transportPutIndexTemplateAction, this.metaData.settings());
                 return this;
             }
             // other is older, just return this
@@ -488,11 +491,13 @@ public class DocIndexMetaData {
     }
 
     private void updateTemplate(DocIndexMetaData md,
-                                TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                                Settings updateSettings) {
         String templateName = PartitionName.templateName(ident.schema(), ident.name());
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
                 .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
                 .create(false)
+                .settings(updateSettings)
                 .template(templateName + "*");
         for (String alias : md.aliases()) {
             request = request.alias(new Alias(alias));

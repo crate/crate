@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: number_of_shards and number_of_replicas are now correctly applied
+   through the whole lifetime of a partitioned table and its partitions
+
  - Added columns ``number_of_shards`` and ``number_of_replicas`` to
    table ``information_schema.table_partitions``
 
