@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to version 0.11.4 which contains following changes:
+
+    - Fix: print stacktrace when crash is launched in verbose mode
+
+    - Fix: query duration was rounded incorrectly to second precision
+
  - Updated crate-admin to version 0.11.4 which contains following changes:
    
     - fix: calculate health for each partition of a partitioned table
