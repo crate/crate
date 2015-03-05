@@ -1131,8 +1131,8 @@ public class DocIndexMetaDataTest extends RandomizedTest {
                     .endObject()
                 .endObject();
         Settings templateSettings =  ImmutableSettings.builder()
-                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
-                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
+                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 2)
+                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 6)
                 .build();
         IndexMetaData metaData = getIndexMetaData("test1", builder, templateSettings, null);
         DocIndexMetaData md = newMeta(metaData, "test1");
@@ -1153,8 +1153,8 @@ public class DocIndexMetaDataTest extends RandomizedTest {
         assertThat(partitionMD.concreteIndexName(), is(partitionName.stringValue()));
         DocIndexMetaData merged = md.merge(partitionMD, mock(TransportPutIndexTemplateAction.class), true);
 
-        assertThat(merged.numberOfReplicas(), is(BytesRefs.toBytesRef(1)));
-        assertThat(merged.numberOfShards(), is(5));
+        assertThat(merged.numberOfReplicas(), is(BytesRefs.toBytesRef(2)));
+        assertThat(merged.numberOfShards(), is(6));
     }
 
     @Test

@@ -787,7 +787,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInformationSchemaTablePartitions() throws Exception {
+    public void testTablePartitions() throws Exception {
         execute("create table my_table (par int, content string) partitioned by (par)");
         execute("insert into my_table (par, content) values (1, 'content1')");
         execute("insert into my_table (par, content) values (1, 'content2')");
@@ -810,7 +810,77 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInformationSchemaTablePartitionsMultiCol() throws Exception {
+    public void testPartitionedTableShardsAndReplicas() throws Exception {
+        execute("create table parted (par byte, content string) partitioned by (par) clustered into 2 shards with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("parted| 2| 0\n"));
+
+        execute("select * from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("insert into parted (par, content) values (1, 'foo'), (3, 'baz')");
+        execute("refresh table parted");
+        ensureGreen();
+
+        execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("parted| 2| 0\n"));
+
+        execute("select * from information_schema.table_partitions  where table_name='parted' order by table_name, partition_ident");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "parted| doc| 04132| {par=1}| 2| 0\n" +
+                "parted| doc| 04136| {par=3}| 2| 0\n"));
+
+        execute("alter table parted set (number_of_shards=6)");
+        waitNoPendingTasksOnAll();
+
+        execute("insert into parted (par, content) values (2, 'bar')");
+        execute("refresh table parted");
+        ensureGreen();
+
+        execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("parted| 6| 0\n"));
+
+        execute("select * from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
+        assertThat(response.rowCount(), is(3L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "parted| doc| 04132| {par=1}| 2| 0\n" +
+                "parted| doc| 04134| {par=2}| 6| 0\n" +
+                "parted| doc| 04136| {par=3}| 2| 0\n"));
+
+        execute("update parted set new=true where par=1");
+        refresh();
+        waitNoPendingTasksOnAll();
+
+        // ensure newer index metadata does not override settings in template
+        execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("parted| 6| 0\n"));
+
+        execute("select * from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
+        assertThat(response.rowCount(), is(3L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                        "parted| doc| 04132| {par=1}| 2| 0\n" +
+                        "parted| doc| 04134| {par=2}| 6| 0\n" +
+                        "parted| doc| 04136| {par=3}| 2| 0\n"));
+
+        execute("delete from parted where par=2");
+        waitNoPendingTasksOnAll();
+
+        execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("parted| 6| 0\n"));
+        waitNoPendingTasksOnAll();
+        execute("select * from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "parted| doc| 04132| {par=1}| 2| 0\n" +
+                "parted| doc| 04136| {par=3}| 2| 0\n"));
+
+
+    }
+
+    @Test
+    public void testTablePartitionsMultiCol() throws Exception {
         execute("create table my_table (par int, par_str string, content string) partitioned by (par, par_str)");
         execute("insert into my_table (par, par_str, content) values (1, 'foo', 'content1')");
         execute("insert into my_table (par, par_str, content) values (1, 'bar', 'content2')");
@@ -840,7 +910,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInformationSchemaPartitionsNestedCol() throws Exception {
+    public void testPartitionsNestedCol() throws Exception {
         execute("create table my_table (id int, metadata object as (date timestamp)) partitioned by (metadata['date'])");
         ensureGreen();
         execute("insert into my_table (id, metadata) values (?, ?), (?, ?)",
