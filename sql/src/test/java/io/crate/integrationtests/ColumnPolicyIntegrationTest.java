@@ -24,8 +24,8 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import io.crate.Constants;
-import io.crate.metadata.PartitionName;
 import io.crate.action.sql.SQLActionException;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -43,7 +43,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -208,6 +207,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into dynamic_table (new) values({a=['d', 'e', 'f']})");
         execute("refresh table dynamic_table");
         execute("insert into dynamic_table (new) values({nest={}, new={}})");
+
+        waitNoPendingTasksOnAll();
 
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.type")), is("array"));

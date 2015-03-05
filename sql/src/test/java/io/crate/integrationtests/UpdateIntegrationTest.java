@@ -203,6 +203,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into test values (?)", args);
         assertEquals(1, response.rowCount());
+        waitNoPendingTasksOnAll();
         refresh();
 
         execute("update test set coolness['x'] = '3'");

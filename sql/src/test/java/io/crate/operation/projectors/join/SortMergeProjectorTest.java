@@ -23,6 +23,7 @@ package io.crate.operation.projectors.join;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
 import io.crate.operation.ProjectorUpstream;
@@ -30,7 +31,9 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.Projector;
+import io.crate.test.integration.CrateThreadFilter;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.test.ElasticsearchThreadFilter;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -39,6 +42,7 @@ import java.util.Iterator;
 
 import static org.hamcrest.Matchers.is;
 
+@ThreadLeakFilters(filters = {ElasticsearchThreadFilter.class, CrateThreadFilter.class})
 @Repeat(iterations = 10)
 public class SortMergeProjectorTest extends RandomizedTest {
 
