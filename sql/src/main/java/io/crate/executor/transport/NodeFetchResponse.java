@@ -22,6 +22,9 @@
 package io.crate.executor.transport;
 
 import io.crate.Streamer;
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -30,7 +33,7 @@ import java.io.IOException;
 
 public class NodeFetchResponse extends TransportResponse {
 
-    private Object[][] rows;
+    private Bucket rows;
     private final Streamer<?>[] streamers;
 
 
@@ -38,33 +41,34 @@ public class NodeFetchResponse extends TransportResponse {
         this.streamers = streamers;
     }
 
-    public void rows(Object[][] rows) {
+    public void rows(Bucket rows) {
         this.rows = rows;
     }
 
-    public Object[][] rows() {
+    public Bucket rows() {
         return rows;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        rows = new Object[in.readVInt()][];
+        Object[][] rows = new Object[in.readVInt()][];
         for (int r = 0; r < rows.length; r++) {
             rows[r] = new Object[streamers.length];
             for (int c = 0; c < rows[r].length; c++) {
                 rows[r][c] = streamers[c].readValueFrom(in);
             }
         }
+        this.rows = new ArrayBucket(rows);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(rows.length);
-        for (Object[] row : rows) {
+        out.writeVInt(rows.size());
+        for (Row row : rows) {
             for (int c = 0; c < streamers.length; c++) {
-                streamers[c].writeValueTo(out, row[c]);
+                streamers[c].writeValueTo(out, row.get(c));
             }
         }
     }

@@ -24,6 +24,8 @@ package io.crate.operation.fetch;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.projectors.Projector;
@@ -41,13 +43,15 @@ public class LuceneDocFetcher implements ProjectorUpstream {
     private Projector downstream;
     private RamAccountingContext ramAccountingContext;
 
+    private final InputRow inputRow;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
     private final JobCollectContext jobCollectContext;
     private final CrateSearchContext searchContext;
     private final int jobSearchContextId;
     private final boolean closeContext;
 
-    public LuceneDocFetcher(List<LuceneCollectorExpression<?>> collectorExpressions,
+    public LuceneDocFetcher(List<Input<?>> inputs,
+                            List<LuceneCollectorExpression<?>> collectorExpressions,
                             Projector downstreamProjector,
                             JobCollectContext jobCollectContext,
                             CrateSearchContext searchContext,
@@ -55,6 +59,7 @@ public class LuceneDocFetcher implements ProjectorUpstream {
                             boolean closeContext) {
         assert validateExpressions(collectorExpressions) : "ChildDocCollectorExpression only supported here";
         downstream(downstreamProjector);
+        inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.jobCollectContext = jobCollectContext;
         this.searchContext = searchContext;
@@ -81,13 +86,10 @@ public class LuceneDocFetcher implements ProjectorUpstream {
                     CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
                             ramAccountingContext.limit()));
         }
-        int i = 0;
-        Object[] newRow = new Object[collectorExpressions.size()];
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
-            newRow[i++] = e.value();
         }
-        if (!downstream.setNextRow(newRow)) {
+        if (!downstream.setNextRow(inputRow)) {
             // no more rows required, we can stop here
             throw new FetchAbortedException();
         }
