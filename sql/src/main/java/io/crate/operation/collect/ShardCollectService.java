@@ -233,7 +233,7 @@ public class ShardCollectService {
                                     jobCollectContext,
                                     localContext,
                                     jobSearchContextId,
-                                    collectNode.closeContext());
+                                    collectNode.keepContextForFetcher());
                         } catch (Throwable t) {
                             if (localContext != null) {
                                 localContext.close();

@@ -34,7 +34,7 @@ import io.crate.metadata.Functions;
 import io.crate.operation.collect.CollectContextService;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.fetch.NodeFetchOperation;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Reference;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -102,7 +102,7 @@ public class TransportFetchNodeAction {
         NodeFetchOperation fetchOperation = new NodeFetchOperation(
                 request.jobId(),
                 request.jobSearchContextDocIds(),
-                request.toFetchSymbols(),
+                request.toFetchReferences(),
                 request.closeContext(),
                 collectContextService,
                 threadPool,
@@ -121,14 +121,12 @@ public class TransportFetchNodeAction {
 
         }
 
-
         Futures.addCallback(result, new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(@Nullable Bucket result) {
                 assert result != null;
-                NodeFetchResponse response = new NodeFetchResponse(outputStreamers(request.toFetchSymbols()));
+                NodeFetchResponse response = new NodeFetchResponse(outputStreamers(request.toFetchReferences()));
                 response.rows(result);
-                collectContextService.closeContext(request.jobId());
 
                 fetchResponse.onResponse(response);
                 statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
@@ -137,7 +135,6 @@ public class TransportFetchNodeAction {
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                collectContextService.closeContext(request.jobId());
                 fetchResponse.onFailure(t);
                 statsTables.operationFinished(operationId, Exceptions.messageOf(t),
                         ramAccountingContext.totalBytes());
@@ -147,10 +144,10 @@ public class TransportFetchNodeAction {
 
     }
 
-    private static Streamer<?>[] outputStreamers(List<Symbol> toFetchSymbols) {
-        Streamer<?>[] streamers = new Streamer<?>[toFetchSymbols.size()];
-        for (int i = 0; i < toFetchSymbols.size(); i++) {
-            streamers[i] = toFetchSymbols.get(i).valueType().streamer();
+    private static Streamer<?>[] outputStreamers(List<Reference> toFetchReferences) {
+        Streamer<?>[] streamers = new Streamer<?>[toFetchReferences.size()];
+        for (int i = 0; i < toFetchReferences.size(); i++) {
+            streamers[i] = toFetchReferences.get(i).valueType().streamer();
         }
         return streamers;
     }
@@ -174,7 +171,7 @@ public class TransportFetchNodeAction {
             this.nodeId = nodeId;
             this.request = request;
             this.listener = listener;
-            this.streamers = outputStreamers(request.toFetchSymbols());
+            this.streamers = outputStreamers(request.toFetchReferences());
         }
 
         private void start() {

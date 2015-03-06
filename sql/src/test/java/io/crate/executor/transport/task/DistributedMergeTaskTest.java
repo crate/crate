@@ -52,7 +52,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
         // select count(*), user ... group by user
         MergeNode mergeNode = new MergeNode("merge1", 2);
-        mergeNode.contextId(UUID.randomUUID());
+        mergeNode.jobId(UUID.randomUUID());
         mergeNode.executionNodes(nodes);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
 
@@ -86,11 +86,11 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         Iterator<String> iterator = nodes.iterator();
         String firstNode = iterator.next();
 
-        DistributedResultRequest request1 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
+        DistributedResultRequest request1 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
         request1.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 1L , new BytesRef("bar") },
         }));
-        DistributedResultRequest request2 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
+        DistributedResultRequest request2 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
         request2.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 1L, new BytesRef("bar") },
                 new Object[] { 3L, new BytesRef("bar") },
@@ -100,12 +100,12 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         transportMergeNodeAction.mergeRows(firstNode, request1, noopListener);
         transportMergeNodeAction.mergeRows(firstNode, request2, noopListener);
 
-        DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
+        DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
         request3.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 10, new BytesRef("foo") },
                 new Object[] { 20, new BytesRef("foo") },
         }));
-        DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
+        DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
         request4.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 10, new BytesRef("foo") },
                 new Object[] { 14, new BytesRef("test") },

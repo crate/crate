@@ -120,7 +120,7 @@ public class LocalMergeTask extends JobTask {
                 clusterService, settings, transportActionProvider, symbolVisitor,
                 mergeNode, ramAccountingContext);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
-        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
+        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.id());
 
         Futures.addCallback(mergeOperation.result(), new FutureCallback<Bucket>() {
             @Override

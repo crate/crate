@@ -95,7 +95,7 @@ public class DistributedResultRequestTest {
 
         contextId = UUID.randomUUID();
         dummyMergeNode = new MergeNode("dummy", 1);
-        dummyMergeNode.contextId(contextId);
+        dummyMergeNode.jobId(contextId);
         dummyMergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
     }
 
@@ -160,7 +160,7 @@ public class DistributedResultRequestTest {
     public void testSerializationWithContext() throws Exception {
         UUID contextId = UUID.randomUUID();
         MergeNode dummyMergeNode = new MergeNode();
-        dummyMergeNode.contextId(contextId);
+        dummyMergeNode.jobId(contextId);
         dummyMergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
         TopNProjection topNProjection = new TopNProjection(10, 0);
         topNProjection.outputs(Arrays.<Symbol>asList(
