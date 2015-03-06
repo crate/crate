@@ -25,8 +25,8 @@ dependencies {
         exclude group: 'com.vividsolutions'
     }
     // needed by ES Version class - keep up to date with es dependencies
-    compile 'org.apache.lucene:lucene-core:4.10.2'
-    compile 'org.apache.lucene:lucene-analyzers-common:4.10.2'
+    compile 'org.apache.lucene:lucene-core:4.10.3'
+    compile 'org.apache.lucene:lucene-analyzers-common:4.10.3'
 
     compile files(project(':core').sourceSets.shared.output.classesDir)
     compile files(project(':sql').sourceSets.shared.output.classesDir)
