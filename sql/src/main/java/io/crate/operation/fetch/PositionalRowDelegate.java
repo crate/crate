@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,21 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.plugin;
+package io.crate.operation.fetch;
 
-import io.crate.operation.collect.CollectContextService;
-import io.crate.service.SQLService;
-import org.elasticsearch.common.inject.AbstractModule;
-import io.crate.action.sql.DDLStatementDispatcher;
-import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.Row;
 
+public class PositionalRowDelegate implements Row {
+    private final long position;
+    private Object[] cells;
 
-public class SQLModule extends AbstractModule {
+    public PositionalRowDelegate(Row delegate, long position) {
+        this.cells = Buckets.materialize(delegate);
+        this.position = position;
+    }
 
     @Override
-    protected void configure() {
-        bind(SQLService.class).asEagerSingleton();
-        bind(DDLStatementDispatcher.class).asEagerSingleton();
-        bind(FulltextAnalyzerResolver.class).asEagerSingleton();
+    public int size() {
+        return cells.length;
+    }
+
+    @Override
+    public Object get(int index) {
+        if (index == cells.length) {
+            return position;
+        } else if (index < cells.length) {
+            return cells[index];
+        }
+        throw new ArrayIndexOutOfBoundsException(index);
     }
 }

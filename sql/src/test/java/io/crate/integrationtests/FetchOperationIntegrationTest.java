@@ -21,9 +21,10 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
+import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row;
@@ -33,21 +34,24 @@ import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportFetchNodeAction;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.scalar.SubstrFunction;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateTestCluster;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
@@ -59,7 +63,6 @@ import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
-import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -70,6 +73,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
+    Setup setup = new Setup(sqlExecutor);
     TransportExecutor executor;
     DocSchemaInfo docSchemaInfo;
 
@@ -99,25 +103,34 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         sqlExecutor.refresh("characters");
     }
 
+    private Job createCollectJob(Planner.Context plannerContext, boolean keepContextForFetcher) {
+        TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
+
+        ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
+        Symbol docIdRef = new Reference(docIdRefInfo);
+        List<Symbol> toCollect = ImmutableList.of(docIdRef);
+
+        List<DataType> outputTypes = new ArrayList<>(toCollect.size());
+        for (Symbol symbol : toCollect) {
+            outputTypes.add(symbol.valueType());
+        }
+
+        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
+        collectNode.toCollect(toCollect);
+        collectNode.outputTypes(outputTypes);
+        collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.keepContextForFetcher(keepContextForFetcher);
+        plannerContext.allocateJobSearchContextIds(collectNode.routing());
+
+        Plan plan = new IterablePlan(collectNode);
+        return executor.newJob(plan);
+    }
 
     @Test
     public void testCollectDocId() throws Exception {
         setUpCharacters();
-
-        TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
-        ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
-        Symbol docIdRef = new Reference(docIdRefInfo);
         Planner.Context plannerContext = new Planner.Context();
-
-        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
-        collectNode.toCollect(Arrays.asList(docIdRef));
-        collectNode.outputTypes(asList(docIdRefInfo.type()));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        plannerContext.allocateJobSearchContextIds(collectNode.routing());
-
-        Plan plan = new IterablePlan(collectNode);
-        Job job = executor.newJob(plan);
-
+        Job job = createCollectJob(plannerContext, false);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
 
         assertThat(result.size(), is(2));
@@ -147,48 +160,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testFetchAction() throws Exception {
         setUpCharacters();
-
-        TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
-        ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
-        Symbol docIdRef = new Reference(docIdRefInfo);
         Planner.Context plannerContext = new Planner.Context();
-
-        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
-        collectNode.toCollect(Arrays.asList(docIdRef));
-        collectNode.outputTypes(asList(docIdRefInfo.type()));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.closeContext(false);
-        plannerContext.allocateJobSearchContextIds(collectNode.routing());
-
-        Plan plan = new IterablePlan(collectNode);
-        Job job = executor.newJob(plan);
-
+        Job job = createCollectJob(plannerContext, true);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
-
-        // extract docIds by nodeId and jobSearchContextId
-        Map<String, Map<Integer, IntArrayList>> jobSearchContextDocIds = new TreeMap<>();
-        for (ListenableFuture<TaskResult> nodeResult : result) {
-            TaskResult taskResult = nodeResult.get();
-            long docId = (long)taskResult.rows().iterator().next().get(0);
-            // unpack jobSearchContextId and reader doc id from docId
-            int jobSearchContextId = (int)(docId >> 32);
-            int doc = (int)docId;
-            String nodeId = plannerContext.nodeId(jobSearchContextId);
-            Map<Integer, IntArrayList> perNode = jobSearchContextDocIds.get(nodeId);
-            if (perNode == null) {
-                perNode = new TreeMap<>();
-                jobSearchContextDocIds.put(nodeId, perNode);
-            }
-            IntArrayList docIds = perNode.get(jobSearchContextId);
-            if (docIds == null) {
-                docIds = new IntArrayList();
-                perNode.put(jobSearchContextId, docIds);
-            }
-            docIds.add(doc);
-        }
-
         TransportFetchNodeAction transportFetchNodeAction = cluster().getInstance(TransportFetchNodeAction.class);
 
+        TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
         ReferenceInfo idRefInfo = new ReferenceInfo(
                 new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("id")),
                 RowGranularity.DOC,
@@ -199,22 +176,32 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 RowGranularity.DOC,
                 StringType.INSTANCE
         );
-        List<Symbol> toFetchSymbols = ImmutableList.<Symbol>of(new Reference(idRefInfo), new Reference(nameRefInfo));
+        List<Reference> toFetchReferences = ImmutableList.of(new Reference(idRefInfo), new Reference(nameRefInfo));
 
+        // extract docIds by nodeId and jobSearchContextId
+        Map<String, LongArrayList> jobSearchContextDocIds = new HashMap<>();
+        for (ListenableFuture<TaskResult> nodeResult : result) {
+            TaskResult taskResult = nodeResult.get();
+            long docId = (long)taskResult.rows().iterator().next().get(0);
+            // unpack jobSearchContextId and reader doc id from docId
+            int jobSearchContextId = (int)(docId >> 32);
+            String nodeId = plannerContext.nodeId(jobSearchContextId);
+            LongArrayList docIdsPerNode = jobSearchContextDocIds.get(nodeId);
+            if (docIdsPerNode == null) {
+                docIdsPerNode = new LongArrayList();
+                jobSearchContextDocIds.put(nodeId, docIdsPerNode);
+            }
+            docIdsPerNode.add(docId);
+        }
 
         final CountDownLatch latch = new CountDownLatch(jobSearchContextDocIds.size());
-
         final List<Row> rows = new ArrayList<>();
-        for (Map.Entry<String, Map<Integer, IntArrayList>> nodeEntry : jobSearchContextDocIds.entrySet()) {
+        for (Map.Entry<String, LongArrayList> nodeEntry : jobSearchContextDocIds.entrySet()) {
             NodeFetchRequest nodeFetchRequest = new NodeFetchRequest();
-            nodeFetchRequest.jobId(collectNode.jobId().get());
-            nodeFetchRequest.toFetchSymbols(toFetchSymbols);
+            nodeFetchRequest.jobId(job.id());
+            nodeFetchRequest.toFetchReferences(toFetchReferences);
             nodeFetchRequest.closeContext(true);
-            for (Map.Entry<Integer, IntArrayList> entry : nodeEntry.getValue().entrySet()) {
-                for (IntCursor cursor : entry.getValue()) {
-                    nodeFetchRequest.addDocId(entry.getKey(), cursor.value);
-                }
-            }
+            nodeFetchRequest.jobSearchContextDocIds(nodeEntry.getValue());
 
             transportFetchNodeAction.execute(nodeEntry.getKey(), nodeFetchRequest, new ActionListener<NodeFetchResponse>() {
                 @Override
@@ -243,4 +230,162 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         }
     }
 
+    @Test
+    public void testFetchProjection() throws Exception {
+        setUpCharacters();
+        Planner.Context plannerContext = new Planner.Context();
+
+        TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
+        ReferenceInfo idRefInfo = new ReferenceInfo(
+                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("id")),
+                RowGranularity.DOC,
+                IntegerType.INSTANCE
+        );
+        ReferenceInfo nameRefInfo = new ReferenceInfo(
+                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("name")),
+                RowGranularity.DOC,
+                StringType.INSTANCE
+        );
+        ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
+
+        Symbol docIdSymbol = new InputColumn(0, DataTypes.STRING);
+        List<Symbol> inputSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo), new Reference(idRefInfo));
+        final List<Symbol> outputSymbols = ImmutableList.of(
+                new Reference(idRefInfo),
+                new Reference(nameRefInfo),
+                new Function(
+                        new FunctionInfo(
+                                new FunctionIdent(SubstrFunction.NAME, ImmutableList.<DataType>of(StringType.INSTANCE, IntegerType.INSTANCE)),
+                                StringType.INSTANCE),
+                        Arrays.asList(new Reference(nameRefInfo), Literal.newLiteral(2))
+                        )
+        );
+
+        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
+        collectNode.toCollect(inputSymbols);
+        collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.keepContextForFetcher(true);
+        List<DataType> outputTypes = new ArrayList<>(inputSymbols.size());
+        for (Symbol symbol : inputSymbols) {
+            outputTypes.add(symbol.valueType());
+        }
+        collectNode.outputTypes(outputTypes);
+        plannerContext.allocateJobSearchContextIds(collectNode.routing());
+
+        FetchProjection fetchProjection = new FetchProjection(
+                docIdSymbol, inputSymbols, outputSymbols, collectNode.executionNodes().size());
+
+        MergeNode mergeNode = new MergeNode("merge", collectNode.executionNodes().size());
+        mergeNode.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
+        mergeNode.projections(ImmutableList.<Projection>of(fetchProjection));
+
+        Plan plan = new IterablePlan(collectNode, mergeNode);
+        Job job = executor.newJob(plan);
+
+        final List<Row> resultingRows = new ArrayList<>();
+        final CountDownLatch latch = new CountDownLatch(1);
+        ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
+        Futures.addCallback(results, new FutureCallback<List<TaskResult>>() {
+            @Override
+            public void onSuccess(List<TaskResult> resultList) {
+                for (Row row : resultList.get(0).rows()) {
+                    resultingRows.add(row);
+                }
+                latch.countDown();
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                latch.countDown();
+                fail(t.getMessage());
+            }
+        });
+
+        latch.await();
+        assertThat(resultingRows.size(), is(2));
+        assertThat(resultingRows.get(0).size(), is(outputSymbols.size()));
+        // TODO: validate sorting when CollectNode supports sorting
+        Iterator<Row> it = resultingRows.iterator();
+        while (it.hasNext()) {
+            Row row = it.next();
+            assertThat((Integer) row.get(0), anyOf(is(1), is(2)));
+            assertThat((BytesRef) row.get(1), anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
+            assertThat((BytesRef) row.get(2), anyOf(is(new BytesRef("rthur")), is(new BytesRef("ord"))));
+        }
+
+    }
+
+    @Test
+    public void testFetchProjectionWithBulkSize() throws Exception {
+        /**
+         * Setup scenario where more docs per node exists than the configured bulkSize,
+         * so multiple request to one node must be done and merged together.
+         */
+        setup.setUpLocations();
+        sqlExecutor.refresh("locations");
+        int bulkSize = 2;
+        Planner.Context plannerContext = new Planner.Context();
+
+        TableInfo tableInfo = docSchemaInfo.getTableInfo("locations");
+        ReferenceInfo idRefInfo = new ReferenceInfo(
+                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("id")),
+                RowGranularity.DOC,
+                StringType.INSTANCE
+        );
+        ReferenceInfo nameRefInfo = new ReferenceInfo(
+                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("name")),
+                RowGranularity.DOC,
+                StringType.INSTANCE
+        );
+        ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
+
+        Symbol docIdSymbol = new InputColumn(0, DataTypes.STRING);
+        List<Symbol> inputSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo), new Reference(idRefInfo));
+        final List<Symbol> outputSymbols = ImmutableList.<Symbol>of(new Reference(idRefInfo), new Reference(nameRefInfo));
+
+        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
+        collectNode.toCollect(inputSymbols);
+        collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.keepContextForFetcher(true);
+        List<DataType> outputTypes = new ArrayList<>(inputSymbols.size());
+        for (Symbol symbol : inputSymbols) {
+            outputTypes.add(symbol.valueType());
+        }
+        collectNode.outputTypes(outputTypes);
+        plannerContext.allocateJobSearchContextIds(collectNode.routing());
+
+        FetchProjection fetchProjection = new FetchProjection(
+                docIdSymbol, inputSymbols, outputSymbols, collectNode.executionNodes().size(), bulkSize);
+
+        MergeNode mergeNode = new MergeNode("merge", collectNode.executionNodes().size());
+        mergeNode.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
+        mergeNode.projections(ImmutableList.<Projection>of(fetchProjection));
+
+        Plan plan = new IterablePlan(collectNode, mergeNode);
+        Job job = executor.newJob(plan);
+
+        final List<Row> resultingRows = new ArrayList<>();
+        final CountDownLatch latch = new CountDownLatch(1);
+        ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
+        Futures.addCallback(results, new FutureCallback<List<TaskResult>>() {
+            @Override
+            public void onSuccess(List<TaskResult> resultList) {
+                for (Row row : resultList.get(0).rows()) {
+                    resultingRows.add(row);
+                }
+                latch.countDown();
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                latch.countDown();
+                fail(t.getMessage());
+            }
+        });
+        latch.await();
+
+        assertThat(resultingRows.size(), is(13));
+        assertThat(resultingRows.get(0).size(), is(outputSymbols.size()));
+        // TODO: validate sorting when CollectNode supports sorting
+    }
 }

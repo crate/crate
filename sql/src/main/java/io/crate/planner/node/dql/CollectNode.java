@@ -50,7 +50,7 @@ public class CollectNode extends AbstractDQLPlanNode {
     private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
     private List<String> downStreamNodes;
     private boolean isPartitioned = false;
-    private boolean closeContext = true;
+    private boolean keepContextForFetcher = false;
 
     public CollectNode(String id) {
         super(id);
@@ -191,7 +191,7 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (in.readBoolean()) {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
-        closeContext = in.readBoolean();
+        keepContextForFetcher = in.readBoolean();
     }
 
     @Override
@@ -227,7 +227,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             out.writeLong(jobId.get().getMostSignificantBits());
             out.writeLong(jobId.get().getLeastSignificantBits());
         }
-        out.writeBoolean(closeContext);
+        out.writeBoolean(keepContextForFetcher);
     }
 
     /**
@@ -249,16 +249,17 @@ public class CollectNode extends AbstractDQLPlanNode {
             result.downStreamNodes = downStreamNodes;
             result.maxRowGranularity = maxRowGranularity;
             result.jobId = jobId;
+            result.keepContextForFetcher = keepContextForFetcher;
             result.whereClause(newWhereClause);
         }
         return result;
     }
 
-    public void closeContext(boolean closeContext) {
-        this.closeContext = closeContext;
+    public void keepContextForFetcher(boolean keepContextForFetcher) {
+        this.keepContextForFetcher = keepContextForFetcher;
     }
 
-    public boolean closeContext() {
-        return closeContext;
+    public boolean keepContextForFetcher() {
+        return keepContextForFetcher;
     }
 }
