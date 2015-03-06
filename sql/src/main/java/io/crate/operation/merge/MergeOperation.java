@@ -21,6 +21,7 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.base.Optional;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
@@ -31,6 +32,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -62,7 +64,10 @@ public class MergeOperation implements DownstreamOperation {
                         settings,
                         transportActionProvider,
                         symbolVisitor),
-                ramAccountingContext
+                ramAccountingContext,
+                Optional.<ResultProvider>absent(),
+                Optional.fromNullable(mergeNode.jobId()),
+                Optional.fromNullable(mergeNode.jobSearchContextIdToNode())
         );
         this.downstream = projectorChain.firstProjector().registerUpstream(this);
         this.numUpstreams = mergeNode.numUpstreams();
