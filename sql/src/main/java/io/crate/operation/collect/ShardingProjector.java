@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -85,10 +86,10 @@ public class ShardingProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public boolean setNextRow(Object... args) {
+    public boolean setNextRow(Row row) {
         assert visitorContext != null : "startProjection() must be called first";
         for (CollectExpression collectExpression : visitorContext.collectExpressions()) {
-            collectExpression.setNextRow(args);
+            collectExpression.setNextRow(row);
         }
         applyInputs(primaryKeyInputs, routingInput);
         return true;

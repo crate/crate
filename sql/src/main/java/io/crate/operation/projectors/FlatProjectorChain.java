@@ -21,8 +21,9 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.planner.projection.Projection;
@@ -38,27 +39,38 @@ import java.util.List;
  *
  * Usage:
  * <ul>
- *  <li> construct it,
- *  <li> call {@linkplain #startProjections()},
- *  <li> get the first projector using {@linkplain #firstProjector()}
- *  <li> feed data to it,
- *  <li> and get the result of the {@linkplain #lastProjector()} with {@linkplain ResultProvider#result()}.
+ * <li> construct it,
+ * <li> call {@linkplain #startProjections()},
+ * <li> get the first projector using {@linkplain #firstProjector()}
+ * <li> feed data to it,
+ * <li> and get the result of the {@linkplain #resultProvider()} with {@linkplain ResultProvider#result()}.
  */
 public class FlatProjectorChain {
 
     private Projector firstProjector;
     private final List<Projector> projectors;
-    private ResultProvider lastProjector;
+    private final ResultProvider resultProvider;
 
     public FlatProjectorChain(List<Projection> projections,
                               ProjectionToProjectorVisitor projectorVisitor,
                               RamAccountingContext ramAccountingContext) {
-        projectors = new ArrayList<>();
+        this(projections, projectorVisitor, ramAccountingContext, Optional.<ResultProvider>absent());
+    }
+
+    public FlatProjectorChain(List<Projection> projections,
+                              ProjectionToProjectorVisitor projectorVisitor,
+                              RamAccountingContext ramAccountingContext,
+                              Optional<ResultProvider> resultProvider) {
         if (projections.size() == 0) {
-            firstProjector = new CollectingProjector();
-            lastProjector = (ResultProvider)firstProjector;
-            projectors.add(firstProjector);
+            if (resultProvider.isPresent()) {
+                this.resultProvider = resultProvider.get();
+            } else {
+                this.resultProvider = new CollectingProjector();
+            }
+            firstProjector = this.resultProvider;
+            projectors = ImmutableList.of(firstProjector);
         } else {
+            projectors = new ArrayList<>();
             ProjectorUpstream previousProjector = null;
             for (Projection projection : projections) {
                 Projector projector = projectorVisitor.process(projection, ramAccountingContext);
@@ -70,18 +82,26 @@ public class FlatProjectorChain {
                 }
                 assert projector instanceof ProjectorUpstream :
                         "Cannot use a projector that is no ProjectorUpstream as upstream";
-                previousProjector = (ProjectorUpstream)projector;
+                previousProjector = (ProjectorUpstream) projector;
             }
-
             assert previousProjector != null;
-            if (previousProjector instanceof ResultProvider) {
-                lastProjector = (ResultProvider)previousProjector;
+            final boolean addedResultProvider;
+            if (resultProvider.isPresent()) {
+                this.resultProvider = resultProvider.get();
+                addedResultProvider = true;
             } else {
-                lastProjector = new CollectingProjector();
-                previousProjector.downstream((Projector)lastProjector);
+                if (previousProjector instanceof ResultProvider) {
+                    this.resultProvider = (ResultProvider) previousProjector;
+                    addedResultProvider = false;
+                } else {
+                    this.resultProvider = new CollectingProjector();
+                    addedResultProvider = true;
+                }
             }
-            assert firstProjector != null;
-            assert lastProjector != null;
+            if (addedResultProvider) {
+                previousProjector.downstream(this.resultProvider);
+                projectors.add(this.resultProvider);
+            }
         }
     }
 
@@ -91,15 +111,11 @@ public class FlatProjectorChain {
         }
     }
 
-    public ResultProvider lastProjector() {
-        return lastProjector;
-    }
-
     public Projector firstProjector() {
         return firstProjector;
     }
 
-    public ListenableFuture<Object[][]> result() {
-        return lastProjector().result();
+    public ResultProvider resultProvider() {
+        return resultProvider;
     }
 }

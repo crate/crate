@@ -2,6 +2,9 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -68,14 +71,16 @@ public class GroupingProjectorTest {
         projector.registerUpstream(null);
         projector.downstream(collectingProjector);
 
+        Row emptyRow = new RowN(new Object[]{});
+
         projector.startProjection();
-        projector.setNextRow();
-        projector.setNextRow();
-        projector.setNextRow();
+        projector.setNextRow(emptyRow);
+        projector.setNextRow(emptyRow);
+        projector.setNextRow(emptyRow);
         projector.upstreamFinished();
-        Object[][] rows = collectingProjector.result().get();
-        assertThat(rows.length, is(2));
-        assertThat(rows[0][1], instanceOf(Long.class));
+        Bucket rows = collectingProjector.result().get();
+        assertThat(rows.size(), is(2));
+        assertThat(rows.iterator().next().get(1), instanceOf(Long.class));
     }
 
     class DummyInput implements Input<BytesRef> {

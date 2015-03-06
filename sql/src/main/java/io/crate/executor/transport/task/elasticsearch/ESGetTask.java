@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -28,6 +29,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
@@ -60,7 +63,7 @@ import java.util.*;
 
 public class ESGetTask extends JobTask {
 
-    private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR =
+    private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
     private final List<ListenableFuture<TaskResult>> results;
     private final TransportAction transportAction;
@@ -83,7 +86,7 @@ public class ESGetTask extends JobTask {
 
 
         final GetResponseContext ctx = new GetResponseContext(functions, node);
-        List<FieldExtractor> extractors = new ArrayList<>(node.outputs().size());
+        List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size());
         for (Symbol symbol : node.outputs()) {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
         }
@@ -129,7 +132,6 @@ public class ESGetTask extends JobTask {
     private MultiGetRequest prepareMultiGetRequest(ESGetNode node, FetchSourceContext fsc) {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         for (DocKeys.DocKey key : node.docKeys()) {
-            String id = key.id();
             MultiGetRequest.Item item = new MultiGetRequest.Item(
                     indexName(node.tableInfo(), key.partitionValues()), Constants.DEFAULT_MAPPING_TYPE, key.id());
             item.fetchSourceContext(fsc);
@@ -154,7 +156,7 @@ public class ESGetTask extends JobTask {
                 }
             }
             TopNProjection topNProjection = new TopNProjection(
-                    com.google.common.base.Objects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    MoreObjects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     node.offset(),
                     orderBySymbols,
                     node.reverseFlags(),
@@ -181,25 +183,26 @@ public class ESGetTask extends JobTask {
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse>, ProjectorUpstream {
 
         private final SettableFuture<TaskResult> result;
-        private final List<FieldExtractor> fieldExtractor;
+        private final List<FieldExtractor<GetResponse>> fieldExtractors;
         @Nullable
         private final FlatProjectorChain projectorChain;
         private final Projector downstream;
 
+
         public MultiGetResponseListener(final SettableFuture<TaskResult> result,
-                                        List<FieldExtractor> extractors,
+                                        List<FieldExtractor<GetResponse>> extractors,
                                         @Nullable FlatProjectorChain projectorChain) {
             this.result = result;
-            this.fieldExtractor = extractors;
+            this.fieldExtractors = extractors;
             this.projectorChain = projectorChain;
             if (projectorChain == null) {
                 downstream = null;
             } else {
                 downstream = projectorChain.firstProjector();
                 downstream.registerUpstream(this);
-                Futures.addCallback(projectorChain.result(), new FutureCallback<Object[][]>() {
+                Futures.addCallback(projectorChain.resultProvider().result(), new FutureCallback<Bucket>() {
                     @Override
-                    public void onSuccess(@Nullable Object[][] rows) {
+                    public void onSuccess(@Nullable Bucket rows) {
                         result.set(new QueryResult(rows));
                     }
 
@@ -219,31 +222,27 @@ public class ESGetTask extends JobTask {
                     if (response.isFailed() || !response.getResponse().isExists()) {
                         continue;
                     }
-                    final Object[] row = new Object[fieldExtractor.size()];
+                    final Object[] row = new Object[fieldExtractors.size()];
                     int c = 0;
-                    for (FieldExtractor extractor : fieldExtractor) {
+                    for (FieldExtractor<GetResponse> extractor : fieldExtractors) {
                         row[c] = extractor.extract(response.getResponse());
                         c++;
                     }
                     rows.add(row);
                 }
-
-                result.set(new QueryResult(rows.toArray(new Object[rows.size()][])));
+                // NOTICE: this can be optimized by using a special Bucket
+                result.set(new QueryResult(new ArrayBucket(rows.toArray(new Object[rows.size()][]))));
             } else {
+                FieldExtractorRow<GetResponse> row = new FieldExtractorRow<>(fieldExtractors);
                 projectorChain.startProjections();
                 try {
                     for (MultiGetItemResponse response : responses) {
                         if (response.isFailed() || !response.getResponse().isExists()) {
                             continue;
                         }
-                        final Object[] row = new Object[fieldExtractor.size()];
-                        int c = 0;
-                        for (FieldExtractor extractor : fieldExtractor) {
-                            row[c] = extractor.extract(response.getResponse());
-                            c++;
-                        }
+                        row.setCurrent(response.getResponse());
                         if (!downstream.setNextRow(row)) {
-                            break;
+                            return;
                         }
                     }
                     downstream.upstreamFinished();
@@ -267,9 +266,9 @@ public class ESGetTask extends JobTask {
     static class GetResponseListener implements ActionListener<GetResponse> {
 
         private final SettableFuture<TaskResult> result;
-        private final List<FieldExtractor> extractors;
+        private final List<FieldExtractor<GetResponse>> extractors;
 
-        public GetResponseListener(SettableFuture<TaskResult> result, List<FieldExtractor> extractors) {
+        public GetResponseListener(SettableFuture<TaskResult> result, List<FieldExtractor<GetResponse>> extractors) {
             this.result = result;
             this.extractors = extractors;
         }
@@ -280,10 +279,9 @@ public class ESGetTask extends JobTask {
                 result.set(TaskResult.EMPTY_RESULT);
                 return;
             }
-
             final Object[][] rows = new Object[1][extractors.size()];
             int c = 0;
-            for (FieldExtractor extractor : extractors) {
+            for (FieldExtractor<GetResponse> extractor : extractors) {
                 /**
                  * NOTE: mapping isn't applied. So if an Insert was done using the ES Rest Endpoint
                  * the data might be returned in the wrong format (date as string instead of long)
@@ -291,7 +289,6 @@ public class ESGetTask extends JobTask {
                 rows[0][c] = extractor.extract(response);
                 c++;
             }
-
             result.set(new QueryResult(rows));
         }
 

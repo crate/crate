@@ -30,6 +30,7 @@ import io.crate.metadata.sys.SysJobsTableInfo;
 import io.crate.metadata.sys.SysOperationsLogTableInfo;
 import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
@@ -89,7 +90,7 @@ public class SystemCollectService implements CollectService {
 
     static class SystemTableCollector<R> implements CrateCollector {
 
-        private final List<Input<?>> inputs;
+        private final InputRow row;
         private final List<RowContextCollectorExpression<R, ?>> collectorExpressions;
         private Projector downstream;
         private final Iterable<R> rows;
@@ -100,7 +101,7 @@ public class SystemCollectService implements CollectService {
                                        Projector downstream,
                                        Iterable<R> rows,
                                        Input<Boolean> condition) {
-            this.inputs = inputs;
+            this.row = new InputRow(inputs);
             this.collectorExpressions = collectorExpressions;
             this.rows = rows;
             this.condition = condition;
@@ -120,12 +121,7 @@ public class SystemCollectService implements CollectService {
                     continue;
                 }
 
-                Object[] newRow = new Object[inputs.size()];
-                int i = 0;
-                for (Input<?> input : inputs) {
-                    newRow[i++] = input.value();
-                }
-                if (!downstream.setNextRow(newRow)) {
+                if (!downstream.setNextRow(this.row)) {
                     // no more rows required, we can stop here
                     downstream.upstreamFinished();
                     throw new CollectionAbortedException();

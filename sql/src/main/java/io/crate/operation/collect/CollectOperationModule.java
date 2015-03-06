@@ -26,7 +26,6 @@ import org.elasticsearch.common.inject.AbstractModule;
 public class CollectOperationModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(MapSideDataCollectOperation.class).asEagerSingleton();
         bind(HandlerSideDataCollectOperation.class).asEagerSingleton();
         bind(InformationSchemaCollectService.class).asEagerSingleton();
         bind(UnassignedShardsCollectService.class).asEagerSingleton();

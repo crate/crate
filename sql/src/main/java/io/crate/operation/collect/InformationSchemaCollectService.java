@@ -31,6 +31,7 @@ import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
@@ -153,6 +154,7 @@ public class InformationSchemaCollectService implements CollectService {
 
         private final List<Input<?>> inputs;
         private final List<RowCollectExpression<R, ?>> collectorExpressions;
+        private final InputRow row;
         private Projector downstream;
         private final Iterable<R> rows;
         private final Input<Boolean> condition;
@@ -163,6 +165,7 @@ public class InformationSchemaCollectService implements CollectService {
                                              Iterable<R> rows,
                                              Input<Boolean> condition) {
             this.inputs = inputs;
+            this.row = new InputRow(inputs);
             this.collectorExpressions = collectorExpressions;
             this.rows = rows;
             this.condition = condition;
@@ -182,12 +185,7 @@ public class InformationSchemaCollectService implements CollectService {
                     continue;
                }
 
-                Object[] newRow = new Object[inputs.size()];
-                int i = 0;
-                for (Input<?> input : inputs) {
-                    newRow[i++] = input.value();
-                }
-                if (!downstream.setNextRow(newRow)) {
+                if (!downstream.setNextRow(this.row)) {
                     // no more rows required, we can stop here
                     downstream.upstreamFinished();
                     throw new CollectionAbortedException();

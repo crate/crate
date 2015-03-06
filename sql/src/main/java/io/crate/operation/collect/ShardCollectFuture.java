@@ -22,7 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.util.concurrent.AbstractFuture;
-import io.crate.operation.projectors.ResultProvider;
+import io.crate.core.collections.Bucket;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,15 +31,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * future that is set after configured number of shards signal
  * that they have finished collecting.
  */
-public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
+public abstract class ShardCollectFuture extends AbstractFuture<Bucket> {
 
     private final AtomicInteger numShards;
-    protected final ResultProvider resultProvider;
     protected final AtomicReference<Throwable> lastException = new AtomicReference<>();
 
-    public ShardCollectFuture(int numShards, ResultProvider resultProvider) {
+    public ShardCollectFuture(int numShards) {
         this.numShards = new AtomicInteger(numShards);
-        this.resultProvider = resultProvider;
     }
 
     protected void shardFinished() {
@@ -50,10 +48,10 @@ public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
 
     protected void shardFailure(Throwable t) {
         lastException.set(t);
+        setException(t);
         if (numShards.decrementAndGet() <= 0) {
             onAllShardsFinished();
         }
-        setException(t);
     }
 
     public int numShards() {

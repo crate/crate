@@ -22,12 +22,10 @@
 package io.crate.operation.projectors;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Bucket;
 
-import java.util.Iterator;
+public interface ResultProvider extends Projector {
 
-public interface ResultProvider extends Iterable<Object[]> {
+    public ListenableFuture<Bucket> result();
 
-    public ListenableFuture<Object[][]> result();
-
-    public Iterator<Object[]> iterator() throws IllegalStateException;
 }

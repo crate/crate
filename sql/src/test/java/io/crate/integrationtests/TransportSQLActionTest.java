@@ -1090,7 +1090,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("refresh table test");
         assertFalse(response.hasRowCount());
-        assertThat(response.rows(), is(TaskResult.EMPTY_RESULT.rows()));
+        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(3L));

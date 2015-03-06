@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import com.google.common.base.Function;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,14 +31,27 @@ import java.io.IOException;
 
 public abstract class DataType<T> implements Comparable, Streamable {
 
+    public static final Function<DataType, Streamer<?>> STREAMER_FUNCTION = new Function<DataType, Streamer<?>>() {
+
+        @Override
+        public Streamer<?> apply(DataType input) {
+            return input.streamer();
+        }
+    };
+
     public abstract int id();
+
     public abstract String getName();
+
     public abstract Streamer<?> streamer();
+
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
+
     public abstract int compareValueTo(T val1, T val2);
 
     /**
      * check whether a value of this type is convertible to <code>other</code>
+     *
      * @param other the DataType to check conversion to
      * @return true or false
      */
@@ -60,7 +74,7 @@ public abstract class DataType<T> implements Comparable, Streamable {
     @Override
     public int compareTo(Object o) {
         if (!(o instanceof DataType)) return -1;
-        return Integer.compare(id(), ((DataType)o).id());
+        return Integer.compare(id(), ((DataType) o).id());
     }
 
     @Override

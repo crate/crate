@@ -119,7 +119,7 @@ public class UpsertByIdTask extends JobTask {
             for (UpsertByIdNode.Item item : node.items()) {
                 bulkShardProcessor.add(
                         item.index(),
-                        item.row(),
+                        item,
                         item.version());
             }
             bulkShardProcessor.close();
@@ -127,7 +127,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture futureResult) {
-        shardingProjector.setNextRow(item.row());
+        shardingProjector.setNextRow(item);
 
         ShardId shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
@@ -147,7 +147,7 @@ public class UpsertByIdTask extends JobTask {
                 node.updateAssignments(),
                 node.insertAssignments());
         upsertRequest.continueOnError(false);
-        upsertRequest.add(0, shardingProjector.id(), item.row(), item.version(), shardingProjector.routing());
+        upsertRequest.add(0, shardingProjector.id(), item, item.version(), shardingProjector.routing());
 
         transportShardUpsertActionDelegate.execute(upsertRequest, new ActionListener<ShardUpsertResponse>() {
             @Override

@@ -23,12 +23,13 @@ package io.crate.operation.collect.files;
 
 import io.crate.blob.BlobContainer;
 import io.crate.blob.v2.BlobShard;
+import io.crate.core.collections.Bucket;
 import io.crate.operation.Input;
 import io.crate.operation.collect.blobs.BlobCollectorExpression;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.CollectingProjector;
-import io.crate.operation.reference.doc.blob.BlobLastModifiedExpression;
 import io.crate.operation.reference.doc.blob.BlobDigestExpression;
+import io.crate.operation.reference.doc.blob.BlobLastModifiedExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.junit.After;
@@ -41,7 +42,9 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
-import static junit.framework.Assert.assertEquals;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -85,10 +88,8 @@ public class BlobDocCollectorTest {
                 Arrays.<BlobCollectorExpression<?>>asList(digestExpression, ctimeExpression),
                 condition
         );
-        Object[][] result = projector.result().get();
-
-        assertEquals(digest, ((BytesRef)result[0][0]).utf8ToString());
-        assertEquals(mtime, result[0][1]);
+        Bucket result = projector.result().get();
+        assertThat(result, contains(isRow(new BytesRef(digest), mtime)));
     }
 
     private CollectingProjector getProjector(BlobContainer container,

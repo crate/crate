@@ -21,21 +21,38 @@
 
 package io.crate.executor;
 
+import com.google.common.collect.Iterators;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nullable;
+import java.util.Iterator;
 
 public class RowCountResult implements TaskResult {
 
     @Nullable private final Throwable error;
-    private final Object[][] rows;
+    private final Row1 row;
+    private final Bucket rows;
 
     public RowCountResult(long rowCount) {
         this(rowCount, null);
     }
 
     private RowCountResult(long rowCount, Throwable throwable) {
-        this.rows = new Object[][] { new Object[] { rowCount }};
+        this.row = new Row1(rowCount);
+        this.rows = new Bucket(){
+            @Override
+            public Iterator<Row> iterator() {
+                return Iterators.<Row>singletonIterator(row);
+            }
+
+            @Override
+            public int size() {
+                return 1;
+            }
+        };
         this.error = throwable;
     }
 
@@ -44,7 +61,7 @@ public class RowCountResult implements TaskResult {
     }
     
     @Override
-    public Object[][] rows() {
+    public Bucket rows() {
         return rows;
     }
 
@@ -55,5 +72,9 @@ public class RowCountResult implements TaskResult {
             return null;
         }
         return Exceptions.messageOf(error);
+    }
+
+    public long rowCount(){
+        return (long) row.get(0);
     }
 }

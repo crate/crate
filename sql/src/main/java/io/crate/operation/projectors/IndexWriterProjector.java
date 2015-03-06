@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -49,8 +50,34 @@ import java.util.Map;
 
 public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
-    private final BytesRefGenerator generator;
-    private final int sourceColumnIndex;
+    private final SourceInjectorRow row;
+
+    private static final class SourceInjectorRow implements Row{
+
+        private final int idx;
+        private final BytesRefGenerator generator;
+        Row delegate = null;
+
+        private SourceInjectorRow(int idx, BytesRefGenerator generator) {
+            this.idx = idx;
+            this.generator = generator;
+        }
+
+
+        @Override
+        public int size() {
+            return delegate.size();
+        }
+
+        @Override
+        public Object get(int index) {
+            if (index == idx){
+                return generator.generateSource();
+            }
+            return delegate.get(index);
+        }
+    };
+
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
@@ -75,16 +102,15 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
         if (includes == null && excludes == null) {
             //noinspection unchecked
-            generator = new BytesRefInput((Input<BytesRef>) sourceInput);
+            row = new SourceInjectorRow(sourceInputColumn.index(), new BytesRefInput((Input<BytesRef>) sourceInput));
         } else {
             //noinspection unchecked
-            generator = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
+            row = new SourceInjectorRow(sourceInputColumn.index(),
+                    new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes));
         }
 
         Map<Reference, Symbol> insertAssignments = new HashMap<>(1);
         insertAssignments.put(rawSourceReference, sourceInputColumn);
-
-        sourceColumnIndex = sourceInputColumn.index();
 
         createBulkShardProcessor(
                 clusterService,
@@ -99,9 +125,9 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
     }
 
     @Override
-    protected void updateRow(Object... row) {
-        assert row.length > sourceColumnIndex : "row must include source";
-        row[sourceColumnIndex] = generator.generateSource();
+    protected Row updateRow(Row row) {
+        this.row.delegate = row;
+        return this.row;
     }
 
     private interface BytesRefGenerator {

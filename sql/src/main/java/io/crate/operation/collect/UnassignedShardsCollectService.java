@@ -30,6 +30,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
@@ -136,8 +137,8 @@ public class UnassignedShardsCollectService implements CollectService {
 
     private static class UnassignedShardsCollector<R> implements CrateCollector {
 
-        private final List<Input<?>> inputs;
         private final List<UnassignedShardCollectorExpression<?>> collectorExpressions;
+        private final InputRow row;
         private Projector downstream;
         private final Iterable<UnassignedShard> rows;
         private final Input<Boolean> condition;
@@ -147,7 +148,7 @@ public class UnassignedShardsCollectService implements CollectService {
                                          Projector downstream,
                                          Iterable<UnassignedShard> rows,
                                          Input<Boolean> condition) {
-            this.inputs = inputs;
+            this.row = new InputRow(inputs);
             this.collectorExpressions = collectorExpressions;
             this.rows = rows;
             this.condition = condition;
@@ -166,12 +167,7 @@ public class UnassignedShardsCollectService implements CollectService {
                     continue;
                 }
 
-                Object[] newRow = new Object[inputs.size()];
-                int i = 0;
-                for (Input<?> input : inputs) {
-                    newRow[i++] = input.value();
-                }
-                if (!downstream.setNextRow(newRow)) {
+                if (!downstream.setNextRow(this.row)) {
                     // no more rows required, we can stop here
                     throw new CollectionAbortedException();
                 }

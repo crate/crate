@@ -136,8 +136,9 @@ public class ShardProjectorChainTest {
                 projectionToProjectorVisitor,
                 RAM_ACCOUNTING_CONTEXT);
 
-        assertThat(chain.nodeProjectors.size(), is(1));
+        assertThat(chain.nodeProjectors.size(), is(2));
         assertThat(chain.nodeProjectors.get(0), is(instanceOf(SimpleTopNProjector.class)));
+        assertThat(chain.nodeProjectors.get(1), is(instanceOf(CollectingProjector.class)));
         assertThat(chain.shardProjectors.size(), is(0));
 
         Projector projector1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
@@ -165,9 +166,10 @@ public class ShardProjectorChainTest {
                 projectionToProjectorVisitor,
                 RAM_ACCOUNTING_CONTEXT);
 
-        assertThat(chain.nodeProjectors.size(), is(2));
+        assertThat(chain.nodeProjectors.size(), is(3));
         assertThat(chain.nodeProjectors.get(0), is(instanceOf(GroupingProjector.class)));
         assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertThat(chain.nodeProjectors.get(2), is(instanceOf(CollectingProjector.class)));
         assertThat(chain.shardProjectors.size(), is(0));
 
         Projector projector1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
@@ -190,9 +192,10 @@ public class ShardProjectorChainTest {
                 projectionToProjectorVisitor,
                 RAM_ACCOUNTING_CONTEXT);
 
-        assertThat(chain.nodeProjectors.size(), is(2));
+        assertThat(chain.nodeProjectors.size(), is(3));
         assertThat(chain.nodeProjectors.get(0), is(instanceOf(GroupingProjector.class)));
         assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertThat(chain.nodeProjectors.get(2), is(instanceOf(CollectingProjector.class)));
         assertThat(chain.shardProjectors.size(), is(0));
 
         Projector projector1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
@@ -227,11 +230,13 @@ public class ShardProjectorChainTest {
         GroupProjection groupProjection = new GroupProjection(
                 Arrays.<Symbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
-        ShardProjectorChain chain = new ShardProjectorChain(0, ImmutableList.of(groupProjection, topN), projectionToProjectorVisitor, RAM_ACCOUNTING_CONTEXT);
+        ShardProjectorChain chain = new ShardProjectorChain(0, ImmutableList.of(groupProjection, topN)
+                , projectionToProjectorVisitor, RAM_ACCOUNTING_CONTEXT);
 
-        assertThat(chain.nodeProjectors.size(), is(2));
+        assertThat(chain.nodeProjectors.size(), is(3));
         assertThat(chain.nodeProjectors.get(0), is(instanceOf(GroupingProjector.class)));
         assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertThat(chain.nodeProjectors.get(2), is(instanceOf(CollectingProjector.class)));
         assertThat(chain.shardProjectors.size(), is(0));
 
         Projector projector1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);

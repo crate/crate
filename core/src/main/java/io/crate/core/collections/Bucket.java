@@ -19,23 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.core.collections;
 
-import org.apache.lucene.util.BytesRef;
-import org.junit.Test;
+import java.util.Collections;
+import java.util.Iterator;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+public interface Bucket extends Iterable<Row> {
 
-public class ModuloBucketingIteratorTest {
+    public static final Bucket EMPTY = new Bucket() {
+        @Override
+        public Iterator<Row> iterator() {
+            return Collections.emptyIterator();
+        }
 
-    @Test
-    public void testBytesRefHashing() throws Exception {
+        @Override
+        public int size() {
+            return 0;
+        }
+    };
 
-        ModuloBucketingIterator moduloBucketingIterator =
-                new ModuloBucketingIterator(4, null);
+    /**
+     * Returns the number of rows in this bucket.
+     *
+     * @return the number of rows
+     */
+    public int size();
 
-        int bucket = moduloBucketingIterator.getBucket(new Object[]{new BytesRef("foo")});
-        assertThat(bucket, is(2));
-    }
 }

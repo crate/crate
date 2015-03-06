@@ -21,18 +21,25 @@
 
 package io.crate.executor;
 
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Bucket;
+
 import javax.annotation.Nullable;
 
 public class QueryResult implements TaskResult {
 
-    private final Object[][] rows;
+    private final Bucket rows;
 
     public QueryResult(Object[][] rows) {
-        this.rows = rows;
+        this.rows = new ArrayBucket(rows);
+    }
+
+    public QueryResult(Bucket bucket) {
+        this.rows = bucket;
     }
 
     @Override
-    public Object[][] rows() {
+    public Bucket rows() {
         return rows;
     }
 

@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableList;
+import io.crate.core.collections.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -141,7 +142,7 @@ public class IndexWriterProjectorUnitTest {
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);
         indexWriter.startProjection();
-        indexWriter.setNextRow(new BytesRef("{\"y\": \"x\"}"), null);
+        indexWriter.setNextRow(new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null}));
         indexWriter.upstreamFinished();
     }
 }

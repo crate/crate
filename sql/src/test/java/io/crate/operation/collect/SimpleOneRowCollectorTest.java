@@ -23,9 +23,9 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.symbol.Literal;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -48,7 +48,7 @@ public class SimpleOneRowCollectorTest {
         );
         collector.doCollect(null);
         verify(downStream, never()).startProjection();
-        verify(downStream, times(1)).setNextRow(true, new BytesRef("foo"));
+        verify(downStream, times(1)).setNextRow(any(InputRow.class));
         verify(downStream, times(1)).upstreamFinished();
     }
 }

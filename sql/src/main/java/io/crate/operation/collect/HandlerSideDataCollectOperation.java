@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -42,7 +43,7 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.List;
 import java.util.Set;
 
-public class HandlerSideDataCollectOperation implements CollectOperation<Object[][]> {
+public class HandlerSideDataCollectOperation implements CollectOperation {
 
     private final EvaluatingNormalizer clusterNormalizer;
     private final ImplementationSymbolVisitor implementationVisitor;
@@ -69,7 +70,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     }
 
     @Override
-    public ListenableFuture<Object[][]> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
+    public ListenableFuture<Bucket> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         if (collectNode.isPartitioned()) {
             // edge case: partitioned table without actual indices
             // no results
@@ -87,7 +88,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         }
     }
 
-    private ListenableFuture<Object[][]> handleCluster(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
+    private ListenableFuture<Bucket> handleCluster(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         collectNode = collectNode.normalize(clusterNormalizer);
         if (collectNode.whereClause().noMatch()) {
             return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
@@ -99,7 +100,8 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         List<Input<?>> inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
-        FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor, ramAccountingContext);
+        FlatProjectorChain projectorChain = new FlatProjectorChain(
+                collectNode.projections(), projectorVisitor, ramAccountingContext);
         SimpleOneRowCollector collector = new SimpleOneRowCollector(
                 inputs, collectExpressions, projectorChain.firstProjector());
 
@@ -111,10 +113,10 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
-        return projectorChain.result();
+        return projectorChain.resultProvider().result();
     }
 
-    private ListenableFuture<Object[][]> handleWithService(CollectService collectService,
+    private ListenableFuture<Bucket> handleWithService(CollectService collectService,
                                                            CollectNode node,
                                                            RamAccountingContext ramAccountingContext) {
         FlatProjectorChain projectorChain = new FlatProjectorChain(node.projections(),
@@ -128,6 +130,6 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
-        return projectorChain.result();
+        return projectorChain.resultProvider().result();
     }
 }

@@ -54,6 +54,7 @@ public class LineContext {
     }
 
     public Object get(ColumnIdent columnIdent) {
+        // TODO: change interface in order to not compute the path for every row
         if (parsedSource == null) {
             // TODO: optimize if collectorContext has prefetchColumns
 

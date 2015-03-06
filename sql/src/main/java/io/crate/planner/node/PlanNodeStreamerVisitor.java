@@ -22,9 +22,9 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import com.google.common.collect.Lists;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -42,6 +42,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,6 +51,7 @@ import java.util.List;
 /**
  * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
  */
+@Singleton
 public class PlanNodeStreamerVisitor extends PlanNodeVisitor<PlanNodeStreamerVisitor.Context, Void> {
 
     public static class Context {

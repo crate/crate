@@ -130,7 +130,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                     projection.offset());
         } else {
             projector = new SimpleTopNProjector(
-                    inputs.toArray(new Input<?>[inputs.size()]),
+                    inputs,
                     collectExpressions.toArray(new CollectExpression[collectExpressions.size()]),
                     projection.limit(),
                     projection.offset());

@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
+import io.crate.core.collections.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -73,9 +74,13 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
         collectNode.toCollect(Arrays.<Symbol>asList(clusterNameRef));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
-        Object[][] result = operation.collect(collectNode, null).get();
-        assertThat(result.length, is(1));
-        assertTrue(((BytesRef) result[0][0]).utf8ToString().startsWith("shared-"));
+        Bucket result = collect(collectNode);
+        assertThat(result.size(), is(1));
+        assertTrue(((BytesRef) result.iterator().next().get(0)).utf8ToString().startsWith("shared-"));
+    }
+
+    private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+        return operation.collect(collectNode, null).get();
     }
 
     @Test
@@ -101,7 +106,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.whereClause(new WhereClause(whereClause));
         collectNode.toCollect(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        Object[][] result = operation.collect(collectNode, null).get();
+        Bucket result = collect(collectNode);
         System.out.println(TestingHelpers.printedTable(result));
         assertEquals("sys| shards| 1| 0| NULL| NULL| NULL\n", TestingHelpers.printedTable(result));
     }
@@ -122,7 +127,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         }
         collectNode.toCollect(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        Object[][] result = operation.collect(collectNode, null).get();
+        Bucket result = collect(collectNode);
 
 
         String expected = "sys| cluster| id| 1| string\n" +

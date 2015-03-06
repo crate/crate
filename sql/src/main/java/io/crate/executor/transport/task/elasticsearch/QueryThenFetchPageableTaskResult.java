@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.bigarray.MultiObjectArrayBigArray;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.BigArrayPage;
 import io.crate.executor.Page;
 import io.crate.executor.PageInfo;
@@ -257,7 +258,7 @@ class QueryThenFetchPageableTaskResult implements PageableTaskResult {
     }
 
     @Override
-    public Object[][] rows() {
+    public Bucket rows() {
         throw new UnsupportedOperationException("QTFScrollTaskResult does not support rows()");
     }
 

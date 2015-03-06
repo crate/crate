@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperationFactory;
@@ -35,14 +36,10 @@ import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
-import org.elasticsearch.common.io.stream.HandlesStreamInput;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -66,8 +63,8 @@ public class DistributedRequestContextManager {
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final Map<UUID, DownstreamOperationContext> activeMergeOperations = new HashMap<>();
-    private final Map<UUID, List<BytesReference>> unreadStreams = new HashMap<>();
-    private final Set<UUID> unreadFailures = new HashSet<>();
+    private final Map<UUID, List<DistributedResultRequest>> unprocessedRequests = new HashMap<>();
+    private final Set<UUID> unprocessedFailureIds = new HashSet<>();
     private final Object lock = new Object();
     private final DownstreamOperationFactory downstreamOperationFactory;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
@@ -86,7 +83,6 @@ public class DistributedRequestContextManager {
 
     /**
      * called to create a new DownstreamOperationContext
-     *
      */
     // TODO: add outputTypes to the downstreamOperation and remove the mergeNode dependency here.
     // the downstreamOperationFactory can then be removed and the downstreamOperation can be passed into
@@ -100,7 +96,7 @@ public class DistributedRequestContextManager {
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
-        SettableFuture<Object[][]> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
+        SettableFuture<Bucket> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
                 downstreamOperationFactory.create(mergeNode, ramAccountingContext),
                 settableFuture,
@@ -133,61 +129,35 @@ public class DistributedRequestContextManager {
     }
 
     /**
-     * merge to rows inside the request
+     * put the request either into the context of store into unprocessedRequests
      */
     public void addToContext(DistributedResultRequest request) throws Exception {
-        logger.trace("addToContext: hasrows: {}", request.rowsRead());
-        DownstreamOperationContext operationContext;
-        if (request.rowsRead()) {
-            operationContext = activeMergeOperations.get(request.contextId());
-            assert operationContext != null;
-            logger.trace("addToContext rowsRead: {}", operationContext);
-            if (request.failure()) {
-                operationContext.addFailure(null);
-            } else {
-                operationContext.add(request.rows());
-            }
-            logger.trace("addToContext rowsRead succes");
-            return;
-        }
         synchronized (lock) {
-            operationContext = activeMergeOperations.get(request.contextId());
-            logger.trace("addToContext: norows: operationContext: {} {} {}", this, request.contextId(), operationContext);
-            if (operationContext == null) {
-                logger.trace("addToContext: without context norows failure: {}", request.failure());
-                assert !request.rowsRead();
-                if (request.failure()) {
-                    unreadFailures.add(request.contextId());
-                    logger.error("adding unread failure from distributed result for context: ", request.contextId());
-                } else {
-                    assert request.memoryStream() != null;
-                    List<BytesReference> bytesStreamOutputs = unreadStreams.get(request.contextId());
-                    if (bytesStreamOutputs == null) {
-                        bytesStreamOutputs = new ArrayList<>();
-                        unreadStreams.put(request.contextId(), bytesStreamOutputs);
-                    }
-                    bytesStreamOutputs.add(request.memoryStream().bytes());
-                }
-            } else {
-                logger.trace("addToContext: with context norows failure: {}", request.failure());
+            DownstreamOperationContext operationContext = activeMergeOperations.get(request.contextId());
+            if (operationContext != null) {
                 if (request.failure()) {
                     operationContext.addFailure(null);
-                    logger.error("addToContext: failure in distributed result");
-                    return;
+                } else {
+                    request.streamers(operationContext.streamers());
+                    operationContext.add(request.rows());
                 }
-                logger.trace("addToContext: using memory stream: ", request.memoryStream());
-                addFromBytesReference(request.memoryStream().bytes(), operationContext);
+            } else {
+                List<DistributedResultRequest> requests = unprocessedRequests.get(request.contextId());
+                if (requests == null) {
+                    requests = new ArrayList<>();
+                    unprocessedRequests.put(request.contextId(), requests);
+                }
+                requests.add(request);
             }
         }
-        logger.trace("addToContext: finished");
     }
 
-    private SettableFuture<Object[][]> wrapActionListener(final Streamer<?>[] streamers,
-                                                          final ActionListener<NodeMergeResponse> listener) {
-        SettableFuture<Object[][]> settableFuture = SettableFuture.create();
-        Futures.addCallback(settableFuture, new FutureCallback<Object[][]>() {
+    private SettableFuture<Bucket> wrapActionListener(final Streamer<?>[] streamers,
+                                                      final ActionListener<NodeMergeResponse> listener) {
+        SettableFuture<Bucket> settableFuture = SettableFuture.create();
+        Futures.addCallback(settableFuture, new FutureCallback<Bucket>() {
             @Override
-            public void onSuccess(@Nullable Object[][] result) {
+            public void onSuccess(Bucket result) {
                 listener.onResponse(new NodeMergeResponse(streamers, result));
             }
 
@@ -200,45 +170,29 @@ public class DistributedRequestContextManager {
     }
 
     private void put(UUID contextId, DownstreamOperationContext downstreamOperationContext) {
-        List<BytesReference> bytesReferences;
+        List<DistributedResultRequest> requests;
+
         synchronized (lock) {
             logger.trace("put: {} {}", contextId, downstreamOperationContext);
             activeMergeOperations.put(contextId, downstreamOperationContext);
-            bytesReferences = unreadStreams.remove(contextId);
-            if (unreadFailures.contains(contextId)) {
-                unreadFailures.remove(contextId);
+            requests = unprocessedRequests.remove(contextId);
+            if (unprocessedFailureIds.remove(contextId)){
                 downstreamOperationContext.addFailure(null);
             }
         }
-        if (bytesReferences != null) {
-            for (BytesReference bytes : bytesReferences) {
-                addFromBytesReference(bytes, downstreamOperationContext);
+        if (requests != null) {
+            for (DistributedResultRequest request : requests) {
+                request.streamers(downstreamOperationContext.streamers());
+                downstreamOperationContext.add(request.rows());
             }
         }
-    }
-
-    private void addFromBytesReference(BytesReference bytesReference, DownstreamOperationContext ctx) {
-        // bytesReference must be wrapped into HandlesStreamInput because it has a different readString()
-        // implementation than BytesStreamInput alone.
-        // and the memoryOutputStream originates from a HandlesStreamOutput.
-        HandlesStreamInput wrappedStream = new HandlesStreamInput(new BytesStreamInput(bytesReference));
-        Object[][] rows = null;
-        try {
-            rows = DistributedResultRequest.readRemaining(ctx.streamers(), wrappedStream);
-        } catch (IOException e) {
-            ctx.addFailure(e);
-            logger.error("unable to deserialize upstream result", e);
-            return;
-        }
-        assert rows != null;
-        ctx.add(rows);
     }
 
     public void setFailure(UUID contextId) {
         synchronized (lock) {
             DownstreamOperationContext downstreamOperationContext = activeMergeOperations.get(contextId);
             if (downstreamOperationContext == null) {
-                unreadFailures.add(contextId);
+                unprocessedFailureIds.add(contextId);
             } else {
                 downstreamOperationContext.addFailure(null);
             }

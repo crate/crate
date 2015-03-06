@@ -22,29 +22,31 @@
 package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
+import io.crate.executor.transport.distributed.ResultProviderBase;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class AggregationProjector implements Projector, ProjectorUpstream {
+public class AggregationProjector extends ResultProviderBase implements ProjectorUpstream {
 
     private final Aggregator[] aggregators;
     private final Set<CollectExpression<?>> collectExpressions;
-    private final Object[] row;
+    private final Object[] cells;
+    private final Row row;
     private final Object[] states;
     private Projector downstream;
-    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
                                 AggregationContext[] aggregations,
                                 RamAccountingContext ramAccountingContext) {
-        row = new Object[aggregations.length];
+        cells = new Object[aggregations.length];
+        row = new RowN(cells);
         states = new Object[aggregations.length];
         this.collectExpressions = collectExpressions;
         aggregators = new Aggregator[aggregations.length];
@@ -66,10 +68,7 @@ public class AggregationProjector implements Projector, ProjectorUpstream {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
-
-        if (remainingUpstreams.get() <= 0) {
-            upstreamFinished();
-        }
+        super.startProjection();
     }
 
     @Override
@@ -79,17 +78,15 @@ public class AggregationProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public synchronized boolean setNextRow(Object... row) {
+    public synchronized boolean setNextRow(Row row) {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
         for (int i = 0; i < aggregators.length; i++) {
             Aggregator aggregator = aggregators[i];
             states[i] = aggregator.processRow(states[i]);
-
         }
-        //noinspection ThrowableResultOfMethodCallIgnored
-        return upstreamFailure.get() == null;
+        return true;
     }
 
     @Override
@@ -98,32 +95,15 @@ public class AggregationProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void upstreamFinished() {
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
+    public void finishProjection() {
         for (int i = 0; i < aggregators.length; i++) {
-            row[i] = aggregators[i].finishCollect(states[i]);
+            cells[i] = aggregators[i].finishCollect(states[i]);
         }
         if (downstream != null) {
             downstream.setNextRow(row);
-            Throwable throwable = upstreamFailure.get();
-            if (throwable != null) {
-                downstream.upstreamFailed(throwable);
-            } else {
-                downstream.upstreamFinished();
-            }
+            downstream.upstreamFinished();
         }
+        result.set(new ArrayBucket(new Object[][]{cells}));
     }
 
-    @Override
-    public void upstreamFailed(Throwable throwable) {
-        upstreamFailure.set(throwable);
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
-        if (downstream != null) {
-            downstream.upstreamFailed(throwable);
-        }
-    }
 }

@@ -29,6 +29,8 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -38,7 +40,6 @@ import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.AbstractRandomizedTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -49,11 +50,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.TestingHelpers.isRow;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -143,11 +144,10 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
         assertCorrectResult(projector.result().get());
     }
 
-    private void assertCorrectResult(Object[][] rows) throws Throwable {
-        assertThat(((BytesRef)rows[0][0]).utf8ToString(), is(
-                "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(((BytesRef)rows[1][0]).utf8ToString(), is(
-                "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+    private void assertCorrectResult(Bucket rows) throws Throwable {
+        Iterator<Row> it = rows.iterator();
+        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
+        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
     }
 
     private CollectingProjector getObjects(String fileUri) throws Throwable {

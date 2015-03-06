@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -55,7 +56,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static org.elasticsearch.common.settings.ImmutableSettings.Builder.EMPTY_SETTINGS;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -122,12 +125,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        TaskResult taskResult = listenableFuture.get().get(0);
-        Object[][] objects = listenableFuture.get().get(0).rows();
-
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
-
+        Bucket rows = listenableFuture.get().get(0).rows();
+        assertThat(rows, contains(isRow(1L)));
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), is(1L));
 
@@ -153,11 +152,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        TaskResult taskResult = listenableFuture.get().get(0);
-        Object[][] objects = listenableFuture.get().get(0).rows();
-
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
+        Bucket objects = listenableFuture.get().get(0).rows();
+        assertThat(objects, contains(isRow(1L)));
 
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), is(1L));
@@ -188,11 +184,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        TaskResult taskResult = listenableFuture.get().get(0);
-        Object[][] objects = listenableFuture.get().get(0).rows();
-
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
+        Bucket objects = listenableFuture.get().get(0).rows();
+        assertThat(objects, contains(isRow(1L)));
 
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), is(1L));
@@ -221,10 +214,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        TaskResult taskResult = listenableFuture.get().get(0);
-        Object[][] objects = listenableFuture.get().get(0).rows();
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
+        Bucket objects = listenableFuture.get().get(0).rows();
+        assertThat(objects, contains(isRow(1L)));
 
         execute("select * from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
@@ -232,7 +223,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     /**
      * this case should not happen as closed indices aren't listed as TableInfo
-     * but if it does maby because of stale cluster state - validate behaviour here
+     * but if it does maybe because of stale cluster state - validate behaviour here
      *
      * cannot prevent this task from deleting closed indices.
      */
@@ -248,10 +239,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        TaskResult taskResult = listenableFuture.get().get(0);
-        Object[][] objects = listenableFuture.get().get(0).rows();
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
+        Bucket objects = listenableFuture.get().get(0).rows();
+        assertThat(objects, contains(isRow(1L)));
 
         execute("select * from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
@@ -281,10 +270,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        TaskResult taskResult = listenableFuture.get().get(0);
-        Object[][] objects = listenableFuture.get().get(0).rows();
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
+        Bucket objects = listenableFuture.get().get(0).rows();
+        assertThat(objects, contains(isRow(1L)));
         assertEquals("panic", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
 
         // Update transient only
@@ -299,10 +286,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         job = executor.newJob(plan);
         futures = executor.execute(job);
         listenableFuture = Futures.allAsList(futures);
-        taskResult = listenableFuture.get().get(0);
         objects = listenableFuture.get().get(0).rows();
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
+        assertThat(objects, contains(isRow(1L)));
         assertEquals("123", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
 
         // Update persistent & transient
@@ -320,10 +305,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         job = executor.newJob(plan);
         futures = executor.execute(job);
         listenableFuture = Futures.allAsList(futures);
-        taskResult = listenableFuture.get().get(0);
         objects = listenableFuture.get().get(0).rows();
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
+        assertThat(objects, contains(isRow(1L)));
         assertEquals("normal", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
         assertEquals("243", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
     }
@@ -373,10 +356,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        TaskResult taskResult = listenableFuture.get().get(0);
-        Object[][] objects = listenableFuture.get().get(0).rows();
-        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
-        assertThat(objects.length, is(1));
+        Bucket objects = listenableFuture.get().get(0).rows();
+        assertThat(objects, contains(isRow(1L)));
 
         refresh();
 

@@ -33,12 +33,6 @@ public class InputCollectExpression<ReturnType> extends CollectExpression<Return
     }
 
     @Override
-    public boolean setNextRow(Object... args) {
-        value = (ReturnType) args[position];
-        return true;
-    }
-
-    @Override
     public boolean setNextRow(Row row) {
         value = (ReturnType) row.get(position);
         return true;

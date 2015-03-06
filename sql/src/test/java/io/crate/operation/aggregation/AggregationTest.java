@@ -23,6 +23,8 @@ package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -79,7 +81,9 @@ public abstract class AggregationTest {
         AggregationFunction impl = (AggregationFunction) functions.get(fi);
         Object state = impl.newState(ramAccountingContext);
 
-        for (Object[] row : data) {
+        ArrayBucket bucket = new ArrayBucket(data);
+
+        for (Row row : bucket) {
             for (InputCollectExpression i : inputs) {
                 i.setNextRow(row);
             }

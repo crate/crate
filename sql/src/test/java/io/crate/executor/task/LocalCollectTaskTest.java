@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.CollectOperation;
@@ -39,8 +41,10 @@ import org.junit.Test;
 import java.util.List;
 import java.util.UUID;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class LocalCollectTaskTest {
@@ -59,10 +63,10 @@ public class LocalCollectTaskTest {
 
         CollectOperation collectOperation = new CollectOperation() {
             @Override
-            public ListenableFuture collect(CollectNode cn, RamAccountingContext ramAccountingContext) {
+            public ListenableFuture<Bucket> collect(CollectNode cn, RamAccountingContext ramAccountingContext) {
                 assertEquals(cn, collectNode);
-                SettableFuture<Object[][]> result = SettableFuture.create();
-                result.set(new Object[][]{{1}});
+                SettableFuture<Bucket> result = SettableFuture.create();
+                result.set(new ArrayBucket(new Object[][]{{1}}));
                 return result;
             }
         };
@@ -72,6 +76,6 @@ public class LocalCollectTaskTest {
         assertThat(results.size(), is(1));
 
         ListenableFuture<TaskResult> result = results.get(0);
-        assertThat(result.get().rows(), is(new Object[][]{{1}}));
+        assertThat(result.get().rows(), contains(isRow(1)));
     }
 }

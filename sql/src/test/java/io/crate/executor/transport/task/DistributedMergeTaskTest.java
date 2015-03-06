@@ -2,6 +2,8 @@ package io.crate.executor.transport.task;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
+import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -23,10 +25,12 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.hamcrest.collection.IsIterableContainingInOrder;
 import org.junit.Test;
 
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -83,29 +87,29 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         String firstNode = iterator.next();
 
         DistributedResultRequest request1 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
-        request1.rows(new Object[][] {
+        request1.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 1L , new BytesRef("bar") },
-        });
+        }));
         DistributedResultRequest request2 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
-        request2.rows(new Object[][] {
+        request2.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 1L, new BytesRef("bar") },
                 new Object[] { 3L, new BytesRef("bar") },
                 new Object[] { 3L, new BytesRef("foobar") },
-        });
+        }));
 
         transportMergeNodeAction.mergeRows(firstNode, request1, noopListener);
         transportMergeNodeAction.mergeRows(firstNode, request2, noopListener);
 
         DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
-        request3.rows(new Object[][] {
+        request3.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 10, new BytesRef("foo") },
                 new Object[] { 20, new BytesRef("foo") },
-        });
+        }));
         DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
-        request4.rows(new Object[][] {
+        request4.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 10, new BytesRef("foo") },
                 new Object[] { 14, new BytesRef("test") },
-        });
+        }));
 
         String secondNode = iterator.next();
         transportMergeNodeAction.mergeRows(secondNode, request3, noopListener);
@@ -114,26 +118,18 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         assertThat(task.result().size(), is(2)); // 2 reducer nodes
 
         // results from first node
-        Object[][] rows = task.result().get(0).get().rows();
-        assertThat(rows.length, is(2));
-
-        assertThat((BytesRef)rows[0][0], is(new BytesRef("foobar")));
-        assertThat((Long)rows[0][1], is(3L));
-
-        assertThat((BytesRef)rows[1][0], is(new BytesRef("bar")));
-        assertThat((Long)rows[1][1], is(5L));
-
-
-
+        Bucket rows = task.result().get(0).get().rows();
+        assertThat(rows, IsIterableContainingInOrder.contains(
+                isRow(new BytesRef("foobar"), 3L),
+                isRow(new BytesRef("bar"), 5L)
+        ));
 
         // results from second node
         rows = task.result().get(1).get().rows();
-        assertThat(rows.length, is(2));
-        assertThat((BytesRef)rows[0][0], is(new BytesRef("test")));
-        assertThat((Long)rows[0][1], is(14L));
-
-        assertThat((BytesRef)rows[1][0], is(new BytesRef("foo")));
-        assertThat((Long)rows[1][1], is(40L));
+        assertThat(rows, IsIterableContainingInOrder.contains(
+                isRow(new BytesRef("test"), 14L),
+                isRow(new BytesRef("foo"), 40L)
+        ));
     }
 
     class NoopListener implements ActionListener<DistributedResultResponse> {

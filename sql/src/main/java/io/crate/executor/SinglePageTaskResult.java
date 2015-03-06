@@ -23,6 +23,7 @@ package io.crate.executor;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Bucket;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -57,7 +58,7 @@ public class SinglePageTaskResult implements PageableTaskResult {
     }
 
     @Override
-    public Object[][] rows() {
+    public Bucket rows() {
         throw new UnsupportedOperationException("rows() not supported on SinglePageTaskResult");
     }
 

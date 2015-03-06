@@ -30,7 +30,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import java.io.IOException;
 import java.util.*;
 
-public class Rows implements Iterable<Row>, Streamable  {
+public class Rows implements Iterable<Row>, Streamable {
 
     private List<Row> entries;
     private DataType[] dataTypes;
@@ -54,12 +54,13 @@ public class Rows implements Iterable<Row>, Streamable  {
         this(10, dataTypes, columnIndicesToStream);
     }
 
-    public boolean add(Row row) {
-        return entries.add(row);
+    public boolean addSafe(Row row) {
+        // TODO: make entries a Bucket, so we do not need to copy here
+        return entries.add(new Entry(Buckets.materialize(row)));
     }
 
     public boolean add(Object[] row) {
-        return add(new Entry(row));
+        return entries.add(new Entry(row));
     }
 
     @Override
@@ -90,7 +91,7 @@ public class Rows implements Iterable<Row>, Streamable  {
         for (int i = 0; i < rowsSize; i++) {
             Entry row = new Entry();
             row.readFrom(in);
-            add(row);
+            entries.add(row);
         }
     }
 
@@ -106,7 +107,7 @@ public class Rows implements Iterable<Row>, Streamable  {
         }
         out.writeVInt(entries.size());
         for (Row row : this) {
-            ((Entry)row).writeTo(out);
+            ((Entry) row).writeTo(out);
         }
     }
 

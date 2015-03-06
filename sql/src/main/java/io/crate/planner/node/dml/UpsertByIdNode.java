@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dml;
 
+import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Reference;
@@ -36,8 +37,9 @@ public class UpsertByIdNode extends DMLPlanNode {
 
     /**
      * A single update item.
+     * TODO: use DockKeys here or a Bucket
      */
-    public static class Item {
+    public static class Item implements Row {
 
         private final String index;
         private long version = Versions.MATCH_ANY;
@@ -59,8 +61,14 @@ public class UpsertByIdNode extends DMLPlanNode {
             return version;
         }
 
-        public Object[] row() {
-            return row;
+        @Override
+        public int size() {
+            return row.length;
+        }
+
+        @Override
+        public Object get(int index) {
+            return row[index];
         }
     }
 

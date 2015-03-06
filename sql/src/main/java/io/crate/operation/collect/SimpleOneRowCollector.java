@@ -22,7 +22,9 @@
 package io.crate.operation.collect;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Row;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.projectors.Projector;
 
 import java.io.IOException;
@@ -32,18 +34,16 @@ import java.util.Set;
 /**
  * Simple Collector that only collects one row and does not support any query or aggregation
  */
-public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implements CrateCollector {
+public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements CrateCollector {
 
-    private final List<Input<?>> inputs;
     private final Set<CollectExpression<?>> collectExpressions;
-    private final Object[] result;
+    private final InputRow row;
     private Projector downstream;
 
     public SimpleOneRowCollector(List<Input<?>> inputs,
                                  Set<CollectExpression<?>> collectExpressions,
                                  Projector downstream) {
-        this.inputs = inputs;
-        this.result = new Object[inputs.size()];
+        this.row = new InputRow(inputs);
         this.collectExpressions = collectExpressions;
         downstream(downstream);
     }
@@ -58,20 +58,14 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
 
     @Override
     public boolean processRow() {
-        int i = 0;
-        if (inputs != null) {
-            for (Input<?> input : inputs) {
-                result[i++] = input.value();
-            }
-        }
-        downstream.setNextRow(result);
+        downstream.setNextRow(row);
         return false;
     }
 
     @Override
-    public Object[] finishCollect() {
+    public Row finishCollect() {
         downstream.upstreamFinished();
-        return result;
+        return row;
     }
 
     @Override
