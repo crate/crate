@@ -78,7 +78,7 @@ public class CollectContextService extends AbstractLifecycleComponent<CollectCon
      * Return a {@link JobCollectContext} for given <code>jobId</code>, create new one if not found.
      */
     public JobCollectContext acquireContext(UUID jobId, boolean create) {
-        if (create == false) {
+        if (!create) {
             return activeContexts.get(jobId);
         }
         JobCollectContext jobCollectContext = new JobCollectContext(jobId);
@@ -126,7 +126,6 @@ public class CollectContextService extends AbstractLifecycleComponent<CollectCon
         context.accessed(threadPool.estimatedTimeInMillis());
     }
 
-
     class Reaper implements Runnable {
         @Override
         public void run() {
@@ -147,5 +146,4 @@ public class CollectContextService extends AbstractLifecycleComponent<CollectCon
             }
         }
     }
-
 }

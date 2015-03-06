@@ -133,6 +133,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         public String nodeId(int jobSearchContextId) {
             return jobSearchContextIdToNode.get(jobSearchContextId);
         }
+
+        public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
+            return jobSearchContextIdToNode;
+        }
     }
 
     @Inject
