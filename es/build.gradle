@@ -28,35 +28,36 @@ dependencies {
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.4.3'
     compile 'com.github.spullara.mustache.java:compiler:0.8.13'
     compile 'com.google.guava:guava:18.0'
-    compile 'commons-cli:commons-cli:1.2'
     compile 'com.ning:compress-lzf:1.0.2'
-    compile 'org.codehaus.groovy:groovy-all:2.3.2'
     compile 'com.spatial4j:spatial4j:0.4.1'
     compile 'com.tdunning:t-digest:3.0'
     compile 'com.vividsolutions:jts:1.13'
+    compile 'commons-cli:commons-cli:1.2'
     compile 'io.netty:netty:3.9.3.Final'
     compile 'joda-time:joda-time:2.5'
     compile 'log4j:log4j:1.2.17'
     compile 'net.java.dev.jna:jna:4.1.0'
+    compile 'org.antlr:antlr-runtime:3.5'
+    compile 'org.apache.commons:commons-lang3:3.3.2'
+    compile 'org.codehaus.groovy:groovy-all:2.3.2'
     compile 'org.joda:joda-convert:1.2'
     compile 'org.slf4j:slf4j-api:1.6.2'
-    compile 'org.antlr:antlr-runtime:3.5'
 
     // if you update the versions here
     // also update the dependencies in client/build.gradle
-    compile 'org.apache.lucene:lucene-analyzers-common:4.10.2'
-    compile 'org.apache.lucene:lucene-core:4.10.2'
-    compile 'org.apache.lucene:lucene-expressions:4.10.2'
-    compile 'org.apache.lucene:lucene-grouping:4.10.2'
-    compile 'org.apache.lucene:lucene-highlighter:4.10.2'
-    compile 'org.apache.lucene:lucene-join:4.10.2'
-    compile 'org.apache.lucene:lucene-memory:4.10.2'
-    compile 'org.apache.lucene:lucene-misc:4.10.2'
-    compile 'org.apache.lucene:lucene-queries:4.10.2'
-    compile 'org.apache.lucene:lucene-queryparser:4.10.2'
-    compile 'org.apache.lucene:lucene-sandbox:4.10.2'
-    compile 'org.apache.lucene:lucene-spatial:4.10.2'
-    compile 'org.apache.lucene:lucene-suggest:4.10.2'
+    compile 'org.apache.lucene:lucene-analyzers-common:4.10.3'
+    compile 'org.apache.lucene:lucene-core:4.10.3'
+    compile 'org.apache.lucene:lucene-expressions:4.10.3'
+    compile 'org.apache.lucene:lucene-grouping:4.10.3'
+    compile 'org.apache.lucene:lucene-highlighter:4.10.3'
+    compile 'org.apache.lucene:lucene-join:4.10.3'
+    compile 'org.apache.lucene:lucene-memory:4.10.3'
+    compile 'org.apache.lucene:lucene-misc:4.10.3'
+    compile 'org.apache.lucene:lucene-queries:4.10.3'
+    compile 'org.apache.lucene:lucene-queryparser:4.10.3'
+    compile 'org.apache.lucene:lucene-sandbox:4.10.3'
+    compile 'org.apache.lucene:lucene-spatial:4.10.3'
+    compile 'org.apache.lucene:lucene-suggest:4.10.3'
 
 
     // keep sigar out, see below
@@ -79,13 +80,13 @@ dependencies {
     lucenetest ('junit:junit:4.11') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
-    lucenetest ('org.apache.lucene:lucene-codecs:4.10.2') {
+    lucenetest ('org.apache.lucene:lucene-codecs:4.10.3') {
         exclude group: 'junit', module: 'junit'
     }
-    lucenetest ('org.apache.lucene:lucene-test-framework:4.10.2') {
+    lucenetest ('org.apache.lucene:lucene-test-framework:4.10.3') {
         exclude group: 'junit', module: 'junit'
     }
-    lucenetest ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.10') {
+    lucenetest ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.11') {
         exclude group: 'junit', module: 'junit'
     }
     lucenetest 'com.carrotsearch.randomizedtesting:junit4-ant:2.1.6'
