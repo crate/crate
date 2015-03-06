@@ -40,10 +40,8 @@ import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.AbstractRandomizedTest;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.ExpectedException;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -65,6 +63,9 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
     private static File tmpFile;
     private static File tmpFileGz;
     private FileCollectInputSymbolVisitor inputSymbolVisitor;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -97,6 +98,13 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
     public static void tearDownClass() throws Exception {
         tmpFile.delete();
         tmpFileGz.delete();
+    }
+
+    @Test
+    public void testUmlautsAndWhitespacesWithExplicitURIThrowsAre() throws Throwable {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Illegal character in path at index 12: file:///this will fäil.json");
+        getObjects("file:///this will fäil.json");
     }
 
     @Test

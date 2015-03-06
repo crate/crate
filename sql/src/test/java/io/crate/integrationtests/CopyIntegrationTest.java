@@ -38,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
@@ -80,6 +81,19 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select quote from quotes where id = 1");
         assertThat((String) response.rows()[0][0], is("Don't pa\u00f1ic."));
+    }
+
+    @Test
+    public void testCopyFromFileWithUmlautsWhitespacesAndGlobs() throws Exception {
+        execute("create table t (id int primary key, name string) clustered into 1 shards with (number_of_replicas = 0)");
+        File tmpFolder = folder.newFolder("äwesöme földer");
+        File file = new File(tmpFolder, "süpär.json");
+
+        List<String> lines = Arrays.asList("{\"id\": 1, \"name\": \"Arthur\"}");
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ?", new Object[] {tmpFolder.getAbsolutePath() + "/s*.json"});
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test

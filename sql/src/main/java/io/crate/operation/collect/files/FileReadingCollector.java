@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +85,8 @@ public class FileReadingCollector implements CrateCollector {
                                 int numReaders,
                                 int readerNumber) {
         if (fileUri.startsWith("/")) {
-            this.fileUri = URI.create("file://" + fileUri);
+            // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
+            this.fileUri = Paths.get(fileUri).toUri();
         } else {
             this.fileUri = URI.create(fileUri);
             if (this.fileUri.getScheme() == null) {
