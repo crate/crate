@@ -51,7 +51,7 @@ public class MergeNodeTest extends CrateUnitTest {
     @Test
     public void testSerialization() throws Exception {
         MergeNode node = new MergeNode("merge", 2);
-        node.contextId(UUID.randomUUID());
+        node.jobId(UUID.randomUUID());
         node.executionNodes(Sets.newHashSet("node1", "node2"));
         node.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
 
@@ -80,7 +80,7 @@ public class MergeNodeTest extends CrateUnitTest {
 
         assertThat(node.numUpstreams(), is(node2.numUpstreams()));
         assertThat(node.executionNodes(), is(node2.executionNodes()));
-        assertThat(node.contextId(), is(node2.contextId()));
+        assertThat(node.jobId(), is(node2.jobId()));
         assertThat(node.inputTypes(), is(node2.inputTypes()));
     }
 }

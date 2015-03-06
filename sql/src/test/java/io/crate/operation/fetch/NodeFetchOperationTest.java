@@ -21,13 +21,13 @@
 
 package io.crate.operation.fetch;
 
-import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.CollectContextService;
-import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.BeforeClass;
@@ -35,7 +35,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -44,7 +43,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class NodeFetchOperationTest {
+public class NodeFetchOperationTest extends RandomizedTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -66,8 +65,8 @@ public class NodeFetchOperationTest {
         UUID jobId = UUID.randomUUID();
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
-                new HashMap<Integer, IntArrayList>(0),
-                ImmutableList.<Symbol>of(),
+                new LongArrayList(),
+                ImmutableList.<Reference>of(),
                 true,
                 collectContextService,
                 threadPool,
@@ -86,8 +85,8 @@ public class NodeFetchOperationTest {
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
-                MapBuilder.<Integer, IntArrayList>newMapBuilder().put(1, new IntArrayList()).map(),
-                ImmutableList.<Symbol>of(),
+                LongArrayList.from(0L),
+                ImmutableList.<Reference>of(),
                 true,
                 collectContextService,
                 threadPool,
@@ -95,9 +94,7 @@ public class NodeFetchOperationTest {
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", 1));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", 0));
         nodeFetchOperation.fetch();
     }
-
-
 }
