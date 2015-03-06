@@ -32,5 +32,7 @@ public class CollectOperationModule extends AbstractModule {
 
         bind(StatsTables.class).asEagerSingleton();
         bind(SystemCollectService.class).asEagerSingleton();
+
+        bind(CollectContextService.class).asEagerSingleton();
     }
 }

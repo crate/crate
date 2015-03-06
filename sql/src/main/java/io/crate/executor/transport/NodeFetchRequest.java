@@ -21,21 +21,23 @@
 
 package io.crate.executor.transport;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import io.crate.planner.symbol.Symbol;
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.cursors.LongCursor;
+import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public class NodeFetchRequest extends TransportRequest {
 
     private UUID jobId;
-    private Map<Integer, IntArrayList> jobSearchContextDocIds = new HashMap<>();
-    private List<Symbol> toFetchSymbols;
+    private LongArrayList jobSearchContextDocIds;
+    private List<Reference> toFetchReferences;
     private boolean closeContext = true;
 
     public NodeFetchRequest() {
@@ -49,25 +51,20 @@ public class NodeFetchRequest extends TransportRequest {
         return jobId;
     }
 
-    public void addDocId(int jobSearchContextId, int docId) {
-        IntArrayList docIds = jobSearchContextDocIds.get(jobSearchContextId);
-        if (docIds == null) {
-            docIds = new IntArrayList();
-            jobSearchContextDocIds.put(jobSearchContextId, docIds);
-        }
-        docIds.add(docId);
+    public void jobSearchContextDocIds(LongArrayList jobSearchContextDocIds) {
+        this.jobSearchContextDocIds = jobSearchContextDocIds;
     }
 
-    public Map<Integer, IntArrayList> jobSearchContextDocIds() {
+    public LongArrayList jobSearchContextDocIds() {
         return jobSearchContextDocIds;
     }
 
-    public void toFetchSymbols(List<Symbol> toFetchSymbols) {
-        this.toFetchSymbols = toFetchSymbols;
+    public void toFetchReferences(List<Reference> toFetchReferences) {
+        this.toFetchReferences = toFetchReferences;
     }
 
-    public List<Symbol> toFetchSymbols() {
-        return toFetchSymbols;
+    public List<Reference> toFetchReferences() {
+        return toFetchReferences;
     }
 
     public void closeContext(boolean closeContext) {
@@ -82,21 +79,15 @@ public class NodeFetchRequest extends TransportRequest {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         jobId = new UUID(in.readLong(), in.readLong());
-        int mapSize = in.readVInt();
-        jobSearchContextDocIds = new HashMap<>(mapSize);
-        for (int i = 0; i < mapSize; i++) {
-            Integer jobSearchContextId = in.readVInt();
-            int docIdsSize = in.readVInt();
-            IntArrayList docIds = new IntArrayList(docIdsSize);
-            for (int j = 0; j < docIdsSize; j++) {
-                docIds.add(in.readVInt());
-            }
-            jobSearchContextDocIds.put(jobSearchContextId, docIds);
+        int listSize = in.readVInt();
+        jobSearchContextDocIds = new LongArrayList(listSize);
+        for (int i = 0; i < listSize; i++) {
+            jobSearchContextDocIds.add(in.readVLong());
         }
         int symbolsSize = in.readVInt();
-        toFetchSymbols = new ArrayList<>(symbolsSize);
+        toFetchReferences = new ArrayList<>(symbolsSize);
         for (int i = 0; i < symbolsSize; i++) {
-            toFetchSymbols.add(Symbol.fromStream(in));
+            toFetchReferences.add(Reference.fromStream(in));
         }
         closeContext = in.readBoolean();
     }
@@ -107,16 +98,12 @@ public class NodeFetchRequest extends TransportRequest {
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
         out.writeVInt(jobSearchContextDocIds.size());
-        for (Map.Entry<Integer, IntArrayList> entry : jobSearchContextDocIds.entrySet()) {
-            out.writeVInt(entry.getKey());
-            out.writeVInt(entry.getValue().size());
-            for (IntCursor cursor : entry.getValue()) {
-                out.writeVInt(cursor.value);
-            }
+        for (LongCursor jobSearchContextDocId : jobSearchContextDocIds) {
+            out.writeVLong(jobSearchContextDocId.value);
         }
-        out.writeVInt(toFetchSymbols.size());
-        for (Symbol symbol : toFetchSymbols) {
-            Symbol.toStream(symbol, out);
+        out.writeVInt(toFetchReferences.size());
+        for (Reference reference : toFetchReferences) {
+            Reference.toStream(reference, out);
         }
         out.writeBoolean(closeContext);
     }

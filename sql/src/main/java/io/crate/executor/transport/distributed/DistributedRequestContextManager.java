@@ -94,7 +94,7 @@ public class DistributedRequestContextManager {
         String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId);
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
+        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.id());
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
         SettableFuture<Bucket> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
@@ -104,15 +104,15 @@ public class DistributedRequestContextManager {
                 new DoneCallback() {
                     @Override
                     public void finished() {
-                        logger.trace("DoneCallback.finished: {} {}", mergeNode.contextId());
-                        activeMergeOperations.remove(mergeNode.contextId());
+                        logger.trace("DoneCallback.finished: {} {}", mergeNode.jobId());
+                        activeMergeOperations.remove(mergeNode.jobId());
                         statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
                         ramAccountingContext.close();
                     }
                 }
         );
-        logger.trace("createContext.put: {} {}", this, mergeNode.contextId(), downstreamOperationContext);
-        put(mergeNode.contextId(), downstreamOperationContext);
+        logger.trace("createContext.put: {} {}", this, mergeNode.jobId(), downstreamOperationContext);
+        put(mergeNode.jobId(), downstreamOperationContext);
     }
 
 

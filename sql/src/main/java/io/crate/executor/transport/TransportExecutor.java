@@ -257,7 +257,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (node == null) {
                return ImmutableList.of();
             }
-            node.contextId(jobId);
+            node.jobId(jobId);
             if (node.executionNodes().isEmpty()) {
                 return singleTask(new LocalMergeTask(
                         jobId,

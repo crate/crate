@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dql;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -40,7 +41,8 @@ public class MergeNode extends AbstractDQLPlanNode {
     private List<DataType> inputTypes;
     private int numUpstreams;
     private Set<String> executionNodes;
-    private UUID contextId;
+    private UUID jobId;
+    private IntObjectOpenHashMap<String> jobSearchContextIdToNode;
 
     public MergeNode() {
         numUpstreams = 0;
@@ -68,12 +70,12 @@ public class MergeNode extends AbstractDQLPlanNode {
         return numUpstreams;
     }
 
-    public UUID contextId() {
-        return contextId;
+    public UUID jobId() {
+        return jobId;
     }
 
-    public void contextId(UUID contextId) {
-        this.contextId = contextId;
+    public void jobId(UUID jobId) {
+        this.jobId = jobId;
     }
 
     public List<DataType> inputTypes() {
@@ -82,6 +84,14 @@ public class MergeNode extends AbstractDQLPlanNode {
 
     public void inputTypes(List<DataType> inputTypes) {
         this.inputTypes = inputTypes;
+    }
+
+    public void jobSearchContextIdToNode(IntObjectOpenHashMap<String> jobSearchContextIdToNode) {
+        this.jobSearchContextIdToNode = jobSearchContextIdToNode;
+    }
+
+    public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
+        return jobSearchContextIdToNode;
     }
 
     @Override
@@ -94,7 +104,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         super.readFrom(in);
 
         numUpstreams = in.readVInt();
-        contextId = new UUID(in.readLong(), in.readLong());
+        jobId = new UUID(in.readLong(), in.readLong());
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -118,8 +128,8 @@ public class MergeNode extends AbstractDQLPlanNode {
         super.writeTo(out);
 
         out.writeVInt(numUpstreams);
-        out.writeLong(contextId.getMostSignificantBits());
-        out.writeLong(contextId.getLeastSignificantBits());
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
 
         int numCols = inputTypes.size();
         out.writeVInt(numCols);
@@ -143,7 +153,7 @@ public class MergeNode extends AbstractDQLPlanNode {
                 .add("id", id())
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
-                .add("contextId", contextId)
+                .add("jobId", jobId)
                 .add("numUpstreams", numUpstreams)
                 .add("executionNodes", executionNodes)
                 .add("inputTypes", inputTypes)
