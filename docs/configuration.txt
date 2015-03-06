@@ -640,6 +640,8 @@ managed within a node. There are several pools, but the important ones include:
 
     * index: For index/delete operations, defaults to fixed
     * search: For count/search operations, defaults to fixed
+    * get: For queries that are optimized to do a direct lookup by primary key,
+      defaults to fixed
     * bulk: For bulk operations, defaults to fixed
     * refresh: For refresh operations, defaults to cache
 
@@ -670,7 +672,10 @@ optional settings.
 .. _threadpool.<threadpool>.queue_size:
 
 **threadpool.<threadpool>.queue_size**
-  | *Default:*  ``-1``
+  | *Default index:*  ``200``
+  | *Default search:* ``1000``
+  | *Default get:* ``1000``
+  | *Default bulk:* ``50``
   | *Runtime:*  ``no``
 
   Size of the queue for pending requests. A value of ``-1`` sets it to
