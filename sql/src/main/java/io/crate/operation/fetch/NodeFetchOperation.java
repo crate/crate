@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.collect.*;
@@ -83,13 +84,13 @@ public class NodeFetchOperation {
 
     }
 
-    public ListenableFuture<Object[][]> fetch() throws Exception {
+    public ListenableFuture<Bucket> fetch() throws Exception {
         int numShards = jobSearchContextDocIds.size();
         ShardProjectorChain projectorChain = new ShardProjectorChain(numShards,
                 ImmutableList.<Projection>of(), null, ramAccountingContext);
 
         final ShardCollectFuture result = new MapSideDataCollectOperation.SimpleShardCollectFuture(
-                numShards, projectorChain, collectContextService, jobId);
+                numShards, projectorChain.resultProvider().result(), collectContextService, jobId);
 
         JobCollectContext jobCollectContext = collectContextService.acquireContext(jobId, false);
         if (jobCollectContext == null) {
@@ -112,6 +113,7 @@ public class NodeFetchOperation {
             docCollector.searchContext().docIdsToLoad(entry.getValue().toArray(), 0, entry.getValue().size());
             shardFetchers.add(
                     new LuceneDocFetcher(
+                            docCtx.topLevelInputs(),
                             docCtx.docLevelExpressions(),
                             downstream,
                             jobCollectContext,

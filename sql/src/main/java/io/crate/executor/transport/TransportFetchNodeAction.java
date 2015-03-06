@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.CollectContextService;
@@ -108,7 +109,7 @@ public class TransportFetchNodeAction {
                 functions,
                 ramAccountingContext);
 
-        ListenableFuture<Object[][]> result;
+        ListenableFuture<Bucket> result;
         try {
             result = fetchOperation.fetch();
         } catch (Throwable t) {
@@ -121,9 +122,9 @@ public class TransportFetchNodeAction {
         }
 
 
-        Futures.addCallback(result, new FutureCallback<Object[][]>() {
+        Futures.addCallback(result, new FutureCallback<Bucket>() {
             @Override
-            public void onSuccess(@Nullable Object[][] result) {
+            public void onSuccess(@Nullable Bucket result) {
                 assert result != null;
                 NodeFetchResponse response = new NodeFetchResponse(outputStreamers(request.toFetchSymbols()));
                 response.rows(result);
