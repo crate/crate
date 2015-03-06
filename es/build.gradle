@@ -26,7 +26,9 @@ dependencies {
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.4.3'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-smile:2.4.3'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.4.3'
-    compile 'com.github.spullara.mustache.java:compiler:0.8.13'
+    compile('com.github.spullara.mustache.java:compiler:0.8.13') {
+        exclude group: 'com.google.guava', module: 'guava'
+    }
     compile 'com.google.guava:guava:18.0'
     compile 'commons-cli:commons-cli:1.2'
     compile 'com.ning:compress-lzf:1.0.2'
