@@ -39,8 +39,19 @@ import org.elasticsearch.threadpool.ThreadPool;
 public class NonDistributingCollectOperation extends MapSideDataCollectOperation<SingleBucketBuilder> {
 
     @Inject
-    public NonDistributingCollectOperation(ClusterService clusterService, Settings settings, TransportActionProvider transportActionProvider, Functions functions, ReferenceResolver referenceResolver, IndicesService indicesService, ThreadPool threadPool, CollectServiceResolver collectServiceResolver, PlanNodeStreamerVisitor streamerVisitor) {
-        super(clusterService, settings, transportActionProvider, functions, referenceResolver, indicesService, threadPool, collectServiceResolver, streamerVisitor);
+    public NonDistributingCollectOperation(ClusterService clusterService,
+                                           Settings settings,
+                                           TransportActionProvider transportActionProvider,
+                                           Functions functions,
+                                           ReferenceResolver referenceResolver,
+                                           IndicesService indicesService,
+                                           ThreadPool threadPool,
+                                           CollectServiceResolver collectServiceResolver,
+                                           PlanNodeStreamerVisitor streamerVisitor,
+                                           CollectContextService collectContextService) {
+        super(clusterService, settings, transportActionProvider, functions, referenceResolver,
+                indicesService, threadPool, collectServiceResolver, streamerVisitor,
+                collectContextService);
     }
 
     protected Optional<SingleBucketBuilder> createResultResultProvider(CollectNode node){

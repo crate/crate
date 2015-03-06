@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
+import io.crate.core.collections.Row;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.NodeFetchRequest;
@@ -123,10 +124,11 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         int seenJobSearchContextId = -1;
         for (ListenableFuture<TaskResult> nodeResult : result) {
             TaskResult taskResult = nodeResult.get();
-            assertThat(taskResult.rows().length, is(1));
-            assertNotNull(taskResult.rows()[0][0]);
-            assertThat(taskResult.rows()[0][0], instanceOf(Long.class));
-            long docId = (long)taskResult.rows()[0][0];
+            assertThat(taskResult.rows().size(), is(1));
+            Object docIdCol = taskResult.rows().iterator().next().get(0);
+            assertNotNull(docIdCol);
+            assertThat(docIdCol, instanceOf(Long.class));
+            long docId = (long)docIdCol;
             // unpack jobSearchContextId and reader doc id from docId
             int jobSearchContextId = (int)(docId >> 32);
             int doc = (int)docId;
@@ -167,7 +169,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Map<String, Map<Integer, IntArrayList>> jobSearchContextDocIds = new TreeMap<>();
         for (ListenableFuture<TaskResult> nodeResult : result) {
             TaskResult taskResult = nodeResult.get();
-            long docId = (long)taskResult.rows()[0][0];
+            long docId = (long)taskResult.rows().iterator().next().get(0);
             // unpack jobSearchContextId and reader doc id from docId
             int jobSearchContextId = (int)(docId >> 32);
             int doc = (int)docId;
@@ -202,7 +204,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         final CountDownLatch latch = new CountDownLatch(jobSearchContextDocIds.size());
 
-        final List<Object[]> rows = new ArrayList<>();
+        final List<Row> rows = new ArrayList<>();
         for (Map.Entry<String, Map<Integer, IntArrayList>> nodeEntry : jobSearchContextDocIds.entrySet()) {
             NodeFetchRequest nodeFetchRequest = new NodeFetchRequest();
             nodeFetchRequest.jobId(collectNode.jobId().get());
@@ -217,7 +219,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             transportFetchNodeAction.execute(nodeEntry.getKey(), nodeFetchRequest, new ActionListener<NodeFetchResponse>() {
                 @Override
                 public void onResponse(NodeFetchResponse nodeFetchResponse) {
-                    for (Object[] row : nodeFetchResponse.rows()) {
+                    for (Row row : nodeFetchResponse.rows()) {
                         rows.add(row);
                     }
                     latch.countDown();
@@ -233,10 +235,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         latch.await();
 
         assertThat(rows.size(), is(2));
-        assertThat((Integer)rows.get(0)[0], anyOf(is(1), is(2)));
-        assertThat((BytesRef) rows.get(0)[1], anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
-        assertThat((Integer)rows.get(1)[0], anyOf(is(1), is(2)));
-        assertThat((BytesRef) rows.get(1)[1], anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
+        Iterator<Row> it = rows.iterator();
+        while (it.hasNext()) {
+            Row row = it.next();
+            assertThat((Integer) row.get(0), anyOf(is(1), is(2)));
+            assertThat((BytesRef) row.get(1), anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
+        }
     }
 
 }
