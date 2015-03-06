@@ -15,6 +15,14 @@ configurations {
 dependencies {
     compile (project(':es')) {
         exclude group: 'org.apache.lucene'
+        exclude group: 'org.codehaus.groovy'
+        exclude group: 'com.github.spullara.mustache.java'
+        exclude group: 'org.antlr'
+        exclude group: 'net.java.dev.jna'
+        exclude group: 'com.spatial4j'
+        exclude group: 'com.tdunning'
+        exclude group: 'commons-cli'
+        exclude group: 'com.vividsolutions'
     }
     // needed by ES Version class - keep up to date with es dependencies
     compile 'org.apache.lucene:lucene-core:4.10.3'
@@ -57,6 +65,7 @@ jar {
 
     from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
         exclude 'META-INF/**'
+        exclude 'org/hyperic/**' // exclude sigar stuff
     }}
 
     doLast {

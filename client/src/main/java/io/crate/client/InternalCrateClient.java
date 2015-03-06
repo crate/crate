@@ -33,11 +33,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.concurrent.TimeUnit;
 
 public class InternalCrateClient {
 
@@ -53,9 +49,9 @@ public class InternalCrateClient {
 
         MapBuilder<Action, TransportActionNodeProxy> actionsBuilder = new MapBuilder<>();
         actionsBuilder.put(SQLAction.INSTANCE,
-                           new TransportActionNodeProxy(settings, SQLAction.INSTANCE, transportService))
+                           new TransportActionNodeProxy<>(settings, SQLAction.INSTANCE, transportService))
                       .put(SQLBulkAction.INSTANCE,
-                           new TransportActionNodeProxy(settings, SQLBulkAction.INSTANCE, transportService));
+                           new TransportActionNodeProxy<>(settings, SQLBulkAction.INSTANCE, transportService));
         this.actions = actionsBuilder.immutableMap();
     }
 
