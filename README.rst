@@ -1,6 +1,6 @@
-.. image:: https://cdn.crate.io/web/1.0.0/img/logo-solid.png
-    :width: 155px
-    :height: 45px
+.. image:: https://cdn.crate.io/web/2.0/img/crate-avatar_100x100.png
+    :width: 100px
+    :height: 100px
     :alt: Crate
     :target: https://crate.io
 
