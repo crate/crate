@@ -22,6 +22,10 @@
 package io.crate.operation.fetch;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.carrotsearch.hppc.cursors.LongCursor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -29,51 +33,55 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class NodeFetchOperation {
 
     private final UUID jobId;
-    private final Map<Integer, IntArrayList> jobSearchContextDocIds;
-    private final List<Symbol> toFetchSymbols;
+    private final List<Reference> toFetchReferences;
     private final boolean closeContext;
+    private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap();
 
     private final CollectContextService collectContextService;
     private final RamAccountingContext ramAccountingContext;
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
-    private final String executorName = ThreadPool.Names.SEARCH;
     private final ThreadPoolExecutor executor;
     private final int poolSize;
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private long inputCursor = 0;
+
+    private static final ESLogger LOGGER = Loggers.getLogger(NodeFetchOperation.class);
 
     public NodeFetchOperation(UUID jobId,
-                              Map<Integer, IntArrayList> jobSearchContextDocIds,
-                              List<Symbol> toFetchSymbols,
+                              LongArrayList jobSearchContextDocIds,
+                              List<Reference> toFetchReferences,
                               boolean closeContext,
                               CollectContextService collectContextService,
                               ThreadPool threadPool,
                               Functions functions,
                               RamAccountingContext ramAccountingContext) {
         this.jobId = jobId;
-        this.jobSearchContextDocIds = jobSearchContextDocIds;
-        this.toFetchSymbols = toFetchSymbols;
+        this.toFetchReferences = toFetchReferences;
         this.closeContext = closeContext;
         this.collectContextService = collectContextService;
         this.ramAccountingContext = ramAccountingContext;
-        executor = (ThreadPoolExecutor) threadPool.executor(executorName);
+        executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getPoolSize();
 
         DocLevelReferenceResolver<? extends Input<?>> resolver = LuceneDocLevelReferenceResolver.INSTANCE;
@@ -82,10 +90,27 @@ public class NodeFetchOperation {
                 resolver
         );
 
+        createShardBuckets(jobSearchContextDocIds);
+    }
+
+    private void createShardBuckets(LongArrayList jobSearchContextDocIds) {
+        for (LongCursor jobSearchContextDocIdCursor : jobSearchContextDocIds) {
+            // unpack jobSearchContextId and docId integers from jobSearchContextDocId long
+            long jobSearchContextDocId = jobSearchContextDocIdCursor.value;
+            int jobSearchContextId = (int)(jobSearchContextDocId >> 32);
+            int docId = (int)jobSearchContextDocId;
+
+            ShardDocIdsBucket shardDocIdsBucket = shardBuckets.get(jobSearchContextId);
+            if (shardDocIdsBucket == null) {
+                shardDocIdsBucket = new ShardDocIdsBucket();
+                shardBuckets.put(jobSearchContextId, shardDocIdsBucket);
+            }
+            shardDocIdsBucket.add(inputCursor++, docId);
+        }
     }
 
     public ListenableFuture<Bucket> fetch() throws Exception {
-        int numShards = jobSearchContextDocIds.size();
+        int numShards = shardBuckets.size();
         ShardProjectorChain projectorChain = new ShardProjectorChain(numShards,
                 ImmutableList.<Projection>of(), null, ramAccountingContext);
 
@@ -95,30 +120,31 @@ public class NodeFetchOperation {
         JobCollectContext jobCollectContext = collectContextService.acquireContext(jobId, false);
         if (jobCollectContext == null) {
             String errorMsg = String.format(Locale.ENGLISH, "No jobCollectContext found for job '%s'", jobId);
-            logger.error(errorMsg);
+            LOGGER.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
-        CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(toFetchSymbols);
+        CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(toFetchReferences);
         Projector downstream = projectorChain.newShardDownstreamProjector(null);
+        RowDownstream upstreamsRowMerger = new PositionalRowMerger(downstream, toFetchReferences.size());
 
         List<LuceneDocFetcher> shardFetchers = new ArrayList<>(numShards);
-        for (Map.Entry<Integer, IntArrayList> entry : jobSearchContextDocIds.entrySet()) {
-            LuceneDocCollector docCollector = jobCollectContext.findCollector(entry.getKey());
+        for (IntObjectCursor<ShardDocIdsBucket> entry : shardBuckets) {
+            LuceneDocCollector docCollector = jobCollectContext.findCollector(entry.key);
             if (docCollector == null) {
-                String errorMsg = String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", entry.getKey());
-                logger.error(errorMsg);
+                String errorMsg = String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", entry.key);
+                LOGGER.error(errorMsg);
                 throw new IllegalArgumentException(errorMsg);
             }
-            docCollector.searchContext().docIdsToLoad(entry.getValue().toArray(), 0, entry.getValue().size());
             shardFetchers.add(
                     new LuceneDocFetcher(
                             docCtx.topLevelInputs(),
                             docCtx.docLevelExpressions(),
-                            downstream,
+                            upstreamsRowMerger,
+                            entry.value,
                             jobCollectContext,
                             docCollector.searchContext(),
-                            entry.getKey(),
+                            entry.key,
                             closeContext));
         }
 
@@ -131,8 +157,8 @@ public class NodeFetchOperation {
             result.shardFailure(e);
         }
 
-        if (logger.isTraceEnabled()) {
-            logger.trace("started {} shardFetchers", numShards);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("started {} shardFetchers", numShards);
         }
 
         return result;
@@ -178,10 +204,33 @@ public class NodeFetchOperation {
         } catch (Exception ex) {
             result.shardFailure(ex);
         }
-        if (logger.isTraceEnabled()) {
-            logger.trace("shard finished fetch, {} to go", result.numShards());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("shard finished fetch, {} to go", result.numShards());
         }
     }
 
+
+    static class ShardDocIdsBucket {
+
+        private final LongArrayList positions = new LongArrayList();
+        private final IntArrayList docIds = new IntArrayList();
+
+        public void add(long position, int docId) {
+            positions.add(position);
+            docIds.add(docId);
+        }
+
+        public int[] docIds() {
+            return docIds.toArray();
+        }
+
+        public int size() {
+            return docIds.size();
+        }
+
+        public long position(int idx) {
+            return positions.get(idx);
+        }
+    }
 
 }

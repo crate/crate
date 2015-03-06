@@ -222,8 +222,7 @@ public class ShardCollectService {
                                     Optional.<Scroll>absent(),
                                     CollectContextService.DEFAULT_KEEP_ALIVE
                             );
-                            LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, localContext, indexService.cache());
-                            LuceneQueryBuilder.Context ctx = builder.convert(collectNode.whereClause());
+                            LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(collectNode.whereClause(), localContext, indexService.cache());
                             localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
                             Float minScore = ctx.minScore();
                             if (minScore != null) {
@@ -236,7 +235,7 @@ public class ShardCollectService {
                                     jobCollectContext,
                                     localContext,
                                     jobSearchContextId,
-                                    collectNode.closeContext());
+                                    collectNode.keepContextForFetcher());
                         } catch (Throwable t) {
                             if (localContext != null) {
                                 localContext.close();

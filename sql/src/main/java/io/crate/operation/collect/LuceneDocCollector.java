@@ -84,7 +84,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private final JobCollectContext jobCollectContext;
     private final CrateSearchContext searchContext;
     private final int jobSearchContextId;
-    private final boolean closeContext;
+    private final boolean keepContextForFetcher;
 
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
@@ -98,7 +98,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               JobCollectContext jobCollectContext,
                               CrateSearchContext searchContext,
                               int jobSearchContextId,
-                              boolean closeContext) throws Exception {
+                              boolean keepContextForFetcher) throws Exception {
         this.downstream = downStreamProjector.registerUpstream(this);
         this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
@@ -106,7 +106,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         this.jobSearchContextId = jobSearchContextId;
         this.jobCollectContext = jobCollectContext;
         this.searchContext = searchContext;
-        this.closeContext = closeContext;
+        this.keepContextForFetcher = keepContextForFetcher;
     }
 
     @Override
@@ -183,8 +183,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             throw e;
         } finally {
             jobCollectContext.releaseContext(searchContext);
-            // should only be done on QAF not QTF!
-            if (closeContext) {
+            if (!keepContextForFetcher) {
                 jobCollectContext.closeContext(jobSearchContextId);
             }
         }
