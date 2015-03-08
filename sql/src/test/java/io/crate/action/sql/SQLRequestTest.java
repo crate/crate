@@ -21,20 +21,18 @@
 
 package io.crate.action.sql;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class SQLRequestTest {
+public class SQLRequestTest extends CrateUnitTest {
 
     /**
      * the serialization tests here with fixed bytes arrays ensure that backward-compatibility isn't broken.
      */
-
-
     @Test
     public void testSerializationWriteTo() throws Exception {
         SQLRequest request = new SQLRequest(

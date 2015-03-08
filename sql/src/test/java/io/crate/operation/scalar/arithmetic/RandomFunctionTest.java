@@ -22,46 +22,39 @@
 package io.crate.operation.scalar.arithmetic;
 
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
 import io.crate.operation.Input;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.planner.symbol.Function;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 
-public class RandomFunctionTest {
-
-    private Functions functions;
+public class RandomFunctionTest extends AbstractScalarFunctionsTest {
 
     private RandomFunction random;
 
     @Before
-    public void setUp(){
-        functions = new ModulesBuilder()
-                        .add(new ScalarFunctionModule())
-                        .createInjector().getInstance(Functions.class);
-
-        random = (RandomFunction)functions.get(new FunctionIdent(RandomFunction.NAME, Collections.EMPTY_LIST));
+    public void prepareRandom(){
+        random = (RandomFunction)functions.get(new FunctionIdent(RandomFunction.NAME, Collections.<DataType>emptyList()));
 
     }
 
     @Test
     public void testEvaluateRandom() {
-        assertThat(random.evaluate(new Input[0]).doubleValue(),
+        assertThat(random.evaluate(new Input[0]),
                 is(allOf(greaterThanOrEqualTo(0.0), lessThan(1.0))));
     }
 
     @Test
     public void normalizeReference() {
-        Function function = new Function(random.info(), Collections.EMPTY_LIST);
+        Function function = new Function(random.info(), Collections.<Symbol>emptyList());
         Function normalized = (Function) random.normalizeSymbol(function);
         assertThat(normalized, sameInstance(function));
     }

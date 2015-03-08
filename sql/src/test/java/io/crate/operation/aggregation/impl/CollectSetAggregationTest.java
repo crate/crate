@@ -36,7 +36,6 @@ import org.junit.Test;
 import java.util.Set;
 
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.*;
 
 public class CollectSetAggregationTest extends AggregationTest {
 

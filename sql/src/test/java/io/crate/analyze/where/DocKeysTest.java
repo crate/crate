@@ -24,14 +24,14 @@ package io.crate.analyze.where;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class DocKeysTest {
+public class DocKeysTest extends CrateUnitTest {
 
     @Test
     public void testClusteredIsFirstInId() throws Exception {

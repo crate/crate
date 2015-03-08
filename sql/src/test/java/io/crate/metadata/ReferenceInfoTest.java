@@ -22,14 +22,13 @@
 package io.crate.metadata;
 
 import io.crate.planner.RowGranularity;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
-
-public class ReferenceInfoTest {
+public class ReferenceInfoTest extends CrateUnitTest {
 
     @Test
     public void testEquals() throws Exception {

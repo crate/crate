@@ -24,22 +24,16 @@ package io.crate.analyze;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
-import org.junit.Rule;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 
-public class SubscriptVisitorTest {
+public class SubscriptVisitorTest extends CrateUnitTest {
 
     public SubscriptVisitor visitor = new SubscriptVisitor();
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private SubscriptContext analyzeSubscript(String expressionString) {
         ParameterContext parameterContext = mock(ParameterContext.class);

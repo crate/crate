@@ -27,13 +27,13 @@ import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Paths;
@@ -45,16 +45,11 @@ import java.util.concurrent.ExecutionException;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class WriterProjectorTest {
+public class WriterProjectorTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testWriteRawToFile() throws Exception {

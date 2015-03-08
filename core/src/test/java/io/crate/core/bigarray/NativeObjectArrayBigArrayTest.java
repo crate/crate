@@ -21,18 +21,13 @@
 
 package io.crate.core.bigarray;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class NativeObjectArrayBigArrayTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class NativeObjectArrayBigArrayTest extends CrateUnitTest {
 
     private Object[][] createArray(int length) {
         Object[][] backingArray = new Object[length][];

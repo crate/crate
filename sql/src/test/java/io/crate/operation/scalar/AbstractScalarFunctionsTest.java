@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,32 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.core;
+package io.crate.operation.scalar;
 
-import com.google.common.collect.ImmutableSet;
+import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.junit.Before;
 
-import java.util.Arrays;
+public class AbstractScalarFunctionsTest extends CrateUnitTest {
+    protected Functions functions;
 
-public class StringUtilsTest extends CrateUnitTest {
-
-    @Test
-    public void testDottedToSQLPath() {
-        assertEquals("a['b']", StringUtils.dottedToSqlPath("a.b"));
-        assertEquals("a", StringUtils.dottedToSqlPath("a"));
-        assertEquals("a['']", StringUtils.dottedToSqlPath("a."));
-        assertEquals("a['b']['c']", StringUtils.dottedToSqlPath("a.b.c"));
-    }
-
-    @Test
-    public void testCommonAncestors() throws Exception {
-        assertEquals(ImmutableSet.of("a"), StringUtils.commonAncestors(Arrays.asList("a", "a.b")));
-
-        assertEquals(ImmutableSet.of("d", "a", "b"),
-                StringUtils.commonAncestors(Arrays.asList("a.c", "b", "b.c.d", "a", "a.b", "d")));
-
-        assertEquals(ImmutableSet.of("d", "a", "b.c"),
-                StringUtils.commonAncestors(Arrays.asList("a.c", "b.c", "b.c.d", "a", "a.b", "d")));
+    @Before
+    public void prepareFunctions() throws Exception {
+        functions = new ModulesBuilder().add(new ScalarFunctionModule())
+                .createInjector().getInstance(Functions.class);
     }
 }

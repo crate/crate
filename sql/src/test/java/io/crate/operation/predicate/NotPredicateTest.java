@@ -28,6 +28,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -36,9 +37,8 @@ import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
 
-public class NotPredicateTest {
+public class NotPredicateTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeSymbolBoolean() throws Exception {

@@ -28,17 +28,17 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.symbol.Literal;
+import io.crate.test.integration.CrateUnitTest;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.core.Is.is;
 
 @SuppressWarnings({"unchecked", "NullArgumentToVariableArgMethod"})
-public class SortingTopNProjectorTest {
+public class SortingTopNProjectorTest extends CrateUnitTest {
 
     private static final Input<Integer> INPUT = new InputCollectExpression<>(0);
     private static final Literal<Boolean> TRUE_LITERAL = Literal.newLiteral(true);

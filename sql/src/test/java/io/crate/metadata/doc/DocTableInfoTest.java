@@ -6,16 +6,16 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
-public class DocTableInfoTest {
+public class DocTableInfoTest extends CrateUnitTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {

@@ -31,13 +31,12 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNull;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
-public class ESFieldExtractorTest {
+import io.crate.test.integration.CrateUnitTest;
+
+public class ESFieldExtractorTest extends CrateUnitTest {
 
     @Test
     public void testPath2() throws Exception {

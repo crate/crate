@@ -31,6 +31,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -51,13 +52,10 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestGlobalSysExpressions {
+public class TestGlobalSysExpressions extends CrateUnitTest {
 
     private Injector injector;
     private ReferenceResolver resolver;
@@ -103,7 +101,7 @@ public class TestGlobalSysExpressions {
 
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         injector = new ModulesBuilder().add(
                 new TestModule(),
                 new MetaDataModule(),

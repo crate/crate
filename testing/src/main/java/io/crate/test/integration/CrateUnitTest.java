@@ -19,30 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob;
+package io.crate.test.integration;
 
-import io.crate.common.Hex;
-import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
+import org.apache.lucene.util.AbstractRandomizedTest;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.test.ElasticsearchTestCase;
+import org.elasticsearch.test.ElasticsearchThreadFilter;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
+import org.mockito.MockitoAnnotations;
 
-import static org.hamcrest.Matchers.is;
+@ThreadLeakFilters(filters = ElasticsearchThreadFilter.class)
+public class CrateUnitTest extends AbstractRandomizedTest {
 
-public class DeleteBlobRequestTest extends CrateUnitTest {
+    static {
+        // mute ES loggings
+        Loggers.getLogger(ElasticsearchTestCase.class).setLevel("WARN");
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
 
-    @Test
-    public void testDeleteBlobRequestStreaming() throws Exception {
-        byte[] digest = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 };
-        DeleteBlobRequest request = new DeleteBlobRequest("foo", digest);
-        BytesStreamOutput out = new BytesStreamOutput();
-        request.writeTo(out);
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
-        DeleteBlobRequest fromStream = new DeleteBlobRequest();
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-        fromStream.readFrom(in);
-
-        assertThat(fromStream.index(), is("foo"));
-        assertThat(fromStream.id(), is(Hex.encodeHexString(digest)));
+    @Before
+    public void prepareMocks() throws Exception {
+        MockitoAnnotations.initMocks(this);
     }
 }

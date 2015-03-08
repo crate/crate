@@ -25,11 +25,11 @@ import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.pending_transfer.HeadChunkFileTooSmallException;
 import io.crate.blob.pending_transfer.PutHeadChunkRunnable;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.transport.*;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,14 +43,10 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
-public class BlobHeadRequestHandlerTests {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class BlobHeadRequestHandlerTests extends CrateUnitTest {
 
     @Test
     public void testPutHeadChunkRunnableFileGrowth() throws Exception {
-
         File file = File.createTempFile("test", "");
         final FileOutputStream outputStream = new FileOutputStream(file);
         outputStream.write(new byte[] { 0x65 });
@@ -60,7 +56,7 @@ public class BlobHeadRequestHandlerTests {
         TransportService transportService = mock(TransportService.class);
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
 
-        ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(EsExecutors.daemonThreadFactory("blob-head"));
         try {
             scheduledExecutor.schedule(new Runnable() {
                 @Override

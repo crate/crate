@@ -21,15 +21,13 @@
 
 package io.crate.operation.scalar.regex;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class RegexMatcherTest {
+public class RegexMatcherTest extends CrateUnitTest {
 
     @Test
     public void testMatch() throws Exception {

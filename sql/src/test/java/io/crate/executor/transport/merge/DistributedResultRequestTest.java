@@ -41,6 +41,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -61,14 +62,11 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-public class DistributedResultRequestTest {
+public class DistributedResultRequestTest extends CrateUnitTest {
 
     private Functions functions;
     private MergeNode dummyMergeNode;
@@ -85,7 +83,7 @@ public class DistributedResultRequestTest {
     }
 
     @Before
-    public void setUp() {
+    public void prepare() {
         functions = new ModulesBuilder().add(new EmptyFunctionsModule()).createInjector().getInstance(Functions.class);
 
         rows = new Object[3][];

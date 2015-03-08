@@ -21,16 +21,16 @@
 
 package io.crate.planner.symbol;
 
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class LiteralTest {
+public class LiteralTest extends CrateUnitTest {
 
     @Test
     public void testNestedArrayLiteral() throws Exception {

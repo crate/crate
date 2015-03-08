@@ -30,6 +30,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
@@ -44,10 +45,8 @@ import org.junit.Test;
 import java.util.*;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
-public class ShardUpsertRequestTest {
+public class ShardUpsertRequestTest extends CrateUnitTest {
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
 

@@ -21,6 +21,7 @@
 
 package io.crate;
 
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -34,10 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-public class DataTypeTest {
+public class DataTypeTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {

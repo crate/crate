@@ -22,30 +22,33 @@
 package io.crate.executor;
 
 import com.google.common.collect.Iterators;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class BigArrayPageTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class BigArrayPageTest extends CrateUnitTest {
 
     private BigArrays bigArrays;
+    private ThreadPool threadPool;
 
     @Before
     public void prepare() {
-        PageCacheRecycler pageCacheRecycler = new PageCacheRecycler(ImmutableSettings.EMPTY, new ThreadPool(getClass().getName()));
+        threadPool = new ThreadPool(getClass().getName());
+        PageCacheRecycler pageCacheRecycler = new PageCacheRecycler(ImmutableSettings.EMPTY, threadPool);
         bigArrays = new BigArrays(ImmutableSettings.EMPTY, pageCacheRecycler, null);
+    }
+
+    @After
+    public void cleanUp() {
+        threadPool.shutdownNow();
     }
 
     @Test

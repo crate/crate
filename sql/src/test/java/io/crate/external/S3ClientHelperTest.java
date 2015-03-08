@@ -21,20 +21,26 @@
 
 package io.crate.external;
 
+import com.amazonaws.http.IdleConnectionReaper;
 import com.amazonaws.services.s3.AmazonS3;
+import io.crate.test.integration.CrateUnitTest;
+import org.junit.After;
 import org.junit.Test;
 
 import java.net.URI;
 import java.net.URL;
 import java.util.Date;
 
-import static junit.framework.Assert.assertNotNull;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class S3ClientHelperTest {
+public class S3ClientHelperTest extends CrateUnitTest {
 
     private final S3ClientHelper s3ClientHelper = new S3ClientHelper();
+
+    @After
+    public void cleanUpS3() {
+        IdleConnectionReaper.shutdown();
+    }
 
     @Test
     public void testClient() throws Exception {

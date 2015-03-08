@@ -48,6 +48,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -89,10 +90,9 @@ import org.elasticsearch.search.InternalSearchService;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 
 import java.util.Arrays;
@@ -102,7 +102,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
@@ -110,14 +109,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class LocalDataCollectTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class LocalDataCollectTest extends CrateUnitTest {
 
     static class TestExpression implements ReferenceImplementation, Input<Integer> {
         public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("default", "collect"), "truth");
@@ -340,6 +332,11 @@ public class LocalDataCollectTest {
                 ),
                 null
         );
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        testThreadPool.shutdownNow();
     }
 
     private Routing shardRouting(final Integer... shardIds) {

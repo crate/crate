@@ -25,6 +25,7 @@ import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -34,9 +35,8 @@ import java.util.Arrays;
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class IsNullPredicateTest {
+public class IsNullPredicateTest extends CrateUnitTest {
 
     IsNullPredicate predicate = new IsNullPredicate(new FunctionInfo(
             new FunctionIdent(IsNullPredicate.NAME, Arrays.<DataType>asList(DataTypes.STRING)),

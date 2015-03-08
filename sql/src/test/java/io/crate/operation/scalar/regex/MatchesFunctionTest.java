@@ -21,20 +21,14 @@
 
 package io.crate.operation.scalar.regex;
 
-import io.crate.action.sql.SQLActionException;
-import io.crate.metadata.Functions;
 import io.crate.operation.Input;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.junit.Rule;
-import org.junit.rules.ExpectedException;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -42,21 +36,8 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class MatchesFunctionTest {
-
-    private Functions functions;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void setUp() {
-        functions = new ModulesBuilder()
-                .add(new ScalarFunctionModule()).createInjector().getInstance(Functions.class);
-    }
+public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testCompile() throws Exception {

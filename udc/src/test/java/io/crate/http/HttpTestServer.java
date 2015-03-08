@@ -40,7 +40,6 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 
 public class HttpTestServer {
 
@@ -49,6 +48,8 @@ public class HttpTestServer {
     private final static JsonFactory jsonFactory;
     private Channel channel;
     public List<String> responses = new ArrayList<>();
+
+    private final ChannelFactory channelFactory;
 
     static {
         jsonFactory = new JsonFactory();
@@ -66,14 +67,13 @@ public class HttpTestServer {
     public HttpTestServer(int port, boolean fail) {
         this.port = port;
         this.fail = fail;
+        this.channelFactory = new NioServerSocketChannelFactory();
     }
 
     public void run() {
         // Configure the server.
         ServerBootstrap bootstrap = new ServerBootstrap(
-                new NioServerSocketChannelFactory(
-                        Executors.newCachedThreadPool(),
-                        Executors.newCachedThreadPool()));
+                this.channelFactory);
 
         // Set up the pipeline factory.
         bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
@@ -105,6 +105,8 @@ public class HttpTestServer {
     public void shutDown() {
         try {
             channel.close().await();
+            channelFactory.shutdown();
+            channelFactory.releaseExternalResources();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

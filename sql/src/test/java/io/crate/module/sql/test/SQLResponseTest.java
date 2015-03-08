@@ -22,6 +22,7 @@
 package io.crate.module.sql.test;
 
 import io.crate.action.sql.SQLResponse;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.*;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -36,11 +37,8 @@ import java.io.IOException;
 import java.util.HashSet;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class SQLResponseTest {
+public class SQLResponseTest extends CrateUnitTest {
 
     private XContentBuilder builder() throws IOException {
         return XContentFactory.contentBuilder(XContentType.JSON);

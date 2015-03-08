@@ -34,26 +34,23 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 import static org.mockito.Mockito.mock;
 
-public class IndexWriterProjectorUnitTest {
+public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("id");
     private static final TableIdent bulkImportIdent = new TableIdent(null, "bulk_import");
@@ -62,14 +59,6 @@ public class IndexWriterProjectorUnitTest {
 
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-    }
 
     @Test
     public void testExceptionBubbling() throws Throwable {

@@ -41,6 +41,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.client.Client;
@@ -52,6 +53,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -59,14 +61,14 @@ import org.mockito.Answers;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 
-public class LocalMergeTaskTest {
+public class LocalMergeTaskTest extends CrateUnitTest {
 
     private ImplementationSymbolVisitor symbolVisitor;
     private GroupProjection groupProjection;
+    private ThreadPool threadPool;
 
     @Before
     @SuppressWarnings("unchecked")
@@ -93,6 +95,12 @@ public class LocalMergeTaskTest {
         groupProjection.values(Arrays.asList(
                 new Aggregation(minAggFunction.info(), Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
+        threadPool = new ThreadPool(getClass().getSimpleName());
+    }
+
+    @After
+    public void cleanUp() {
+        threadPool.shutdownNow();
     }
 
     private ListenableFuture<TaskResult> getUpstreamResult(int numRows) {
@@ -126,8 +134,6 @@ public class LocalMergeTaskTest {
             for (int i = 1; i < 14; i++) {
                 upstreamResults.add(getUpstreamResult(i));
             }
-
-            ThreadPool threadPool = new ThreadPool(getClass().getSimpleName());
 
             LocalMergeTask localMergeTask = new LocalMergeTask(
                     UUID.randomUUID(),

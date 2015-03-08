@@ -21,18 +21,13 @@
 
 package io.crate.types;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 
-public class LongTypeTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class LongTypeTest extends CrateUnitTest {
 
     @Test
     public void testBytesRefToLongParsing() throws Exception {

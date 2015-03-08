@@ -21,14 +21,12 @@
 
 package io.crate.action.sql;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
-import static org.junit.Assert.assertArrayEquals;
-
-public class SQLBaseRequestTest {
-
+public class SQLBaseRequestTest extends CrateUnitTest {
 
     @Test
     public void testBulkArgsSerialization() throws Exception {

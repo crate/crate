@@ -21,16 +21,16 @@
 
 package io.crate.operation.reference.sys.node;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class NodePortExpressionTest {
+public class NodePortExpressionTest extends CrateUnitTest {
 
     @Test
     public void testNoHttpServerAvailable() throws Exception {

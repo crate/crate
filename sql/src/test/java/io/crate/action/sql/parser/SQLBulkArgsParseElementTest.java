@@ -22,15 +22,13 @@
 package io.crate.action.sql.parser;
 
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.assertArrayEquals;
-
-public class SQLBulkArgsParseElementTest {
+public class SQLBulkArgsParseElementTest extends CrateUnitTest {
 
     private Object[][] parse(String bulk_args) throws Exception {
         SQLXContentSourceContext context = new SQLXContentSourceContext();

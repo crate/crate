@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -29,9 +30,8 @@ import java.util.Arrays;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class GeoPointTypeTest {
+public class GeoPointTypeTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Throwable {

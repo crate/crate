@@ -23,6 +23,7 @@ package io.crate.service;
 
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.TransportSQLAction;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -32,9 +33,7 @@ import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.transport.NodeDisconnectedException;
 import org.junit.Test;
 
-import static org.junit.Assert.fail;
-
-public class SQLServiceTest {
+public class SQLServiceTest extends CrateUnitTest {
 
     @Test
     public void testDisableAndReEnable() throws Exception {

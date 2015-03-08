@@ -22,14 +22,14 @@
 package io.crate.executor;
 
 import com.google.common.collect.Iterators;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class ObjectArrayPageTest {
+public class ObjectArrayPageTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.*;
 import io.crate.planner.symbol.Literal;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -32,7 +33,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
-public class SimpleOneRowCollectorTest {
+public class SimpleOneRowCollectorTest extends CrateUnitTest {
 
     private final List<Input<?>> inputs = ImmutableList.<Input<?>>of(
             Literal.newLiteral(true), Literal.newLiteral("foo"));

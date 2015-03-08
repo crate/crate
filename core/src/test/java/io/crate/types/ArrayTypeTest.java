@@ -21,15 +21,14 @@
 
 package io.crate.types;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 
-public class ArrayTypeTest {
+public class ArrayTypeTest extends CrateUnitTest {
 
     @Test
     public void testArrayTypeSerialization() throws Exception {

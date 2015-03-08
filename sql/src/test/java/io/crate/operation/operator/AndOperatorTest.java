@@ -4,18 +4,15 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 
-public class AndOperatorTest {
+public class AndOperatorTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {

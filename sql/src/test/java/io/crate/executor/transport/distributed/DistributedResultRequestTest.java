@@ -24,6 +24,7 @@ package io.crate.executor.transport.distributed;
 import com.google.common.base.Optional;
 import io.crate.Streamer;
 import io.crate.core.collections.ArrayBucket;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -33,15 +34,13 @@ import org.junit.Test;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings("NullArgumentToVariableArgMethod")
-public class DistributedResultRequestTest {
+public class DistributedResultRequestTest extends CrateUnitTest {
 
 
     @Test

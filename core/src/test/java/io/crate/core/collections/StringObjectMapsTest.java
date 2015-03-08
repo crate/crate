@@ -21,16 +21,15 @@
 
 package io.crate.core.collections;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static junit.framework.Assert.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 
-public class StringObjectMapsTest {
+public class StringObjectMapsTest extends CrateUnitTest {
 
     @Test
     public void testAccessByPath() throws Exception {

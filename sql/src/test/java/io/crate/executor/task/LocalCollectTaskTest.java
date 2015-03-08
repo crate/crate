@@ -34,6 +34,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
@@ -42,12 +43,10 @@ import java.util.List;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static junit.framework.TestCase.assertEquals;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-public class LocalCollectTaskTest {
+public class LocalCollectTaskTest extends CrateUnitTest {
 
     public final static Routing CLUSTER_ROUTING = new Routing();
     private UUID testJobId = UUID.randomUUID();

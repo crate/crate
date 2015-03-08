@@ -1,44 +1,39 @@
 package io.crate.operation.scalar.timestamp;
 
-import static io.crate.testing.TestingHelpers.createFunction;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-public class CurrentTimestampFunctionTest {
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+import static io.crate.testing.TestingHelpers.createFunction;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+public class CurrentTimestampFunctionTest extends CrateUnitTest {
 
     private CurrentTimestampFunction timestampFunction;
     public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
     public static final long EXPECTED_TIMESTAMP = 1422294644581L;
 
     @Before
-    public void setUp() {
+    public void prepare() {
         DateTimeUtils.setCurrentMillisFixed(EXPECTED_TIMESTAMP);
         timestampFunction = new CurrentTimestampFunction();
     }
 
     @After
-    public void tearDown() {
+    public void cleanUp() {
         DateTimeUtils.setCurrentMillisSystem();
     }
 

@@ -22,12 +22,10 @@
 package io.crate.operation.reference.file;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-public class LineContextTest {
+public class LineContextTest extends CrateUnitTest {
     @Test
     public void testGet() throws Exception {
         LineContext context = new LineContext();

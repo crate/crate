@@ -27,6 +27,43 @@ allprojects {
     }
 }
 
+final testOutputs = [:].withDefault {[]}
+
+
+project.gradle.addListener(new TestOutputListener() {
+    @Override
+    void onOutput(TestDescriptor test, TestOutputEvent outputEvent) {
+        testOutputs[test] << outputEvent.getMessage()
+    }
+})
+
+project.gradle.addListener(new TestListener() {
+
+    @Override
+    void beforeSuite(TestDescriptor suite) {
+        logger.lifecycle('Running: ' + suite)
+    }
+
+    @Override
+    void afterSuite(TestDescriptor suite, TestResult result) {
+    }
+
+    @Override
+    void beforeTest(TestDescriptor test) {
+    }
+
+    @Override
+    void afterTest(TestDescriptor test, TestResult result) {
+        if (result.getResultType() == TestResult.ResultType.FAILURE) {
+            logger.error('## FAILURE: ' + test)
+            testOutputs[test].each { e ->
+                print e
+            }
+        }
+        testOutputs.remove(test)
+    }
+})
+
 
 def jacocoProjects() {
     subprojects.findAll {

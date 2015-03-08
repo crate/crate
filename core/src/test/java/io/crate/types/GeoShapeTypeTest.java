@@ -21,23 +21,18 @@
 
 package io.crate.types;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.spatial4j.core.shape.Shape;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-public class GeoShapeTypeTest extends RandomizedTest {
+public class GeoShapeTypeTest extends CrateUnitTest {
 
     private GeoShapeType type = GeoShapeType.INSTANCE;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testStreamer() throws Exception {

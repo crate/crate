@@ -29,6 +29,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -38,10 +39,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
-public class SymbolBasedShardUpsertRequestTest {
+public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
 

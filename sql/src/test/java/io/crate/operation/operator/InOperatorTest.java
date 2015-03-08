@@ -26,6 +26,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -38,18 +39,10 @@ import java.util.List;
 import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 
-public class InOperatorTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
+public class InOperatorTest extends CrateUnitTest{
 
     private static final DataType INTEGER_SET_TYPE = new SetType(DataTypes.INTEGER);
     private static final DataType STRING_SET_TYPE = new SetType(DataTypes.STRING);

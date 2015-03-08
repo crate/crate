@@ -21,29 +21,18 @@
 
 package io.crate.operation.scalar;
 
-import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
-public class ExtractFunctionsTest {
-
-    private Functions functions;
+public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
 
     String D_2014_02_15___21_33_23 = "2014-02-15T21:33:23";
-
-    @Before
-    public void setUp() throws Exception {
-        functions = new ModulesBuilder().add(new ScalarFunctionModule()).createInjector().getInstance(Functions.class);
-    }
 
     private void assertEval(Extract.Field field, String datetimeString, int expected) {
         Scalar scalar = (Scalar)functions.get(ExtractFunctions.functionInfo(field).ident());

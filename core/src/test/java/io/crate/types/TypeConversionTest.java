@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
+import io.crate.test.integration.CrateUnitTest;
 import jsr166e.LongAdder;
 import org.junit.Test;
 
@@ -29,7 +29,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 
-public class TypeConversionTest extends RandomizedTest{
+public class TypeConversionTest extends CrateUnitTest {
 
     private static class Repeater<T> implements Iterable<T>, Iterator<T> {
 

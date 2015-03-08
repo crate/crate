@@ -24,7 +24,6 @@ package io.crate.operation.scalar;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
@@ -33,8 +32,6 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -42,18 +39,8 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
-public class SubstrFunctionTest {
-
-    private Functions functions;
-
-    @Before
-    public void setUp() {
-        functions = new ModulesBuilder()
-                .add(new ScalarFunctionModule()).createInjector().getInstance(Functions.class);
-    }
+public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
 
     private final SubstrFunction funcA = new SubstrFunction(
             new FunctionInfo(new FunctionIdent(SubstrFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.LONG)),

@@ -36,10 +36,10 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.sql.parser.SqlParser;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.AbstractRandomizedTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -61,7 +61,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
-public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
+public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

@@ -21,12 +21,11 @@
 
 package io.crate.types;
 
-import org.junit.Test;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
+import org.junit.Test;
 
-import static org.junit.Assert.*;
-
-public class IpTypeTest {
+public class IpTypeTest extends CrateUnitTest {
 
     @Test
     public void testValidation() throws Exception {

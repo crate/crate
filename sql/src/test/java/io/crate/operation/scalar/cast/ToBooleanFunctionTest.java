@@ -23,41 +23,23 @@ package io.crate.operation.scalar.cast;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
 import io.crate.operation.Input;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class ToBooleanFunctionTest {
-
-    private Functions functions;
+public class ToBooleanFunctionTest extends AbstractScalarFunctionsTest {
 
     private String functionName = ToBooleanFunction.NAME;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void setUp() {
-        functions = new ModulesBuilder()
-                .add(new ScalarFunctionModule()).createInjector().getInstance(Functions.class);
-    }
-
 
     private ToBooleanFunction getFunction(DataType type) {
         return (ToBooleanFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));

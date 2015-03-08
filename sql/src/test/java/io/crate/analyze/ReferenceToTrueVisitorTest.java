@@ -37,6 +37,7 @@ import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
@@ -48,14 +49,14 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 
-public class ReferenceToTrueVisitorTest {
+public class ReferenceToTrueVisitorTest extends CrateUnitTest {
 
     private ReferenceToTrueVisitor visitor;
     private ExpressionAnalyzer expressionAnalyzer;
     private ExpressionAnalysisContext expressionAnalysisContext;
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         Injector injector = new ModulesBuilder()
             .add(new MockedClusterServiceModule())
             .add(new MetaDataModule())

@@ -1,6 +1,5 @@
 package io.crate.operation.operator;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
@@ -11,6 +10,7 @@ import io.crate.operation.operator.input.ObjectInput;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -26,16 +26,12 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
-public class EqOperatorTest extends RandomizedTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
+public class EqOperatorTest extends CrateUnitTest {
 
     private Functions functions;
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         functions = new ModulesBuilder().add(new OperatorModule()).createInjector().getInstance(Functions.class);
     }
 

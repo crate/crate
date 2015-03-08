@@ -38,6 +38,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.client.Client;
@@ -57,12 +58,10 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 
-public class MergeOperationTest {
+public class MergeOperationTest extends CrateUnitTest {
 
     private static final RamAccountingContext ramAccountingContext =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));

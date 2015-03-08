@@ -36,17 +36,15 @@ import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,10 +52,7 @@ import static org.mockito.Mockito.when;
  * Additional tests for the ExpressionAnalyzer.
  * Most of the remaining stuff is tested via {@link io.crate.analyze.SelectStatementAnalyzerTest} and other *AnalyzerTest classes.
  */
-public class ExpressionAnalyzerTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class ExpressionAnalyzerTest extends CrateUnitTest {
 
     private AnalysisMetaData mockedAnalysisMetaData;
     private ParameterContext emptyParameterContext;
@@ -66,7 +61,7 @@ public class ExpressionAnalyzerTest {
     private AnalysisMetaData analysisMetaData;
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         mockedAnalysisMetaData = mock(AnalysisMetaData.class);
         emptyParameterContext = new ParameterContext(new Object[0], new Object[0][]);
         dummySources = ImmutableMap.of(new QualifiedName("foo"), mock(AnalyzedRelation.class));

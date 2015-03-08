@@ -32,6 +32,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -43,9 +44,8 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class MergeNodeTest {
+public class MergeNodeTest extends CrateUnitTest {
 
 
     @Test

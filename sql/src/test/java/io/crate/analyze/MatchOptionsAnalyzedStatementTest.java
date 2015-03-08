@@ -23,19 +23,14 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import io.crate.sql.tree.*;
-import org.junit.Rule;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
-public class MatchOptionsAnalyzedStatementTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
 
     @Test
     public void testMatchOptions() throws Exception {

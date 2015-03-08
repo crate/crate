@@ -26,6 +26,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -33,9 +34,7 @@ import org.junit.Test;
 
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-
-public class CollectNodeTest {
+public class CollectNodeTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {

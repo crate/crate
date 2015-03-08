@@ -23,9 +23,8 @@ package io.crate.operation.scalar.cast;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
 import io.crate.operation.Input;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -33,24 +32,13 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class ToFloatArrayFunctionTest {
-
-    private Functions functions;
-
-    @Before
-    public void setUp() throws Exception {
-        functions = new ModulesBuilder()
-                .add(new ScalarFunctionModule()).createInjector().getInstance(Functions.class);
-    }
+public class ToFloatArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArrayDifferentTypes() throws Exception {

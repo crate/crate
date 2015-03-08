@@ -22,24 +22,18 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
-public class PartitionNameTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testSingleColumn() throws Exception {

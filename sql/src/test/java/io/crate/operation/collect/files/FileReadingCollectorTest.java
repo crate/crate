@@ -38,10 +38,12 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.AbstractRandomizedTest;
-import org.junit.*;
-import org.junit.rules.ExpectedException;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -58,14 +60,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-public class FileReadingCollectorTest extends AbstractRandomizedTest {
+public class FileReadingCollectorTest extends CrateUnitTest {
 
     private static File tmpFile;
     private static File tmpFileGz;
     private FileCollectInputSymbolVisitor inputSymbolVisitor;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @BeforeClass
     public static void setUpClass() throws Exception {

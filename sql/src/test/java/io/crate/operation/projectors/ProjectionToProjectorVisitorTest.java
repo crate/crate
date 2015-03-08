@@ -41,6 +41,7 @@ import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -66,11 +67,10 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 
-public class ProjectionToProjectorVisitorTest {
+public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));

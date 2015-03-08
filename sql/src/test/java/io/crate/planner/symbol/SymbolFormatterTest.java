@@ -24,6 +24,7 @@ package io.crate.planner.symbol;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -33,10 +34,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class SymbolFormatterTest {
+public class SymbolFormatterTest extends CrateUnitTest {
 
 
     private void assertFormat(Symbol s, String formatted) {

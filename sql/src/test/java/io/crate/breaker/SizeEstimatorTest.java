@@ -21,14 +21,14 @@
 
 package io.crate.breaker;
 
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class SizeEstimatorTest {
+public class SizeEstimatorTest extends CrateUnitTest {
 
     @Test
     public void testBytesRef() throws Exception {

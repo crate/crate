@@ -30,6 +30,7 @@ import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.doc.blob.BlobDigestExpression;
 import io.crate.operation.reference.doc.blob.BlobLastModifiedExpression;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.junit.After;
@@ -43,12 +44,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BlobDocCollectorTest {
+public class BlobDocCollectorTest extends CrateUnitTest {
 
     private Path tmpDir;
 

@@ -21,6 +21,7 @@
 
 package io.crate.exceptions;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,9 +31,8 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class FailedShardsExceptionTest {
+public class FailedShardsExceptionTest extends CrateUnitTest {
 
     @Test
     public void testThatGenMessageDoesNotRaiseNPEIfShardOperationFailedExceptionIsNull() throws Exception {

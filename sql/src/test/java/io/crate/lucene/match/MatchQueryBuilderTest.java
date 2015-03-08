@@ -21,6 +21,7 @@
 
 package io.crate.lucene.match;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.de.GermanAnalyzer;
 import org.apache.lucene.queries.BlendedTermQuery;
@@ -36,9 +37,7 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 
 import java.util.Collections;
@@ -47,20 +46,17 @@ import java.util.Map;
 import static org.elasticsearch.common.collect.MapBuilder.newMapBuilder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-public class MatchQueryBuilderTest {
+public class MatchQueryBuilderTest extends CrateUnitTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
     private IndexCache cache;
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         cache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
     }
 

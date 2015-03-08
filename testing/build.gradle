@@ -22,8 +22,6 @@ dependencies {
 test {
     testLogging {
         exceptionFormat = 'full'
-        // Show that tests are run in the command-line output
-        events 'started', 'passed'
     }
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }

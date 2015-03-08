@@ -22,11 +22,10 @@
 package io.crate.metadata.settings;
 
 import com.google.common.collect.Sets;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
-public class CrateSettingsTest {
+public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testStringSettingsValidation() throws Exception {

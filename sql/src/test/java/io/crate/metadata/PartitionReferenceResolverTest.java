@@ -23,15 +23,14 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.reference.partitioned.PartitionExpression;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class PartitionReferenceResolverTest {
+public class PartitionReferenceResolverTest extends CrateUnitTest {
 
     @Test
     public void testClusterExpressionsNotAllowed() throws Exception {

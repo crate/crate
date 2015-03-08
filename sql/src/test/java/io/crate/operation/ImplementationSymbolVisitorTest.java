@@ -33,6 +33,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -49,10 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 
-public class ImplementationSymbolVisitorTest {
+public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
     private ImplementationSymbolVisitor visitor;
 

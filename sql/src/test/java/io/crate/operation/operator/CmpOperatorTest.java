@@ -5,6 +5,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,9 +14,8 @@ import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.*;
 
-public class CmpOperatorTest {
+public class CmpOperatorTest extends CrateUnitTest {
 
     private GtOperator op_gt_string;
     private GteOperator op_gte_double;
@@ -24,7 +24,7 @@ public class CmpOperatorTest {
     private LtOperator op_lt_string;
 
     @Before
-    public void setUp() {
+    public void prepare() {
         op_gt_string = new GtOperator(Operator.generateInfo(GtOperator.NAME, DataTypes.STRING));
         op_lt_string = new LtOperator(Operator.generateInfo(LtOperator.NAME, DataTypes.STRING));
         op_gte_double = new GteOperator(Operator.generateInfo(GteOperator.NAME, DataTypes.DOUBLE));

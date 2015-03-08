@@ -27,6 +27,7 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -35,9 +36,8 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 
-public class AnyLikeOperatorTest {
+public class AnyLikeOperatorTest extends CrateUnitTest {
 
     private static Symbol normalizeSymbol(String pattern, String ... expressions) {
         Literal patternLiteral = Literal.newLiteral(pattern);

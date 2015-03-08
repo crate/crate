@@ -33,6 +33,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.StringType;
@@ -45,10 +46,7 @@ import org.elasticsearch.cluster.routing.operation.OperationRouting;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.*;
 
 import java.util.HashMap;
@@ -57,14 +55,12 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BulkShardProcessorTest {
+public class BulkShardProcessorTest extends CrateUnitTest {
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
 
@@ -77,16 +73,8 @@ public class BulkShardProcessorTest {
     @Captor
     private ArgumentCaptor<ActionListener<BulkShardResponse>> bulkShardResponseListener;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
-
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-    }
 
     @Test
     public void testNonEsRejectedExceptionDoesNotResultInRetryButAborts() throws Throwable {
@@ -131,7 +119,6 @@ public class BulkShardProcessorTest {
 
             ActionListener<ShardUpsertResponse> listener = ref.get();
             listener.onFailure(new RuntimeException("a random exception"));
-
             assertFalse(bulkShardProcessor.add("foo", new RowN(new Object[]{2, "bar2"}), null));
             bulkShardProcessor.result().get();
         } catch (ExecutionException e) {

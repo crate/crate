@@ -24,15 +24,15 @@ package io.crate.operation.operator;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class RegexpMatchOperatortest {
+public class RegexpMatchOperatortest extends CrateUnitTest {
     private static Symbol normalizeSymbol(String source, String pattern) {
         RegexpMatchOperator op = new RegexpMatchOperator();
         Function function = new Function(

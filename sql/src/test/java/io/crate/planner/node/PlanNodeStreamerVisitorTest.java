@@ -41,6 +41,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -55,14 +56,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 
-public class PlanNodeStreamerVisitorTest {
+public class PlanNodeStreamerVisitorTest extends CrateUnitTest {
 
     private static final RamAccountingContext ramAccountingContext =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));

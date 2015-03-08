@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar;
 
-import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
@@ -29,11 +28,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,21 +36,8 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class SubscriptFunctionTest {
-
-    private Functions functions;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void setUp() {
-        functions = new ModulesBuilder()
-                .add(new ScalarFunctionModule()).createInjector().getInstance(Functions.class);
-    }
+public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {

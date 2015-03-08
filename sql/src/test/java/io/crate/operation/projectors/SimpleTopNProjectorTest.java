@@ -35,6 +35,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -42,11 +43,10 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
 
-public class SimpleTopNProjectorTest {
+public class SimpleTopNProjectorTest extends CrateUnitTest {
 
     private static final Input<Integer> input = new InputCollectExpression<>(0);
     private static final Row row = new Row1(42);

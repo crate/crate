@@ -23,6 +23,7 @@ package io.crate.metadata.doc.array;
 
 import io.crate.Constants;
 import io.crate.metadata.ColumnIdent;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -39,11 +40,10 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-public class ArrayMapperMetaMigrationTest {
+public class ArrayMapperMetaMigrationTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -142,6 +142,7 @@ public class ArrayMapperMetaMigrationTest {
         // no change
         assertThat(withOutMeta.mapping(Constants.DEFAULT_MAPPING_TYPE).source().string(), is("{\"default\":{\"properties\":{\"a\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}"));
         assertThat(withOutMeta.version(), is(1L));
+        newNode.stop();
         newNode.close();
     }
 

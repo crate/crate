@@ -41,6 +41,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -61,13 +62,12 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ShardProjectorChainTest {
+public class ShardProjectorChainTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));

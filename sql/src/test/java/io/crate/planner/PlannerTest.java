@@ -33,6 +33,7 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -49,27 +50,17 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class PlannerTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class PlannerTest extends CrateUnitTest {
 
     private Analyzer analyzer;
     private Planner planner;
@@ -247,7 +238,7 @@ public class PlannerTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         Injector injector = new ModulesBuilder()
                 .add(new TestModule())
                 .add(new AggregationImplModule())

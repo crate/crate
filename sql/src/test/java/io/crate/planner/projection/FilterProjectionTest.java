@@ -27,15 +27,14 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
-public class FilterProjectionTest {
+public class FilterProjectionTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {

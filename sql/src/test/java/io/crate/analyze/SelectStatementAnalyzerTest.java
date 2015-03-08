@@ -61,9 +61,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -74,20 +72,12 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
 @SuppressWarnings("ConstantConditions")
 public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
 

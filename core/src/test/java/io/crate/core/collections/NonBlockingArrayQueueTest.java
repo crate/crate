@@ -21,14 +21,16 @@
 
 package io.crate.core.collections;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class NonBlockingArrayQueueTest {
+public class NonBlockingArrayQueueTest extends CrateUnitTest {
 
     @Test
     public void testOffer() throws Exception {
@@ -36,7 +38,7 @@ public class NonBlockingArrayQueueTest {
 
         int THREADS = 20;
         final CountDownLatch latch = new CountDownLatch(THREADS);
-
+        List<Thread> threads = new ArrayList<>(20);
         for (int i = 0; i < THREADS; i++) {
             Thread t = new Thread(new Runnable() {
                 @Override
@@ -49,9 +51,13 @@ public class NonBlockingArrayQueueTest {
                 }
             });
             t.start();
+            threads.add(t);
         }
 
         latch.await();
         assertThat(strings.size(), is(15_000));
+        for (Thread thread : threads) {
+            thread.join();
+        }
     }
 }

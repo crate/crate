@@ -22,24 +22,19 @@
 
 package io.crate.analyze;
 
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 
 
-public class ParameterContextTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class ParameterContextTest extends CrateUnitTest {
 
     private final static Object[] EMPTY_ARGS = new Object[0];
     private final static Object[][] EMPTY_BULK_ARGS = new Object[0][];

@@ -22,14 +22,6 @@
 package io.crate.analyze;
 
 
-import static java.lang.String.format;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
@@ -39,16 +31,19 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-public class DropTableAnalyzedStatementTest {
+import static java.lang.String.format;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class DropTableAnalyzedStatementTest extends CrateUnitTest {
 
     public static final String IRRELEVANT = "Irrelevant";
 
@@ -59,7 +54,7 @@ public class DropTableAnalyzedStatementTest {
     private DropTableAnalyzedStatement dropTableAnalyzedStatement;
 
     @Before
-    public void setUp() {
+    public void prepare() {
         referenceInfos = mock(ReferenceInfos.class);
         docSchemaInfo = mock(DocSchemaInfo.class);
         when(docSchemaInfo.getTableInfo(any(String.class))).thenReturn(null);

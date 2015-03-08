@@ -15,6 +15,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -46,14 +47,7 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DocIndexMetaDataTest extends RandomizedTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
+public class DocIndexMetaDataTest extends CrateUnitTest {
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, ImmutableSettings.Builder.EMPTY_SETTINGS, null);

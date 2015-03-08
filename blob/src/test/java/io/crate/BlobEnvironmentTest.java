@@ -22,6 +22,7 @@
 package io.crate;
 
 import io.crate.blob.BlobEnvironment;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.os.OsUtils;
@@ -33,27 +34,20 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.*;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermissions;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class BlobEnvironmentTest {
+public class BlobEnvironmentTest extends CrateUnitTest {
 
     private static Path dataPath;
     private static File testFile;
     private BlobEnvironment blobEnvironment;
     private NodeEnvironment nodeEnvironment;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public TemporaryFolder folder= new TemporaryFolder();

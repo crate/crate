@@ -26,6 +26,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -36,9 +37,7 @@ import org.junit.Test;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-
-public class CollectionAverageFunctionTest {
+public class CollectionAverageFunctionTest extends CrateUnitTest {
 
     final FunctionIdent ident = new FunctionIdent(CollectionAverageFunction.NAME,
             ImmutableList.<DataType>of(new SetType(DataTypes.LONG)));

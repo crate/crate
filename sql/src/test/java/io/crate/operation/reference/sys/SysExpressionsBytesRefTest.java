@@ -22,15 +22,15 @@
 package io.crate.operation.reference.sys;
 
 import io.crate.metadata.sys.SysExpression;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-public class SysExpressionsBytesRefTest {
+public class SysExpressionsBytesRefTest extends CrateUnitTest {
 
     static class BytesRefNullSysExpression extends SysExpression<BytesRef> {
 

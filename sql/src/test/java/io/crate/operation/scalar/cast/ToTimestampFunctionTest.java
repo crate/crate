@@ -23,34 +23,19 @@ package io.crate.operation.scalar.cast;
 
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class ToTimestampFunctionTest {
-
-    private Functions functions;
+public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
 
     private String functionName = ToTimestampFunction.NAME;
-
-    @Before
-    public void setUp() {
-        functions = new ModulesBuilder()
-                .add(new ScalarFunctionModule()).createInjector().getInstance(Functions.class);
-    }
 
     @Test
     public void testResolveFunction() throws Throwable {

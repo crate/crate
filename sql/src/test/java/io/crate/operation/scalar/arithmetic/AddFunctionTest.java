@@ -21,45 +21,18 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-public class AddFunctionTest {
-
-    class TestModule extends ScalarFunctionModule {
-        private MapBinder<String, DynamicFunctionResolver> resolver;
-
-        @Override
-        public void register(String name, DynamicFunctionResolver dynamicFunctionResolver) {
-            resolver.addBinding(name).toInstance(dynamicFunctionResolver);
-        }
-
-        @Override
-        protected void configure() {
-            resolver = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
-            MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-            AddFunction.register(this);
-        }
-    }
+public class AddFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTimestampTypeValidation() throws Exception {
-        Injector injector = new ModulesBuilder()
-                .add(new TestModule())
-                .createInjector();
-
-        Functions functions = injector.getInstance(Functions.class);
         functions.get(new FunctionIdent(AddFunction.NAME,
                 Arrays.<DataType>asList(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP)));
     }

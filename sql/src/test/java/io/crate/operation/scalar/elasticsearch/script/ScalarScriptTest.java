@@ -28,6 +28,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -35,24 +36,18 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.script.ScriptException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 
 import static io.crate.operation.scalar.elasticsearch.script.AbstractScalarScriptFactory.ScalarArgument;
 import static io.crate.operation.scalar.elasticsearch.script.AbstractScalarSearchScriptFactory.SearchContext;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class ScalarScriptTest {
+public class ScalarScriptTest extends CrateUnitTest {
 
     private Functions functions;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void prepare() {

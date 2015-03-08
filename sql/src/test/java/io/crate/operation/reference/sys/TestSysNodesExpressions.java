@@ -35,6 +35,7 @@ import io.crate.operation.reference.sys.node.SysNodeExpression;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.node.fs.NodeFsDataExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
@@ -65,6 +66,7 @@ import org.elasticsearch.monitor.sigar.SigarService;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hyperic.sigar.*;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -76,14 +78,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static junit.framework.Assert.assertNull;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
-public class TestSysNodesExpressions {
+public class TestSysNodesExpressions extends CrateUnitTest {
 
     /**
      * Resolve canonical path (platform independent)
@@ -284,12 +283,17 @@ public class TestSysNodesExpressions {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         injector = new ModulesBuilder().add(
                 new TestModule(),
                 new SysNodeExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        injector.getInstance(ThreadPool.class).shutdownNow();
     }
 
     @Test

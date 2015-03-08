@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -35,13 +36,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class PartitionInfosTest {
+public class PartitionInfosTest  extends CrateUnitTest {
 
     private ClusterService mockService(Map<String, IndexMetaData> indices) {
         ClusterService clusterService = mock(ClusterService.class);

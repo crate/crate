@@ -23,6 +23,7 @@ package io.crate.types;
 
 import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
@@ -32,10 +33,8 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class DataTypesTest {
+public class DataTypesTest extends CrateUnitTest {
 
     @Test
     public void testConvertBooleanToString() {

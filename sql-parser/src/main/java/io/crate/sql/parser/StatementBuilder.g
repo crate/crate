@@ -36,7 +36,7 @@ options {
     import java.util.List;
     import java.util.Locale;
     import com.google.common.collect.ImmutableList;
-    import com.google.common.base.Objects;
+    import com.google.common.base.MoreObjects;
     import com.google.common.base.Optional;
     import com.google.common.collect.Multimap;
     import com.google.common.collect.LinkedListMultimap;
@@ -110,7 +110,7 @@ queryExpr returns [Query value]
         { $value = new Query(
             Optional.fromNullable($withClause.value),
             $queryBody.value,
-            Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
+            MoreObjects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
             Optional.fromNullable($limitClause.value),
             Optional.fromNullable($offsetClause.value));
         }
@@ -137,9 +137,9 @@ querySpec returns [QuerySpecification value]
             $selectClause.value,
             $fromClause.value,
             Optional.fromNullable($whereClause.value),
-            Objects.firstNonNull($groupClause.value, ImmutableList.<Expression>of()),
+            MoreObjects.firstNonNull($groupClause.value, ImmutableList.<Expression>of()),
             Optional.fromNullable($havingClause.value),
-            Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
+            MoreObjects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
             Optional.fromNullable($limitClause.value),
             Optional.fromNullable($offsetClause.value));
         }
@@ -428,8 +428,8 @@ functionCall returns [FunctionCall value]
 window returns [Window value]
     : ^(WINDOW windowPartition? orderClause? windowFrame?)
         { $value = new Window(
-            Objects.firstNonNull($windowPartition.value, ImmutableList.<Expression>of()),
-            Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
+            MoreObjects.firstNonNull($windowPartition.value, ImmutableList.<Expression>of()),
+            MoreObjects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
             $windowFrame.value);
         }
     ;
@@ -615,7 +615,7 @@ showPartitions returns [Statement value]
         { $value = new ShowPartitions(
             $qname.value,
             Optional.fromNullable($whereClause.value),
-            Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
+            MoreObjects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
             Optional.fromNullable($limitClause.value),
             Optional.fromNullable($offsetClause.value));
         }

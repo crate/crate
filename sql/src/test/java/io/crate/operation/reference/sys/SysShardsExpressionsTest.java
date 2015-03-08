@@ -30,6 +30,7 @@ import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.shard.*;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterName;
@@ -56,12 +57,10 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import static junit.framework.Assert.assertNull;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SysShardsExpressionsTest {
+public class SysShardsExpressionsTest extends CrateUnitTest {
 
     private Injector injector;
     private ReferenceResolver resolver;
@@ -129,7 +128,7 @@ public class SysShardsExpressionsTest {
 
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         injector = new ModulesBuilder().add(
                 new TestModule(),
                 new MetaDataModule(),
@@ -212,7 +211,7 @@ public class SysShardsExpressionsTest {
     public void testTableNameOfPartition() throws Exception {
         // expression should return the real table name
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
-        setUp();
+        prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardTableNameExpression.NAME);
         SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
@@ -224,7 +223,7 @@ public class SysShardsExpressionsTest {
     @Test
     public void testPartitionIdent() throws Exception {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
-        setUp();
+        prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionIdentExpression.NAME);
         SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("_1"), shardExpression.value());
@@ -244,7 +243,7 @@ public class SysShardsExpressionsTest {
     @Test
     public void testOrphanPartition() throws Exception {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
-        setUp();
+        prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionOrphanedExpression.NAME);
         SysExpression<Boolean> shardExpression = (SysExpression<Boolean>) resolver.getImplementation(ident);
         assertEquals(true, shardExpression.value());
@@ -263,7 +262,7 @@ public class SysShardsExpressionsTest {
     @Test
     public void testCustomSchemaName() throws Exception {
         indexName = "my_schema.wikipedia_de";
-        setUp();
+        prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardSchemaNameExpression.NAME);
         SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("my_schema"), shardExpression.value());
@@ -275,7 +274,7 @@ public class SysShardsExpressionsTest {
     public void testTableNameOfCustomSchema() throws Exception {
         // expression should return the real table name
         indexName = "my_schema.wikipedia_de";
-        setUp();
+        prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardTableNameExpression.NAME);
         SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());

@@ -23,6 +23,7 @@ package io.crate;
 
 import io.crate.blob.BlobContainer;
 import io.crate.blob.DigestBlob;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.junit.After;
 import org.junit.Before;
@@ -38,10 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-public class DigestBlobTests {
+public class DigestBlobTests extends CrateUnitTest {
 
     private Path tmpDir;
 

@@ -21,17 +21,17 @@
 
 package io.crate.operation.reference.sys.cluster;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ClusterMasterNodeExpressionTest {
+public class ClusterMasterNodeExpressionTest extends CrateUnitTest {
 
     @Test
     public void testMasterNodeIdIsNull() throws Exception {

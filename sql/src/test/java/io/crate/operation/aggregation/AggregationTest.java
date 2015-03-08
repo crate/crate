@@ -29,6 +29,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -36,18 +37,13 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.ExpectedException;
 
-public abstract class AggregationTest {
+public abstract class AggregationTest extends CrateUnitTest {
 
     protected static final RamAccountingContext ramAccountingContext =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     protected Functions functions;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     class AggregationTestModule extends AbstractModule {
 
@@ -58,7 +54,7 @@ public abstract class AggregationTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         Injector injector = new ModulesBuilder().add(
                 new AggregationTestModule(),
                 new AggregationImplModule()

@@ -22,7 +22,6 @@
 package io.crate.operation.scalar;
 
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
@@ -30,28 +29,15 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static io.crate.testing.TestingHelpers.createFunction;
-import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class FormatFunctionTest {
-
-    private Functions functions;
-
-    @Before
-    public void setUp() {
-        functions = new ModulesBuilder()
-                .add(new ScalarFunctionModule()).createInjector().getInstance(Functions.class);
-    }
+public class FormatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     @SuppressWarnings("unchecked")

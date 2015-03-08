@@ -28,6 +28,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Reference;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -38,24 +39,19 @@ import org.elasticsearch.cluster.routing.operation.OperationRouting;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.*;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SymbolBasedBulkShardProcessorTest {
+public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
 
@@ -65,16 +61,8 @@ public class SymbolBasedBulkShardProcessorTest {
     @Captor
     private ArgumentCaptor<ActionListener<BulkShardResponse>> bulkShardResponseListener;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
-
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-    }
 
     @Test
     public void testNonEsRejectedExceptionDoesNotResultInRetryButAborts() throws Throwable {

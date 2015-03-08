@@ -28,6 +28,7 @@ import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
@@ -37,9 +38,8 @@ import org.junit.Test;
 import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class StatsTablesTest {
+public class StatsTablesTest extends CrateUnitTest {
 
 
     @Test

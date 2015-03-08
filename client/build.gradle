@@ -40,12 +40,11 @@ processResources.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava']
 compileJava.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
 
 test {
-    testLogging {
-        // show standard out and standard error of the test JVM(s) on the console
-        showStandardStreams = true
-        // Show that tests are run in the command-line output
-        events 'started', 'passed'
-    }
+
+    // show standard out and standard error of the test JVM(s) on the console
+    testLogging.showStandardStreams = true
+    testLogging.exceptionFormat = 'full'
+
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }
 

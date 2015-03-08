@@ -21,19 +21,14 @@
 
 package io.crate.core;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
 
-public class NumberOfReplicasTest extends RandomizedTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class NumberOfReplicasTest extends CrateUnitTest {
 
     @Test
     public void testFromEmptySettings() throws Exception {

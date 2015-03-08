@@ -24,15 +24,15 @@ package io.crate.planner.projection;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.junit.Assert.assertEquals;
 
-public class TopNProjectionTest {
+public class TopNProjectionTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {

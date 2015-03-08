@@ -21,7 +21,6 @@
 
 package io.crate.lucene;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.FunctionIdent;
@@ -32,6 +31,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -57,12 +57,12 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class LuceneQueryBuilderTest extends RandomizedTest {
+public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     private LuceneQueryBuilder builder;
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         Functions functions = new ModulesBuilder()
                 .add(new OperatorModule()).createInjector().getInstance(Functions.class);
         builder = new LuceneQueryBuilder(functions,

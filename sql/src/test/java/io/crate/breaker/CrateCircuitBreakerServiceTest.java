@@ -21,6 +21,7 @@
 
 package io.crate.breaker;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -31,10 +32,9 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-public class CrateCircuitBreakerServiceTest {
+public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
     @Test
     public void testQueryCircuitBreakerRegistration() throws Exception {

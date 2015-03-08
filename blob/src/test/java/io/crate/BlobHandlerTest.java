@@ -23,14 +23,14 @@ package io.crate;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.http.netty.HttpBlobHandler;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 
-public class BlobHandlerTest {
+public class BlobHandlerTest extends CrateUnitTest {
 
     private static List<String> validUrls = ImmutableList.<String>builder()
             .add("/_blobs/b/f3b4df9c032a14ad415455354798fa2fc3bf1df7")

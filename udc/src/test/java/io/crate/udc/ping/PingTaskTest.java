@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterId;
 import io.crate.ClusterIdService;
 import io.crate.http.HttpTestServer;
+import io.crate.test.integration.CrateUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.elasticsearch.cluster.ClusterService;
@@ -33,6 +34,7 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,18 +46,26 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class PingTaskTest {
+public class PingTaskTest extends CrateUnitTest {
 
     private ClusterService clusterService;
     private HttpServerTransport httpServerTransport;
     private ClusterIdService clusterIdService;
 
+    private HttpTestServer testServer;
+
+    @After
+    public void cleanUp() {
+        if (testServer != null) {
+            testServer.shutDown();
+        }
+    }
+
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         clusterService = mock(ClusterService.class);
         clusterIdService = mock(ClusterIdService.class);
         httpServerTransport = mock(HttpServerTransport.class);
@@ -75,7 +85,7 @@ public class PingTaskTest {
 
     @Test
     public void testSuccessfulPingTaskRun() throws Exception {
-        HttpTestServer testServer = new HttpTestServer(18080, false);
+        testServer = new HttpTestServer(18080, false);
         testServer.run();
 
         PingTask task = new PingTask(
@@ -119,12 +129,11 @@ public class PingTaskTest {
             assertThat(map, hasKey("java_version"));
             assertThat(map.get("java_version"), is(notNullValue()));
         }
-        testServer.shutDown();
     }
 
     @Test
     public void testUnsuccessfulPingTaskRun() throws Exception {
-        HttpTestServer testServer = new HttpTestServer(18081, true);
+        testServer = new HttpTestServer(18081, true);
         testServer.run();
         PingTask task = new PingTask(
                 clusterService, clusterIdService, httpServerTransport, "http://localhost:18081/");
@@ -169,7 +178,5 @@ public class PingTaskTest {
             assertThat(map, hasKey("java_version"));
             assertThat(map.get("java_version"), is(notNullValue()));
         }
-
-        testServer.shutDown();
     }
 }

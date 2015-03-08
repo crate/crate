@@ -40,25 +40,19 @@ import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.StringType;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override

@@ -15,6 +15,7 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -28,9 +29,8 @@ import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class GroupingProjectorTest {
+public class GroupingProjectorTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));

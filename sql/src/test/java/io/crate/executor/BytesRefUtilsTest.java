@@ -22,6 +22,7 @@
 package io.crate.executor;
 
 import com.google.common.base.Joiner;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -35,9 +36,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class BytesRefUtilsTest {
+public class BytesRefUtilsTest extends CrateUnitTest {
 
     final static Joiner commaJoiner = Joiner.on(", ");
 

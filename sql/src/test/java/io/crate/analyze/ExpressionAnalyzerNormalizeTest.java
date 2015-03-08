@@ -39,6 +39,7 @@ import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -54,14 +55,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-public class ExpressionAnalyzerNormalizeTest {
+public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
 
     private static final TableIdent TEST_TABLE_IDENT = new TableIdent(null, "test1");
     private static final FunctionInfo TEST_FUNCTION_INFO = new FunctionInfo(

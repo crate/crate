@@ -36,6 +36,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -48,7 +49,7 @@ import org.junit.Before;
 
 import java.util.*;
 
-public abstract class BaseAnalyzerTest {
+public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
     static final Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
@@ -321,7 +322,7 @@ public abstract class BaseAnalyzerTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void prepareModules() throws Exception {
         ModulesBuilder builder = new ModulesBuilder();
         for (Module m : getModules()) {
             builder.add(m);

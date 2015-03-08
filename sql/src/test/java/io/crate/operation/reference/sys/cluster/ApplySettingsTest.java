@@ -22,15 +22,14 @@
 package io.crate.operation.reference.sys.cluster;
 
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.junit.Assert.*;
-
-public class ApplySettingsTest {
+public class ApplySettingsTest extends CrateUnitTest {
 
     @Test
     public void testOnRefreshSettings() throws Exception {

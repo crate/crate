@@ -21,16 +21,13 @@
 
 package io.crate.operation.collect;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
 import java.util.HashSet;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-public class UnassignedShardsCollectServiceUnitTest {
+public class UnassignedShardsCollectServiceUnitTest extends CrateUnitTest {
 
     @Test
     public void testIsPrimaryAllShardsUnassinged() throws Exception {

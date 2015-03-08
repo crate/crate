@@ -29,6 +29,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -39,10 +40,8 @@ import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class GroupProjectionTest {
+public class GroupProjectionTest extends CrateUnitTest {
 
 
     @Test

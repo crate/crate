@@ -30,6 +30,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -38,10 +39,9 @@ import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-public class QueryShardRequestTest {
+public class QueryShardRequestTest extends CrateUnitTest {
 
 
     @Test

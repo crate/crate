@@ -57,9 +57,6 @@ import static org.mockito.Mockito.when;
 
 public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     private static final TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private static final TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())

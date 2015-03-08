@@ -22,9 +22,8 @@
 package io.crate.operation.scalar.arithmetic;
 
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
 import io.crate.operation.Input;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -32,9 +31,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -42,22 +39,8 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
 
-public class SquareRootFunctionTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    private Functions functions;
-
-    @Before
-    public void setUp() throws Exception {
-        functions = new ModulesBuilder()
-                .add(new ScalarFunctionModule())
-                .createInjector().getInstance(Functions.class);
-    }
+public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
 
     private Number evaluate(Number number, DataType dataType) {
         List<DataType> dataTypes = Arrays.asList(dataType);

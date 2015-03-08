@@ -46,6 +46,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
@@ -91,6 +92,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -104,18 +106,12 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DistributingCollectTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
+public class DistributingCollectTest extends CrateUnitTest {
 
     private IndexService indexService = mock(IndexService.class);
     private DistributingCollectOperation operation;
@@ -267,6 +263,11 @@ public class DistributingCollectTest {
         when(indexService.shardInjectorSafe(1)).thenReturn(shard1Injector);
         when(indexService.shardSafe(0)).thenReturn(shard0Injector.getInstance(IndexShard.class));
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        testThreadPool.shutdownNow();
     }
 
     private final Routing nodeRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(1){{

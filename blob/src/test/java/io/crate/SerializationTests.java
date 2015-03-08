@@ -22,6 +22,7 @@
 package io.crate;
 
 import io.crate.blob.PutChunkReplicaRequest;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -29,9 +30,7 @@ import org.junit.Test;
 
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-
-public class SerializationTests {
+public class SerializationTests extends CrateUnitTest {
 
 
     @Test

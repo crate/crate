@@ -10,7 +10,11 @@ import io.crate.operation.operator.OrOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -23,16 +27,15 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
 
-public class EvaluatingNormalizerTest {
+public class EvaluatingNormalizerTest extends CrateUnitTest {
 
     private ReferenceResolver referenceResolver;
     private Functions functions;
     private ReferenceInfo dummyLoadInfo;
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         Map<ReferenceIdent, ReferenceImplementation> referenceImplementationMap = new HashMap<>(1, 1);
 
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new TableIdent("test", "dummy"), "load");

@@ -23,9 +23,8 @@ package io.crate.operation.scalar.geo;
 
 import com.google.common.collect.Lists;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
 import io.crate.operation.Input;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -33,13 +32,8 @@ import io.crate.planner.symbol.Symbols;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -48,23 +42,8 @@ import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
-public class DistanceFunctionTest {
-
-    private Functions functions;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void setUp() throws Exception {
-        ModulesBuilder modules = new ModulesBuilder();
-        modules.add(new ScalarFunctionModule());
-        Injector injector = modules.createInjector();
-        functions = injector.getInstance(Functions.class);
-    }
+public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
     private DistanceFunction getFunction(List<DataType> types) {
         return (DistanceFunction)functions.get(

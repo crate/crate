@@ -37,26 +37,18 @@ import io.crate.planner.symbol.Reference;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DeleteAnalyzerTest extends BaseAnalyzerTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override

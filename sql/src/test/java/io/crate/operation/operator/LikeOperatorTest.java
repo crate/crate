@@ -23,6 +23,7 @@ package io.crate.operation.operator;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
@@ -30,9 +31,8 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static io.crate.operation.operator.LikeOperator.DEFAULT_ESCAPE;
-import static org.junit.Assert.*;
 
-public class LikeOperatorTest {
+public class LikeOperatorTest extends CrateUnitTest {
 
     private static Symbol normalizeSymbol(String expression, String pattern) {
         LikeOperator op = new LikeOperator(

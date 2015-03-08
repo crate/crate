@@ -28,6 +28,7 @@ import io.crate.operation.operator.input.ObjectInput;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -35,9 +36,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.*;
-
-public class AnyEqOperatorTest {
+public class AnyEqOperatorTest extends CrateUnitTest {
 
     private Boolean anyEq(Object value, Object arrayExpr) {
 

@@ -27,22 +27,17 @@ import io.crate.core.collections.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import org.junit.Rule;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
 @SuppressWarnings("NullArgumentToVariableArgMethod")
-public class ShardingProjectorTest {
+public class ShardingProjectorTest extends CrateUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("_id");
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private Row row(Object ... cells){
         if (cells==null){

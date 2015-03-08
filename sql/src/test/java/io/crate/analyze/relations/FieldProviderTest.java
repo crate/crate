@@ -26,9 +26,9 @@ import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
-import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Field;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,9 +38,8 @@ import java.util.*;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class FieldProviderTest {
+public class FieldProviderTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

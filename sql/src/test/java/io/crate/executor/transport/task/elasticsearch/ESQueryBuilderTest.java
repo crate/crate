@@ -23,7 +23,6 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.metadata.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.operation.operator.*;
@@ -45,6 +44,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -57,9 +57,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.*;
@@ -67,10 +65,8 @@ import java.util.*;
 import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class ESQueryBuilderTest {
+public class ESQueryBuilderTest extends CrateUnitTest {
 
     Functions functions;
     static final TableIdent characters = new TableIdent(null, "characters");
@@ -102,11 +98,8 @@ public class ESQueryBuilderTest {
         return Arrays.asList(type, type);
     }
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Before
-    public void setUp() throws Exception {
+    public void prepare() throws Exception {
         functions = new ModulesBuilder()
                 .add(new OperatorModule())
                 .add(new PredicateModule())

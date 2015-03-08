@@ -21,14 +21,14 @@
 
 package io.crate.blob;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class DeleteBlobResponseTest {
+public class DeleteBlobResponseTest extends CrateUnitTest {
 
     @Test
     public void testDeleteBlobResponseStreaming() throws Exception {

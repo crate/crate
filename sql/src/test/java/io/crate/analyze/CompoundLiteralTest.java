@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.planner.symbol.Field;
@@ -36,8 +36,8 @@ import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.*;
-import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -47,9 +47,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -62,10 +60,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CompoundLiteralTest extends AbstractRandomizedTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class CompoundLiteralTest extends CrateUnitTest {
 
     private AnalysisMetaData analysisMetaData;
 

@@ -24,24 +24,20 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.TaskResult;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.index.shard.IndexShardException;
 import org.elasticsearch.index.shard.ShardId;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.concurrent.ExecutionException;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ESCountTaskTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class ESCountTaskTest extends CrateUnitTest {
 
     @Test
     public void testCountResponseOnShardFailures() throws Throwable {
