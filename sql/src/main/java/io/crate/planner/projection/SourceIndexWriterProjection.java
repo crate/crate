@@ -22,6 +22,7 @@
 package io.crate.planner.projection;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -60,7 +61,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     protected SourceIndexWriterProjection() {}
 
-    public SourceIndexWriterProjection(String tableName,
+    public SourceIndexWriterProjection(TableIdent tableIdent,
+                                       @Nullable String partitionIdent,
                                        Reference rawSourceReference,
                                        List<ColumnIdent> primaryKeys,
                                        List<ColumnIdent> partitionedBy,
@@ -70,7 +72,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable String[] includes,
                                        @Nullable String[] excludes,
                                        boolean autoCreateIndices) {
-        super(tableName, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
+        super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
 
         this.rawSourceReference = rawSourceReference;
         this.includes = includes;

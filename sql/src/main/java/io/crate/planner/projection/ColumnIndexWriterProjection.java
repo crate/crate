@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.Lists;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -53,7 +54,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     /**
      *
-     * @param tableName
+     * @param tableIdent identifying the table to write to
      * @param primaryKeys
      * @param columns the columnReferences of all the columns to be written in order of appearance
      * @param primaryKeyIndices
@@ -61,7 +62,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
      * @param clusteredByIndex
      * @param settings
      */
-    public ColumnIndexWriterProjection(String tableName,
+    public ColumnIndexWriterProjection(TableIdent tableIdent,
+                                       @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
                                        List<Reference>  columns,
                                        IntSet primaryKeyIndices,
@@ -70,7 +72,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        int clusteredByIndex,
                                        Settings settings,
                                        boolean autoCreateIndices) {
-        super(tableName, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
+        super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
         generateSymbols(primaryKeyIndices.toArray(), partitionedByIndices.toArray(), clusteredByIndex);
 
         this.columnReferences = Lists.newArrayList(columns);

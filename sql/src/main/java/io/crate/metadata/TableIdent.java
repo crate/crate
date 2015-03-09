@@ -35,6 +35,7 @@ import java.util.List;
 
 public class TableIdent implements Comparable<TableIdent>, Streamable {
 
+    @Nullable
     private String schema;
     private String name;
 
@@ -52,7 +53,7 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
 
     }
 
-    public TableIdent(String schema, String name) {
+    public TableIdent(@Nullable String schema, String name) {
         Preconditions.checkNotNull(name, "table name is null");
         this.schema = schema;
         this.name = name;

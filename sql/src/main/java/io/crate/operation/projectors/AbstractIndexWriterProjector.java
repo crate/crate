@@ -33,6 +33,7 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.analyze.Id;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
@@ -63,7 +64,9 @@ public abstract class AbstractIndexWriterProjector implements Projector {
     private final List<Input<?>> idInputs;
     private final Optional<ColumnIdent> routingIdent;
     private final Optional<Input<?>> routingInput;
-    private final String tableName;
+    private final TableIdent tableIdent;
+    @Nullable
+    private final String partitionIdent;
     private final Object lock = new Object();
     private final List<ColumnIdent> primaryKeys;
     private final List<Input<?>> partitionedByInputs;
@@ -79,20 +82,31 @@ public abstract class AbstractIndexWriterProjector implements Projector {
 
     private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
 
-    protected AbstractIndexWriterProjector(final String tableName,
+    /**
+     * 3 states:
+     *
+     * <ul>
+     *  <li> writing into a normal table - <code>partitionIdent = null, partitionedByInputs = []</code>
+     *  <li> writing into a partitioned table - <code>partitionIdent = null, partitionedByInputs = [...]</code>
+     *  <li> writing into a single partition - <code>partitionIdent = "...", partitionedByInputs = []</code>
+     *
+     */
+    protected AbstractIndexWriterProjector(final TableIdent tableIdent,
+                                           @Nullable String partitionIdent,
                                            List<ColumnIdent> primaryKeys,
                                            List<Input<?>> idInputs,
                                            List<Input<?>> partitionedByInputs,
                                            @Nullable ColumnIdent clusteredBy,
                                            @Nullable Input<?> routingInput,
                                            CollectExpression<?>[] collectExpressions) {
-        this.tableName = tableName;
         this.primaryKeys = primaryKeys;
+        this.tableIdent = tableIdent;
+        this.partitionIdent = partitionIdent;
+        this.partitionedByInputs = partitionedByInputs;
         this.collectExpressions = collectExpressions;
         this.idInputs = idInputs;
         this.routingIdent = Optional.fromNullable(clusteredBy);
         this.routingInput = Optional.<Input<?>>fromNullable(routingInput);
-        this.partitionedByInputs = partitionedByInputs;
         if (partitionedByInputs.size() > 0) {
             partitionIdentCache = CacheBuilder.newBuilder()
                         .initialCapacity(10)
@@ -100,7 +114,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                         .build(new CacheLoader<List<BytesRef>, String>() {
                             @Override
                             public String load(@Nonnull List<BytesRef> key) throws Exception {
-                                return new PartitionName(tableName, key).stringValue();
+                                return new PartitionName(tableIdent.schema(), tableIdent.name(), key).stringValue();
                             }
                         });
         } else {
@@ -227,8 +241,10 @@ public abstract class AbstractIndexWriterProjector implements Projector {
             } catch (ExecutionException e) {
                 throw ExceptionsHelper.convertToRuntime(e);
             }
+        } else if (partitionIdent != null) {
+            return PartitionName.fromPartitionIdent(tableIdent.schema(), tableIdent.name(), partitionIdent).stringValue();
         } else {
-            return tableName;
+            return tableIdent.esName();
         }
     }
 

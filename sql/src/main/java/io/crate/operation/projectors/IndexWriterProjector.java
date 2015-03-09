@@ -21,7 +21,9 @@
 
 package io.crate.operation.projectors;
 
+import com.sun.rowset.internal.Row;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
@@ -47,12 +49,12 @@ import java.util.Map;
 public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     private final BytesRefGenerator generator;
-
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
                                 TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                 TransportCreateIndexAction transportCreateIndexAction,
-                                String tableName,
+                                TableIdent tableIdent,
+                                @Nullable String partitionIdent,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeys,
                                 List<Input<?>> idInputs,
@@ -66,7 +68,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates) {
-        super(tableName, primaryKeys, idInputs, partitionedByInputs,
+        super(tableIdent, partitionIdent, primaryKeys, idInputs, partitionedByInputs,
                 routingIdent, routingInput,
                 collectExpressions);
 

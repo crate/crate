@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
 import org.hamcrest.core.IsNull;
 import org.junit.Rule;
@@ -570,4 +571,62 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     }
 
+    @Test
+    public void testInsertFromSubQueryWithVersion() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause");
+        execute("create table users (name string)");
+        execute("insert into users (name) (select name from users where _version = 1)");
+    }
+
+    @Test
+    public void testInsertFromSubQueryPartitionedTableCustomSchema() throws Exception {
+        execute("create table custom.source (" +
+                "  name string, " +
+                "  zipcode string, " +
+                "  city string" +
+                ") partitioned by (city) with (number_of_replicas=0)");
+        execute("create table custom.destination (" +
+                "  name string, " +
+                "  zipcode string, " +
+                "  city string" +
+                ") partitioned by (zipcode) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into custom.source (name, zipcode, city) values (?, ?, ?)", new Object[][]{
+                {"Schulz", "10243", "Berlin"},
+                {"Dings", "14713", "Leipzig"},
+                {"Foo", "10243", "Musterhausen"}
+        });
+        ensureGreen();
+        refresh();
+
+        execute("select * from custom.source order by zipcode");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "Musterhausen| Foo| 10243\n" +
+                "Berlin| Schulz| 10243\n" +
+                "Leipzig| Dings| 14713\n"));
+
+        execute("select * from information_schema.table_partitions where schema_name='custom' and table_name='source' order by partition_ident");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "source| custom| 043k4pbidhkms| {city=Berlin}| 5| 0\n" +
+                "source| custom| 0444opb9e1t6ipo| {city=Leipzig}| 5| 0\n" +
+                "source| custom| 046kqtbjehin4q31elpmarg| {city=Musterhausen}| 5| 0\n"));
+
+        execute("insert into custom.destination (select * from custom.source)");
+        assertThat(response.rowCount(), is(3L));
+        ensureGreen();
+        refresh();
+
+        execute("select * from custom.destination order by city");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "Berlin| Schulz| 10243\n" +
+                "Leipzig| Dings| 14713\n" +
+                "Musterhausen| Foo| 10243\n"));
+
+        execute("select * from information_schema.table_partitions where schema_name='custom' and table_name='destination' order by partition_ident");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "destination| custom| 04332c1i6gpg| {zipcode=10243}| 5| 0\n" +
+                "destination| custom| 04332d1n64pg| {zipcode=14713}| 5| 0\n"));
+
+    }
 }

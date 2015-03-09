@@ -2,6 +2,12 @@
 Changes for Crate
 =================
 
+Unreleased
+==========
+
+ - Fix: COPY FROM and INSERT from subquery into a partitioned table created
+   separate tables with a wrong name instead of correct partitions
+
 2015/03/09 0.47.5
 =================
 

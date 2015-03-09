@@ -1013,7 +1013,7 @@ public class PlannerTest {
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
-        assertThat(projection.tableName(), is("users"));
+        assertThat(projection.tableIdent().fqn(), is("users"));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
         MergeNode localMergeNode = planNode.localMergeNode();
@@ -1044,7 +1044,7 @@ public class PlannerTest {
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
-        assertThat(projection.tableName(), is("parted"));
+        assertThat(projection.tableIdent().fqn(), is("parted"));
 
         MergeNode localMergeNode = planNode.localMergeNode();
 
@@ -1073,7 +1073,7 @@ public class PlannerTest {
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
-        assertThat(projection.tableName(), is("users"));
+        assertThat(projection.tableIdent().fqn(), is("users"));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
     }
 

@@ -46,8 +46,12 @@ import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static org.hamcrest.Matchers.*;
@@ -63,6 +67,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     private Setup setup = new Setup(sqlExecutor);
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -124,6 +131,43 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select * from quotes");
         assertEquals(3L, response.rowCount());
         assertThat(response.rows()[0].length, is(2));
+    }
+
+    @Test
+    public void testCopyFromPartitionedTableClustomSchema() throws Exception {
+        execute("create table my_schema.parted (" +
+                "  id long, " +
+                "  month timestamp, " +
+                "  created timestamp" +
+                ") partitioned by (month) with (number_of_replicas=0)");
+        ensureGreen();
+        File copyFromFile = folder.newFile();
+        BufferedWriter writer = new BufferedWriter(new FileWriter(copyFromFile));
+        writer.write(
+                "{\"id\":1, \"month\":1425168000000, \"created\":1425901500000}\n" +
+                        "{\"id\":2, \"month\":1420070400000,\"created\":1425901460000}");
+        writer.flush();
+        writer.close();
+        String uriPath = Paths.get(copyFromFile.toURI()).toString();
+
+        execute("copy my_schema.parted from ? with (shared=true)", new Object[]{uriPath});
+        assertEquals(2L, response.rowCount());
+        refresh();
+
+        ensureGreen();
+        waitNoPendingTasksOnAll();
+
+        execute("select * from information_schema.tables where schema_name='my_schema' and table_name='parted'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 5| 0| _id| [month]| NULL\n"));
+
+        // no other tables with that name, e.g. partitions considered as tables or such
+        execute("select schema_name, table_name from information_schema.tables where table_name like '%parted%'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "my_schema| parted\n"));
+
+        execute("select count(*) from my_schema.parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2L));
     }
 
     @Test

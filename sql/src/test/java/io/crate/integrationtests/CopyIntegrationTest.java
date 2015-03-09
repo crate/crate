@@ -96,7 +96,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         File tmpExport = folder.newFolder("tmpExport");
-        execute("copy t to directory ?", new Object[] { tmpExport.getAbsolutePath()});
+        execute("copy t to directory ?", new Object[]{tmpExport.getAbsolutePath()});
         assertThat(response.rowCount(), is(4L));
         execute("copy t from ?", new Object[]{String.format("%s/*", tmpExport.getAbsolutePath())});
         assertThat(response.rowCount(), is(0L));

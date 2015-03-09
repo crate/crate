@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
@@ -41,7 +42,8 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          Settings settings,
                                          TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                          TransportCreateIndexAction transportCreateIndexAction,
-                                         String tableName,
+                                         TableIdent tableIdent,
+                                         @Nullable String partitionIdent,
                                          List<ColumnIdent> primaryKeys,
                                          List<Input<?>> idInputs,
                                          List<Input<?>> partitionedByInputs,
@@ -52,11 +54,10 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          CollectExpression<?>[] collectExpressions,
                                          @Nullable Integer bulkActions,
                                          boolean autoCreateIndices) {
-        super(tableName, primaryKeys, idInputs,
+        super(tableIdent, partitionIdent, primaryKeys, idInputs,
                 partitionedByInputs, routingIdent, routingInput, collectExpressions);
         assert columnReferences.size() == columnInputs.size();
         this.columnInputs = columnInputs;
-
         createBulkShardProcessor(
                 clusterService,
                 settings,
