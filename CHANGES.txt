@@ -54,6 +54,22 @@ Unreleased
  - Added support for the ``IF EXISTS`` clause to ``DROP TABLE`` and
    ``DROP BLOB TABLE``
 
+2015/03/09 0.47.5
+=================
+
+ - Upgrade Elasticsearch to v1.4.4
+
+ - Updated crate-admin to version 0.11.4 which contains following changes:
+
+    - fix: calculate health for each partition of a partitioned table
+      based on the number of shards of that partition
+
+ - Fix: number_of_shards and number_of_replicas are now correctly applied
+   through the whole lifetime of a partitioned table and its partitions
+
+ - Added columns ``number_of_shards`` and ``number_of_replicas`` to
+   table ``information_schema.table_partitions``
+
 2015/02/18 0.47.4
 =================
 
