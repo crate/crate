@@ -653,11 +653,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
 
-        execute("select * from custom.source order by zipcode");
+        execute("select * from custom.source order by name");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "Leipzig| Dings| 14713\n" +
                 "Musterhausen| Foo| 10243\n" +
-                "Berlin| Schulz| 10243\n" +
-                "Leipzig| Dings| 14713\n"));
+                "Berlin| Schulz| 10243\n"));
 
         execute("select * from information_schema.table_partitions where schema_name='custom' and table_name='source' order by partition_ident");
         assertThat(TestingHelpers.printedTable(response.rows()), is(

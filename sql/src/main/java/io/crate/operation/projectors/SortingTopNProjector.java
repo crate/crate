@@ -82,7 +82,7 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
         for (int i = 0; i < orderBy.length; i++) {
             int col = orderBy[i];
             boolean reverse = reverseFlags[i];
-            comparators[i] = new OrderingByPosition(col, reverse, nullsFirst[i]);
+            comparators[i] = OrderingByPosition.arrayOrdering(col, reverse, nullsFirst[i]);
         }
     }
 
