@@ -2,8 +2,8 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2015/03/09 0.47.5
+=================
 
  - Upgrade Elasticsearch to v1.4.4
 
