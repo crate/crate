@@ -19,46 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.testing;
 
-import io.crate.core.collections.Row;
-import io.crate.operation.ProjectorUpstream;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.CollectionBucket;
 
-/**
- * a projector that does nothing.
- * Can be used by classes that implement ProjectorUpstream to have a "default" downstream
- * to avoid null checks
- */
-public class NoOpProjector implements Projector {
+import java.util.ArrayList;
+import java.util.List;
 
-    public static NoOpProjector INSTANCE = new NoOpProjector();
+public class BucketHelpers {
 
-    private NoOpProjector() {
-
-    }
-
-    @Override
-    public void startProjection() {
-
-    }
-
-    @Override
-    public boolean setNextRow(Row row) {
-        return false;
-    }
-
-    @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
-
-    }
-
-    @Override
-    public void upstreamFinished() {
-
-    }
-
-    @Override
-    public void upstreamFailed(Throwable throwable) {
-
+    public static List<ListenableFuture<Bucket>> createBucketFutures(List<Object[]> ... buckets) {
+        List<ListenableFuture<Bucket>> result = new ArrayList<>();
+        for (List<Object[]> bucket : buckets) {
+            Bucket realBucket = new CollectionBucket(bucket);
+            result.add(Futures.immediateFuture(realBucket));
+        }
+        return result;
     }
 }

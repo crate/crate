@@ -19,46 +19,50 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.operation.merge;
 
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.operation.ProjectorUpstream;
 
-/**
- * a projector that does nothing.
- * Can be used by classes that implement ProjectorUpstream to have a "default" downstream
- * to avoid null checks
- */
-public class NoOpProjector implements Projector {
+import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
 
-    public static NoOpProjector INSTANCE = new NoOpProjector();
+class FutureBackedRowIterator implements Iterator<Row> {
 
-    private NoOpProjector() {
+    private final ListenableFuture<Bucket> bucketFuture;
+    private Iterator<Row> bucketIt = null;
 
+    public FutureBackedRowIterator(ListenableFuture<Bucket> bucketFuture) {
+        this.bucketFuture = bucketFuture;
     }
 
     @Override
-    public void startProjection() {
+    public boolean hasNext() {
+        waitForFuture();
+        return bucketIt.hasNext();
+    }
 
+    private void waitForFuture() {
+        if (bucketIt == null) {
+            try {
+                bucketIt = bucketFuture.get().iterator();
+            } catch (InterruptedException | ExecutionException e) {
+                throw Throwables.propagate(e);
+            }
+        }
     }
 
     @Override
-    public boolean setNextRow(Row row) {
-        return false;
+    public Row next() {
+        waitForFuture();
+        return bucketIt.next();
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
-
-    }
-
-    @Override
-    public void upstreamFinished() {
-
-    }
-
-    @Override
-    public void upstreamFailed(Throwable throwable) {
-
+    public void remove() {
+        waitForFuture();
+        bucketIt.remove();
     }
 }
