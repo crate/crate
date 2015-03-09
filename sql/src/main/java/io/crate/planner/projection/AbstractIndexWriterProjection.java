@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
@@ -47,7 +48,8 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     protected final static int BULK_SIZE_DEFAULT = 10000;
 
     protected Integer bulkActions;
-    protected String tableName;
+    protected TableIdent tableIdent;
+    protected String partitionIdent;
     protected List<ColumnIdent> primaryKeys;
     protected @Nullable ColumnIdent clusteredByColumn;
 
@@ -59,12 +61,14 @@ public abstract class AbstractIndexWriterProjection extends Projection {
 
     protected AbstractIndexWriterProjection() {}
 
-    protected AbstractIndexWriterProjection(String tableName,
+    protected AbstractIndexWriterProjection(TableIdent tableIdent,
+                                            @Nullable String partitionIdent,
                                             List<ColumnIdent> primaryKeys,
                                             @Nullable ColumnIdent clusteredByColumn,
                                             Settings settings,
                                             boolean autoCreateIndices) {
-        this.tableName = tableName;
+        this.tableIdent = tableIdent;
+        this.partitionIdent = partitionIdent;
         this.primaryKeys = primaryKeys;
         this.clusteredByColumn = clusteredByColumn;
         this.autoCreateIndices = autoCreateIndices;
@@ -129,44 +133,21 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         return bulkActions;
     }
 
-    public String tableName() {
-        return tableName;
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AbstractIndexWriterProjection)) return false;
-
-        AbstractIndexWriterProjection that = (AbstractIndexWriterProjection) o;
-
-        if (!bulkActions.equals(that.bulkActions)) return false;
-        if (clusteredBySymbol != null ? !clusteredBySymbol.equals(that.clusteredBySymbol) : that.clusteredBySymbol != null)
-            return false;
-        if (!idSymbols.equals(that.idSymbols)) return false;
-        if (!partitionedBySymbols.equals(that.partitionedBySymbols))
-            return false;
-        if (!primaryKeys.equals(that.primaryKeys)) return false;
-        if (!tableName.equals(that.tableName)) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + bulkActions.hashCode();
-        result = 31 * result + tableName.hashCode();
-        result = 31 * result + primaryKeys.hashCode();
-        result = 31 * result + idSymbols.hashCode();
-        result = 31 * result + partitionedBySymbols.hashCode();
-        result = 31 * result + (clusteredBySymbol != null ? clusteredBySymbol.hashCode() : 0);
-        return result;
+    @Nullable
+    public String partitionIdent() {
+        return partitionIdent;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        tableName = in.readString();
+        tableIdent = new TableIdent();
+        tableIdent.readFrom(in);
+
+        partitionIdent = in.readOptionalString();
         int numIdSymbols = in.readVInt();
         idSymbols = new ArrayList<>(numIdSymbols);
         for (int i = 0; i < numIdSymbols; i++) {
@@ -201,8 +182,48 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AbstractIndexWriterProjection)) return false;
+
+        AbstractIndexWriterProjection that = (AbstractIndexWriterProjection) o;
+
+        if (autoCreateIndices != that.autoCreateIndices) return false;
+        if (!bulkActions.equals(that.bulkActions)) return false;
+        if (clusteredByColumn != null ? !clusteredByColumn.equals(that.clusteredByColumn) : that.clusteredByColumn != null)
+            return false;
+        if (clusteredBySymbol != null ? !clusteredBySymbol.equals(that.clusteredBySymbol) : that.clusteredBySymbol != null)
+            return false;
+        if (!idSymbols.equals(that.idSymbols)) return false;
+        if (!partitionedBySymbols.equals(that.partitionedBySymbols))
+            return false;
+        if (!primaryKeys.equals(that.primaryKeys)) return false;
+        if (!tableIdent.equals(that.tableIdent)) return false;
+        if (partitionIdent != null ? !partitionIdent.equals(that.partitionIdent) : that.partitionIdent != null)
+            return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + bulkActions.hashCode();
+        result = 31 * result + tableIdent.hashCode();
+        result = 31 * result + (partitionIdent != null ? partitionIdent.hashCode() : 0);
+        result = 31 * result + primaryKeys.hashCode();
+        result = 31 * result + (clusteredByColumn != null ? clusteredByColumn.hashCode() : 0);
+        result = 31 * result + idSymbols.hashCode();
+        result = 31 * result + partitionedBySymbols.hashCode();
+        result = 31 * result + (clusteredBySymbol != null ? clusteredBySymbol.hashCode() : 0);
+        result = 31 * result + (autoCreateIndices ? 1 : 0);
+        return result;
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(tableName);
+        tableIdent.writeTo(out);
+        out.writeOptionalString(partitionIdent);
 
         out.writeVInt(idSymbols.size());
         for (Symbol idSymbol : idSymbols) {

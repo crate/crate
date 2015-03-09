@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.InputColumn;
@@ -52,7 +53,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     private final SourceInjectorRow row;
 
-    private static final class SourceInjectorRow implements Row{
+    private static final class SourceInjectorRow implements Row {
 
         private final int idx;
         private final BytesRefGenerator generator;
@@ -83,7 +84,8 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 Settings settings,
                                 TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                 TransportCreateIndexAction transportCreateIndexAction,
-                                String tableName,
+                                TableIdent tableIdent,
+                                @Nullable String partitionIdent,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
                                 List<Symbol> primaryKeySymbols,
@@ -97,7 +99,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates) {
-        super(tableName, primaryKeyIdents, primaryKeySymbols, partitionedByInputs,
+        super(tableIdent, partitionIdent, primaryKeyIdents, primaryKeySymbols, partitionedByInputs,
                 routingSymbol, collectExpressions);
 
         if (includes == null && excludes == null) {

@@ -86,6 +86,8 @@ public class TestingHelpers {
                     out.print("NULL");
                 } else if (o instanceof BytesRef) {
                     out.print(((BytesRef) o).utf8ToString());
+                } else if (o.getClass().isArray()) {
+                    out.print(Arrays.deepToString((Object[])o));
                 } else {
                     out.print(o.toString());
                 }

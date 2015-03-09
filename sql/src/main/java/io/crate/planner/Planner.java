@@ -222,11 +222,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         TableInfo table = analysis.table();
         int clusteredByPrimaryKeyIdx = table.primaryKey().indexOf(analysis.table().clusteredBy());
         List<String> partitionedByNames;
-        String tableName;
+        String partitionIdent = null;
 
         List<BytesRef> partitionValues;
         if (analysis.partitionIdent() == null) {
-            tableName = table.ident().esName();
+
             if (table.isPartitioned()) {
                 partitionedByNames = Lists.newArrayList(
                         Lists.transform(table.partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION));
@@ -239,12 +239,14 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             // partitionIdent is present -> possible to index raw source into concrete es index
             PartitionName partitionName = PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), analysis.partitionIdent());
             partitionValues = partitionName.values();
-            tableName = partitionName.stringValue();
+
+            partitionIdent = partitionName.ident();
             partitionedByNames = Collections.emptyList();
         }
 
         SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
-                tableName,
+                table.ident(),
+                partitionIdent,
                 new Reference(table.getReferenceInfo(DocSysColumns.RAW)),
                 table.primaryKey(),
                 table.partitionedBy(),

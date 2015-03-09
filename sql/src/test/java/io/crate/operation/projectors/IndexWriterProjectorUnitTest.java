@@ -21,7 +21,7 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
@@ -86,7 +86,8 @@ public class IndexWriterProjectorUnitTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
-                "bulk_import",
+                new TableIdent(null, "bulk_import"),
+                null,
                 rawSourceReference,
                 ImmutableList.of(ID_IDENT),
                 Arrays.<Symbol>asList(new InputColumn(0)),
@@ -125,7 +126,8 @@ public class IndexWriterProjectorUnitTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
-                "bulk_import",
+                new TableIdent(null, "bulk_import"),
+                null,
                 rawSourceReference,
                 ImmutableList.of(ID_IDENT),
                 Arrays.<Symbol>asList(new InputColumn(1)),

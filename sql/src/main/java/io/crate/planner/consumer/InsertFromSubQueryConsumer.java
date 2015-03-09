@@ -75,7 +75,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
         public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
 
             ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
-                    insertFromSubQueryAnalyzedStatement.tableInfo().ident().name(),
+                    insertFromSubQueryAnalyzedStatement.tableInfo().ident(),
+                    null,
                     insertFromSubQueryAnalyzedStatement.tableInfo().primaryKey(),
                     insertFromSubQueryAnalyzedStatement.columns(),
                     insertFromSubQueryAnalyzedStatement.onDuplicateKeyAssignments(),

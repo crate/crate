@@ -5,7 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
- - Copy from / copy to will now automatically create a quoted URI if only a
+ - Fix: COPY FROM and INSERT from subquery into a partitioned table created
+   separate tables with a wrong name instead of correct partitions
+
+ - COPY FROM / COPY TO will now automatically create a quoted URI if only a
    path is given.
 
  - Upgrade Elasticsearch to v1.4.4
