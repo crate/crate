@@ -43,6 +43,7 @@ import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.*;
 
@@ -101,23 +102,23 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
                     Futures.addCallback(context.createSearchResponse(), new FutureCallback<InternalSearchResponse>() {
                         @Override
                         public void onSuccess(@Nullable InternalSearchResponse searchResponse) {
-                            if (pageInfo.isPresent()) {
-                                ObjectArray<Object[]> pageSource = context.toPage(searchResponse.hits().hits(), extractors);
-                                context.cleanAfterFirstPage();
-                                result.set(new QueryThenFetchPageableTaskResult(operation, context, extractors, pageInfo.get(), pageSource, 0L));
-                            } else {
-                                Object[][] rows = context.toRows(searchResponse.hits().hits(), extractors);
-                                try {
+                            try {
+                                if (pageInfo.isPresent()) {
+                                    ObjectArray<Object[]> pageSource = context.toPage(searchResponse.hits().hits(), extractors);
+                                    context.cleanAfterFirstPage();
+                                    result.set(new QueryThenFetchPageableTaskResult(operation, context, extractors, pageInfo.get(), pageSource, 0L));
+                                } else {
+                                    Object[][] rows = context.toRows(searchResponse.hits().hits(), extractors);
                                     context.close();
                                     result.set(new QueryResult(rows));
-                                } catch (IOException e) {
-                                    onFailure(e);
                                 }
+                            } catch (Throwable t) {
+                                onFailure(t);
                             }
                         }
 
                         @Override
-                        public void onFailure(Throwable t) {
+                        public void onFailure(@Nonnull Throwable t) {
                             try {
                                 context.close();
                                 logger.error("error creating a QueryThenFetch response", t);
