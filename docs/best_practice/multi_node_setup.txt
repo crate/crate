@@ -6,14 +6,12 @@ Multi Node Setup
 ================
 
 Crate is a distributed datastore by design so in a production environment
-you usually have a cluster of 3 or more nodes. We at Crate.IO try to make
-the cluster setup as easy as possible. However, there are a few things to
-bear in mind when you start building a new cluster.
+you usually have a cluster of 3 or more nodes. At Crate.IO we try to make the cluster setup as easy as possible. However, there are a few things to bear in mind when you start building a new cluster.
 
 Crate is designed in a shared nothing architecture, in which all nodes are
-equal and each node is independent self-sufficient.
+equal and each node is independently self-sufficient.
 That means that nodes work on their own, and all nodes in a cluster are
-configured equally, the same way as they would be as a single-node instance.
+configured equally, the same way as they would be in a single-node instance.
 
 
 Node Settings
@@ -26,7 +24,7 @@ Cluster Name
 ------------
 
 Only instances with the same cluster name will join the cluster. So the simplest
-thing to prevent other nodes from joining your cluster is to give it a unique name.
+way to prevent other nodes from joining your cluster is to give it a unique name.
 
 ::
 
@@ -45,8 +43,7 @@ If the node name setting is omitted the node name is generated dynamically on st
 Inter-Node Communication
 ========================
 
-The default port of Crate to communicate between nodes using the transport protocol
-is ``4300``. This so called *transport port* must be accessible from every node.
+The default port of Crate to communicate between nodes using the transport protocol is ``4300``. This so called *transport port* must be accessible from every node.
 
 It is also possible to change the port range to which the transport service will bind to::
 
@@ -56,37 +53,32 @@ For more information please refer to :ref:`Port Settings <conf_ports>`.
 
 Crate also binds to a second port ``4200`` that is only used for HTTP communication.
 Clients connecting to the Crate cluster are using this HTTP port, except the
-native Java client, which uses the tranport port because it uses the Crate
+native Java client, which uses the transport port because it uses the Crate
 transport protocol.
 
 
 Node Discovery
 ==============
 
-Crate's discovery mechanism uses multicast by default. If you run your cluster on your
-own network (with multicast enabled) this is the preferred way to go! Without any
-further configuration the nodes will discover each other automatically and join
-the cluster.
+Crate's discovery mechanism uses multicast by default. If you run your cluster on your own network (with multicast enabled) this is the preferred way to go! Without any further configuration the nodes will discover each other automatically and join the cluster.
 
 Unicast Discovery
 -----------------
 
 However, some environments do *not* support multicast, e.g. `Amazon EC2`_,
-`Google Compute Engine`_ or `Docker`_. If you want to deploy your cluster on such
-an enviroment, you need to disable multicast and use unicast instead.
+`Google Compute Engine`_ or `Docker`_. If you want to deploy your cluster on such an enviroment, you need to disable multicast and use unicast instead.
 This is done by setting the ``multicast.enabled`` parameter to ``false``::
 
   discovery.zen.ping.multicast.enabled: false
 
-Then you will need to provide the list of hosts that are used for unicast. You can
-use the FQDN and tranport port (assuming the default port ``4300``)::
+Then you will need to provide the list of hosts that are used for unicast. You can use the FQDN and tranport port (assuming the default port ``4300``)::
 
   discovery.zen.ping.unicast.hosts:
     - node1.example.com:4300
     - node2.example.com:4300
     - node3.example.com:4300
 
-or use internal netork IPs + transport port::
+or use internal network IPs + transport port::
 
   discovery.zen.ping.unicast.hosts:
     - 10.0.1.101:4300
@@ -95,10 +87,9 @@ or use internal netork IPs + transport port::
 
 .. note::
 
-  When adding new nodes to the cluster, you do not need to update the list of unicast
-  hosts for the existing/running nodes. The cluster will find and add the new node,
-  as soon as the new node will ping existing ones.
-
+  When adding new nodes to the cluster, you do not need to update the list of
+  unicast hosts for the existing/running nodes. The cluster will find and add
+  the new node as soon as the new node pings existing ones.
 
 .. _master_node_election:
 
@@ -106,8 +97,8 @@ Master Node Election
 ====================
 
 Although all Crate nodes in a cluster are equal, there is one node
-elected as master for managing cluster meta data.  Like any other
-peer-to-peer system, nodes communicate with each other directly.  The
+elected as master for managing cluster meta data. Like any other
+peer-to-peer system, nodes communicate with each other directly. The
 master node is responsible for making changes to and publishing the
 global cluster state, as well as for delegating redistribution of
 shards when nodes join or leave the cluster. All nodes are eligible to
@@ -117,10 +108,7 @@ There must be only one single master per cluster. To ensure this,
 Crate allows for setting a quorum, which needs to be present in order
 to elect a master and for the cluster to be operational.
 
-This quorum can be configured using the ``minimum_master_nodes``
-setting. We highly recommend to set the quorum to be greater than the
-half of the maximum number of nodes in the cluster. The formula is as
-follows::
+This quorum can be configured using the ``minimum_master_nodes`` setting. We highly recommend to set the quorum to be greater than half of the maximum number of nodes in the cluster. The formula is as follows::
 
   (N / 2) + 1
 
@@ -128,17 +116,17 @@ where ``N`` is the maximum number of nodes in the cluster.
 
 .. note::
 
-  Setting the quorum lower than described above may lead to split
-  brain scenarios. This means that in case of a network paritioning
+  Setting the quorum lower than described above may lead to 'split
+  brain' scenarios. This means that in case of network partitioning
   there could be more than one pool of nodes meeting the quorum and
-  start to elect a master on their own. This can cause data loss and
-  inconsistencies.
+  starting to elect a master on their own. This can cause data loss
+  and inconsistencies.
 
-  Also, if the planned number of nodes changes in a cluster, the
-  quorum needs to be updated too. This is not only because the quorum
-  should never get below the half of the available nodes, but also
-  should allow for operation without having all nodes online, so it
-  should not be too high to.
+  If the planned number of nodes changes in a cluster, the quorum
+  needs to be updated too, to prevent it being too high. This is
+  not only because the quorum should never reach below half of the
+  available nodes, but also to allow for operation without having
+  all nodes online, so it should not be too high to.
 
 
 For example, in a 3-node cluster it would mean that at least 2 nodes
@@ -147,8 +135,7 @@ the following line needs to be added to the configuration file::
 
   discovery.zen.minimum_master_nodes: 2
 
-or on an already running cluster it is also possible to set it using
-the following statement:
+or on an already running cluster it is possible to set it using the following statement:
 
 .. code-block:: psql
 
@@ -156,7 +143,7 @@ the following statement:
 
 .. note::
 
-  Given the formula above it means that in a cluster with a maximum of
+  Thee formula above means that in a cluster with a maximum of
   2 nodes the quorum is also 2. In practice this means that a 2-node
   cluster needs to have both nodes online in order to be operational
   and therefore a highly available and fault-tolerant multi-node setup
@@ -166,14 +153,13 @@ the following statement:
 Publish Host and Port
 =====================
 
-In certain cases the address of the node that runs Crate differs
-from the address where the transport endpoint can be accessed by other nodes.
-This is the case for example when you run Crate inside a Docker container.
+In certain cases the address of the node that runs Crate differs from the address where the transport endpoint can be accessed by other nodes.
+For example, this is the case when you run Crate inside a Docker container.
 
 Therefore Crate can publish the host and port for its discovery. These
 published settings can differ from the address of the actual host::
 
-  network.publish_host: public-address.example.com  # adress accessible from outside
+  network.publish_host: public-address.example.com  # address accessible from outside
   transport.publish_port: 4321                      # port accessible from outside
 
 .. seealso::
