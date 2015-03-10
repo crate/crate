@@ -88,6 +88,11 @@ public class PlannerTest {
             .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
 
+    final Routing clusteredPartedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", ImmutableSet.of(1, 2)))
+            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", ImmutableSet.of(3)))
+            .build());
+
 
     class TestModule extends MetaDataModule {
 
@@ -175,12 +180,24 @@ public class PlannerTest {
                             new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).stringValue(),
                             new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).stringValue())
                     .build();
+            TableIdent clusteredByParitionedIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "clustered_parted");
+            TableInfo clusteredByPartitionedTableInfo = new TestingTableInfo.Builder(
+                    multiplePartitionedTableIdent, RowGranularity.DOC, clusteredPartedRouting)
+                    .add("id", DataTypes.INTEGER, null)
+                    .add("date", DataTypes.TIMESTAMP, null, true)
+                    .add("city", DataTypes.STRING, null)
+                    .clusteredBy("city")
+                    .addPartitions(
+                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
+                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue())
+                    .build();
             when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
             when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
+            when(schemaInfo.getTableInfo(clusteredByParitionedIdent.name())).thenReturn(clusteredByPartitionedTableInfo);
             when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
             schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
@@ -1606,5 +1623,24 @@ public class PlannerTest {
 
         assertThat(item.updateAssignments().length, is(1));
         assertThat(item.updateAssignments()[0], isLiteral(null, DataTypes.STRING));
+    }
+
+    @Test
+    public void testGroupByOnClusteredByColumnPartitionedOnePartition() throws Exception {
+        // only one partition hit
+        Plan optimizedPlan = plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
+        assertThat(optimizedPlan, instanceOf(NonDistributedGroupBy.class));
+        NonDistributedGroupBy optimizedGroupBy = (NonDistributedGroupBy)optimizedPlan;
+
+        assertThat(optimizedGroupBy.collectNode().isPartitioned(), is(true));
+        assertThat(optimizedGroupBy.collectNode().projections().size(), is(1));
+        assertThat(optimizedGroupBy.collectNode().projections().get(0), instanceOf(GroupProjection.class));
+
+        assertThat(optimizedGroupBy.localMergeNode().projections().size(), is(1));
+        assertThat(optimizedGroupBy.localMergeNode().projections().get(0), instanceOf(TopNProjection.class));
+
+        // > 1 partition hit
+        Plan plan = plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
+        assertThat(plan, instanceOf(DistributedGroupBy.class));
     }
 }

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: group by on clustered by column on a partitioned table now produces
+   correct results for groups spanning different partitions
+
  - Fixed an issue that caused errors to be swallowed and caused queries to not
    terminate correctly.
 

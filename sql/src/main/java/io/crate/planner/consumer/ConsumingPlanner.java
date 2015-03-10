@@ -39,16 +39,16 @@ public class ConsumingPlanner {
 
     @Inject
     public ConsumingPlanner(AnalysisMetaData analysisMetaData) {
-        consumers.add(new NonDistributedGroupByConsumer(analysisMetaData));
-        consumers.add(new ReduceOnCollectorGroupByConsumer(analysisMetaData));
-        consumers.add(new DistributedGroupByConsumer(analysisMetaData));
-        consumers.add(new ESCountConsumer(analysisMetaData));
-        consumers.add(new GlobalAggregateConsumer(analysisMetaData));
-        consumers.add(new ESGetConsumer(analysisMetaData));
-        consumers.add(new QueryThenFetchConsumer(analysisMetaData));
+        consumers.add(new NonDistributedGroupByConsumer());
+        consumers.add(new ReduceOnCollectorGroupByConsumer());
+        consumers.add(new DistributedGroupByConsumer());
+        consumers.add(new ESCountConsumer());
+        consumers.add(new GlobalAggregateConsumer());
+        consumers.add(new ESGetConsumer());
+        consumers.add(new QueryThenFetchConsumer());
         consumers.add(new UpdateConsumer(analysisMetaData));
         consumers.add(new InsertFromSubQueryConsumer(analysisMetaData));
-        consumers.add(new QueryAndFetchConsumer(analysisMetaData));
+        consumers.add(new QueryAndFetchConsumer());
     }
 
     @Nullable

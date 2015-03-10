@@ -51,16 +51,12 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class GlobalAggregateConsumer implements Consumer {
 
-    private final Visitor visitor;
+    private static final Visitor VISITOR = new Visitor();
     private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
-
-    public GlobalAggregateConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(analysisMetaData);
-    }
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        AnalyzedRelation analyzedRelation = visitor.process(rootRelation, context);
+        AnalyzedRelation analyzedRelation = VISITOR.process(rootRelation, context);
         if (analyzedRelation != null) {
             context.rootRelation(analyzedRelation);
             return true;
@@ -69,12 +65,6 @@ public class GlobalAggregateConsumer implements Consumer {
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData){
-            this.analysisMetaData = analysisMetaData;
-        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {

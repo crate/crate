@@ -62,7 +62,7 @@ public class UpdateConsumer implements Consumer {
     protected final AggregationProjection localMergeProjection;
 
     public UpdateConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(analysisMetaData);
+        visitor = new Visitor();
         localMergeProjection = new AggregationProjection(
                 Arrays.asList(new Aggregation(
                                 analysisMetaData.functions().getSafe(
@@ -87,12 +87,6 @@ public class UpdateConsumer implements Consumer {
     }
 
     class Visitor extends AnalyzedRelationVisitor<Void, PlannedAnalyzedRelation> {
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData) {
-            this.analysisMetaData = analysisMetaData;
-        }
 
         @Override
         public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, Void context) {

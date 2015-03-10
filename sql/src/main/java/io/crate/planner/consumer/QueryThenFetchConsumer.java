@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -35,15 +34,11 @@ import io.crate.planner.node.dql.QueryThenFetchNode;
 
 public class QueryThenFetchConsumer implements Consumer {
 
-    private final Visitor visitor;
-
-    public QueryThenFetchConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(analysisMetaData);
-    }
+    private static final Visitor VISITOR = new Visitor();
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation plannedAnalyzedRelation = visitor.process(rootRelation, context);
+        PlannedAnalyzedRelation plannedAnalyzedRelation = VISITOR.process(rootRelation, context);
         if (plannedAnalyzedRelation == null) {
             return false;
         }
@@ -52,12 +47,6 @@ public class QueryThenFetchConsumer implements Consumer {
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData) {
-            this.analysisMetaData = analysisMetaData;
-        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {

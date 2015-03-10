@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -36,15 +35,11 @@ import io.crate.planner.node.dql.ESGetNode;
 
 public class ESGetConsumer implements Consumer {
 
-    private final Visitor visitor;
-
-    public ESGetConsumer(AnalysisMetaData analysisMetaData) {
-        this.visitor = new Visitor(analysisMetaData);
-    }
+    private static final Visitor VISITOR = new Visitor();
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation relation = visitor.process(rootRelation, context);
+        PlannedAnalyzedRelation relation = VISITOR.process(rootRelation, context);
         if (relation == null) {
             return false;
         }
@@ -53,12 +48,6 @@ public class ESGetConsumer implements Consumer {
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData) {
-            this.analysisMetaData = analysisMetaData;
-        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {

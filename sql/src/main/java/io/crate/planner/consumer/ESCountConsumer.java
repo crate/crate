@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -41,15 +40,11 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class ESCountConsumer implements Consumer {
 
-    private final Visitor visitor;
-
-    public ESCountConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(analysisMetaData);
-    }
+    private static final Visitor VISITOR = new Visitor();
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        AnalyzedRelation analyzedRelation = visitor.process(rootRelation, context);
+        AnalyzedRelation analyzedRelation = VISITOR.process(rootRelation, context);
         if (analyzedRelation != null) {
             context.rootRelation(analyzedRelation);
             return true;
@@ -58,12 +53,6 @@ public class ESCountConsumer implements Consumer {
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData) {
-            this.analysisMetaData = analysisMetaData;
-        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {

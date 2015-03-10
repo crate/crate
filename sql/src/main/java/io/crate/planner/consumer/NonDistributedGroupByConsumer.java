@@ -45,16 +45,12 @@ import java.util.List;
 
 public class NonDistributedGroupByConsumer implements Consumer {
 
-    private final Visitor visitor;
-
-    public NonDistributedGroupByConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(analysisMetaData);
-    }
+    private static final Visitor VISITOR = new Visitor();
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
         Context ctx = new Context(context);
-        context.rootRelation(visitor.process(context.rootRelation(), ctx));
+        context.rootRelation(VISITOR.process(context.rootRelation(), ctx));
         return ctx.result;
     }
 
@@ -68,13 +64,6 @@ public class NonDistributedGroupByConsumer implements Consumer {
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData) {
-            this.analysisMetaData = analysisMetaData;
-        }
-
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {

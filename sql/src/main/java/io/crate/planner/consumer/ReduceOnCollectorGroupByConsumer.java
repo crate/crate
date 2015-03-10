@@ -52,16 +52,12 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
-    private final Visitor visitor;
-
-    public ReduceOnCollectorGroupByConsumer(AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(analysisMetaData);
-    }
+    private static final Visitor VISITOR = new Visitor();
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
         Context ctx = new Context(context);
-        context.rootRelation(visitor.process(context.rootRelation(), ctx));
+        context.rootRelation(VISITOR.process(context.rootRelation(), ctx));
         return ctx.result;
     }
 
@@ -76,20 +72,25 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
     private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
 
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData) {
-            this.analysisMetaData = analysisMetaData;
-        }
-
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
             if (table.querySpec().groupBy() == null) {
                 return table;
             }
+
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(table.tableRelation(), table.querySpec().groupBy())) {
                 return table;
             }
+
+            // no row authority on shards for partitioned tables when grouping by routing column
+            // could span multiple partitions (clustered by is not part of primary key)
+            // but when only one partition is hit, or we have primary keys we can use optimized grouping
+            if (!clusteredByIsPartOfPrimaryKey(table.tableRelation().tableInfo())
+                    && table.tableRelation().tableInfo().isPartitioned()
+                    && (table.querySpec().where().partitions().size() != 1)) {
+                return table;
+            }
+
 
             if (table.querySpec().where().hasVersions()) {
                 context.consumerContext.validationException(new VersionInvalidException());
@@ -97,6 +98,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             }
             context.result = true;
             return optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), context.consumerContext);
+        }
+
+        private boolean clusteredByIsPartOfPrimaryKey(TableInfo tableInfo) {
+            return tableInfo.primaryKey().contains(tableInfo.clusteredBy());
         }
 
         @Override
