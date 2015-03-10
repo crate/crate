@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
@@ -1015,8 +1016,37 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertThat((Double) response.rows()[0][1], is(55.25d));
 
         assertThat((Double) response.rows()[0][2], closeTo(47.84415001097868d, 0.0000001));
-        assertThat((Short)response.rows()[0][3], is((short)112));
-        assertThat((Double)response.rows()[0][4], is(1090.6875d));
-        assertThat((Double)response.rows()[0][5], is(33.025558284456d));
+        assertThat((Short) response.rows()[0][3], is((short) 112));
+        assertThat((Double) response.rows()[0][4], is(1090.6875d));
+        assertThat((Double) response.rows()[0][5], is(33.025558284456d));
+    }
+
+    @Test
+    public void testGroupByOnClusteredByColumnPartitioned() throws Exception {
+        execute("CREATE TABLE tickets ( " +
+                "  ticket_id long, " +
+                "  tenant_id integer, " +
+                "  created_month string )" +
+                "PARTITIONED BY (created_month) " +
+                "CLUSTERED BY (tenant_id) " +
+                "WITH (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into tickets (ticket_id, tenant_id, created_month) values (?, ?, ?)",
+                new Object[][]{
+                        {1L, 42, 1425168000000L},
+                        {2L, 43, 0},
+                        {3L, 44, 1425168000000L},
+                        {4L, 45, 499651200000L},
+                        {5L, 42, 0L},
+                });
+        ensureYellow();
+        refresh();
+
+        execute("select count(*), tenant_id from tickets group by 2 order by tenant_id limit 100");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "2| 42\n" + // assert that different partitions have been merged
+                "1| 43\n" +
+                "1| 44\n" +
+                "1| 45\n"));
     }
 }

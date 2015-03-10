@@ -77,7 +77,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
         private final AnalysisMetaData analysisMetaData;
 
-        public Visitor(AnalysisMetaData analysisMetaData) {
+        private Visitor(AnalysisMetaData analysisMetaData) {
             this.analysisMetaData = analysisMetaData;
         }
 
@@ -89,6 +89,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             if (table.querySpec().groupBy() == null) {
                 return table;
             }
+
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(table.tableRelation(), table.querySpec().groupBy())) {
                 return table;
             }
@@ -99,18 +100,28 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
             }
+            // no row authority on shards for partitioned tables when grouping by routing column
+            // could span multiple partitions (clustered by is not part of primary key)
+            // but when only one partition is hit, or we have primary keys we can use optimized grouping
+            if (!clusteredByIsPartOfPrimaryKey(table.tableRelation().tableInfo())
+                    && table.tableRelation().tableInfo().isPartitioned()
+                    && (whereClauseContext.whereClause().partitions().size() != 1)) {
+                return table;
+            }
+
             context.result = true;
             return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, table.tableRelation(),
                     whereClauseContext, null);
         }
 
+        private boolean clusteredByIsPartOfPrimaryKey(TableInfo tableInfo) {
+            return tableInfo.primaryKey().contains(tableInfo.clusteredBy());
+        }
 
         @Override
         protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
             return relation;
         }
-
-
     }
 
     /**

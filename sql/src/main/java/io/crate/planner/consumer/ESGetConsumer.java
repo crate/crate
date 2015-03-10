@@ -40,7 +40,7 @@ public class ESGetConsumer implements Consumer {
     private final Visitor visitor;
 
     public ESGetConsumer(AnalysisMetaData analysisMetaData) {
-        this.visitor = new Visitor(analysisMetaData);
+        visitor = new Visitor(analysisMetaData);
     }
 
     @Override
@@ -57,7 +57,7 @@ public class ESGetConsumer implements Consumer {
 
         private final AnalysisMetaData analysisMetaData;
 
-        public Visitor(AnalysisMetaData analysisMetaData) {
+        private Visitor(AnalysisMetaData analysisMetaData) {
             this.analysisMetaData = analysisMetaData;
         }
 

@@ -62,10 +62,9 @@ public class QueryAndFetchConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public QueryAndFetchConsumer(AnalysisMetaData analysisMetaData){
+    public QueryAndFetchConsumer(AnalysisMetaData analysisMetaData) {
         visitor = new Visitor(analysisMetaData);
     }
-
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
@@ -90,8 +89,6 @@ public class QueryAndFetchConsumer implements Consumer {
         public Visitor(AnalysisMetaData analysisMetaData){
             this.analysisMetaData = analysisMetaData;
         }
-
-
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {

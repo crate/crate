@@ -94,7 +94,7 @@ public class UpdateConsumer implements Consumer {
 
         private final AnalysisMetaData analysisMetaData;
 
-        public Visitor(AnalysisMetaData analysisMetaData) {
+        Visitor(AnalysisMetaData analysisMetaData) {
             this.analysisMetaData = analysisMetaData;
         }
 
