@@ -383,4 +383,20 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
             execute(String.format(Locale.ENGLISH, "select %s, d from t where %s < 2", doubleCall, doubleCall));
         }
     }
+
+    @Test
+    public void testSelectOrderByScalarOnNullValue() throws Exception {
+        execute("create table t (d long) clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (d) values (?)", new Object[][] {
+                new Object[] { -7L },
+                new Object[] { null },
+                new Object[] { 5L },
+                new Object[] { null }
+
+        } );
+        execute("refresh table t");
+        execute("select (d - 10) from t order by (d - 10) nulls first limit 2");
+        assertThat(response.rows()[0][0], is(nullValue()));
+    }
 }

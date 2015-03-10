@@ -497,7 +497,7 @@ public class CrateSearchService extends InternalSearchService {
                 LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
                 collectorExpression.setNextDocId(doc);
             }
-            return valueType.compareValueTo(bottom, input.value());
+            return valueType.compareValueTo(bottom, MoreObjects.firstNonNull(input.value(), missingValue));
         }
 
         @SuppressWarnings("unchecked")
@@ -507,7 +507,7 @@ public class CrateSearchService extends InternalSearchService {
                 LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
                 collectorExpression.setNextDocId(doc);
             }
-            return valueType.compareValueTo(top, input.value());
+            return valueType.compareValueTo(top, MoreObjects.firstNonNull(input.value(), missingValue));
         }
 
         @Override
