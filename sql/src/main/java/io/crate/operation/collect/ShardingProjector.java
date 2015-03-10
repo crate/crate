@@ -24,9 +24,7 @@ package io.crate.operation.collect;
 import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.Input;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.*;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
@@ -42,7 +40,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardingProjector implements Projector, ProjectorUpstream {
+public class ShardingProjector implements Projector, RowDownstreamHandle {
 
     private final Visitor visitor;
     private final List<Symbol> primaryKeySymbols;
@@ -86,7 +84,7 @@ public class ShardingProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public synchronized boolean setNextRow(Row row) {
         assert visitorContext != null : "startProjection() must be called first";
         for (CollectExpression collectExpression : visitorContext.collectExpressions()) {
             collectExpression.setNextRow(row);
@@ -96,20 +94,20 @@ public class ShardingProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         throw new UnsupportedOperationException("ShardingProjector does not support upstreams");
     }
 
     @Override
-    public void upstreamFinished() {
+    public void finish() {
     }
 
     @Override
-    public void upstreamFailed(Throwable throwable) {
+    public void fail(Throwable throwable) {
     }
 
     @Override
-    public void downstream(Projector downstream) {
+    public void downstream(RowDownstream downstream) {
         throw new UnsupportedOperationException("ShardingProjector does not support downstreams");
     }
 

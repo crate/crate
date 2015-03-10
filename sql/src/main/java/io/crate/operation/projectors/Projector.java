@@ -21,30 +21,26 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.core.collections.Row;
-import io.crate.operation.ProjectorDownstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowUpstream;
+import io.crate.planner.projection.Projection;
 
 
 /**
- * Executes a Projection.
- * Can always act as downstream to other projectors
+ * Operation interface for {@link Projection} instances.
  */
-public interface Projector extends ProjectorDownstream {
+public interface Projector extends RowDownstream, RowUpstream {
 
     /**
-     * initialize anything needed for proper projecting the projection
+     * initialization hook which gets called before execution
      */
     public void startProjection();
 
     /**
-     * feed this Projector with the next input row.
-     * If this projection does not need any more rows, it returns <code>false</code>,
-     * <code>true</code> otherwise.
+     * sets the downstream of this projector
      *
-     * This method must be thread safe.
-     *
-     * @return false if this projection does not need any more rows, true otherwise.
+     * @param downstream the downstream to be used
      */
+    public void downstream(RowDownstream downstream);
 
-    public boolean setNextRow(Row row);
 }

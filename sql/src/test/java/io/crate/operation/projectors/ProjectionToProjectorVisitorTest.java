@@ -29,7 +29,7 @@ import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -120,19 +120,19 @@ public class ProjectionToProjectorVisitorTest {
 
         CollectingProjector collectingProjector = new CollectingProjector();
         Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
-        projector.registerUpstream(null);
-        ((ProjectorUpstream) projector).downstream(collectingProjector);
+        RowDownstreamHandle handle = projector.registerUpstream(null);
+        projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
         projector.startProjection();
         int i;
         for (i = 0; i < 20; i++) {
-            if (!projector.setNextRow(spare(42))) {
+            if (!handle.setNextRow(spare(42))) {
                 break;
             }
         }
         assertThat(i, is(11));
-        projector.upstreamFinished();
+        handle.finish();
         Bucket rows = collectingProjector.result().get();
         assertThat(rows.size(), is(10));
         assertThat(rows.iterator().next(), isRow("foo", 42));
@@ -147,17 +147,17 @@ public class ProjectionToProjectorVisitorTest {
         );
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
-        projector.registerUpstream(null);
+        RowDownstreamHandle handle = projector.registerUpstream(null);
         assertThat(projector, instanceOf(SortingTopNProjector.class));
 
         projector.startProjection();
         int i;
         for (i = 20; i > 0; i--) {
-            if (!projector.setNextRow(spare(i % 4, i))) {
+            if (!handle.setNextRow(spare(i % 4, i))) {
                 break;
             }
         }
-        projector.upstreamFinished();
+        handle.finish();
         Bucket rows = ((ResultProvider) projector).result().get();
         assertThat(printedTable(rows), is(
                 "foo| 0| 4\n" +
@@ -181,21 +181,16 @@ public class ProjectionToProjectorVisitorTest {
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
         Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
-        projector.registerUpstream(new ProjectorUpstream() {
-            @Override
-            public void downstream(Projector downstream) {
-
-            }
-        });
+        RowDownstreamHandle handle = projector.registerUpstream(null);
         CollectingProjector collectingProjector = new CollectingProjector();
-        ((ProjectorUpstream) projector).downstream(collectingProjector);
+        projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(AggregationProjector.class));
 
 
         projector.startProjection();
-        projector.setNextRow(spare("foo", 10));
-        projector.setNextRow(spare("bar", 20));
-        projector.upstreamFinished();
+        handle.setNextRow(spare("foo", 10));
+        handle.setNextRow(spare("bar", 20));
+        handle.finish();
         Bucket rows = collectingProjector.result().get();
         assertThat(rows.size(), is(1));
         assertThat(rows, contains(isRow(15.0, 2L)));
@@ -213,7 +208,7 @@ public class ProjectionToProjectorVisitorTest {
         ));
 
         Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
-        projector.registerUpstream(null);
+        RowDownstreamHandle handle = projector.registerUpstream(null);
 
         // use a topN projection in order to get sorted outputs
         TopNProjection topNProjection = new TopNProjection(10, 0,
@@ -224,7 +219,7 @@ public class ProjectionToProjectorVisitorTest {
                 new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
                 new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
         SortingTopNProjector topNProjector = (SortingTopNProjector) visitor.process(topNProjection, RAM_ACCOUNTING_CONTEXT);
-        ((ProjectorUpstream) projector).downstream(topNProjector);
+        projector.downstream(topNProjector);
         topNProjector.startProjection();
 
         assertThat(projector, instanceOf(GroupingProjector.class));
@@ -234,12 +229,12 @@ public class ProjectionToProjectorVisitorTest {
         BytesRef vogon = new BytesRef("vogon");
         BytesRef male = new BytesRef("male");
         BytesRef female = new BytesRef("female");
-        projector.setNextRow(spare(human, 34, male));
-        projector.setNextRow(spare(human, 22, female));
-        projector.setNextRow(spare(vogon, 40, male));
-        projector.setNextRow(spare(vogon, 48, male));
-        projector.setNextRow(spare(human, 34, male));
-        projector.upstreamFinished();
+        handle.setNextRow(spare(human, 34, male));
+        handle.setNextRow(spare(human, 22, female));
+        handle.setNextRow(spare(vogon, 40, male));
+        handle.setNextRow(spare(vogon, 48, male));
+        handle.setNextRow(spare(human, 34, male));
+        handle.finish();
 
         Bucket rows = topNProjector.result().get();
         assertThat(rows, contains(
@@ -260,15 +255,15 @@ public class ProjectionToProjectorVisitorTest {
 
         CollectingProjector collectingProjector = new CollectingProjector();
         Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
-        projector.registerUpstream(null);
-        ((ProjectorUpstream) projector).downstream(collectingProjector);
+        RowDownstreamHandle handle = projector.registerUpstream(null);
+        projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));
 
         projector.startProjection();
-        projector.setNextRow(spare("human", 2));
-        projector.setNextRow(spare("vogon", 1));
+        handle.setNextRow(spare("human", 2));
+        handle.setNextRow(spare("vogon", 1));
 
-        projector.upstreamFinished();
+        handle.finish();
 
         Bucket rows = collectingProjector.result().get();
         assertThat(rows.size(), is(1));

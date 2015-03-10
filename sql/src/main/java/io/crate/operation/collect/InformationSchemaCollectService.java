@@ -30,9 +30,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.Input;
-import io.crate.operation.InputRow;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.*;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
@@ -150,27 +148,27 @@ public class InformationSchemaCollectService implements CollectService {
 
     }
 
-    static class InformationSchemaCollector<R> implements CrateCollector {
+    static class InformationSchemaCollector<R> implements CrateCollector, RowUpstream {
 
         private final List<Input<?>> inputs;
         private final List<RowCollectExpression<R, ?>> collectorExpressions;
         private final InputRow row;
-        private Projector downstream;
+        private final RowDownstreamHandle downstream;
         private final Iterable<R> rows;
         private final Input<Boolean> condition;
 
         protected InformationSchemaCollector(List<Input<?>> inputs,
                                              List<RowCollectExpression<R, ?>> collectorExpressions,
-                                             Projector downstream,
+                                             RowDownstream downstream,
                                              Iterable<R> rows,
                                              Input<Boolean> condition) {
+            this.downstream = downstream.registerUpstream(this);
             this.inputs = inputs;
             this.row = new InputRow(inputs);
             this.collectorExpressions = collectorExpressions;
             this.rows = rows;
             this.condition = condition;
             assert downstream != null;
-            downstream(downstream);
         }
 
         @Override
@@ -187,24 +185,19 @@ public class InformationSchemaCollectService implements CollectService {
 
                 if (!downstream.setNextRow(this.row)) {
                     // no more rows required, we can stop here
-                    downstream.upstreamFinished();
+                    downstream.finish();
                     throw new CollectionAbortedException();
                 }
             }
-            downstream.upstreamFinished();
+            downstream.finish();
         }
 
-        @Override
-        public void downstream(Projector downstream) {
-            downstream.registerUpstream(this);
-            this.downstream = downstream;
-        }
     }
 
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectNode collectNode, Projector downstream) {
+    public CrateCollector getCollector(CollectNode collectNode, RowDownstream downstream) {
         if (collectNode.whereClause().noMatch()) {
-            return CrateCollector.NOOP;
+            return new NoopCrateCollector(downstream);
         }
         Routing routing =  collectNode.routing();
         assert routing.locations().containsKey(null);

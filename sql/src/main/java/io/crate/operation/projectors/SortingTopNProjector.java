@@ -28,20 +28,22 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.distributed.ResultProviderBase;
 import io.crate.operation.Input;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowUpstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import java.util.Comparator;
 
-public class SortingTopNProjector extends ResultProviderBase implements ProjectorUpstream {
+public class SortingTopNProjector extends ResultProviderBase implements Projector, RowUpstream, RowDownstreamHandle {
 
     private final int offset;
     private final int maxSize;
     private final int numOutputs;
 
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
 
     private RowPriorityQueue pq;
     private final Comparator[] comparators;
@@ -90,7 +92,11 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
     @Override
     public void startProjection() {
         super.startProjection();
-        pq = new RowPriorityQueue(maxSize, comparators);
+        synchronized (this){
+            if (pq==null) {
+                pq = new RowPriorityQueue(maxSize, comparators);
+            }
+        }
     }
 
     @Override
@@ -131,16 +137,15 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
             for (Row row : bucket) {
                 downstream.setNextRow(row);
             }
-            downstream.upstreamFinished();
+            downstream.finish();
         } else {
             result.set(bucket);
         }
     }
 
     @Override
-    public void downstream(Projector downstream) {
-        this.downstream = downstream;
-        downstream.registerUpstream(this);
+    public void downstream(RowDownstream downstream) {
+        this.downstream = downstream.registerUpstream(this);
     }
 
 

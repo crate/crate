@@ -28,7 +28,9 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
@@ -49,7 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class WriterProjector implements Projector, ProjectorUpstream {
+public class WriterProjector implements Projector, RowDownstreamHandle {
 
     private static final byte NEW_LINE = (byte) '\n';
 
@@ -63,7 +65,7 @@ public class WriterProjector implements Projector, ProjectorUpstream {
     protected final AtomicLong counter = new AtomicLong();
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
     private RowWriter rowWriter;
 
     /**
@@ -165,9 +167,9 @@ public class WriterProjector implements Projector, ProjectorUpstream {
         if (downstream != null) {
             if (failure.get() == null) {
                 downstream.setNextRow(new Row1(counter.get()));
-                downstream.upstreamFinished();
+                downstream.finish();
             } else {
-                downstream.upstreamFailed(failure.get());
+                downstream.fail(failure.get());
             }
         }
     }
@@ -183,27 +185,27 @@ public class WriterProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
+        return this;
     }
 
     @Override
-    public void upstreamFinished() {
+    public void finish() {
         if (remainingUpstreams.decrementAndGet() == 0) {
             endProjection();
         }
     }
 
     @Override
-    public void upstreamFailed(Throwable throwable) {
+    public void fail(Throwable throwable) {
         failure.set(throwable);
-        upstreamFinished();
+        finish();
     }
 
     @Override
-    public void downstream(Projector downstream) {
-        this.downstream = downstream;
-        downstream.registerUpstream(this);
+    public void downstream(RowDownstream downstream) {
+        this.downstream = downstream.registerUpstream(this);
     }
 
 

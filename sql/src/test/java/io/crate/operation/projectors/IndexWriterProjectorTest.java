@@ -116,7 +116,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
         t1.join();
         t2.join();
-        indexWriter.upstreamFinished();
+        indexWriter.finish();
         Bucket objects = collectingProjector.result().get();
 
         assertThat(objects, contains(isRow(200L)));

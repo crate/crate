@@ -23,18 +23,20 @@ package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class FilterProjector implements Projector, ProjectorUpstream {
+public class FilterProjector implements Projector, RowDownstreamHandle {
 
     private final CollectExpression[] collectExpressions;
     private final Input<Boolean> condition;
 
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
@@ -47,7 +49,7 @@ public class FilterProjector implements Projector, ProjectorUpstream {
     @Override
     public void startProjection() {
         if (remainingUpstreams.get() <= 0) {
-            upstreamFinished();
+            finish();
         }
     }
 
@@ -69,39 +71,39 @@ public class FilterProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
+        return this;
     }
 
     @Override
-    public void upstreamFinished() {
+    public void finish() {
         if (remainingUpstreams.decrementAndGet() > 0) {
             return;
         }
         if (downstream != null) {
             Throwable throwable = upstreamFailure.get();
             if (throwable == null) {
-                downstream.upstreamFinished();
+                downstream.finish();
             } else {
-                downstream.upstreamFailed(throwable);
+                downstream.fail(throwable);
             }
         }
     }
 
     @Override
-    public void upstreamFailed(Throwable throwable) {
+    public void fail(Throwable throwable) {
         upstreamFailure.set(throwable);
         if (remainingUpstreams.decrementAndGet() > 0) {
             return;
         }
         if (downstream != null) {
-            downstream.upstreamFailed(throwable);
+            downstream.fail(throwable);
         }
     }
 
     @Override
-    public void downstream(Projector downstream) {
-        this.downstream = downstream;
-        downstream.registerUpstream(this);
+    public void downstream(RowDownstream downstream) {
+        this.downstream = downstream.registerUpstream(this);
     }
 }

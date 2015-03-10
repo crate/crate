@@ -22,21 +22,8 @@
 package io.crate.operation.collect;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.ProjectorUpstream;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.RowUpstream;
 
-public interface CrateCollector extends ProjectorUpstream {
-
-    public static final CrateCollector NOOP = new CrateCollector() {
-        @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) {
-        }
-
-        @Override
-        public void downstream(Projector downstream) {
-            downstream.registerUpstream(this);
-        }
-    };
-
+public interface CrateCollector extends RowUpstream {
     public void doCollect(RamAccountingContext ramAccountingContext) throws Exception;
 }

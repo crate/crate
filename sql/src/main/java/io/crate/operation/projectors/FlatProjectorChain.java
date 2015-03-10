@@ -25,7 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowUpstream;
 import io.crate.planner.projection.Projection;
 
 import java.util.ArrayList;
@@ -67,11 +67,12 @@ public class FlatProjectorChain {
             } else {
                 this.resultProvider = new CollectingProjector();
             }
-            firstProjector = this.resultProvider;
+            assert (this.resultProvider() instanceof Projector);
+            firstProjector = (Projector) this.resultProvider;
             projectors = ImmutableList.of(firstProjector);
         } else {
             projectors = new ArrayList<>();
-            ProjectorUpstream previousProjector = null;
+            Projector previousProjector = null;
             for (Projection projection : projections) {
                 Projector projector = projectorVisitor.process(projection, ramAccountingContext);
                 projectors.add(projector);
@@ -80,9 +81,9 @@ public class FlatProjectorChain {
                 } else {
                     firstProjector = projector;
                 }
-                assert projector instanceof ProjectorUpstream :
+                assert projector instanceof RowUpstream :
                         "Cannot use a projector that is no ProjectorUpstream as upstream";
-                previousProjector = (ProjectorUpstream) projector;
+                previousProjector = projector;
             }
             assert previousProjector != null;
             final boolean addedResultProvider;
@@ -100,7 +101,7 @@ public class FlatProjectorChain {
             }
             if (addedResultProvider) {
                 previousProjector.downstream(this.resultProvider);
-                projectors.add(this.resultProvider);
+                projectors.add((Projector) this.resultProvider);
             }
         }
     }

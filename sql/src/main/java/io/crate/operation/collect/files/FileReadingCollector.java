@@ -29,9 +29,10 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CollectionAbortedException;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.projectors.Projector;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -58,7 +59,7 @@ public class FileReadingCollector implements CrateCollector {
     private final int readerNumber;
     private final InputRow row;
     private URI preGlobUri;
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
     private final boolean compressed;
     private final List<LineCollectorExpression<?>> collectorExpressions;
 
@@ -77,7 +78,7 @@ public class FileReadingCollector implements CrateCollector {
     public FileReadingCollector(String fileUri,
                                 List<Input<?>> inputs,
                                 List<LineCollectorExpression<?>> collectorExpressions,
-                                Projector downstream,
+                                RowDownstream downstream,
                                 FileFormat format,
                                 String compression,
                                 Map<String, FileInputFactory> additionalFileInputFactories,
@@ -96,7 +97,7 @@ public class FileReadingCollector implements CrateCollector {
                 throw new IllegalArgumentException("Invalid fileURI");
             }
         }
-        downstream(downstream);
+        this.downstream = downstream.registerUpstream(this);
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
@@ -148,7 +149,7 @@ public class FileReadingCollector implements CrateCollector {
         FileInput fileInput = getFileInput();
         if (fileInput == null) {
             if (downstream != null) {
-                downstream.upstreamFinished();
+                downstream.finish();
             }
             return;
         }
@@ -185,7 +186,7 @@ public class FileReadingCollector implements CrateCollector {
                 }
             }
         } finally {
-            downstream.upstreamFinished();
+            downstream.finish();
         }
     }
 
@@ -236,9 +237,4 @@ public class FileReadingCollector implements CrateCollector {
         return moduloPredicate;
     }
 
-    @Override
-    public void downstream(Projector downstream) {
-        this.downstream = downstream;
-        downstream.registerUpstream(this);
-    }
 }

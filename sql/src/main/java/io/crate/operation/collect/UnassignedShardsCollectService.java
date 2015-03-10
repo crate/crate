@@ -31,7 +31,8 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
@@ -58,8 +59,8 @@ public class UnassignedShardsCollectService implements CollectService {
                                           ClusterService clusterService,
                                           UnassignedShardsReferenceResolver unassignedShardsReferenceResolver) {
         this.inputSymbolVisitor = new CollectInputSymbolVisitor(
-            functions,
-            unassignedShardsReferenceResolver
+                functions,
+                unassignedShardsReferenceResolver
         );
         this.clusterService = clusterService;
     }
@@ -70,6 +71,7 @@ public class UnassignedShardsCollectService implements CollectService {
 
         /**
          * Determine if <code>shardId</code> is a primary or secondary shard.
+         *
          * @param shardId
          * @return
          */
@@ -106,8 +108,8 @@ public class UnassignedShardsCollectService implements CollectService {
                 assert input != null;
                 if (!input.active()) {
                     return new UnassignedShard(
-                        input.shardId(), clusterService,
-                        context.isPrimary(input.shardId()),input.state());
+                            input.shardId(), clusterService,
+                            context.isPrimary(input.shardId()), input.state());
                 }
                 return null;
             }
@@ -116,9 +118,9 @@ public class UnassignedShardsCollectService implements CollectService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectNode node, Projector projector) {
+    public CrateCollector getCollector(CollectNode node, RowDownstream downstream) {
         if (node.whereClause().noMatch()) {
-            return CrateCollector.NOOP;
+            return new NoopCrateCollector(downstream);
         }
         CollectInputSymbolVisitor.Context context = inputSymbolVisitor.process(node);
 
@@ -132,27 +134,27 @@ public class UnassignedShardsCollectService implements CollectService {
         }
 
         return new UnassignedShardsCollector(
-            context.topLevelInputs(), context.docLevelExpressions(), projector, iterable, condition);
+                context.topLevelInputs(), context.docLevelExpressions(), downstream, iterable, condition);
     }
 
     private static class UnassignedShardsCollector<R> implements CrateCollector {
 
         private final List<UnassignedShardCollectorExpression<?>> collectorExpressions;
         private final InputRow row;
-        private Projector downstream;
+        private final RowDownstreamHandle downstream;
         private final Iterable<UnassignedShard> rows;
         private final Input<Boolean> condition;
 
         public UnassignedShardsCollector(List<Input<?>> inputs,
                                          List<UnassignedShardCollectorExpression<?>> collectorExpressions,
-                                         Projector downstream,
+                                         RowDownstream downstream,
                                          Iterable<UnassignedShard> rows,
                                          Input<Boolean> condition) {
             this.row = new InputRow(inputs);
             this.collectorExpressions = collectorExpressions;
             this.rows = rows;
             this.condition = condition;
-            downstream(downstream);
+            this.downstream = downstream.registerUpstream(this);
         }
 
         @Override
@@ -172,14 +174,7 @@ public class UnassignedShardsCollectService implements CollectService {
                     throw new CollectionAbortedException();
                 }
             }
-
-            downstream.upstreamFinished();
-        }
-
-        @Override
-        public void downstream(Projector downstream) {
-            this.downstream = downstream;
-            downstream.registerUpstream(this);
+            downstream.finish();
         }
     }
 }

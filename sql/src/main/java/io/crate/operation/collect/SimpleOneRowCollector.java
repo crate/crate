@@ -25,7 +25,8 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 
 import java.io.IOException;
 import java.util.List;
@@ -38,14 +39,14 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
 
     private final Set<CollectExpression<?>> collectExpressions;
     private final InputRow row;
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
 
     public SimpleOneRowCollector(List<Input<?>> inputs,
                                  Set<CollectExpression<?>> collectExpressions,
-                                 Projector downstream) {
+                                 RowDownstream downstream) {
         this.row = new InputRow(inputs);
         this.collectExpressions = collectExpressions;
-        downstream(downstream);
+        this.downstream = downstream.registerUpstream(this);
     }
 
     @Override
@@ -64,18 +65,12 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
 
     @Override
     public Row finishCollect() {
-        downstream.upstreamFinished();
+        downstream.finish();
         return row;
     }
 
     @Override
     public void doCollect(RamAccountingContext ramAccountingContext) throws IOException {
         collect(ramAccountingContext);
-    }
-
-    @Override
-    public void downstream(Projector downstream) {
-        downstream.registerUpstream(this);
-        this.downstream = downstream;
     }
 }

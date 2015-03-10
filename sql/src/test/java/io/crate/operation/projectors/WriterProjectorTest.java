@@ -69,7 +69,7 @@ public class WriterProjectorTest {
                 ImmutableSet.<CollectExpression<?>>of(),
                 new HashMap<ColumnIdent, Object>()
         );
-        Projector downstream = new CollectingProjector();
+        ResultProvider downstream = new CollectingProjector();
         projector.downstream(downstream);
 
         projector.startProjection();
@@ -78,7 +78,7 @@ public class WriterProjectorTest {
         for (int i = 0; i < 5; i++) {
             projector.setNextRow(new Row1(new BytesRef(String.format("input line %02d", i))));
         }
-        projector.upstreamFinished();
+        projector.finish();
 
         Bucket rows = ((ResultProvider) downstream).result().get();
         assertThat(rows, contains(isRow(5L)));
@@ -120,7 +120,7 @@ public class WriterProjectorTest {
         projector.downstream(downstream);
         projector.startProjection();
         projector.registerUpstream(null);
-        projector.upstreamFinished();
+        projector.finish();
         downstream.result().get();
     }
 
@@ -142,7 +142,7 @@ public class WriterProjectorTest {
         projector.downstream(downstream);
         projector.startProjection();
         projector.registerUpstream(null);
-        projector.upstreamFinished();
+        projector.finish();
         downstream.result().get();
     }
 }

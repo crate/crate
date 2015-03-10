@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,18 +21,33 @@
 
 package io.crate.operation;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 
+/**
+ * A downstream handling rows
+ */
+public interface RowDownstreamHandle {
 
-public interface DownstreamOperation extends RowUpstream {
 
     /**
-     * add more rows to merge
-     * implementation needs to make sure that this operation is thread-safe
+     * Feed the downstream with the next input row.
+     * If the downstream does not need any more rows, it returns <code>false</code>,
+     * <code>true</code> otherwise.
+     *
+     * This method must be thread safe.
+     *
+     * @return false if the downstream does not need any more rows, true otherwise.
      */
-    public boolean addRows(Bucket rows) throws Exception;
-    public int numUpstreams();
-    public void finished();
-    public ListenableFuture<Bucket> result();
+    public boolean setNextRow(Row row);
+
+    /**
+     * Called from the upstream to indicate that all rows are sent.
+     */
+    public void finish();
+
+    /**
+     * Is called from the upstream in case of a failure.
+     */
+    public void fail(Throwable throwable);
+
 }

@@ -73,7 +73,7 @@ public class SortingTopNProjectorTest {
             }
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.upstreamFinished();
+        projector.finish();
         Bucket rows = projector.result().get();
         assertThat(rows.size(), is(10));
         int iterateLength = 0;
@@ -111,7 +111,7 @@ public class SortingTopNProjectorTest {
             projector.setNextRow(spare(2));
             projector.setNextRow(spare(3));
             projector.setNextRow(spare(4));
-            projector.upstreamFinished();
+            projector.finish();
         }
 
         Matcher<Iterable<? extends Row>> expected = contains(
@@ -150,7 +150,7 @@ public class SortingTopNProjectorTest {
             }
         }
 
-        projector.upstreamFinished();
+        projector.finish();
         assertThat(projector.result().get().size(), is(0));
     }
 
@@ -174,7 +174,7 @@ public class SortingTopNProjectorTest {
             }
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.upstreamFinished();
+        projector.finish();
         Bucket rows = projector.result().get();
         assertThat(rows.size(), is(5));
         int iterateLength = 0;
@@ -203,7 +203,7 @@ public class SortingTopNProjectorTest {
             projector.setNextRow(spare(i));
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.upstreamFinished();
+        projector.finish();
         Bucket rows = projector.result().get();
         assertThat(rows.size(), is(3));
 
@@ -230,7 +230,7 @@ public class SortingTopNProjectorTest {
         projector.startProjection();
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(null));
-        projector.upstreamFinished();
+        projector.finish();
 
         Bucket rows = projector.result().get();
         assertThat(rows, contains(isRow(null), isRow(1)));
@@ -251,7 +251,7 @@ public class SortingTopNProjectorTest {
         projector.startProjection();
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(null));
-        projector.upstreamFinished();
+        projector.finish();
 
         Bucket rows = projector.result().get();
         assertThat(rows, contains(isRow(1), isRow(null)));
@@ -272,7 +272,7 @@ public class SortingTopNProjectorTest {
         projector.startProjection();
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(null));
-        projector.upstreamFinished();
+        projector.finish();
 
         Bucket rows = projector.result().get();
         assertThat(rows, contains(isRow(1), isRow(null)));
@@ -293,7 +293,7 @@ public class SortingTopNProjectorTest {
         projector.startProjection();
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(null));
-        projector.upstreamFinished();
+        projector.finish();
 
         Bucket rows = projector.result().get();
         assertThat(rows, contains(isRow(null), isRow(1)));
@@ -317,7 +317,7 @@ public class SortingTopNProjectorTest {
             projector.setNextRow(spare(i));
         }
         assertThat(i, is(10)); // needs to collect all it can get
-        projector.upstreamFinished();
+        projector.finish();
         Bucket rows = projector.result().get();
         assertThat(rows, contains(
                 isRow(4, true),
@@ -382,7 +382,7 @@ public class SortingTopNProjectorTest {
         for (i = 0; i < 7; i++) {
             projector.setNextRow(spare(i, i % 4));
         }
-        projector.upstreamFinished();
+        projector.finish();
         Bucket rows = projector.result().get();
         assertThat(rows, contains(
                 isRow(0, 0),
