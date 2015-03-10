@@ -59,4 +59,17 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select format('%d', s) from t");
     }
+
+    @Test
+    public void testTestWithTimestampThatIsInIntegerRange() throws Exception {
+        execute("create table t (ts timestamp) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (ts) values (0)");
+        execute("insert into t (ts) values (1425980155)");
+        execute("refresh table t");
+
+        execute("select extract(day from ts) from t order by 1");
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[1][0], is(17));
+    }
 }

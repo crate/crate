@@ -524,7 +524,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         int numRows = randomIntBetween(1, 4096);
         Object[][] bulkArgs = new Object[numRows][];
         for (int l = 0; l < numRows; l++) {
-            bulkArgs[l] = new Object[]{l};
+            bulkArgs[l] = new Object[]{ (long)l};
         }
         sqlExecutor.exec("insert into ids values (?)", bulkArgs);
         sqlExecutor.refresh("ids");

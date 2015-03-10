@@ -215,7 +215,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
             } else if (context.partitionBy.contains(field.info())) {
                 return new ESFieldExtractor.PartitionedByColumnExtractor(field, context.partitionBy);
             } else {
-                return new ESFieldExtractor.Source(columnIdent);
+                return new ESFieldExtractor.Source(columnIdent, field.valueType());
             }
         }
     }

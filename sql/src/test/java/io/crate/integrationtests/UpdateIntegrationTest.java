@@ -94,10 +94,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("select id, other_id, name from test order by id");
         assertEquals(2, response.rowCount());
         assertEquals(110, response.rows()[0][0]);
-        assertEquals(10, response.rows()[0][1]);
+        assertEquals(10L, response.rows()[0][1]);
         assertEquals("Ford", response.rows()[0][2]);
         assertEquals(240, response.rows()[1][0]);
-        assertEquals(20, response.rows()[1][1]);
+        assertEquals(20L, response.rows()[1][1]);
         assertEquals("Arthur", response.rows()[1][2]);
     }
 
@@ -117,8 +117,8 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select other_id from test order by id");
         assertEquals(2, response.rowCount());
-        assertEquals(10, response.rows()[0][0]);
-        assertEquals(24, response.rows()[1][0]);
+        assertEquals(10L, response.rows()[0][0]);
+        assertEquals(24L, response.rows()[1][0]);
     }
 
     @Test
@@ -187,7 +187,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select coolness from test where coolness=3.3");
         assertEquals(1, response.rowCount());
-        assertEquals(3.3, response.rows()[0][0]);
+        assertEquals(3.3f, response.rows()[0][0]);
 
     }
 
@@ -213,7 +213,30 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("select coolness['x'], coolness['y'] from test");
         assertEquals(1, response.rowCount());
         assertEquals("3", response.rows()[0][0]);
-        assertEquals(2, response.rows()[0][1]);
+        assertEquals(2L, response.rows()[0][1]);
+    }
+
+    @Test
+    public void testUpdateWithFunctionWhereArgumentIsInIntegerRangeInsteadOfLong() throws Exception {
+        execute("create table t (ts timestamp, day int) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("insert into t (ts, day) values (0, 1)");
+        execute("refresh table t");
+
+        execute("update t set day = extract(day from ts)");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInsertIntoWithOnDuplicateKeyWithFunctionWhereArgumentIsInIntegerRangeInsteadOfLong() throws Exception {
+        execute("create table t (id int primary key, ts timestamp, day int) with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (id, ts, day) values (1, 0, 0)");
+        execute("refresh table t");
+        execute("insert into t (id, ts, day) (select id, ts, day from t) " +
+                "on duplicate key update day = extract(day from ts)");
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test

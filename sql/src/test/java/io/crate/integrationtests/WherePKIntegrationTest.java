@@ -28,7 +28,6 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
@@ -124,7 +123,8 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("123"));
         //noinspection unchecked
-        assertThat((List<String>) response.rows()[0][1], Matchers.contains("small", "blue"));
+        String[] tags = Arrays.copyOf((Object[])response.rows()[0][1], 2, String[].class);
+        assertThat(tags, Matchers.arrayContaining("small", "blue"));
     }
 
     @Test

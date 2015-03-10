@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause the response to contain the wrong types
+   (e.g. integer instead of long)
+
  - Fix: Sorting on a scalar with a column containing NULL values as
    argument no longer throws an NPE
 

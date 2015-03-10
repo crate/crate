@@ -21,10 +21,11 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Reference;
+import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.search.SearchHit;
 
@@ -43,9 +44,11 @@ public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
     public static class Source extends ESFieldExtractor {
 
         private final ColumnIdent ident;
+        private final DataType type;
 
-        public Source(ColumnIdent ident) {
+        public Source(ColumnIdent ident, DataType type) {
             this.ident = ident;
+            this.type = type;
         }
 
         @Override
@@ -92,13 +95,13 @@ public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
             }
             Object top = source.get(ident.name());
             if (ident.isColumn()) {
-                return top;
+                return type.value(top);
             }
             if (top==null){
                 return null;
             }
             Object result = down(top, 0);
-            return result == NOT_FOUND ? null : result;
+            return result == NOT_FOUND ? null : type.value(result);
         }
     }
 

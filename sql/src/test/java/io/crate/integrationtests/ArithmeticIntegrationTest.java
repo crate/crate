@@ -179,11 +179,11 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select x, base, log(x, base) from t where log(x, base) = 2.0 order by x");
         assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(9));
-        assertThat((Integer) response.rows()[0][1], is(3));
+        assertThat((Long) response.rows()[0][0], is(9L));
+        assertThat((Long) response.rows()[0][1], is(3L));
         assertThat((Double) response.rows()[0][2], is(2.0));
-        assertThat((Integer) response.rows()[1][0], is(144));
-        assertThat((Integer) response.rows()[1][1], is(12));
+        assertThat((Long) response.rows()[1][0], is(144L));
+        assertThat((Long) response.rows()[1][1], is(12L));
         assertThat((Double) response.rows()[1][2], is(2.0));
     }
 

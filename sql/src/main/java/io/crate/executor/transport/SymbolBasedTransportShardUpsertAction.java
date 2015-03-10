@@ -347,8 +347,8 @@ public class SymbolBasedTransportShardUpsertAction extends TransportShardReplica
             return new FieldExtractor<GetResult>() {
                 @Override
                 public Object extract(GetResult getResult) {
-                    return XContentMapValues.extractValue(
-                            reference.info().ident().columnIdent().fqn(), getResult.sourceAsMap());
+                    return reference.valueType().value(XContentMapValues.extractValue(
+                            reference.info().ident().columnIdent().fqn(), getResult.sourceAsMap()));
                 }
             };
         }
