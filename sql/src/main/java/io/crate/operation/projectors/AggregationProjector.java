@@ -27,20 +27,22 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.distributed.ResultProviderBase;
 import io.crate.operation.AggregationContext;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowUpstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Set;
 
-public class AggregationProjector extends ResultProviderBase implements ProjectorUpstream {
+public class AggregationProjector extends ResultProviderBase implements Projector, RowUpstream {
 
     private final Aggregator[] aggregators;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] cells;
     private final Row row;
     private final Object[] states;
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
 
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
                                 AggregationContext[] aggregations,
@@ -72,9 +74,9 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
     }
 
     @Override
-    public void downstream(Projector downstream) {
-        this.downstream = downstream;
-        downstream.registerUpstream(this);
+    public void downstream(RowDownstream downstream) {
+        assert this.downstream == null;
+        this.downstream = downstream.registerUpstream(this);
     }
 
     @Override
@@ -90,18 +92,13 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
-    }
-
-    @Override
     public void finishProjection() {
         for (int i = 0; i < aggregators.length; i++) {
             cells[i] = aggregators[i].finishCollect(states[i]);
         }
         if (downstream != null) {
             downstream.setNextRow(row);
-            downstream.upstreamFinished();
+            downstream.finish();
         }
         result.set(new ArrayBucket(new Object[][]{cells}));
     }

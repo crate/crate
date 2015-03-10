@@ -22,11 +22,10 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.Input;
-import io.crate.operation.InputRow;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.*;
 import io.crate.planner.symbol.Literal;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,15 +39,18 @@ public class SimpleOneRowCollectorTest {
 
     @Test
     public void testCollectOneRow() throws Exception {
-        Projector downStream = mock(Projector.class);
+        RowDownstream downstream = mock(RowDownstream.class);
+        RowDownstreamHandle handle = mock(RowDownstreamHandle.class);
+
+        Mockito.when(downstream.registerUpstream(any(RowUpstream.class))).thenReturn(handle);
+
         SimpleOneRowCollector collector = new SimpleOneRowCollector(
                 inputs,
                 Collections.<CollectExpression<?>>emptySet(),
-                downStream
+                downstream
         );
         collector.doCollect(null);
-        verify(downStream, never()).startProjection();
-        verify(downStream, times(1)).setNextRow(any(InputRow.class));
-        verify(downStream, times(1)).upstreamFinished();
+        verify(handle, times(1)).setNextRow(any(InputRow.class));
+        verify(handle, times(1)).finish();
     }
 }

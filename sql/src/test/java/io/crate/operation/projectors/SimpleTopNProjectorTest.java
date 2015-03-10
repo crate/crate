@@ -97,7 +97,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(9));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = collectingProjector.result().get();
         assertThat(projected.size(), is(10));
 
@@ -124,7 +124,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(5));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = collectingProjector.result().get();
         assertThat(projected.size(), is(5));
 
@@ -151,7 +151,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(9));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = collectingProjector.result().get();
         assertThat(projected.size(), is(10));
 
@@ -171,7 +171,7 @@ public class SimpleTopNProjectorTest {
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
         projector.startProjection();
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = collectingProjector.result().get();
         assertThat(projected, emptyIterable());
 
@@ -197,7 +197,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(0));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = collectingProjector.result().get();
         assertThat(projected.size(), is(1));
 
@@ -221,7 +221,7 @@ public class SimpleTopNProjectorTest {
             projector.setNextRow(row);
         }
         assertThat(i, is(100));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = collectingProjector.result().get();
         assertThat(projected.size(), is(90));
 
@@ -248,7 +248,7 @@ public class SimpleTopNProjectorTest {
             carryOn = projector.setNextRow(row);
         } while(carryOn);
         assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT));
-        projector.upstreamFinished();
+        projector.finish();
         assertThat(collectingProjector.result().get().size(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         int iterateLength = 0;
@@ -286,7 +286,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(9));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket rows = collectingProjector.result().get();
         assertThat(rows.size(), is(10));
         assertThat(rows.iterator().next(), isRow(1));
@@ -308,7 +308,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(9));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = noop.result().get();
         assertThat(projected.size(), is(10));
 
@@ -334,7 +334,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(5));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = noop.result().get();
         assertThat(projected.size(), is(5));
 
@@ -353,7 +353,7 @@ public class SimpleTopNProjectorTest {
         projector.downstream(noop);
         projector.registerUpstream(null);
         projector.startProjection();
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = noop.result().get();
         assertThat(projected, emptyIterable());
     }
@@ -371,7 +371,7 @@ public class SimpleTopNProjectorTest {
             projector.setNextRow(row);
         }
         assertThat(i, is(100));
-        projector.upstreamFinished();
+        projector.finish();
         Bucket projected = noop.result().get();
         assertThat(projected.size(), is(90));
 
@@ -398,7 +398,7 @@ public class SimpleTopNProjectorTest {
             carryOn = projector.setNextRow(row);
         } while(carryOn);
         assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT));
-        projector.upstreamFinished();
+        projector.finish();
         assertThat(noop.result().get().size(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         int iterateLength = 0;

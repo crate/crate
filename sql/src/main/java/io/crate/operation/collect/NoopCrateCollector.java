@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,20 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation;
+package io.crate.operation.collect;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 
+public class NoopCrateCollector implements CrateCollector {
 
-public interface DownstreamOperation extends RowUpstream {
+    private RowDownstreamHandle downstream;
 
-    /**
-     * add more rows to merge
-     * implementation needs to make sure that this operation is thread-safe
-     */
-    public boolean addRows(Bucket rows) throws Exception;
-    public int numUpstreams();
-    public void finished();
-    public ListenableFuture<Bucket> result();
+    public NoopCrateCollector(RowDownstream downstream) {
+        this.downstream = downstream.registerUpstream(this);
+    }
+
+    @Override
+    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+        downstream.finish();
+    }
 }

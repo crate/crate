@@ -24,21 +24,19 @@ package io.crate.operation.projectors;
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
 import io.crate.core.collections.Row;
-import io.crate.operation.Input;
-import io.crate.operation.InputRow;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class SimpleTopNProjector implements Projector, ProjectorUpstream {
+public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstreamHandle {
 
     private final CollectExpression<?>[] collectExpressions;
     private final InputRow inputRow;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
 
     private int remainingOffset;
     private int toCollect;
@@ -61,9 +59,8 @@ public class SimpleTopNProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void downstream(Projector downstream) {
-        this.downstream = downstream;
-        downstream.registerUpstream(this);
+    public void downstream(RowDownstream downstream) {
+        this.downstream = downstream.registerUpstream(this);
     }
 
     @Override
@@ -92,30 +89,31 @@ public class SimpleTopNProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
+        return this;
     }
 
     @Override
-    public void upstreamFinished() {
+    public void finish() {
         if (remainingUpstreams.decrementAndGet() > 0) {
             return;
         }
         if (downstream != null) {
             Throwable throwable = failure.get();
             if (throwable == null) {
-                downstream.upstreamFinished();
+                downstream.finish();
             } else {
-                downstream.upstreamFailed(throwable);
+                downstream.fail(throwable);
             }
         }
     }
 
     @Override
-    public void upstreamFailed(Throwable throwable) {
+    public void fail(Throwable throwable) {
         if (remainingUpstreams.decrementAndGet() <= 0) {
             if (downstream != null) {
-                downstream.upstreamFailed(throwable);
+                downstream.fail(throwable);
             }
             return;
         }

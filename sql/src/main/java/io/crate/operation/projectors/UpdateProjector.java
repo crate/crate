@@ -28,7 +28,9 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
@@ -45,9 +47,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class UpdateProjector implements Projector, ProjectorUpstream {
+public class UpdateProjector implements Projector, RowDownstreamHandle {
 
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
     private final List<SettableFuture<Long>> updateResults = new ArrayList<>();
@@ -81,7 +83,7 @@ public class UpdateProjector implements Projector, ProjectorUpstream {
     @Override
     public void startProjection() {
         if (remainingUpstreams.get() <= 0) {
-            upstreamFinished();
+            finish();
         }
     }
 
@@ -130,12 +132,13 @@ public class UpdateProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
+        return this;
     }
 
     @Override
-    public void upstreamFinished() {
+    public void finish() {
         if (remainingUpstreams.decrementAndGet() > 0) {
             return;
         }
@@ -146,7 +149,7 @@ public class UpdateProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void upstreamFailed(Throwable throwable) {
+    public void fail(Throwable throwable) {
         upstreamFailure.set(throwable);
         if (remainingUpstreams.decrementAndGet() > 0) {
             return;
@@ -157,9 +160,8 @@ public class UpdateProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void downstream(Projector downstream) {
-        this.downstream = downstream;
-        downstream.registerUpstream(this);
+    public void downstream(RowDownstream downstream) {
+        this.downstream = downstream.registerUpstream(this);
     }
 
     private void collectUpdateResultsAndPassOverRowCount() {
@@ -173,16 +175,16 @@ public class UpdateProjector implements Projector, ProjectorUpstream {
                 downstream.setNextRow(new Row1(rowCount));
                 Throwable throwable = upstreamFailure.get();
                 if (throwable == null) {
-                    downstream.upstreamFinished();
+                    downstream.finish();
                 } else {
-                    downstream.upstreamFailed(throwable);
+                    downstream.fail(throwable);
                 }
             }
 
             @Override
             public void onFailure(Throwable t) {
                 downstream.setNextRow(new Row1(0L));
-                downstream.upstreamFailed(t);
+                downstream.fail(t);
             }
         });
     }

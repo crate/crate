@@ -31,7 +31,8 @@ import io.crate.metadata.sys.SysOperationsLogTableInfo;
 import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
@@ -66,9 +67,9 @@ public class SystemCollectService implements CollectService {
     }
 
     @Override
-    public CrateCollector getCollector(CollectNode collectNode, Projector downstream) {
+    public CrateCollector getCollector(CollectNode collectNode, RowDownstream downstream) {
         if (collectNode.whereClause().noMatch()) {
-            return CrateCollector.NOOP;
+            return new NoopCrateCollector(downstream);
         }
         Set<String> tables = collectNode.routing().locations().get(discoveryService.localNode().id()).keySet();
         assert tables.size() == 1;
@@ -92,13 +93,13 @@ public class SystemCollectService implements CollectService {
 
         private final InputRow row;
         private final List<RowContextCollectorExpression<R, ?>> collectorExpressions;
-        private Projector downstream;
+        private final RowDownstreamHandle downstream;
         private final Iterable<R> rows;
         private final Input<Boolean> condition;
 
         protected SystemTableCollector(List<Input<?>> inputs,
                                        List<RowContextCollectorExpression<R, ?>> collectorExpressions,
-                                       Projector downstream,
+                                       RowDownstream downstream,
                                        Iterable<R> rows,
                                        Input<Boolean> condition) {
             this.row = new InputRow(inputs);
@@ -106,7 +107,7 @@ public class SystemCollectService implements CollectService {
             this.rows = rows;
             this.condition = condition;
             assert downstream != null;
-            downstream(downstream);
+            this.downstream = downstream.registerUpstream(this);
         }
 
         @Override
@@ -123,17 +124,11 @@ public class SystemCollectService implements CollectService {
 
                 if (!downstream.setNextRow(this.row)) {
                     // no more rows required, we can stop here
-                    downstream.upstreamFinished();
+                    downstream.finish();
                     throw new CollectionAbortedException();
                 }
             }
-            downstream.upstreamFinished();
-        }
-
-        @Override
-        public void downstream(Projector downstream) {
-            downstream.registerUpstream(this);
-            this.downstream = downstream;
+            downstream.finish();
         }
     }
 }

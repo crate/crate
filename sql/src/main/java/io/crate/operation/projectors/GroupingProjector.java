@@ -28,9 +28,7 @@ import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.operation.AggregationContext;
-import io.crate.operation.Input;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.*;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
@@ -48,7 +46,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class GroupingProjector implements Projector, ProjectorUpstream {
+public class GroupingProjector implements Projector, RowDownstreamHandle {
 
     private final CollectExpression[] collectExpressions;
 
@@ -56,7 +54,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
     private final RamAccountingContext ramAccountingContext;
 
     private Grouper grouper;
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
@@ -101,9 +99,8 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void downstream(Projector downstream) {
-        downstream.registerUpstream(this);
-        this.downstream = downstream;
+    public void downstream(RowDownstream downstream) {
+        this.downstream = downstream.registerUpstream(this);
     }
 
     @Override
@@ -113,7 +110,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
         }
 
         if (remainingUpstreams.get() <= 0) {
-            upstreamFinished();
+            finish();
         }
     }
 
@@ -123,7 +120,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
             return grouper.setNextRow(row);
         } catch (CircuitBreakingException e) {
             if (downstream != null) {
-                downstream.upstreamFailed(e);
+                downstream.fail(e);
                 downstream = null;
             }
             throw e;
@@ -131,12 +128,13 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
+        return this;
     }
 
     @Override
-    public void upstreamFinished() {
+    public void finish() {
         if (remainingUpstreams.decrementAndGet() <= 0) {
             if (grouper != null) {
                 grouper.finish();
@@ -149,10 +147,10 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
     }
 
     @Override
-    public void upstreamFailed(Throwable throwable) {
+    public void fail(Throwable throwable) {
         if (remainingUpstreams.decrementAndGet() <= 0) {
             if (downstream != null) {
-                downstream.upstreamFailed(throwable);
+                downstream.fail(throwable);
             }
             cleanUp();
             return;
@@ -258,7 +256,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
             }
             Throwable throwable = failure.get();
             if (throwable != null) {
-                downstream.upstreamFailed(throwable);
+                downstream.fail(throwable);
             }
 
             // TODO: check ram accounting
@@ -277,7 +275,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
                     break;
                 }
             }
-            downstream.upstreamFinished();
+            downstream.finish();
         }
     }
 
@@ -351,7 +349,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
             }
             Throwable throwable = failure.get();
             if (throwable != null) {
-                downstream.upstreamFailed(throwable);
+                downstream.fail(throwable);
             }
             // account the multi-dimension `rows` array
             // 1st level
@@ -369,7 +367,7 @@ public class GroupingProjector implements Projector, ProjectorUpstream {
                     return;
                 }
             }
-            downstream.upstreamFinished();
+            downstream.finish();
         }
     }
 }

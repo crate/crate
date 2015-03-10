@@ -103,7 +103,7 @@ public class IndexWriterProjectorUnitTest {
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);
-        indexWriter.upstreamFailed(new IllegalStateException("my dummy exception"));
+        indexWriter.fail(new IllegalStateException("my dummy exception"));
 
         try {
             collectingProjector.result().get();
@@ -145,6 +145,6 @@ public class IndexWriterProjectorUnitTest {
         indexWriter.registerUpstream(null);
         indexWriter.startProjection();
         indexWriter.setNextRow(new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null}));
-        indexWriter.upstreamFinished();
+        indexWriter.finish();
     }
 }

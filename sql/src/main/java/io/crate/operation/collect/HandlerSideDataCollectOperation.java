@@ -104,7 +104,6 @@ public class HandlerSideDataCollectOperation implements CollectOperation {
                 collectNode.projections(), projectorVisitor, ramAccountingContext);
         SimpleOneRowCollector collector = new SimpleOneRowCollector(
                 inputs, collectExpressions, projectorChain.firstProjector());
-
         projectorChain.startProjections();
         try {
             collector.doCollect(ramAccountingContext);

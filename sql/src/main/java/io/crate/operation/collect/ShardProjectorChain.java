@@ -25,7 +25,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
@@ -112,7 +111,7 @@ public class ShardProjectorChain {
             idx++;
         }
 
-        ProjectorUpstream previousUpstream = null;
+        Projector previousUpstream = null;
         // create the node level projectors
         for (int i = shardProjectionsIndex + 1; i < projections.size(); i++) {
             Projector projector = nodeProjectorVisitor.process(projections.get(i), ramAccountingContext);
@@ -122,8 +121,7 @@ public class ShardProjectorChain {
             } else {
                 firstNodeProjector = projector;
             }
-            assert projector instanceof ProjectorUpstream : "Cannot use a projector that is no ProjectorUpstream as upstream";
-            previousUpstream = (ProjectorUpstream) projector;
+            previousUpstream = projector;
         }
 
         final boolean addedResultProvider;
@@ -139,15 +137,15 @@ public class ShardProjectorChain {
                 addedResultProvider = true;
             }
         }
-        if (addedResultProvider){
+        if (addedResultProvider) {
             nodeProjectors.add(this.resultProvider);
-            if (previousUpstream != null){
+            if (previousUpstream != null) {
                 previousUpstream.downstream(this.resultProvider);
             }
         }
         if (shardProjectionsIndex >= 0) {
             shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * numShards);
-            // shardprojector will be created later
+            // shardProjector will be created later
             if (firstNodeProjector == null) {
                 firstNodeProjector = nodeProjectors.get(0);
             }
@@ -172,9 +170,7 @@ public class ShardProjectorChain {
         Projector projector = null;
         for (int i = shardProjectionsIndex; i >= 0; i--) {
             projector = projectorVisitor.process(projections.get(i), ramAccountingContext);
-            assert projector instanceof ProjectorUpstream :
-                    "Cannot use a projector that is no ProjectorUpstream as upstream";
-            ((ProjectorUpstream) projector).downstream(previousProjector);
+            projector.downstream(previousProjector);
             shardProjectors.add(projector);
             previousProjector = projector;
         }

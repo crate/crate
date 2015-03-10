@@ -77,7 +77,7 @@ public class GroupingProjectorTest {
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
-        projector.upstreamFinished();
+        projector.finish();
         Bucket rows = collectingProjector.result().get();
         assertThat(rows.size(), is(2));
         assertThat(rows.iterator().next().get(1), instanceOf(Long.class));

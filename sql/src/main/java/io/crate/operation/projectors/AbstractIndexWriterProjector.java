@@ -35,7 +35,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.ShardingProjector;
 import io.crate.planner.symbol.Reference;
@@ -57,7 +59,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractIndexWriterProjector implements Projector, ProjectorUpstream {
+public abstract class AbstractIndexWriterProjector implements
+        Projector, RowUpstream, RowDownstreamHandle {
 
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<?>[] collectExpressions;
@@ -67,15 +70,15 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
     private final Object lock = new Object();
     private final List<Input<?>> partitionedByInputs;
     private final Function<Input<?>, BytesRef> inputToBytesRef = new Function<Input<?>, BytesRef>() {
-                @Nullable
-                @Override
-                public BytesRef apply(Input<?> input) {
-                    return BytesRefs.toBytesRef(input.value());
-                }
-            };
+        @Nullable
+        @Override
+        public BytesRef apply(Input<?> input) {
+            return BytesRefs.toBytesRef(input.value());
+        }
+    };
     private final ShardingProjector shardingProjector;
     private BulkShardProcessor bulkShardProcessor;
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
 
     private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
 
@@ -83,10 +86,9 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
      * 3 states:
      *
      * <ul>
-     *  <li> writing into a normal table - <code>partitionIdent = null, partitionedByInputs = []</code>
-     *  <li> writing into a partitioned table - <code>partitionIdent = null, partitionedByInputs = [...]</code>
-     *  <li> writing into a single partition - <code>partitionIdent = "...", partitionedByInputs = []</code>
-     *
+     * <li> writing into a normal table - <code>partitionIdent = null, partitionedByInputs = []</code>
+     * <li> writing into a partitioned table - <code>partitionIdent = null, partitionedByInputs = [...]</code>
+     * <li> writing into a single partition - <code>partitionIdent = "...", partitionedByInputs = []</code>
      */
     protected AbstractIndexWriterProjector(final TableIdent tableIdent,
                                            @Nullable String partitionIdent,
@@ -101,14 +103,14 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
         this.collectExpressions = collectExpressions;
         if (partitionedByInputs.size() > 0) {
             partitionIdentCache = CacheBuilder.newBuilder()
-                        .initialCapacity(10)
-                        .maximumSize(20)
-                        .build(new CacheLoader<List<BytesRef>, String>() {
-                            @Override
-                            public String load(@Nonnull List<BytesRef> key) throws Exception {
-                                return new PartitionName(tableIdent, key).stringValue();
-                            }
-                        });
+                    .initialCapacity(10)
+                    .maximumSize(20)
+                    .build(new CacheLoader<List<BytesRef>, String>() {
+                        @Override
+                        public String load(@Nonnull List<BytesRef> key) throws Exception {
+                            return new PartitionName(tableIdent, key).stringValue();
+                        }
+                    });
         } else {
             partitionIdentCache = null;
         }
@@ -165,21 +167,22 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
+        return this;
     }
 
     @Override
-    public void upstreamFinished() {
+    public void finish() {
         if (remainingUpstreams.decrementAndGet() <= 0) {
             bulkShardProcessor.close();
         }
     }
 
     @Override
-    public void upstreamFailed(Throwable throwable) {
+    public void fail(Throwable throwable) {
         if (downstream != null) {
-            downstream.upstreamFailed(throwable);
+            downstream.fail(throwable);
         }
         bulkShardProcessor.close();
     }
@@ -191,12 +194,12 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
             public void onSuccess(@Nullable BitSet result) {
                 long rowCount = result == null ? 0L : result.cardinality();
                 downstream.setNextRow(new Row1(rowCount));
-                downstream.upstreamFinished();
+                downstream.finish();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                downstream.upstreamFailed(t);
+                downstream.fail(t);
             }
         });
     }
@@ -217,9 +220,8 @@ public abstract class AbstractIndexWriterProjector implements Projector, Project
     }
 
     @Override
-    public void downstream(Projector downstream) {
-        downstream.registerUpstream(this);
-        this.downstream = downstream;
+    public void downstream(RowDownstream downstream) {
+        this.downstream = downstream.registerUpstream(this);
         setResultCallback();
     }
 }

@@ -26,8 +26,9 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.projectors.Projector;
 
 import java.io.File;
 import java.util.List;
@@ -39,19 +40,19 @@ public class BlobDocCollector implements CrateCollector {
     private final List<BlobCollectorExpression<?>> expressions;
     private final Input<Boolean> condition;
 
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
 
     public BlobDocCollector(
             BlobShard blobShard,
             List<Input<?>> inputs,
             List<BlobCollectorExpression<?>> expressions,
             Input<Boolean> condition,
-            Projector downstream) {
+            RowDownstream downstream) {
         this.blobShard = blobShard;
         this.inputs = inputs;
         this.expressions = expressions;
         this.condition = condition;
-        downstream(downstream);
+        this.downstream = downstream.registerUpstream(this);
     }
 
     @Override
@@ -60,7 +61,7 @@ public class BlobDocCollector implements CrateCollector {
         try {
             blobShard.blobContainer().walkFiles(null, fileVisitor);
         } finally {
-            downstream.upstreamFinished();
+            downstream.finish();
         }
     }
 
@@ -78,11 +79,5 @@ public class BlobDocCollector implements CrateCollector {
             }
             return true;
         }
-    }
-
-    @Override
-    public void downstream(Projector downstream) {
-        this.downstream = downstream;
-        downstream.registerUpstream(this);
     }
 }

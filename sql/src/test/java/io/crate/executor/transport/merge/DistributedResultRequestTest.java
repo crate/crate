@@ -36,7 +36,6 @@ import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -247,11 +246,6 @@ public class DistributedResultRequestTest {
                 @Override
                 public ListenableFuture<Bucket> result() {
                     return futureResult;
-                }
-
-                @Override
-                public void downstream(Projector downstream) {
-                    downstream.registerUpstream(this);
                 }
             };
         }

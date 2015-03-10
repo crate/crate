@@ -28,9 +28,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
-import io.crate.operation.Input;
-import io.crate.operation.InputRow;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.AtomicReader;
@@ -61,7 +59,7 @@ import java.util.List;
 /**
  * collect documents from ES shard, a lucene index
  */
-public class LuceneDocCollector extends Collector implements CrateCollector {
+public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
 
     private final CollectorFieldsVisitor fieldsVisitor;
     private final InputRow inputRow;
@@ -101,7 +99,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     }
 
     private final SearchContext searchContext;
-    private Projector downstream;
+    private final RowDownstreamHandle downstream;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
 
     public LuceneDocCollector(ThreadPool threadPool,
@@ -116,8 +114,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               List<LuceneCollectorExpression<?>> collectorExpressions,
                               Functions functions,
                               WhereClause whereClause,
-                              Projector downStreamProjector) throws Exception {
-        downstream(downStreamProjector);
+                              RowDownstream downStreamProjector) throws Exception {
+        this.downstream = downStreamProjector.registerUpstream(this);
         SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
         this.inputRow = new InputRow(inputs);
@@ -153,12 +151,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
             SearchContext.removeCurrent();
             throw e;
         }
-    }
-
-    @Override
-    public void downstream(Projector downstream) {
-        downstream.registerUpstream(this);
-        this.downstream = downstream;
     }
 
     @Override
@@ -219,12 +211,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         // do the lucene search
         try {
             searchContext.searcher().search(query, this);
-            downstream.upstreamFinished();
+            downstream.finish();
         } catch (CollectionAbortedException e) {
             // yeah, that's ok! :)
-            downstream.upstreamFinished();
+            downstream.finish();
         } catch (Exception e) {
-            downstream.upstreamFailed(e);
+            downstream.fail(e);
             throw e;
         } finally {
             searchContext.close();

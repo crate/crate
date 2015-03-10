@@ -22,26 +22,8 @@
 package io.crate.operation;
 
 /**
- * Can act as a downstream to a projector.
- * Has an upstream.
+ * Marker for objects which can be an upstream of a {@link RowDownstream}.
  */
-public interface ProjectorDownstream {
+public interface RowUpstream {
 
-    /**
-     * register an upstream at this downstream, effectively chaining them.
-     * @param upstream the upstream to be registered
-     */
-    public void registerUpstream(ProjectorUpstream upstream);
-
-    /**
-     * Has to be called from upstreams to indicate that they sent all rows.
-     * After this has been called an upstream must not send any more rows to the downstream.
-     */
-    public void upstreamFinished();
-
-    /**
-     * Has to be called by the upstream if an exception occurred.
-     * Should be called once the upstream is finished with any other concurrently running actions.
-     */
-    public void upstreamFailed(Throwable throwable);
 }

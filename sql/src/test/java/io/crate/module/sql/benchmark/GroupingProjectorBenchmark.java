@@ -112,7 +112,7 @@ public class GroupingProjectorBenchmark {
             groupingProjector.setNextRow(row);
         }
 
-        groupingProjector.upstreamFinished();
+        groupingProjector.finish();
     }
 
     @Test
@@ -145,6 +145,6 @@ public class GroupingProjectorBenchmark {
             groupingProjector.setNextRow(row);
         }
 
-        groupingProjector.upstreamFinished();
+        groupingProjector.finish();
     }
 }

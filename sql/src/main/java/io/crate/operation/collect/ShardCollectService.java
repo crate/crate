@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -32,6 +31,7 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
@@ -44,7 +44,6 @@ import io.crate.planner.symbol.Literal;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -52,8 +51,6 @@ import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.UUID;
 
 public class ShardCollectService {
 
@@ -141,7 +138,7 @@ public class ShardCollectService {
         Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
-            return CrateCollector.NOOP;
+            return new NoopCrateCollector(downstream);
         } else {
             RowGranularity granularity = normalizedCollectNode.maxRowGranularity();
             if (granularity == RowGranularity.DOC) {
@@ -158,7 +155,7 @@ public class ShardCollectService {
         }
     }
 
-    private CrateCollector getBlobIndexCollector(CollectNode collectNode, Projector downstream) {
+    private CrateCollector getBlobIndexCollector(CollectNode collectNode, RowDownstream downstream) {
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {
@@ -175,7 +172,7 @@ public class ShardCollectService {
         );
     }
 
-    private CrateCollector getLuceneIndexCollector(CollectNode collectNode, Projector downstream) throws Exception {
+    private CrateCollector getLuceneIndexCollector(CollectNode collectNode, RowDownstream downstream) throws Exception {
         CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
         return new LuceneDocCollector(
                 threadPool,

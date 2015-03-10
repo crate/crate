@@ -38,10 +38,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -180,13 +180,13 @@ public class ESGetTask extends JobTask {
         return inputColumns;
     }
 
-    static class MultiGetResponseListener implements ActionListener<MultiGetResponse>, ProjectorUpstream {
+    static class MultiGetResponseListener implements ActionListener<MultiGetResponse>, RowUpstream {
 
         private final SettableFuture<TaskResult> result;
         private final List<FieldExtractor<GetResponse>> fieldExtractors;
         @Nullable
         private final FlatProjectorChain projectorChain;
-        private final Projector downstream;
+        private final RowDownstreamHandle downstream;
 
 
         public MultiGetResponseListener(final SettableFuture<TaskResult> result,
@@ -198,8 +198,7 @@ public class ESGetTask extends JobTask {
             if (projectorChain == null) {
                 downstream = null;
             } else {
-                downstream = projectorChain.firstProjector();
-                downstream.registerUpstream(this);
+                downstream = projectorChain.firstProjector().registerUpstream(this);
                 Futures.addCallback(projectorChain.resultProvider().result(), new FutureCallback<Bucket>() {
                     @Override
                     public void onSuccess(@Nullable Bucket rows) {
@@ -245,9 +244,9 @@ public class ESGetTask extends JobTask {
                             return;
                         }
                     }
-                    downstream.upstreamFinished();
+                    downstream.finish();
                 } catch (Exception e) {
-                    downstream.upstreamFailed(e);
+                    downstream.fail(e);
                 }
             }
         }
@@ -255,11 +254,6 @@ public class ESGetTask extends JobTask {
         @Override
         public void onFailure(Throwable e) {
             result.setException(e);
-        }
-
-        @Override
-        public void downstream(Projector downstream) {
-            throw new UnsupportedOperationException("Setting downstream isn't supported on MultiGetResponseListener");
         }
     }
 
