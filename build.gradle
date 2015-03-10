@@ -2,10 +2,14 @@ buildscript {
     repositories {
         mavenCentral()
     }
+
+    dependencies {
+        classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.3.1'
+    }
 }
 
 plugins {
-  id "com.github.kt3k.coveralls" version "2.0.1"
+  id "com.github.kt3k.coveralls" version "2.3.1"
 }
 
 allprojects {

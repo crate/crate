@@ -32,6 +32,8 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.junit.Test;
 
+import java.util.Locale;
+
 import static org.hamcrest.Matchers.*;
 
 public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
@@ -78,7 +80,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
     @Test
     public void testBreakingExceptionMessage() throws Exception {
         String message = CrateCircuitBreakerService.breakingExceptionMessage("dummy", 1234);
-        assertThat(message, is(String.format(CrateCircuitBreakerService.BREAKING_EXCEPTION_MESSAGE, "dummy", 1234, new ByteSizeValue(1234))));
+        assertThat(message, is(String.format(Locale.ENGLISH, CrateCircuitBreakerService.BREAKING_EXCEPTION_MESSAGE, "dummy", 1234, new ByteSizeValue(1234))));
     }
 
     @Test
