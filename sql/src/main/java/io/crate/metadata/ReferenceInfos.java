@@ -48,8 +48,7 @@ import java.util.regex.Pattern;
 
 public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListener {
 
-    public static final String SCHEMA_REGEX = "^([^.]+)\\.(.+)";
-    public static final Pattern SCHEMA_PATTERN = Pattern.compile(SCHEMA_REGEX);
+    public static final Pattern SCHEMA_PATTERN = Pattern.compile("^([^.]+)\\.(.+)");
     public static final String DEFAULT_SCHEMA_NAME = "doc";
 
     private final Map<String, SchemaInfo> builtInSchemas;
@@ -150,13 +149,8 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
      * @param name The schema name
      * @return an instance of SchemaInfo for the given name
      */
-    private SchemaInfo getCustomSchemaInfo(final String name) {
-        return new DocSchemaInfo(clusterService, transportPutIndexTemplateAction) {
-            @Override
-            public String name() {
-                return name;
-            }
-        };
+    private SchemaInfo getCustomSchemaInfo(String name) {
+        return new DocSchemaInfo(name, clusterService, transportPutIndexTemplateAction);
     }
 
     /**

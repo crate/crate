@@ -21,11 +21,6 @@
 
 package io.crate.metadata.doc;
 
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-
-import javax.annotation.Nullable;
-
 import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
@@ -57,51 +52,97 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
 
-    private final Predicate<String> tablesFilter = new Predicate<String>() {
+    private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
         @Override
         public boolean apply(String input) {
+            //noinspection SimplifiableIfStatement
             if (BlobIndices.isBlobIndex(input)) {
                 return false;
             }
-            if (name().equalsIgnoreCase(ReferenceInfos.DEFAULT_SCHEMA_NAME)) {
-                return !input.matches(ReferenceInfos.SCHEMA_REGEX);
-            } else {
-                return input.startsWith(name());
-            }
+            return !ReferenceInfos.SCHEMA_PATTERN.matcher(input).matches();
         }
     };
+
+    private final Predicate<String> tablesFilter;
 
     private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
             .build(
                     new CacheLoader<String, DocTableInfo>() {
                         @Override
-                        public DocTableInfo load(String key) throws Exception {
+                        public DocTableInfo load(@Nonnull String key) throws Exception {
                             return innerGetTableInfo(key);
                         }
                     }
             );
-    private final Function<String, TableInfo> tableInfoFunction;
 
+    private final Function<String, TableInfo> tableInfoFunction;
+    private final String schemaName;
+
+
+    /**
+     * DocSchemaInfo constructor for the default (doc) schema.
+     */
     @Inject
     public DocSchemaInfo(ClusterService clusterService,
                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+        schemaName = ReferenceInfos.DEFAULT_SCHEMA_NAME;
         this.clusterService = clusterService;
         clusterService.add(this);
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+
+        this.tablesFilter = DOC_SCHEMA_TABLES_FILTER;
         this.tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
             @Override
-            public TableInfo apply(@Nullable String input) {
-                if (input.matches(ReferenceInfos.SCHEMA_REGEX)) {
-                    input = input.substring(name().length() + 1);
+            public TableInfo apply(String input) {
+                return getTableInfo(input);
+            }
+        };
+    }
+
+    /**
+     * constructor used for custom schemas
+     */
+    public DocSchemaInfo(final String schemaName,
+                         ClusterService clusterService,
+                         TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+        this.schemaName = schemaName;
+        this.clusterService = clusterService;
+        clusterService.add(this);
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+
+        this.tableInfoFunction = new Function<String, TableInfo>() {
+            @Nullable
+            @Override
+            public TableInfo apply(String input) {
+                Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(input);
+                if (matcher.matches()) {
+                    input = matcher.group(2);
                 }
                 return getTableInfo(input);
+            }
+        };
+        tablesFilter = new Predicate<String>() {
+            @Override
+            public boolean apply(String input) {
+                //noinspection SimplifiableIfStatement
+                if (BlobIndices.isBlobIndex(input)) {
+                    return false;
+                }
+                Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(input);
+                return (matcher.matches() && matcher.group(1).equals(schemaName)) ;
             }
         };
     }
@@ -160,7 +201,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     @Override
     public String name() {
-        return ReferenceInfos.DEFAULT_SCHEMA_NAME;
+        return schemaName;
     }
 
     @Override
@@ -239,6 +280,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         if (aliases.size() > 0) {
             cache.invalidateAll(Arrays.asList(aliases.keys().toArray(String.class)));
         }
+    }
+
+    @Override
+    public String toString() {
+        return "DocSchemaInfo(" + name() + ")";
     }
 
     @Override
