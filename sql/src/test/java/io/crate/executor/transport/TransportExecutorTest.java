@@ -169,7 +169,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer) objects[0][0], is(2));
-        assertThat((String) objects[0][1], is("Ford"));
+        assertThat((BytesRef) objects[0][1], is(new BytesRef("Ford")));
     }
 
     @Test
@@ -226,16 +226,16 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(rows.length, is(4));
 
         assertThat((Integer) rows[0][0], is(1));
-        assertThat((String) rows[0][1], is("Arthur"));
+        assertThat((BytesRef) rows[0][1], is(new BytesRef("Arthur")));
 
         assertThat((Integer) rows[1][0], is(4));
-        assertThat((String) rows[1][1], is("Arthur"));
+        assertThat((BytesRef) rows[1][1], is(new BytesRef("Arthur")));
 
         assertThat((Integer) rows[2][0], is(2));
-        assertThat((String) rows[2][1], is("Ford"));
+        assertThat((BytesRef) rows[2][1], is(new BytesRef("Ford")));
 
         assertThat((Integer) rows[3][0], is(3));
-        assertThat((String) rows[3][1], is("Trillian"));
+        assertThat((BytesRef) rows[3][1], is(new BytesRef("Trillian")));
     }
 
     @Test
@@ -267,7 +267,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(rows.length, is(1));
 
         assertThat((Integer) rows[0][0], is(2));
-        assertThat((String) rows[0][1], is("Ford"));
+        assertThat((BytesRef) rows[0][1], is(new BytesRef("Ford")));
     }
 
     @Test
@@ -359,11 +359,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(rows.length, is(3));
 
         assertThat((Integer) rows[0][0], is(3));
-        assertThat((String) rows[0][1], is("Ford"));
+        assertThat((BytesRef) rows[0][1], is(new BytesRef("Ford")));
         assertThat((Long) rows[0][2], is(1396388720242L));
 
         assertThat((Integer) rows[1][0], is(1));
-        assertThat((String) rows[1][1], is("Trillian"));
+        assertThat((BytesRef) rows[1][1], is(new BytesRef("Trillian")));
         assertNull(rows[1][2]);
 
         assertThat((Integer) rows[2][0], is(2));
@@ -472,7 +472,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer) objects[0][0], is(99));
-        assertThat((String)objects[0][1], is("Marvin"));
+        assertThat((BytesRef)objects[0][1], is(new BytesRef("Marvin")));
     }
 
     @Test
@@ -575,10 +575,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(objects.length, is(2));
         assertThat((Integer)objects[0][0], is(99));
-        assertThat((String)objects[0][1], is("Marvin"));
+        assertThat((BytesRef)objects[0][1], is(new BytesRef("Marvin")));
 
         assertThat((Integer)objects[1][0], is(42));
-        assertThat((String)objects[1][1], is("Deep Thought"));
+        assertThat((BytesRef)objects[1][1], is(new BytesRef("Deep Thought")));
     }
 
     @Test
@@ -609,7 +609,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(1));
-        assertThat((String)objects[0][1], is("Vogon lyric fan"));
+        assertThat((BytesRef)objects[0][1], is(new BytesRef("Vogon lyric fan")));
     }
 
     @Test
@@ -645,7 +645,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(5));
-        assertThat((String)objects[0][1], is("Zaphod Beeblebrox"));
+        assertThat((BytesRef)objects[0][1], is(new BytesRef("Zaphod Beeblebrox")));
         assertThat((boolean)objects[0][2], is(false));
     }
 
@@ -681,7 +681,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(1));
-        assertThat((String)objects[0][1], is("Arthur"));
+        assertThat((BytesRef)objects[0][1], is(new BytesRef("Arthur")));
         // Existing document is updated
         assertThat((boolean)objects[0][2], is(true));
     }

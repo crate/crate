@@ -30,9 +30,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -117,7 +115,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(3.402f, ((Number) response.rows()[0][3]).floatValue(), 0.002f);
         assertEquals(2147483647, response.rows()[0][4]);
         assertEquals(9223372036854775807L, response.rows()[0][5]);
-        assertEquals(32767, response.rows()[0][6]);
+        assertEquals((short) 32767, response.rows()[0][6]);
         assertEquals("Youri", response.rows()[0][7]);
 
         assertEquals(true, response.rows()[1][0]);
@@ -126,7 +124,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(3.402f, ((Number) response.rows()[1][3]).floatValue(), 0.002f);
         assertEquals(2147483647, response.rows()[1][4]);
         assertEquals(9223372036854775807L, response.rows()[1][5]);
-        assertEquals(32767, response.rows()[1][6]);
+        assertEquals((short)32767, response.rows()[1][6]);
         assertEquals("Youri", response.rows()[1][7]);
     }
 
@@ -161,31 +159,31 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select * from test");
-        assertEquals(true, ((List<Boolean>) response.rows()[0][0]).get(0));
-        assertEquals(false, ((List<Boolean>) response.rows()[0][0]).get(1));
+        assertEquals(true, ((Object[]) response.rows()[0][0])[0]);
+        assertEquals(false, ((Object[]) response.rows()[0][0])[1]);
 
-        assertThat(((List<Long>) response.rows()[0][1]).get(0), is(1378849903000L));
-        assertThat(((List<Long>) response.rows()[0][1]).get(1), is(1384120303000L));
+        assertThat(((Long) ((Object[]) response.rows()[0][1])[0]), is(1378849903000L));
+        assertThat(((Long) ((Object[]) response.rows()[0][1])[1]), is(1384120303000L));
 
-        assertThat(((List<Double>) response.rows()[0][2]).get(0), is(1.79769313486231570e+308));
-        assertThat(((List<Double>) response.rows()[0][2]).get(1), is(1.69769313486231570e+308));
+        assertThat(((Double) ((Object[]) response.rows()[0][2])[0]), is(1.79769313486231570e+308));
+        assertThat(((Double) ((Object[]) response.rows()[0][2])[1]), is(1.69769313486231570e+308));
 
 
-        assertEquals(3.402f, ((Number) ((List) response.rows()[0][3]).get(0)).floatValue(), 0.002f);
-        assertEquals(3.403f, ((Number) ((List) response.rows()[0][3]).get(1)).floatValue(), 0.002f);
-        assertThat(((List<Float>) response.rows()[0][3]).get(2), nullValue());
+        assertEquals(3.402f, ((Number) ((Object[]) response.rows()[0][3])[0]).floatValue(), 0.002f);
+        assertEquals(3.403f, ((Number) ((Object[]) response.rows()[0][3])[1]).floatValue(), 0.002f);
+        assertThat(((Object[]) response.rows()[0][3])[2], nullValue());
 
-        assertThat(((List<Integer>) response.rows()[0][4]).get(0), is(2147483647));
-        assertThat(((List<Integer>) response.rows()[0][4]).get(1), is(234583));
+        assertThat(((Integer) ((Object[]) response.rows()[0][4])[0]), is(2147483647));
+        assertThat(((Integer) ((Object[]) response.rows()[0][4])[1]), is(234583));
 
-        assertThat(((List<Long>) response.rows()[0][5]).get(0), is(9223372036854775807L));
-        assertThat(((List<Integer>) response.rows()[0][5]).get(1), is(4));
+        assertThat(((Long) ((Object[]) response.rows()[0][5])[0]), is(9223372036854775807L));
+        assertThat(((Long) ((Object[]) response.rows()[0][5])[1]), is(4L));
 
-        assertThat(((List<Integer>) response.rows()[0][6]).get(0), is(32767));
-        assertThat(((List<Integer>) response.rows()[0][6]).get(1), is(2));
+        assertThat(((Short) ((Object[]) response.rows()[0][6])[0]), is((short) 32767));
+        assertThat(((Short) ((Object[]) response.rows()[0][6])[1]), is((short) 2));
 
-        assertThat(((List<String>) response.rows()[0][7]).get(0), is("Youri"));
-        assertThat(((List<String>) response.rows()[0][7]).get(1), is("Juri"));
+        assertThat(((String) ((Object[]) response.rows()[0][7])[0]), is("Youri"));
+        assertThat(((String) ((Object[]) response.rows()[0][7])[1]), is("Juri"));
     }
 
     @Test
@@ -287,8 +285,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("select id, details from test");
         assertEquals(1, response.rowCount());
         assertEquals(1, response.rows()[0][0]);
-        assertThat(response.rows()[0][1], instanceOf(List.class));
-        assertThat(((List) response.rows()[0][1]).size(), is(0));
+
+        assertThat(response.rows()[0][1], instanceOf(Object[].class));
+        Object[] details = ((Object[]) response.rows()[0][1]);
+        assertThat(details.length, is(0));
     }
 
     @Test
@@ -435,10 +435,14 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table users");
         execute("select friends, name from users order by id");
         assertThat(response.rowCount(), is(2L));
-        assertNull((((ArrayList) response.rows()[0][0]).get(0)));
-        assertThat(((String) ((ArrayList) response.rows()[0][0]).get(1)), is("gedöns"));
+
+        Object[] friends = (Object[]) response.rows()[0][0];
+        assertThat(friends[0], nullValue());
+        assertThat(((String) friends[1]), is("gedöns"));
         assertThat((String)response.rows()[0][1], is("björk"));
-        assertNull((((ArrayList) response.rows()[1][0]).get(0)));
+
+        friends = ((Object[]) response.rows()[1][0]);
+        assertNull(friends[0]);
     }
 
     @Test
@@ -506,6 +510,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table locations2");
         execute("select * from locations2 order by id");
         assertThat(response.rowCount(), is(13L));
+
+        for (int i = 0; i < rowsOriginal.length; i++) {
+            rowsOriginal[i][5] =  (long)((int)rowsOriginal[i][5]);
+        }
         assertThat(response.rows(), is(rowsOriginal));
     }
 

@@ -30,7 +30,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -289,10 +288,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
                 response.cols());
-        assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
-                        new ArrayList<String>() {{
-                            add("Dirksland");
-                        }}},
+        assertArrayEquals(
+                new Object[]{"I'm addicted to kite", "Youri", new Object[] { "Dirksland" }},
                 response.rows()[0]
         );
     }

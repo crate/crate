@@ -91,13 +91,13 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
         assertEquals(1, response.rows()[0][0]);
         assertEquals("With", response.rows()[0][1]);
-        assertEquals(0, response.rows()[0][2]);
-        assertEquals(127, response.rows()[0][3]);
+        assertEquals(0L, response.rows()[0][2]);
+        assertEquals((byte) 127, response.rows()[0][3]);
 
         assertEquals(2, response.rows()[1][0]);
         assertEquals("Without", response.rows()[1][1]);
-        assertEquals(3600000, response.rows()[1][2]);
-        assertEquals(-128, response.rows()[1][3]);
+        assertEquals(3600000L, response.rows()[1][2]);
+        assertEquals((byte) -128, response.rows()[1][3]);
     }
 
     public void setUpObjectTable() throws IOException {
@@ -163,7 +163,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         response = execute("select object_field['created'], object_field['size'], " +
                 "no_dynamic_field['dynamic_again']['field'] from test12");
         assertEquals(1384819200000L, response.rows()[0][0]);
-        assertEquals(127, response.rows()[0][1]);
+        assertEquals((byte) 127, response.rows()[0][1]);
         assertEquals(1384790145289L, response.rows()[0][2]);
     }
 
@@ -250,8 +250,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 "object_field, ip_field from t1 where id=0");
         assertEquals(1, response.rowCount());
         assertEquals(0, response.rows()[0][0]);
-        assertEquals(127, response.rows()[0][1]);
-        assertEquals(-32768, response.rows()[0][2]);
+        assertEquals((byte) 127, response.rows()[0][1]);
+        assertEquals((short)-32768, response.rows()[0][2]);
         assertEquals(0x7fffffff, response.rows()[0][3]);
         assertEquals(0x8000000000000000L, response.rows()[0][4]);
         assertEquals(1.0f, ((Number) response.rows()[0][5]).floatValue(), 0.01f);
@@ -313,7 +313,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
             }
         }
         assertNotNull(response);
-        assertEquals(0, response.rows()[0][1]);
+        assertEquals(0L, response.rows()[0][1]);
     }
 
     @Test

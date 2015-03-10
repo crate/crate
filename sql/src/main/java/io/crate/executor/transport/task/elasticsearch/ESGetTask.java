@@ -336,7 +336,7 @@ public class ESGetTask extends JobTask {
     static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
 
         @Override
-        public FieldExtractor<GetResponse> build(Reference reference, final GetResponseContext context) {
+        public FieldExtractor<GetResponse> build(final Reference reference, final GetResponseContext context) {
             final String field = reference.info().ident().columnIdent().fqn();
             if (field.equals("_version")) {
                 return new FieldExtractor<GetResponse>() {
@@ -363,8 +363,9 @@ public class ESGetTask extends JobTask {
                 return new FieldExtractor<GetResponse>() {
                     @Override
                     public Object extract(GetResponse response) {
-                        assert response.getSourceAsMap() != null;
-                        return XContentMapValues.extractValue(field, response.getSourceAsMap());
+                        Map<String, Object> sourceAsMap = response.getSourceAsMap();
+                        assert sourceAsMap != null;
+                        return reference.valueType().value(XContentMapValues.extractValue(field, sourceAsMap));
                     }
                 };
             }
