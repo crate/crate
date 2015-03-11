@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue with custom schemas that could cause select statements on the
+   ``information_schema.tables`` table to result in a NPE.
+
  - Fixed an issue that could cause the response to contain the wrong types
    (e.g. integer instead of long)
 
