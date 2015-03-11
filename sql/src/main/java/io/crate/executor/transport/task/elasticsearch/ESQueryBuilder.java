@@ -698,7 +698,8 @@ public class ESQueryBuilder {
                 Preconditions.checkArgument(function.arguments().size() == 1);
 
                 Symbol arg = function.arguments().get(0);
-                Preconditions.checkArgument(arg.symbolType() == SymbolType.REFERENCE);
+                Preconditions.checkArgument(arg.symbolType() == SymbolType.REFERENCE,
+                        "IS NULL only works on columns, not on functions or other expressions");
 
                 Reference reference = (Reference) arg;
                 String columnName = reference.info().ident().columnIdent().fqn();

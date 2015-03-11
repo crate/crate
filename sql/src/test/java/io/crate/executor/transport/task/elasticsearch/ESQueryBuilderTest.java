@@ -913,4 +913,15 @@ public class ESQueryBuilderTest extends CrateUnitTest {
         generator.convert(new WhereClause(whereClause));
     }
 
+    @Test
+    public void testIsNullOnFunctionThrowsMeaningfulError() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("IS NULL only works on columns, not on functions or other expressions");
+
+        Function query = createFunction(IsNullPredicate.NAME, DataTypes.BOOLEAN,
+                createFunction(EqOperator.NAME, DataTypes.BOOLEAN,
+                        createReference("x", DataTypes.INTEGER), Literal.newLiteral(10)));
+
+        generator.convert(new WhereClause(query));
+    }
 }
