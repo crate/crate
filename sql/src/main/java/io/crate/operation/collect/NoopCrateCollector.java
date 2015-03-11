@@ -34,7 +34,7 @@ public class NoopCrateCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+    public void doCollect(RamAccountingContext ramAccountingContext) {
         downstream.finish();
     }
 }

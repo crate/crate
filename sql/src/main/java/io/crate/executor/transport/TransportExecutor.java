@@ -45,7 +45,6 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
-import org.elasticsearch.action.bulk.BulkRetryCoordinator;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -240,20 +239,27 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public ImmutableList<Task> visitCollectNode(CollectNode node, UUID jobId) {
             node.jobId(jobId); // add jobId to collectNode
             if (node.isRouted()) {
-                return singleTask(new RemoteCollectTask(
+                return singleTask(
+                    new RemoteCollectTask(
                         jobId,
                         node,
                         transportActionProvider.transportCollectNodeAction(),
                         transportActionProvider.transportCloseContextNodeAction(),
                         handlerSideDataCollectOperation,
+                        globalProjectionToProjectionVisitor,
                         statsTables,
-                        circuitBreaker));
+                        circuitBreaker
+                    )
+                );
             } else {
-                return singleTask(new LocalCollectTask(
-                        jobId,
-                        handlerSideDataCollectOperation,
-                        node,
-                        circuitBreaker));
+                return singleTask(
+                        new LocalCollectTask(
+                            jobId,
+                            handlerSideDataCollectOperation,
+                            node,
+                            circuitBreaker
+                        )
+                );
             }
 
         }

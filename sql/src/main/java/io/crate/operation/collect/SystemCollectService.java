@@ -111,7 +111,7 @@ public class SystemCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+        public void doCollect(RamAccountingContext ramAccountingContext) {
             for (R row : rows) {
                 for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
@@ -124,8 +124,7 @@ public class SystemCollectService implements CollectService {
 
                 if (!downstream.setNextRow(this.row)) {
                     // no more rows required, we can stop here
-                    downstream.finish();
-                    throw new CollectionAbortedException();
+                    break;
                 }
             }
             downstream.finish();

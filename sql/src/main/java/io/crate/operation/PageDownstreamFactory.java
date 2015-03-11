@@ -31,7 +31,6 @@ import io.crate.operation.merge.NonSortingBucketMerger;
 import io.crate.operation.merge.SortingBucketMerger;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -72,7 +71,7 @@ public class PageDownstreamFactory {
     }
 
     public PageDownstream createMergeNodePageDownstream(MergeNode mergeNode,
-                                                        ResultProvider resultProvider,
+                                                        RowDownstream rowDownstream,
                                                         RamAccountingContext ramAccountingContext,
                                                         Optional<Executor> executorOptional) {
         BucketMerger bucketMerger;
@@ -87,16 +86,30 @@ public class PageDownstreamFactory {
         } else {
             bucketMerger = new NonSortingBucketMerger(executorOptional);
         }
-        FlatProjectorChain flatProjectorChain = new FlatProjectorChain(mergeNode.projections(),
-                this.projectionToProjectorVisitor,
-                ramAccountingContext,
-                Optional.of(resultProvider),
-                Optional.fromNullable(mergeNode.jobId()),
-                Optional.fromNullable(mergeNode.jobSearchContextIdToNode()),
-                Optional.fromNullable(mergeNode.jobSearchContextIdToShard())
-        );
-        bucketMerger.downstream(flatProjectorChain.firstProjector());
-        flatProjectorChain.startProjections();
+
+        FlatProjectorChain projectorChain = null;
+        if (!mergeNode.projections().isEmpty()) {
+            projectorChain = FlatProjectorChain.withAttachedDownstream(
+                    projectionToProjectorVisitor,
+                    ramAccountingContext,
+                    mergeNode.projections(),
+                    rowDownstream,
+                    Optional.fromNullable(mergeNode.jobId()),
+                    Optional.fromNullable(mergeNode.jobSearchContextIdToNode()),
+                    Optional.fromNullable(mergeNode.jobSearchContextIdToShard())
+            );
+            rowDownstream = projectorChain.firstProjector();
+        }
+
+        bucketMerger.downstream(rowDownstream);
+
+        if (projectorChain != null) {
+            // startProjections MUST be called after rowDownstream was passed to bucketMerger,
+            // otherwise the registered upstream of the projections are null and they will
+            // finish immediately
+            projectorChain.startProjections();
+        }
+
         return bucketMerger;
     }
 }

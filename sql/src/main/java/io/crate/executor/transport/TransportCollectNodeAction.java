@@ -24,14 +24,15 @@ package io.crate.executor.transport;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.transport.distributed.DistributingDownstream;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.operation.collect.DistributingCollectOperation;
-import io.crate.operation.collect.LocalCollectOperation;
+import io.crate.operation.collect.NonDistributingCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
@@ -48,7 +49,6 @@ import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
@@ -60,7 +60,7 @@ public class TransportCollectNodeAction {
     private final TransportService transportService;
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
-    private final LocalCollectOperation localDataCollector;
+    private final NonDistributingCollectOperation nonDistributingCollectOperation;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final String executor = ThreadPool.Names.SEARCH;
     private final DistributingCollectOperation distributingCollectOperation;
@@ -71,7 +71,7 @@ public class TransportCollectNodeAction {
     public TransportCollectNodeAction(ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
-                                      LocalCollectOperation localDataCollector,
+                                      NonDistributingCollectOperation nonDistributingCollectOperation,
                                       DistributingCollectOperation distributingCollectOperation,
                                       PlanNodeStreamerVisitor planNodeStreamerVisitor,
                                       StatsTables statsTables,
@@ -79,7 +79,7 @@ public class TransportCollectNodeAction {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
-        this.localDataCollector = localDataCollector;
+        this.nonDistributingCollectOperation = nonDistributingCollectOperation;
         this.distributingCollectOperation = distributingCollectOperation;
         this.planNodeStreamerVisitor = planNodeStreamerVisitor;
         this.statsTables = statsTables;
@@ -96,57 +96,69 @@ public class TransportCollectNodeAction {
     }
 
     private void nodeOperation(final NodeCollectRequest request,
-                               final ActionListener<NodeCollectResponse> collectResponse) {
+                               final ActionListener<NodeCollectResponse> collectResponseListener) {
         final CollectNode node = request.collectNode();
-        final ListenableFuture<Bucket> collectResult;
-
         final UUID operationId;
         if (node.jobId().isPresent()) {
             operationId = UUID.randomUUID();
             statsTables.operationStarted(operationId, node.jobId().get(), node.id());
         } else {
-            collectResponse.onFailure(new IllegalArgumentException("no jobId given for CollectOperation"));
+            collectResponseListener.onFailure(new IllegalArgumentException("no jobId given for CollectOperation"));
             return;
         }
         String ramAccountingContextId = String.format("%s: %s", node.id(), operationId);
         final RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
+        final NodeCollectResponse response = new NodeCollectResponse(
+                planNodeStreamerVisitor.process(node, ramAccountingContext).outputStreamers());
         try {
             if (node.hasDownstreams()) {
-                collectResult = distributingCollectOperation.collect(node, ramAccountingContext);
+                DistributingDownstream downstream = distributingCollectOperation.createDownstream(node);
+                Futures.addCallback(downstream, new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(@Nullable Void result) {
+                        response.rows(Bucket.EMPTY);
+                        collectResponseListener.onResponse(response);
+                        statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
+                        ramAccountingContext.close();
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        collectResponseListener.onFailure(t);
+                        statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                                ramAccountingContext.totalBytes());
+                        ramAccountingContext.close();
+                    }
+                });
+                distributingCollectOperation.collect(node, downstream, ramAccountingContext);
             } else {
-                collectResult = localDataCollector.collect(node, ramAccountingContext);
+                SingleBucketBuilder downstream = nonDistributingCollectOperation.createDownstream(node);
+                Futures.addCallback(downstream.result(), new FutureCallback<Bucket>() {
+                    @Override
+                    public void onSuccess(@Nullable Bucket result) {
+                        response.rows(result);
+                        collectResponseListener.onResponse(response);
+                        statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
+                        ramAccountingContext.close();
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        collectResponseListener.onFailure(t);
+                        statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                                ramAccountingContext.totalBytes());
+                        ramAccountingContext.close();
+                    }
+                });
+                nonDistributingCollectOperation.collect(node, downstream, ramAccountingContext);
             }
-        } catch (Throwable e){
+        } catch (Throwable e) {
             logger.error("Error when creating result futures", e);
-            collectResponse.onFailure(e);
-            statsTables.operationFinished(operationId, Exceptions.messageOf(e),
-                    ramAccountingContext.totalBytes());
+            collectResponseListener.onFailure(e);
+            statsTables.operationFinished(operationId, Exceptions.messageOf(e), ramAccountingContext.totalBytes());
             ramAccountingContext.close();
-            return;
         }
-
-        Futures.addCallback(collectResult, new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(@Nullable Bucket result) {
-                assert result != null;
-                NodeCollectResponse response = new NodeCollectResponse(
-                        planNodeStreamerVisitor.process(node, ramAccountingContext).outputStreamers());
-                response.rows(result);
-
-                collectResponse.onResponse(response);
-                statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
-                ramAccountingContext.close();
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                collectResponse.onFailure(t);
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
-                        ramAccountingContext.totalBytes());
-                ramAccountingContext.close();
-            }
-        });
     }
 
     private class AsyncAction {

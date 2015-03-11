@@ -21,11 +21,11 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Optional;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.projectors.ResultProvider;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -37,7 +37,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 @Singleton
-public class LocalCollectOperation extends MapSideDataCollectOperation<ResultProvider> {
+public class LocalCollectOperation extends MapSideDataCollectOperation<RowDownstream> {
 
     @Inject
     public LocalCollectOperation(ClusterService clusterService,
@@ -58,8 +58,7 @@ public class LocalCollectOperation extends MapSideDataCollectOperation<ResultPro
     }
 
     @Override
-    protected Optional<ResultProvider> createResultResultProvider(CollectNode node) {
-        // let the projectorChain choose
-        return Optional.absent();
+    public RowDownstream createDownstream(CollectNode node) {
+        return new CollectingProjector();
     }
 }
