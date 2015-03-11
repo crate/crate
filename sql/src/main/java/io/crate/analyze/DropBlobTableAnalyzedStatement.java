@@ -45,7 +45,7 @@ public class DropBlobTableAnalyzedStatement extends AbstractDropTableAnalyzedSta
         if (tableInfo == null) {
             this.noop = true;
         }
-        if (tableInfo == null && !ignoreNonExistentTable) {
+        if (tableInfo == null && !dropIfExists) {
             throw new TableUnknownException(tableIdent.name());
         } else if (!noop && tableInfo.isAlias()) {
             throw new UnsupportedOperationException("Table alias not allowed in DROP BLOB TABLE statement.");

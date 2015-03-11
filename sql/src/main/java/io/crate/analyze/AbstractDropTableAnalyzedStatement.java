@@ -26,14 +26,15 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 
 public abstract class AbstractDropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+
     protected final ReferenceInfos referenceInfos;
     protected TableInfo tableInfo;
-    protected boolean ignoreNonExistentTable;
+    protected boolean dropIfExists;
     protected boolean noop;
 
-    public AbstractDropTableAnalyzedStatement(ReferenceInfos referenceInfos, boolean ignoreNonExistentTable) {
+    public AbstractDropTableAnalyzedStatement(ReferenceInfos referenceInfos, boolean dropIfExists) {
         this.referenceInfos = referenceInfos;
-        this.ignoreNonExistentTable = ignoreNonExistentTable;
+        this.dropIfExists = dropIfExists;
     }
 
     public String index() {
@@ -54,8 +55,8 @@ public abstract class AbstractDropTableAnalyzedStatement extends AbstractDDLAnal
     public boolean noop(){
         return noop;
     }
-    public boolean ignoreNonExistentTable() {
-        return ignoreNonExistentTable;
+    public boolean dropIfExists() {
+        return dropIfExists;
     }
 
     @Override

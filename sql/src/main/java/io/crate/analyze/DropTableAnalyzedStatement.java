@@ -37,6 +37,10 @@ public class DropTableAnalyzedStatement extends AbstractDropTableAnalyzedStateme
     public void table(TableIdent tableIdent) {
         SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
         if (schemaInfo == null) {
+            if (dropIfExists) {
+                noop = true;
+                return;
+            }
             throw new SchemaUnknownException(tableIdent.schema());
         }
         if (schemaInfo.systemSchema()) {
@@ -48,7 +52,7 @@ public class DropTableAnalyzedStatement extends AbstractDropTableAnalyzedStateme
         if (tableInfo == null) {
             this.noop = true;
         }
-        if (tableInfo == null && !ignoreNonExistentTable) {
+        if (tableInfo == null && !dropIfExists) {
             throw new TableUnknownException(tableIdent.fqn());
         } else if (tableInfo != null && tableInfo.isAlias() && !tableInfo.isPartitioned()) {
             throw new UnsupportedOperationException("Table alias not allowed in DROP TABLE statement.");

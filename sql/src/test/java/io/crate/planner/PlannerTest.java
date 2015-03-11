@@ -947,6 +947,12 @@ public class PlannerTest {
     }
 
     @Test
+    public void testDropTableIfExistsWithUnknownSchema() throws Exception {
+        Plan plan = plan("drop table if exists unknown_schema.unknwon_table");
+        assertThat(plan, instanceOf(NoopPlan.class));
+    }
+
+    @Test
     public void testDropTableIfExists() throws Exception {
         IterablePlan plan = (IterablePlan) plan("drop table if exists users");
         Iterator<PlanNode> iterator = plan.iterator();

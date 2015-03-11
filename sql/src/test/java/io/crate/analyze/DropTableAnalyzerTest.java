@@ -90,11 +90,17 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testDropTableIfExistsWithUnknownSchema() throws Exception {
+        // shouldn't raise SchemaUnknownException / TableUnknownException
+        analyze("drop table if exists unknown_schema.unknown");
+    }
+
+    @Test
     public void testDropExistingTable() throws Exception {
         AnalyzedStatement analyzedStatement = analyze(format(ENGLISH, "drop table %s", TEST_DOC_TABLE_IDENT.name()));
         assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
-        assertThat(dropTableAnalysis.ignoreNonExistentTable(), is(false));
+        assertThat(dropTableAnalysis.dropIfExists(), is(false));
         assertThat(dropTableAnalysis.index(), is(TEST_DOC_TABLE_IDENT.name()));
     }
 
@@ -103,7 +109,7 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
         AnalyzedStatement analyzedStatement = analyze(format(ENGLISH, "drop table if exists %s", TEST_DOC_TABLE_IDENT.name()));
         assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
-        assertThat(dropTableAnalysis.ignoreNonExistentTable(), is(true));
+        assertThat(dropTableAnalysis.dropIfExists(), is(true));
         assertThat(dropTableAnalysis.index(), is(TEST_DOC_TABLE_IDENT.name()));
     }
 
@@ -112,6 +118,6 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
         AnalyzedStatement analyzedStatement = analyze("drop table if exists unknowntable");
         assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
-        assertThat(dropTableAnalysis.ignoreNonExistentTable(), is(true));
+        assertThat(dropTableAnalysis.dropIfExists(), is(true));
     }
 }
