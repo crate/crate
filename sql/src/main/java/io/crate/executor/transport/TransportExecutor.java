@@ -225,19 +225,26 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public ImmutableList<Task> visitCollectNode(CollectNode node, UUID jobId) {
             node.jobId(jobId); // add jobId to collectNode
             if (node.isRouted()) {
-                return singleTask(new RemoteCollectTask(
+                return singleTask(
+                    new RemoteCollectTask(
                         jobId,
                         node,
                         transportActionProvider.transportCollectNodeAction(),
                         handlerSideDataCollectOperation,
+                        globalProjectionToProjectionVisitor,
                         statsTables,
-                        circuitBreaker));
+                        circuitBreaker
+                    )
+                );
             } else {
-                return singleTask(new LocalCollectTask(
-                        jobId,
-                        handlerSideDataCollectOperation,
-                        node,
-                        circuitBreaker));
+                return singleTask(
+                        new LocalCollectTask(
+                            jobId,
+                            handlerSideDataCollectOperation,
+                            node,
+                            circuitBreaker
+                        )
+                );
             }
 
         }

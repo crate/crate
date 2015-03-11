@@ -34,7 +34,6 @@ import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.core.Is.is;
 
 @SuppressWarnings({"unchecked", "NullArgumentToVariableArgMethod"})
@@ -344,23 +343,6 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{null},
                 -100,
                 TopN.NO_OFFSET);
-    }
-
-
-    @Test
-    public void testNoUpstreams() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
-                2,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{null},
-                2,
-                0
-        );
-        projector.startProjection();
-        assertThat(projector.result().get(), emptyIterable());
     }
 
     @Test

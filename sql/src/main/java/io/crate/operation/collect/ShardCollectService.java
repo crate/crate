@@ -35,7 +35,6 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
@@ -69,7 +68,6 @@ public class ShardCollectService {
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final boolean isBlobShard;
-    private final Functions functions;
     private final BlobIndices blobIndices;
 
     @Inject
@@ -99,7 +97,6 @@ public class ShardCollectService {
         this.cacheRecycler = cacheRecycler;
         this.pageCacheRecycler = pageCacheRecycler;
         this.bigArrays = bigArrays;
-        this.functions = functions;
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
@@ -139,7 +136,7 @@ public class ShardCollectService {
     public CrateCollector getCollector(CollectNode collectNode,
                                        ShardProjectorChain projectorChain) throws Exception {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
-        Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
+        RowDownstream downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
@@ -190,7 +187,6 @@ public class ShardCollectService {
                 bigArrays,
                 docCtx.topLevelInputs(),
                 docCtx.docLevelExpressions(),
-                functions,
                 collectNode.whereClause(),
                 downstream);
     }

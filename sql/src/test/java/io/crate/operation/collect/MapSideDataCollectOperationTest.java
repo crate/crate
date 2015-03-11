@@ -22,9 +22,9 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.FileUriCollectNode;
@@ -121,8 +121,10 @@ public class MapSideDataCollectOperationTest {
                 false
         );
         PlanNodeBuilder.setOutputTypes(collectNode);
-        Bucket objects = collectOperation.collect(collectNode, null).get();
-        assertThat(objects, contains(
+        CollectingProjector cd = new CollectingProjector();
+        cd.startProjection();
+        collectOperation.collect(collectNode, cd, null);
+        assertThat(cd.result().get(), contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)
 

@@ -41,6 +41,7 @@ import io.crate.operation.Input;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
@@ -372,7 +373,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
             }});
         }}));
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        operation.collect(collectNode, null);
+        operation.collect(collectNode, new CollectingProjector(), null);
     }
 
     @Test
@@ -491,7 +492,10 @@ public class LocalDataCollectTest extends CrateUnitTest {
     }
 
     private Bucket getBucket(CollectNode collectNode) throws InterruptedException, ExecutionException {
-        return operation.collect(collectNode, null).get();
+        CollectingProjector cd = new CollectingProjector();
+        cd.startProjection();
+        operation.collect(collectNode, cd, null);
+        return cd.result().get();
     }
 
     @Test
@@ -513,7 +517,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.whereClause(new WhereClause(
-                new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(0)))));
+                new Function(op.info(), Arrays.asList(testShardIdReference, Literal.newLiteral(0)))));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Bucket result = getBucket(collectNode);
         assertThat(result, contains(isRow(0)));
@@ -522,7 +526,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
     @Test
     public void testCollectShardExpressionsLiteralsAndNodeExpressions() throws Exception {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
-        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(true), testNodeReference));
+        collectNode.toCollect(Arrays.asList(testShardIdReference, Literal.newLiteral(true), testNodeReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Bucket result = getBucket(collectNode);
         assertThat(result.size(), is(2));

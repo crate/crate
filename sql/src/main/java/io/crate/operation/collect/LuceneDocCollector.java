@@ -27,7 +27,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.Functions;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -66,7 +65,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
     private RamAccountingContext ramAccountingContext;
-    private LuceneQueryBuilder luceneQueryBuilder;
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -114,10 +112,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               BigArrays bigArrays,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              Functions functions,
                               WhereClause whereClause,
                               RowDownstream downStreamProjector) throws Exception {
-        this.luceneQueryBuilder = luceneQueryBuilder;
         this.downstream = downStreamProjector.registerUpstream(this);
         SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
@@ -194,7 +190,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+    public void doCollect(RamAccountingContext ramAccountingContext) {
         this.ramAccountingContext = ramAccountingContext;
         // start collect
         CollectorContext collectorContext = new CollectorContext()
@@ -213,16 +209,15 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         // do the lucene search
         try {
             searchContext.searcher().search(query, this);
-            downstream.finish();
-        } catch (CollectionAbortedException e) {
-            // yeah, that's ok! :)
-            downstream.finish();
+        } catch (CollectionAbortedException cae) {
+            // ok, we stopped lucene from searching unnecessary leaf readers
         } catch (Exception e) {
             downstream.fail(e);
-            throw e;
+            return;
         } finally {
             searchContext.close();
             SearchContext.removeCurrent();
         }
+        downstream.finish();
     }
 }
