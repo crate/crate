@@ -5,42 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed an issue that could cause the response to contain the wrong types
-   (e.g. integer instead of long)
-
- - Fix: Sorting on a scalar with a column containing NULL values as
-   argument no longer throws an NPE
-
- - Fix: group by on clustered by column on a partitioned table now produces
-   correct results for groups spanning different partitions
-
- - Fixed an issue that caused errors to be swallowed and caused queries to not
-   terminate correctly.
-
- - Fix: COPY FROM and INSERT from subquery into a partitioned table created
-   separate tables with a wrong name instead of correct partitions
-
  - COPY FROM / COPY TO will now automatically create a quoted URI if only a
    path is given.
-
- - Upgrade Elasticsearch to v1.4.4
 
  - Updated crash to version 0.11.4 which contains following changes:
 
     - Fix: print stacktrace when crash is launched in verbose mode
 
     - Fix: query duration was rounded incorrectly to second precision
-
- - Updated crate-admin to version 0.11.4 which contains following changes:
-
-    - fix: calculate health for each partition of a partitioned table
-      based on the number of shards of that partition
-
- - Fix: number_of_shards and number_of_replicas are now correctly applied
-   through the whole lifetime of a partitioned table and its partitions
-
- - Added columns ``number_of_shards`` and ``number_of_replicas`` to
-   table ``information_schema.table_partitions``
 
  - Support `ON DUPLICATE KEY UPDATE` while inserting using a query.
 
@@ -68,6 +40,27 @@ Unreleased
 
  - Added support for the ``IF EXISTS`` clause to ``DROP TABLE`` and
    ``DROP BLOB TABLE``
+
+2015/03/11 0.47.6
+=================
+
+ - Fixed an issue with custom schemas that could cause select statements on the
+   ``information_schema.tables`` table to result in a NPE.
+
+ - Fixed an issue that could cause the response to contain the wrong types
+   (e.g. integer instead of long)
+
+ - Fix: Sorting on a scalar with a column containing NULL values as
+   argument no longer throws an NPE
+
+ - Fix: group by on clustered by column on a partitioned table now produces
+   correct results for groups spanning different partitions
+
+ - Fixed an issue that caused errors to be swallowed and caused queries to not
+   terminate correctly.
+
+ - Fix: COPY FROM and INSERT from subquery into a partitioned table created
+   separate tables with a wrong name instead of correct partitions
 
 2015/03/09 0.47.5
 =================
