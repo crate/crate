@@ -2,8 +2,8 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2015/03/11 0.47.6
+=================
 
  - Fixed an issue with custom schemas that could cause select statements on the
    ``information_schema.tables`` table to result in a NPE.
