@@ -26,11 +26,7 @@ import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.pending_transfer.HeadChunkFileTooSmallException;
 import io.crate.blob.pending_transfer.PutHeadChunkRunnable;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -39,6 +35,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -46,20 +45,8 @@ import static org.mockito.Mockito.*;
 
 public class BlobHeadRequestHandlerTests {
 
-    protected ThreadPool threadPool;
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void setUp() throws Exception {
-        threadPool = new ThreadPool(getClass().getName());
-    }
-
-    @After
-    public void tearDown() {
-        threadPool.shutdown();
-    }
 
     @Test
     public void testPutHeadChunkRunnableFileGrowth() throws Exception {
@@ -73,42 +60,47 @@ public class BlobHeadRequestHandlerTests {
         TransportService transportService = mock(TransportService.class);
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
 
-        threadPool.schedule(TimeValue.timeValueMillis(800), ThreadPool.Names.GENERIC, new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    outputStream.write(new byte[] { 0x66, 0x67, 0x68, 0x69 });
-                } catch (IOException ex) {
-                    //pass
+        ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+        try {
+            scheduledExecutor.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        outputStream.write(new byte[] { 0x66, 0x67, 0x68, 0x69 });
+                    } catch (IOException ex) {
+                        //pass
+                    }
                 }
-            }
-        });
+            }, 800, TimeUnit.MILLISECONDS);
+            PutHeadChunkRunnable runnable = new PutHeadChunkRunnable(
+                    file, 5, transportService, blobTransferTarget, discoveryNode, transferId
+            );
 
-        PutHeadChunkRunnable runnable = new PutHeadChunkRunnable(
-            file, 5, transportService, blobTransferTarget, discoveryNode, transferId
-        );
+            @SuppressWarnings("unchecked")
+            TransportFuture<TransportResponse.Empty> result = mock(TransportFuture.class);
 
-        @SuppressWarnings("unchecked")
-        TransportFuture<TransportResponse.Empty> result = mock(TransportFuture.class);
+            when(transportService.submitRequest(
+                    eq(discoveryNode),
+                    eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
+                    any(TransportRequest.class),
+                    any(TransportRequestOptions.class),
+                    eq(EmptyTransportResponseHandler.INSTANCE_SAME)
+            )).thenReturn(result);
 
-        when(transportService.submitRequest(
-            eq(discoveryNode),
-            eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
-            any(TransportRequest.class),
-            any(TransportRequestOptions.class),
-            eq(EmptyTransportResponseHandler.INSTANCE_SAME)
-        )).thenReturn(result);
+            runnable.run();
 
-        runnable.run();
-
-        verify(blobTransferTarget).putHeadChunkTransferFinished(transferId);
-        verify(transportService, times(2)).submitRequest(
-            eq(discoveryNode),
-            eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
-            any(TransportRequest.class),
-            any(TransportRequestOptions.class),
-            eq(EmptyTransportResponseHandler.INSTANCE_SAME)
-        );
+            verify(blobTransferTarget).putHeadChunkTransferFinished(transferId);
+            verify(transportService, times(2)).submitRequest(
+                    eq(discoveryNode),
+                    eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
+                    any(TransportRequest.class),
+                    any(TransportRequestOptions.class),
+                    eq(EmptyTransportResponseHandler.INSTANCE_SAME)
+            );
+        } finally {
+            scheduledExecutor.awaitTermination(1, TimeUnit.SECONDS);
+            scheduledExecutor.shutdownNow();
+        }
     }
 
     @Test

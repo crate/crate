@@ -104,6 +104,14 @@ public class PutHeadChunkRunnable implements Runnable {
             logger.error("IOException in PutHeadChunkRunnable", ex);
         } finally {
             blobTransferTarget.putHeadChunkTransferFinished(transferId);
+            if (watcher != null) {
+                try {
+                    watcher.close();
+                } catch (IOException e) {
+                    logger.error("Error closing WatchService in {}", e, getClass().getSimpleName());
+                }
+            }
+
         }
     }
 
