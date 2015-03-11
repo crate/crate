@@ -65,7 +65,6 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
 
     @Override
     public void startProjection() {
-        assert remainingUpstreams.get()>0;
     }
 
     @Override

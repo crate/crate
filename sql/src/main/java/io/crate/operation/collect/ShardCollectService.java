@@ -39,7 +39,6 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
@@ -153,7 +152,7 @@ public class ShardCollectService {
                                        JobCollectContext jobCollectContext,
                                        int jobSearchContextId) throws Exception {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
-        Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
+        RowDownstream downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);

@@ -22,9 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.Streamer;
-import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -51,24 +49,14 @@ public class NodeCollectResponse extends TransportResponse {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        Object[][] rows = new Object[in.readVInt()][];
-        for (int r = 0; r < rows.length; r++) {
-            rows[r] = new Object[streamers.length];
-            for (int c = 0; c < rows[r].length; c++) {
-                rows[r][c] = streamers[c].readValueFrom(in);
-            }
-        }
-        this.rows = new ArrayBucket(rows);
+        StreamBucket bucket = new StreamBucket(streamers);
+        bucket.readFrom(in);
+        rows = bucket;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(rows.size());
-        for (Row row : rows) {
-            for (int c = 0; c < streamers.length; c++) {
-                streamers[c].writeValueTo(out, row.get(c));
-            }
-        }
+        StreamBucket.writeBucket(out, streamers, rows);
     }
 }

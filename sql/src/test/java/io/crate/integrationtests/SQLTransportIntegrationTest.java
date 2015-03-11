@@ -45,7 +45,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import java.io.IOException;
 import java.util.Map;
 
-public class SQLTransportIntegrationTest extends CrateIntegrationTest {
+public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);

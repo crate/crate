@@ -99,7 +99,7 @@ public class LuceneDocFetcher implements RowUpstream {
 
     }
 
-    public void doFetch(RamAccountingContext ramAccountingContext) throws Exception {
+    public void doFetch(RamAccountingContext ramAccountingContext) {
         this.ramAccountingContext = ramAccountingContext;
 
         jobCollectContext.acquireContext(searchContext);
@@ -128,7 +128,7 @@ public class LuceneDocFetcher implements RowUpstream {
             downstream.finish();
         } catch (Exception e) {
             downstream.fail(e);
-            throw e;
+            return;
         } finally {
             jobCollectContext.releaseContext(searchContext);
             if (closeContext) {
