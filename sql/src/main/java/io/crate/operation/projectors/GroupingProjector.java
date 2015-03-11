@@ -108,10 +108,6 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         for (CollectExpression collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
-
-        if (remainingUpstreams.get() <= 0) {
-            finish();
-        }
     }
 
     @Override

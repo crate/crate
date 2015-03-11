@@ -26,19 +26,18 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.collect.*;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.RowUpstream;
+import io.crate.operation.collect.CollectContextService;
+import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -51,7 +50,7 @@ import java.util.UUID;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
-public class NodeFetchOperation {
+public class NodeFetchOperation implements RowUpstream {
 
     private final UUID jobId;
     private final List<Reference> toFetchReferences;
@@ -109,13 +108,8 @@ public class NodeFetchOperation {
         }
     }
 
-    public ListenableFuture<Bucket> fetch() throws Exception {
+    public void fetch(RowDownstream rowDownstream) throws Exception {
         int numShards = shardBuckets.size();
-        ShardProjectorChain projectorChain = new ShardProjectorChain(numShards,
-                ImmutableList.<Projection>of(), null, ramAccountingContext);
-
-        final ShardCollectFuture result = new MapSideDataCollectOperation.SimpleShardCollectFuture(
-                numShards, projectorChain.resultProvider().result(), collectContextService, jobId);
 
         JobCollectContext jobCollectContext = collectContextService.acquireContext(jobId, false);
         if (jobCollectContext == null) {
@@ -124,8 +118,7 @@ public class NodeFetchOperation {
             throw new IllegalArgumentException(errorMsg);
         }
 
-        Projector downstream = projectorChain.newShardDownstreamProjector(null);
-        RowDownstream upstreamsRowMerger = new PositionalRowMerger(downstream, toFetchReferences.size());
+        RowDownstream upstreamsRowMerger = new PositionalRowMerger(rowDownstream, toFetchReferences.size());
 
         List<LuceneDocFetcher> shardFetchers = new ArrayList<>(numShards);
         for (IntObjectCursor<ShardDocIdsBucket> entry : shardBuckets) {
@@ -149,24 +142,20 @@ public class NodeFetchOperation {
                             closeContext));
         }
 
-
-        // start the projection
-        projectorChain.startProjections();
         try {
-            runFetchThreaded(result, shardFetchers, ramAccountingContext);
+            runFetchThreaded(shardFetchers, ramAccountingContext);
         } catch (RejectedExecutionException e) {
-            result.shardFailure(e);
+            rowDownstream.registerUpstream(this).fail(e);
         }
+
+        collectContextService.releaseContext(jobId);
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("started {} shardFetchers", numShards);
         }
-
-        return result;
     }
 
-    private void runFetchThreaded(final ShardCollectFuture result,
-                                  final List<LuceneDocFetcher> shardFetchers,
+    private void runFetchThreaded(final List<LuceneDocFetcher> shardFetchers,
                                   final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
         int availableThreads = Math.max(poolSize - executor.getActiveCount(), 2);
         if (availableThreads < shardFetchers.size()) {
@@ -177,7 +166,7 @@ public class NodeFetchOperation {
                     @Override
                     public void run() {
                         for (LuceneDocFetcher fetcher : fetchers) {
-                            doFetch(result, fetcher, ramAccountingContext);
+                            fetcher.doFetch(ramAccountingContext);
                         }
                     }
                 });
@@ -187,26 +176,10 @@ public class NodeFetchOperation {
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
-                        doFetch(result, fetcher, ramAccountingContext);
+                        fetcher.doFetch(ramAccountingContext);
                     }
                 });
             }
-        }
-    }
-
-
-    private void doFetch(ShardCollectFuture result, LuceneDocFetcher fetcher,
-                         RamAccountingContext ramAccountingContext) {
-        try {
-            fetcher.doFetch(ramAccountingContext);
-            result.shardFinished();
-        } catch (FetchAbortedException ex) {
-            // ignore
-        } catch (Exception ex) {
-            result.shardFailure(ex);
-        }
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("shard finished fetch, {} to go", result.numShards());
         }
     }
 

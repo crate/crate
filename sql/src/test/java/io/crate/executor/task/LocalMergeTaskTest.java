@@ -124,7 +124,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                         new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver)
                 );
                 ResultProvider resultProvider = (ResultProvider)invocation.getArguments()[1];
-                FlatProjectorChain projectorChain = new FlatProjectorChain(mergeNode.projections(), projectionToProjectorVisitor, mock(RamAccountingContext.class), Optional.of(resultProvider));
+                FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(projectionToProjectorVisitor, mock(RamAccountingContext.class), mergeNode.projections(), resultProvider);
                 nonSortingBucketMerger.downstream(projectorChain.firstProjector());
                 projectorChain.startProjections();
                 return nonSortingBucketMerger;

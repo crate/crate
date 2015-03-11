@@ -667,8 +667,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response = executor.exec("select * from sys.cluster where current_timestamp = current_timestamp");
         assertThat(response.rowCount(), is(1L));
 
-        response = executor.exec("select * from sys.cluster where current_timestamp > current_timestamp");
-        assertThat(response.rowCount(), is(0L));
+        SQLResponse newResponse = executor.exec("select * from sys.cluster where current_timestamp > current_timestamp");
+        assertThat(newResponse.rowCount(), is(0L));
     }
 
 }

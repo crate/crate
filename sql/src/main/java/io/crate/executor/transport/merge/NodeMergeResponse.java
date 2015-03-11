@@ -61,10 +61,10 @@ public class NodeMergeResponse extends TransportResponse {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (rows instanceof Streamable){
+        if (rows instanceof Streamable) {
             ((Streamable) rows).writeTo(out);
+        } else {
+            StreamBucket.writeBucket(out, streamers, rows);
         }
-        StreamBucket.StreamWriter writer = new StreamBucket.StreamWriter(out, streamers, rows.size());
-        writer.addAll(rows);
     }
 }

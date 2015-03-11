@@ -34,8 +34,12 @@ import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.*;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -61,6 +65,7 @@ public class RemoteCollectTask extends JobTask {
     private final CircuitBreaker circuitBreaker;
     private final AtomicInteger nodeResponses = new AtomicInteger(0);
     private final AtomicBoolean someNodeHasFailures = new AtomicBoolean(false);
+    private final ProjectionToProjectorVisitor clusterProjectorVisitor;
 
     private static final ESLogger LOGGER = Loggers.getLogger(RemoteCollectTask.class);
 
@@ -69,7 +74,9 @@ public class RemoteCollectTask extends JobTask {
                              TransportCollectNodeAction transportCollectNodeAction,
                              TransportCloseContextNodeAction transportCloseContextNodeAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
-                             StatsTables statsTables, CircuitBreaker circuitBreaker) {
+                             ProjectionToProjectorVisitor clusterProjectionToProjectorVisitor,
+                             StatsTables statsTables,
+                             CircuitBreaker circuitBreaker) {
         super(jobId);
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
@@ -77,6 +84,7 @@ public class RemoteCollectTask extends JobTask {
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
+        this.clusterProjectorVisitor = clusterProjectionToProjectorVisitor;
 
         Preconditions.checkArgument(collectNode.isRouted(),
                 "RemoteCollectTask currently only works for plans with routing"
@@ -111,7 +119,8 @@ public class RemoteCollectTask extends JobTask {
                     new ActionListener<NodeCollectResponse>() {
                         @Override
                         public void onResponse(NodeCollectResponse response) {
-                            ((SettableFuture<TaskResult>) result.get(resultIdx)).set(new QueryResult(response.rows()));
+                            ((SettableFuture<TaskResult>) result.get(resultIdx))
+                                    .set(new QueryResult(response.rows()));
                             if (nodeResponses.decrementAndGet() == 0 && someNodeHasFailures.get()) {
                                 freeAllContexts();
                             }
@@ -142,10 +151,18 @@ public class RemoteCollectTask extends JobTask {
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
+        FlatProjectorChain projectorChain = FlatProjectorChain.withResultProvider(
+                clusterProjectorVisitor,
+                ramAccountingContext,
+                collectNode.projections()
+        );
+        RowDownstream rowDownstream = projectorChain.firstProjector();
+        ResultProvider resultProvider = projectorChain.resultProvider();
+        assert resultProvider != null;
+        projectorChain.startProjections();
+        handlerSideDataCollectOperation.collect(collectNode, rowDownstream, ramAccountingContext);
 
-        ListenableFuture<Bucket> future = handlerSideDataCollectOperation.collect(
-                collectNode, ramAccountingContext);
-        Futures.addCallback(future, new FutureCallback<Bucket>() {
+        Futures.addCallback(resultProvider.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket rows) {
                 ramAccountingContext.close();

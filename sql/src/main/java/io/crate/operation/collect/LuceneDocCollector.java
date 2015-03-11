@@ -49,7 +49,7 @@ import java.util.List;
  * collect documents from ES shard, a lucene index
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
-
+    
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
         final HashSet<String> requiredFields;
@@ -187,7 +187,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+    public void doCollect(RamAccountingContext ramAccountingContext) {
         this.ramAccountingContext = ramAccountingContext;
         // start collect
         CollectorContext collectorContext = new CollectorContext()
@@ -223,12 +223,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             }
             downstream.finish();
         } catch (CollectionAbortedException e) {
-            // yeah, that's ok! :)
+            // ok, we stopped lucene from searching unnecessary leaf readers
             downstream.finish();
         } catch (Exception e) {
             failed = true;
             downstream.fail(e);
-            throw e;
+            return;
         } finally {
             jobCollectContext.releaseContext(searchContext);
             if (!keepContextForFetcher || !producedRows || failed) {
