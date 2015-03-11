@@ -112,6 +112,8 @@ public class SymbolBasedBulkShardProcessorTest {
             bulkShardProcessor.result().get();
         } catch (ExecutionException e) {
             throw e.getCause();
+        } finally {
+            bulkShardProcessor.close();
         }
     }
 
@@ -154,25 +156,30 @@ public class SymbolBasedBulkShardProcessorTest {
         Thread.sleep(1);
 
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
-        final AtomicBoolean hadBlocked = new AtomicBoolean(false);
-        final AtomicBoolean hasBlocked = new AtomicBoolean(true);
-        final CountDownLatch latch = new CountDownLatch(1);
-        scheduledExecutorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                scheduledExecutorService.schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        hadBlocked.set(hasBlocked.get());
-                        latch.countDown();
-                    }
-                }, 10, TimeUnit.MILLISECONDS);
-                bulkShardProcessor.add("foo", "2", new Object[]{"bar2"}, null, null);
-                hasBlocked.set(false);
-            }
-        });
-        latch.await();
-        assertTrue(hadBlocked.get());
+        try {
+            final AtomicBoolean hadBlocked = new AtomicBoolean(false);
+            final AtomicBoolean hasBlocked = new AtomicBoolean(true);
+            final CountDownLatch latch = new CountDownLatch(1);
+            scheduledExecutorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                    scheduledExecutorService.schedule(new Runnable() {
+                        @Override
+                        public void run() {
+                            hadBlocked.set(hasBlocked.get());
+                            latch.countDown();
+                        }
+                    }, 10, TimeUnit.MILLISECONDS);
+                    bulkShardProcessor.add("foo", "2", new Object[]{"bar2"}, null, null);
+                    hasBlocked.set(false);
+                }
+            });
+            latch.await();
+            assertTrue(hadBlocked.get());
+        } finally {
+            bulkShardProcessor.close();
+            scheduledExecutorService.shutdownNow();
+        }
     }
 
     private void mockShard(OperationRouting operationRouting, Integer shardId) {
