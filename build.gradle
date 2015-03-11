@@ -80,10 +80,11 @@ coveralls {
     jacocoProjects().each {
         evaluationDependsOn(it.name)
         if (it.plugins.withType(JavaPlugin) && it.tasks.withType(Test)) {
-            tmpSources << it.sourceSets.main.allSource.srcDirs
+            tmpSources << it.sourceSets.main.allSource.srcDirs.flatten()
         }
     }
     sourceDirs = files(tmpSources).files.absolutePath
+    jacocoReportPath = "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
 }
 
 
@@ -156,5 +157,5 @@ idea {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.1'
+    gradleVersion = '2.3'
 }
