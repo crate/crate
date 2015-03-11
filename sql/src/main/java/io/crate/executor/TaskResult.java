@@ -35,7 +35,7 @@ public interface TaskResult {
     RowCountResult ONE_ROW = new RowCountResult(1L);
     RowCountResult ROW_COUNT_UNKNOWN = new RowCountResult(-1L);
     RowCountResult FAILURE = new RowCountResult(-2L);
-    QueryResult EMPTY_RESULT = new QueryResult(EMPTY_OBJS);
+    QueryResult EMPTY_RESULT = new QueryResult(Bucket.EMPTY);
 
     Bucket rows();
 

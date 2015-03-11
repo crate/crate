@@ -21,28 +21,24 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
@@ -60,8 +56,6 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -69,7 +63,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
  */
-public abstract class MapSideDataCollectOperation<T extends ResultProvider> implements CollectOperation {
+public abstract class MapSideDataCollectOperation<T extends RowDownstream> implements CollectOperation, RowUpstream {
 
     protected final PlanNodeStreamerVisitor streamerVisitor;
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
@@ -78,31 +72,6 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
     private final ThreadPoolExecutor executor;
     private final int poolSize;
     private ESLogger logger = Loggers.getLogger(getClass());
-
-    private static class SimpleShardCollectFuture extends ShardCollectFuture {
-
-        private ListenableFuture<Bucket> upstreamResult;
-
-        public SimpleShardCollectFuture(int numShards, ListenableFuture<Bucket> upstreamResult) {
-            super(numShards);
-            this.upstreamResult = upstreamResult;
-        }
-
-        @Override
-        protected void onAllShardsFinished() {
-            Futures.addCallback(upstreamResult, new FutureCallback<Bucket>() {
-                @Override
-                public void onSuccess(@Nullable Bucket result) {
-                    set(result);
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    setException(t);
-                }
-            });
-        }
-    }
 
     private final IndicesService indicesService;
     protected final EvaluatingNormalizer nodeNormalizer;
@@ -140,7 +109,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
         this.streamerVisitor = streamerVisitor;
     }
 
-    protected abstract Optional<T> createResultResultProvider(CollectNode node);
+    public abstract T createDownstream(CollectNode node);
 
     /**
      * dispatch by the following criteria:
@@ -154,26 +123,18 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
      * -> run node level collect (cluster level)
      */
     @Override
-    public ListenableFuture<Bucket> collect(CollectNode collectNode,
-                                            RamAccountingContext ramAccountingContext) {
+    public void collect(CollectNode collectNode,
+                        RowDownstream downstream,
+                        RamAccountingContext ramAccountingContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
         String localNodeId = clusterService.localNode().id();
         if (collectNode.executionNodes().contains(localNodeId)) {
             if (!collectNode.routing().containsShards(localNodeId)) {
                 // node collect
-                T result;
-                try {
-                    result = handleNodeCollect(collectNode, ramAccountingContext);
-                } catch (Exception e) {
-                    return Futures.immediateFailedFuture(e);
-                }
-                if (result==null){
-                    return Futures.immediateFuture(Bucket.EMPTY);
-                }
-                return result.result();
+                handleNodeCollect(collectNode, downstream, ramAccountingContext);
             } else {
                 // shard or doc level
-                return handleShardCollect(collectNode, ramAccountingContext);
+                handleShardCollect(collectNode, downstream, ramAccountingContext);
             }
         }
         throw new UnhandledServerException("unsupported routing");
@@ -182,41 +143,30 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
     /**
      * collect data on node level only - one row per node expected
      *
-     * @param collectNode {@link io.crate.planner.node.dql.CollectNode} instance containing routing information and symbols to collect
-     * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
+     * @param collectNode {@link CollectNode} instance containing routing information and symbols to collect
+     * @param downstream  the receiver of the rows generated
      */
-    @Nullable
-    protected T handleNodeCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) throws Exception {
+    protected void handleNodeCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
         collectNode = collectNode.normalize(nodeNormalizer);
         if (collectNode.whereClause().noMatch()) {
-            return null;
+            downstream.registerUpstream(this).finish();
+            return;
         }
-        Optional<T> resultProjector = createResultResultProvider(collectNode);
-
-        @SuppressWarnings("unchecked")
-        FlatProjectorChain projectorChain = new FlatProjectorChain(
-                collectNode.projections(),
-                projectorVisitor,
-                ramAccountingContext,
-                (Optional<ResultProvider>) resultProjector);
-
-        CrateCollector collector = getCollector(collectNode, projectorChain);
-        projectorChain.startProjections();
-        try {
-            collector.doCollect(ramAccountingContext);
-        } catch (CollectionAbortedException ex) {
-            // ignore
+        if (!collectNode.projections().isEmpty()) {
+            FlatProjectorChain projectorChain = new FlatProjectorChain(
+                    collectNode.projections(),
+                    projectorVisitor,
+                    ramAccountingContext);
+            projectorChain.startProjections();
+            projectorChain.lastProjector().downstream(downstream);
+            downstream = projectorChain.firstProjector();
         }
-        if (resultProjector.isPresent()){
-            return resultProjector.get();
-        } else {
-            //noinspection unchecked
-            return (T) projectorChain.resultProvider();
-        }
+        CrateCollector collector = getCollector(collectNode, downstream);
+        collector.doCollect(ramAccountingContext);
     }
 
     private CrateCollector getCollector(CollectNode collectNode,
-                                        FlatProjectorChain projectorChain) throws Exception {
+                                        RowDownstream downstream) {
         if (collectNode instanceof FileUriCollectNode) {
             FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.process(collectNode);
             FileUriCollectNode fileUriCollectNode = (FileUriCollectNode) collectNode;
@@ -228,7 +178,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                     ValueSymbolVisitor.STRING.process(fileUriCollectNode.targetUri()),
                     context.topLevelInputs(),
                     context.expressions(),
-                    projectorChain.firstProjector(),
+                    downstream,
                     fileUriCollectNode.fileFormat(),
                     fileUriCollectNode.compression(),
                     ImmutableMap.<String, FileInputFactory>of(),
@@ -239,12 +189,12 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
         } else {
             CollectService service = collectServiceResolver.getService(collectNode.routing());
             if (service != null) {
-                return service.getCollector(collectNode, projectorChain.firstProjector());
+                return service.getCollector(collectNode, downstream);
             }
             ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(collectNode);
             assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
             return new SimpleOneRowCollector(
-                    ctx.topLevelInputs(), ctx.collectExpressions(), projectorChain.firstProjector());
+                    ctx.topLevelInputs(), ctx.collectExpressions(), downstream);
         }
     }
 
@@ -254,30 +204,27 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
      * collects data from each shard in a separate thread,
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      *
-     * @param collectNode {@link io.crate.planner.node.dql.CollectNode} containing routing information and symbols to collect
+     * @param collectNode {@link CollectNode} containing routing information and symbols to collect
+     * @param downstream
      * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.dql.CollectNode#routing}
      */
-    protected ListenableFuture<Bucket> handleShardCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
-
+    protected void handleShardCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
         String localNodeId = clusterService.localNode().id();
         final int numShards = collectNode.routing().numShards(localNodeId);
 
         collectNode = collectNode.normalize(nodeNormalizer);
 
-        //noinspection unchecked
+        if (collectNode.whereClause().noMatch()) {
+            downstream.registerUpstream(this).finish();
+            return;
+        }
+
         ShardProjectorChain projectorChain = new ShardProjectorChain(
                 numShards,
                 collectNode.projections(),
-                (Optional<ResultProvider>) createResultResultProvider(collectNode),
                 projectorVisitor, ramAccountingContext);
 
-        final ShardCollectFuture result = getShardCollectFuture(numShards, projectorChain, collectNode);
-
-        if (collectNode.whereClause().noMatch()) {
-            projectorChain.startProjections();
-            result.onAllShardsFinished();
-            return result;
-        }
+        //final ShardCollectFuture result = getShardCollectFuture(numShards, projectorChain, collectNode);
 
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
 
@@ -316,22 +263,20 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
         // start the projection
         projectorChain.startProjections();
         try {
-            runCollectThreaded(collectNode, result, shardCollectors, ramAccountingContext);
+            runCollectThreaded(collectNode, shardCollectors, ramAccountingContext);
         } catch (RejectedExecutionException e) {
             // on distributing collects the merge nodes need to be informed about the failure
             // so they can clean up their context
-            result.shardFailure(e);
+            // in order to fire the failure we need to add the operation directly as an upstream to get a handle
+            downstream.registerUpstream(this).fail(e);
+            return;
         }
-
         if (logger.isTraceEnabled()) {
             logger.trace("started {} shardCollectors", numShards);
         }
-
-        return result;
     }
 
     private void runCollectThreaded(CollectNode collectNode,
-                                    final ShardCollectFuture result,
                                     final List<CrateCollector> shardCollectors,
                                     final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
@@ -341,7 +286,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                 @Override
                 public void run() {
                     for (CrateCollector shardCollector : shardCollectors) {
-                        doCollect(result, shardCollector, ramAccountingContext);
+                        doCollect(shardCollector, ramAccountingContext);
                     }
                 }
             });
@@ -355,7 +300,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                         @Override
                         public void run() {
                             for (CrateCollector collector : collectors) {
-                                doCollect(result, collector, ramAccountingContext);
+                                doCollect(collector, ramAccountingContext);
                             }
                         }
                     });
@@ -365,7 +310,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                     executor.execute(new Runnable() {
                         @Override
                         public void run() {
-                            doCollect(result, shardCollector, ramAccountingContext);
+                            doCollect(shardCollector, ramAccountingContext);
                         }
                     });
                 }
@@ -374,32 +319,9 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
     }
 
 
-    private void doCollect(ShardCollectFuture result, CrateCollector shardCollector,
+    private void doCollect(CrateCollector shardCollector,
                            RamAccountingContext ramAccountingContext) {
-        try {
-            shardCollector.doCollect(ramAccountingContext);
-            result.shardFinished();
-        } catch (CollectionAbortedException ex) {
-            // ignore
-        } catch (Exception ex) {
-            result.shardFailure(ex);
-        }
-        if (logger.isTraceEnabled()) {
-            logger.trace("shard finished collect, {} to go", result.numShards());
-        }
-    }
-
-    /**
-     * chose the right ShardCollectFuture for this class
-     *
-     * @param numShards      number of shards until the result is considered complete
-     * @param projectorChain the projector chain to process the collected rows
-     * @param collectNode    in case any other properties need to be extracted
-     * @return a fancy ShardCollectFuture implementation
-     */
-    protected ShardCollectFuture getShardCollectFuture(
-            int numShards, ShardProjectorChain projectorChain, CollectNode collectNode) {
-        return new SimpleShardCollectFuture(numShards, projectorChain.resultProvider().result());
+        shardCollector.doCollect(ramAccountingContext);
     }
 
     protected Streamer<?>[] getStreamers(CollectNode node) {

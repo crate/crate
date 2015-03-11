@@ -21,6 +21,10 @@
 
 package io.crate.core.collections;
 
+import com.google.common.collect.Iterators;
+
+import java.util.Iterator;
+
 public class Buckets {
 
     public static Object[][] materialize(Bucket bucket) {
@@ -38,6 +42,20 @@ public class Buckets {
             res[i] = row.get(i);
         }
         return res;
+    }
+
+    public static Bucket of(final Row row) {
+        return new Bucket() {
+            @Override
+            public Iterator<Row> iterator() {
+                return Iterators.singletonIterator(row);
+            }
+
+            @Override
+            public int size() {
+                return 1;
+            }
+        };
     }
 
 }

@@ -174,7 +174,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
         if (!downstream.setNextRow(inputRow)) {
             // no more rows required, we can stop here
-            throw new CollectionAbortedException();
+            downstream.finish();
         }
     }
 
@@ -192,7 +192,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+    public void doCollect(RamAccountingContext ramAccountingContext) {
         this.ramAccountingContext = ramAccountingContext;
         // start collect
         CollectorContext collectorContext = new CollectorContext()
@@ -211,16 +211,13 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         // do the lucene search
         try {
             searchContext.searcher().search(query, this);
-            downstream.finish();
-        } catch (CollectionAbortedException e) {
-            // yeah, that's ok! :)
-            downstream.finish();
         } catch (Exception e) {
             downstream.fail(e);
-            throw e;
+            return;
         } finally {
             searchContext.close();
             SearchContext.removeCurrent();
         }
+        downstream.finish();
     }
 }

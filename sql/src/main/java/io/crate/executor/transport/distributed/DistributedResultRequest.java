@@ -91,6 +91,8 @@ public class DistributedResultRequest extends TransportRequest {
         rows = bucket;
     }
 
+
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);

@@ -31,7 +31,6 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.collect.CollectionAbortedException;
 import io.crate.operation.collect.CrateCollector;
 
 import javax.annotation.Nullable;
@@ -145,8 +144,14 @@ public class FileReadingCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) throws IOException {
-        FileInput fileInput = getFileInput();
+    public void doCollect(RamAccountingContext ramAccountingContext) {
+        FileInput fileInput = null;
+        try {
+            fileInput = getFileInput();
+        } catch (IOException e) {
+            downstream.fail(e);
+            return;
+        }
         if (fileInput == null) {
             if (downstream != null) {
                 downstream.finish();
@@ -161,8 +166,9 @@ public class FileReadingCollector implements CrateCollector {
         }
         String line;
         List<URI> uris;
-        uris = getUris(fileInput, uriPredicate);
+
         try {
+            uris = getUris(fileInput, uriPredicate);
             for (URI uri : uris) {
                 InputStream inputStream = fileInput.getStream(uri);
                 if (inputStream == null) {
@@ -178,16 +184,19 @@ public class FileReadingCollector implements CrateCollector {
                             expression.setNextLine(line);
                         }
                         if (!downstream.setNextRow(row)) {
-                            throw new CollectionAbortedException();
+                            break;
                         }
                     }
                 } finally {
                     reader.close();
                 }
             }
-        } finally {
-            downstream.finish();
+
+        } catch (IOException e) {
+            downstream.fail(e);
+            return;
         }
+        downstream.finish();
     }
 
     private BufferedReader createReader(InputStream inputStream) throws IOException {

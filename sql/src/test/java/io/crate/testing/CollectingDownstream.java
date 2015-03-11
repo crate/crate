@@ -19,22 +19,46 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.testing;
 
-import io.crate.breaker.RamAccountingContext;
+import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.base.Throwables;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.CollectionBucket;
+import io.crate.core.collections.Row;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 
-public class NoopCrateCollector implements CrateCollector {
+import java.util.Vector;
 
-    private RowDownstreamHandle downstream;
+public class CollectingDownstream implements RowDownstream, RowDownstreamHandle {
 
-    public NoopCrateCollector(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+    private final Vector<Object[]> rows = new Vector<>();
+    private CollectionBucket bucket;
+
+    @Override
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+        return this;
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
-        downstream.finish();
+    public synchronized boolean setNextRow(Row row) {
+        rows.add(Buckets.materialize(row));
+        return true;
+    }
+
+    @Override
+    public synchronized void finish() {
+        assert bucket == null;
+        bucket = new CollectionBucket(rows);
+    }
+
+    @Override
+    public void fail(Throwable throwable) {
+        Throwables.propagate(throwable);
+    }
+
+    public CollectionBucket bucket() {
+        return bucket;
     }
 }

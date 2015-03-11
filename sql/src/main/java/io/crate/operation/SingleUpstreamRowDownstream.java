@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,11 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.operation;
 
-import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.RowUpstream;
+import com.google.common.base.Preconditions;
 
-public interface CrateCollector extends RowUpstream {
-    public void doCollect(RamAccountingContext ramAccountingContext);
+import java.util.concurrent.atomic.AtomicReference;
+
+public abstract class SingleUpstreamRowDownstream implements RowDownstream, RowDownstreamHandle {
+
+    AtomicReference<RowUpstream> upstream = new AtomicReference<>();
+
+    @Override
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+        Preconditions.checkState(this.upstream.compareAndSet(null, upstream),
+                "upstream already set to %s", this.upstream);
+        return this;
+    }
+
+    @Override
+    public void finish() {
+
+    }
+
+    @Override
+    public void fail(Throwable throwable) {
+
+    }
 }

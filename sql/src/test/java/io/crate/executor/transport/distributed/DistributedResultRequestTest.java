@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
@@ -66,6 +67,7 @@ public class DistributedResultRequestTest {
         DistributedResultRequest r2 = new DistributedResultRequest(cm);
         r2.readFrom(in);
         r2.streamers(streamers);
+        assertTrue(r2.rowsCanBeRead());
 
         assertEquals(r1.rows().size(), r2.rows().size());
 

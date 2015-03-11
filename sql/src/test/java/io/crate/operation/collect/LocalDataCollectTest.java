@@ -48,6 +48,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.testing.CollectingDownstream;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -375,7 +376,7 @@ public class LocalDataCollectTest {
             }});
         }}));
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        operation.collect(collectNode, null);
+        operation.collect(collectNode, new CollectingDownstream(), null);
     }
 
     @Test
@@ -494,7 +495,9 @@ public class LocalDataCollectTest {
     }
 
     private Bucket getBucket(CollectNode collectNode) throws InterruptedException, ExecutionException {
-        return operation.collect(collectNode, null).get();
+        CollectingDownstream cd = new CollectingDownstream();
+        operation.collect(collectNode, cd, null);
+        return cd.bucket();
     }
 
     @Test

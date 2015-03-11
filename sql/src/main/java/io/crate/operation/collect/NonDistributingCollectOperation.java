@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Optional;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.metadata.Functions;
@@ -43,8 +42,8 @@ public class NonDistributingCollectOperation extends MapSideDataCollectOperation
         super(clusterService, settings, transportActionProvider, functions, referenceResolver, indicesService, threadPool, collectServiceResolver, streamerVisitor);
     }
 
-    protected Optional<SingleBucketBuilder> createResultResultProvider(CollectNode node){
-        return Optional.of(new SingleBucketBuilder(getStreamers(node)));
+    public SingleBucketBuilder createDownstream(CollectNode node){
+        return new SingleBucketBuilder(getStreamers(node));
     }
 
 }

@@ -21,12 +21,23 @@
 
 package io.crate.executor;
 
+import com.google.common.base.Function;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 
 import javax.annotation.Nullable;
 
 public class QueryResult implements TaskResult {
+
+    public static final Function<Bucket, TaskResult> TO_TASK_RESULT = new Function<Bucket, TaskResult>() {
+        @Nullable
+        @Override
+        public TaskResult apply(@Nullable Bucket input) {
+            return new QueryResult(input);
+        }
+    };
+
+
 
     private final Bucket rows;
 

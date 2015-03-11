@@ -29,8 +29,10 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -44,6 +46,7 @@ public class MergeOperation implements DownstreamOperation {
 
     private final int numUpstreams;
     private final FlatProjectorChain projectorChain;
+    private final ListenableFuture<Bucket> result;
     private RowDownstreamHandle downstream;
 
     private AtomicBoolean wantMore = new AtomicBoolean(true);
@@ -65,6 +68,12 @@ public class MergeOperation implements DownstreamOperation {
                 ramAccountingContext
         );
         this.downstream = projectorChain.firstProjector().registerUpstream(this);
+
+        // TODO: switch to use a streaming downstream here, which requires to refactor this operation
+        if (!(projectorChain.lastProjector() instanceof ResultProvider)) {
+            projectorChain.append(new CollectingProjector());
+        }
+        this.result = ((ResultProvider)projectorChain.lastProjector()).result();
         this.numUpstreams = mergeNode.numUpstreams();
         projectorChain.startProjections();
     }
@@ -97,7 +106,7 @@ public class MergeOperation implements DownstreamOperation {
     }
 
     public ListenableFuture<Bucket> result() {
-        return projectorChain.resultProvider().result();
+        return result;
     }
 
 }

@@ -38,6 +38,7 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.CollectingDownstream;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -202,6 +203,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
-        return operation.collect(collectNode, null).get();
+        CollectingDownstream cd = new CollectingDownstream();
+        operation.collect(collectNode, cd, null);
+        return cd.bucket();
     }
 }
