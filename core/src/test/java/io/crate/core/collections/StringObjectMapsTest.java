@@ -47,7 +47,7 @@ public class StringObjectMapsTest {
             put("b", 123);
         }};
         map.put("a", nestedMap);
-        assertThat((Map<String, Object>)StringObjectMaps.getByPath(map, "a"), is(nestedMap));
+        assertThat(StringObjectMaps.getByPath(map, "a"), is((Object)nestedMap));
         assertThat((Integer)StringObjectMaps.getByPath(map, "a.b"), is(123));
         assertNull(StringObjectMaps.getByPath(map, "a.b.c"));
         assertNull(StringObjectMaps.getByPath(map, "a.c"));

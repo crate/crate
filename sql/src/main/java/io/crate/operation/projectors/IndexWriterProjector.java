@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.sun.rowset.internal.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
