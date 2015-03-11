@@ -387,6 +387,34 @@ escape them using a backslash::
     using a fulltext index.
 
 
+.. _sql_dql_in:
+
+IN
+--
+
+`Crate` also supports the binary operator ``IN``, which allows you to verify the membership
+of left-hand operand in a right-hand set of expressions. Returns ``true`` if any evaluated expression
+value from a right-hand set equals left-hand operand. Returns ``false`` otherwise::
+
+    cr> select name, kind from locations
+    ... where (kind in ('Star System', 'Planet'))  order by name asc;
+     +---------------------+-------------+
+     | name                | kind        |
+     +---------------------+-------------+
+     |                     | Planet      |
+     | Aldebaran           | Star System |
+     | Algol               | Star System |
+     | Allosimanius Syneca | Planet      |
+     | Alpha Centauri      | Star System |
+     | Altair              | Star System |
+     | Argabuthon          | Planet      |
+     | Arkintoofle Minor   | Planet      |
+     | Bartledan           | Planet      |
+     +---------------------+-------------+
+     SELECT 9 rows in set (... sec)
+
+
+
 .. _predicates_is_null:
 
 IS NULL
