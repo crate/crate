@@ -21,14 +21,12 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
-import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.Projection;
 
@@ -69,37 +67,17 @@ public class ShardProjectorChain {
     private final RamAccountingContext ramAccountingContext;
     protected final List<Projector> shardProjectors;
     protected final List<Projector> nodeProjectors;
-    private Projector firstNodeProjector;
-    private final ResultProvider resultProvider;
+    private RowDownstream firstNodeProjector;
     private int shardProjectionsIndex = -1;
 
 
     public ShardProjectorChain(int numShards,
                                List<Projection> projections,
-                               ProjectionToProjectorVisitor nodeProjectorVisitor,
-                               RamAccountingContext ramAccountingContext) {
-        this(numShards, projections, Optional.<ResultProvider>absent(), nodeProjectorVisitor, ramAccountingContext);
-    }
-
-    public ShardProjectorChain(int numShards,
-                               List<Projection> projections,
-                               Optional<ResultProvider> resultProvider,
+                               RowDownstream finalDownstream,
                                ProjectionToProjectorVisitor nodeProjectorVisitor,
                                RamAccountingContext ramAccountingContext) {
         this.projections = projections;
         this.ramAccountingContext = ramAccountingContext;
-
-        if (projections.size() == 0) {
-            if (resultProvider.isPresent()) {
-                firstNodeProjector = this.resultProvider = resultProvider.get();
-            } else {
-                firstNodeProjector = this.resultProvider = new CollectingProjector();
-            }
-            nodeProjectors = ImmutableList.of(firstNodeProjector);
-            shardProjectors = ImmutableList.of();
-            return;
-        }
-
         nodeProjectors = new ArrayList<>();
         int idx = 0;
         for (Projection projection : projections) {
@@ -124,31 +102,16 @@ public class ShardProjectorChain {
             previousUpstream = projector;
         }
 
-        final boolean addedResultProvider;
-        if (resultProvider.isPresent()) {
-            this.resultProvider = resultProvider.get();
-            addedResultProvider = true;
+        if (nodeProjectors.isEmpty()) {
+            firstNodeProjector = finalDownstream;
         } else {
-            if (previousUpstream instanceof ResultProvider) {
-                this.resultProvider = (ResultProvider) previousUpstream;
-                addedResultProvider = false;
-            } else {
-                this.resultProvider = new CollectingProjector();
-                addedResultProvider = true;
-            }
+            // register final downstream
+            nodeProjectors.get(nodeProjectors.size()-1).downstream(finalDownstream);
         }
-        if (addedResultProvider) {
-            nodeProjectors.add(this.resultProvider);
-            if (previousUpstream != null) {
-                previousUpstream.downstream(this.resultProvider);
-            }
-        }
+
         if (shardProjectionsIndex >= 0) {
-            shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * numShards);
             // shardProjector will be created later
-            if (firstNodeProjector == null) {
-                firstNodeProjector = nodeProjectors.get(0);
-            }
+            shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * numShards);
         } else {
             shardProjectors = ImmutableList.of();
         }
@@ -162,11 +125,11 @@ public class ShardProjectorChain {
      * @param projectorVisitor the visitor to create projections out of a projection
      * @return a new projector connected to the internal chain
      */
-    public Projector newShardDownstreamProjector(ProjectionToProjectorVisitor projectorVisitor) {
+    public RowDownstream newShardDownstreamProjector(ProjectionToProjectorVisitor projectorVisitor) {
         if (shardProjectionsIndex < 0) {
             return firstNodeProjector;
         }
-        Projector previousProjector = firstNodeProjector;
+        RowDownstream previousProjector = firstNodeProjector;
         Projector projector = null;
         for (int i = shardProjectionsIndex; i >= 0; i--) {
             projector = projectorVisitor.process(projections.get(i), ramAccountingContext);
@@ -186,9 +149,5 @@ public class ShardProjectorChain {
                 p.startProjection();
             }
         }
-    }
-
-    public ResultProvider resultProvider() {
-        return resultProvider;
     }
 }

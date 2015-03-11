@@ -23,14 +23,14 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
-import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
-import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
@@ -40,8 +40,10 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -57,8 +59,6 @@ import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class ESGetTask extends JobTask {
@@ -95,24 +95,31 @@ public class ESGetTask extends JobTask {
         }
 
         final FetchSourceContext fsc = new FetchSourceContext(ctx.referenceNames());
-        final SettableFuture<TaskResult> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<TaskResult>>asList(result);
+
+        ListenableFuture<Bucket> result;
+
         if (node.docKeys().size() > 1) {
             MultiGetRequest multiGetRequest = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
             request = multiGetRequest;
             FlatProjectorChain projectorChain = getFlatProjectorChain(projectionToProjectorVisitor, node);
-            listener = new MultiGetResponseListener(result, extractors, projectorChain);
+            result = projectorChain.resultProvider().result();
+            listener = new MultiGetResponseListener(extractors, projectorChain);
+
         } else {
             GetRequest getRequest = prepareGetRequest(node, fsc);
             transportAction = getAction;
             request = getRequest;
-            listener = new GetResponseListener(result, extractors);
+            SettableFuture<Bucket> settableFuture = SettableFuture.create();
+            result = settableFuture;
+            listener = new GetResponseListener(settableFuture, extractors);
+
         }
+        results = ImmutableList.of(Futures.transform(result, QueryResult.TO_TASK_RESULT));
     }
 
-    public static String indexName(TableInfo tableInfo, Optional<List<BytesRef>> values){
-        if (tableInfo.isPartitioned()){
+    public static String indexName(TableInfo tableInfo, Optional<List<BytesRef>> values) {
+        if (tableInfo.isPartitioned()) {
             return new PartitionName(tableInfo.ident(), values.get()).stringValue();
         } else {
             return tableInfo.ident().esName();
@@ -144,7 +151,6 @@ public class ESGetTask extends JobTask {
 
     private FlatProjectorChain getFlatProjectorChain(ProjectionToProjectorVisitor projectionToProjectorVisitor,
                                                      ESGetNode node) {
-        FlatProjectorChain projectorChain = null;
         if (node.limit() != null || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
             List<Symbol> orderBySymbols = new ArrayList<>(node.sortSymbols().size());
             for (Symbol symbol : node.sortSymbols()) {
@@ -163,13 +169,16 @@ public class ESGetTask extends JobTask {
                     node.nullsFirst()
             );
             topNProjection.outputs(genInputColumns(node.outputs().size()));
-            projectorChain = new FlatProjectorChain(
-                    Arrays.<Projection>asList(topNProjection),
+            return FlatProjectorChain.withResultProvider(
                     projectionToProjectorVisitor,
-                    null
+                    null,
+                    ImmutableList.<Projection>of(topNProjection)
+            );
+        } else {
+            return FlatProjectorChain.withProjectors(
+                    ImmutableList.<Projector>of(new CollectingProjector())
             );
         }
-        return projectorChain;
     }
 
     private static List<Symbol> genInputColumns(int size) {
@@ -182,108 +191,65 @@ public class ESGetTask extends JobTask {
 
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse>, RowUpstream {
 
-        private final SettableFuture<TaskResult> result;
         private final List<FieldExtractor<GetResponse>> fieldExtractors;
-        @Nullable
-        private final FlatProjectorChain projectorChain;
         private final RowDownstreamHandle downstream;
+        private final FlatProjectorChain projectorChain;
 
 
-        public MultiGetResponseListener(final SettableFuture<TaskResult> result,
-                                        List<FieldExtractor<GetResponse>> extractors,
-                                        @Nullable FlatProjectorChain projectorChain) {
-            this.result = result;
-            this.fieldExtractors = extractors;
+        public MultiGetResponseListener(List<FieldExtractor<GetResponse>> extractors,
+                                        FlatProjectorChain projectorChain) {
             this.projectorChain = projectorChain;
-            if (projectorChain == null) {
-                downstream = null;
-            } else {
-                downstream = projectorChain.firstProjector().registerUpstream(this);
-                Futures.addCallback(projectorChain.resultProvider().result(), new FutureCallback<Bucket>() {
-                    @Override
-                    public void onSuccess(@Nullable Bucket rows) {
-                        result.set(new QueryResult(rows));
-                    }
-
-                    @Override
-                    public void onFailure(@Nonnull Throwable t) {
-                        result.setException(t);
-                    }
-                });
-            }
+            this.downstream = projectorChain.firstProjector().registerUpstream(this);
+            this.fieldExtractors = extractors;
         }
+
 
         @Override
         public void onResponse(MultiGetResponse responses) {
-            if (projectorChain == null) {
-                List<Object[]> rows = new ArrayList<>(responses.getResponses().length);
+            projectorChain.startProjections();
+            FieldExtractorRow<GetResponse> row = new FieldExtractorRow<>(fieldExtractors);
+            try {
                 for (MultiGetItemResponse response : responses) {
                     if (response.isFailed() || !response.getResponse().isExists()) {
                         continue;
                     }
-                    final Object[] row = new Object[fieldExtractors.size()];
-                    int c = 0;
-                    for (FieldExtractor<GetResponse> extractor : fieldExtractors) {
-                        row[c] = extractor.extract(response.getResponse());
-                        c++;
+                    row.setCurrent(response.getResponse());
+                    if (!downstream.setNextRow(row)) {
+                        return;
                     }
-                    rows.add(row);
                 }
-                // NOTICE: this can be optimized by using a special Bucket
-                result.set(new QueryResult(new ArrayBucket(rows.toArray(new Object[rows.size()][]))));
-            } else {
-                FieldExtractorRow<GetResponse> row = new FieldExtractorRow<>(fieldExtractors);
-                projectorChain.startProjections();
-                try {
-                    for (MultiGetItemResponse response : responses) {
-                        if (response.isFailed() || !response.getResponse().isExists()) {
-                            continue;
-                        }
-                        row.setCurrent(response.getResponse());
-                        if (!downstream.setNextRow(row)) {
-                            return;
-                        }
-                    }
-                    downstream.finish();
-                } catch (Exception e) {
-                    downstream.fail(e);
-                }
+                downstream.finish();
+            } catch (Exception e) {
+                downstream.fail(e);
             }
         }
 
         @Override
         public void onFailure(Throwable e) {
-            result.setException(e);
+            downstream.fail(e);
         }
     }
 
     static class GetResponseListener implements ActionListener<GetResponse> {
 
-        private final SettableFuture<TaskResult> result;
-        private final List<FieldExtractor<GetResponse>> extractors;
+        private final Bucket bucket;
+        private final FieldExtractorRow<GetResponse> row;
+        private final SettableFuture<Bucket> result;
 
-        public GetResponseListener(SettableFuture<TaskResult> result, List<FieldExtractor<GetResponse>> extractors) {
+        public GetResponseListener(SettableFuture<Bucket> result, List<FieldExtractor<GetResponse>> extractors) {
             this.result = result;
-            this.extractors = extractors;
+            row = new FieldExtractorRow<>(extractors);
+            bucket = Buckets.of(row);
         }
 
         @Override
         public void onResponse(GetResponse response) {
             if (!response.isExists()) {
-                result.set(TaskResult.EMPTY_RESULT);
+                result.set(Bucket.EMPTY);
                 return;
             }
-            final Object[][] rows = new Object[1][extractors.size()];
-            int c = 0;
-            for (FieldExtractor<GetResponse> extractor : extractors) {
-                /**
-                 * NOTE: mapping isn't applied. So if an Insert was done using the ES Rest Endpoint
-                 * the data might be returned in the wrong format (date as string instead of long)
-                 */
-                rows[0][c] = extractor.extract(response);
-                c++;
-            }
-            result.set(new QueryResult(rows));
+            row.setCurrent(response);
+            result.set(bucket);
         }
 
         @Override

@@ -34,7 +34,7 @@ import org.junit.Before;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-public class SQLHttpIntegrationTest extends SQLTransportIntegrationTest {
+public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest {
 
     private HttpPost httpPost;
 

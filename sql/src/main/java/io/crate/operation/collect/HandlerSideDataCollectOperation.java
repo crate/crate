@@ -21,41 +21,30 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
-import io.crate.executor.TaskResult;
-import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowUpstream;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 import java.util.Set;
 
-public class HandlerSideDataCollectOperation implements CollectOperation {
+public class HandlerSideDataCollectOperation implements CollectOperation, RowUpstream {
 
     private final EvaluatingNormalizer clusterNormalizer;
     private final ImplementationSymbolVisitor implementationVisitor;
-    private final ProjectionToProjectorVisitor projectorVisitor;
     private final InformationSchemaCollectService informationSchemaCollectService;
     private final UnassignedShardsCollectService unassignedShardsCollectService;
 
     @Inject
-    public HandlerSideDataCollectOperation(ClusterService clusterService,
-                                           Settings settings,
-                                           TransportActionProvider transportActionProvider,
-                                           Functions functions,
+    public HandlerSideDataCollectOperation(Functions functions,
                                            ReferenceResolver referenceResolver,
                                            InformationSchemaCollectService informationSchemaCollectService,
                                            UnassignedShardsCollectService unassignedShardsCollectService) {
@@ -63,35 +52,13 @@ public class HandlerSideDataCollectOperation implements CollectOperation {
         this.unassignedShardsCollectService = unassignedShardsCollectService;
         this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
-        this.projectorVisitor = new ProjectionToProjectorVisitor(
-                clusterService, settings,
-                transportActionProvider,
-                implementationVisitor, clusterNormalizer);
     }
 
-    @Override
-    public ListenableFuture<Bucket> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
-        if (collectNode.isPartitioned()) {
-            // edge case: partitioned table without actual indices
-            // no results
-            return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
-        }
-        if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
-            // we assume information schema here
-            return handleWithService(informationSchemaCollectService, collectNode, ramAccountingContext);
-        } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
-            return handleCluster(collectNode, ramAccountingContext);
-        } else if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
-            return handleWithService(unassignedShardsCollectService, collectNode, ramAccountingContext);
-        } else {
-            return Futures.immediateFailedFuture(new IllegalStateException("unsupported routing"));
-        }
-    }
-
-    private ListenableFuture<Bucket> handleCluster(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
+    private void handleCluster(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
         collectNode = collectNode.normalize(clusterNormalizer);
         if (collectNode.whereClause().noMatch()) {
-            return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
+            downstream.registerUpstream(this).finish();
+            return;
         }
         assert collectNode.toCollect().size() > 0;
 
@@ -99,36 +66,34 @@ public class HandlerSideDataCollectOperation implements CollectOperation {
         ImplementationSymbolVisitor.Context ctx = implementationVisitor.process(collectNode);
         List<Input<?>> inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
-
-        FlatProjectorChain projectorChain = new FlatProjectorChain(
-                collectNode.projections(), projectorVisitor, ramAccountingContext);
         SimpleOneRowCollector collector = new SimpleOneRowCollector(
-                inputs, collectExpressions, projectorChain.firstProjector());
-        projectorChain.startProjections();
-        try {
-            collector.doCollect(ramAccountingContext);
-        } catch (CollectionAbortedException e) {
-            // ignore
-        } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
-        }
-        return projectorChain.resultProvider().result();
+                inputs, collectExpressions, downstream);
+        collector.doCollect(ramAccountingContext);
     }
 
-    private ListenableFuture<Bucket> handleWithService(CollectService collectService,
-                                                           CollectNode node,
-                                                           RamAccountingContext ramAccountingContext) {
-        FlatProjectorChain projectorChain = new FlatProjectorChain(node.projections(),
-                projectorVisitor, ramAccountingContext);
-        CrateCollector collector = collectService.getCollector(node, projectorChain.firstProjector());
-        projectorChain.startProjections();
-        try {
-            collector.doCollect(ramAccountingContext);
-        } catch (CollectionAbortedException ex) {
-            // ignore
-        } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
+    private void handleWithService(CollectService collectService,
+                                   CollectNode node,
+                                   RowDownstream rowDownstream,
+                                   RamAccountingContext ramAccountingContext) {
+        CrateCollector collector = collectService.getCollector(node, rowDownstream); // calls projector.registerUpstream()
+        collector.doCollect(ramAccountingContext);
+    }
+
+    @Override
+    public void collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+        if (collectNode.isPartitioned()) {
+            // edge case: partitioned table without actual indices
+            // no results
+            downstream.registerUpstream(this).finish();
+        } else if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
+            // we assume information schema here
+            handleWithService(informationSchemaCollectService, collectNode, downstream, ramAccountingContext);
+        } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
+            handleCluster(collectNode, downstream, ramAccountingContext);
+        } else if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
+            handleWithService(unassignedShardsCollectService, collectNode, downstream, ramAccountingContext);
+        } else {
+            downstream.registerUpstream(this).fail(new IllegalStateException("unsupported routing"));
         }
-        return projectorChain.resultProvider().result();
     }
 }

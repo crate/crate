@@ -28,7 +28,6 @@ import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -70,7 +69,7 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) throws IOException {
+    public void doCollect(RamAccountingContext ramAccountingContext) {
         collect(ramAccountingContext);
     }
 }

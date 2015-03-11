@@ -25,5 +25,5 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowUpstream;
 
 public interface CrateCollector extends RowUpstream {
-    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception;
+    public void doCollect(RamAccountingContext ramAccountingContext);
 }

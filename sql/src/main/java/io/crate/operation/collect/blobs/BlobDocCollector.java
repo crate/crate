@@ -56,7 +56,7 @@ public class BlobDocCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+    public void doCollect(RamAccountingContext ramAccountingContext) {
         BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor();
         try {
             blobShard.blobContainer().walkFiles(null, fileVisitor);
