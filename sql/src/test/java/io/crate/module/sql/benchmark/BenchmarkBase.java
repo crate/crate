@@ -123,7 +123,7 @@ public class BenchmarkBase {
     @AfterClass
     public static void tearDownClass() throws IOException {
         try {
-            cluster.client().admin().indices().prepareDelete(INDEX_NAME).execute().actionGet();
+            cluster.client().admin().indices().prepareDelete("_all").execute().actionGet();
         } catch (IndexMissingException e) {
             // fine
         }
