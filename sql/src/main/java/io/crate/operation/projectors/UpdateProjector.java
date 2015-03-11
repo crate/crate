@@ -82,9 +82,6 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void startProjection() {
-        if (remainingUpstreams.get() <= 0) {
-            finish();
-        }
     }
 
     @Override

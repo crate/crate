@@ -21,6 +21,7 @@
 
 package io.crate.executor;
 
+import com.google.common.base.Function;
 import io.crate.core.collections.Bucket;
 
 import javax.annotation.Nullable;
@@ -31,11 +32,20 @@ import javax.annotation.Nullable;
 public interface TaskResult {
 
     public static final Object[][] EMPTY_OBJS = new Object[0][];
+
+    public static final Function<Bucket, TaskResult> TO_TASK_RESULT = new Function<Bucket, TaskResult>() {
+        @Nullable
+        @Override
+        public TaskResult apply(@Nullable Bucket input) {
+            return new QueryResult(input);
+        }
+    };
+
     RowCountResult ZERO = new RowCountResult(0L);
     RowCountResult ONE_ROW = new RowCountResult(1L);
     RowCountResult ROW_COUNT_UNKNOWN = new RowCountResult(-1L);
     RowCountResult FAILURE = new RowCountResult(-2L);
-    QueryResult EMPTY_RESULT = new QueryResult(EMPTY_OBJS);
+    QueryResult EMPTY_RESULT = new QueryResult(Bucket.EMPTY);
 
     Bucket rows();
 

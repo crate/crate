@@ -156,7 +156,7 @@ public class UnassignedShardsCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+        public void doCollect(RamAccountingContext ramAccountingContext) {
             for (UnassignedShard row : rows) {
                 for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
@@ -169,7 +169,7 @@ public class UnassignedShardsCollectService implements CollectService {
 
                 if (!downstream.setNextRow(this.row)) {
                     // no more rows required, we can stop here
-                    throw new CollectionAbortedException();
+                    break;
                 }
             }
             downstream.finish();

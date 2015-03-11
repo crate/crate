@@ -24,6 +24,7 @@ package io.crate.operation.fetch;
 import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.CollectContextService;
 import io.crate.planner.symbol.Reference;
@@ -77,7 +78,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "No jobCollectContext found for job '%s'", jobId));
-        nodeFetchOperation.fetch();
+        nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
     }
 
     @Test
@@ -97,6 +98,6 @@ public class NodeFetchOperationTest extends CrateUnitTest {
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", 0));
-        nodeFetchOperation.fetch();
+        nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
     }
 }
