@@ -46,9 +46,7 @@ public abstract class ResultProviderBase implements ResultProvider, RowDownstrea
 
     @Override
     public void startProjection() {
-        if (remainingUpstreams.get() <= 0) {
-            finishProjection();
-        }
+        
     }
 
     public abstract void finishProjection();

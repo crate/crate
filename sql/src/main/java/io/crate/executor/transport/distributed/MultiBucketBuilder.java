@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.distributed;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
@@ -36,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class MultiBucketBuilder extends ResultProviderBase {
+public class MultiBucketBuilder {
 
     private final List<StreamBucket.Builder> bucketBuilders;
 
@@ -78,20 +77,8 @@ public class MultiBucketBuilder extends ResultProviderBase {
         return value.hashCode();
     }
 
-    @Override
-    public void finishProjection() {
-        // No actual results here, since this projection sends the rows to the buckets.
-        result.set(Bucket.EMPTY);
-    }
-
-    @Override
-    public synchronized boolean setNextRow(Row row) {
-        try {
-            bucketBuilders.get(getBucket(row)).add(row);
-        } catch (IOException e) {
-            Throwables.propagate(e);
-        }
-        return true;
+    public synchronized void setNextRow(Row row) throws IOException {
+        bucketBuilders.get(getBucket(row)).add(row);
     }
 
 }

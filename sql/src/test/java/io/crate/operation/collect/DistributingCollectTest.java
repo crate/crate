@@ -30,6 +30,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
+import io.crate.executor.transport.distributed.DistributingDownstream;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
@@ -125,6 +126,14 @@ public class DistributingCollectTest extends CrateUnitTest {
     private final static String TEST_TABLE_NAME = "dcollect_table";
 
     private Reference testShardIdReference = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
+
+
+    private void collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+        DistributingDownstream downstream = operation.createDownstream(collectNode);
+        operation.collect(collectNode, downstream, null);
+        downstream.get();
+    }
+
 
     class TestModule extends AbstractModule {
         @Override
@@ -312,10 +321,11 @@ public class DistributingCollectTest extends CrateUnitTest {
         collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.SHARD);
+
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
+        collectNode.outputTypes(Arrays.asList(testShardIdReference.valueType()));
 
-
-        assertThat(operation.collect(collectNode, null).get(), emptyIterable());
+        collect(collectNode);
         countDown.await();
         assertThat(buckets.size(), is(2));
         assertTrue(buckets.containsKey(TEST_NODE_ID));
@@ -326,7 +336,7 @@ public class DistributingCollectTest extends CrateUnitTest {
     public void testCollectFromNodes() throws Exception {
 
         ArgumentCaptor<DistributedResultRequest> capture = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        Mockito.doNothing().when(transportService).sendRequest(
+        Mockito.doReturn(null).when(transportService).submitRequest(
                 any(DiscoveryNode.class),
                 Matchers.same(TransportMergeNodeAction.mergeRowsAction),
                 capture.capture(),
@@ -338,9 +348,8 @@ public class DistributingCollectTest extends CrateUnitTest {
         collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(Literal.newLiteral(true)));
         PlanNodeBuilder.setOutputTypes(collectNode);
-        Bucket pseudoResult = operation.collect(collectNode, null).get();
         // empty rows, since this projector sends data and does not return it
-        assertThat(pseudoResult, emptyIterable());
+        collect(collectNode);
         assertThat(Lists.transform(capture.getAllValues(), new com.google.common.base.Function<DistributedResultRequest, Bucket>() {
             @Nullable
             @Override
@@ -349,6 +358,7 @@ public class DistributingCollectTest extends CrateUnitTest {
             }
         }), containsInAnyOrder(emptyIterable(), contains(isRow(true))));
     }
+
 
     @Test
     public void testCollectWithFalseWhereClause() throws Exception {
@@ -370,8 +380,7 @@ public class DistributingCollectTest extends CrateUnitTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
         )));
         PlanNodeBuilder.setOutputTypes(collectNode);
-        operation.collect(collectNode, null).get();
-
+        collect(collectNode);
         assertThat(Lists.transform(capture.getAllValues(), new com.google.common.base.Function<DistributedResultRequest, Bucket>() {
             @Nullable
             @Override

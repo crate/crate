@@ -30,6 +30,7 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
@@ -80,7 +81,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
-        return operation.collect(collectNode, null).get();
+        CollectingProjector collectingProjector = new CollectingProjector();
+        collectingProjector.startProjection();
+        operation.collect(collectNode, collectingProjector, null);
+        return collectingProjector.result().get();
     }
 
     @Test
@@ -140,7 +144,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
         // second time - to check if the internal iterator resets
         System.out.println(TestingHelpers.printedTable(result));
-        result = operation.collect(collectNode, null).get();
+        result = collect(collectNode);
         assertTrue(TestingHelpers.printedTable(result).contains(expected));
     }
 

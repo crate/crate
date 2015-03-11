@@ -65,6 +65,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         DistributedResultRequest r2 = new DistributedResultRequest(cm);
         r2.readFrom(in);
         r2.streamers(streamers);
+        assertTrue(r2.rowsCanBeRead());
 
         assertEquals(r1.rows().size(), r2.rows().size());
 

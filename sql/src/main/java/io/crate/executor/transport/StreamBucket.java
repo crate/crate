@@ -28,7 +28,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -36,6 +35,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 
 public class StreamBucket implements Bucket, Streamable {
@@ -73,8 +73,15 @@ public class StreamBucket implements Bucket, Streamable {
 
         public void add(Row row) throws IOException {
             size++;
-            for (int i = 0; i < streamers.length; i++) {
+            for (int i = 0; i < row.size(); i++) {
                 streamers[i].writeValueTo(out, row.get(i));
+            }
+        }
+
+        public void writeToStream(StreamOutput output) throws IOException {
+            output.writeVInt(size);
+            if (size > 0) {
+                output.writeBytesReference(out.bytes());
             }
         }
 
@@ -99,9 +106,18 @@ public class StreamBucket implements Bucket, Streamable {
         this.streamers = streamers;
     }
 
-    public static void writeBucket(StreamOutput out, Streamer<?>[] streamers, Bucket bucket) throws IOException {
-        StreamWriter writer = new StreamWriter(out, streamers, bucket.size());
-        writer.addAll(bucket);
+    public static void writeBucket(StreamOutput out, @Nullable Streamer<?>[] streamers, @Nullable Bucket bucket) throws IOException {
+        if (bucket == null || bucket.size() == 0) {
+            out.writeVInt(0);
+        } else if (bucket instanceof Streamable) {
+            ((Streamable) bucket).writeTo(out);
+        } else {
+            StreamBucket.Builder builder = new StreamBucket.Builder(streamers);
+            for (Row row : bucket) {
+                builder.add(row);
+            }
+            builder.writeToStream(out);
+        }
     }
 
     private class RowIterator implements Iterator<Row> {
@@ -137,6 +153,9 @@ public class StreamBucket implements Bucket, Streamable {
 
     @Override
     public Iterator<Row> iterator() {
+        if (size < 1) {
+            return Collections.emptyIterator();
+        }
         assert streamers != null;
         return new RowIterator();
     }
@@ -144,47 +163,17 @@ public class StreamBucket implements Bucket, Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         size = in.readVInt();
-        BytesStreamOutput memoryStream = new BytesStreamOutput(in.available());
-        Streams.copy(in, memoryStream);
-        bytes = memoryStream.bytes();
+        if (size > 0) {
+            bytes = in.readBytesReference();
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         assert size > -1;
         out.writeVInt(size);
-        Streams.copy(bytes.streamInput(), out);
+        if (size > 0) {
+            out.writeBytesReference(bytes);
+        }
     }
-
-    public static class StreamWriter {
-        private final StreamOutput out;
-        private final Streamer<?>[] streamers;
-        private final int size;
-
-        public StreamWriter(StreamOutput out, Streamer<?>[] streamers, int size) {
-            this.out = out;
-            this.streamers = streamers;
-            this.size = size;
-            try {
-                out.writeVInt(this.size);
-            } catch (IOException e) {
-                Throwables.propagate(e);
-            }
-
-        }
-
-        public void add(Row row) throws IOException {
-            for (int i = 0; i < streamers.length; i++) {
-                streamers[i].writeValueTo(out, row.get(i));
-            }
-        }
-
-        public void addAll(Iterable<Row> rows) throws IOException {
-            for (Row row : rows) {
-                add(row);
-            }
-        }
-
-    }
-
 }

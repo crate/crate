@@ -30,8 +30,8 @@ public class FieldExtractorRow<T> implements Row {
     private final List<FieldExtractor<T>> fieldExtractors;
     private T current;
 
-    public FieldExtractorRow(List<FieldExtractor<T>> extractor) {
-        fieldExtractors = extractor;
+    public FieldExtractorRow(List<FieldExtractor<T>> extractors) {
+        fieldExtractors = extractors;
     }
 
     @Override

@@ -35,8 +35,12 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.NodeCollectRequest;
 import io.crate.executor.transport.NodeCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -55,18 +59,22 @@ public class RemoteCollectTask extends JobTask {
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
+    private final ProjectionToProjectorVisitor clusterProjectorVisitor;
 
     public RemoteCollectTask(UUID jobId,
                              CollectNode collectNode,
                              TransportCollectNodeAction transportCollectNodeAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
-                             StatsTables statsTables, CircuitBreaker circuitBreaker) {
+                             ProjectionToProjectorVisitor clusterProjectionToProjectorVisitor,
+                             StatsTables statsTables,
+                             CircuitBreaker circuitBreaker) {
         super(jobId);
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
+        this.clusterProjectorVisitor = clusterProjectionToProjectorVisitor;
 
         Preconditions.checkArgument(collectNode.isRouted(),
                 "RemoteCollectTask currently only works for plans with routing"
@@ -93,14 +101,14 @@ public class RemoteCollectTask extends JobTask {
                 handlerSideCollect(resultIdx);
                 continue;
             }
-
             transportCollectNodeAction.execute(
                     nodeIds[i],
                     request,
                     new ActionListener<NodeCollectResponse>() {
                         @Override
                         public void onResponse(NodeCollectResponse response) {
-                            ((SettableFuture<TaskResult>) result.get(resultIdx)).set(new QueryResult(response.rows()));
+                            ((SettableFuture<TaskResult>) result.get(resultIdx))
+                                    .set(new QueryResult(response.rows()));
                         }
 
                         @Override
@@ -124,10 +132,18 @@ public class RemoteCollectTask extends JobTask {
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
+        FlatProjectorChain projectorChain = FlatProjectorChain.withResultProvider(
+                clusterProjectorVisitor,
+                ramAccountingContext,
+                collectNode.projections()
+        );
+        RowDownstream rowDownstream = projectorChain.firstProjector();
+        ResultProvider resultProvider = projectorChain.resultProvider();
+        assert resultProvider != null;
+        projectorChain.startProjections();
+        handlerSideDataCollectOperation.collect(collectNode, rowDownstream, ramAccountingContext);
 
-        ListenableFuture<Bucket> future = handlerSideDataCollectOperation.collect(
-                collectNode, ramAccountingContext);
-        Futures.addCallback(future, new FutureCallback<Bucket>() {
+        Futures.addCallback(resultProvider.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket rows) {
                 ramAccountingContext.close();
