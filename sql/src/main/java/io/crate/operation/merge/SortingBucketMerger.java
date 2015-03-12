@@ -31,12 +31,13 @@ import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.NoOpProjector;
-import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * BucketMerger implementation that expects sorted rows in the
@@ -44,35 +45,27 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class SortingBucketMerger implements BucketMerger {
 
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
     private final Ordering<Row> ordering;
     private final int numBuckets;
-    private final int offset;
-    private final int limit;
-    private final AtomicInteger rowsEmitted;
-    private final AtomicInteger rowsSkipped;
+    private final AtomicBoolean wantMore;
     private final IntOpenHashSet exhaustedIterators;
     private final IntArrayList bucketsWithRowEqualToLeast;
     private final ArrayList<Row> previousRows;
     private Iterator<Row>[] remainingBucketIts = null;
 
     public SortingBucketMerger(int numBuckets,
-                               int offset,
-                               int limit,
                                int[] orderByPositions,
                                boolean[] reverseFlags,
                                Boolean[] nullsFirst) {
         Preconditions.checkArgument(numBuckets > 0, "must at least get 1 bucket per merge call");
         this.numBuckets = numBuckets;
-        this.offset = offset;
-        this.limit = limit;
         List<Comparator<Row>> comparators = new ArrayList<>(orderByPositions.length);
         for (int i = 0; i < orderByPositions.length; i++) {
             comparators.add(OrderingByPosition.rowOrdering(i, reverseFlags[i], nullsFirst[i]));
         }
         ordering = Ordering.compound(comparators);
-        rowsEmitted = new AtomicInteger(0);
-        rowsSkipped = new AtomicInteger(0);
+        wantMore = new AtomicBoolean(true);
 
         //noinspection unchecked
         remainingBucketIts = new Iterator[numBuckets];
@@ -83,13 +76,6 @@ public class SortingBucketMerger implements BucketMerger {
 
         // use noOp as default to avoid null checks
         downstream = NoOpProjector.INSTANCE;
-    }
-
-    @Override
-    public void downstream(Projector downstream) {
-        assert downstream != null : "downstream must not be null";
-        downstream.registerUpstream(this);
-        this.downstream = downstream;
     }
 
     /**
@@ -129,7 +115,7 @@ public class SortingBucketMerger implements BucketMerger {
                 emitBuckets(bucketIts);
             }
         } catch (Throwable t) {
-            downstream.upstreamFailed(t);
+            downstream.fail(t);
         }
     }
 
@@ -204,8 +190,7 @@ public class SortingBucketMerger implements BucketMerger {
             if (leastRow == null) {
                 leastRow = row;
                 leastBi = bi;
-                bi = bi < numBuckets - 1 ? bi + 1 : 0;
-            } else {
+            } else if (row != null) {
                 int compare = ordering.compare(leastRow, row);
                 if (compare < 0) {
                     leastBi = bi;
@@ -213,17 +198,29 @@ public class SortingBucketMerger implements BucketMerger {
                 } else if (compare == 0) {
                     bucketsWithRowEqualToLeast.add(bi);
                 }
+            }
 
-                bi++;
-                if (bi == numBuckets) {
-                    // looked at all buckets..
-                    boolean leastBucketItExhausted = false;
+            bi++;
+            if (bi == numBuckets) {
+                // looked at all buckets..
+                boolean leastBucketItExhausted = false;
 
-                    emit(leastRow);
+                if (leastRow == null) {
+                    leastBucketItExhausted = true;
+                } else {
+                    if (!emit(leastRow)) {
+                        Arrays.fill(remainingBucketIts, null);
+                        return;
+                    }
 
                     // send for all other buckets that are equal to least
                     for (IntCursor equalBucketIdx : bucketsWithRowEqualToLeast) {
-                        emit(previousRows.get(equalBucketIdx.value));
+
+                        if (!emit(previousRows.get(equalBucketIdx.value))) {
+                            Arrays.fill(remainingBucketIts, null);
+                            return;
+                        }
+
                         Iterator<Row> equalBucketIt = bucketIts.get(equalBucketIdx.value);
                         if (equalBucketIt.hasNext()) {
                             previousRows.set(equalBucketIdx.value, equalBucketIt.next());
@@ -246,48 +243,47 @@ public class SortingBucketMerger implements BucketMerger {
                     leastRow = null;
                     bucketsWithRowEqualToLeast.clear();
                     bi = 0;
-
-                    if (leastBucketItExhausted) {
-                        // need next page to continue...
-                        for (int i = 0; i < numBuckets; i++) {
-                            Iterator<Row> bucketIt = bucketIts.get(i);
-                            Row previousRow = previousRows.get(i);
-                            if (previousRow != null) {
-                                Iterator<Row> iterator = ImmutableList.of(previousRow).iterator();
-                                if (bucketIt.hasNext()) {
-                                    iterator = Iterators.concat(iterator, bucketIt);
-                                }
-                                remainingBucketIts[i] = iterator;
-                            } else if (bucketIt.hasNext()) {
-                                remainingBucketIts[i] = bucketIt;
+                }
+                if (leastBucketItExhausted) {
+                    // need next page to continue...
+                    for (int i = 0; i < numBuckets; i++) {
+                        Iterator<Row> bucketIt = bucketIts.get(i);
+                        Row previousRow = previousRows.get(i);
+                        if (previousRow != null) {
+                            Iterator<Row> iterator = ImmutableList.of(previousRow).iterator();
+                            if (bucketIt.hasNext()) {
+                                iterator = Iterators.concat(iterator, bucketIt);
                             }
+                            remainingBucketIts[i] = iterator;
+                        } else if (bucketIt.hasNext()) {
+                            remainingBucketIts[i] = bucketIt;
                         }
-                        return;
                     }
+                    return;
                 }
             }
+            bi = bi % numBuckets;
         }
     }
 
     private void emitSingleBucket(Bucket bucket) {
         for (Row row : bucket) {
             if (!emit(row)) {
+                wantMore.set(false);
                 return;
             }
         }
     }
 
     private boolean emit(Row row) {
-        if (rowsSkipped.getAndIncrement() < offset) {
-            return true;
+        if (!downstream.setNextRow(row)) {
+            wantMore.set(false);
+            return false;
         }
-        //noinspection SimplifiableIfStatement
-        if (rowsEmitted.getAndIncrement() < limit) {
-            return downstream.setNextRow(row);
-        }
-        return false;
+        return true;
     }
 
+    @Override
     public void finish() {
         ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(remainingBucketIts.length);
         for (Iterator<Row> bucketIt : remainingBucketIts) {
@@ -298,7 +294,17 @@ public class SortingBucketMerger implements BucketMerger {
             }
         }
         emitBuckets(bucketIts);
-        downstream.upstreamFinished();
+        downstream.finish();
     }
 
+    @Override
+    public void fail(Throwable e) {
+        downstream.fail(e);
+    }
+
+    @Override
+    public void downstream(RowDownstream downstream) {
+        assert downstream != null : "downstream must not be null";
+        this.downstream = downstream.registerUpstream(this);
+    }
 }

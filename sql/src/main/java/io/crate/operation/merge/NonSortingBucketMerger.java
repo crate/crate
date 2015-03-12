@@ -26,8 +26,9 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.NoOpProjector;
-import io.crate.operation.projectors.Projector;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -42,7 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class NonSortingBucketMerger implements BucketMerger {
 
-    private Projector downstream;
+    private RowDownstreamHandle downstream;
     private AtomicBoolean wantMore;
 
     public NonSortingBucketMerger() {
@@ -89,16 +90,16 @@ public class NonSortingBucketMerger implements BucketMerger {
             countDownLatch.await();
             Throwable caught = exception.get();
             if (caught != null) {
-                downstream.upstreamFailed(caught);
+                downstream.fail(caught);
             }
         } catch (InterruptedException e) {
-            downstream.upstreamFailed(e);
+            downstream.fail(e);
         }
     }
 
     @Override
     public void finish() {
-        downstream.upstreamFinished();
+        downstream.finish();
     }
 
     private boolean emitRow(Row row) {
@@ -106,9 +107,13 @@ public class NonSortingBucketMerger implements BucketMerger {
     }
 
     @Override
-    public void downstream(Projector downstream) {
+    public void fail(Throwable t) {
+        downstream.fail(t);
+    }
+
+    @Override
+    public void downstream(RowDownstream downstream) {
         assert downstream != null : "downstream must not be null";
-        downstream.registerUpstream(this);
-        this.downstream = downstream;
+        this.downstream = downstream.registerUpstream(this);
     }
 }
