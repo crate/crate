@@ -31,12 +31,10 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.SimpleTopNProjector;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
-import org.apache.lucene.util.AbstractRandomizedTest;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,10 +44,7 @@ import static io.crate.testing.BucketHelpers.createBucketFutures;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
-public class NonSortingBucketMergerTest extends AbstractRandomizedTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class NonSortingBucketMergerTest extends CrateUnitTest {
 
     private Bucket mergeWith(List<ListenableFuture<Bucket>>... pages)
             throws ExecutionException, InterruptedException {
@@ -86,14 +81,14 @@ public class NonSortingBucketMergerTest extends AbstractRandomizedTest {
 
         List<ListenableFuture<Bucket>> page2 = createBucketFutures(
                 Arrays.asList(
-                        new Object[]{ 1 },
-                        new Object[]{ 2 }
+                        new Object[]{1},
+                        new Object[]{2}
                 ),
                 Arrays.<Object[]>asList(),
                 Arrays.asList(
-                        new Object[]{ 3 },
-                        new Object[]{ 4 },
-                        new Object[]{ 42 }
+                        new Object[]{3},
+                        new Object[]{4},
+                        new Object[]{42}
                 )
         );
         Bucket merged = mergeWith(page1, page2);
