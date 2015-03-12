@@ -22,9 +22,9 @@
 package io.crate.metadata.doc;
 
 import io.crate.Constants;
-import io.crate.metadata.PartitionName;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -32,9 +32,8 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.ESLoggerFactory;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
 
@@ -55,7 +54,7 @@ public class DocTableInfoBuilder {
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final MetaData metaData;
     private String[] concreteIndices;
-    ESLogger logger = ESLoggerFactory.getLogger(FileSystemUtils.class.getName());
+    private static final ESLogger logger = Loggers.getLogger(DocTableInfoBuilder.class);
 
     public DocTableInfoBuilder(DocSchemaInfo docSchemaInfo,
                                TableIdent ident,

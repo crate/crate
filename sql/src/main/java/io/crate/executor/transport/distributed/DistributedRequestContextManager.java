@@ -60,7 +60,7 @@ import java.util.*;
  */
 public class DistributedRequestContextManager {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(DistributedRequestContextManager.class);
 
     private final Map<UUID, DownstreamOperationContext> activeMergeOperations = new HashMap<>();
     private final Map<UUID, List<DistributedResultRequest>> unprocessedRequests = new HashMap<>();

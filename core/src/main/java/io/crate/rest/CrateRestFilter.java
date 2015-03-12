@@ -52,7 +52,7 @@ public class CrateRestFilter extends RestFilter {
     // we do handle arbitrary numbers of '/' in the path
     public static Pattern MAIN_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s+$", CrateRestMainAction.PATH));
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(CrateRestFilter.class);
     private final boolean esApiEnabled;
 
     @Inject

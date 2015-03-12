@@ -70,11 +70,11 @@ import java.util.UUID;
 @Singleton
 public class DistributingCollectOperation extends MapSideDataCollectOperation<MultiBucketBuilder> {
 
-    private ESLogger logger = Loggers.getLogger(getClass());
+    private final static ESLogger logger = Loggers.getLogger(DistributingCollectOperation.class);
 
     public static class DistributingShardCollectFuture extends ShardCollectFuture {
 
-        private final ESLogger logger = Loggers.getLogger(getClass());
+        private static final ESLogger logger = Loggers.getLogger(DistributingCollectOperation.class);
 
         private final TransportService transportService;
         private final DistributedResultRequest[] requests;

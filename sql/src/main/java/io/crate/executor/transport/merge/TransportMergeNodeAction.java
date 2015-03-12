@@ -54,7 +54,7 @@ import org.elasticsearch.transport.*;
 
 public class TransportMergeNodeAction {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(TransportMergeNodeAction.class);
     private final DistributedRequestContextManager contextManager;
 
     public final static String mergeRowsAction = "crate/sql/node/merge/add_rows";

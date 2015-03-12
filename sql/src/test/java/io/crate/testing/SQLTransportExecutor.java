@@ -39,7 +39,7 @@ import static org.junit.Assert.assertThat;
 
 public class SQLTransportExecutor {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
 
     public static SQLTransportExecutor create(final CrateTestCluster testCluster) {

@@ -40,7 +40,7 @@ public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
 
     public static final String NAME = "data";
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(NodeFsDataExpression.class);
 
     private final SigarService sigarService;
     private final NodeEnvironment nodeEnvironment;

@@ -64,7 +64,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     private final Long requiredVersion;
     private final Object lock = new Object();
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(UpdateProjector.class);
 
     public UpdateProjector(ShardId shardId,
                            SymbolBasedTransportShardUpsertActionDelegate transportUpdateActionDelegate,

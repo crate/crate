@@ -66,7 +66,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     private final BytesRef numberOfReplicas;
     private final ClusterService clusterService;
     private final TableParameterInfo tableParameterInfo;
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(DocTableInfo.class);
 
     private final String[] indices;
     private final List<PartitionName> partitions;

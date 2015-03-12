@@ -49,7 +49,7 @@ public class PingTask extends TimerTask {
 
     public static TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
 
-    private ESLogger logger = Loggers.getLogger(this.getClass());
+    private static final ESLogger logger = Loggers.getLogger(PingTask.class);
 
     private final ClusterService clusterService;
     private final ClusterIdService clusterIdService;

@@ -45,7 +45,7 @@ public class PutHeadChunkRunnable implements Runnable {
     private final UUID transferId;
     private WatchKey watchKey;
     private WatchService watcher;
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(PutHeadChunkRunnable.class);
 
     public PutHeadChunkRunnable(File pendingFile, long bytesToSend,
                                 TransportService transportService,

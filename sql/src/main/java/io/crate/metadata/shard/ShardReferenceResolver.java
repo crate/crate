@@ -42,7 +42,7 @@ import java.util.Map;
 public class ShardReferenceResolver extends AbstractReferenceResolver {
 
     private final Map<ReferenceIdent, ReferenceImplementation> implementations;
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(ShardReferenceResolver.class);
 
     @Inject
     public ShardReferenceResolver(Index index,

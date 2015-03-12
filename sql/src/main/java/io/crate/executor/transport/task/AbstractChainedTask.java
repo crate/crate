@@ -43,7 +43,7 @@ public abstract class AbstractChainedTask extends JobTask {
     protected final List<ListenableFuture<TaskResult>> resultList;
     protected final SettableFuture<TaskResult> result;
 
-    protected final ESLogger logger = Loggers.getLogger(getClass());
+    protected static final ESLogger logger = Loggers.getLogger(AbstractChainedTask.class);
 
     protected AbstractChainedTask(UUID jobId) {
         super(jobId);

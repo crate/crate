@@ -36,7 +36,7 @@ import java.util.Set;
 @Singleton
 public class SetStatementAnalyzer extends DefaultTraversalVisitor<SetAnalyzedStatement, Analysis> {
 
-    private final ESLogger logger = Loggers.getLogger(this.getClass());
+    private static final ESLogger logger = Loggers.getLogger(SetStatementAnalyzer.class);
 
     public SetAnalyzedStatement analyze(Node node, Analysis analysis) {
         analysis.expectsAffectedRows(true);

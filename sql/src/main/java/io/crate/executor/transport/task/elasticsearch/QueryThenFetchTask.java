@@ -53,7 +53,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
     private static final SymbolToFieldExtractor<SearchHit> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new SearchHitFieldExtractorFactory());
 
-    private final ESLogger logger = Loggers.getLogger(this.getClass());
+    private static final ESLogger logger = Loggers.getLogger(QueryThenFetchTask.class);
 
     private final QueryThenFetchNode searchNode;
     private final QueryThenFetchOperation operation;

@@ -37,7 +37,7 @@ import static org.elasticsearch.cluster.ClusterState.builder;
 public class ClusterIdService implements ClusterStateListener {
 
     private final ClusterService clusterService;
-    private final ESLogger logger = Loggers.getLogger(ClusterIdService.class);
+    private static final ESLogger logger = Loggers.getLogger(ClusterIdService.class);
     private ClusterId clusterId = null;
     private final SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
 

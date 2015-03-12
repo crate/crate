@@ -54,7 +54,7 @@ import java.util.UUID;
 
 public class TransportCollectNodeAction {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(TransportCollectNodeAction.class);
 
     private final String transportAction = "crate/sql/node/collect";
     private final TransportService transportService;

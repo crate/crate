@@ -55,7 +55,7 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
 
     private static final List<String> ALL_TOTALS = ImmutableList.of(
             SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(NodeFsTotalExpression.class);
 
     private final SigarService sigarService;
 

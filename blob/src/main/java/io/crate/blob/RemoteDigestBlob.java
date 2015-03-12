@@ -76,7 +76,7 @@ public class RemoteDigestBlob {
     }
 
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private final static ESLogger logger = Loggers.getLogger(RemoteDigestBlob.class);
 
     private final String digest;
     private final BlobService blobService;

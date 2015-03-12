@@ -56,7 +56,7 @@ class QueryThenFetchPageableTaskResult implements PageableTaskResult {
 
     public static final int MAX_GAP_PAGESIZE = 1024;
 
-    private final ESLogger logger = Loggers.getLogger(this.getClass());
+    private static final ESLogger logger = Loggers.getLogger(QueryThenFetchPageableTaskResult.class);
 
     private final ObjectArray<Object[]> pageSource;
     private final Page page;

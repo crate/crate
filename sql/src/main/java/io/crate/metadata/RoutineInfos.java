@@ -36,7 +36,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType;
 
 public class RoutineInfos implements Iterable<RoutineInfo> {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(RoutineInfos.class);
     private FulltextAnalyzerResolver ftResolver;
 
     private enum RoutineType {
