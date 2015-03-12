@@ -154,7 +154,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
         private final Input<Map<String, Object>> sourceInput;
         private final String[] includes;
         private final String[] excludes;
-        private final ESLogger logger = Loggers.getLogger(getClass());
+        private static final ESLogger logger = Loggers.getLogger(MapInput.class);
         private int lastSourceSize;
 
         private MapInput(Input<Map<String, Object>> sourceInput, String[] includes, String[] excludes) {

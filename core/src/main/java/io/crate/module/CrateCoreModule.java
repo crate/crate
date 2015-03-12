@@ -45,7 +45,7 @@ import static org.elasticsearch.common.inject.Modules.createModule;
 
 public class CrateCoreModule extends AbstractModule implements SpawnModules, PreProcessModule {
 
-    final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(CrateCoreModule.class);
     private final CrateLoader crateLoader;
     private final Settings settings;
 

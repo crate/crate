@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 public class DistributedMergeTask extends JobTask {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(DistributedMergeTask.class);
 
     private final MergeNode mergeNode;
     private final TransportMergeNodeAction transportMergeNodeAction;

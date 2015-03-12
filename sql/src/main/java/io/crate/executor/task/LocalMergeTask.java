@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class LocalMergeTask extends JobTask {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(LocalMergeTask.class);
 
     private final MergeNode mergeNode;
     private final StatsTables statsTables;

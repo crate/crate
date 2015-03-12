@@ -44,7 +44,7 @@ public class CrateLoader {
     private static CrateLoader INSTANCE;
 
     private final ArrayList<Plugin> plugins;
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(CrateLoader.class);
     private final ImmutableMap<Plugin, List<OnModuleReference>> onModuleReferences;
 
     public static synchronized CrateLoader getInstance(Settings settings) {

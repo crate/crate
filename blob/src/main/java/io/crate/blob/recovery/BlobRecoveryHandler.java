@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class BlobRecoveryHandler {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(BlobRecoveryHandler.class);
     private final StartRecoveryRequest request;
     private final TransportService transportService;
     private final BlobShard blobShard;

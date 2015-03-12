@@ -101,7 +101,7 @@ public class BulkShardProcessor {
     private Map<Reference, Symbol> insertAssignments;
 
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(BulkShardProcessor.class);
 
     public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,

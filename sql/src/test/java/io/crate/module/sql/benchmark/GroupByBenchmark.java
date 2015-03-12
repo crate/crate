@@ -56,7 +56,7 @@ import static org.junit.Assert.assertFalse;
 @BenchmarkMethodChart(filePrefix = "benchmark-groupby")
 public class GroupByBenchmark extends BenchmarkBase {
 
-    public ESLogger logger = Loggers.getLogger(getClass());
+    public final static ESLogger logger = Loggers.getLogger(GroupByBenchmark.class);
     public static final int NUMBER_OF_DOCUMENTS = 500_000; // was 1_000_000
     public static final int BENCHMARK_ROUNDS = 1000;
 

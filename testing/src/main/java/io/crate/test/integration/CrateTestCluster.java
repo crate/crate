@@ -79,7 +79,7 @@ import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
  */
 public class CrateTestCluster implements Iterable<Client> {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(CrateTestCluster.class);
 
     /* sorted map to make traverse order reproducible */
     private final TreeMap<String, NodeAndClient> nodes = newTreeMap();

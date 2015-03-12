@@ -79,7 +79,7 @@ public class QueryThenFetchOperation {
 
     private static final TimeValue DEFAULT_KEEP_ALIVE = TimeValue.timeValueMinutes(5L);
 
-    private final ESLogger logger = Loggers.getLogger(this.getClass());
+    private static final ESLogger logger = Loggers.getLogger(QueryThenFetchOperation.class);
 
     private final TransportQueryShardAction transportQueryShardAction;
     private final SearchServiceTransportAction searchServiceTransportAction;

@@ -93,7 +93,7 @@ public class SymbolBasedBulkShardProcessor {
     private String[] assignmentsColumns;
 
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(SymbolBasedBulkShardProcessor.class);
 
     public SymbolBasedBulkShardProcessor(ClusterService clusterService,
                                          Settings settings,

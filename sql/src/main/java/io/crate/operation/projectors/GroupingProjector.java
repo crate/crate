@@ -50,7 +50,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
     private final CollectExpression[] collectExpressions;
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(GroupingProjector.class);
     private final RamAccountingContext ramAccountingContext;
 
     private Grouper grouper;

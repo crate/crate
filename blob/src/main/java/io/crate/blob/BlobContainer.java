@@ -38,7 +38,7 @@ import java.util.UUID;
 
 public class BlobContainer {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private final static ESLogger logger = Loggers.getLogger(BlobContainer.class);
 
     public static final String[] SUB_DIRS = new String[256];
 

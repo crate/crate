@@ -51,7 +51,7 @@ import java.util.Map;
  */
 public class EvaluatingNormalizer {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(EvaluatingNormalizer.class);
     private final Functions functions;
     private final RowGranularity granularity;
     private final ReferenceResolver referenceResolver;

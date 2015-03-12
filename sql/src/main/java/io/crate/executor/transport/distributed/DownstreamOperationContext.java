@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class DownstreamOperationContext {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(DownstreamOperationContext.class);
 
     private final AtomicInteger mergeOperationsLeft;
     private final DownstreamOperation downstreamOperation;

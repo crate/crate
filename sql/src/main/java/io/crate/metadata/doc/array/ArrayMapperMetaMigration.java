@@ -51,7 +51,7 @@ import java.util.Set;
  */
 public class ArrayMapperMetaMigration implements LocalGatewayMetaMigrator.LocalGatewayMetaDataMigration {
 
-    private final ESLogger logger = Loggers.getLogger(ArrayMapperMetaMigration.class);
+    private static final ESLogger logger = Loggers.getLogger(ArrayMapperMetaMigration.class);
 
     @Override
     public MetaData migrateMetaData(MetaData globalMetaData) {

@@ -56,7 +56,7 @@ public class UDCPlugin extends AbstractPlugin {
 
     private final Settings settings;
 
-    private ESLogger logger = Loggers.getLogger(this.getClass());
+    private static final ESLogger logger = Loggers.getLogger(UDCPlugin.class);
 
     public UDCPlugin(Settings settings) {
         this.settings = settings;

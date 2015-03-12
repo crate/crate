@@ -77,7 +77,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final ThreadPoolExecutor executor;
     private final int poolSize;
-    private ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(MapSideDataCollectOperation.class);
 
     private static class SimpleShardCollectFuture extends ShardCollectFuture {
 

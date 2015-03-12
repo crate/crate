@@ -67,7 +67,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     @Nullable
     private SymbolBasedBulkShardProcessor bulkShardProcessor;
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(SymbolBasedUpsertByIdTask.class);
 
     public SymbolBasedUpsertByIdTask(UUID jobId,
                                      ClusterService clusterService,

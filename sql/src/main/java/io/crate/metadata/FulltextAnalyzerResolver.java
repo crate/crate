@@ -67,7 +67,7 @@ public class FulltextAnalyzerResolver {
     // used for saving the creation statement
     public static final String SQL_STATEMENT_KEY = "_sql_stmt";
 
-    private ESLogger logger = Loggers.getLogger(FulltextAnalyzerResolver.class);
+    private static final ESLogger logger = Loggers.getLogger(FulltextAnalyzerResolver.class);
 
 
     public enum CustomType {

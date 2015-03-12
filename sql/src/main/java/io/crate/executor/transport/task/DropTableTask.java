@@ -43,7 +43,7 @@ public class DropTableTask extends AbstractChainedTask {
 
     private static final TaskResult SUCCESS_RESULT = TaskResult.ONE_ROW;
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(DropTableTask.class);
 
     private final TableInfo tableInfo;
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;

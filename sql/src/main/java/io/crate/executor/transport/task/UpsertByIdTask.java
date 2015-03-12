@@ -69,7 +69,7 @@ public class UpsertByIdTask extends JobTask {
     @Nullable
     private BulkShardProcessor bulkShardProcessor;
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger logger = Loggers.getLogger(UpsertByIdTask.class);
 
     public UpsertByIdTask(UUID jobId,
                           ClusterService clusterService,

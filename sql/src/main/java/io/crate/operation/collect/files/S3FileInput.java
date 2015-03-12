@@ -39,7 +39,7 @@ import java.util.List;
 public class S3FileInput implements FileInput {
 
     private AmazonS3 client; // to prevent early GC during getObjectContent() in getStream()
-    private final ESLogger logger = Loggers.getLogger(S3FileInput.class);
+    private static final ESLogger logger = Loggers.getLogger(S3FileInput.class);
 
     final S3ClientHelper clientBuilder;
 
