@@ -522,12 +522,12 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
          *
          * col = 'undefined' -> null as col doesn't exist
          * ->
-         *  not (true  and null) -> not (null)  -> no match
-         *  not (null  and null) -> not (null)  -> no match
+         *  not (true  and null) -> not (null)  -> match
+         *  not (null  and null) -> not (null)  -> match
          *  not (false and null) -> not (false) -> match
          */
         whereClause = analyzeSelectWhere("select id, name from parted where not (date = 1395874800000 and obj['col'] = 'undefined')");
-        assertThat(whereClause.partitions(), containsInAnyOrder(partition2));
+        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2, partition3));
         assertThat(whereClause.hasQuery(), is(false));
         assertThat(whereClause.noMatch(), is(false));
 

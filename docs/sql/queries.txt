@@ -387,6 +387,33 @@ escape them using a backslash::
     using a fulltext index.
 
 
+.. _sql_dql_not:
+
+NOT
+---
+
+``NOT`` negates a boolean expression::
+
+    [ NOT ] boolean_expression
+
+The result type is boolean 
+
+    ==========  ======
+    expression  result
+    ==========  ======
+    true        false
+    false       true
+    null        true
+    ==========  ======
+
+.. note::
+
+   This is not compliant with the SQL standard and doesn't adhere to the
+   three-valued-logic.  According to the standard NOT ( NULL ) should actually
+   return NULL.
+   
+
+
 .. _sql_dql_in:
 
 IN

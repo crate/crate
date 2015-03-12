@@ -137,7 +137,7 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     @Test
     public void testNot_NullAndSubstr() throws Exception {
         Symbol symbol = convert(fromSQL("not (null and substr(table_name, 1, 1) = '1')"));
-        assertLiteralSymbol(symbol, null, DataTypes.BOOLEAN);
+        assertLiteralSymbol(symbol, true);
     }
 
     @Test

@@ -57,7 +57,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         if (arg instanceof Input) {
             Object value = ((Input) arg).value();
             if (value == null) {
-                return Literal.newLiteral(DataTypes.BOOLEAN, null);
+                return Literal.BOOLEAN_TRUE;
             }
             if (value instanceof Boolean) {
                 return Literal.newLiteral(!((Boolean) value));
@@ -71,7 +71,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         assert args.length == 1;
         Boolean value = args[0].value();
         if (value == null) {
-            return null;
+            return true;
         }
         return !value;
     }
