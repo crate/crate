@@ -22,14 +22,16 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
-import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 
 /**
  * a projector that does nothing.
  * Can be used by classes that implement ProjectorUpstream to have a "default" downstream
  * to avoid null checks
  */
-public class NoOpProjector implements Projector {
+public class NoOpProjector implements Projector, RowDownstreamHandle {
 
     public static NoOpProjector INSTANCE = new NoOpProjector();
 
@@ -43,22 +45,27 @@ public class NoOpProjector implements Projector {
     }
 
     @Override
+    public void downstream(RowDownstream downstream) {
+
+    }
+
+    @Override
     public boolean setNextRow(Row row) {
         return false;
     }
 
     @Override
-    public void registerUpstream(ProjectorUpstream upstream) {
+    public void finish() {
 
     }
 
     @Override
-    public void upstreamFinished() {
+    public void fail(Throwable throwable) {
 
     }
 
     @Override
-    public void upstreamFailed(Throwable throwable) {
-
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+        return this;
     }
 }
