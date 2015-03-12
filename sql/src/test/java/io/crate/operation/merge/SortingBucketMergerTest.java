@@ -25,10 +25,11 @@ import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
-import org.apache.lucene.util.AbstractRandomizedTest;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -38,14 +39,14 @@ import static org.hamcrest.Matchers.is;
 
 
 @SuppressWarnings("unchecked")
-public class SortingBucketMergerTest extends AbstractRandomizedTest {
+public class SortingBucketMergerTest extends CrateUnitTest {
 
-    private Bucket mergeWith(int buckets, int offset, int limit, List<ListenableFuture<Bucket>> ... pages)
+    private Bucket mergeWith(int buckets, @Nullable Boolean nullsFirst, List<ListenableFuture<Bucket>> ... pages)
             throws ExecutionException, InterruptedException {
 
         CollectingProjector collectingProjector = new CollectingProjector();
         SortingBucketMerger merger = new SortingBucketMerger(
-                buckets, offset, limit, new int[] { 0 }, new boolean[] { false }, new Boolean[] { null });
+                buckets, new int[] { 0 }, new boolean[] { false }, new Boolean[] { nullsFirst });
         merger.downstream(collectingProjector);
 
         for (List<ListenableFuture<Bucket>> page : pages) {
@@ -71,8 +72,35 @@ public class SortingBucketMergerTest extends AbstractRandomizedTest {
                         new Object[] { "B", 2 }
                 )
         );
-        Bucket bucket = mergeWith(2, 0, 10, page1);
+        Bucket bucket = mergeWith(2, null, page1);
         assertRows(bucket, "A| 1", "A| 2", "B| 1", "B| 2");
+    }
+
+    @Test
+    public void testNullsFirst() throws Exception {
+        List<ListenableFuture<Bucket>> page1 = createBucketFutures(
+                Arrays.asList(
+                        new Object[]{null, 1},
+                        new Object[]{"A", 1},
+                        new Object[]{"B", 1}
+                ),
+                Arrays.asList(
+                        new Object[]{null, 2},
+                        new Object[]{"A", 2},
+                        new Object[]{"B", 2}
+                )
+        );
+        List<ListenableFuture<Bucket>> page2 = createBucketFutures(
+                Arrays.<Object[]>asList(
+                        new Object[]{"C", 3}
+                ),
+                Arrays.<Object[]>asList(
+                        new Object[]{"D", 3}
+                )
+        );
+        Bucket bucket = mergeWith(2, false, page1, page2);
+        assertRows(bucket, "NULL| 1", "NULL| 2", "A| 1", "A| 2", "B| 1", "B| 2", "C| 3", "D| 3");
+
     }
 
     @Test
@@ -92,7 +120,7 @@ public class SortingBucketMergerTest extends AbstractRandomizedTest {
                         new Object[]{"B"}
                 )
         );
-        Bucket bucket = mergeWith(3, 0, 11, page1);
+        Bucket bucket = mergeWith(3, null, page1);
         assertRows(bucket, "A", "A", "A", "B", "B", "B", "C");
     }
 
@@ -118,8 +146,8 @@ public class SortingBucketMergerTest extends AbstractRandomizedTest {
                         new Object[] { "B" },
                         new Object[] { "D" }));
 
-        Bucket bucket = mergeWith(2, 0, 11, p1Buckets, p2Buckets);
-        assertRows(bucket, "A", "A", "B", "B", "B", "B", "B", "C", "C", "C", "D" );
+        Bucket bucket = mergeWith(2, null, p1Buckets, p2Buckets);
+        assertRows(bucket, "A", "A", "B", "B", "B", "B", "B", "C", "C", "C", "D", "D");
     }
 
     @Test
@@ -159,7 +187,7 @@ public class SortingBucketMergerTest extends AbstractRandomizedTest {
                         new Object[]{"C"}
                 )
         );
-        Bucket bucket = mergeWith(2, 0, 100, p1, p2, p3);
+        Bucket bucket = mergeWith(2, null, p1, p2, p3);
         assertRows(bucket, "A", "A", "B", "B", "C", "C", "X", "X", "X", "Y", "Y", "Y", "Z", "Z", "Z");
     }
 
@@ -169,7 +197,7 @@ public class SortingBucketMergerTest extends AbstractRandomizedTest {
                 Arrays.<Object[]>asList(),
                 Arrays.<Object[]>asList()
         );
-        Bucket bucket = mergeWith(2, 0, 11, p1Buckets);
+        Bucket bucket = mergeWith(2, null, p1Buckets);
         assertThat(bucket.size(), is(0));
     }
 
@@ -186,28 +214,14 @@ public class SortingBucketMergerTest extends AbstractRandomizedTest {
                         new Object[] { "C" },
                         new Object[] { "D" }));
 
-        Bucket bucket = mergeWith(1, 0, 11, p1Buckets, p2Buckets);
+        Bucket bucket = mergeWith(1, null, p1Buckets, p2Buckets);
         assertThat(bucket.size(), is(6));
         assertRows(bucket, "A", "B", "C", "C", "C", "D");
     }
 
-    @Test
-    public void testWithOneBucketOffsetAndLimit() throws Exception {
-        List<ListenableFuture<Bucket>> p1Buckets = createBucketFutures(
-                Arrays.asList(
-                        new Object[] { "A" },
-                        new Object[] { "B" },
-                        new Object[] { "C" },
-                        new Object[] { "D" }
-                ));
-
-        Bucket bucket = mergeWith(1, 1, 2, p1Buckets);
-        assertThat(bucket.size(), is(2));
-        assertRows(bucket, "B", "C");
-    }
 
     @Test
-    public void testWithTwoBucketsButOneIsEmptyAndOffset() throws Exception {
+    public void testWithTwoBucketsButOneIsEmpty() throws Exception {
         List<ListenableFuture<Bucket>> buckets = createBucketFutures(
                 Arrays.asList(
                         new Object[] { "A" },
@@ -215,8 +229,8 @@ public class SortingBucketMergerTest extends AbstractRandomizedTest {
                         new Object[] { "C" }),
                 Arrays.<Object[]>asList());
 
-        Bucket bucket = mergeWith(2, 1, 3, buckets);
-        assertThat(bucket.size(), is(2));
-        assertRows(bucket, "B", "C");
+        Bucket bucket = mergeWith(2, null, buckets);
+        assertThat(bucket.size(), is(3));
+        assertRows(bucket, "A", "B", "C");
     }
 }
