@@ -425,10 +425,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select id from test where id='id1' or id='id2' or id='id4'");
         assertEquals(3, response.rowCount());
-        System.out.println(Arrays.toString(response.rows()[0]));
-        System.out.println(Arrays.toString(response.rows()[1]));
-        System.out.println(Arrays.toString(response.rows()[2]));
-
         List<String> col1 = this.getCol(response.rows(), 0);
         assertThat(col1, containsInAnyOrder("id1", "id2", "id4"));
     }

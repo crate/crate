@@ -21,15 +21,13 @@
 
 package io.crate.executor.transport.distributed;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.exceptions.UnknownUpstreamFailure;
-import io.crate.operation.DownstreamOperation;
 import io.crate.operation.PageConsumeListener;
+import io.crate.operation.PageDownstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -44,41 +42,29 @@ public class DownstreamOperationContext {
     private static final ESLogger LOGGER = Loggers.getLogger(DownstreamOperationContext.class);
 
     private final AtomicInteger mergeOperationsLeft;
-    private final DownstreamOperation downstreamOperation;
+    private final PageDownstream pageDownstream;
     private final List<SettableFuture<Bucket>> upstreamFutures;
     private final Streamer<?>[] streamers;
     private final DistributedRequestContextManager.DoneCallback doneCallback;
     private final AtomicBoolean needsMoreRows;
     private final AtomicBoolean alreadyFinished;
 
-    public DownstreamOperationContext(DownstreamOperation downstreamOperation,
-                                      final SettableFuture<Bucket> listener,
+    public DownstreamOperationContext(PageDownstream pageDownstream,
+                                      int numUpstreams,
                                       Streamer<?>[] streamers,
                                       DistributedRequestContextManager.DoneCallback doneCallback) {
-        this.mergeOperationsLeft = new AtomicInteger(downstreamOperation.numUpstreams());
-        this.downstreamOperation = downstreamOperation;
-        this.upstreamFutures = new ArrayList<>(downstreamOperation.numUpstreams());
-        for (int i = 0; i < downstreamOperation.numUpstreams(); i++) {
+        this.pageDownstream = pageDownstream;
+        this.mergeOperationsLeft = new AtomicInteger(numUpstreams);
+        this.upstreamFutures = new ArrayList<>(numUpstreams);
+        for (int i = 0; i < numUpstreams; i++) {
             upstreamFutures.add(SettableFuture.<Bucket>create());
         }
         this.needsMoreRows = new AtomicBoolean(true);
         this.alreadyFinished = new AtomicBoolean(false);
-        Futures.addCallback(downstreamOperation.result(), new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(Bucket result) {
-                listener.set(result);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                listener.setException(t);
-
-            }
-        });
         this.streamers = streamers;
         this.doneCallback = doneCallback;
         BucketPage bucketPage = new BucketPage(upstreamFutures);
-        downstreamOperation.pageDownstream().nextPage(bucketPage, new PageConsumeListener() {
+        this.pageDownstream.nextPage(bucketPage, new PageConsumeListener() {
             // PageConsumeCallback
             @Override
             public void finish() {
@@ -127,7 +113,7 @@ public class DownstreamOperationContext {
         if (!alreadyFinished.getAndSet(true)) {
             LOGGER.trace("finishing context: {}", hashCode());
             doneCallback.finished();
-            downstreamOperation.finished();
+            pageDownstream.finish();
         }
     }
 }

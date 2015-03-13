@@ -81,7 +81,8 @@ public class ImplementationSymbolVisitor extends
     protected final RowGranularity rowGranularity;
 
 
-    public ImplementationSymbolVisitor(ReferenceResolver referenceResolver, Functions functions,
+    public ImplementationSymbolVisitor(ReferenceResolver referenceResolver,
+                                       Functions functions,
                                        RowGranularity rowGranularity) {
         super(functions);
         this.referenceResolver = referenceResolver;

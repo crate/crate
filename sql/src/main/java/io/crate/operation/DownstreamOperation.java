@@ -21,19 +21,22 @@
 
 package io.crate.operation;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
-
+import io.crate.breaker.RamAccountingContext;
+import io.crate.operation.projectors.ResultProvider;
+import io.crate.planner.node.dql.MergeNode;
 
 public interface DownstreamOperation {
 
-    public PageDownstream pageDownstream();
-
     /**
-     * add more rows to merge
-     * implementation needs to make sure that this operation is thread-safe
+     * all that is needed for executing a downstream operation is a pagedownstream
+     * that receives pages and hands them over to a projector chain which
+     * puts its results into the given <code>resultProvider</code>
+     * @param mergeNode the execution node that contains the operations parameters
+     * @param resultProvider the result provider where results will end up
+     * @param ramAccountingContext for accounting bits and bytes used in this operation
+     * @return a PageDownstream who consumes pages from upstreams, the entry-point for this operation.
      */
-    public int numUpstreams();
-    public void finished();
-    public ListenableFuture<Bucket> result();
+    public PageDownstream getAndInitPageDownstream(MergeNode mergeNode,
+                                                   ResultProvider resultProvider,
+                                                   RamAccountingContext ramAccountingContext);
 }
