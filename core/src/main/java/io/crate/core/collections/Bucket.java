@@ -36,6 +36,11 @@ public interface Bucket extends Iterable<Row> {
         public int size() {
             return 0;
         }
+
+        @Override
+        public String toString() {
+            return "Empty Bucket";
+        }
     };
 
     /**
