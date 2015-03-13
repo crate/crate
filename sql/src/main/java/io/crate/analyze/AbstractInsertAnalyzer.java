@@ -23,9 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
@@ -41,9 +38,6 @@ import java.util.ArrayList;
 public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<AbstractInsertAnalyzedStatement, Analysis> {
 
     protected final AnalysisMetaData analysisMetaData;
-    protected ExpressionAnalyzer expressionAnalyzer;
-    protected ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-
 
     protected AbstractInsertAnalyzer(AnalysisMetaData analysisMetaData) {
         this.analysisMetaData = analysisMetaData;
@@ -152,14 +146,4 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
             throw new UnsupportedOperationException("Can't insert into system tables, they are read only");
         }
     }
-
-    protected void initializeExpressionAnalyzer(Analysis analysis, FieldProvider fieldProvider) {
-        expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData,
-                analysis.parameterContext(),
-                fieldProvider);
-        expressionAnalyzer.resolveWritableFields(true);
-
-    }
-
 }

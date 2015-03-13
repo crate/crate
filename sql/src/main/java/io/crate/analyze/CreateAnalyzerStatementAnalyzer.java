@@ -224,10 +224,6 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
     /**
      * Validate and process `type` property
-     *
-     * @param properties
-     * @param parameterContext
-     * @return
      */
     private String extractType(GenericProperties properties, ParameterContext parameterContext) {
         Expression expression = properties.get("type");
@@ -243,10 +239,6 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
     /**
      * Put a genericProperty into a settings-structure
-     *
-     * @param builder
-     * @param name
-     * @param value
      */
     private void genericPropertyToSetting(ImmutableSettings.Builder builder,
                                           String name,

@@ -27,7 +27,10 @@ import io.crate.metadata.ReferenceResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 @Singleton
+@ThreadSafe
 public class AnalysisMetaData {
 
     private final Functions functions;

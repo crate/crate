@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
@@ -53,9 +55,6 @@ import java.util.Map;
 
 @Singleton
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
-
-    private ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer;
-    private ValuesResolver valuesResolver;
 
     private static class ValuesResolver implements io.crate.analyze.ValuesAwareExpressionAnalyzer.ValuesResolver {
 
@@ -96,10 +95,13 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         validateTable(tableInfo);
 
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-        initializeExpressionAnalyzer(analysis, fieldProvider);
+        ExpressionAnalyzer expressionAnalyzer =
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+        expressionAnalyzer.resolveWritableFields(true);
 
-        valuesResolver = new ValuesResolver(tableRelation);
-        valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
+        ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
+        ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
                 analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
@@ -107,12 +109,25 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         handleInsertColumns(node, node.maxValuesLength(), statement);
 
         for (ValuesList valuesList : node.valuesLists()) {
-            analyzeValues(tableRelation, valuesList, node.onDuplicateKeyAssignments(), statement, analysis.parameterContext());
+            analyzeValues(
+                    tableRelation,
+                    expressionAnalyzer,
+                    expressionAnalysisContext,
+                    valuesResolver,
+                    valuesAwareExpressionAnalyzer,
+                    valuesList,
+                    node.onDuplicateKeyAssignments(),
+                    statement,
+                    analysis.parameterContext());
         }
         return statement;
     }
 
     private void analyzeValues(TableRelation tableRelation,
+                               ExpressionAnalyzer expressionAnalyzer,
+                               ExpressionAnalysisContext expressionAnalysisContext,
+                               ValuesResolver valuesResolver,
+                               ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                                ValuesList node,
                                List<Assignment> assignments,
                                InsertFromValuesAnalyzedStatement statement,
@@ -127,10 +142,30 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             if (parameterContext.bulkParameters.length > 0) {
                 for (int i = 0; i < parameterContext.bulkParameters.length; i++) {
                     parameterContext.setBulkIdx(i);
-                    addValues(tableRelation, node, assignments, statement, numPks);
+                    addValues(
+                            tableRelation,
+                            expressionAnalyzer,
+                            expressionAnalysisContext,
+                            valuesResolver,
+                            valuesAwareExpressionAnalyzer,
+                            node,
+                            assignments,
+                            statement,
+                            numPks
+                    );
                 }
             } else {
-                addValues(tableRelation, node, assignments, statement, numPks);
+                addValues(
+                        tableRelation,
+                        expressionAnalyzer,
+                        expressionAnalysisContext,
+                        valuesResolver,
+                        valuesAwareExpressionAnalyzer,
+                        node,
+                        assignments,
+                        statement,
+                        numPks
+                );
             }
         } catch (IOException e) {
             throw new RuntimeException(e); // can't throw IOException directly because of visitor interface
@@ -138,6 +173,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
     private void addValues(TableRelation tableRelation,
+                           ExpressionAnalyzer expressionAnalyzer,
+                           ExpressionAnalysisContext expressionAnalysisContext,
+                           ValuesResolver valuesResolver,
+                           ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                            ValuesList node,
                            List<Assignment> assignments,
                            InsertFromValuesAnalyzedStatement context,

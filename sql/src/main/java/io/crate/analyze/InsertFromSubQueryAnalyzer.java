@@ -22,6 +22,8 @@
 package io.crate.analyze;
 
 import com.google.common.collect.Iterators;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
@@ -97,8 +99,11 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         validateMatchingColumns(insertStatement, source.querySpec());
 
         if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            initializeExpressionAnalyzer(analysis, fieldProvider);
-            processUpdateAssignments(tableRelation, insertStatement, analysis, fieldProvider,
+            processUpdateAssignments(
+                    tableRelation,
+                    insertStatement,
+                    analysis,
+                    fieldProvider,
                     node.onDuplicateKeyAssignments());
         }
 
@@ -133,6 +138,9 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
                                           Analysis analysis,
                                           FieldProvider fieldProvider,
                                           List<Assignment> assignments) {
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, statement.columns());
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
                 analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
