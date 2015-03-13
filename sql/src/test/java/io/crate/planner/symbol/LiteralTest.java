@@ -37,8 +37,11 @@ public class LiteralTest extends CrateUnitTest {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
             DataType nestedType = new ArrayType(new ArrayType(type));
             Object value;
+
             if (type.id() == BooleanType.ID) {
                 value = true;
+            } else if (type.id() == DataTypes.IP.id()) {
+                value = type.value("123.34.243.23");
             } else {
                 value = type.value("0");
             }
