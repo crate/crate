@@ -49,7 +49,8 @@ public abstract class ToPrimitiveFunction<T> extends Scalar<T, Object> {
     protected static void checkPreconditions(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() == 1,
                 "invalid size of arguments, 1 expected");
-        Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)),
+        Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)) ||
+                        dataTypes.get(0).equals(DataTypes.UNDEFINED),
                 "type '%s' not supported for conversion", dataTypes.get(0));
     }
 

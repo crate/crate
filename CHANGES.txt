@@ -8,6 +8,8 @@ Unreleased
  - Fixed an issue with concurrent INSERT requests that could fail due to using
    a shared state internally.
 
+ - IN operator NULL literals bug fix
+
  - COPY FROM / COPY TO will now automatically create a quoted URI if only a
    path is given.
 
