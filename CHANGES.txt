@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an ip validator bug that marked some valid ip's as invalid.
+
  - Fixed an issue with concurrent INSERT requests that could fail due to using
    a shared state internally.
 
