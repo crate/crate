@@ -21,12 +21,9 @@
 
 package io.crate.operation.merge;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
+import io.crate.operation.PageDownstream;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
-
-import java.util.List;
 
 /**
  * Bridge between Pages transmitted over the network containing buckets and Projectors
@@ -35,12 +32,7 @@ import java.util.List;
  * Merges rows from a list of buckets to a single stream of rows which are fed to
  * the downstream projector.
  */
-public interface BucketMerger extends RowUpstream {
-    public void merge(List<ListenableFuture<Bucket>> buckets);
-
-    public void finish();
-
-    public void fail(Throwable t);
+public interface BucketMerger extends PageDownstream, RowUpstream {
 
     /**
      * sets the downstream to send rows to

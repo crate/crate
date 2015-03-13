@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * and just emits a stream of rows, whose order is undeterministic
  * as it is not guaranteed which row from which bucket ends up in the stream at which position.
  */
-public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
+public class NonSortingBucketMerger implements BucketMerger {
 
     private static final ESLogger LOGGER = Loggers.getLogger(NonSortingBucketMerger.class);
 
@@ -122,6 +122,7 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
         }
     }
 
+    @Override
     public void downstream(RowDownstream downstream) {
         assert downstream != null : "downstream must not be null";
         this.downstream = downstream.registerUpstream(this);
