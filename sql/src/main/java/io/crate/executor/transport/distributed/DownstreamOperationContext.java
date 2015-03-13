@@ -26,25 +26,30 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.BucketPage;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operation.DownstreamOperation;
+import io.crate.operation.PageConsumeListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class DownstreamOperationContext {
 
-    private static final ESLogger logger = Loggers.getLogger(DownstreamOperationContext.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(DownstreamOperationContext.class);
 
     private final AtomicInteger mergeOperationsLeft;
     private final DownstreamOperation downstreamOperation;
-    private final SettableFuture<Bucket> listener;
+    private final List<SettableFuture<Bucket>> upstreamFutures;
     private final Streamer<?>[] streamers;
     private final DistributedRequestContextManager.DoneCallback doneCallback;
-    private boolean needsMoreRows = true;
-    private final Object lock = new Object();
+    private final AtomicBoolean needsMoreRows;
+    private final AtomicBoolean alreadyFinished;
 
     public DownstreamOperationContext(DownstreamOperation downstreamOperation,
                                       final SettableFuture<Bucket> listener,
@@ -52,7 +57,12 @@ public class DownstreamOperationContext {
                                       DistributedRequestContextManager.DoneCallback doneCallback) {
         this.mergeOperationsLeft = new AtomicInteger(downstreamOperation.numUpstreams());
         this.downstreamOperation = downstreamOperation;
-        this.listener = listener;
+        this.upstreamFutures = new ArrayList<>(downstreamOperation.numUpstreams());
+        for (int i = 0; i < downstreamOperation.numUpstreams(); i++) {
+            upstreamFutures.add(SettableFuture.<Bucket>create());
+        }
+        this.needsMoreRows = new AtomicBoolean(true);
+        this.alreadyFinished = new AtomicBoolean(false);
         Futures.addCallback(downstreamOperation.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket result) {
@@ -67,46 +77,57 @@ public class DownstreamOperationContext {
         });
         this.streamers = streamers;
         this.doneCallback = doneCallback;
+        BucketPage bucketPage = new BucketPage(upstreamFutures);
+        downstreamOperation.pageDownstream().nextPage(bucketPage, new PageConsumeListener() {
+            // PageConsumeCallback
+            @Override
+            public void finish() {
+                needsMoreRows.set(false);
+                finishContext();
+            }
+
+            @Override
+            public void needMore() {
+                // in the current state, we only have one page
+                // so we can finish here
+                finishContext();
+            }
+        });
     }
 
     public void addFailure(@Nullable Throwable failure) {
+        int bucketNum = mergeOperationsLeft.decrementAndGet();
+        LOGGER.trace("bucket #{} failed", bucketNum);
+
         if (failure != null) {
-            logger.error("addFailure local", failure);
+            LOGGER.error("addFailure local", failure);
         } else {
             failure = new UnknownUpstreamFailure();
         }
-        try {
-            boolean firstFailure = listener.setException(failure);
-            logger.trace("addFailure first: {}", firstFailure);
-        } finally {
-            if (mergeOperationsLeft.decrementAndGet() == 0) {
-                doneCallback.finished();
-                downstreamOperation.finished();
-            }
+        if (bucketNum > 0 && !alreadyFinished.get()) {
+            // this will bubble the exception up to the result listener
+            upstreamFutures.get(bucketNum).setException(failure);
         }
     }
 
-    public void add(Bucket rows) {
-        assert rows != null;
-        logger.trace("add rows.size: {}", rows.size());
-        synchronized (lock) {
-            if (needsMoreRows) {
-                try {
-                    needsMoreRows = downstreamOperation.addRows(rows);
-                } catch (Exception e) {
-                    logger.error("failed to add rows to downstreamOperation", e);
-                    listener.setException(e);
-                }
-            }
-        }
-
-        if (mergeOperationsLeft.decrementAndGet() == 0) {
-            doneCallback.finished();
-            downstreamOperation.finished();
+    public void add(Bucket bucket) {
+        assert bucket != null;
+        int bucketNum = mergeOperationsLeft.decrementAndGet();
+        LOGGER.trace("add bucket #{} size: {}", bucketNum, bucket.size());
+        if (bucketNum >= 0 && needsMoreRows.get()) {
+            upstreamFutures.get(bucketNum).set(bucket);
         }
     }
 
     public Streamer<?>[] streamers() {
         return streamers;
+    }
+
+    private void finishContext() {
+        if (!alreadyFinished.getAndSet(true)) {
+            LOGGER.trace("finishing context: {}", hashCode());
+            doneCallback.finished();
+            downstreamOperation.finished();
+        }
     }
 }
