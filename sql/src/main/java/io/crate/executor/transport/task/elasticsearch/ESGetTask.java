@@ -115,7 +115,7 @@ public class ESGetTask extends JobTask {
         if (tableInfo.isPartitioned()){
             return new PartitionName(tableInfo.ident(), values.get()).stringValue();
         } else {
-            return tableInfo.ident().name();
+            return tableInfo.ident().esName();
         }
     }
 

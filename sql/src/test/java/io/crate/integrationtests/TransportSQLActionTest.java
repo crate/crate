@@ -703,7 +703,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
-
     @Test
     public void testDeleteToDeleteRequestByPlanner() throws Exception {
         this.setup.createTestTableWithPrimaryKey();

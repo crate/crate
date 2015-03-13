@@ -507,7 +507,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
         } else if (!tableInfo.isPartitioned()) {
             // table name for non-partitioned tables
-            indices = new String[]{tableInfo.ident().name()};
+            indices = new String[]{tableInfo.ident().esName()};
         } else if (whereClause.partitions().isEmpty()) {
             if (whereClause.noMatch()) {
                 return new String[0];

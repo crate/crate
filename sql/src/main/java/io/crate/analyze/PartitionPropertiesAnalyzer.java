@@ -77,7 +77,7 @@ public class PartitionPropertiesAnalyzer {
                         String.format("\"%s\" is no known partition column", entry.getKey().sqlFqn()));
             }
         }
-        return new PartitionName(tableInfo.ident().name(), Arrays.asList(values));
+        return new PartitionName(tableInfo.ident(), Arrays.asList(values));
     }
 
     public static String toPartitionIdent(TableInfo tableInfo,

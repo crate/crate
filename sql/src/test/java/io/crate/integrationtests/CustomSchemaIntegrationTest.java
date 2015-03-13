@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
 
-
     @Test
     public void testInformationSchemaTablesReturnCorrectTablesIfCustomSchemaIsSimilarToTableName() throws Exception {
         // regression test.. this caused foobar to be detected as a table in the foo schema and caused a NPE
@@ -42,5 +41,57 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.printedTable(response.rows()), is("" +
                 "foo| bar\n" +
                 "doc| foobar\n"));
+    }
+
+    @Test
+    public void testDeleteFromCustomTable() throws Exception {
+        execute("create table custom.t (id int) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into custom.t (id) values (?)", new Object[][]{{1}, {2}, {3}, {4}});
+        refresh();
+
+        execute("select count(*) from custom.t");
+        assertThat((Long)response.rows()[0][0], is(4L));
+
+        execute("delete from custom.t where id=1");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select * from custom.t");
+        assertThat(response.rowCount(), is(3L));
+
+        execute("delete from custom.t");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select count(*) from custom.t");
+        assertThat((Long)response.rows()[0][0], is(0L));
+    }
+
+    @Test
+    public void testUpdateById() throws Exception {
+        execute("create table custom.t (id int, name string) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into custom.t (id, name) values (?, ?)", new Object[][]{{1, "A"}, {2, "A"}, {3, "A"}, {4, "A"}});
+        refresh();
+
+        execute("update custom.t set name='B' where id=1");
+        refresh();
+
+        execute("select * from custom.t order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1| B\n2| A\n3| A\n4| A\n"));
+    }
+
+    @Test
+    public void testGetCustomSchema() throws Exception {
+        execute("create table custom.t (id int) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into custom.t (id) values (?)", new Object[][]{{1}, {2}, {3}, {4}});
+        refresh();
+
+        execute("select id from custom.t where id=1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n"));
+
+        execute("select id from custom.t where id in (2,4) order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n4\n"));
+
     }
 }
