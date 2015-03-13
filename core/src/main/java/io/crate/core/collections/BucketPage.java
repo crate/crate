@@ -19,24 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing;
+package io.crate.core.collections;
 
-import com.google.common.util.concurrent.Futures;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.CollectionBucket;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class BucketHelpers {
+public class BucketPage {
 
-    public static List<ListenableFuture<Bucket>> createBucketFutures(List<Object[]> ... buckets) {
-        List<ListenableFuture<Bucket>> result = new ArrayList<>();
-        for (List<Object[]> bucket : buckets) {
-            Bucket realBucket = new CollectionBucket(bucket);
-            result.add(Futures.immediateFuture(realBucket));
-        }
-        return result;
+    private final List<? extends ListenableFuture<Bucket>> buckets;
+
+    public BucketPage(List<? extends ListenableFuture<Bucket>> buckets) {
+        this.buckets = buckets;
+    }
+
+    public <T extends ListenableFuture<Bucket>> BucketPage(T bucket) {
+        this.buckets = ImmutableList.of(bucket);
+    }
+
+    public List<? extends ListenableFuture<Bucket>> buckets() {
+        return buckets;
     }
 }
