@@ -87,6 +87,8 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
                     merger.finish();
                 }
             });
+        } else {
+            merger.finish();
         }
         return collectingProjector.result().get();
     }
