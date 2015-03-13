@@ -27,6 +27,7 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Insert;
@@ -135,5 +136,14 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
     public AnalyzedStatement analyze(Node node, Analysis analysis) {
         analysis.expectsAffectedRows(true);
         return super.process(node, analysis);
+    }
+
+    protected void validateTable(TableInfo tableInfo) throws UnsupportedOperationException, IllegalArgumentException {
+        if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
+            throw new UnsupportedOperationException("aliases are read only.");
+        }
+        if (tableInfo.schemaInfo().systemSchema()) {
+            throw new UnsupportedOperationException("Can't insert into system tables, they are read only");
+        }
     }
 }

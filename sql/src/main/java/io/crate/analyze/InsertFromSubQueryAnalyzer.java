@@ -36,6 +36,7 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Locale;
 
+
 @Singleton
 public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
@@ -98,5 +99,4 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
             ));
         }
     }
-
 }

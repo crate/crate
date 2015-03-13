@@ -48,8 +48,6 @@ import java.util.Map;
 public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedStatement, Analysis> {
 
     private final AnalysisMetaData analysisMetaData;
-    private ExpressionAnalysisContext expressionAnalysisContext;
-    private ExpressionAnalyzer expressionAnalyzer;
 
     @Inject
     public CopyStatementAnalyzer(AnalysisMetaData analysisMetaData) {
@@ -68,7 +66,14 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
         statement.table(tableInfo);
         TableRelation tableRelation = new TableRelation(tableInfo);
-        setExpressionAnalyzer(tableRelation, statement, analysis.parameterContext());
+
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData,
+                analysis.parameterContext(),
+                new NameFieldProvider(tableRelation));
+        expressionAnalyzer.resolveWritableFields(true);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+
         Symbol pathSymbol = tableRelation.resolve(expressionAnalyzer.convert(node.path(), expressionAnalysisContext));
         statement.uri(pathSymbol);
         if (tableInfo.schemaInfo().systemSchema() || (tableInfo.isAlias() && !tableInfo.isPartitioned())) {
@@ -76,7 +81,11 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
                     String.format("Cannot COPY FROM %s INTO '%s', table is read-only", SymbolFormatter.format(pathSymbol), tableInfo));
         }
         if (node.genericProperties().isPresent()) {
-            statement.settings(settingsFromProperties(node.genericProperties().get(), tableRelation));
+            statement.settings(settingsFromProperties(
+                    node.genericProperties().get(),
+                    tableRelation,
+                    expressionAnalyzer,
+                    expressionAnalysisContext));
         }
         statement.mode(CopyAnalyzedStatement.Mode.FROM);
 
@@ -97,9 +106,19 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
         statement.table(tableInfo);
         TableRelation tableRelation = new TableRelation(tableInfo);
-        setExpressionAnalyzer(tableRelation, statement, analysis.parameterContext());
+
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData,
+                analysis.parameterContext(),
+                new NameFieldProvider(tableRelation));
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+
         if (node.genericProperties().isPresent()) {
-            statement.settings(settingsFromProperties(node.genericProperties().get(), tableRelation));
+            statement.settings(settingsFromProperties(
+                    node.genericProperties().get(),
+                    tableRelation,
+                    expressionAnalyzer,
+                    expressionAnalysisContext));
         }
 
         if (!node.table().partitionProperties().isEmpty()) {
@@ -132,18 +151,10 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         return false;
     }
 
-    private void setExpressionAnalyzer(TableRelation tableRelation, CopyAnalyzedStatement statement, ParameterContext parameterContext) {
-        expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData,
-                parameterContext,
-                new NameFieldProvider(tableRelation));
-        if (statement.mode() == CopyAnalyzedStatement.Mode.FROM) {
-            expressionAnalyzer.resolveWritableFields(true);
-        }
-        expressionAnalysisContext = new ExpressionAnalysisContext();
-    }
-
-    private Settings settingsFromProperties(GenericProperties properties, TableRelation tableRelation) {
+    private Settings settingsFromProperties(GenericProperties properties,
+                                            TableRelation tableRelation,
+                                            ExpressionAnalyzer expressionAnalyzer,
+                                            ExpressionAnalysisContext expressionAnalysisContext) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
             String key = entry.getKey();

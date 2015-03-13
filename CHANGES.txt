@@ -2,6 +2,10 @@
 Changes for Crate
 =================
 
+
+ - Fixed an issue with concurrent INSERT requests that could fail due to using
+   a shared state internally.
+
 2015/03/11 0.47.6
 =================
 

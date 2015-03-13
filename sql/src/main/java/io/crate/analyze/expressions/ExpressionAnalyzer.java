@@ -68,6 +68,7 @@ import static io.crate.planner.symbol.Literal.newLiteral;
  * In order to resolve QualifiedName or SubscriptExpressions it will use the fieldResolver given in the constructor and
  * generate a relationOutput for the matching Relation.
  * </p>
+ *
  */
 public class ExpressionAnalyzer {
 
