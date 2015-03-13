@@ -22,10 +22,10 @@
 package io.crate.testing;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.where.DocKeys;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
-import io.crate.core.collections.Row;
+import io.crate.core.collections.*;
 import io.crate.executor.Page;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
@@ -489,5 +489,23 @@ public class TestingHelpers {
 
     public static Matcher<Throwable> cause(Class<? extends Throwable> type, String expectedMessage) {
         return new CauseMatcher(type, expectedMessage);
+    }
+
+    public static List<ListenableFuture<Bucket>> createBucketFutures(List<Object[]> ... buckets) {
+        List<ListenableFuture<Bucket>> result = new ArrayList<>();
+        for (List<Object[]> bucket : buckets) {
+            Bucket realBucket = new CollectionBucket(bucket);
+            result.add(Futures.immediateFuture(realBucket));
+        }
+        return result;
+    }
+
+    public static BucketPage createPage(List<Object[]> ... buckets) {
+        List<ListenableFuture<Bucket>> futures = new ArrayList<>();
+        for (List<Object[]> bucket : buckets) {
+            Bucket realBucket = new CollectionBucket(bucket);
+            futures.add(Futures.immediateFuture(realBucket));
+        }
+        return new BucketPage(futures);
     }
 }
