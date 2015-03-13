@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,19 +21,9 @@
 
 package io.crate.operation;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
+public interface PageConsumeListener {
 
+    public void needMore();
 
-public interface DownstreamOperation {
-
-    public PageDownstream pageDownstream();
-
-    /**
-     * add more rows to merge
-     * implementation needs to make sure that this operation is thread-safe
-     */
-    public int numUpstreams();
-    public void finished();
-    public ListenableFuture<Bucket> result();
+    public void finish();
 }
