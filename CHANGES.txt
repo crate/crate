@@ -2,6 +2,7 @@
 Changes for Crate
 =================
 
+ - IN operator NULL literals bug fix
 
  - Fixed an issue with concurrent INSERT requests that could fail due to using
    a shared state internally.

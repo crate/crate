@@ -504,6 +504,20 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testWhereInSelectListWithNull() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1 in (3, 2, null)");
+        assertFalse(analysis.relation().querySpec().where().hasQuery());
+        assertTrue(analysis.relation().querySpec().where().noMatch());
+    }
+
+    @Test
+    public void testWhereInSelectValueIsNull() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select 'found' from users where null in (1.2, 2)");
+        assertFalse(analysis.relation().querySpec().where().hasQuery());
+        assertTrue(analysis.relation().querySpec().where().noMatch());
+    }
+
+    @Test
     public void testWhereInSelectDifferentDataTypeList() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1 in (1.2, 2)");
         assertFalse(analysis.relation().querySpec().where().hasQuery()); // already normalized from 1 in (1, 2) --> true
