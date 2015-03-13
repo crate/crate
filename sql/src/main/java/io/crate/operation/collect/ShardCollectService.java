@@ -26,6 +26,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
@@ -57,6 +58,7 @@ public class ShardCollectService {
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
+    private LuceneQueryBuilder luceneQueryBuilder;
     private final ShardId shardId;
     private final IndexService indexService;
     private final ScriptService scriptService;
@@ -73,6 +75,7 @@ public class ShardCollectService {
     @Inject
     public ShardCollectService(ThreadPool threadPool,
                                ClusterService clusterService,
+                               LuceneQueryBuilder luceneQueryBuilder,
                                Settings settings,
                                TransportActionProvider transportActionProvider,
                                ShardId shardId,
@@ -88,6 +91,7 @@ public class ShardCollectService {
                                CrateCircuitBreakerService breakerService) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
+        this.luceneQueryBuilder = luceneQueryBuilder;
         this.shardId = shardId;
 
         this.indexService = indexService;
@@ -177,6 +181,7 @@ public class ShardCollectService {
         return new LuceneDocCollector(
                 threadPool,
                 clusterService,
+                luceneQueryBuilder,
                 shardId,
                 indexService,
                 scriptService,

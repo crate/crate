@@ -66,6 +66,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
     private RamAccountingContext ramAccountingContext;
+    private LuceneQueryBuilder luceneQueryBuilder;
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -104,6 +105,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     public LuceneDocCollector(ThreadPool threadPool,
                               ClusterService clusterService,
+                              LuceneQueryBuilder luceneQueryBuilder,
                               ShardId shardId,
                               IndexService indexService,
                               ScriptService scriptService,
@@ -115,6 +117,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               Functions functions,
                               WhereClause whereClause,
                               RowDownstream downStreamProjector) throws Exception {
+        this.luceneQueryBuilder = luceneQueryBuilder;
         this.downstream = downStreamProjector.registerUpstream(this);
         SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
@@ -138,9 +141,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                 bigArrays,
                 threadPool.estimatedTimeInMillisCounter()
         );
-        LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, searchContext, indexService.cache());
         try {
-            LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
+            LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(whereClause, searchContext, indexService.cache());
             searchContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
             Float minScore = ctx.minScore();
             if (minScore != null) {

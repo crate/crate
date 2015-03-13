@@ -67,6 +67,8 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.geo.GeoDistance;
 import org.elasticsearch.common.geo.GeoPoint;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
 import org.elasticsearch.common.lucene.search.NotFilter;
@@ -88,25 +90,25 @@ import java.util.*;
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
 
+@Singleton
 public class LuceneQueryBuilder {
 
-    private final Visitor visitor;
+    private final static Visitor VISITOR = new Visitor();
+    private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
 
-    public LuceneQueryBuilder(Functions functions, SearchContext searchContext, IndexCache indexCache) {
-        CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
-                new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
-        visitor = new Visitor(inputSymbolVisitor, indexCache);
-        visitor.searchContext = searchContext;
+    @Inject
+    public LuceneQueryBuilder(Functions functions) {
+        inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
     }
 
-    public Context convert(WhereClause whereClause) throws UnsupportedFeatureException {
-        Context ctx = new Context();
+    public Context convert(WhereClause whereClause, SearchContext searchContext, IndexCache indexCache) throws UnsupportedFeatureException {
+        Context ctx = new Context(inputSymbolVisitor, searchContext, indexCache);
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery();
         } else if (!whereClause.hasQuery()) {
             ctx.query = Queries.newMatchAllQuery();
         } else {
-            ctx.query = visitor.process(whereClause.query(), ctx);
+            ctx.query = VISITOR.process(whereClause.query(), ctx);
         }
         return ctx;
     }
@@ -115,6 +117,18 @@ public class LuceneQueryBuilder {
         Query query;
 
         final Map<String, Object> filteredFieldValues = new HashMap<>();
+
+        final SearchContext searchContext;
+        final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
+        final IndexCache indexCache;
+
+        Context(CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
+                SearchContext searchContext,
+                IndexCache indexCache) {
+            this.inputSymbolVisitor = inputSymbolVisitor;
+            this.searchContext = searchContext;
+            this.indexCache = indexCache;
+        }
 
         public Query query() {
             return this.query;
@@ -182,23 +196,13 @@ public class LuceneQueryBuilder {
 
     static class Visitor extends SymbolVisitor<Context, Query> {
 
-        private SearchContext searchContext;
-        private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
-        private final IndexCache indexCache;
-
-        public Visitor(CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
-                       IndexCache indexCache) {
-            this.inputSymbolVisitor = inputSymbolVisitor;
-            this.indexCache = indexCache;
-        }
-
         interface FunctionToQuery {
 
             @Nullable
             public Query apply (Function input, Context context) throws IOException;
         }
 
-        abstract class CmpQuery implements FunctionToQuery {
+        static abstract class CmpQuery implements FunctionToQuery {
 
             @Nullable
             protected Tuple<Reference, Literal> prepare(Function input) {
@@ -219,7 +223,7 @@ public class LuceneQueryBuilder {
         /**
          * 1 != any ( col ) -->  gt 1 or lt 1
          */
-        class AnyNeqQuery extends CmpQuery {
+        static class AnyNeqQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -246,7 +250,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class AnyNotLikeQuery extends CmpQuery {
+        static class AnyNotLikeQuery extends CmpQuery {
 
             private String negateWildcard(String wildCard) {
                 return String.format("~(%s)", wildCard);
@@ -268,7 +272,8 @@ public class LuceneQueryBuilder {
                 );
             }
         }
-        class LikeQuery extends CmpQuery {
+
+        static class LikeQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -282,7 +287,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class InQuery extends CmpQuery {
+        static class InQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) throws IOException {
@@ -318,7 +323,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class IsNullQuery implements FunctionToQuery {
+        static class IsNullQuery implements FunctionToQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -338,7 +343,8 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class EqQuery extends CmpQuery {
+        static class EqQuery extends CmpQuery {
+
             @Override
             public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
@@ -362,7 +368,7 @@ public class LuceneQueryBuilder {
 
                     if (boolTermsFilter.clauses().isEmpty()) {
                         // all values are null...
-                        return genericFunctionQuery(input);
+                        return genericFunctionQuery(input, context.inputSymbolVisitor, context.searchContext);
                     }
 
                     // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
@@ -370,7 +376,9 @@ public class LuceneQueryBuilder {
                     // afterwards the more expensive genericFunctionFilter
                     BooleanFilter filterClauses = new BooleanFilter();
                     filterClauses.add(boolTermsFilter, BooleanClause.Occur.MUST);
-                    filterClauses.add(genericFunctionFilter(input), BooleanClause.Occur.MUST);
+                    filterClauses.add(
+                            genericFunctionFilter(input, context.inputSymbolVisitor, context.searchContext),
+                            BooleanClause.Occur.MUST);
                     return new FilteredQuery(Queries.newMatchAllQuery(), filterClauses);
                 }
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
@@ -420,7 +428,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class LtQuery extends CmpQuery {
+        static class LtQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -435,7 +443,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class LteQuery extends CmpQuery {
+        static class LteQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -450,7 +458,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class GtQuery extends CmpQuery {
+        static class GtQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -465,7 +473,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class GteQuery extends CmpQuery {
+        static class GteQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -480,7 +488,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class ToMatchQuery implements FunctionToQuery {
+        static class ToMatchQuery implements FunctionToQuery {
 
             @Override
             public Query apply(Function input, Context context) throws IOException {
@@ -501,15 +509,15 @@ public class LuceneQueryBuilder {
 
                 MatchQueryBuilder queryBuilder;
                 if (fields.size() == 1) {
-                    queryBuilder = new MatchQueryBuilder(searchContext, indexCache, matchType, options);
+                    queryBuilder = new MatchQueryBuilder(context.searchContext, context.indexCache, matchType, options);
                 } else {
-                    queryBuilder = new MultiMatchQueryBuilder(searchContext, indexCache, matchType, options);
+                    queryBuilder = new MultiMatchQueryBuilder(context.searchContext, context.indexCache, matchType, options);
                 }
                 return queryBuilder.query(fields, queryString);
             }
         }
 
-        class RegexpMatchQuery extends CmpQuery {
+        static class RegexpMatchQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) throws IOException {
@@ -539,7 +547,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class RegexMatchQueryCaseInsensitive extends CmpQuery {
+        static class RegexMatchQueryCaseInsensitive extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) throws IOException {
@@ -595,7 +603,7 @@ public class LuceneQueryBuilder {
         /**
          * for where within(shape1, shape2) = [ true | false ]
          */
-        class WithinQuery implements FunctionToQuery, InnerFunctionToQuery {
+        static class WithinQuery implements FunctionToQuery, InnerFunctionToQuery {
 
             @Override
             public Query apply(Function parent, Function inner, Context context) throws IOException {
@@ -603,7 +611,7 @@ public class LuceneQueryBuilder {
                 if (!outerPair.isValid()) {
                     return null;
                 }
-                Query query = getQuery(inner);
+                Query query = getQuery(inner, context);
                 if (query == null) return null;
                 Boolean negate = !(Boolean) outerPair.input().value();
                 if (negate) {
@@ -615,15 +623,18 @@ public class LuceneQueryBuilder {
                 }
             }
 
-            private Query getQuery(Function inner) {
+            private Query getQuery(Function inner, Context context) {
                 RefLiteralPair innerPair = new RefLiteralPair(inner);
                 if (!innerPair.isValid()) {
                     return null;
                 }
-                GeoPointFieldMapper mapper = getGeoPointFieldMapper(innerPair.reference().info().ident().columnIdent().fqn());
+                GeoPointFieldMapper mapper = getGeoPointFieldMapper(
+                        innerPair.reference().info().ident().columnIdent().fqn(),
+                        context.searchContext
+                );
                 Shape shape = (Shape) innerPair.input().value();
                 Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
-                IndexGeoPointFieldData fieldData = searchContext.fieldData().getForField(mapper);
+                IndexGeoPointFieldData fieldData = context.searchContext.fieldData().getForField(mapper);
                 Filter filter;
                 if (geometry.isRectangle()) {
                     Rectangle boundingBox = shape.getBoundingBox();
@@ -641,12 +652,12 @@ public class LuceneQueryBuilder {
                     }
                     filter = new GeoPolygonFilter(fieldData, points);
                 }
-                return new FilteredQuery(Queries.newMatchAllQuery(), indexCache.filter().cache(filter));
+                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));
             }
 
             @Override
             public Query apply(Function input, Context context) throws IOException {
-                return getQuery(input);
+                return getQuery(input, context);
             }
         }
 
@@ -680,9 +691,9 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
-                FieldMapper mapper = getGeoPointFieldMapper(fieldName);
+                FieldMapper mapper = getGeoPointFieldMapper(fieldName, context.searchContext);
                 GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
-                IndexGeoPointFieldData fieldData = searchContext.fieldData().getForField(mapper);
+                IndexGeoPointFieldData fieldData = context.searchContext.fieldData().getForField(mapper);
 
                 Input geoPointInput = distanceRefLiteral.input();
                 Double[] pointValue = (Double[]) geoPointInput.value();
@@ -733,11 +744,11 @@ public class LuceneQueryBuilder {
                         fieldData,
                         optimizeBox
                 );
-                return new FilteredQuery(Queries.newMatchAllQuery(), indexCache.filter().cache(filter));
+                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));
             }
         }
 
-        private GeoPointFieldMapper getGeoPointFieldMapper(String fieldName) {
+        private static GeoPointFieldMapper getGeoPointFieldMapper(String fieldName, SearchContext searchContext) {
             MapperService.SmartNameFieldMappers smartMappers = searchContext.smartFieldMappers(fieldName);
             if (smartMappers == null || !smartMappers.hasMapper()) {
                 throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
@@ -749,13 +760,13 @@ public class LuceneQueryBuilder {
             return (GeoPointFieldMapper) mapper;
         }
 
-        private final EqQuery eqQuery = new EqQuery();
-        private final LtQuery ltQuery = new LtQuery();
-        private final LteQuery lteQuery = new LteQuery();
-        private final GtQuery gtQuery = new GtQuery();
-        private final GteQuery gteQuery = new GteQuery();
-        private final LikeQuery likeQuery = new LikeQuery();
-        private final WithinQuery withinQuery = new WithinQuery();
+        private static final EqQuery eqQuery = new EqQuery();
+        private static final LtQuery ltQuery = new LtQuery();
+        private static final LteQuery lteQuery = new LteQuery();
+        private static final GtQuery gtQuery = new GtQuery();
+        private static final GteQuery gteQuery = new GteQuery();
+        private static final LikeQuery likeQuery = new LikeQuery();
+        private static final WithinQuery withinQuery = new WithinQuery();
         private final ImmutableMap<String, FunctionToQuery> functions =
                 ImmutableMap.<String, FunctionToQuery>builder()
                         .put(WithinFunction.NAME, withinQuery)
@@ -799,7 +810,7 @@ public class LuceneQueryBuilder {
 
             FunctionToQuery toQuery = functions.get(function.info().ident().name());
             if (toQuery == null) {
-                return genericFunctionQuery(function);
+                return genericFunctionQuery(function, context.inputSymbolVisitor, context.searchContext);
             }
 
             Query query;
@@ -808,12 +819,12 @@ public class LuceneQueryBuilder {
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToRuntime(e);
             } catch (UnsupportedOperationException e) {
-                return genericFunctionQuery(function);
+                return genericFunctionQuery(function, context.inputSymbolVisitor, context.searchContext);
             }
             if (query == null) {
                 query = queryFromInnerFunction(function, context);
                 if (query == null) {
-                    return genericFunctionQuery(function);
+                    return genericFunctionQuery(function, context.inputSymbolVisitor, context.searchContext);
                 }
             }
             return query;
@@ -877,7 +888,9 @@ public class LuceneQueryBuilder {
             return null;
         }
 
-        private Filter genericFunctionFilter(Function function) {
+        private static Filter genericFunctionFilter(Function function,
+                                                    CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
+                                                    SearchContext searchContext) {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
@@ -921,8 +934,12 @@ public class LuceneQueryBuilder {
             };
         }
 
-        private Query genericFunctionQuery(Function function) {
-            return new FilteredQuery(Queries.newMatchAllQuery(), genericFunctionFilter(function));
+        private static Query genericFunctionQuery(Function function,
+                                                  CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
+                                                  SearchContext searchContext) {
+            return new FilteredQuery(
+                    Queries.newMatchAllQuery(),
+                    genericFunctionFilter(function, inputSymbolVisitor, searchContext));
         }
 
         static class FunctionDocSet extends MatchDocIdSet {
@@ -969,7 +986,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        private Query raiseUnsupported(Function function) {
+        private static Query raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(
                     SymbolFormatter.format("Cannot convert function %s into a query", function));
         }

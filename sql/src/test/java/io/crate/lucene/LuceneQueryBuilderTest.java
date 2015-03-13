@@ -60,14 +60,16 @@ import static org.mockito.Mockito.mock;
 public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     private LuceneQueryBuilder builder;
+    private SearchContext searchContext;
+    private IndexCache indexCache;
 
     @Before
     public void prepare() throws Exception {
         Functions functions = new ModulesBuilder()
                 .add(new OperatorModule()).createInjector().getInstance(Functions.class);
-        builder = new LuceneQueryBuilder(functions,
-                mock(SearchContext.class, Answers.RETURNS_MOCKS.get()),
-                mock(IndexCache.class, Answers.RETURNS_MOCKS.get()));
+        builder = new LuceneQueryBuilder(functions);
+        searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
+        indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
     }
 
     @Test
@@ -185,7 +187,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
 
     private Query convert(WhereClause clause) {
-        return builder.convert(clause).query;
+        return builder.convert(clause, searchContext, indexCache).query;
     }
 
     private WhereClause whereClause(String opname, Symbol left, Symbol right) {

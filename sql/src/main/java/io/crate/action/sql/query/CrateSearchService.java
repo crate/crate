@@ -88,6 +88,7 @@ public class CrateSearchService extends InternalSearchService {
 
     private final SortSymbolVisitor sortSymbolVisitor;
     private final Functions functions;
+    private LuceneQueryBuilder luceneQueryBuilder;
 
     @Inject
     public CrateSearchService(Settings settings,
@@ -104,7 +105,8 @@ public class CrateSearchService extends InternalSearchService {
                               QueryPhase queryPhase,
                               FetchPhase fetchPhase,
                               Functions functions,
-                              IndicesQueryCache indicesQueryCache) {
+                              IndicesQueryCache indicesQueryCache,
+                              LuceneQueryBuilder luceneQueryBuilder) {
         super(settings, clusterService, indicesService, indicesLifecycle,
                 indicesWarmer,
                 threadPool,
@@ -113,6 +115,7 @@ public class CrateSearchService extends InternalSearchService {
                 pageCacheRecycler,
                 bigArrays, dfsPhase, queryPhase, fetchPhase, indicesQueryCache);
         this.functions = functions;
+        this.luceneQueryBuilder = luceneQueryBuilder;
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
                 new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
         sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
@@ -235,8 +238,7 @@ public class CrateSearchService extends InternalSearchService {
         SearchContext.setCurrent(context);
 
         try {
-            LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, context, indexService.cache());
-            LuceneQueryBuilder.Context ctx = builder.convert(request.whereClause());
+            LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(request.whereClause(), context, indexService.cache());
             context.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
             Float minScore = ctx.minScore();
             if (minScore != null) {
