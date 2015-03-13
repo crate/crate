@@ -113,7 +113,7 @@ public class DownstreamOperationContext {
     public void add(Bucket bucket) {
         assert bucket != null;
         int bucketNum = mergeOperationsLeft.decrementAndGet();
-        LOGGER.trace("add bucket #{} size: {}", bucketNum, bucket.size());
+        LOGGER.trace("add bucket #{}: {}", bucketNum, bucket);
         if (bucketNum >= 0 && needsMoreRows.get()) {
             upstreamFutures.get(bucketNum).set(bucket);
         }
