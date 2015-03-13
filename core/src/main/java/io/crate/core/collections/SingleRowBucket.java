@@ -19,50 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.core.collections;
 
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row1;
-import io.crate.core.collections.SingleRowBucket;
-import io.crate.exceptions.Exceptions;
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.Iterators;
 
-import javax.annotation.Nullable;
+import java.util.Iterator;
 
-public class RowCountResult implements TaskResult {
+public class SingleRowBucket implements Bucket {
 
-    @Nullable private final Throwable error;
-    private final Row1 row;
-    private final Bucket rows;
+    private final Row row;
 
-    public RowCountResult(long rowCount) {
-        this(rowCount, null);
+    public SingleRowBucket(Row row) {
+        this.row = row;
     }
 
-    private RowCountResult(long rowCount, Throwable throwable) {
-        this.row = new Row1(rowCount);
-        this.rows = new SingleRowBucket(row);
-        this.error = throwable;
-    }
-
-    public static RowCountResult error(Throwable throwable) {
-        return new RowCountResult(-2L, throwable);
-    }
-    
     @Override
-    public Bucket rows() {
-        return rows;
+    public int size() {
+        return 1;
     }
 
-    @Nullable
     @Override
-    public String errorMessage() {
-        if (error == null) {
-            return null;
-        }
-        return Exceptions.messageOf(error);
+    public Iterator<Row> iterator() {
+        return Iterators.singletonIterator(row);
     }
 
-    public long rowCount(){
-        return (long) row.get(0);
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this).add("row", row).toString();
     }
 }
