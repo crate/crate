@@ -30,12 +30,12 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
-import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageConsumeListener;
+import io.crate.operation.PageDownstream;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -81,7 +81,8 @@ public class MergeOperationTest extends CrateUnitTest {
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private GroupProjection groupProjection;
-    private ImplementationSymbolVisitor symbolVisitor;
+    private Functions functions;
+    private ReferenceResolver referenceResolver;
 
     @Mock
     private ThreadPool threadPool;
@@ -99,10 +100,9 @@ public class MergeOperationTest extends CrateUnitTest {
                     }
                 })
                 .createInjector();
-        Functions functions = injector.getInstance(Functions.class);
-        ReferenceResolver referenceResolver = new GlobalReferenceResolver(
+        functions = injector.getInstance(Functions.class);
+        referenceResolver = new GlobalReferenceResolver(
                 Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
-        symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
 
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));
         FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataTypes.DOUBLE);
@@ -143,15 +143,17 @@ public class MergeOperationTest extends CrateUnitTest {
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                symbolVisitor,
-                threadPool,
-                mergeNode,
-                ramAccountingContext
+                referenceResolver,
+                functions,
+                threadPool
         );
+        CollectingProjector collectingProjector = new CollectingProjector();
+        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext);
         final SettableFuture<?> future = SettableFuture.create();
-        mergeOperation.pageDownstream().nextPage(page, new PageConsumeListener() {
+        pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
             public void needMore() {
+                pageDownstream.finish();
                 future.set(null);
             }
 
@@ -161,8 +163,7 @@ public class MergeOperationTest extends CrateUnitTest {
             }
         });
         future.get();
-        mergeOperation.finished();
-        Bucket mergeResult = mergeOperation.result().get();
+        Bucket mergeResult = collectingProjector.result().get();
         assertThat(mergeResult, IsIterableContainingInOrder.contains(
                 isRow(0, 0.5d),
                 isRow(1, 1.5d),
@@ -180,11 +181,12 @@ public class MergeOperationTest extends CrateUnitTest {
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                symbolVisitor,
-                threadPool,
-                mergeNode,
-                ramAccountingContext
+                referenceResolver,
+                functions,
+                threadPool
         );
+        CollectingProjector collectingProjector = new CollectingProjector();
+        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext);
 
         Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
         BucketPage page1 = new BucketPage(Futures.immediateFuture(rows));
@@ -193,12 +195,13 @@ public class MergeOperationTest extends CrateUnitTest {
         final Iterator<BucketPage> iterator = Iterators.forArray(page1, page2);
 
         final SettableFuture<?> future = SettableFuture.create();
-        mergeOperation.pageDownstream().nextPage(iterator.next(), new PageConsumeListener() {
+        pageDownstream.nextPage(iterator.next(), new PageConsumeListener() {
             @Override
             public void needMore() {
                 if (iterator.hasNext()) {
-                    mergeOperation.pageDownstream().nextPage(iterator.next(), this);
+                    pageDownstream.nextPage(iterator.next(), this);
                 } else {
+                    pageDownstream.finish();
                     future.set(null);
                 }
             }
@@ -209,8 +212,7 @@ public class MergeOperationTest extends CrateUnitTest {
             }
         });
         future.get();
-        mergeOperation.finished();
-        Bucket mergeResult = mergeOperation.result().get();
+        Bucket mergeResult = collectingProjector.result().get();
         assertThat(mergeResult, contains(isRow(0, 2.5)));
     }
 
