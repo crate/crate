@@ -42,7 +42,7 @@ public class MergeOperation implements DownstreamOperation {
 
     private final int numUpstreams;
     private final FlatProjectorChain projectorChain;
-    private final NonSortingBucketMerger bucketMerger;
+    private final BucketMerger bucketMerger;
 
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
