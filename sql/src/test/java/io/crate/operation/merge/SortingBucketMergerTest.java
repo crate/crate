@@ -34,7 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import static io.crate.testing.BucketHelpers.createBucketFutures;
+import static io.crate.testing.TestingHelpers.createBucketFutures;
 import static org.hamcrest.Matchers.is;
 
 
