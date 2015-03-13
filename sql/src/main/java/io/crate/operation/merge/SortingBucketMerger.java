@@ -28,9 +28,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
+import io.crate.operation.PageConsumeListener;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.NoOpProjector;
@@ -95,28 +98,53 @@ public class SortingBucketMerger implements BucketMerger {
      *
      * see private emitBuckets(...) for more details on how this works
      */
-    public void merge(List<ListenableFuture<Bucket>> buckets) {
-        assert buckets.size() == numBuckets :
+    @Override
+    public void nextPage(BucketPage page, final PageConsumeListener listener) {
+        assert page.buckets().size() == numBuckets :
                 "number of buckets received in merge call must match the number given in the constructor";
-
-        try {
-            if (numBuckets == 1) {
-                emitSingleBucket(buckets.get(0).get());
-            } else {
-                ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(numBuckets);
-                for (int i = 0; i < buckets.size(); i++) {
-                    Iterator<Row> remainingBucketIt = remainingBucketIts[i];
-                    if (remainingBucketIt == null) {
-                        bucketIts.add(buckets.get(i).get().iterator());
+        final AtomicBoolean listenerNotified = new AtomicBoolean(false);
+        Futures.addCallback(Futures.allAsList(page.buckets()), new FutureCallback<List<Bucket>>() {
+            @Override
+            public void onSuccess(List<Bucket> buckets) {
+                try {
+                    if (numBuckets == 1) {
+                        emitSingleBucket(buckets.get(0));
                     } else {
-                        bucketIts.add(Iterators.concat(remainingBucketIt, new FutureBackedRowIterator(buckets.get(i))));
+                        ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(numBuckets);
+                        for (int i = 0; i < buckets.size(); i++) {
+                            Iterator<Row> remainingBucketIt = remainingBucketIts[i];
+                            if (remainingBucketIt == null) {
+                                bucketIts.add(buckets.get(i).iterator());
+                            } else {
+                                bucketIts.add(Iterators.concat(remainingBucketIt, buckets.get(i).iterator()));
+                            }
+                        }
+                        emitBuckets(bucketIts);
+                    }
+                } catch (Throwable t) {
+                    downstream.fail(t);
+                } finally {
+                    notifyListener();
+                }
+            }
+
+            private void notifyListener() {
+                if (!listenerNotified.getAndSet(true)) {
+                    if (wantMore.get()) {
+                        listener.needMore();
+                    } else {
+                        listener.finish();
                     }
                 }
-                emitBuckets(bucketIts);
             }
-        } catch (Throwable t) {
-            downstream.fail(t);
-        }
+
+            @Override
+            public void onFailure(Throwable t) {
+                wantMore.set(false);
+                fail(t);
+                notifyListener();
+            }
+        });
     }
 
     /**
