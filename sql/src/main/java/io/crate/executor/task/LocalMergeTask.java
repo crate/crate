@@ -39,8 +39,10 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageConsumeListener;
+import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -62,6 +64,7 @@ public class LocalMergeTask extends JobTask {
 
     private static final ESLogger LOGGER = Loggers.getLogger(LocalMergeTask.class);
 
+    private final MergeOperation mergeOperation;
     private final MergeNode mergeNode;
     private final StatsTables statsTables;
     private final ClusterService clusterService;
@@ -83,12 +86,14 @@ public class LocalMergeTask extends JobTask {
                           ThreadPool threadPool,
                           ClusterService clusterService,
                           Settings settings,
+                          MergeOperation mergeOperation,
                           TransportActionProvider transportActionProvider,
                           ImplementationSymbolVisitor implementationSymbolVisitor,
                           MergeNode mergeNode,
                           StatsTables statsTables,
                           CircuitBreaker circuitBreaker) {
         super(jobId);
+        this.mergeOperation = mergeOperation;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.settings = settings;
@@ -118,19 +123,13 @@ public class LocalMergeTask extends JobTask {
         String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId.toString());
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        final MergeOperation mergeOperation = new MergeOperation(
-                clusterService,
-                settings,
-                transportActionProvider,
-                symbolVisitor,
-                threadPool,
-                mergeNode,
-                ramAccountingContext
-        );
+        CollectingProjector collectingProjector = new CollectingProjector();
+        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext);
+
         statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.id());
 
         // callback for projected result, closing all the stuff
-        Futures.addCallback(mergeOperation.result(), new FutureCallback<Bucket>() {
+        Futures.addCallback(collectingProjector.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket rows) {
                 ramAccountingContext.close();
@@ -141,8 +140,7 @@ public class LocalMergeTask extends JobTask {
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 ramAccountingContext.close();
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
-                        ramAccountingContext.totalBytes());
+                statsTables.operationFinished(operationId, Exceptions.messageOf(t), ramAccountingContext.totalBytes());
                 result.setException(t);
             }
         });
@@ -163,7 +161,7 @@ public class LocalMergeTask extends JobTask {
                 });
             }
         }));
-        mergeOperation.pageDownstream().nextPage(page, new PageConsumeListener() {
+        pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
             public void needMore() {
                 // currently only one page
@@ -174,7 +172,7 @@ public class LocalMergeTask extends JobTask {
             @Override
             public void finish() {
                 LOGGER.trace("{} page finished", mergeNode.jobId());
-                mergeOperation.finished();
+                pageDownstream.finish();
             }
         });
     }
