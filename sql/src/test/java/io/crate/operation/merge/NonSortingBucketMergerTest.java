@@ -21,42 +21,73 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.BucketPage;
 import io.crate.operation.Input;
+import io.crate.operation.PageConsumeListener;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 
-import static io.crate.testing.BucketHelpers.createBucketFutures;
+import static io.crate.testing.TestingHelpers.createPage;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
 
 public class NonSortingBucketMergerTest extends CrateUnitTest {
 
-    private Bucket mergeWith(List<ListenableFuture<Bucket>>... pages)
+    @Mock
+    private ThreadPool threadPool;
+
+    @Before
+    public void prepare() {
+        when(threadPool.executor(anyString())).thenReturn(MoreExecutors.directExecutor());
+
+    }
+
+    private Bucket mergeWith(BucketPage... pages)
             throws ExecutionException, InterruptedException {
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        BucketMerger merger = new NonSortingBucketMerger();
+        final NonSortingBucketMerger merger = new NonSortingBucketMerger(threadPool);
         merger.downstream(collectingProjector);
+        final Iterator<BucketPage> pageIter = Iterators.forArray(pages);
+        if (pageIter.hasNext()) {
+            merger.nextPage(pageIter.next(), new PageConsumeListener() {
+                @Override
+                public void needMore() {
+                    if (pageIter.hasNext()) {
+                        merger.nextPage(pageIter.next(), this);
+                    } else {
+                        merger.finish();
+                    }
+                }
 
-        for (List<ListenableFuture<Bucket>> page : pages) {
-            merger.merge(page);
+                @Override
+                public void finish() {
+                    merger.finish();
+                }
+            });
         }
-        merger.finish();
         return collectingProjector.result().get();
     }
 
@@ -66,7 +97,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
 
     @Test
     public void testMergeWithManyPages() throws Exception {
-        List<ListenableFuture<Bucket>> page1 = createBucketFutures(
+        BucketPage page1 = createPage(
                 Arrays.asList(
                         new Object[]{"B"},
                         new Object[]{"B"}
@@ -79,7 +110,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
                 )
         );
 
-        List<ListenableFuture<Bucket>> page2 = createBucketFutures(
+        BucketPage page2 = createPage(
                 Arrays.asList(
                         new Object[]{1},
                         new Object[]{2}
@@ -97,7 +128,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
 
     @Test
     public void testMergeWith3Buckets() throws Exception {
-        List<ListenableFuture<Bucket>> page1 = createBucketFutures(
+        BucketPage page1 = createPage(
                 Arrays.asList(
                         new Object[]{"B"},
                         new Object[]{"B"}
@@ -118,7 +149,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
 
     @Test
     public void testAllBucketsAreEmpty() throws Exception {
-        List<ListenableFuture<Bucket>> p1Buckets = createBucketFutures(
+        BucketPage p1Buckets = createPage(
                 Arrays.<Object[]>asList(),
                 Arrays.<Object[]>asList()
         );
@@ -128,16 +159,16 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
 
     @Test
     public void testWithOnlyOneBucket() throws Exception {
-        List<ListenableFuture<Bucket>> p1Buckets = createBucketFutures(
+        BucketPage p1Buckets = createPage(
                 Arrays.asList(
-                        new Object[] { "A" },
-                        new Object[] { "B" },
-                        new Object[] { "C" }));
-        List<ListenableFuture<Bucket>> p2Buckets = createBucketFutures(
+                        new Object[]{"A"},
+                        new Object[]{"B"},
+                        new Object[]{"C"}));
+        BucketPage p2Buckets = createPage(
                 Arrays.asList(
-                        new Object[] { "C" },
-                        new Object[] { "C" },
-                        new Object[] { "D" }));
+                        new Object[]{"C"},
+                        new Object[]{"C"},
+                        new Object[]{"D"}));
 
         Bucket bucket = mergeWith(p1Buckets, p2Buckets);
         Assert.assertThat(bucket.size(), is(6));
@@ -146,11 +177,11 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
 
     @Test
     public void testWithTwoBucketsButOneIsEmpty() throws Exception {
-        List<ListenableFuture<Bucket>> buckets = createBucketFutures(
+        BucketPage buckets = createPage(
                 Arrays.asList(
-                        new Object[] { "A" },
-                        new Object[] { "B" },
-                        new Object[] { "C" }),
+                        new Object[]{"A"},
+                        new Object[]{"B"},
+                        new Object[]{"C"}),
                 Arrays.<Object[]>asList());
 
         Bucket bucket = mergeWith(buckets);
@@ -162,7 +193,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
     public void testThreaded() throws Exception {
         final SettableFuture<Bucket> bucketFuture1 = SettableFuture.create();
         final SettableFuture<Bucket> bucketFuture2 = SettableFuture.create();
-        final List<ListenableFuture<Bucket>> buckets = Arrays.<ListenableFuture<Bucket>>asList(bucketFuture1, bucketFuture2);
+        final BucketPage buckets = new BucketPage(Arrays.<ListenableFuture<Bucket>>asList(bucketFuture1, bucketFuture2));
         Thread thread1 = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -205,13 +236,13 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
                 2,
                 0);
         final CollectingProjector collectingProjector = new CollectingProjector();
-        final BucketMerger merger = new NonSortingBucketMerger();
+        final NonSortingBucketMerger merger = new NonSortingBucketMerger(threadPool);
         merger.downstream(topNProjector);
         topNProjector.downstream(collectingProjector);
 
         final SettableFuture<Bucket> bucketFuture1 = SettableFuture.create();
         final SettableFuture<Bucket> bucketFuture2 = SettableFuture.create();
-        final List<ListenableFuture<Bucket>> buckets = Arrays.<ListenableFuture<Bucket>>asList(bucketFuture1, bucketFuture2);
+        final BucketPage buckets = new BucketPage(Arrays.<ListenableFuture<Bucket>>asList(bucketFuture1, bucketFuture2));
         Thread thread1 = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -229,8 +260,17 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
             @Override
             public void run() {
                 try {
-                    merger.merge(buckets);
-                    merger.finish();
+                    merger.nextPage(buckets, new PageConsumeListener() {
+                        @Override
+                        public void needMore() {
+                            fail("wo don't need more");
+                        }
+
+                        @Override
+                        public void finish() {
+                            merger.finish();
+                        }
+                    });
                     Bucket merged = collectingProjector.result().get();
                     future.set(merged);
                 } catch (ExecutionException | InterruptedException e) {
@@ -254,9 +294,11 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
         expectedException.expect(ExecutionException.class);
         expectedException.expectCause(TestingHelpers.cause(IllegalArgumentException.class, "bla"));
 
-        List<ListenableFuture<Bucket>> page1 = Arrays.asList(
+        BucketPage page1 = new BucketPage(
+            Arrays.asList(
                 Futures.<Bucket>immediateFailedFuture(new IllegalArgumentException("bla")),
                 Futures.<Bucket>immediateFuture(new ArrayBucket(new Object[][]{{"A", "B"}}))
+            )
         );
         mergeWith(page1);
     }

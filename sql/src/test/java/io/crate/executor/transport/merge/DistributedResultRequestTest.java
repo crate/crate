@@ -27,6 +27,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.metadata.DynamicFunctionResolver;
@@ -35,6 +36,8 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.DownstreamOperationFactory;
+import io.crate.operation.PageConsumeListener;
+import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
@@ -226,9 +229,27 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         @Override
         public DownstreamOperation create(final MergeNode node, RamAccountingContext ramAccountingContext) {
             return new DownstreamOperation() {
+
+                private PageDownstream pageDownstream = new PageDownstream() {
+                    @Override
+                    public void nextPage(BucketPage page, PageConsumeListener listener) {
+                        listener.finish();
+                    }
+
+                    @Override
+                    public void finish() {
+                        finished();
+                    }
+
+                    @Override
+                    public void fail(Throwable t) {
+                        finished();
+                    }
+                };
+
                 @Override
-                public boolean addRows(Bucket rows) {
-                    return true;
+                public PageDownstream pageDownstream() {
+                    return pageDownstream;
                 }
 
                 @Override

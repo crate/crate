@@ -96,6 +96,7 @@ public class DistributedRequestContextManager {
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
+
         SettableFuture<Bucket> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
                 downstreamOperationFactory.create(mergeNode, ramAccountingContext),
@@ -114,7 +115,6 @@ public class DistributedRequestContextManager {
         logger.trace("createContext.put: {} {}", this, mergeNode.contextId(), downstreamOperationContext);
         put(mergeNode.contextId(), downstreamOperationContext);
     }
-
 
     /**
      * use to retrieve the streamers to read the incoming rows
