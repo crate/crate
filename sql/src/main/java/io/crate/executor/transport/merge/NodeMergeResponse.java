@@ -27,15 +27,12 @@ import io.crate.executor.transport.StreamBucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 
 public class NodeMergeResponse extends TransportResponse {
 
-    private static final ESLogger logger = Loggers.getLogger(NodeMergeResponse.class);
     private final Streamer<?>[] streamers;
     private Bucket rows;
 

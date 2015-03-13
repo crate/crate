@@ -70,7 +70,7 @@ public class TransportQueryShardActionTest extends SQLTransportIntegrationTest {
                 new ActionListener<QuerySearchResult>() {
                     @Override
                     public void onResponse(QuerySearchResult queryShardResponse) {
-                        response.set(true);
+                        response.set(false);
                     }
 
                     @Override
