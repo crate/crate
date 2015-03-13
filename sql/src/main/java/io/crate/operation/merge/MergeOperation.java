@@ -21,68 +21,68 @@
 
 package io.crate.operation.merge;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.base.Optional;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ResultProvider;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 /**
  * merge rows - that's it
  */
+@Singleton
 public class MergeOperation implements DownstreamOperation {
 
-    private final int numUpstreams;
-    private final FlatProjectorChain projectorChain;
-    private final BucketMerger bucketMerger;
+    private final ThreadPool threadPool;
+    private final ProjectionToProjectorVisitor projectionToProjectorVisitor;
 
+    @Inject
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
-                          ImplementationSymbolVisitor symbolVisitor,
-                          ThreadPool threadPool,
-                          MergeNode mergeNode,
-                          RamAccountingContext ramAccountingContext) {
-        // TODO: used by local and reducer, todo check what resultprovider is
-        this.projectorChain = new FlatProjectorChain(mergeNode.projections(),
-                new ProjectionToProjectorVisitor(
-                        clusterService,
-                        settings,
-                        transportActionProvider,
-                        symbolVisitor),
-                ramAccountingContext
+                          ReferenceResolver referenceResolver,
+                          Functions functions,
+                          ThreadPool threadPool) {
+
+        this.threadPool = threadPool;
+        ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
+                referenceResolver,
+                functions,
+                RowGranularity.DOC
         );
-        this.bucketMerger = new NonSortingBucketMerger(threadPool);
-        this.bucketMerger.downstream(projectorChain.firstProjector());
-        this.numUpstreams = mergeNode.numUpstreams();
-        this.projectorChain.startProjections();
+        this.projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
+                clusterService,
+                settings,
+                transportActionProvider,
+                implementationSymbolVisitor
+        );
     }
 
-    @Override
-    public PageDownstream pageDownstream() {
+    public PageDownstream getAndInitPageDownstream(MergeNode mergeNode,
+                                                   ResultProvider resultProvider,
+                                                   RamAccountingContext ramAccountingContext) {
+        BucketMerger bucketMerger = new NonSortingBucketMerger(threadPool);
+
+        FlatProjectorChain flatProjectorChain = new FlatProjectorChain(mergeNode.projections(),
+                this.projectionToProjectorVisitor,
+                ramAccountingContext,
+                Optional.of(resultProvider)
+        );
+        bucketMerger.downstream(flatProjectorChain.firstProjector());
+        flatProjectorChain.startProjections();
         return bucketMerger;
     }
-
-    @Override
-    public int numUpstreams() {
-        return numUpstreams;
-    }
-
-    @Override
-    public void finished() {
-        bucketMerger.finish();
-    }
-
-    public ListenableFuture<Bucket> result() {
-        return projectorChain.resultProvider().result();
-    }
-
 }

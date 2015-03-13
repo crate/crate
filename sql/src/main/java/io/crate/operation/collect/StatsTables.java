@@ -157,7 +157,7 @@ public class StatsTables {
         }
     }
 
-    public void operationFinished(@Nullable UUID operationId, @Nullable String errorMessage, @Nullable long usedBytes) {
+    public void operationFinished(@Nullable UUID operationId, @Nullable String errorMessage, long usedBytes) {
         if (operationId == null || !isEnabled()) {
             return;
         }

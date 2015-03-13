@@ -68,7 +68,7 @@ public class FlatProjectorChain {
                 this.resultProvider = new CollectingProjector();
             }
             assert (this.resultProvider() instanceof Projector);
-            firstProjector = (Projector) this.resultProvider;
+            firstProjector = this.resultProvider;
             projectors = ImmutableList.of(firstProjector);
         } else {
             projectors = new ArrayList<>();
@@ -101,7 +101,7 @@ public class FlatProjectorChain {
             }
             if (addedResultProvider) {
                 previousProjector.downstream(this.resultProvider);
-                projectors.add((Projector) this.resultProvider);
+                projectors.add(this.resultProvider);
             }
         }
     }
