@@ -30,21 +30,22 @@ public class IpTypeTest {
 
     @Test
     public void testValidation() throws Exception {
-        IpType ipType = new IpType();
         BytesRef[] validIps = {
-            new BytesRef("192.168.0.255"),
-            new BytesRef("127.0.0.1"),
-            new BytesRef("123.34.243.23"),
-            new BytesRef("211.121.112.111"),
-            new BytesRef("0.0.0.0"),
-            new BytesRef("255.255.255.255")
+                new BytesRef("199.199.199.200"),
+                new BytesRef("192.168.0.255"),
+                new BytesRef("127.0.0.1"),
+                new BytesRef("123.34.243.23"),
+                new BytesRef("211.121.112.111"),
+                new BytesRef("0.0.0.0"),
+                new BytesRef("255.255.255.255")
         };
         for (BytesRef ip : validIps) {
-            assertEquals(true, ipType.isValid(ip));
+            assertEquals(true, IpType.isValid(ip));
         }
         BytesRef[] invalidIps = {
                 new BytesRef("192.168.0.2555"),
                 new BytesRef("127.0.350.1"),
+                new BytesRef("127.00.350.1"),
                 new BytesRef("500.34.243.23"),
                 new BytesRef("211.121.1b12.111"),
                 new BytesRef("00.0.0.l"),
@@ -55,11 +56,14 @@ public class IpTypeTest {
                 new BytesRef("A.01.01.01"),
                 new BytesRef(".192.168.0.255"),
                 new BytesRef("..168.0.255"),
+                new BytesRef("..168.00.255"),
                 new BytesRef(".192.168.0.255."),
+                new BytesRef("192.168.1.500"),
+                new BytesRef(""),
 
         };
         for (BytesRef ip : invalidIps) {
-            assertEquals(false, ipType.isValid(ip));
+            assertEquals(false, IpType.isValid(ip));
         }
     }
 
