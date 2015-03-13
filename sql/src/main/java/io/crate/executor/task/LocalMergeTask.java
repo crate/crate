@@ -24,18 +24,21 @@ package io.crate.executor.task;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.BucketPage;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.PageConsumeListener;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
@@ -51,14 +54,13 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * merging rows locally on the handler
  */
 public class LocalMergeTask extends JobTask {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger LOGGER = Loggers.getLogger(LocalMergeTask.class);
 
     private final MergeNode mergeNode;
     private final StatsTables statsTables;
@@ -117,11 +119,17 @@ public class LocalMergeTask extends JobTask {
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         final MergeOperation mergeOperation = new MergeOperation(
-                clusterService, settings, transportActionProvider, symbolVisitor,
-                mergeNode, ramAccountingContext);
-        final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
+                clusterService,
+                settings,
+                transportActionProvider,
+                symbolVisitor,
+                threadPool,
+                mergeNode,
+                ramAccountingContext
+        );
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
 
+        // callback for projected result, closing all the stuff
         Futures.addCallback(mergeOperation.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket rows) {
@@ -138,40 +146,41 @@ public class LocalMergeTask extends JobTask {
                 result.setException(t);
             }
         });
-
-        for (final ListenableFuture<TaskResult> upstreamResult : upstreamResults) {
-            Futures.addCallback(upstreamResult, new FutureCallback<TaskResult>() {
-                @Override
-                public void onSuccess(@Nullable TaskResult rows) {
-                    assert rows != null;
-                    traceLogResult(rows);
-                    boolean shouldContinue;
-
-                    try {
-                        shouldContinue = mergeOperation.addRows(rows.rows());
-
-                        if (countdown.decrementAndGet() == 0 || !shouldContinue) {
-                            mergeOperation.finished();
-                        }
-                    } catch (Throwable ex) {
-                        onFailure(ex);
-                        logger.error("Failed to add rows", ex);
+        // transform taskresults into bucket futures
+        BucketPage page = new BucketPage(Lists.transform(upstreamResults, new Function<ListenableFuture<TaskResult>, ListenableFuture<Bucket>>() {
+            @Nullable
+            @Override
+            public ListenableFuture<Bucket> apply(@Nullable ListenableFuture<TaskResult> future) {
+                assert future != null : "taskresult future is null";
+                return Futures.transform(future, new Function<TaskResult, Bucket>() {
+                    @Nullable
+                    @Override
+                    public Bucket apply(@Nullable TaskResult taskResult) {
+                        assert taskResult != null : "taskresult is null";
+                        traceLogResult(taskResult);
+                        return taskResult.rows();
                     }
-                }
+                });
+            }
+        }));
+        mergeOperation.pageDownstream().nextPage(page, new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                // currently only one page
+                LOGGER.trace("{} need more", mergeNode.contextId());
+                finish();
+            }
 
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    ramAccountingContext.close();
-                    statsTables.operationFinished(operationId, Exceptions.messageOf(t),
-                            ramAccountingContext.totalBytes());
-                    result.setException(t);
-                }
-            }, threadPool.executor(ThreadPool.Names.GENERIC));
-        }
+            @Override
+            public void finish() {
+                LOGGER.trace("{} page finished", mergeNode.contextId());
+                mergeOperation.finished();
+            }
+        });
     }
 
     private void traceLogResult(TaskResult taskResult) {
-        if (logger.isTraceEnabled()) {
+        if (LOGGER.isTraceEnabled()) {
             String result = Joiner.on(", ").join(Collections2.transform(Arrays.asList(taskResult),
                 new Function<TaskResult, String>() {
                     @Nullable
@@ -185,7 +194,7 @@ public class LocalMergeTask extends JobTask {
                     }
                 })
             );
-            logger.trace(String.format("received result: %s", result));
+            LOGGER.trace(String.format("received result: %s", result));
         }
     }
 

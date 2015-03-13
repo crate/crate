@@ -94,6 +94,7 @@ public class TransportMergeNodeAction {
                         settings,
                         transportActionProvider,
                         implementationSymbolVisitor,
+                        threadPool,
                         node,
                         ramAccountingContext
                 );

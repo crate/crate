@@ -24,18 +24,16 @@ package io.crate.operation.merge;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.PageDownstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.elasticsearch.threadpool.ThreadPool;
 
 /**
  * merge rows - that's it
@@ -44,19 +42,17 @@ public class MergeOperation implements DownstreamOperation {
 
     private final int numUpstreams;
     private final FlatProjectorChain projectorChain;
-    private RowDownstreamHandle downstream;
-
-    private AtomicBoolean wantMore = new AtomicBoolean(true);
-    private final Object lock = new Object();
+    private final NonSortingBucketMerger bucketMerger;
 
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
                           ImplementationSymbolVisitor symbolVisitor,
+                          ThreadPool threadPool,
                           MergeNode mergeNode,
                           RamAccountingContext ramAccountingContext) {
         // TODO: used by local and reducer, todo check what resultprovider is
-        projectorChain = new FlatProjectorChain(mergeNode.projections(),
+        this.projectorChain = new FlatProjectorChain(mergeNode.projections(),
                 new ProjectionToProjectorVisitor(
                         clusterService,
                         settings,
@@ -64,26 +60,15 @@ public class MergeOperation implements DownstreamOperation {
                         symbolVisitor),
                 ramAccountingContext
         );
-        this.downstream = projectorChain.firstProjector().registerUpstream(this);
+        this.bucketMerger = new NonSortingBucketMerger(threadPool);
+        this.bucketMerger.downstream(projectorChain.firstProjector());
         this.numUpstreams = mergeNode.numUpstreams();
-        projectorChain.startProjections();
+        this.projectorChain.startProjections();
     }
 
-    public boolean addRows(Bucket rows) throws Exception {
-        for (Row row : rows) {
-            boolean more = wantMore.get();
-            if (more) {
-                synchronized (lock) {
-                    if (wantMore.get() && !downstream.setNextRow(row)) {
-                        wantMore.set(false);
-                        return false;
-                    }
-                }
-            } else {
-                return false;
-            }
-        }
-        return wantMore.get();
+    @Override
+    public PageDownstream pageDownstream() {
+        return bucketMerger;
     }
 
     @Override
@@ -93,7 +78,7 @@ public class MergeOperation implements DownstreamOperation {
 
     @Override
     public void finished() {
-        downstream.finish();
+        bucketMerger.finish();
     }
 
     public ListenableFuture<Bucket> result() {
