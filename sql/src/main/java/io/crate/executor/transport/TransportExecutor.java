@@ -38,6 +38,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.CollectContextService;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.merge.MergeOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.*;
@@ -80,6 +81,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final CircuitBreaker circuitBreaker;
 
     private final QueryThenFetchOperation queryThenFetchOperation;
+    private final MergeOperation mergeOperation;
 
     private final CollectContextService collectContextService;
 
@@ -90,6 +92,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
+                             MergeOperation mergeOperation,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
@@ -99,6 +102,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
+        this.mergeOperation = mergeOperation;
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
@@ -264,6 +268,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         threadPool,
                         clusterService,
                         settings,
+                        mergeOperation,
                         transportActionProvider,
                         globalImplementationSymbolVisitor,
                         node,

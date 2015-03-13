@@ -21,24 +21,24 @@
 
 package io.crate.executor.transport.merge;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.operation.DownstreamOperation;
-import io.crate.operation.DownstreamOperationFactory;
-import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.merge.NonSortingBucketMerger;
+import io.crate.operation.projectors.ResultProvider;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -58,8 +58,11 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.settings.NodeSettingsService;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -67,11 +70,15 @@ import java.util.UUID;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DistributedResultRequestTest extends CrateUnitTest {
 
     private Functions functions;
+    private MergeOperation mergeOperation;
     private MergeNode dummyMergeNode;
     private UUID contextId;
     private Object[][] rows;
@@ -98,6 +105,24 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         dummyMergeNode = new MergeNode("dummy", 1);
         dummyMergeNode.jobId(contextId);
         dummyMergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
+        TopNProjection topNProjection = new TopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET);
+        topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.INTEGER), new InputColumn(1, DataTypes.STRING)));
+        dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
+        dummyMergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
+
+        final ThreadPool threadPool = mock(ThreadPool.class);
+        when(threadPool.executor(anyString())).thenReturn(MoreExecutors.sameThreadExecutor());
+
+        mergeOperation = mock(MergeOperation.class);
+        when(mergeOperation.getAndInitPageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class))).thenAnswer(new Answer<PageDownstream>() {
+            @Override
+            public PageDownstream answer(InvocationOnMock invocation) throws Throwable {
+                NonSortingBucketMerger nonSortingBucketMerger = new NonSortingBucketMerger(threadPool);
+                ResultProvider resultProvider = (ResultProvider)invocation.getArguments()[1];
+                nonSortingBucketMerger.downstream(resultProvider);
+                return nonSortingBucketMerger;
+            }
+        });
     }
 
     @Test
@@ -122,9 +147,12 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         // receiver
         DistributedRequestContextManager contextManager =
-                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(new ArrayBucket(rows)), functions,
+                new DistributedRequestContextManager(
+                        mergeOperation,
+                        functions,
                         new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)),
-                        new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+                        new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA)
+                );
         BytesStreamInput streamInput = new BytesStreamInput(streamOutput.bytes());
         DistributedResultRequest requestReceiver = new DistributedResultRequest(contextManager);
         requestReceiver.readFrom(streamInput);
@@ -144,6 +172,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
             @Override
             public void onFailure(Throwable e) {
+                result.setException(e);
             }
         });
 
@@ -169,8 +198,9 @@ public class DistributedResultRequestTest extends CrateUnitTest {
                 new InputColumn(1, DataTypes.INTEGER)));
         dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
 
+        Bucket bucket = new ArrayBucket(rows);
         DistributedRequestContextManager contextManager =
-                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(new ArrayBucket(rows)), functions,
+                new DistributedRequestContextManager(mergeOperation, functions,
                         new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)),
                         new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
@@ -214,59 +244,6 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         @Override
         public void onFailure(Throwable e) {
-        }
-    }
-
-    class DummyDownstreamOperationFactory implements DownstreamOperationFactory<MergeNode> {
-
-        private final SettableFuture<Bucket> futureResult = SettableFuture.create();
-        private final Bucket result;
-
-        DummyDownstreamOperationFactory(Bucket result) {
-            this.result = result;
-        }
-
-        @Override
-        public DownstreamOperation create(final MergeNode node, RamAccountingContext ramAccountingContext) {
-            return new DownstreamOperation() {
-
-                private PageDownstream pageDownstream = new PageDownstream() {
-                    @Override
-                    public void nextPage(BucketPage page, PageConsumeListener listener) {
-                        listener.finish();
-                    }
-
-                    @Override
-                    public void finish() {
-                        finished();
-                    }
-
-                    @Override
-                    public void fail(Throwable t) {
-                        finished();
-                    }
-                };
-
-                @Override
-                public PageDownstream pageDownstream() {
-                    return pageDownstream;
-                }
-
-                @Override
-                public int numUpstreams() {
-                    return node.numUpstreams();
-                }
-
-                @Override
-                public void finished() {
-                    futureResult.set(result);
-                }
-
-                @Override
-                public ListenableFuture<Bucket> result() {
-                    return futureResult;
-                }
-            };
         }
     }
 }
