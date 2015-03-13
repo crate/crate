@@ -21,12 +21,17 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.collect.Iterators;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.PageConsumeListener;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.TopN;
@@ -49,17 +54,26 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.collection.IsIterableContainingInOrder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MergeOperationTest extends CrateUnitTest {
 
@@ -68,6 +82,10 @@ public class MergeOperationTest extends CrateUnitTest {
 
     private GroupProjection groupProjection;
     private ImplementationSymbolVisitor symbolVisitor;
+
+    @Mock
+    private ThreadPool threadPool;
+    private ExecutorService executor = Executors.newSingleThreadExecutor(EsExecutors.daemonThreadFactory(getClass().getSimpleName()));
 
     @Before
     @SuppressWarnings("unchecked")
@@ -95,6 +113,12 @@ public class MergeOperationTest extends CrateUnitTest {
                 new Aggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)),
                         Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
+        when(threadPool.executor(anyString())).thenReturn(executor);
+    }
+
+    @After
+    public void cleanUp() {
+        executor.shutdownNow();
     }
 
     @Test
@@ -109,23 +133,34 @@ public class MergeOperationTest extends CrateUnitTest {
                 topNProjection
         ));
 
-        MergeOperation mergeOperation = new MergeOperation(
-                mock(ClusterService.class),
-                ImmutableSettings.EMPTY,
-                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                symbolVisitor,
-                mergeNode,
-                ramAccountingContext
-        );
-
         Object[][] objs = new Object[20][];
         for (int i = 0; i < objs.length; i++) {
             objs[i] = new Object[]{i % 4, i + 0.5d};
         }
         Bucket rows = new ArrayBucket(objs);
+        BucketPage page = new BucketPage(Futures.immediateFuture(rows));
+        final MergeOperation mergeOperation = new MergeOperation(
+                mock(ClusterService.class),
+                ImmutableSettings.EMPTY,
+                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+                symbolVisitor,
+                threadPool,
+                mergeNode,
+                ramAccountingContext
+        );
+        final SettableFuture<?> future = SettableFuture.create();
+        mergeOperation.pageDownstream().nextPage(page, new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                future.set(null);
+            }
 
-        assertTrue(mergeOperation.addRows(rows));
-
+            @Override
+            public void finish() {
+                fail("operation should want more");
+            }
+        });
+        future.get();
         mergeOperation.finished();
         Bucket mergeResult = mergeOperation.result().get();
         assertThat(mergeResult, IsIterableContainingInOrder.contains(
@@ -141,22 +176,40 @@ public class MergeOperationTest extends CrateUnitTest {
         mergeNode.projections(Arrays.<Projection>asList(
                 groupProjection
         ));
-        MergeOperation mergeOperation = new MergeOperation(
+        final MergeOperation mergeOperation = new MergeOperation(
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
+                threadPool,
                 mergeNode,
                 ramAccountingContext
         );
 
         Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
-        assertTrue(mergeOperation.addRows(rows));
-
+        BucketPage page1 = new BucketPage(Futures.immediateFuture(rows));
         Bucket otherRows = new ArrayBucket(new Object[][]{{0, 2.5d}});
-        assertTrue(mergeOperation.addRows(otherRows));
-        mergeOperation.finished();
+        BucketPage page2 = new BucketPage(Futures.immediateFuture(otherRows));
+        final Iterator<BucketPage> iterator = Iterators.forArray(page1, page2);
 
+        final SettableFuture<?> future = SettableFuture.create();
+        mergeOperation.pageDownstream().nextPage(iterator.next(), new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                if (iterator.hasNext()) {
+                    mergeOperation.pageDownstream().nextPage(iterator.next(), this);
+                } else {
+                    future.set(null);
+                }
+            }
+
+            @Override
+            public void finish() {
+                fail("should still want more");
+            }
+        });
+        future.get();
+        mergeOperation.finished();
         Bucket mergeResult = mergeOperation.result().get();
         assertThat(mergeResult, contains(isRow(0, 2.5)));
     }
