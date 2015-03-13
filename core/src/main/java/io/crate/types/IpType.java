@@ -69,6 +69,9 @@ public class IpType extends StringType {
     }
 
     static public boolean isValid(BytesRef ip) {
+        if (ip.length < 7) { // minimum length of a valid ip address
+            return false;
+        }
         boolean firstSymbolInOctet = true;
         boolean firstSymbolInOctetHigherThenTwo = false;
         boolean precededByZero = false;
@@ -92,6 +95,7 @@ public class IpType extends StringType {
             } else if ((sym == 48 && precededByZero) || symbolsInOctet > 3) {
                 return false;
             } else if (sym == 46) {
+                // if there are three digits in an octet and the first one is greater then '2' — it's not a valid ipv4 address
                 if (symbolsInOctet > 2 && firstSymbolInOctetHigherThenTwo) {
                     return false;
                 }
@@ -103,9 +107,14 @@ public class IpType extends StringType {
                 if (numberOfDots > 3) {
                     return false;
                 }
-            } else if (sym > 48 && sym < 58 && symbolsInOctet < 3 && !precededByZero) {
+            } else if (sym >= 48 && sym < 58 && symbolsInOctet < 3 && !precededByZero) {
                 symbolsInOctet++;
             } else {
+                return false;
+            }
+
+            // if there are three digits in an octet and the first one is greater then '2' — it's not a valid ipv4 address
+            if (symbolsInOctet > 2 && firstSymbolInOctetHigherThenTwo) {
                 return false;
             }
         }
