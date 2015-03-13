@@ -301,7 +301,7 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
 
     @Override
     public String[] concreteIndices() {
-        return new String[]{ident.name()};
+        return new String[]{ident.esName()};
     }
 
     @Override

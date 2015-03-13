@@ -74,6 +74,10 @@ public class PartitionName {
         this(null, tableName, values);
     }
 
+    public PartitionName(TableIdent tableIdent, List<BytesRef> values) {
+        this(tableIdent.schema(), tableIdent.name(), values);
+    }
+
     public PartitionName(@Nullable String schemaName, String tableName, List<BytesRef> values) {
         this.schemaName = ReferenceInfos.DEFAULT_SCHEMA_NAME.equals(schemaName) ? null : schemaName;
         this.tableName = tableName;

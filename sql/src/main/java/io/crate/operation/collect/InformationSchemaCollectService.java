@@ -70,7 +70,7 @@ public class InformationSchemaCollectService implements CollectService {
                             @Override
                             public boolean apply(TableInfo input) {
                                 assert input != null;
-                                return !PartitionName.isPartition(input.ident().name());
+                                return !PartitionName.isPartition(input.ident().esName());
                             }
                         });
                     }

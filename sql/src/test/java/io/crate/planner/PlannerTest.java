@@ -1613,4 +1613,23 @@ public class PlannerTest {
         Plan plan = plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
         assertThat(plan, instanceOf(DistributedGroupBy.class));
     }
+
+    @Test
+    public void testIndices() throws Exception {
+        TableIdent custom = new TableIdent("custom", "table");
+        String[] indices = Planner.indices(TestingTableInfo.builder(custom, RowGranularity.DOC, shardRouting).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
+        assertThat(indices, arrayContainingInAnyOrder("custom.table"));
+
+        indices = Planner.indices(TestingTableInfo.builder(new TableIdent(null, "table"), RowGranularity.DOC, shardRouting).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
+        assertThat(indices, arrayContainingInAnyOrder("table"));
+
+        indices = Planner.indices(TestingTableInfo.builder(custom, RowGranularity.DOC, shardRouting)
+                .add("id", DataTypes.INTEGER, null)
+                .add("date", DataTypes.TIMESTAMP, null, true)
+                .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("0"))).stringValue())
+                .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("12345"))).stringValue())
+                .build(), WhereClause.MATCH_ALL);
+        assertThat(indices, arrayContainingInAnyOrder("custom..partitioned.table.04130", "custom..partitioned.table.04332chj6gqg"));
+
+    }
 }
