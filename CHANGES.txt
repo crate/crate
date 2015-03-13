@@ -5,6 +5,9 @@ Changes for Crate
 2015/03/13 0.47.7
 =================
 
+ - Fixed an issue where statements wouldn't work correctly if tables of a
+   custom schema are involved
+
  - IN operator NULL literals bug fix
 
  - Fixed an ip validator bug that marked some valid ip's as invalid.
