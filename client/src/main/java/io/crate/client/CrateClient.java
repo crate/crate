@@ -25,12 +25,14 @@ import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterNameModule;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -41,6 +43,8 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.indices.breaker.CircuitBreakerModule;
 import org.elasticsearch.node.internal.InternalSettingsPreparer;
+import org.elasticsearch.plugins.PluginsModule;
+import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolModule;
 import org.elasticsearch.transport.TransportModule;
@@ -56,7 +60,9 @@ public class CrateClient {
     private final Settings settings;
     private final InternalCrateClient internalClient;
     private final TransportService transportService;
+    private final PluginsService pluginsService;
     private ThreadPool threadPool;
+    final Injector injector;
 
     public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
             ElasticsearchException {
@@ -77,12 +83,16 @@ public class CrateClient {
         Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(
             settings, loadConfigSettings);
 
-        this.settings = tuple.v1();
+        //this.settings = tuple.v1();
         Version version = Version.CURRENT;
+        
+        this.pluginsService = new PluginsService(tuple.v1(), tuple.v2());
+        this.settings = pluginsService.updatedSettings();
 
         CompressorFactory.configure(this.settings);
 
         ModulesBuilder modules = new ModulesBuilder();
+        modules.add(new PluginsModule(this.settings, pluginsService));
         modules.add(new CrateClientModule());
         modules.add(new Version.Module(version));
         modules.add(new ThreadPoolModule(this.settings));
@@ -93,7 +103,7 @@ public class CrateClient {
         modules.add(new TransportModule(this.settings));
         modules.add(new CircuitBreakerModule(this.settings));
 
-        Injector injector = modules.createInjector();
+        injector = modules.createInjector();
         threadPool = injector.getInstance(ThreadPool.class);
         transportService = injector.getInstance(TransportService.class).start();
         internalClient = injector.getInstance(InternalCrateClient.class);
@@ -116,6 +126,22 @@ public class CrateClient {
         }
     }
 
+    public CrateClient addTransportAddress(InetSocketTransportAddress address) {
+    	internalClient.addTransportAddress(address);
+    	return this;
+    }
+    
+    public CrateClient addTransportAddress(String server) {
+    	String[] parts = server.split(":");
+    	String host = parts[0];
+        Integer port = 4300;
+        if (parts.length == 2) {
+            port = Integer.parseInt(parts[1]);
+        }
+        internalClient.addTransportAddress(new InetSocketTransportAddress(host, port));
+    	return this;
+    }
+    
     public ActionFuture<SQLResponse> sql(String stmt) {
         return sql(new SQLRequest(stmt));
     }
@@ -146,6 +172,11 @@ public class CrateClient {
 
     public void close() {
         transportService.stop();
+        
+        /*for (Class<? extends LifecycleComponent> plugin : pluginsService.services()) {
+            injector.getInstance(plugin).close();
+        }*/
+        
         internalClient.close();
         threadPool.shutdown();
         try {

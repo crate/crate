@@ -10,7 +10,7 @@
 .flooignore
 *~
 .gradle
-/build
+build/
 /out
 /data
 /sandbox
@@ -18,3 +18,4 @@
 /docs/out
 /docs/clients/out
 /reports
+bin/
