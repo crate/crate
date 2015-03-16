@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.ArrayBucket;
+import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.distributed.ResultProviderBase;
@@ -92,7 +93,15 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
     }
 
     @Override
-    public void finishProjection() {
+    public Throwable doFail(Throwable t) {
+        if (downstream != null) {
+            downstream.fail(t);
+        }
+        return t;
+    }
+
+    @Override
+    public Bucket doFinish() {
         for (int i = 0; i < aggregators.length; i++) {
             cells[i] = aggregators[i].finishCollect(states[i]);
         }
@@ -100,7 +109,6 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
             downstream.setNextRow(row);
             downstream.finish();
         }
-        result.set(new ArrayBucket(new Object[][]{cells}));
+        return new ArrayBucket(new Object[][]{cells});
     }
-
 }
