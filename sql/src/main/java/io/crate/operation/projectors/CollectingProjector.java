@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
@@ -45,8 +46,13 @@ public class CollectingProjector extends ResultProviderBase {
     }
 
     @Override
-    public void finishProjection() {
-        result.set(new CollectionBucket(rows));
+    public Bucket doFinish() {
+        return new CollectionBucket(rows);
+    }
+
+    @Override
+    public Throwable doFail(Throwable t) {
+        return t;
     }
 
 }

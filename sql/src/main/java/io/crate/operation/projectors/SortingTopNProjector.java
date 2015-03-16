@@ -120,7 +120,7 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
     }
 
     @Override
-    public void finishProjection() {
+    public Bucket doFinish() {
         Bucket bucket;
         if (pq != null){
             final int resultSize = Math.max(pq.size() - offset, 0);
@@ -138,9 +138,16 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
                 downstream.setNextRow(row);
             }
             downstream.finish();
-        } else {
-            result.set(bucket);
         }
+        return bucket;
+    }
+
+    @Override
+    public Throwable doFail(Throwable t) {
+        if (downstream != null) {
+            downstream.fail(t);
+        }
+        return t;
     }
 
     @Override
