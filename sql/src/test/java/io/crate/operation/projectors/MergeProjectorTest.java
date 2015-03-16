@@ -134,7 +134,7 @@ public class MergeProjectorTest {
     }
 
     @Test
-         public void emitOnUpstreamFinished() {
+    public void emitOnUpstreamFinished() {
         MergeProjector projector = new MergeProjector(
                 new int[]{0},
                 new boolean[]{false},

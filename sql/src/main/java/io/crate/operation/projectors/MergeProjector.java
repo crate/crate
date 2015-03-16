@@ -161,7 +161,7 @@ public class MergeProjector implements Projector  {
             if(emptyHandle) {
                 break;
             } else {
-                lowestToEmit = nextLowest; // nextLowest is never null here. If it would be
+                lowestToEmit = nextLowest; // nextLowest is never null here
             }
         }
         return success;
