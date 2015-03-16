@@ -60,6 +60,7 @@ public class GroupByBenchmark extends BenchmarkBase {
     public static final int NUMBER_OF_DOCUMENTS = 500_000; // was 1_000_000
     public static final int BENCHMARK_ROUNDS = 1000;
 
+    public static SQLRequest groupByWithLimitRequest = new SQLRequest(String.format("select continent from %s group by continent limit 50000 offset 50000", INDEX_NAME));
     public static SQLRequest maxRequest = new SQLRequest(String.format("select max(\"areaInSqKm\") from %s group by continent", INDEX_NAME));
     public static SQLRequest minRequest = new SQLRequest(String.format("select min(\"areaInSqKm\") from %s group by continent", INDEX_NAME));
     public static SQLRequest avgRequest = new SQLRequest(String.format("select avg(\"population\") from %s group by continent", INDEX_NAME));
@@ -143,6 +144,11 @@ public class GroupByBenchmark extends BenchmarkBase {
         }
     }
 
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
+    @Test
+    public void testGroupByWithLimitPerformance() {
+        getClient(false).execute(SQLAction.INSTANCE, groupByWithLimitRequest).actionGet();
+    }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
