@@ -21,6 +21,7 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
@@ -54,26 +55,19 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.collection.IsIterableContainingInOrder;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
-import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class MergeOperationTest extends CrateUnitTest {
 
@@ -83,10 +77,6 @@ public class MergeOperationTest extends CrateUnitTest {
     private GroupProjection groupProjection;
     private Functions functions;
     private ReferenceResolver referenceResolver;
-
-    @Mock
-    private ThreadPool threadPool;
-    private ExecutorService executor = Executors.newSingleThreadExecutor(EsExecutors.daemonThreadFactory(getClass().getSimpleName()));
 
     @Before
     @SuppressWarnings("unchecked")
@@ -113,12 +103,6 @@ public class MergeOperationTest extends CrateUnitTest {
                 new Aggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)),
                         Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
-        when(threadPool.executor(anyString())).thenReturn(executor);
-    }
-
-    @After
-    public void cleanUp() {
-        executor.shutdownNow();
     }
 
     @Test
@@ -144,11 +128,10 @@ public class MergeOperationTest extends CrateUnitTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 referenceResolver,
-                functions,
-                threadPool
+                functions
         );
         CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext);
+        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
         final SettableFuture<?> future = SettableFuture.create();
         pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
@@ -182,11 +165,10 @@ public class MergeOperationTest extends CrateUnitTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 referenceResolver,
-                functions,
-                threadPool
+                functions
         );
         CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext);
+        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
 
         Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
         BucketPage page1 = new BucketPage(Futures.immediateFuture(rows));

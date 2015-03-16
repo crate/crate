@@ -24,12 +24,14 @@ package io.crate.operation.merge;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
@@ -40,6 +42,7 @@ import io.crate.operation.projectors.NoOpProjector;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -55,14 +58,17 @@ public class SortingBucketMerger implements BucketMerger {
     private final IntOpenHashSet exhaustedIterators;
     private final IntArrayList bucketsWithRowEqualToLeast;
     private final ArrayList<Row> previousRows;
+    private final Optional<Executor> executor;
     private Iterator<Row>[] remainingBucketIts = null;
 
     public SortingBucketMerger(int numBuckets,
                                int[] orderByPositions,
                                boolean[] reverseFlags,
-                               Boolean[] nullsFirst) {
+                               Boolean[] nullsFirst,
+                               Optional<Executor> executor) {
         Preconditions.checkArgument(numBuckets > 0, "must at least get 1 bucket per merge call");
         this.numBuckets = numBuckets;
+        this.executor = executor;
         List<Comparator<Row>> comparators = new ArrayList<>(orderByPositions.length);
         for (int i = 0; i < orderByPositions.length; i++) {
             comparators.add(OrderingByPosition.rowOrdering(i, reverseFlags[i], nullsFirst[i]));
@@ -144,7 +150,7 @@ public class SortingBucketMerger implements BucketMerger {
                 fail(t);
                 notifyListener();
             }
-        });
+        }, executor.isPresent() ? executor.get() : MoreExecutors.directExecutor());
     }
 
     /**
