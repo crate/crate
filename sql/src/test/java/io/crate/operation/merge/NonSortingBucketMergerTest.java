@@ -24,7 +24,6 @@ package io.crate.operation.merge;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
@@ -37,11 +36,8 @@ import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -50,25 +46,14 @@ import java.util.concurrent.ExecutionException;
 import static io.crate.testing.TestingHelpers.createPage;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
 
 public class NonSortingBucketMergerTest extends CrateUnitTest {
-
-    @Mock
-    private ThreadPool threadPool;
-
-    @Before
-    public void prepare() {
-        when(threadPool.executor(anyString())).thenReturn(MoreExecutors.directExecutor());
-
-    }
 
     private Bucket mergeWith(BucketPage... pages)
             throws ExecutionException, InterruptedException {
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        final NonSortingBucketMerger merger = new NonSortingBucketMerger(threadPool);
+        final NonSortingBucketMerger merger = new NonSortingBucketMerger();
         merger.downstream(collectingProjector);
         final Iterator<BucketPage> pageIter = Iterators.forArray(pages);
         if (pageIter.hasNext()) {
@@ -238,7 +223,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
                 2,
                 0);
         final CollectingProjector collectingProjector = new CollectingProjector();
-        final NonSortingBucketMerger merger = new NonSortingBucketMerger(threadPool);
+        final NonSortingBucketMerger merger = new NonSortingBucketMerger();
         merger.downstream(topNProjector);
         topNProjector.downstream(collectingProjector);
 

@@ -23,6 +23,7 @@ package io.crate.executor.task;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
@@ -36,19 +37,15 @@ import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.TransportActionProvider;
-import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.node.dql.MergeNode;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -67,41 +64,25 @@ public class LocalMergeTask extends JobTask {
     private final MergeOperation mergeOperation;
     private final MergeNode mergeNode;
     private final StatsTables statsTables;
-    private final ClusterService clusterService;
-    private final Settings settings;
-    private final TransportActionProvider transportActionProvider;
-    private final ImplementationSymbolVisitor symbolVisitor;
-    private final ThreadPool threadPool;
     private final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> resultList;
     private final CircuitBreaker circuitBreaker;
+    private final ThreadPool threadPool;
 
     private List<ListenableFuture<TaskResult>> upstreamResults;
 
-    /**
-     *
-     * @param implementationSymbolVisitor symbol visitor (on cluster level)
-     */
     public LocalMergeTask(UUID jobId,
-                          ThreadPool threadPool,
-                          ClusterService clusterService,
-                          Settings settings,
                           MergeOperation mergeOperation,
-                          TransportActionProvider transportActionProvider,
-                          ImplementationSymbolVisitor implementationSymbolVisitor,
                           MergeNode mergeNode,
                           StatsTables statsTables,
-                          CircuitBreaker circuitBreaker) {
+                          CircuitBreaker circuitBreaker,
+                          ThreadPool threadPool) {
         super(jobId);
         this.mergeOperation = mergeOperation;
-        this.threadPool = threadPool;
-        this.clusterService = clusterService;
-        this.settings = settings;
-        this.transportActionProvider = transportActionProvider;
-        this.symbolVisitor = implementationSymbolVisitor;
         this.mergeNode = mergeNode;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
+        this.threadPool = threadPool;
         this.result = SettableFuture.create();
         this.resultList = Arrays.<ListenableFuture<TaskResult>>asList(this.result);
     }
@@ -124,7 +105,12 @@ public class LocalMergeTask extends JobTask {
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext);
+        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(
+                mergeNode,
+                collectingProjector,
+                ramAccountingContext,
+                Optional.of(threadPool.executor(ThreadPool.Names.GENERIC))
+        );
 
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
 
