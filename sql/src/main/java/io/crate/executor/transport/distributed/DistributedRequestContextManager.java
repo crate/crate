@@ -44,6 +44,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Executor;
 
 
 /**
@@ -100,7 +101,7 @@ public class DistributedRequestContextManager {
         // wiring projectorChain-result-future and responselistener
         wireActionListener(streamerContext.outputStreamers(), listener, resultProvider.result());
 
-        PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, resultProvider, ramAccountingContext);
+        PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, resultProvider, ramAccountingContext, Optional.<Executor>absent());
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
                 pageDownstream,
                 mergeNode.numUpstreams(),

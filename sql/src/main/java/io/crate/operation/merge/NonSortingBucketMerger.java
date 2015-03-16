@@ -21,19 +21,23 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
-import io.crate.operation.*;
+import io.crate.operation.PageConsumeListener;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.NoOpProjector;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -49,13 +53,17 @@ public class NonSortingBucketMerger implements BucketMerger {
     private RowDownstreamHandle downstream;
     private final AtomicBoolean wantMore;
     private final AtomicBoolean alreadyFinished;
-    private final ThreadPool threadPool;
+    private final Optional<Executor>  executor;
 
-    public NonSortingBucketMerger(ThreadPool threadPool) {
+    public NonSortingBucketMerger() {
+        this(Optional.<Executor>absent());
+    }
+
+    public NonSortingBucketMerger(Optional<Executor> executor) {
         this.downstream = NoOpProjector.INSTANCE;
         this.wantMore = new AtomicBoolean(true);
         this.alreadyFinished = new AtomicBoolean(false);
-        this.threadPool = threadPool;
+        this.executor = executor;
     }
 
     @Override
@@ -98,7 +106,7 @@ public class NonSortingBucketMerger implements BucketMerger {
             }
         };
         for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
-            Futures.addCallback(bucketFuture, callback, threadPool.executor(ThreadPool.Names.GENERIC));
+            Futures.addCallback(bucketFuture, callback, executor.isPresent() ? executor.get() : MoreExecutors.directExecutor());
         }
     }
 

@@ -22,6 +22,7 @@
 package io.crate.operation.merge;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -38,6 +39,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 
 import static io.crate.testing.TestingHelpers.createPage;
 import static org.hamcrest.Matchers.is;
@@ -51,7 +53,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
 
         CollectingProjector collectingProjector = new CollectingProjector();
         final SortingBucketMerger merger = new SortingBucketMerger(
-                buckets, new int[] { 0 }, new boolean[] { false }, new Boolean[] { nullsFirst });
+                buckets, new int[] { 0 }, new boolean[] { false }, new Boolean[] { nullsFirst }, Optional.<Executor>absent());
         merger.downstream(collectingProjector);
 
         final Iterator<BucketPage> pageIter = Iterators.forArray(pages);

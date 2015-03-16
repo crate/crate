@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.merge;
 
-import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.base.Optional;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
@@ -58,7 +58,6 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.settings.NodeSettingsService;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -71,7 +70,6 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -110,15 +108,12 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
         dummyMergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
 
-        final ThreadPool threadPool = mock(ThreadPool.class);
-        when(threadPool.executor(anyString())).thenReturn(MoreExecutors.sameThreadExecutor());
-
         mergeOperation = mock(MergeOperation.class);
-        when(mergeOperation.getAndInitPageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class))).thenAnswer(new Answer<PageDownstream>() {
+        when(mergeOperation.getAndInitPageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class), any(Optional.class))).thenAnswer(new Answer<PageDownstream>() {
             @Override
             public PageDownstream answer(InvocationOnMock invocation) throws Throwable {
-                NonSortingBucketMerger nonSortingBucketMerger = new NonSortingBucketMerger(threadPool);
-                ResultProvider resultProvider = (ResultProvider)invocation.getArguments()[1];
+                NonSortingBucketMerger nonSortingBucketMerger = new NonSortingBucketMerger();
+                ResultProvider resultProvider = (ResultProvider) invocation.getArguments()[1];
                 nonSortingBucketMerger.downstream(resultProvider);
                 return nonSortingBucketMerger;
             }

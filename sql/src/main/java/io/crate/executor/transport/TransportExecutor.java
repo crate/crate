@@ -260,15 +260,10 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (node.executionNodes().isEmpty()) {
                 return singleTask(new LocalMergeTask(
                         jobId,
-                        threadPool,
-                        clusterService,
-                        settings,
                         mergeOperation,
-                        transportActionProvider,
-                        globalImplementationSymbolVisitor,
                         node,
                         statsTables,
-                        circuitBreaker));
+                        circuitBreaker, threadPool));
             } else {
                 return singleTask(new DistributedMergeTask(
                         jobId,

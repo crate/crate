@@ -26,7 +26,6 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -38,15 +37,15 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
+
+import java.util.concurrent.Executor;
 
 /**
  * merge rows - that's it
  */
 @Singleton
-public class MergeOperation implements DownstreamOperation {
+public class MergeOperation {
 
-    private final ThreadPool threadPool;
     private final ProjectionToProjectorVisitor projectionToProjectorVisitor;
 
     @Inject
@@ -54,10 +53,8 @@ public class MergeOperation implements DownstreamOperation {
                           Settings settings,
                           TransportActionProvider transportActionProvider,
                           ReferenceResolver referenceResolver,
-                          Functions functions,
-                          ThreadPool threadPool) {
+                          Functions functions) {
 
-        this.threadPool = threadPool;
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver,
                 functions,
@@ -73,8 +70,9 @@ public class MergeOperation implements DownstreamOperation {
 
     public PageDownstream getAndInitPageDownstream(MergeNode mergeNode,
                                                    ResultProvider resultProvider,
-                                                   RamAccountingContext ramAccountingContext) {
-        BucketMerger bucketMerger = new NonSortingBucketMerger(threadPool);
+                                                   RamAccountingContext ramAccountingContext,
+                                                   Optional<Executor> executorOptional) {
+        BucketMerger bucketMerger = new NonSortingBucketMerger(executorOptional);
 
         FlatProjectorChain flatProjectorChain = new FlatProjectorChain(mergeNode.projections(),
                 this.projectionToProjectorVisitor,
