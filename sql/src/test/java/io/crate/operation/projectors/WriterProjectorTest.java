@@ -75,7 +75,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         }
         projector.finish();
 
-        Bucket rows = ((ResultProvider) downstream).result().get();
+        Bucket rows = downstream.result().get();
         assertThat(rows, contains(isRow(5L)));
 
         assertEquals("input line 00\n" +

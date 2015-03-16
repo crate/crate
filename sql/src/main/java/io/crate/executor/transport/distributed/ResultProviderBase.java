@@ -29,14 +29,14 @@ import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.ResultProvider;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class ResultProviderBase implements ResultProvider, RowDownstreamHandle {
 
-    protected final SettableFuture<Bucket> result = SettableFuture.create();
+    private final SettableFuture<Bucket> result = SettableFuture.create();
     protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private final AtomicReference<Throwable> lastException = new AtomicReference<>();
+    private final AtomicBoolean failed = new AtomicBoolean(false);
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
@@ -47,27 +47,38 @@ public abstract class ResultProviderBase implements ResultProvider, RowDownstrea
     @Override
     public void startProjection() {
         if (remainingUpstreams.get() <= 0) {
-            finishProjection();
+            finish();
         }
     }
 
-    public abstract void finishProjection();
+    /**
+     * Do the things necessary to finish this projection and produce
+     * the resulting Bucket.
+     *
+     * @return a Bucket to be set on the result.
+     */
+    public abstract Bucket doFinish();
+
+    /**
+     * Do the cleanup necessary on failure.
+     * And properly react to the exception and/or transform it if necessary.
+     *
+     * @param t the exception caused the upstream to fail
+     * @return a Throwable to be set on the result
+     */
+    public abstract Throwable doFail(Throwable t);
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (lastException.get() != null) {
-                result.setException(lastException.get());
-            } else {
-                finishProjection();
-            }
+        if (remainingUpstreams.decrementAndGet() <= 0 && !failed.get()) {
+            result.set(doFinish());
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
-        lastException.set(throwable);
-        finish();
+        failed.set(true);
+        result.setException(doFail(throwable));
     }
 
     @Override
