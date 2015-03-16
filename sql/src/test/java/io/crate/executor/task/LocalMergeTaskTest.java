@@ -24,6 +24,7 @@ package io.crate.executor.task;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
@@ -62,7 +63,6 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -74,6 +74,7 @@ import java.util.*;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -81,8 +82,8 @@ public class LocalMergeTaskTest extends CrateUnitTest {
 
     private ImplementationSymbolVisitor symbolVisitor;
     private GroupProjection groupProjection;
-    private ThreadPool threadPool;
     private MergeOperation mergeOperation;
+    private ThreadPool threadPool;
 
     @Before
     @SuppressWarnings("unchecked")
@@ -109,12 +110,11 @@ public class LocalMergeTaskTest extends CrateUnitTest {
         groupProjection.values(Arrays.asList(
                 new Aggregation(minAggFunction.info(), Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
-        threadPool = new ThreadPool(getClass().getSimpleName());
         mergeOperation = mock(MergeOperation.class);
-        when(mergeOperation.getAndInitPageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class))).thenAnswer(new Answer<PageDownstream>() {
+        when(mergeOperation.getAndInitPageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class), any(Optional.class))).thenAnswer(new Answer<PageDownstream>() {
             @Override
             public PageDownstream answer(InvocationOnMock invocation) throws Throwable {
-                NonSortingBucketMerger nonSortingBucketMerger = new NonSortingBucketMerger(threadPool);
+                NonSortingBucketMerger nonSortingBucketMerger = new NonSortingBucketMerger();
                 MergeNode mergeNode = (MergeNode) invocation.getArguments()[0];
                 ProjectionToProjectorVisitor projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                         mock(ClusterService.class),
@@ -130,11 +130,8 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                 return nonSortingBucketMerger;
             }
         });
-    }
-
-    @After
-    public void cleanUp() {
-        threadPool.shutdownNow();
+        threadPool = mock(ThreadPool.class);
+        when(threadPool.executor(anyString())).thenReturn(MoreExecutors.sameThreadExecutor());
     }
 
     private ListenableFuture<TaskResult> getUpstreamResult(int numRows) {
@@ -171,15 +168,10 @@ public class LocalMergeTaskTest extends CrateUnitTest {
 
             LocalMergeTask localMergeTask = new LocalMergeTask(
                     UUID.randomUUID(),
-                    threadPool,
-                    mock(ClusterService.class),
-                    ImmutableSettings.EMPTY,
                     mergeOperation,
-                    mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                    symbolVisitor,
                     mergeNode,
                     mock(StatsTables.class),
-                    new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+                    new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA), threadPool);
             localMergeTask.upstreamResult(upstreamResults);
             localMergeTask.start();
 
