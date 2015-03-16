@@ -48,8 +48,13 @@ public class SingleBucketBuilder extends ResultProviderBase {
     }
 
     @Override
-    public void finishProjection() {
-        result.set(build());
+    public Bucket doFinish() {
+        return build();
+    }
+
+    @Override
+    public Throwable doFail(Throwable t) {
+        return t;
     }
 
     @Override

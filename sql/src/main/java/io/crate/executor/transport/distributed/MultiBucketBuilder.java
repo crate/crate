@@ -79,9 +79,14 @@ public class MultiBucketBuilder extends ResultProviderBase {
     }
 
     @Override
-    public void finishProjection() {
+    public Bucket doFinish() {
         // No actual results here, since this projection sends the rows to the buckets.
-        result.set(Bucket.EMPTY);
+        return Bucket.EMPTY;
+    }
+
+    @Override
+    public Throwable doFail(Throwable t) {
+        return t;
     }
 
     @Override
