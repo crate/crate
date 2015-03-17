@@ -6,6 +6,8 @@
 .classpath
 .project
 .settings
+.floo
+.flooignore
 *~
 .gradle
 /build
