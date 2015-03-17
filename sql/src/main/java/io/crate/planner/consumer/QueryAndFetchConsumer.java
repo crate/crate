@@ -211,16 +211,23 @@ public class QueryAndFetchConsumer implements Consumer {
                         context.consumerContext.plannerContext(),
                         whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
-                if (orderBy == null) {
-                    tnp = new TopNProjection(limit, querySpec.offset());
-                } else {
-                    tnp = new TopNProjection(limit, querySpec.offset(),
-                            orderByInputColumns,
-                            orderBy.reverseFlags(),
-                            orderBy.nullsFirst());
-                }
+                // MERGE
+                tnp = new TopNProjection(limit, querySpec.offset());
                 tnp.outputs(finalOutputs);
-                mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode);
+                if (orderBy == null) {
+                    // no sorting needed
+                    mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode);
+                } else {
+                    // no order by needed in TopN as we already sorted on collector
+                    // and we merge sorted with SortedBucketMerger
+                    mergeNode = PlanNodeBuilder.sortedLocalMerge(
+                            ImmutableList.<Projection>of(tnp),
+                            orderBy,
+                            allOutputs,
+                            orderByInputColumns,
+                            collectNode
+                    );
+                }
             } else {
                 collectNode = PlanNodeBuilder.collect(tableInfo,
                         context.consumerContext.plannerContext(),
