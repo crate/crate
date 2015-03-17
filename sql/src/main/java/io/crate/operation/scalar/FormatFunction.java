@@ -34,6 +34,7 @@ import org.apache.lucene.util.BytesRef;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicFunctionResolver {
 
@@ -69,7 +70,7 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
         }
 
         Object formatString = args[0].value();
-        return new BytesRef(String.format(((BytesRef)formatString).utf8ToString(), values));
+        return new BytesRef(String.format(Locale.ENGLISH, ((BytesRef) formatString).utf8ToString(), values));
     }
 
     @Override
@@ -83,13 +84,13 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
 
         Symbol formatString = function.arguments().get(0);
         if (formatString.symbolType() != SymbolType.LITERAL
-                && !((Literal)formatString).valueType().equals(DataTypes.STRING)) {
+                && !formatString.valueType().equals(DataTypes.STRING)) {
             // probably something like   format(column_with_format_string, arg1) ?
             return function;
         }
 
         assert formatString instanceof Literal;
-        assert ((Literal)formatString).valueType().equals(DataTypes.STRING);
+        assert formatString.valueType().equals(DataTypes.STRING);
         List<Object> objects = new ArrayList<>();
         List<Symbol> arguments = function.arguments().subList(1, function.arguments().size());
 
@@ -109,6 +110,7 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
         }
 
         return Literal.newLiteral(String.format(
+                Locale.ENGLISH,
                 ((BytesRef)((Literal) formatString).value()).utf8ToString(),
                 objects.toArray(new Object[objects.size()])));
     }

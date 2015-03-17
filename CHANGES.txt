@@ -5,10 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
-2015/03/17 0.48.0
-=================
+ - The ``format`` scalar function now always uses Locale.ENGLISH
 
  - Fixed misleading error message for trying to group by invalid data type.
+
+2015/03/17 0.48.0
+=================
 
  - COPY FROM / COPY TO will now automatically create a quoted URI if only a
    path is given.
