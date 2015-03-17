@@ -79,6 +79,20 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
+    public void testWhereRefEqNullWithDifferentTypes() throws Exception {
+        for (DataType type : DataTypes.PRIMITIVE_TYPES) {
+            Reference foo = createReference("foo", type);
+            Query query = convert(whereClause(EqOperator.NAME, foo, Literal.newLiteral(type, null)));
+
+            // must always become a MatchNoDocsQuery
+            // string: term query with null would cause NPE
+            // int/numeric: rangeQuery from null to null would match all
+            // bool:  term would match false too because of the condition in the eq query builder
+            assertThat(query, instanceOf(MatchNoDocsQuery.class));
+        }
+    }
+
+    @Test
     public void testWhereRefEqRef() throws Exception {
         Reference foo = createReference("foo", DataTypes.STRING);
         Query query = convert(whereClause(EqOperator.NAME, foo, foo));

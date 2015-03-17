@@ -8,6 +8,8 @@ import org.apache.lucene.queries.TermFilter;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
+import org.elasticsearch.common.lucene.search.Queries;
 
 public abstract class QueryBuilderHelper {
 
@@ -53,10 +55,16 @@ public abstract class QueryBuilderHelper {
     public abstract Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper);
 
     public Filter eqFilter(String columnName, Object value) {
+        if (value == null) {
+            return new MatchNoDocsFilter();
+        }
         return rangeFilter(columnName, value, value, true, true);
     }
 
     public Query eq(String columnName, Object value) {
+        if (value == null) {
+            return Queries.newMatchNoDocsQuery();
+        }
         return rangeQuery(columnName, value, value, true, true);
     }
 
@@ -77,6 +85,9 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query eq(String columnName, Object value) {
+            if (value == null) {
+                return Queries.newMatchNoDocsQuery();
+            }
             return new TermQuery(new Term(columnName, value == true ? "T" : "F"));
         }
     }
@@ -187,11 +198,17 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query eq(String columnName, Object value) {
+            if (value == null) {
+                return Queries.newMatchNoDocsQuery();
+            }
             return new TermQuery(new Term(columnName, (BytesRef)value));
         }
 
         @Override
         public Filter eqFilter(String columnName, Object value) {
+            if (value == null) {
+                return new MatchNoDocsFilter();
+            }
             return new TermFilter(new Term(columnName, (BytesRef) value));
         }
 
