@@ -825,7 +825,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
     }
 
-
     @Test
     public void testSelectWithWhereLike() throws Exception {
         this.setup.groupBySetup();
