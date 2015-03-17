@@ -49,9 +49,6 @@ public class ProjectionBuilder {
 
     public ProjectionBuilder(QuerySpec querySpec) {
         this.querySpec = querySpec;
-
-
-
     }
 
     public SplitPoints getSplitPoints() {

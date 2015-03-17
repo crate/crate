@@ -72,8 +72,18 @@ public class MergeOperation {
                                                    ResultProvider resultProvider,
                                                    RamAccountingContext ramAccountingContext,
                                                    Optional<Executor> executorOptional) {
-        BucketMerger bucketMerger = new NonSortingBucketMerger(executorOptional);
-
+        BucketMerger bucketMerger;
+        if (mergeNode.sortedInputOutput()) {
+            bucketMerger = new SortingBucketMerger(
+                    mergeNode.numUpstreams(),
+                    mergeNode.orderByIndices(),
+                    mergeNode.reverseFlags(),
+                    mergeNode.nullsFirst(),
+                    executorOptional
+            );
+        } else {
+            bucketMerger = new NonSortingBucketMerger(executorOptional);
+        }
         FlatProjectorChain flatProjectorChain = new FlatProjectorChain(mergeNode.projections(),
                 this.projectionToProjectorVisitor,
                 ramAccountingContext,

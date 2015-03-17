@@ -35,8 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 
 @Singleton
-class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<
-        InputCreatingVisitor.Context, Symbol> {
+class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCreatingVisitor.Context, Symbol> {
 
     public static final InputCreatingVisitor INSTANCE = new InputCreatingVisitor();
 
@@ -44,10 +43,8 @@ class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<
 
         final HashMap<Symbol, InputColumn> inputs;
 
-
-
         Context(Collection<? extends Symbol> inputs, @Nullable Aggregation.Step fromStep) {
-            this.inputs = new HashMap(inputs.size());
+            this.inputs = new HashMap<>(inputs.size());
             int i = 0;
             for (Symbol input : inputs) {
                 DataType valueType = input.valueType();

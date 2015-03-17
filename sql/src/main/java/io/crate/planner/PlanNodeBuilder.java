@@ -21,14 +21,17 @@
 
 package io.crate.planner;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -38,7 +41,10 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class PlanNodeBuilder {
 
@@ -71,8 +77,41 @@ public class PlanNodeBuilder {
     }
 
     public static MergeNode localMerge(List<Projection> projections,
-                                DQLPlanNode previousNode) {
+                                       DQLPlanNode previousNode) {
         MergeNode node = new MergeNode("localMerge", previousNode.executionNodes().size());
+        node.projections(projections);
+        connectTypes(previousNode, node);
+        return node;
+    }
+
+    /**
+     * Create a MergeNode which uses a {@link io.crate.operation.merge.SortingBucketMerger}
+     * as it expects sorted input and produces sorted output.
+     *
+     * @param projections the projections to include in the resulting MergeNode
+     * @param orderBy {@linkplain io.crate.analyze.OrderBy} containing sorting parameters
+     * @param sourceSymbols the input symbols for this mergeNode
+     * @param orderBySymbols the symbols to sort on. If this is null,
+     *                       {@linkplain io.crate.analyze.OrderBy#orderBySymbols()}
+     *                       will be used
+     * @param previousNode the previous planNode to derive inputtypes from
+     */
+    public static MergeNode sortedLocalMerge(List<Projection> projections,
+                                             OrderBy orderBy,
+                                             List<Symbol> sourceSymbols,
+                                             @Nullable List<Symbol> orderBySymbols,
+                                             DQLPlanNode previousNode) {
+        int[] orderByIndices = OrderByPositionVisitor.orderByPositions(
+                MoreObjects.firstNonNull(orderBySymbols, orderBy.orderBySymbols()),
+                sourceSymbols
+        );
+        MergeNode node = MergeNode.sortedMergeNode(
+                "sortedLocalMerge",
+                previousNode.executionNodes().size(),
+                orderByIndices,
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst()
+        );
         node.projections(projections);
         connectTypes(previousNode, node);
         return node;
