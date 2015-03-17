@@ -162,10 +162,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             projections.add(groupProjection);
 
             HavingClause havingClause = table.querySpec().having();
-            if(havingClause != null){
+            if (havingClause != null) {
                 if (havingClause.noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table);
-                } else if (havingClause.hasQuery()){
+                } else if (havingClause.hasQuery()) {
                     FilterProjection fp = projectionBuilder.filterProjection(
                             collectOutputs,
                             havingClause.query()
@@ -180,7 +180,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     collectOutputs.containsAll(table.querySpec().outputs());
             boolean collectorTopN = table.querySpec().limit() != null || table.querySpec().offset() > 0 || !outputsMatch;
 
-            if(collectorTopN) {
+            if (collectorTopN) {
                 projections.add(projectionBuilder.topNProjection(
                         collectOutputs,
                         orderBy,
@@ -197,24 +197,36 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     splitPoints.leaves(),
                     ImmutableList.copyOf(projections)
             );
+
             // handler
             List<Projection> handlerProjections = new ArrayList<>();
-            if (!ignoreSorting) {
-                List<Symbol> inputs;
-                if(collectorTopN){
-                    inputs = table.querySpec().outputs();
-                } else {
-                    inputs = collectOutputs;
-                }
-                handlerProjections.add(projectionBuilder.topNProjection(
-                        inputs,
-                        orderBy,
-                        table.querySpec().offset(),
-                        firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                        table.querySpec().outputs()
-                ));
+            MergeNode localMergeNode;
+            if (!ignoreSorting && collectorTopN && orderBy != null && orderBy.isSorted()) {
+                // handler receives sorted results from collectnodes
+                // we can do the sorting with a sorting bucket merger
+                localMergeNode = PlanNodeBuilder.sortedLocalMerge(handlerProjections, orderBy, table.querySpec().outputs(), null, collectNode);
+                handlerProjections.add(
+                        projectionBuilder.topNProjection(
+                                table.querySpec().outputs(),
+                                null, // omit order by
+                                table.querySpec().offset(),
+                                firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                                table.querySpec().outputs()
+                        )
+                );
+            } else {
+                handlerProjections.add(
+                        projectionBuilder.topNProjection(
+                                collectorTopN ? table.querySpec().outputs() : collectOutputs,
+                                orderBy,
+                                table.querySpec().offset(),
+                                firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                                table.querySpec().outputs()
+                        )
+                );
+                // fallback - unsorted local merge
+                localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode);
             }
-            MergeNode localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode);
             return new NonDistributedGroupBy(collectNode, localMergeNode);
         }
 

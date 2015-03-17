@@ -336,4 +336,84 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         thread2.join();
         mergeThread.join();
     }
+
+    @Test
+    public void testWithSortingOnManyColumns() throws Exception {
+        CollectingProjector collectingProjector = new CollectingProjector();
+
+        // order by col2 asc, col1 desc nulls first
+        final SortingBucketMerger merger = new SortingBucketMerger(
+                2, new int[]{1, 0}, new boolean[]{false, true}, new Boolean[]{null, true}, Optional.<Executor>absent());
+        merger.downstream(collectingProjector);
+
+        BucketPage page1 = createPage(
+                Arrays.asList(
+                        new Object[]{"A", "0"},
+                        new Object[]{"A", "1"}),
+                Arrays.asList(
+                        new Object[]{"D", "1"},
+                        new Object[]{"C", "1"})
+        );
+        BucketPage page2 = createPage(
+                Arrays.asList(
+                        new Object[]{"C", "8"},
+                        new Object[]{"B", "8"},
+                        new Object[]{null, "9"}),
+                Arrays.asList(
+                        new Object[]{"C", "2"},
+                        new Object[]{"C", "6"},
+                        new Object[]{"A", "9"}
+                        )
+        );
+
+        final Iterator<BucketPage> pageIter = Iterators.forArray(page1, page2);
+        if (pageIter.hasNext()) {
+            merger.nextPage(pageIter.next(), new PageConsumeListener() {
+                @Override
+                public void needMore() {
+                    if (pageIter.hasNext()) {
+                        merger.nextPage(pageIter.next(), this);
+                    } else {
+                        merger.finish();
+                    }
+                }
+
+                @Override
+                public void finish() {
+                    merger.finish();
+                }
+            });
+        } else {
+            merger.finish();
+        }
+        assertRows(collectingProjector.result().get(), "A| 0", "D| 1", "C| 1", "A| 1","C| 2", "C| 6", "C| 8", "B| 8", "NULL| 9", "A| 9");
+    }
+
+    @Test
+    public void testWithNullBucket() throws Exception {
+        BucketPage page1 = createPage(
+                Arrays.asList(
+                        new Object[]{"A"},
+                        new Object[]{"A"},
+                        new Object[]{"A"}),
+                Arrays.asList(
+                        new Object[]{null},
+                        new Object[]{null},
+                        new Object[]{null}
+                ),
+                Arrays.asList(
+                        new Object[]{"B"},
+                        new Object[]{"B"},
+                        new Object[]{"B"}
+                ));
+
+        assertRows(mergeWith(3, null, page1), "A", "A", "A", "B", "B", "B", "NULL", "NULL", "NULL");
+
+        // NULLS FIRST
+        assertRows(mergeWith(3, true, page1), "NULL", "NULL", "NULL", "A", "A", "A", "B", "B", "B");
+
+        // NULLS LAST
+        assertRows(mergeWith(3, false, page1), "A", "A", "A", "B", "B", "B", "NULL", "NULL", "NULL");
+
+    }
 }
