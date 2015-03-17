@@ -97,6 +97,7 @@ public class BenchmarkBase {
                     " \"areaInSqKm\" float," +
                     " capital string," +
                     " continent string," +
+                    " type byte," +
                     " \"continentName\" string," +
                     " \"countryCode\" string," +
                     " \"countryName\" string," +
@@ -110,7 +111,7 @@ public class BenchmarkBase {
                     " \"isoAlpha3\" string," +
                     " \"isoNumeric\" string," +
                     " population integer" +
-                    ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+                    ") clustered by (type) into 2 shards with (number_of_replicas=0)", new Object[0], false);
             client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
             refresh(client());
             if (loadData()) {
