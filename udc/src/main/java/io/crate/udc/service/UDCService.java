@@ -37,6 +37,10 @@ import java.util.Timer;
 
 public class UDCService extends AbstractLifecycleComponent<UDCService> {
 
+    static {
+        System.setProperty("https.protocols", "TLSv1,TLSv1.1,TLSv1.2");
+    }
+
     private final Timer timer;
 
     private final ClusterService clusterService;
