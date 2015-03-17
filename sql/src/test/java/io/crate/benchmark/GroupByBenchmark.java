@@ -93,7 +93,7 @@ public class GroupByBenchmark extends BenchmarkBase {
                 .field("continent", new BytesArray(buffer, 0, 4).toUtf8())
                 .field("countryCode", new BytesArray(buffer, 4, 8).toUtf8())
                 .field("countryName", new BytesArray(buffer, 8, 24).toUtf8())
-                .field("type", buffer[25])
+                .field("type", getRandom().nextInt(100_000))
                 .field("population", random.nextInt(Integer.MAX_VALUE))
                 .endObject()
                 .bytes().toBytes();

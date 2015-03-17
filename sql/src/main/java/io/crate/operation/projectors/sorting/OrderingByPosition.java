@@ -67,7 +67,7 @@ public abstract class OrderingByPosition<T> extends Ordering<T> {
     protected final int position;
     protected final Ordering<Comparable> ordering;
 
-    private OrderingByPosition (int position, boolean reverse, Boolean nullFirst) {
+    private OrderingByPosition (int position, boolean reverse, @Nullable Boolean nullFirst) {
         this.position = position;
 
         // note, that we are reverse for the queue so this conditional is by intent

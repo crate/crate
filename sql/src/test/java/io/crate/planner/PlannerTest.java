@@ -639,6 +639,50 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNonDistributedGroupByOnClusteredColumnSorted() throws Exception {
+        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+                "select count(*), id from users group by id order by 1 desc nulls last limit 20");
+        CollectNode collectNode = planNode.collectNode();
+        assertNull(collectNode.downStreamNodes());
+        assertThat(collectNode.projections().size(), is(2));
+        assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
+
+        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        MergeNode mergeNode = planNode.localMergeNode();
+        assertThat(mergeNode.projections().size(), is(1));
+        TopNProjection projection = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(projection.orderBy(), is(nullValue()));
+        assertThat(mergeNode.sortedInputOutput(), is(true));
+        assertThat(mergeNode.orderByIndices().length, is(1));
+        assertThat(mergeNode.orderByIndices()[0], is(0));
+        assertThat(mergeNode.reverseFlags()[0], is(true));
+        assertThat(mergeNode.nullsFirst()[0], is(false));
+    }
+
+    @Test
+    public void testNonDistributedGroupByOnClusteredColumnSortedScalar() throws Exception {
+        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+                "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
+        CollectNode collectNode = planNode.collectNode();
+        assertNull(collectNode.downStreamNodes());
+        assertThat(collectNode.projections().size(), is(2));
+        assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
+
+        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        MergeNode mergeNode = planNode.localMergeNode();
+        assertThat(mergeNode.projections().size(), is(1));
+        TopNProjection projection = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(projection.orderBy(), is(nullValue()));
+        assertThat(mergeNode.sortedInputOutput(), is(true));
+        assertThat(mergeNode.orderByIndices().length, is(1));
+        assertThat(mergeNode.orderByIndices()[0], is(0));
+        assertThat(mergeNode.reverseFlags()[0], is(false));
+        assertThat(mergeNode.nullsFirst()[0], is(nullValue()));
+    }
+
+    @Test
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id, date from empty_parted group by id, date limit 20");

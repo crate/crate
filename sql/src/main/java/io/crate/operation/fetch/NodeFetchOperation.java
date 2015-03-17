@@ -84,7 +84,7 @@ public class NodeFetchOperation {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getPoolSize();
 
-        DocLevelReferenceResolver<? extends Input<?>> resolver = LuceneDocLevelReferenceResolver.INSTANCE;
+        DocLevelReferenceResolver<? extends Input<?>> resolver = new LuceneDocLevelReferenceResolver(null);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
                 functions,
                 resolver
