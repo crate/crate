@@ -19,3 +19,5 @@ build/
 /docs/clients/out
 /reports
 bin/
+*.class
+*.eml
