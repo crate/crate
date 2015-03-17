@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
@@ -71,7 +72,7 @@ public class SortingBucketMerger implements BucketMerger {
         this.executor = executor;
         List<Comparator<Row>> comparators = new ArrayList<>(orderByPositions.length);
         for (int i = 0; i < orderByPositions.length; i++) {
-            comparators.add(OrderingByPosition.rowOrdering(i, reverseFlags[i], nullsFirst[i]));
+            comparators.add(OrderingByPosition.rowOrdering(orderByPositions[i], reverseFlags[i], nullsFirst[i]));
         }
         ordering = Ordering.compound(comparators);
         wantMore = new AtomicBoolean(true);
@@ -319,16 +320,23 @@ public class SortingBucketMerger implements BucketMerger {
 
     @Override
     public void finish() {
-        ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(remainingBucketIts.length);
-        for (Iterator<Row> bucketIt : remainingBucketIts) {
-            if (bucketIt == null) {
-                bucketIts.add(Collections.<Row>emptyIterator());
-            } else {
-                bucketIts.add(bucketIt);
+        while (hasReminaingBucketIts()) {
+            ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(remainingBucketIts.length);
+            for (Iterator<Row> bucketIt : remainingBucketIts) {
+                if (bucketIt == null) {
+                    bucketIts.add(Collections.<Row>emptyIterator());
+                } else {
+                    bucketIts.add(bucketIt);
+                }
             }
+            emitBuckets(bucketIts);
         }
-        emitBuckets(bucketIts);
         downstream.finish();
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean hasReminaingBucketIts() {
+        return Iterators.any(Iterators.forArray(remainingBucketIts), Predicates.notNull());
     }
 
     @Override

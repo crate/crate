@@ -97,7 +97,7 @@ public class BenchmarkBase {
                     " \"areaInSqKm\" float," +
                     " capital string," +
                     " continent string," +
-                    " type byte," +
+                    " type int," +
                     " \"continentName\" string," +
                     " \"countryCode\" string," +
                     " \"countryName\" string," +
