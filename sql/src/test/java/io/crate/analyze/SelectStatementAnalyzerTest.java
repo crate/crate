@@ -601,6 +601,13 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testGroupByValidationWhenRewritingDistinct() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot GROUP BY 'friends': invalid data type 'object_array'");
+        analyze("select distinct(friends) from users");
+    }
+
+    @Test
     public void testSelectWithObjectLiteral() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("1", 1.0);
