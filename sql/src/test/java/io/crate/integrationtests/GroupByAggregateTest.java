@@ -745,7 +745,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTestGroupByOnClusteredByColumn() throws Exception {
+    public void testGroupByOnClusteredByColumn() throws Exception {
         execute("create table foo (id int, name string, country string) clustered by (country) with (number_of_replicas = 0)");
         ensureYellow();
 
@@ -780,11 +780,11 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(*), name from foo group by id, name order by name desc");
-        assertThat(response.rowCount(), Is.is(4L));
-        assertThat((String) response.rows()[0][1], Is.is("Trillian"));
-        assertThat((String) response.rows()[1][1], Is.is("Slartibardfast"));
-        assertThat((String) response.rows()[2][1], Is.is("Marvin"));
-        assertThat((String) response.rows()[3][1], Is.is("Arthur"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "1| Trillian\n" +
+                "1| Slartibardfast\n" +
+                "1| Marvin\n" +
+                "1| Arthur\n"));
     }
 
     @Test
