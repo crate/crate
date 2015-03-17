@@ -2,6 +2,8 @@
 Changes for Crate
 =================
 
+ - The ``format`` scalar function now always uses Locale.ENGLISH
+
 2015/03/17 0.48.0
 =================
 
