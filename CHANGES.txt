@@ -2,6 +2,8 @@
 Changes for Crate
 =================
 
+ - Fixed an issue that caused ``where somefield in (null)`` to match all rows
+
  - Fixed misleading error message for trying to group by invalid data type.
 
 2015/03/13 0.47.7

@@ -99,4 +99,14 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         assertThat(response.rowCount(), is(1L));
         assertThat(((String) response.rows()[0][0]), is("yalla"));
     }
+
+    @Test
+    public void testWhereRefInNull() throws Exception {
+        execute("create table t (stars int) with (number_of_replicas = 0)");
+        execute("insert into t (stars) values (10)");
+        execute("refresh table t");
+
+        execute("select * from t where stars in (null)");
+        assertThat(response.rowCount(), is(0L));
+    }
 }
