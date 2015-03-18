@@ -206,20 +206,35 @@ public class BulkShardProcessor {
         }
     }
 
+    private void stopExecutor() {
+        scheduledExecutorService.shutdown();
+        try {
+            scheduledExecutorService.awaitTermination(100, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            // ignore
+        } finally {
+            scheduledExecutorService.shutdownNow();
+        }
+    }
+
     private void setFailure(Throwable e) {
         failure.compareAndSet(null, e);
         result.setException(e);
-        scheduledExecutorService.shutdown();
+        stopExecutor();
     }
 
     private void setResult() {
-        Throwable throwable = failure.get();
-        if (throwable == null) {
-            result.set(responses);
-        } else {
-            result.setException(throwable);
+        try {
+            Throwable throwable = failure.get();
+
+            if (throwable == null) {
+                result.set(responses);
+            } else {
+                result.setException(throwable);
+            }
+        } finally {
+            stopExecutor();
         }
-        scheduledExecutorService.shutdown();
     }
 
     private void setResultIfDone(int successes) {

@@ -2,7 +2,15 @@
 Changes for Crate
 =================
 
+Unreleased
+==========
+
  - Fixed an issue that caused ``where somefield in (null)`` to match all rows
+
+ - Fix: Do not shutdown the BulkShardProcessor while there are pending requests
+   anymore
+
+ - Fix: The ``format`` scalar function now always uses Locale.ENGLISH
 
  - Fixed misleading error message for trying to group by invalid data type.
 
