@@ -2,7 +2,13 @@
 Changes for Crate
 =================
 
- - The ``format`` scalar function now always uses Locale.ENGLISH
+Unreleased
+==========
+
+ - Fix: Do not shutdown the BulkShardProcessor while there are pending requests
+   anymore
+
+ - Fix: The ``format`` scalar function now always uses Locale.ENGLISH
 
 2015/03/17 0.48.0
 =================

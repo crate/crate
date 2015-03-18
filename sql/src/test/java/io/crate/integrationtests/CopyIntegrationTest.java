@@ -204,7 +204,8 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyColumnsToDirectory() throws Exception {
         this.setup.groupBySetup();
-
+        waitNoPendingTasksOnAll();
+        
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy characters (name, details['job']) to DIRECTORY ?", new Object[]{uriTemplate});
         assertThat(response.cols().length, is(0));
