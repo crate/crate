@@ -231,6 +231,8 @@ public class ShardCollectService {
                             return new LuceneDocCollector(
                                     docCtx.topLevelInputs(),
                                     docCtx.docLevelExpressions(),
+                                    collectNode,
+                                    functions,
                                     downstream,
                                     jobCollectContext,
                                     localContext,
@@ -245,6 +247,5 @@ public class ShardCollectService {
                     }
                 }
         );
-
     }
 }

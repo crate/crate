@@ -28,6 +28,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.*;
 import io.crate.executor.Page;
 import io.crate.metadata.*;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
@@ -456,6 +457,50 @@ public class TestingHelpers {
         return column;
     }
 
+    public static Object[][] range(int from, int to, int step) {
+        int length = (to-from)/step;
+        Object[][] result = new Object[length][];
+        int val = from;
+        for (int i = 0; i < length; i++) {
+            result[i] = new Object[] { val };
+            val+=step;
+        }
+        return result;
+    }
+
+    public static Matcher<Iterable<Row>> isSorted(final int columnIndex) {
+        return isSorted(columnIndex, false, null);
+    }
+
+    public static Matcher<Iterable<Row>> isSorted(final int columnIndex, final boolean reverse, @Nullable final Boolean nullsFirst) {
+        return new TypeSafeDiagnosingMatcher<Iterable<Row>>() {
+            @Override
+            protected boolean matchesSafely(Iterable<Row> rows, Description mismatchDescription) {
+                OrderingByPosition<Row> ordering = OrderingByPosition.rowOrdering(columnIndex, reverse, nullsFirst);
+                Row previous = null;
+                for (Row row : rows) {
+                    if (previous != null) {
+                        int result = ordering.compare(previous, row);
+                        if (result < 0) {
+                            return false;
+                        }
+                    }
+                    previous = new RowN(Buckets.materialize(row));
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("expects sorted rows by column ")
+                        .appendValue(columnIndex)
+                        .appendText(reverse ? " DESC" : " ASC")
+                        .appendText("nulls ")
+                        .appendText(nullsFirst == null || !nullsFirst ? "last" : "first");
+            }
+        };
+    }
+
     private static class CauseMatcher extends TypeSafeMatcher<Throwable> {
 
         private final Class<? extends Throwable> type;
@@ -489,15 +534,6 @@ public class TestingHelpers {
 
     public static Matcher<Throwable> cause(Class<? extends Throwable> type, String expectedMessage) {
         return new CauseMatcher(type, expectedMessage);
-    }
-
-    public static List<ListenableFuture<Bucket>> createBucketFutures(List<Object[]> ... buckets) {
-        List<ListenableFuture<Bucket>> result = new ArrayList<>();
-        for (List<Object[]> bucket : buckets) {
-            Bucket realBucket = new CollectionBucket(bucket);
-            result.add(Futures.immediateFuture(realBucket));
-        }
-        return result;
     }
 
     public static BucketPage createPage(List<Object[]> ... buckets) {

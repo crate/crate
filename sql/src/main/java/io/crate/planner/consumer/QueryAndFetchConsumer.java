@@ -150,10 +150,12 @@ public class QueryAndFetchConsumer implements Consumer {
                 assert !querySpec.isLimited() : "insert from sub query with limit or order by is not supported. " +
                         "Analyzer should have thrown an exception already.";
 
-                ImmutableList<Projection> projections = ImmutableList.<Projection>of();
+                ImmutableList<Projection> projections = ImmutableList.of();
                 collectNode = PlanNodeBuilder.collect(tableInfo,
                         context.consumerContext.plannerContext(),
-                        whereClause, outputSymbols, projections);
+                        whereClause,
+                        outputSymbols,
+                        projections);
             } else if (querySpec.isLimited() || orderBy != null) {
                 /**
                  * select id, name, order by id, date

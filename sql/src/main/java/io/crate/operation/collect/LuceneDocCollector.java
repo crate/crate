@@ -22,22 +22,24 @@
 package io.crate.operation.collect;
 
 import io.crate.action.sql.query.CrateSearchContext;
+import io.crate.action.sql.query.CrateSearchService;
+import io.crate.analyze.OrderBy;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.metadata.Functions;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Scorer;
+import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
+import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
+import io.crate.planner.node.dql.CollectNode;
+import org.apache.lucene.index.*;
+import org.apache.lucene.search.*;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
@@ -45,6 +47,8 @@ import java.util.List;
  * collect documents from ES shard, a lucene index
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
+
+    private final static int PAGE_SIZE = 10000;
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -77,6 +81,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
+    private CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
+
     private final RowDownstreamHandle downstream;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
@@ -89,22 +95,35 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private final CrateSearchContext searchContext;
     private final int jobSearchContextId;
     private final boolean keepContextForFetcher;
+    private final List<OrderByCollectorExpression> orderByCollectorExpressions = new ArrayList<>();
+    private final Integer limit;
+    private final OrderBy orderBy;
 
     public LuceneDocCollector(List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
+                              CollectNode collectNode,
+                              Functions functions,
                               RowDownstream downStreamProjector,
                               JobCollectContext jobCollectContext,
                               CrateSearchContext searchContext,
                               int jobSearchContextId,
                               boolean keepContextForFetcher) throws Exception {
+        this.limit = collectNode.limit();
+        this.orderBy = collectNode.orderBy();
         this.downstream = downStreamProjector.registerUpstream(this);
         this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
+        for (LuceneCollectorExpression expr : collectorExpressions) {
+            if ( expr instanceof OrderByCollectorExpression) {
+                orderByCollectorExpressions.add((OrderByCollectorExpression)expr);
+            }
+        }
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
         this.jobSearchContextId = jobSearchContextId;
         this.jobCollectContext = jobCollectContext;
         this.searchContext = searchContext;
         this.keepContextForFetcher = keepContextForFetcher;
+        inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
     }
 
     @Override
@@ -140,6 +159,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
+    public void setNextOrderByValues(ScoreDoc scoreDoc) {
+        for (OrderByCollectorExpression expr : orderByCollectorExpressions) {
+            expr.setNextFieldDoc((FieldDoc)scoreDoc);
+        }
+    }
+
     @Override
     public boolean acceptsDocsOutOfOrder() {
         return true;
@@ -165,7 +190,35 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
         // do the lucene search
         try {
-            searchContext.searcher().search(query, this);
+            if( orderBy != null) {
+                Integer toCollect = limit;
+                int batchSize = PAGE_SIZE;
+                if(toCollect != null){
+                    batchSize = Math.min(PAGE_SIZE, toCollect);
+                }
+                Sort sort = CrateSearchService.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
+                TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
+                ScoreDoc lastCollected = collectTopFields(topFieldDocs);
+                if (topFieldDocs.scoreDocs.length < batchSize) {
+                    lastCollected = null;
+                }
+                while (lastCollected != null) {
+                    topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, query, batchSize, sort);
+                    lastCollected = collectTopFields(topFieldDocs);
+                    if (topFieldDocs.scoreDocs.length < batchSize) {
+                        lastCollected = null;
+                    }
+                    if(toCollect != null) {
+                        toCollect -= topFieldDocs.scoreDocs.length;
+                        if (toCollect <= 0){
+                            break;
+                        }
+                        batchSize = Math.min(PAGE_SIZE, toCollect);
+                    }
+                }
+            } else {
+                searchContext.searcher().search(query, this);
+            }
             downstream.finish();
         } catch (CollectionAbortedException e) {
             // yeah, that's ok! :)
@@ -185,5 +238,20 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         return searchContext;
     }
 
-
+    private ScoreDoc collectTopFields(TopFieldDocs topFieldDocs) throws IOException{
+        IndexReaderContext indexReaderContext = searchContext.searcher().getTopReaderContext();
+        ScoreDoc lastDoc = null;
+        if(!indexReaderContext.leaves().isEmpty()) {
+            for (ScoreDoc scoreDoc : topFieldDocs.scoreDocs) {
+                int readerIndex = ReaderUtil.subIndex(scoreDoc.doc, searchContext.searcher().getIndexReader().leaves());
+                AtomicReaderContext subReaderContext = searchContext.searcher().getIndexReader().leaves().get(readerIndex);
+                int subDoc = scoreDoc.doc - subReaderContext.docBase;
+                setNextReader(subReaderContext);
+                setNextOrderByValues(scoreDoc);
+                collect(subDoc);
+                lastDoc = scoreDoc;
+            }
+        }
+        return lastDoc;
+    }
 }

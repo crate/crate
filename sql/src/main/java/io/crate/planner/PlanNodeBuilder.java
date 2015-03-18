@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
@@ -41,10 +42,9 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.TreeMap;
 
 public class PlanNodeBuilder {
 
@@ -62,9 +62,24 @@ public class PlanNodeBuilder {
         node.downStreamNodes(downstreamNodes);
         node.toCollect(toCollect);
         node.projections(projections);
-
         node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
+        return node;
+    }
+
+    public static CollectNode distributingCollect(TableInfo tableInfo,
+                                                  Planner.Context plannerContext,
+                                                  WhereClause whereClause,
+                                                  List<Symbol> toCollect,
+                                                  List<String> downstreamNodes,
+                                                  ImmutableList<Projection> projections,
+                                                  @Nullable OrderBy orderBy,
+                                                  @Nullable Integer limit) {
+        CollectNode node = distributingCollect(tableInfo, plannerContext, whereClause, toCollect, downstreamNodes, projections);
+        node.orderBy(orderBy);
+        if (limit != null) {
+            node.limit(limit);
+        }
         return node;
     }
 
@@ -144,12 +159,14 @@ public class PlanNodeBuilder {
     }
 
     public static CollectNode collect(TableInfo tableInfo,
-                                      Planner.Context plannerContext,
-                                      WhereClause whereClause,
-                                      List<Symbol> toCollect,
-                                      ImmutableList<Projection> projections,
-                                      @Nullable String partitionIdent,
-                                      @Nullable String routingPreference) {
+                               Planner.Context plannerContext,
+                               WhereClause whereClause,
+                               List<Symbol> toCollect,
+                               ImmutableList<Projection> projections,
+                               @Nullable String partitionIdent,
+                               @Nullable String routingPreference,
+                               @Nullable OrderBy orderBy,
+                               @Nullable Integer limit) {
         assert !Iterables.any(toCollect, Predicates.instanceOf(InputColumn.class)) : "cannot collect inputcolumns";
         Routing routing = tableInfo.getRouting(whereClause, routingPreference);
         if (partitionIdent != null && routing.hasLocations()) {
@@ -164,6 +181,10 @@ public class PlanNodeBuilder {
         node.projections(projections);
         node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
+        node.orderBy(orderBy);
+        if (limit != null) {
+            node.limit(limit);
+        }
         return node;
     }
 
@@ -197,7 +218,17 @@ public class PlanNodeBuilder {
                                       WhereClause whereClause,
                                       List<Symbol> toCollect,
                                       ImmutableList<Projection> projections) {
-        return collect(tableInfo, plannerContext, whereClause, toCollect, projections, null, null);
+        return collect(tableInfo, plannerContext, whereClause, toCollect, projections, null, null, null, null);
+    }
+
+    public static CollectNode collect(TableInfo tableInfo,
+                                      Planner.Context plannerContext,
+                                      WhereClause whereClause,
+                                      List<Symbol> toCollect,
+                                      ImmutableList<Projection> projections,
+                                      @Nullable String partitionIdent,
+                                      @Nullable String routingPreference) {
+        return collect(tableInfo, plannerContext, whereClause, toCollect, projections, partitionIdent, routingPreference, null, null);
     }
 
     public static CollectNode collect(TableInfo tableInfo,
@@ -207,5 +238,48 @@ public class PlanNodeBuilder {
                                       ImmutableList<Projection> projections,
                                       @Nullable String partitionIdent) {
         return collect(tableInfo, plannerContext, whereClause, toCollect, projections, partitionIdent, null);
+    }
+
+    public static CollectNode collect(TableInfo tableInfo,
+                                      Planner.Context plannerContext,
+                                      WhereClause whereClause,
+                                      List<Symbol> toCollect,
+                                      ImmutableList<Projection> projections,
+                                      @Nullable OrderBy orderBy,
+                                      @Nullable Integer limit) {
+        return collect(tableInfo, plannerContext, whereClause, toCollect, projections, null, null, orderBy, limit);
+    }
+
+    public static class CollectorOrderByAndLimit {
+
+        private final OrderBy orderBy;
+        private final Integer limit;
+
+        public CollectorOrderByAndLimit(@Nullable OrderBy orderBy, @Nullable Integer limit) {
+            this.orderBy = orderBy;
+            this.limit = limit;
+        }
+
+        public OrderBy orderBy() {
+            return orderBy;
+        }
+
+        public Integer limit() {
+            return limit;
+        }
+    }
+
+    public static CollectorOrderByAndLimit createCollectorOrderAndLimit(QuerySpec querySpec) {
+        if (querySpec.limit() == null || querySpec.hasAggregates()) {
+            return new CollectorOrderByAndLimit(null, null);
+        }
+        OrderBy collectOrderBy = querySpec.orderBy();
+        if(collectOrderBy == null) {
+            // No orderBy given, order by groupKeys
+            collectOrderBy = OrderBy.fromSymbols(querySpec.groupBy());
+        }
+        collectOrderBy = collectOrderBy != null && collectOrderBy.hasAggregation() ? null : collectOrderBy;
+        Integer collectorLimit = collectOrderBy == null ? null : querySpec.offset() + querySpec.limit();
+        return new CollectorOrderByAndLimit(collectOrderBy, collectorLimit);
     }
 }
