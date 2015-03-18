@@ -209,7 +209,6 @@ public class BulkShardProcessor {
         if (pending.get() == 0) {
             setResult();
         }
-        stopExecutor();
     }
 
     private void stopExecutor() {
@@ -217,7 +216,7 @@ public class BulkShardProcessor {
         try {
             scheduledExecutorService.awaitTermination(100, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            // ignore
         } finally {
             scheduledExecutorService.shutdownNow();
         }
@@ -230,11 +229,16 @@ public class BulkShardProcessor {
     }
 
     private void setResult() {
-        Throwable throwable = failure.get();
-        if (throwable == null) {
-            result.set(responses);
-        } else {
-            result.setException(throwable);
+        try {
+            Throwable throwable = failure.get();
+
+            if (throwable == null) {
+                result.set(responses);
+            } else {
+                result.setException(throwable);
+            }
+        } finally {
+            stopExecutor();
         }
     }
 

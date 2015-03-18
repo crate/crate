@@ -49,6 +49,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -202,8 +203,16 @@ public class BulkShardProcessorTest extends CrateUnitTest {
             assertTrue(hadBlocked.get());
         } finally {
             scheduledExecutorService.shutdownNow();
-            bulkShardProcessor.close();
+            forceClose(bulkShardProcessor);
         }
+    }
+
+    private void forceClose(BulkShardProcessor bulkShardProcessor) throws Exception {
+        bulkShardProcessor.close();
+        Method stopExecutorMethod = BulkShardProcessor.class.
+                getDeclaredMethod("stopExecutor");
+        stopExecutorMethod.setAccessible(true);
+        stopExecutorMethod.invoke(bulkShardProcessor);
     }
 
     private void mockShard(OperationRouting operationRouting, Integer shardId) {
