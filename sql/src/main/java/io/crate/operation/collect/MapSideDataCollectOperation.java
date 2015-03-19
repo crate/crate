@@ -117,7 +117,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final ThreadPoolExecutor executor;
     private final int poolSize;
-    private ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger LOGGER = Loggers.getLogger(MapSideDataCollectOperation.class);
 
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Settings settings,
@@ -329,7 +329,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                                     String.format(Locale.ENGLISH, "unknown shard id %d on index '%s'",
                                             shardId, entry.getKey()), e);
                         } catch (Exception e) {
-                            logger.error("Error while getting collector", e);
+                            LOGGER.error("Error while getting collector", e);
                             throw new UnhandledServerException(e);
                         }
                         jobSearchContextId++;
@@ -353,8 +353,8 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
             result.shardFailure(e);
         }
 
-        if (logger.isTraceEnabled()) {
-            logger.trace("started {} shardCollectors", numShards);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("started {} shardCollectors", numShards);
         }
 
         return result;
@@ -414,8 +414,8 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
         } catch (Exception ex) {
             result.shardFailure(ex);
         }
-        if (logger.isTraceEnabled()) {
-            logger.trace("shard finished collect, {} to go", result.numShards());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("shard finished collect, {} to go", result.numShards());
         }
     }
 

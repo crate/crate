@@ -26,9 +26,10 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.*;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
-import io.crate.operation.reference.doc.lucene.DocCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
+import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 
@@ -47,6 +48,9 @@ public class LuceneDocFetcher implements RowUpstream {
     private final CrateSearchContext searchContext;
     private final int jobSearchContextId;
     private final boolean closeContext;
+    private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
+    private boolean visitorEnabled = false;
+    private AtomicReader currentReader;
 
     public LuceneDocFetcher(List<Input<?>> inputs,
                             List<LuceneCollectorExpression<?>> collectorExpressions,
@@ -56,7 +60,6 @@ public class LuceneDocFetcher implements RowUpstream {
                             CrateSearchContext searchContext,
                             int jobSearchContextId,
                             boolean closeContext) {
-        assert validateExpressions(collectorExpressions) : "ChildDocCollectorExpression only supported here";
         inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.downstream = downstream.registerUpstream(this);
@@ -65,9 +68,11 @@ public class LuceneDocFetcher implements RowUpstream {
         this.searchContext = searchContext;
         this.jobSearchContextId = jobSearchContextId;
         this.closeContext = closeContext;
+        this.fieldsVisitor = new LuceneDocCollector.CollectorFieldsVisitor(collectorExpressions.size());
     }
 
     public void setNextReader(AtomicReaderContext context) throws IOException {
+        currentReader = context.reader();
         for (LuceneCollectorExpression expr : collectorExpressions) {
             expr.setNextReader(context);
         }
@@ -79,6 +84,10 @@ public class LuceneDocFetcher implements RowUpstream {
             throw new UnexpectedFetchTerminatedException(
                     CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
                             ramAccountingContext.limit()));
+        }
+        if (visitorEnabled) {
+            fieldsVisitor.reset();
+            currentReader.document(doc, fieldsVisitor);
         }
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
@@ -96,10 +105,12 @@ public class LuceneDocFetcher implements RowUpstream {
         jobCollectContext.acquireContext(searchContext);
 
         CollectorContext collectorContext = new CollectorContext()
+                .visitor(fieldsVisitor)
                 .searchContext(searchContext);
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
+        visitorEnabled = fieldsVisitor.required();
 
         try {
             for (int index = 0; index < shardDocIdsBucket.size(); index++) {
@@ -123,14 +134,5 @@ public class LuceneDocFetcher implements RowUpstream {
                 jobCollectContext.closeContext(jobSearchContextId);
             }
         }
-    }
-
-    private boolean validateExpressions(List<LuceneCollectorExpression<?>> collectorExpressions) {
-        for (LuceneCollectorExpression expression : collectorExpressions) {
-            if (!(expression instanceof DocCollectorExpression.ChildDocCollectorExpression)) {
-                return false;
-            }
-        }
-        return true;
     }
 }

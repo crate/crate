@@ -478,8 +478,8 @@ public class PlannerTest extends CrateUnitTest {
         IterablePlan plan = (IterablePlan) plan("select name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
-        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
+        assertThat(planNode, instanceOf(ESQueryThenFetchNode.class));
+        ESQueryThenFetchNode searchNode = (ESQueryThenFetchNode) planNode;
 
         assertThat(searchNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
@@ -494,8 +494,8 @@ public class PlannerTest extends CrateUnitTest {
         IterablePlan plan = (IterablePlan) plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
-        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
+        assertThat(planNode, instanceOf(ESQueryThenFetchNode.class));
+        ESQueryThenFetchNode searchNode = (ESQueryThenFetchNode) planNode;
 
         List<String> indices = new ArrayList<>();
         Map<String, Map<String, List<Integer>>> locations = searchNode.routing().locations();
@@ -517,8 +517,8 @@ public class PlannerTest extends CrateUnitTest {
         IterablePlan plan = (IterablePlan) plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
-        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
+        assertThat(planNode, instanceOf(ESQueryThenFetchNode.class));
+        ESQueryThenFetchNode searchNode = (ESQueryThenFetchNode) planNode;
 
         assertThat(searchNode.outputs().size(), is(2));
         assertThat(searchNode.outputs().get(0), isFunction("format"));
@@ -1217,7 +1217,7 @@ public class PlannerTest extends CrateUnitTest {
         IterablePlan plan = (IterablePlan) plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
+        assertThat(planNode, instanceOf(ESQueryThenFetchNode.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));

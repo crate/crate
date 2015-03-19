@@ -47,7 +47,7 @@ public class JobCollectContext implements Releasable {
     private final Object lock = new Object();
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
     private volatile long lastAccessTime = -1;
     private volatile long keepAlive;
@@ -99,8 +99,8 @@ public class JobCollectContext implements Releasable {
                 assert docCollector != null; // should be never null, but interface marks it as nullable
                 docCollector.searchContext().sharedEngineSearcher(sharedEngineSearcher);
                 activeCollectors.put(jobSearchContextId, docCollector);
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Created doc collector with context {} on shard {} for job {}",
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Created doc collector with context {} on shard {} for job {}",
                             jobSearchContextId, indexShard.shardId(), id);
                 }
             }
@@ -112,10 +112,13 @@ public class JobCollectContext implements Releasable {
     public LuceneDocCollector findCollector(int jobSearchContextId) {
         return activeCollectors.get(jobSearchContextId);
     }
-
     public void closeContext(int jobSearchContextId) {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Closing context {} on shard {} for job {}",
+        closeContext(jobSearchContextId, true);
+    }
+
+    public void closeContext(int jobSearchContextId, boolean removeFromActive) {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Closing context {} on shard {} for job {}",
                     jobSearchContextId, jobContextIdMap.get(jobSearchContextId), id);
         }
         synchronized (lock) {
@@ -125,8 +128,8 @@ public class JobCollectContext implements Releasable {
                     ShardId shardId = jobContextIdMap.get(jobSearchContextId);
                     Integer refCount = engineSearchersRefCount.get(shardId);
                     assert refCount != null : "refCount should be initialized while creating context";
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("[closeContext] Current engine searcher refCount {} for context {} of shard {}",
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("[closeContext] Current engine searcher refCount {} for context {} of shard {}",
                                 refCount, jobSearchContextId, shardId);
                     }
                     while (!engineSearchersRefCount.replace(shardId, refCount, refCount - 1)) {
@@ -136,7 +139,9 @@ public class JobCollectContext implements Releasable {
                         docCollector.searchContext().sharedEngineSearcher(false);
                     }
                 }
-                activeCollectors.remove(jobSearchContextId);
+                if (removeFromActive) {
+                    activeCollectors.remove(jobSearchContextId);
+                }
                 docCollector.searchContext().close();
             }
         }
@@ -162,14 +167,14 @@ public class JobCollectContext implements Releasable {
                 }
             }
             if (searchContext != null) {
-                logger.trace("Reusing engine searcher of shard {}", indexShard.shardId());
+                LOGGER.trace("Reusing engine searcher of shard {}", indexShard.shardId());
                 Integer refCount = engineSearchersRefCount.get(indexShard.shardId());
                 assert refCount != null : "refCount should be initialized while creating context";
                 while (!engineSearchersRefCount.replace(indexShard.shardId(), refCount, refCount+1)) {
                     refCount = engineSearchersRefCount.get(indexShard.shardId());
                 }
-                if (logger.isTraceEnabled()) {
-                    logger.trace("[acquireSearcher] Current engine searcher refCount {}:{} for context {} of shard {}",
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("[acquireSearcher] Current engine searcher refCount {}:{} for context {} of shard {}",
                             refCount, engineSearchersRefCount.get(indexShard.shardId()), jobSearchContextId, indexShard.shardId());
                 }
                 searchContext.sharedEngineSearcher(true);
@@ -192,8 +197,11 @@ public class JobCollectContext implements Releasable {
     @Override
     public void close() {
         if (closed.compareAndSet(false, true)) { // prevent double release
-            for (Integer jobSearchContextId : activeCollectors.keySet()) {
-                closeContext(jobSearchContextId);
+            Iterator<Integer> it = activeCollectors.keySet().iterator();
+            while (it.hasNext()) {
+                Integer jobSearchContextId = it.next();
+                closeContext(jobSearchContextId, false);
+                it.remove();
             }
         }
     }

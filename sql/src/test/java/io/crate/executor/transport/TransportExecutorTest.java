@@ -200,7 +200,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode node = new QueryThenFetchNode(
+        ESQueryThenFetchNode node = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL, null),
                 Arrays.<Symbol>asList(idRef, nameRef),
                 Arrays.<Symbol>asList(nameRef, idRef),
@@ -233,7 +233,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        QueryThenFetchNode node = new QueryThenFetchNode(
+        ESQueryThenFetchNode node = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef),
                 Arrays.<Symbol>asList(nameRef),
@@ -284,7 +284,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         );
 
         DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
-        QueryThenFetchNode node = new QueryThenFetchNode(
+        ESQueryThenFetchNode node = new ESQueryThenFetchNode(
                 searchf.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, date_ref),
                 Arrays.<Symbol>asList(id_ref),
@@ -318,7 +318,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                         .execute().actionGet().getAliases();
 
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        QueryThenFetchNode node = new QueryThenFetchNode(
+        ESQueryThenFetchNode node = new ESQueryThenFetchNode(
                 parted.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef),
                 Arrays.<Symbol>asList(nameRef),
@@ -364,7 +364,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         // verify deletion
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode searchNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef),
                 Arrays.<Symbol>asList(nameRef),

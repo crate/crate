@@ -1,4 +1,4 @@
-package io.crate.planner.node.dml;
+package io.crate.planner.node.dql;
 
 
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -8,9 +8,6 @@ import io.crate.metadata.Path;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.DQLPlanNode;
-import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
 

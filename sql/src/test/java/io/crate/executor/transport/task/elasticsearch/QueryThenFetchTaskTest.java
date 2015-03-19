@@ -34,7 +34,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.qtf.QueryThenFetchOperation;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.ESQueryThenFetchNode;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.search.ScoreDoc;
@@ -89,7 +89,7 @@ public class QueryThenFetchTaskTest {
     @Before
     public void prepare() {
         MockitoAnnotations.initMocks(this);
-        QueryThenFetchNode searchNode = mock(QueryThenFetchNode.class);
+        ESQueryThenFetchNode searchNode = mock(ESQueryThenFetchNode.class);
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         Map<String, List<Integer>> location1 = new TreeMap<>();
         location1.put("loc1", Arrays.asList(1));
@@ -133,7 +133,7 @@ public class QueryThenFetchTaskTest {
                 UUID.randomUUID(),
                 queryThenFetchOperation,
                 mock(Functions.class),
-                new QueryThenFetchNode(
+                new ESQueryThenFetchNode(
                         new Routing(),
                         Arrays.<Symbol>asList(new Aggregation(CountAggregation.COUNT_STAR_FUNCTION, Collections.<Symbol>emptyList(),
                                 Aggregation.Step.ITER, Aggregation.Step.FINAL)),

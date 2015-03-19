@@ -99,8 +99,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
     private RamAccountingContext ramAccountingContext;
+    private boolean producedRows = false;
     private Scorer scorer;
-
 
     public LuceneDocCollector(List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
@@ -132,6 +132,9 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void setScorer(Scorer scorer) throws IOException {
         this.scorer = scorer;
+        for (LuceneCollectorExpression expr : collectorExpressions) {
+            expr.setScorer(scorer);
+        }
     }
 
     @Override
@@ -142,11 +145,13 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                     CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
                             ramAccountingContext.limit()));
         }
+        // validate minimum score
         if (searchContext.minimumScore() != null
                 && scorer.score() < searchContext.minimumScore()) {
             return;
         }
 
+        producedRows = true;
         if (visitorEnabled) {
             fieldsVisitor.reset();
             currentReader.document(doc, fieldsVisitor);
@@ -198,6 +203,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
 
         // do the lucene search
+        boolean failed = false;
         try {
             if( orderBy != null) {
                 Integer batchSize = MoreObjects.firstNonNull(limit, PAGE_SIZE);
@@ -218,11 +224,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             // yeah, that's ok! :)
             downstream.finish();
         } catch (Exception e) {
+            failed = true;
             downstream.fail(e);
             throw e;
         } finally {
             jobCollectContext.releaseContext(searchContext);
-            if (!keepContextForFetcher) {
+            if (!keepContextForFetcher || !producedRows || failed) {
                 jobCollectContext.closeContext(jobSearchContextId);
             }
         }

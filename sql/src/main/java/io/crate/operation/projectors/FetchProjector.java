@@ -23,9 +23,13 @@ package io.crate.operation.projectors;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
+import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.executor.transport.*;
 import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.fetch.PositionalBucketMerger;
@@ -33,10 +37,13 @@ import io.crate.operation.fetch.PositionalRowDelegate;
 import io.crate.operation.fetch.RowInputSymbolVisitor;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,27 +52,33 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     public static final int NO_BULK_REQUESTS = -1;
 
+
     private PositionalBucketMerger downstream;
     private final TransportFetchNodeAction transportFetchNodeAction;
     private final TransportCloseContextNodeAction transportCloseContextNodeAction;
 
     private final UUID jobId;
     private final CollectExpression<?> collectDocIdExpression;
+    private final List<ReferenceInfo> partitionedBy;
     private final List<Reference> toFetchReferences;
     private final IntObjectOpenHashMap<String> jobSearchContextIdToNode;
+    private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
     private final int bulkSize;
+    private final boolean closeContexts;
+    private final RowDelegate collectRowDelegate = new RowDelegate();
+    private final RowDelegate fetchRowDelegate = new RowDelegate();
+    private final RowDelegate partitionRowDelegate = new RowDelegate();
+    private final Object rowDelegateLock = new Object();
     private final Row outputRow;
     private final Map<String, NodeBucket> nodeBuckets = new HashMap<>();
-    private final RowDelegate collectRow = new RowDelegate();
-    private final RowDelegate fetchRow = new RowDelegate();
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean consumingRows = new AtomicBoolean(true);
-    private final Map<String, Integer> nodeIds;
+    private final List<String> executionNodes;
     private final int numNodes;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
 
     private long inputCursor = 0;
-    private int nodeIdIdx = 0;
+    private boolean consumedRows = false;
 
     private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
 
@@ -76,25 +89,35 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                           CollectExpression<?> collectDocIdExpression,
                           List<Symbol> inputSymbols,
                           List<Symbol> outputSymbols,
+                          List<ReferenceInfo> partitionedBy,
                           IntObjectOpenHashMap<String> jobSearchContextIdToNode,
-                          int executionNodes,
-                          int bulkSize) {
+                          IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard,
+                          Set<String> executionNodes,
+                          int bulkSize,
+                          boolean closeContexts) {
         this.transportFetchNodeAction = transportFetchNodeAction;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.jobId = jobId;
         this.collectDocIdExpression = collectDocIdExpression;
+        this.partitionedBy = partitionedBy;
         this.jobSearchContextIdToNode = jobSearchContextIdToNode;
+        this.jobSearchContextIdToShard = jobSearchContextIdToShard;
         this.bulkSize = bulkSize;
-        numNodes = executionNodes;
-        nodeIds = new HashMap<>(executionNodes);
+        this.closeContexts = closeContexts;
+        numNodes = executionNodes.size();
+        this.executionNodes = new ArrayList<>(executionNodes);
 
         RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(functions);
 
         RowInputSymbolVisitor.Context collectRowContext = new RowInputSymbolVisitor.Context();
-        collectRowContext.row(collectRow);
+        collectRowContext.row(collectRowDelegate);
+        collectRowContext.partitionedBy(partitionedBy);
+        collectRowContext.partitionByRow(partitionRowDelegate);
 
         RowInputSymbolVisitor.Context fetchRowContext = new RowInputSymbolVisitor.Context();
-        fetchRowContext.row(fetchRow);
+        fetchRowContext.row(fetchRowDelegate);
+        fetchRowContext.partitionedBy(partitionedBy);
+        fetchRowContext.partitionByRow(partitionRowDelegate);
 
         // process input symbols (increase input index for every reference)
         for (Symbol symbol : inputSymbols) {
@@ -133,21 +156,17 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         if (!consumingRows.get()) {
             return false;
         }
+        consumedRows = true;
         collectDocIdExpression.setNextRow(row);
 
         long docId = (Long)collectDocIdExpression.value();
         int jobSearchContextId = (int)(docId >> 32);
 
         String nodeId = jobSearchContextIdToNode.get(jobSearchContextId);
-        Integer nodeIdx = nodeIds.get(nodeId);
-        if (nodeIdx == null) {
-            nodeIdx = nodeIdIdx;
-            nodeIds.put(nodeId, nodeIdIdx++);
-        }
 
         NodeBucket nodeBucket = nodeBuckets.get(nodeId);
         if (nodeBucket == null) {
-            nodeBucket = new NodeBucket(nodeId, nodeIdx);
+            nodeBucket = new NodeBucket(nodeId, jobSearchContextIdToShard.get(jobSearchContextId).getIndex(), executionNodes.indexOf(nodeId));
             nodeBuckets.put(nodeId, nodeBucket);
 
         }
@@ -173,7 +192,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
+        if (remainingUpstreams.decrementAndGet() == 0) {
             // flush all remaining buckets
             Iterator<Map.Entry<String, NodeBucket>> it = nodeBuckets.entrySet().iterator();
             while (it.hasNext()) {
@@ -185,12 +204,30 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
             // flushing rows before all requests finished.
             // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
             downstream.finish();
+
+            // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
+            if (!consumedRows) {
+                closeContexts();
+            }
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
         downstream.fail(throwable);
+    }
+
+    @Nullable
+    private Row partitionedByRow(String index) {
+        if (!partitionedBy.isEmpty() && PartitionName.isPartition(index)) {
+            List<BytesRef> partitionRawValues = PartitionName.fromStringSafe(index).values();
+            Object[] partitionValues = new Object[partitionRawValues.size()];
+            for (int i = 0; i < partitionRawValues.size(); i++) {
+                partitionValues[i] = partitionedBy.get(i).type().value(partitionRawValues.get(i));
+            }
+            return new RowN(partitionValues);
+        }
+        return null;
     }
 
     private void flushNodeBucket(final NodeBucket nodeBucket) {
@@ -205,16 +242,27 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         if (bulkSize > NO_BULK_REQUESTS) {
             request.closeContext(false);
         }
+        final Row partitionRow = partitionedByRow(nodeBucket.index);
         transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
             @Override
             public void onResponse(NodeFetchResponse response) {
                 List<Row> rows = new ArrayList<>(response.rows().size());
                 int idx = 0;
-                for (Row row : response.rows()) {
-                    collectRow.delegate(nodeBucket.inputRow(idx));
-                    fetchRow.delegate(row);
-                    rows.add(new PositionalRowDelegate(outputRow, nodeBucket.cursor(idx)));
-                    idx++;
+                synchronized (rowDelegateLock) {
+                    for (Row row : response.rows()) {
+                        collectRowDelegate.delegate(nodeBucket.inputRow(idx));
+                        fetchRowDelegate.delegate(row);
+                        if (partitionRow != null) {
+                            partitionRowDelegate.delegate(partitionRow);
+                        }
+                        try {
+                            rows.add(new PositionalRowDelegate(outputRow, nodeBucket.cursor(idx)));
+                        } catch (Throwable e) {
+                            onFailure(e);
+                            return;
+                        }
+                        idx++;
+                    }
                 }
                 if (!downstream.setNextBucket(rows, nodeBucket.nodeIdx)) {
                     consumingRows.set(false);
@@ -227,6 +275,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
             @Override
             public void onFailure(Throwable e) {
+                consumingRows.set(false);
                 downstream.fail(e);
             }
         });
@@ -237,9 +286,9 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
      * close job contexts on all affected nodes, just fire & forget, they will timeout anyway
      */
     private void closeContexts() {
-        if (bulkSize > NO_BULK_REQUESTS) {
+        if (closeContexts || bulkSize > NO_BULK_REQUESTS) {
             LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
-            for (final String nodeId : nodeIds.keySet()) {
+            for (final String nodeId : executionNodes) {
                 transportCloseContextNodeAction.execute(nodeId, new NodeCloseContextRequest(jobId), new ActionListener<NodeCloseContextResponse>() {
                     @Override
                     public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
@@ -247,7 +296,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
                     @Override
                     public void onFailure(Throwable e) {
-                        LOGGER.warn("Closing job context {} failed on node {} with: {}", jobId, nodeId, e.getMessage());
+                        LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
                     }
                 });
             }
@@ -258,19 +307,21 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         private final int nodeIdx;
         private final String nodeId;
+        private final String index;
         private final List<Row> inputRows = new ArrayList<>();
         private final LongArrayList cursors = new LongArrayList();
         private final LongArrayList docIds = new LongArrayList();
 
-        public NodeBucket(String nodeId, int nodeIdx) {
+        public NodeBucket(String nodeId, String index, int nodeIdx) {
             this.nodeId = nodeId;
+            this.index = index;
             this.nodeIdx = nodeIdx;
         }
 
         public void add(long cursor, Long docId, Row row) {
             cursors.add(cursor);
             docIds.add(docId);
-            inputRows.add(row);
+            inputRows.add(new RowN(Buckets.materialize(row)));
         }
 
         public int size() {
