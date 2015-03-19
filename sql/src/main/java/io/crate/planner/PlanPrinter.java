@@ -178,7 +178,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
         }
 
         @Override
-        public Void visitQueryThenFetchNode(QueryThenFetchNode node, PrintContext context) {
+        public Void visitESQueryThenFetchNode(ESQueryThenFetchNode node, PrintContext context) {
             context.print(node.toString());
             context.indent();
             context.print("outputs:");

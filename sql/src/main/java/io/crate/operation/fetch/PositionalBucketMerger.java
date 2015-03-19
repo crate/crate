@@ -32,13 +32,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Merging node response buckets together and emitting rows as soon as possible.
- * A bucket is always ordered by a positional unique long.
- * Buckets from one node can flow in in an undefined order, so every bucket from the same node
- * must be merged with existing buckets from this node.
- * A bucket from one node can have gaps which must be filled by buckets from other nodes.
- * A gap inside a bucket can never be filled by a bucket of the same node.
- * Main purpose of this implementation is merging ordered node responses.
+ * Merge multiple upstream buckets, whereas every row is ordered by a positional unique long.
+ * Emits rows as soon as possible. Buckets from one upstream can be consumed in an undefined
+ * order. The main purpose of this implementation is merging ordered node responses.
  */
 public class PositionalBucketMerger implements RowUpstream {
 
@@ -172,7 +168,7 @@ public class PositionalBucketMerger implements RowUpstream {
     }
 
 
-    public static class UpstreamBucket implements Bucket {
+    private static class UpstreamBucket implements Bucket {
         private LinkedList<Row> rows;
 
         public UpstreamBucket(LinkedList<Row> rows) {

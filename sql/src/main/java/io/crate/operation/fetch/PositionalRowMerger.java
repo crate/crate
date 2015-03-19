@@ -35,11 +35,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Merge rows of multiple upstreams ordered by a positional unique long.
- * Every upstream gets its own {@link RowDownstreamHandle},
- * this handle is not operating thread-safe, but the merger itself is thread-safe.
- * Rows are emitted as soon as possible. Main purpose of this implementation is merging ordered
- * shard rows on a node.
+ * Merge rows of multiple upstreams ordered by a positional unique long. Rows are emitted as
+ * soon as possible. Every upstream gets its own {@link RowDownstreamHandle}, this handle is
+ * not operating thread-safe, but the merger itself is thread-safe. The main purpose of this
+ * implementation is merging ordered shard rows on a node.
  */
 public class PositionalRowMerger implements Projector, RowDownstreamHandle {
 

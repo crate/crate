@@ -32,7 +32,7 @@ import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.ESQueryThenFetchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
@@ -74,7 +74,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
                 Arrays.<Symbol>asList(nameRef, idRef),
@@ -123,7 +123,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
                 Arrays.<Symbol>asList(nameRef, idRef),
@@ -169,7 +169,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
                 null,
@@ -213,7 +213,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
                 null,
@@ -262,7 +262,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
         setup.setUpPartitionedTableWithName();
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 parted.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(ref(parted, "id"), ref(parted, "name"), ref(parted, "date")),
                 Arrays.<Symbol>asList(ref(parted, "id")),
@@ -327,7 +327,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
                 ImmutableList.<Symbol>of(idRef),
@@ -397,7 +397,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
                 Arrays.<Symbol>asList(idRef),
@@ -455,7 +455,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         DocTableInfo ids = docSchemaInfo.getTableInfo("ids");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 ids.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(ref(ids, "id")),
                 Arrays.<Symbol>asList(ref(ids, "id")),
@@ -535,7 +535,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         DocTableInfo ids = docSchemaInfo.getTableInfo("ids");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 ids.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(ref(ids, "id")),
                 Arrays.<Symbol>asList(ref(ids, "id")),
@@ -605,7 +605,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
                 Arrays.<Symbol>asList(idRef),
@@ -674,7 +674,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode qtfNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode qtfNode = new ESQueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(idRef, nameRef, femaleRef),
                 Arrays.<Symbol>asList(idRef),

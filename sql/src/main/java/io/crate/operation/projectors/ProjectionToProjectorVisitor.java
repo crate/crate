@@ -103,8 +103,10 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     public Projector process(Projection projection,
                              RamAccountingContext ramAccountingContext,
                              Optional<UUID> jobId,
-                             Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode) {
-        return super.process(projection, new Context(ramAccountingContext, jobId, jobSearchContextIdToNode));
+                             Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
+                             Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
+        return super.process(projection, new Context(ramAccountingContext, jobId,
+                jobSearchContextIdToNode, jobSearchContextIdToShard));
     }
 
     @Override
@@ -326,6 +328,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     public Projector visitFetchProjection(FetchProjection projection, Context context) {
         assert context.jobId.isPresent() : "FetchProjector needs a jobId";
         assert context.jobSearchContextIdToNode.isPresent() : "FetchProjector needs jobSearchContextIdToNode";
+        assert context.jobSearchContextIdToShard.isPresent() : "FetchProjector needs jobSearchContextIdToShard";
 
         ImplementationSymbolVisitor.Context ctxDocId = new ImplementationSymbolVisitor.Context();
         symbolVisitor.process(projection.docIdSymbol(), ctxDocId);
@@ -339,9 +342,12 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 ctxDocId.collectExpressions().iterator().next(),
                 projection.inputSymbols(),
                 projection.outputSymbols(),
+                projection.partitionedBy(),
                 context.jobSearchContextIdToNode.get(),
-                projection.numUpstreams(),
-                projection.bulkSize()
+                context.jobSearchContextIdToShard.get(),
+                projection.executionNodes(),
+                projection.bulkSize(),
+                projection.closeContexts()
                 );
     }
 
@@ -350,22 +356,25 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         private final RamAccountingContext ramAccountingContext;
         private final Optional<UUID> jobId;
         private final Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode;
+        private final Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard;
 
         public Context(RamAccountingContext ramAccountingContext) {
-            this(ramAccountingContext, Optional.<UUID>absent(),
-                    Optional.<IntObjectOpenHashMap<String>>absent());
+            this(ramAccountingContext, Optional.<UUID>absent());
         }
 
         public Context(RamAccountingContext ramAccountingContext, Optional<UUID> jobId) {
-            this(ramAccountingContext, jobId, Optional.<IntObjectOpenHashMap<String>>absent());
+            this(ramAccountingContext, jobId, Optional.<IntObjectOpenHashMap<String>>absent(),
+                    Optional.<IntObjectOpenHashMap<ShardId>>absent());
         }
 
         public Context(RamAccountingContext ramAccountingContext,
                        Optional<UUID> jobId,
-                       Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode) {
+                       Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
+                       Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
             this.ramAccountingContext = ramAccountingContext;
             this.jobId = jobId;
             this.jobSearchContextIdToNode = jobSearchContextIdToNode;
+            this.jobSearchContextIdToShard = jobSearchContextIdToShard;
         }
 
     }

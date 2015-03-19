@@ -92,8 +92,11 @@ public class PlanNodeBuilder {
     }
 
     public static MergeNode localMerge(List<Projection> projections,
-                                       DQLPlanNode previousNode) {
+                                       DQLPlanNode previousNode,
+                                       Planner.Context plannerContext) {
         MergeNode node = new MergeNode("localMerge", previousNode.executionNodes().size());
+        node.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
+        node.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         node.projections(projections);
         connectTypes(previousNode, node);
         return node;

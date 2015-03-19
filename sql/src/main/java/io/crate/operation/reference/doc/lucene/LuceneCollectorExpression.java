@@ -23,6 +23,7 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.operation.Input;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.search.Scorer;
 
 /**
  * An expression which gets evaluated in the collect phase
@@ -37,5 +38,9 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     }
 
     public void setNextReader(AtomicReaderContext context){
+    }
+
+    public void setScorer(Scorer scorer) {
+
     }
 }

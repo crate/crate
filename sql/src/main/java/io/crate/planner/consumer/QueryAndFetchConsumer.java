@@ -36,7 +36,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.node.dml.QueryAndFetch;
+import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
@@ -216,7 +216,8 @@ public class QueryAndFetchConsumer implements Consumer {
                 tnp.outputs(finalOutputs);
                 if (orderBy == null) {
                     // no sorting needed
-                    mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode);
+                    mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode,
+                            context.consumerContext.plannerContext());
                 } else {
                     // no order by needed in TopN as we already sorted on collector
                     // and we merge sorted with SortedBucketMerger
@@ -232,7 +233,9 @@ public class QueryAndFetchConsumer implements Consumer {
                 collectNode = PlanNodeBuilder.collect(tableInfo,
                         context.consumerContext.plannerContext(),
                         whereClause, outputSymbols, ImmutableList.<Projection>of());
-                mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
+                mergeNode = PlanNodeBuilder.localMerge(
+                        ImmutableList.<Projection>of(), collectNode,
+                        context.consumerContext.plannerContext());
             }
             return new QueryAndFetch(collectNode, mergeNode);
         }

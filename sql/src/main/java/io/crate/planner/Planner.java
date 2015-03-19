@@ -118,18 +118,16 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         }
 
-        /**
-         * Return a {@link ShardId} for a given <code>jobSearchContextId</code>
-         * if exists at the {@link #jobSearchContextIdToShard} registry map.
-         */
+        @Nullable
         public ShardId shardId(int jobSearchContextId) {
             return jobSearchContextIdToShard.get(jobSearchContextId);
         }
 
-        /**
-         * Return a nodeId string for a given <code>jobSearchContextId</code>
-         * if exists at the {@link #jobSearchContextIdToNode} registry map.
-         */
+        public IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard() {
+            return jobSearchContextIdToShard;
+        }
+
+        @Nullable
         public String nodeId(int jobSearchContextId) {
             return jobSearchContextIdToNode.get(jobSearchContextId);
         }
@@ -256,7 +254,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         );
         plan.add(collectNode);
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection()), collectNode);
+                ImmutableList.<Projection>of(localMergeProjection()), collectNode, context);
         plan.add(mergeNode);
     }
 
@@ -354,7 +352,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         PlanNodeBuilder.setOutputTypes(collectNode);
         plan.add(collectNode);
         plan.add(PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection()), collectNode));
+                ImmutableList.<Projection>of(localMergeProjection()), collectNode, context));
     }
 
     private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {
