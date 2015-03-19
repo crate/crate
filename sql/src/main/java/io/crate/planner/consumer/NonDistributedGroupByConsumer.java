@@ -119,19 +119,29 @@ public class NonDistributedGroupByConsumer implements Consumer {
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
+            PlanNodeBuilder.CollectorOrderByAndLimit collectorOrderByAndLimit;
+            if(context.consumerContext.rootRelation() == table && !tableInfo.schemaInfo().systemSchema()) {
+                collectorOrderByAndLimit = PlanNodeBuilder.createCollectorOrderAndLimit(table.querySpec());
+            } else {
+                collectorOrderByAndLimit = new PlanNodeBuilder.CollectorOrderByAndLimit(null, null);
+            }
+
             // mapper / collect
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                     splitPoints.leaves(),
                     table.querySpec().groupBy(),
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
-                    Aggregation.Step.PARTIAL);
+                    Aggregation.Step.PARTIAL,
+                    collectorOrderByAndLimit.limit());
 
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableInfo,
                     table.querySpec().where(),
                     splitPoints.leaves(),
-                    ImmutableList.<Projection>of(groupProjection)
+                    ImmutableList.<Projection>of(groupProjection),
+                    collectorOrderByAndLimit.orderBy(),
+                    collectorOrderByAndLimit.limit()
             );
             // handler
             List<Symbol> collectOutputs = new ArrayList<>(
@@ -139,7 +149,6 @@ public class NonDistributedGroupByConsumer implements Consumer {
                             splitPoints.aggregates().size());
             collectOutputs.addAll(groupBy);
             collectOutputs.addAll(splitPoints.aggregates());
-
 
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy != null) {
@@ -152,7 +161,8 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     table.querySpec().groupBy(),
                     splitPoints.aggregates(),
                     Aggregation.Step.PARTIAL,
-                    Aggregation.Step.FINAL
+                    Aggregation.Step.FINAL,
+                    null
             ));
 
             HavingClause havingClause = table.querySpec().having();

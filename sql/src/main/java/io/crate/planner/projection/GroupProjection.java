@@ -27,6 +27,7 @@ import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,7 @@ public class GroupProjection extends Projection {
     List<Symbol> keys;
     List<Aggregation> values;
     List<Symbol> outputs;
+    Integer limit = null;
 
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
@@ -54,6 +56,12 @@ public class GroupProjection extends Projection {
         this.values = values;
     }
 
+    public GroupProjection(List<Symbol> keys, List<Aggregation> values,
+                           @Nullable Integer limit) {
+        this(keys, values);
+        this.limit = limit;
+    }
+
     public List<Symbol> keys() {
         return keys;
     }
@@ -68,6 +76,10 @@ public class GroupProjection extends Projection {
 
     public void values(List<Aggregation> values) {
         this.values = values;
+    }
+
+    public Integer limit() {
+        return limit;
     }
 
     @Override
@@ -107,6 +119,9 @@ public class GroupProjection extends Projection {
             values.add((Aggregation) Symbol.fromStream(in));
         }
         requiredGranularity = RowGranularity.fromStream(in);
+        if (in.readBoolean() ) {
+            limit = in.readVInt();
+        }
     }
 
     @Override
@@ -121,6 +136,12 @@ public class GroupProjection extends Projection {
             Symbol.toStream(symbol, out);
         }
         RowGranularity.toStream(requiredGranularity, out);
+        if ( limit != null ) {
+            out.writeBoolean(true);
+            out.writeVInt(limit);
+        } else {
+            out.writeBoolean(false);
+        }
     }
 
     @Override
@@ -132,6 +153,7 @@ public class GroupProjection extends Projection {
 
         if (!keys.equals(that.keys)) return false;
         if (values != null ? !values.equals(that.values) : that.values != null) return false;
+        if (limit != null ? !limit.equals(that.limit) : that.limit != null) return false;
 
         return true;
     }

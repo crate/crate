@@ -150,13 +150,21 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 table.tableRelation().validateOrderBy(orderBy);
             }
 
+            PlanNodeBuilder.CollectorOrderByAndLimit collectorOrderByAndLimit;
+            if(context.rootRelation() == table && !tableInfo.schemaInfo().systemSchema()) {
+                collectorOrderByAndLimit = PlanNodeBuilder.createCollectorOrderAndLimit(table.querySpec());
+            } else {
+                collectorOrderByAndLimit = new PlanNodeBuilder.CollectorOrderByAndLimit(null, null);
+            }
+
             List<Projection> projections = new ArrayList<>();
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                     splitPoints.leaves(),
                     table.querySpec().groupBy(),
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
-                    Aggregation.Step.FINAL
+                    Aggregation.Step.FINAL,
+                    collectorOrderByAndLimit.limit()
             );
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
             projections.add(groupProjection);
@@ -194,7 +202,9 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     tableInfo,
                     table.querySpec().where(),
                     splitPoints.leaves(),
-                    ImmutableList.copyOf(projections)
+                    ImmutableList.copyOf(projections),
+                    collectorOrderByAndLimit.orderBy(),
+                    collectorOrderByAndLimit.limit()
             );
             // handler
             List<Projection> handlerProjections = new ArrayList<>();

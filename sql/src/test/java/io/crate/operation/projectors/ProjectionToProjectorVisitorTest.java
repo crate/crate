@@ -58,6 +58,7 @@ import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
@@ -242,6 +243,40 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 isRow(human, male, 34.0, 2L),
                 isRow(vogon, male, 44.0, 2L)
         ));
+    }
+
+    @Test
+    public void testGroupProjectorWithLimit() throws Exception {
+        GroupProjection projection = new GroupProjection(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.STRING)),
+                new ArrayList<Aggregation>(), 1);
+        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+        RowDownstreamHandle handle = projector.registerUpstream(null);
+        projector.startProjection();
+        BytesRef human = new BytesRef("human");
+        BytesRef vogon = new BytesRef("vogon");
+        assertThat(handle.setNextRow(spare(human)), is(true));
+        assertThat(handle.setNextRow(spare(human)), is(true));
+        assertThat(handle.setNextRow(spare(vogon)), is(false));
+    }
+
+    @Test
+    public void testGroupProjectorWithLimitManyGroupKeys() throws Exception {
+        GroupProjection projection = new GroupProjection(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.STRING),
+                                                                               new InputColumn(1, DataTypes.STRING)),
+                new ArrayList<Aggregation>(), 2);
+        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+        RowDownstreamHandle handle = projector.registerUpstream(null);
+        projector.startProjection();
+        BytesRef human = new BytesRef("human");
+        BytesRef vogon = new BytesRef("vogon");
+        BytesRef male = new BytesRef("male");
+        BytesRef female = new BytesRef("female");
+        assertThat(handle.setNextRow(spare(human, female)), is(true));
+        assertThat(handle.setNextRow(spare(human, female)), is(true));
+        assertThat(handle.setNextRow(spare(human, female)), is(true));
+        assertThat(handle.setNextRow(spare(vogon, female)), is(true));
+        assertThat(handle.setNextRow(spare(vogon, female)), is(true));
+        assertThat(handle.setNextRow(spare(vogon, male)), is(false));
     }
 
     @Test

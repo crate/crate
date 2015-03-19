@@ -151,7 +151,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 keyInputs,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 symbolContext.aggregations(),
-                context.ramAccountingContext
+                context.ramAccountingContext,
+                projection.limit()
         );
     }
 

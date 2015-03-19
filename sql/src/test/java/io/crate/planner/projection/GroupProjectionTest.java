@@ -65,6 +65,25 @@ public class GroupProjectionTest extends CrateUnitTest {
     }
 
     @Test
+    public void testStreamingWithLimit() throws Exception {
+        GroupProjection p = new GroupProjection(
+                ImmutableList.<Symbol>of(
+                    createReference("foo", DataTypes.STRING),
+                    createReference("bar", DataTypes.SHORT)
+                ),
+                ImmutableList.<Aggregation>of(),
+                5);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        Projection.toStream(p, out);
+
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
+
+        assertEquals(p, p2);
+    }
+
+    @Test
     public void testStreaming2() throws Exception {
         Reference nameRef = createReference("name", DataTypes.STRING);
         GroupProjection groupProjection = new GroupProjection();

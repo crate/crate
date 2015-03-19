@@ -57,16 +57,19 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
     private RowDownstreamHandle downstream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
+    private final Integer limit;
 
     public GroupingProjector(List<? extends DataType> keyTypes,
                              List<Input<?>> keyInputs,
                              CollectExpression[] collectExpressions,
                              AggregationContext[] aggregations,
-                             RamAccountingContext ramAccountingContext) {
+                             RamAccountingContext ramAccountingContext,
+                             @Nullable Integer limit) {
         assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         assert allTypesKnown(keyTypes) : "must have a known type for each key input";
         this.collectExpressions = collectExpressions;
         this.ramAccountingContext = ramAccountingContext;
+        this.limit = limit;
 
         Aggregator[] aggregators = new Aggregator[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
@@ -232,6 +235,9 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
             ramAccountingContext.addBytes(32);
             Object[] states = result.get(key);
             if (states == null) {
+                if (limit != null && result.size() >= limit) {
+                    return false;
+                }
                 states = new Object[aggregators.length];
                 for (int i = 0; i < aggregators.length; i++) {
                     Object state = aggregators[i].prepareState();
@@ -325,6 +331,9 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
             ramAccountingContext.addBytes(32);
             Object[] states = result.get(key);
             if (states == null) {
+                if (limit != null && result.size() >= limit) {
+                    return false;
+                }
                 states = new Object[aggregators.length];
                 for (int i = 0; i < aggregators.length; i++) {
                     Object state = aggregators[i].prepareState();

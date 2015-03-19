@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
+import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
-
+import io.crate.planner.symbol.SymbolVisitor;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -70,6 +70,25 @@ public class OrderBy implements Streamable {
         normalizer.normalizeInplace(orderBySymbols);
     }
 
+    public boolean hasAggregation() {
+        SortSymbolContext ctx = new SortSymbolContext();
+        for( Symbol symbol : this.orderBySymbols()) {
+            SortSymbolVisitor.INSTANCE.process(symbol, ctx);
+            if(ctx.hasAggregation) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static OrderBy fromSymbols(List<Symbol> symbols) {
+        boolean[] reverseFlags = new boolean[symbols.size()];
+        Arrays.fill(reverseFlags, false);
+        Boolean[] nullsFirst = new Boolean[symbols.size()];
+        Arrays.fill(nullsFirst, null);
+        return new OrderBy(symbols, reverseFlags, nullsFirst);
+    }
+
     public static void toStream(OrderBy orderBy, StreamOutput out) throws IOException {
         orderBy.writeTo(out);
     }
@@ -113,4 +132,20 @@ public class OrderBy implements Streamable {
             out.writeOptionalBoolean(nullFirst);
         }
     }
+
+    private static class SortSymbolContext {
+        public boolean hasAggregation = false;
+    }
+
+    private static class SortSymbolVisitor extends SymbolVisitor<SortSymbolContext, Void> {
+
+        public static final SortSymbolVisitor INSTANCE = new SortSymbolVisitor();
+
+        @Override
+        public Void visitAggregation(Aggregation symbol, SortSymbolContext context) {
+            context.hasAggregation = true;
+            return super.visitAggregation(symbol, context);
+        }
+    }
+
 }

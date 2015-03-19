@@ -1303,6 +1303,71 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNonDistributedGroupByOrderOnCollectNode() throws Exception {
+        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+                "select id from users group by id order by id limit 2 offset 2");
+        CollectNode collectNode = planNode.collectNode();
+        assertThat(collectNode.limit(), is(4)); // limit + offset
+        assertThat(collectNode.orderBy().orderBySymbols().size(), is(1));
+        assertThat(((Reference)collectNode.orderBy().orderBySymbols().get(0)).ident().columnIdent().name(), is("id"));
+        assertThat(((GroupProjection)collectNode.projections().get(0)).limit(), is(4));
+    }
+
+    @Test
+    public void testNonDistributedGroupByOrderOnCollectNodeWithFunction() throws Exception {
+        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+                "select id from users group by id order by avg(id) limit 2 offset 2");
+        CollectNode collectNode = planNode.collectNode();
+        assertThat(collectNode.limit(), is(nullValue()));
+        assertThat(collectNode.orderBy(), is(nullValue()));
+        assertThat(((GroupProjection)collectNode.projections().get(0)).limit(), is(nullValue()));
+    }
+
+    @Test
+    public void testDistributedGroupByOrderOnCollectNode() throws Exception {
+        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) plan(
+                "select name from users group by name order by name desc limit 1 offset 3");
+        CollectNode collectNode = distributedGroupBy.collectNode();
+        assertThat(collectNode.limit(), is(4));
+        assertThat(collectNode.orderBy().orderBySymbols().size(), is(1));
+        assertThat(((Reference)collectNode.orderBy().orderBySymbols().get(0)).ident().columnIdent().name(), is("name"));
+        assertThat(((GroupProjection)collectNode.projections().get(0)).limit(), is(4));
+    }
+
+    @Test
+    public void testDistributedGroupByOrderOnCollectNodeWithFunction() throws Exception {
+        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) plan(
+                "select min(name) from users group by name order by min(name) desc limit 1 offset 3");
+        // order and limit is not applied
+        CollectNode collectNode = distributedGroupBy.collectNode();
+        assertThat(collectNode.limit(), is(nullValue()));
+        assertThat(collectNode.orderBy(), is(nullValue()));
+        assertThat(((GroupProjection)collectNode.projections().get(0)).limit(), is(nullValue()));
+    }
+
+    @Test
+    /**
+     * If no order is specified ordering is done by grouping keys
+     */
+    public void testDistributedGroupbyAutoOrderByGroupKeys() throws Exception {
+        DistributedGroupBy planNode = (DistributedGroupBy) plan(
+                "select id, name from users group by id, name limit 2");
+        CollectNode collectNode = planNode.collectNode();
+        assertThat(collectNode.orderBy().orderBySymbols().size(), is(2));
+        assertThat(((Reference)collectNode.orderBy().orderBySymbols().get(0)).ident().columnIdent().name(), is("id"));
+        assertThat(((Reference)collectNode.orderBy().orderBySymbols().get(1)).ident().columnIdent().name(), is("name"));
+    }
+
+    @Test
+    public void testInsertIntoNoAutoOrderByGroupKeys() throws Exception {
+        InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
+                "insert into parted (id, date) (select id, date from users group by id, date)");
+        DistributedGroupBy groupByNode = (DistributedGroupBy)planNode.innerPlan();
+        CollectNode collectNode = groupByNode.collectNode();
+        assertThat(collectNode.orderBy(), is(nullValue()));
+    }
+
+    @Test
     public void testGlobalAggregationHaving() throws Exception {
         GlobalAggregate globalAggregate = (GlobalAggregate) plan(
                 "select avg(date) from users having min(date) > '1970-01-01'");

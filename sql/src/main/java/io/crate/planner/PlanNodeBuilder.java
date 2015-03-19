@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
@@ -188,5 +189,38 @@ public class PlanNodeBuilder {
                                ImmutableList<Projection> projections,
                                @Nullable String partitionIdent) {
         return collect(tableInfo, whereClause, toCollect, projections, partitionIdent, null, null, null);
+    }
+
+    public static class CollectorOrderByAndLimit {
+
+        private final OrderBy orderBy;
+        private final Integer limit;
+
+        public CollectorOrderByAndLimit(@Nullable OrderBy orderBy, @Nullable Integer limit) {
+            this.orderBy = orderBy;
+            this.limit = limit;
+        }
+
+        public OrderBy orderBy() {
+            return orderBy;
+        }
+
+        public Integer limit() {
+            return limit;
+        }
+    }
+
+    public static CollectorOrderByAndLimit createCollectorOrderAndLimit(QuerySpec querySpec) {
+        if (querySpec.limit() == null || querySpec.hasAggregates()) {
+            return new CollectorOrderByAndLimit(null, null);
+        }
+        OrderBy collectOrderBy = querySpec.orderBy();
+        if(collectOrderBy == null) {
+            // No orderBy given, order by groupKeys
+            collectOrderBy = OrderBy.fromSymbols(querySpec.groupBy());
+        }
+        collectOrderBy = collectOrderBy != null && collectOrderBy.hasAggregation() ? null : collectOrderBy;
+        Integer collectorLimit = collectOrderBy == null ? null : querySpec.offset() + querySpec.limit();
+        return new CollectorOrderByAndLimit(collectOrderBy, collectorLimit);
     }
 }

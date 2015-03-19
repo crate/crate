@@ -96,7 +96,7 @@ public class GroupingProjectorBenchmark {
         aggregationContext.addInput(keyInput);
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector groupingProjector = new GroupingProjector(
-                Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
+                Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT, null);
 
         groupingProjector.registerUpstream(null);
         groupingProjector.startProjection();
@@ -134,7 +134,7 @@ public class GroupingProjectorBenchmark {
         aggregationContext.addInput(keyInput);
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector groupingProjector = new GroupingProjector(
-                Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
+                Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT, null);
 
         groupingProjector.registerUpstream(null);
         groupingProjector.startProjection();
