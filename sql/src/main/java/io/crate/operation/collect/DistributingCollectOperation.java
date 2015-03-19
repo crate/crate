@@ -31,6 +31,7 @@ import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributedFailureRequest;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
@@ -159,7 +160,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Mu
 
                         @Override
                         public void handleException(TransportException exp) {
-                            Throwable cause = exp.getCause();
+                            Throwable cause = Exceptions.unwrap(exp);
                             if (cause instanceof EsRejectedExecutionException) {
                                 sendFailure(request.contextId(), node);
                             } else {

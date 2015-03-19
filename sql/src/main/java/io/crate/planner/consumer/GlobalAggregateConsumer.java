@@ -149,7 +149,8 @@ public class GlobalAggregateConsumer implements Consumer {
                 table.querySpec().outputs()
                 );
         projections.add(topNProjection);
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode,
+                context.plannerContext());
         return new GlobalAggregate(collectNode, localMergeNode);
     }
 

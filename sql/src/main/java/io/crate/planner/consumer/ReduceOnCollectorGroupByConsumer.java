@@ -202,7 +202,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             List<Projection> handlerProjections = new ArrayList<>();
             MergeNode localMergeNode;
             if (!ignoreSorting && collectorTopN && orderBy != null && orderBy.isSorted()) {
-                // handler receives sorted results from collectnodes
+                // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
                 localMergeNode = PlanNodeBuilder.sortedLocalMerge(handlerProjections, orderBy, table.querySpec().outputs(), null, collectNode);
                 handlerProjections.add(
@@ -225,7 +225,8 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         )
                 );
                 // fallback - unsorted local merge
-                localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode);
+                localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode,
+                        context.plannerContext());
             }
             return new NonDistributedGroupBy(collectNode, localMergeNode);
         }

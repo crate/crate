@@ -67,6 +67,17 @@ public class CollectNode extends AbstractDQLPlanNode {
         super();
     }
 
+    public CollectNode(String id, Routing routing) {
+        this(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    }
+
+    public CollectNode(String id, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+        super(id);
+        this.routing = routing;
+        this.toCollect = toCollect;
+        this.projections = projections;
+    }
+
     /**
      * This method returns true if downstreams are defined, which means that results of this collect
      * operation should be sent to other nodes instead of being returned directly.
@@ -92,10 +103,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         }
     }
 
-    public CollectNode(String id, Routing routing) {
-        this(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
-    }
-
     public @Nullable Integer limit() {
         return limit;
     }
@@ -110,13 +117,6 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     public void orderBy(@Nullable OrderBy orderBy) {
         this.orderBy = orderBy;
-    }
-
-    public CollectNode(String id, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
-        super(id);
-        this.routing = routing;
-        this.toCollect = toCollect;
-        this.projections = projections;
     }
 
     public WhereClause whereClause() {

@@ -275,10 +275,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         FetchProjection fetchProjection = new FetchProjection(
-                docIdSymbol, inputSymbols, outputSymbols, collectNode.executionNodes().size());
+                docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
+                collectNode.executionNodes());
 
         MergeNode mergeNode = new MergeNode("merge", collectNode.executionNodes().size());
         mergeNode.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
+        mergeNode.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         mergeNode.projections(ImmutableList.<Projection>of(fetchProjection));
 
         Plan plan = new IterablePlan(collectNode, mergeNode);
@@ -358,10 +360,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         FetchProjection fetchProjection = new FetchProjection(
-                docIdSymbol, inputSymbols, outputSymbols, collectNode.executionNodes().size(), bulkSize);
+                docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
+                collectNode.executionNodes(), bulkSize);
 
         MergeNode mergeNode = new MergeNode("merge", collectNode.executionNodes().size());
         mergeNode.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
+        mergeNode.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         mergeNode.projections(ImmutableList.<Projection>of(fetchProjection));
 
         Plan plan = new IterablePlan(collectNode, mergeNode);

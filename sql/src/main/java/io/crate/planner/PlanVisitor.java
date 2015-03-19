@@ -22,11 +22,12 @@
 package io.crate.planner;
 
 import io.crate.planner.node.dml.InsertFromSubQuery;
-import io.crate.planner.node.dml.QueryAndFetch;
+import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GlobalAggregate;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
+import io.crate.planner.node.dql.QueryThenFetch;
 import org.elasticsearch.common.Nullable;
 
 public class PlanVisitor<C, R> {
@@ -52,6 +53,10 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitQueryAndFetch(QueryAndFetch node, C context){
+        return visitPlan(node, context);
+    }
+
+    public R visitQueryThenFetch(QueryThenFetch node, C context){
         return visitPlan(node, context);
     }
 

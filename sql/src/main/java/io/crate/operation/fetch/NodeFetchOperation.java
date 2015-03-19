@@ -124,7 +124,6 @@ public class NodeFetchOperation {
             throw new IllegalArgumentException(errorMsg);
         }
 
-        CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(toFetchReferences);
         Projector downstream = projectorChain.newShardDownstreamProjector(null);
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(downstream, toFetchReferences.size());
 
@@ -136,6 +135,8 @@ public class NodeFetchOperation {
                 LOGGER.error(errorMsg);
                 throw new IllegalArgumentException(errorMsg);
             }
+            // create new collect expression for every shard (collect expressions are not thread-safe)
+            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(toFetchReferences);
             shardFetchers.add(
                     new LuceneDocFetcher(
                             docCtx.topLevelInputs(),

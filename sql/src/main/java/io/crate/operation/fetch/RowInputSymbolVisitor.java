@@ -23,12 +23,15 @@ package io.crate.operation.fetch;
 
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Reference;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class RowInputSymbolVisitor extends AbstractImplementationSymbolVisitor<RowInputSymbolVisitor.Context> {
 
@@ -38,8 +41,20 @@ public class RowInputSymbolVisitor extends AbstractImplementationSymbolVisitor<R
         private Row row;
         private List<Reference> references = new ArrayList<>();
 
+        private int inputIndexPartitionedBy = 0;
+        private Row partitionByRow;
+        private List<ReferenceInfo> partitionedBy;
+
         public void row(Row row) {
             this.row = row;
+        }
+
+        public void partitionedBy(List<ReferenceInfo> partitionedBy) {
+            this.partitionedBy = partitionedBy;
+        }
+
+        public void partitionByRow(Row row) {
+            this.partitionByRow = row;
         }
 
         public List<Reference> references() {
@@ -47,6 +62,9 @@ public class RowInputSymbolVisitor extends AbstractImplementationSymbolVisitor<R
         }
 
         public Input<?> allocateInput(Reference reference) {
+            if (reference.info().granularity() == RowGranularity.PARTITION) {
+                return allocatePartitionedInput(reference.info());
+            }
             int idx = references.indexOf(reference);
             if (idx > -1) {
                 return new RowInput(row, idx);
@@ -54,6 +72,16 @@ public class RowInputSymbolVisitor extends AbstractImplementationSymbolVisitor<R
                 references.add(reference);
                 return new RowInput(row, inputIndex++);
             }
+        }
+
+        public Input<?> allocatePartitionedInput(ReferenceInfo referenceInfo) {
+            assert partitionedBy != null : "partitionedBy must be set first";
+            int idx = partitionedBy.indexOf(referenceInfo);
+            if (idx > -1) {
+                return new RowInput(partitionByRow, idx);
+            }
+            throw new AssertionError(String.format(Locale.ENGLISH,
+                    "Partition reference info {} not known", referenceInfo));
         }
 
     }

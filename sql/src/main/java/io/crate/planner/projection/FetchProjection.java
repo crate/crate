@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.projectors.FetchProjector;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -28,7 +29,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FetchProjection extends Projection {
 
@@ -42,8 +45,10 @@ public class FetchProjection extends Projection {
     private Symbol docIdSymbol;
     private List<Symbol> inputSymbols;
     private List<Symbol> outputSymbols;
-    private int numUpstreams;
+    private List<ReferenceInfo> partitionBy;
+    private Set<String> executionNodes;
     private int bulkSize;
+    private boolean closeContexts;
 
     private FetchProjection() {
     }
@@ -51,20 +56,46 @@ public class FetchProjection extends Projection {
     public FetchProjection(Symbol docIdSymbol,
                            List<Symbol> inputSymbols,
                            List<Symbol> outputSymbols,
-                           int numUpstreams) {
-        this(docIdSymbol, inputSymbols, outputSymbols, numUpstreams, FetchProjector.NO_BULK_REQUESTS);
+                           List<ReferenceInfo> partitionBy,
+                           Set<String> executionNodes) {
+        this(docIdSymbol, inputSymbols, outputSymbols, partitionBy, executionNodes,
+                FetchProjector.NO_BULK_REQUESTS, false);
     }
 
     public FetchProjection(Symbol docIdSymbol,
                            List<Symbol> inputSymbols,
                            List<Symbol> outputSymbols,
-                           int numUpstreams,
+                           List<ReferenceInfo> partitionBy,
+                           Set<String> executionNodes,
+                           boolean closeContexts) {
+        this(docIdSymbol, inputSymbols, outputSymbols, partitionBy, executionNodes,
+                FetchProjector.NO_BULK_REQUESTS, closeContexts);
+    }
+
+    public FetchProjection(Symbol docIdSymbol,
+                           List<Symbol> inputSymbols,
+                           List<Symbol> outputSymbols,
+                           List<ReferenceInfo> partitionBy,
+                           Set<String> executionNodes,
                            int bulkSize) {
+        this(docIdSymbol, inputSymbols, outputSymbols, partitionBy, executionNodes,
+                bulkSize, false);
+    }
+
+    public FetchProjection(Symbol docIdSymbol,
+                           List<Symbol> inputSymbols,
+                           List<Symbol> outputSymbols,
+                           List<ReferenceInfo> partitionBy,
+                           Set<String> executionNodes,
+                           int bulkSize,
+                           boolean closeContexts) {
         this.docIdSymbol = docIdSymbol;
         this.inputSymbols = inputSymbols;
         this.outputSymbols = outputSymbols;
-        this.numUpstreams = numUpstreams;
+        this.partitionBy = partitionBy;
+        this.executionNodes = executionNodes;
         this.bulkSize = bulkSize;
+        this.closeContexts = closeContexts;
     }
 
     public Symbol docIdSymbol() {
@@ -79,12 +110,20 @@ public class FetchProjection extends Projection {
         return outputSymbols;
     }
 
-    public int numUpstreams() {
-        return numUpstreams;
+    public List<ReferenceInfo> partitionedBy() {
+        return partitionBy;
+    }
+
+    public Set<String> executionNodes() {
+        return executionNodes;
     }
 
     public int bulkSize() {
         return bulkSize;
+    }
+
+    public boolean closeContexts() {
+        return closeContexts;
     }
 
     @Override
@@ -109,13 +148,14 @@ public class FetchProjection extends Projection {
 
         FetchProjection that = (FetchProjection) o;
 
+        if (closeContexts != that.closeContexts) return false;
         if (bulkSize != that.bulkSize) return false;
-        if (numUpstreams != that.numUpstreams) return false;
+        if (executionNodes != that.executionNodes) return false;
         if (!docIdSymbol.equals(that.docIdSymbol)) return false;
         if (!inputSymbols.equals(that.inputSymbols)) return false;
         if (!outputSymbols.equals(that.outputSymbols)) return false;
-
-        return true;
+        if (!outputSymbols.equals(that.outputSymbols)) return false;
+        return partitionBy.equals(that.partitionBy);
     }
 
     @Override
@@ -124,8 +164,10 @@ public class FetchProjection extends Projection {
         result = 31 * result + docIdSymbol.hashCode();
         result = 31 * result + inputSymbols.hashCode();
         result = 31 * result + outputSymbols.hashCode();
-        result = 31 * result + numUpstreams;
+        result = 31 * result + partitionBy.hashCode();
+        result = 31 * result + executionNodes.hashCode();
         result = 31 * result + bulkSize;
+        result = 31 * result + (closeContexts ? 1 : 0);
         return result;
     }
 
@@ -142,8 +184,20 @@ public class FetchProjection extends Projection {
         for (int i = 0; i < outputSymbolsSize; i++) {
             outputSymbols.add(Symbol.fromStream(in));
         }
-        numUpstreams = in.readVInt();
+        int partitionedBySize = in.readVInt();
+        partitionBy = new ArrayList<>(partitionedBySize);
+        for (int i = 0; i < partitionedBySize; i++) {
+            ReferenceInfo referenceInfo = new ReferenceInfo();
+            referenceInfo.readFrom(in);
+            partitionBy.add(referenceInfo);
+        }
+        int executionNodesSize = in.readVInt();
+        executionNodes = new HashSet<>(executionNodesSize);
+        for (int i = 0; i < executionNodesSize; i++) {
+            executionNodes.add(in.readString());
+        }
         bulkSize = in.readVInt();
+        closeContexts = in.readBoolean();
     }
 
     @Override
@@ -157,7 +211,15 @@ public class FetchProjection extends Projection {
         for (Symbol symbol : outputSymbols) {
             Symbol.toStream(symbol, out);
         }
-        out.writeVInt(numUpstreams);
+        out.writeVInt(partitionBy.size());
+        for (ReferenceInfo referenceInfo : partitionBy) {
+            referenceInfo.writeTo(out);
+        }
+        out.writeVInt(executionNodes.size());
+        for (String nodeId : executionNodes) {
+            out.writeString(nodeId);
+        }
         out.writeVInt(bulkSize);
+        out.writeBoolean(closeContexts);
     }
 }
