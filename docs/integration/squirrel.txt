@@ -11,23 +11,21 @@ SQUirreL_.
 Setup
 =====
 
-SQuirreL_ does not provide a Crate driver with its distribution, so an extra setup step
-is required to run Crate with SQuirreL_:
+SQuirreL_ does not provide a Crate driver with its distribution, so an extra setup step is required to run Crate with SQuirreL_:
 
  #. Copy the `Crate JDBC standalone jar`_ to the SQuirreL ``lib`` folder.
     On OS X, when installing SQuirreL_ with the MaxOS X installer, this is
     ``/Applications/SQuirreLSQL.app/Contents/Resources/Java/lib/``
  #. Start SQuirreL_.
- #. Chose the ``Drivers`` tab and add a new driver, adding the following
+ #. Choose the ``Drivers`` tab and add a new driver, adding the following
     information into the form and confirm by pressing ``ok``.
 
     .. image:: ../_static/squirrel_add_driver.png
        :alt: squirrel add driver dialogue
        :width: 90 %
 
- #. Chose the ``Aliases`` tab and add a new Alias,
-    Chose your new Driver (called crate in our example) and enter your
-    database URL. username and password are not supported, so keep them blank.
+ #. Choose the ``Aliases`` tab and add a new Alias,
+    Choose your new driver (called crate in our example) and enter your database URL. Username and password are not supported, so leave them blank.
 
     .. image:: ../_static/squirrel_add_alias.png
        :alt: squirrel add alias dialogue
@@ -38,17 +36,15 @@ is required to run Crate with SQuirreL_:
 Usage
 =====
 
-You can browse Crate using the ``Object Tree Worksheet``,
-that is the usual view you use for browsing your tables and get information
-about their schema.
+You can browse Crate using the ``Object Tree Worksheet``, that is the usual view you use for browsing your tables and get information about their schema.
 
  .. image:: ../_static/squirrel_view.png
     :alt: browsing the content and schema of a table using squirrel
     :width: 90 %
 
 
-When browsing a tables content using the ``Content``, it is possible to edit
-the table contents by issueing a right click and chosing ``Make Editable``.
+When browsing a table's content using ``Content``, it is possible to edit
+the table contents by right-clicking and choosing ``Make Editable``.
 
  .. image:: ../_static/squirrel_edit.png
     :alt: editing the content of a table using squirrel
