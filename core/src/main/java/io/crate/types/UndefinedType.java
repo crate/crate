@@ -70,11 +70,12 @@ public class UndefinedType extends DataType<Object> implements DataTypeFactory, 
     }
 
     @Override
-    public Void readValueFrom(StreamInput in) throws IOException {
-        return null;
+    public Object readValueFrom(StreamInput in) throws IOException {
+        return in.readGenericValue();
     }
 
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
+        out.writeGenericValue(v);
     }
 }

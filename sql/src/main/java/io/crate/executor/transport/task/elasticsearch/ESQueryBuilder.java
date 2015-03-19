@@ -45,7 +45,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.RegexMatcher;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.ESQueryThenFetchNode;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -141,7 +141,7 @@ public class ESQueryBuilder {
     /**
      * use to create a full elasticsearch query "statement" including fields, size, etc.
      */
-    public BytesReference convert(QueryThenFetchNode node) throws IOException {
+    public BytesReference convert(ESQueryThenFetchNode node) throws IOException {
         assert node != null;
         List<? extends Symbol> outputs;
 

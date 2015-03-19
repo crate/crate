@@ -33,7 +33,7 @@ import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.PageInfo;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.ESQueryThenFetchNode;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.search.ScoreDoc;
 import org.elasticsearch.action.ActionListener;
@@ -112,7 +112,7 @@ public class QueryThenFetchOperation {
         this.clusterService = clusterService;
     }
 
-    public ListenableFuture<QueryThenFetchContext> execute(QueryThenFetchNode searchNode,
+    public ListenableFuture<QueryThenFetchContext> execute(ESQueryThenFetchNode searchNode,
                                                            List<Reference> outputs,
                                                            Optional<PageInfo> pageInfo) {
         SettableFuture<QueryThenFetchContext> future = SettableFuture.create();
@@ -402,7 +402,7 @@ public class QueryThenFetchOperation {
 
         private final Optional<PageInfo> pageInfo;
         private final DiscoveryNodes nodes;
-        private final QueryThenFetchNode searchNode;
+        private final ESQueryThenFetchNode searchNode;
         private final List<Reference> outputs;
         private final int numShards;
         private final int numColumns;
@@ -421,7 +421,7 @@ public class QueryThenFetchOperation {
         private List<Tuple<String, QueryShardRequest>> requests;
 
         public QueryThenFetchContext(BigArrays bigArrays,
-                                     QueryThenFetchNode node,
+                                     ESQueryThenFetchNode node,
                                      List<Reference> outputs,
                                      Optional<PageInfo> pageInfo) {
             this.searchNode = node;
@@ -541,7 +541,7 @@ public class QueryThenFetchOperation {
             return outputs;
         }
 
-        public QueryThenFetchNode searchNode() {
+        public ESQueryThenFetchNode searchNode() {
             return searchNode;
         }
 

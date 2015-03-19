@@ -21,20 +21,48 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.ScoreReferenceDetector;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESQueryThenFetchNode;
+import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataTypes;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class QueryThenFetchConsumer implements Consumer {
 
     private static final Visitor VISITOR = new Visitor();
+    private static final ScoreReferenceDetector SCORE_REFERENCE_DETECTOR = new ScoreReferenceDetector();
+    private static final ColumnIdent DOC_ID_COLUMN_IDENT = new ColumnIdent(DocSysColumns.DOCID.name());
+    private static final InputColumn DEFAULT_DOC_ID_INPUT_COLUMN = new InputColumn(0, DataTypes.STRING);
+    private static final InputColumn DEFAULT_SCORE_INPUT_COLUMN = new InputColumn(1, DataTypes.FLOAT);
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
@@ -69,18 +97,64 @@ public class QueryThenFetchConsumer implements Consumer {
 
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy == null){
-                return new QueryThenFetchNode(
-                        tableInfo.getRouting(table.querySpec().where(), null),
-                        table.querySpec().outputs(),
-                        null, null, null,
-                        table.querySpec().limit(),
-                        table.querySpec().offset(),
+                // TODO: if _score is selected, ordering by _score using a TopNProjection is only temporarily and MUST be changed.
+                // Proposal: only order by _score if requested by user and order it on the shard
+                boolean scoreSelected = false;
+                ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
+                List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
+
+                List<Symbol> outputSymbols = new ArrayList<>(table.querySpec().outputs().size());
+                for (Symbol symbol : table.querySpec().outputs()) {
+                    if (SCORE_REFERENCE_DETECTOR.detect(symbol)) {
+                        scoreSelected = true;
+                        collectSymbols.add(symbol);
+                    }
+                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
+                }
+
+                CollectNode collectNode = PlanNodeBuilder.collect(
+                        tableInfo,
+                        context.plannerContext(),
                         table.querySpec().where(),
-                        tableInfo.partitionedByColumns()
+                        collectSymbols,
+                        ImmutableList.<Projection>of()
                 );
-            } else {
+                collectNode.keepContextForFetcher(true);
+
+                List<Projection> mergeProjections = new ArrayList<>();
+                if (table.querySpec().isLimited() || scoreSelected) {
+                    TopNProjection topNProjection = new TopNProjection(
+                            MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                            table.querySpec().offset(),
+                            scoreSelected ? Arrays.<Symbol>asList(DEFAULT_SCORE_INPUT_COLUMN) : ImmutableList.<Symbol>of(),
+                            scoreSelected ? new boolean[]{true} : new boolean[0],
+                            scoreSelected ? new Boolean[]{false} : new Boolean[0]
+                            );
+                    List<Symbol> outputs = new ArrayList<>();
+                    outputs.add(DEFAULT_DOC_ID_INPUT_COLUMN);
+                    if (scoreSelected) {
+                        outputs.add(DEFAULT_SCORE_INPUT_COLUMN);
+                    }
+                    topNProjection.outputs(outputs);
+                    mergeProjections.add(topNProjection);
+                }
+
+                FetchProjection fetchProjection = new FetchProjection(
+                        DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
+                        tableInfo.partitionedByColumns(),
+                        collectNode.executionNodes(),
+                        table.querySpec().isLimited());
+                mergeProjections.add(fetchProjection);
+
+                MergeNode localMergeNode = PlanNodeBuilder.localMerge(
+                        mergeProjections,
+                        collectNode,
+                        context.plannerContext());
+
+                return new QueryThenFetch(collectNode, localMergeNode);
+           } else {
                 table.tableRelation().validateOrderBy(orderBy);
-                return new QueryThenFetchNode(
+                return new ESQueryThenFetchNode(
                         tableInfo.getRouting(table.querySpec().where(), null),
                         table.querySpec().outputs(),
                         orderBy.orderBySymbols(),
@@ -99,4 +173,5 @@ public class QueryThenFetchConsumer implements Consumer {
             return null;
         }
     }
+
 }

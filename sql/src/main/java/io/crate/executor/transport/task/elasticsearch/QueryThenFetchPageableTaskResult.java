@@ -34,7 +34,7 @@ import io.crate.executor.Page;
 import io.crate.executor.PageInfo;
 import io.crate.executor.PageableTaskResult;
 import io.crate.operation.qtf.QueryThenFetchOperation;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.ESQueryThenFetchNode;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -98,7 +98,7 @@ class QueryThenFetchPageableTaskResult implements PageableTaskResult {
 
     private ListenableFuture<PageableTaskResult> fetchWithNewQTF(final PageInfo pageInfo) {
         final SettableFuture<PageableTaskResult> future = SettableFuture.create();
-        QueryThenFetchNode oldNode = ctx.searchNode();
+        ESQueryThenFetchNode oldNode = ctx.searchNode();
         Futures.addCallback(
                 operation.execute(
                         oldNode,

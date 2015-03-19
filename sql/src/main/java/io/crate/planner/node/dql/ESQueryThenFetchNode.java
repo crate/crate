@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -37,7 +37,7 @@ import org.elasticsearch.common.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-public class QueryThenFetchNode extends ESDQLPlanNode {
+public class ESQueryThenFetchNode extends ESDQLPlanNode {
 
     private final List<Symbol> orderBy;
     private final int limit;
@@ -57,15 +57,15 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
      * @param partitionBy list of columns
      *                    the queried is partitioned by
      */
-    public QueryThenFetchNode(Routing routing,
-                              List<Symbol> outputs,
-                              @Nullable List<Symbol> orderBy,
-                              @Nullable boolean[] reverseFlags,
-                              @Nullable Boolean[] nullsFirst,
-                              @Nullable Integer limit,
-                              @Nullable Integer offset,
-                              WhereClause whereClause,
-                              @Nullable List<ReferenceInfo> partitionBy
+    public ESQueryThenFetchNode(Routing routing,
+                                List<Symbol> outputs,
+                                @Nullable List<Symbol> orderBy,
+                                @Nullable boolean[] reverseFlags,
+                                @Nullable Boolean[] nullsFirst,
+                                @Nullable Integer limit,
+                                @Nullable Integer offset,
+                                WhereClause whereClause,
+                                @Nullable List<ReferenceInfo> partitionBy
     ) {
         this.routing = routing;
         assert routing != null;
@@ -121,7 +121,7 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitQueryThenFetchNode(this, context);
+        return visitor.visitESQueryThenFetchNode(this, context);
     }
 
     @Override

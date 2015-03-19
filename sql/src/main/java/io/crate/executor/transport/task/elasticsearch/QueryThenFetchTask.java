@@ -32,7 +32,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.qtf.QueryThenFetchOperation;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.ESQueryThenFetchNode;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -55,7 +55,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
 
     private static final ESLogger logger = Loggers.getLogger(QueryThenFetchTask.class);
 
-    private final QueryThenFetchNode searchNode;
+    private final ESQueryThenFetchNode searchNode;
     private final QueryThenFetchOperation operation;
 
     private SettableFuture<TaskResult> result;
@@ -68,7 +68,7 @@ public class QueryThenFetchTask extends JobTask implements PageableTask {
     public QueryThenFetchTask(UUID jobId,
                               QueryThenFetchOperation operation,
                               Functions functions,
-                              QueryThenFetchNode searchNode) {
+                              ESQueryThenFetchNode searchNode) {
         super(jobId);
         this.operation = operation;
         this.searchNode = searchNode;

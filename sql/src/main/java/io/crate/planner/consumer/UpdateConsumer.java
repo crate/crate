@@ -165,7 +165,8 @@ public class UpdateConsumer implements Consumer {
                         Preference.PRIMARY.type()
                 );
                 MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                        ImmutableList.<Projection>of(localMergeProjection), collectNode);
+                        ImmutableList.<Projection>of(localMergeProjection), collectNode,
+                        consumerContext.plannerContext());
                 return ImmutableList.<DQLPlanNode>of(collectNode, mergeNode);
             } else {
                 return ImmutableList.of();

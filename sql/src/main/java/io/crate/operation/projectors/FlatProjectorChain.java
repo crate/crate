@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowUpstream;
 import io.crate.planner.projection.Projection;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,8 +58,7 @@ public class FlatProjectorChain {
                               ProjectionToProjectorVisitor projectorVisitor,
                               RamAccountingContext ramAccountingContext) {
         this(projections, projectorVisitor, ramAccountingContext,
-                Optional.<ResultProvider>absent(), Optional.<UUID>absent(),
-                Optional.<IntObjectOpenHashMap<String>>absent());
+                Optional.<ResultProvider>absent());
     }
 
     public FlatProjectorChain(List<Projection> projections,
@@ -67,7 +67,8 @@ public class FlatProjectorChain {
                               Optional<ResultProvider> resultProvider) {
         this(projections, projectorVisitor, ramAccountingContext,
                 resultProvider, Optional.<UUID>absent(),
-                Optional.<IntObjectOpenHashMap<String>>absent());
+                Optional.<IntObjectOpenHashMap<String>>absent(),
+                Optional.<IntObjectOpenHashMap<ShardId>>absent());
     }
 
     public FlatProjectorChain(List<Projection> projections,
@@ -75,7 +76,8 @@ public class FlatProjectorChain {
                               RamAccountingContext ramAccountingContext,
                               Optional<ResultProvider> resultProvider,
                               Optional<UUID> jobId,
-                              Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode) {
+                              Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
+                              Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
         if (projections.size() == 0) {
             if (resultProvider.isPresent()) {
                 this.resultProvider = resultProvider.get();
@@ -90,7 +92,7 @@ public class FlatProjectorChain {
             Projector previousProjector = null;
             for (Projection projection : projections) {
                 Projector projector = projectorVisitor.process(projection, ramAccountingContext,
-                        jobId, jobSearchContextIdToNode);
+                        jobId, jobSearchContextIdToNode, jobSearchContextIdToShard);
                 projectors.add(projector);
                 if (previousProjector != null) {
                     previousProjector.downstream(projector);
