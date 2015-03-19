@@ -7,13 +7,9 @@ Client Usage
 Connect to a Database
 =====================
 
-The ``CrateClient`` class is used to connect to a Crate database.
-It requires one or more hosts as arguments. Note that the Java client
-talks to Crate via the transport port ``4300``.
+The ``CrateClient`` class is used to connect to a Crate database. It requires one or more hosts as arguments. Note that the Java client talks to Crate via the transport port ``4300``.
 
-Since Crate is a clustered database it is recommended to specify
-all hosts of the cluster. This way if a server is unavailable the host
-is skipped and the request is automatically routed to the next server::
+Since Crate is a clustered database it is recommended to specify all the hosts of the cluster. This way if a server is unavailable the host is skipped and the request is automatically routed to the next server::
 
 
     import io.crate.client.CrateClient;
@@ -47,7 +43,7 @@ Retrieving the returned rows using the ``rows()`` method::
         System.out.println(Arrays.toString(row));
     }
 
-will print (something similar like)::
+will print (something like)::
 
     ["UhT82pZnQ3qT5EGasqs-nw", "host1", "host1.example.com", ...]
     ["aAKieK6zQDKX4iGkqHgM6Q", "host2", "host2.example.com", ...]
@@ -57,19 +53,17 @@ will print (something similar like)::
 SQLRequest Class
 ================
 
-By default, the column data types are not serialized. In order to get
-these, one must defined it at the ``SQLRequest``
-or ``SQLBulkRequest`` (see :ref:`java_client_bulk`) object::
+By default, the column data types are not serialized. In order to retrieve
+these, one must define it in the ``SQLRequest`` or ``SQLBulkRequest`` (see :ref:`java_client_bulk`) object::
 
     SQLRequest request = new SQLRequest("SELECT name FROM sys.nodes");
 
-If you want to receive the types of the columns in the ``SQLResponse``
-or ``SQLBulkResponse`` you'll need to set ``includeTypesOnResponse``::
+If you want to retrieve the types of the columns in the ``SQLResponse``
+or ``SQLBulkResponse`` object you'll need to set ``includeTypesOnResponse``::
 
     request.includeTypesOnResponse(true);
 
-Now you're able to call ``sql()`` using the request object
-as its argument::
+Now you're able to call ``sql()`` using the request object as its argument::
 
     SQLResponse response = client.sql(request).actionGet()
 
@@ -99,8 +93,7 @@ should use parameter substitution when querying data.
 In order to perform parameter substitution you can use the
 ``SQLRequest`` or the ``SQLBulkRequest`` (see :ref:`java_client_bulk`) class again.
 
-Here we'll create a table ``foo`` first and then insert data
-using parameter substitution::
+Here we'll create a table ``foo`` first and then insert data using parameter substitution::
 
     client.sql("CREATE TABLE foo (id int primary key, name string)").actionGet()
 
@@ -113,9 +106,7 @@ using parameter substitution::
 Data Type Mapping
 =================
 
-The data type of columns in the ``SQLResponse``
-or ``SQLBulkResponse`` are Crate data types
-and map with the following native Java types.
+The data type of columns in the ``SQLResponse`` or ``SQLBulkResponse`` are Crate data types and map with the following native Java types.
 
 ========== =========
 Crate Type Java Type
@@ -143,9 +134,7 @@ The mapping also works the other way round for parameter substitution.
 Bulk Operations
 ===============
 
-Using the SQLBulkRequest class allows to specify and issue bulk operations which are
-executed as single calls on the back-end site. It can be compared to
-`prepared statement`_.
+Using the SQLBulkRequest class allows to specify and issue bulk operations which are executed as single calls on the back-end. It can be compared to `prepared statement`_.
 
 A bulk operation can be expressed simply as an SQL statement. Supported
 statements are:
@@ -156,8 +145,8 @@ statements are:
 
  - Delete
 
-In order to issue a bulk operation, the SQLBulkRequest class can be used
-together with the ``bulkSql()`` method.
+In order to issue a bulk operation, the SQLBulkRequest class can be used together with the ``bulkSql()`` method.
+
 It accepts a two dimensional array (``bulkArgs`` of type Object[][]). The first
 dimension consolidates all records to a bulk. The second dimension represents
 one record and needs to match the specified parameters of a statement.
@@ -177,14 +166,14 @@ insert three records at once::
 
 .. note::
 
-    When using bulk operations **all operations are executed** whatsoever.
+    When using bulk operations **all operations are executed** no matter what.
     It does not matter whether one single operation fails or all succeed.
 
 The response is an instance of ``SQLBulkResponse``.
-It contains the column names (using ``sqlBulkResponse.cols()``)
-and column data types (using ``sqlBulkResponse.columnTypes()``) and an Array
-of ``Result`` instances which contain a ``rowCount`` per single bulk operation.
-If a bulk operation failed,  the attribute ``errorMessage`` is not null.
+It contains the column names (using ``sqlBulkResponse.cols()``) and column data types (using ``sqlBulkResponse.columnTypes()``) and an Array of ``Result`` instances which contain a ``rowCount`` per single bulk operation.
+
+If a bulk operation failed, the attribute ``errorMessage`` is not null.
+
 The insert operation above would contain three ``Result`` instances with the following data::
 
     "{rowCount=1, errorMessage=null}"
@@ -193,4 +182,3 @@ The insert operation above would contain three ``Result`` instances with the fol
 .. _`SQL Injection`: http://en.wikipedia.org/wiki/SQL_injection
 
 .. _prepared statement: http://en.wikipedia.org/wiki/Prepared_statement
-
