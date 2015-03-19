@@ -88,7 +88,8 @@ public class MergeOperation {
                 ramAccountingContext,
                 Optional.of(resultProvider),
                 Optional.fromNullable(mergeNode.jobId()),
-                Optional.fromNullable(mergeNode.jobSearchContextIdToNode())
+                Optional.fromNullable(mergeNode.jobSearchContextIdToNode()),
+                Optional.fromNullable(mergeNode.jobSearchContextIdToShard())
         );
         bucketMerger.downstream(flatProjectorChain.firstProjector());
         flatProjectorChain.startProjections();

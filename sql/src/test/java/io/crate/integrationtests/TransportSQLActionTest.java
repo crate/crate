@@ -965,7 +965,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
                 "and \"_score\" >= 0.98");
         assertEquals(1L, response.rowCount());
-        assertEquals(1, ((Float) response.rows()[0][1]).compareTo(0.98f));
+        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
     }
 
     @Test
@@ -1934,9 +1934,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 ")");
         ensureYellow();
         execute("insert into characters (id, name, quote) values (?, ?, ?)", new Object[][]{
-                new Object[] { 1, "Arthur", "It's terribly small, tiny little country." },
-                new Object[] { 2, "Trillian", " No, it's a country. Off the coast of Africa." },
-                new Object[] { 3, "Marvin", " It won't work, I have an exceptionally large mind." }
+                new Object[]{1, "Arthur", "It's terribly small, tiny little country."},
+                new Object[]{2, "Trillian", " No, it's a country. Off the coast of Africa."},
+                new Object[]{3, "Marvin", " It won't work, I have an exceptionally large mind." }
         });
         refresh();
         execute("select characters.name AS characters_name, _score " +
@@ -1944,9 +1944,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "where match(characters.quote_ft 1.0, 'country')");
         assertThat(response.rows().length, is(2));
         assertThat((String) response.rows()[0][0], is("Trillian"));
-        assertThat((float) response.rows()[0][1], greaterThan(0.0f));
+        assertThat((float) response.rows()[0][1], is(0.15342641f));
         assertThat((String) response.rows()[1][0], is("Arthur"));
-        assertThat((float) response.rows()[1][1], greaterThan(0.0f));
+        assertThat((float) response.rows()[1][1], is(0.13424811f));
     }
 
     @Test

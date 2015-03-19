@@ -23,48 +23,34 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.reference.doc.ColumnReferenceExpression;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.search.Scorer;
 
-public class DocIdCollectorExpression extends
-        LuceneCollectorExpression<Long> implements ColumnReferenceExpression {
+import java.io.IOException;
 
-    public static final String COLUMN_NAME = DocSysColumns.DOCID.name();
+public class ScoreCollectorExpression extends
+        LuceneCollectorExpression<Float> implements ColumnReferenceExpression {
 
-    private long jobSearchContextId;
-    private long docId;
-    private int docBase;
+    public static final String COLUMN_NAME = DocSysColumns.SCORE.name();
+
+    private Scorer scorer;
+    private float score;
 
     @Override
-    public void startCollect(CollectorContext context) {
-        super.startCollect(context);
-        this.jobSearchContextId = (long)context.jobSearchContextId();
+    public void setScorer(Scorer scorer) {
+        this.scorer = scorer;
+    }
+
+    @Override
+    public Float value() {
+        return score;
     }
 
     @Override
     public void setNextDocId(int doc) {
-        super.setNextDocId(doc);
-        docId = packDocId(jobSearchContextId, docBase + doc);
+        try {
+            score = scorer.score();
+        } catch (IOException e) {
+            score = 1.0f;
+        }
     }
-
-    @Override
-    public Long value() {
-        return docId;
-    }
-
-    @Override
-    public void setNextReader(AtomicReaderContext context) {
-        super.setNextReader(context);
-        docBase = context.docBase;
-    }
-
-    /**
-     * Pack jobSearchContextId and doc integers into 1 long.
-     * Reverse logic is:
-     *   int jobSearchContextId = (int)(docId >> 32);
-     *   int doc = (int)docId;
-     */
-    private long packDocId(long jobSearchContextId, int doc) {
-        return ((jobSearchContextId) << 32) | (doc & 0xffffffffL);
-    }
-
 }

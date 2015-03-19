@@ -38,7 +38,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.ESQueryThenFetchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -429,7 +429,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(0.4))
         );
-        QueryThenFetchNode node = new QueryThenFetchNode(new Routing(),
+        ESQueryThenFetchNode node = new ESQueryThenFetchNode(new Routing(),
                 ImmutableList.<Symbol>of(), null, null, null, null, null, new WhereClause(whereClause), null);
         BytesReference bytesReference = generator.convert(node);
 
@@ -442,7 +442,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataTypes.STRING)));
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Marvin")));
 
-        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode searchNode = new ESQueryThenFetchNode(
                 new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(),
@@ -486,7 +486,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testSelect_OnlyVersion() throws Exception {
         Reference version_ref = createReference("_version", DataTypes.INTEGER);
-        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode searchNode = new ESQueryThenFetchNode(
                 new Routing(),
                 ImmutableList.<Symbol>of(version_ref),
                 null,
@@ -509,7 +509,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
         Reference age = createReference(
                 ColumnIdent.getChild(author.info().ident().columnIdent(), "age"), DataTypes.INTEGER);
 
-        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode searchNode = new ESQueryThenFetchNode(
                 new Routing(),
                 ImmutableList.<Symbol>of(author, age),
                 null,
@@ -529,7 +529,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testSelect_excludePartitionedColumns() throws Exception {
         PartitionName partitionName = new PartitionName(characters.esName(), Arrays.asList(new BytesRef("0.5")));
-        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode searchNode = new ESQueryThenFetchNode(
                 new Routing(),
                 ImmutableList.<Symbol>of(name_ref, weight_ref),
                 null,
@@ -741,7 +741,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                         Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
                 )
         );
-        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode searchNode = new ESQueryThenFetchNode(
                 new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(distanceFunction),
@@ -765,7 +765,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                         DataTypes.LONG),
                 Arrays.<Symbol>asList(createReference("price", DataTypes.DOUBLE))
         );
-        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+        ESQueryThenFetchNode searchNode = new ESQueryThenFetchNode(
                 new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(scalarFunction),

@@ -35,7 +35,6 @@ import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.collect.CollectContextService;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
@@ -83,8 +82,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final QueryThenFetchOperation queryThenFetchOperation;
     private final MergeOperation mergeOperation;
 
-    private final CollectContextService collectContextService;
-
     @Inject
     public TransportExecutor(Settings settings,
                              TransportActionProvider transportActionProvider,
@@ -97,8 +94,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
-                             QueryThenFetchOperation queryThenFetchOperation,
-                             CollectContextService collectContextService) {
+                             QueryThenFetchOperation queryThenFetchOperation) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -109,7 +105,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.queryThenFetchOperation = queryThenFetchOperation;
-        this.collectContextService = collectContextService;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
@@ -222,6 +217,12 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return null;
         }
 
+        @Override
+        public Void visitQueryThenFetch(QueryThenFetch plan, Job job) {
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.mergeNode(), job.id()));
+            return null;
+        }
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
@@ -238,6 +239,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         jobId,
                         node,
                         transportActionProvider.transportCollectNodeAction(),
+                        transportActionProvider.transportCloseContextNodeAction(),
                         handlerSideDataCollectOperation,
                         statsTables,
                         circuitBreaker));
@@ -277,7 +279,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitQueryThenFetchNode(QueryThenFetchNode node, UUID jobId) {
+        public ImmutableList<Task> visitESQueryThenFetchNode(ESQueryThenFetchNode node, UUID jobId) {
             return singleTask(new QueryThenFetchTask(
                     jobId,
                     queryThenFetchOperation,
