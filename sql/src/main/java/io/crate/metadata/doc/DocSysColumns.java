@@ -27,7 +27,7 @@ public class DocSysColumns {
     public static final ImmutableMap<ColumnIdent, DataType> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType>builder()
             .put(ID, DataTypes.STRING)
             .put(VERSION, DataTypes.LONG)
-            .put(SCORE, DataTypes.DOUBLE)
+            .put(SCORE, DataTypes.FLOAT)
             .put(UID, DataTypes.STRING)
             .put(DOC, DataTypes.OBJECT)
             .put(RAW, DataTypes.STRING)
