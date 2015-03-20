@@ -60,6 +60,11 @@ public class CollectionBucket implements Bucket {
                 }
 
                 @Override
+                public Object[] materialize() {
+                    return Buckets.materialize(this);
+                }
+
+                @Override
                 public String toString() {
                     return Arrays.toString(current);
                 }

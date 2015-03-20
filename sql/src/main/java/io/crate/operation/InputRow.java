@@ -21,6 +21,7 @@
 
 package io.crate.operation;
 
+import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 
 import java.util.List;
@@ -41,5 +42,10 @@ public class InputRow implements Row {
     @Override
     public Object get(int index) {
         return inputs.get(index).value();
+    }
+
+    @Override
+    public Object[] materialize() {
+        return Buckets.materialize(this);
     }
 }

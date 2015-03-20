@@ -21,7 +21,6 @@
 
 package io.crate.operation.fetch;
 
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 
 public class PositionalRowDelegate implements Row {
@@ -29,7 +28,7 @@ public class PositionalRowDelegate implements Row {
     private Object[] cells;
 
     public PositionalRowDelegate(Row delegate, long position) {
-        this.cells = Buckets.materialize(delegate);
+        this.cells = delegate.materialize();
         this.position = position;
     }
 
@@ -46,5 +45,10 @@ public class PositionalRowDelegate implements Row {
             return cells[index];
         }
         throw new ArrayIndexOutOfBoundsException(index);
+    }
+
+    @Override
+    public Object[] materialize() {
+        return cells;
     }
 }
