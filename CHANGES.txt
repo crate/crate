@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: select queries querying for the primary key on custom schemas did now
+   return the correct results
+
  - Fixed an issue that caused ``where somefield in (null)`` to match all rows
 
  - Fix: Do not shutdown the BulkShardProcessor while there are pending requests

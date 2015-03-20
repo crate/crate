@@ -98,7 +98,7 @@ public class ESGetConsumer implements Consumer {
                 assert whereClauseContext.whereClause().partitions().size() == 1 : "Ambiguous partitions for ESGet";
                 indexName = whereClauseContext.whereClause().partitions().get(0);
             } else {
-                indexName = tableInfo.ident().name();
+                indexName = tableInfo.ident().esName();
             }
 
             Integer limit = table.querySpec().limit();

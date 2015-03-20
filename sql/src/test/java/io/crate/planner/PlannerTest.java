@@ -188,6 +188,19 @@ public class PlannerTest {
                             new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue())
                     .build();
             when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
+            TableIdent customSchemaTableIdent = new TableIdent("custom", "t");
+            TableInfo customSchemaTableInfo = TestingTableInfo.builder(customSchemaTableIdent, RowGranularity.DOC, shardRouting)
+                    .add("name", DataTypes.STRING, null)
+                    .add("id", DataTypes.LONG, null)
+                    .addPrimaryKey("id")
+                    .clusteredBy("id")
+                    .build();
+            when(customSchemaTableInfo.schemaInfo().name()).thenReturn("custom");
+
+            SchemaInfo customSchemaInfo = mock(SchemaInfo.class);
+            when(customSchemaInfo.getTableInfo(customSchemaTableIdent.name())).thenReturn(customSchemaTableInfo);
+            schemaBinder.addBinding("custom").toInstance(customSchemaInfo);
+
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
@@ -353,6 +366,17 @@ public class PlannerTest {
                 is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue()));
         assertEquals(DataTypes.STRING, getNode.outputTypes().get(0));
         assertEquals(DataTypes.TIMESTAMP, getNode.outputTypes().get(1));
+    }
+
+    @Test
+    public void testGetPlanCustomSchema() throws Exception {
+        IterablePlan plan = (IterablePlan) plan("select id, name from custom.t where id = 1");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode node = iterator.next();
+        assertThat(node, instanceOf(ESGetNode.class));
+        ESGetNode getNode = (ESGetNode) node;
+        assertThat(getNode.index(), is("custom.t"));
+
     }
 
     @Test
