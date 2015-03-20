@@ -42,6 +42,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -165,9 +166,17 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
             latch.await();
             assertTrue(hadBlocked.get());
         } finally {
-            bulkShardProcessor.close();
             scheduledExecutorService.shutdownNow();
+            forceClose(bulkShardProcessor);
         }
+    }
+
+    private void forceClose(SymbolBasedBulkShardProcessor bulkShardProcessor) throws Exception {
+        bulkShardProcessor.close();
+        Method stopExecutorMethod = SymbolBasedBulkShardProcessor.class.
+                getDeclaredMethod("stopExecutor");
+        stopExecutorMethod.setAccessible(true);
+        stopExecutorMethod.invoke(bulkShardProcessor);
     }
 
     private void mockShard(OperationRouting operationRouting, Integer shardId) {
