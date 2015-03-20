@@ -21,7 +21,6 @@
 
 package io.crate.operation.fetch;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -31,9 +30,8 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.CollectingProjector;
-import org.junit.Rule;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -46,10 +44,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
-public class PositionalRowMergerTest extends RandomizedTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class PositionalRowMergerTest extends CrateUnitTest {
 
     @Test
     public void testConcurrentSetNextRow() throws Exception {
@@ -146,7 +141,6 @@ public class PositionalRowMergerTest extends RandomizedTest {
                                 setNextRowExceptions.add(e);
                             }
                         }
-                        upstreamBuffer.finish();
                     }
                     latch.countDown();
                 }
