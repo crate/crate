@@ -35,7 +35,8 @@ import org.junit.rules.ExpectedException;
 import java.util.HashMap;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.isIn;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
@@ -1047,4 +1048,24 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "1| 44\n" +
                 "1| 45\n"));
     }
+
+    @Test
+    public void testFilterByScore() throws Exception {
+        execute("create table locations (" +
+                " altitude int," +
+                " name string," +
+                " description string index using fulltext" +
+                ")");
+        ensureYellow();
+
+        execute("insert into locations (altitude, name, description) values (420, 'Crate Dornbirn', 'A nice place in a nice country')");
+        execute("insert into locations (altitude, name, description) values (230, 'Crate Berlin', 'Also very nice place mostly nice in summer')");
+        execute("insert into locations (altitude, name, description) values (70, 'Crate SF', 'A nice place with lot of sunshine')");
+        execute("refresh table locations");
+
+        execute("select min(altitude) as altitude, name from locations where match(description, 'nice') " +
+                "and _score >= 0.99 group by name order by name");
+        assertEquals(2L, response.rowCount());
+    }
+
 }

@@ -61,13 +61,6 @@ import java.util.List;
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
 
-    private final CollectorFieldsVisitor fieldsVisitor;
-    private final InputRow inputRow;
-    private boolean visitorEnabled = false;
-    private AtomicReader currentReader;
-    private RamAccountingContext ramAccountingContext;
-    private LuceneQueryBuilder luceneQueryBuilder;
-
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
         final HashSet<String> requiredFields;
@@ -99,9 +92,15 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
+    private final CollectorFieldsVisitor fieldsVisitor;
+    private final InputRow inputRow;
+    private boolean visitorEnabled = false;
+    private AtomicReader currentReader;
+    private RamAccountingContext ramAccountingContext;
     private final SearchContext searchContext;
     private final RowDownstreamHandle downstream;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
+    private Scorer scorer;
 
     public LuceneDocCollector(ThreadPool threadPool,
                               ClusterService clusterService,
@@ -117,7 +116,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               Functions functions,
                               WhereClause whereClause,
                               RowDownstream downStreamProjector) throws Exception {
-        this.luceneQueryBuilder = luceneQueryBuilder;
         this.downstream = downStreamProjector.registerUpstream(this);
         SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.localNode().id(), shardId.getIndex(), shardId.id());
@@ -157,6 +155,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void setScorer(Scorer scorer) throws IOException {
+        this.scorer = scorer;
     }
 
     @Override
@@ -167,6 +166,11 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                     CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
                             ramAccountingContext.limit()));
         }
+        if (searchContext.minimumScore() != null
+                && scorer.score() < searchContext.minimumScore()) {
+            return;
+        }
+
         if (visitorEnabled) {
             fieldsVisitor.reset();
             currentReader.document(doc, fieldsVisitor);
