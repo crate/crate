@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - produce a crate-client with all dependencies included under the 'io.crate'
+   package namespace in order to avoid conflicts
+
  - Fix: Filtering by `_score` wasn't recognized on group-by queries.
 
  - Fix: Do not shutdown the BulkShardProcessor while there are pending requests

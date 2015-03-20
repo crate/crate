@@ -61,7 +61,8 @@ public class CrateClient {
     public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
             ElasticsearchException {
 
-        Settings settings = settingsBuilder().put(pSettings)
+        Settings settings = settingsBuilder()
+                .put(pSettings)
                 .put("network.server", false)
                 .put("node.client", true)
                 .put("client.transport.ignore_cluster_name", true)
@@ -77,7 +78,9 @@ public class CrateClient {
         Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(
             settings, loadConfigSettings);
 
-        this.settings = tuple.v1();
+        // override classloader
+        CrateClientClassLoader clientClassLoader = new CrateClientClassLoader(tuple.v1().getClassLoader());
+        this.settings = ImmutableSettings.builder().put(tuple.v1()).classLoader(clientClassLoader).build();
         Version version = Version.CURRENT;
 
         CompressorFactory.configure(this.settings);

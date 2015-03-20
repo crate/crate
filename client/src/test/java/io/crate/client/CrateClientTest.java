@@ -22,10 +22,7 @@
 package io.crate.client;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.sql.SQLBulkRequest;
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.types.DataType;
 import io.crate.types.StringType;
@@ -35,7 +32,9 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +49,9 @@ public class CrateClientTest extends CrateIntegrationTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private CrateClient client;
 
@@ -194,5 +196,13 @@ public class CrateClientTest extends CrateIntegrationTest {
         SQLResponse r = client.sql("select settings from sys.cluster").actionGet();
         assertThat(r.rowCount(), is(1L));
         assertTrue(r.rows()[0][0] instanceof Map);
+    }
+
+    @Test
+    public void testException() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("line 1:1: no viable alternative at input 'error'");
+        client.sql("error").actionGet();
+
     }
 }
