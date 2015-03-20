@@ -86,7 +86,9 @@ public class MergeOperation {
         FlatProjectorChain flatProjectorChain = new FlatProjectorChain(mergeNode.projections(),
                 this.projectionToProjectorVisitor,
                 ramAccountingContext,
-                Optional.of(resultProvider)
+                Optional.of(resultProvider),
+                Optional.fromNullable(mergeNode.jobId()),
+                Optional.fromNullable(mergeNode.jobSearchContextIdToNode())
         );
         bucketMerger.downstream(flatProjectorChain.firstProjector());
         flatProjectorChain.startProjections();

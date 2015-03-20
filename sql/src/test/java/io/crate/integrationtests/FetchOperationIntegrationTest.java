@@ -120,6 +120,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         collectNode.outputTypes(outputTypes);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.keepContextForFetcher(keepContextForFetcher);
+        collectNode.jobId(UUID.randomUUID());
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         Plan plan = new IterablePlan(collectNode);
@@ -263,6 +264,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
         collectNode.toCollect(inputSymbols);
+        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.keepContextForFetcher(true);
         List<DataType> outputTypes = new ArrayList<>(inputSymbols.size());
@@ -345,6 +347,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
         collectNode.toCollect(inputSymbols);
+        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.keepContextForFetcher(true);
         List<DataType> outputTypes = new ArrayList<>(inputSymbols.size());
