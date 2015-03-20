@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
@@ -194,7 +193,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
         Bucket result = collect(collectNode);
         for (Row row : result) {
-            System.out.println("Row:" + Arrays.toString(Buckets.materialize(row)));
+            System.out.println("Row:" + Arrays.toString(row.materialize()));
         }
 
         assertThat(result, containsInAnyOrder(

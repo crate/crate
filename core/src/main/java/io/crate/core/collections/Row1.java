@@ -41,6 +41,9 @@ public class Row1 implements Row {
         return value;
     }
 
-
+    @Override
+    public Object[] materialize() {
+        return new Object[]{value};
+    }
 
 }

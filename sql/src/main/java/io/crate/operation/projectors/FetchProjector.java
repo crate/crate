@@ -321,7 +321,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         public void add(long cursor, Long docId, Row row) {
             cursors.add(cursor);
             docIds.add(docId);
-            inputRows.add(new RowN(Buckets.materialize(row)));
+            inputRows.add(new RowN(row.materialize()));
         }
 
         public int size() {
@@ -356,6 +356,11 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         @Override
         public Object get(int index) {
             return delegate.get(index);
+        }
+
+        @Override
+        public Object[] materialize() {
+            return Buckets.materialize(this);
         }
     }
 

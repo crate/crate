@@ -71,6 +71,11 @@ public class ArrayBucket implements Bucket {
                 public Object get(int index) {
                     return current[index];
                 }
+
+                @Override
+                public Object[] materialize() {
+                    return Buckets.materialize(this);
+                }
             };
 
             @Override

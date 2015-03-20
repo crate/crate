@@ -56,7 +56,7 @@ public class Rows implements Iterable<Row>, Streamable {
 
     public boolean addSafe(Row row) {
         // TODO: make entries a Bucket, so we do not need to copy here
-        return entries.add(new Entry(Buckets.materialize(row)));
+        return entries.add(new Entry(row.materialize()));
     }
 
     public boolean add(Object[] row) {
@@ -134,6 +134,11 @@ public class Rows implements Iterable<Row>, Streamable {
                 return row[columnIndicesMap.get(index)];
             }
             return row[index];
+        }
+
+        @Override
+        public Object[] materialize() {
+            return row;
         }
 
         @Override
