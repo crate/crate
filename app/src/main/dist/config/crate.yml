@@ -624,3 +624,51 @@
 # A relative path value is relative to CRATE_HOME.
 #
 # blobs.path: /path/to/blobs
+
+
+###################################### Security ####################################
+
+# Enable or disable transport layer security (default: false)
+#security.ssl.transport.node.enabled: true
+
+# Enable or disable SSL hostname verfification (default: true)
+#security.ssl.transport.node.hostname_verification.enabled: false
+
+# Enable or disable hostname resolving for hostname verfification (default: true)
+# This settings has no effect if hostname_verification is disabled
+#security.ssl.transport.node.hostname_verification.resolve_host_name: false
+
+# If true then the nodes have to trust each other, if false then only the client node has to trust the server node
+# (default: true)
+#security.ssl.transport.node.need_clientauth: false
+
+# Path to the keystore (default is value of javax.net.ssl.keyStore)
+# This setting is mandatory if javax.net.ssl.keyStore is not set
+#security.ssl.transport.node.keystore.path: null
+
+# Keystore password (default is value of javax.net.ssl.keyStorePassword or 'changeit' if not set)
+#security.ssl.transport.node.keystore.password: changeit
+
+# Keystore type (default is value of javax.net.ssl.keyStoreType or 'JKS' if not set)
+# JKS or PKCS12 are supported
+#security.ssl.transport.node.keystore.type: PKCS12
+
+# Path to the truststore (default is value of javax.net.ssl.trustStore)
+# This setting is mandatory if javax.net.ssl.trustStore is not set
+# Can be the same as security.ssl.transport.node.keystore.path
+#security.ssl.transport.node.truststore.path: null
+
+# Truststore password (default is value of javax.net.ssl.trustStorePassword or 'changeit' if not set)
+#security.ssl.transport.node.truststore.password: changeit
+
+# Truststore type (default is value of javax.net.ssl.trustStoreType or 'JKS' if not set)
+# JKS or PKCS12 are supported
+#security.ssl.transport.node.truststore.type: PKCS12
+
+# SSL context cache size (default: 1000)
+# A value of zero means unlimited (WARNING: this can cause memory leaks)
+#security.ssl.transport.node.session.cache_size: 1000
+
+# SSL context session timeout expressed in seconds (default: 86400, which means 24h)
+# A value of zero means unlimited (WARNING: this can cause memory leaks)
+#security.ssl.transport.node.session.timeout: 86400
