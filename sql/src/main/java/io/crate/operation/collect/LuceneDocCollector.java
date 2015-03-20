@@ -27,7 +27,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.Functions;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -113,7 +112,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               BigArrays bigArrays,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              Functions functions,
                               WhereClause whereClause,
                               RowDownstream downStreamProjector) throws Exception {
         this.downstream = downStreamProjector.registerUpstream(this);

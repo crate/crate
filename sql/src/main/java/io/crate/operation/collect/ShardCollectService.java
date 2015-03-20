@@ -23,7 +23,6 @@ package io.crate.operation.collect;
 
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -69,7 +68,6 @@ public class ShardCollectService {
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final boolean isBlobShard;
-    private final Functions functions;
     private final BlobIndices blobIndices;
 
     @Inject
@@ -87,8 +85,7 @@ public class ShardCollectService {
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
-                               BlobShardReferenceResolver blobShardReferenceResolver,
-                               CrateCircuitBreakerService breakerService) {
+                               BlobShardReferenceResolver blobShardReferenceResolver) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.luceneQueryBuilder = luceneQueryBuilder;
@@ -99,7 +96,6 @@ public class ShardCollectService {
         this.cacheRecycler = cacheRecycler;
         this.pageCacheRecycler = pageCacheRecycler;
         this.bigArrays = bigArrays;
-        this.functions = functions;
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
@@ -124,8 +120,8 @@ public class ShardCollectService {
                 transportActionProvider,
                 shardImplementationSymbolVisitor,
                 shardNormalizer,
-                shardId,
-                docInputSymbolVisitor);
+                shardId
+        );
     }
 
     /**
@@ -190,7 +186,6 @@ public class ShardCollectService {
                 bigArrays,
                 docCtx.topLevelInputs(),
                 docCtx.docLevelExpressions(),
-                functions,
                 collectNode.whereClause(),
                 downstream);
     }

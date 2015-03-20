@@ -28,7 +28,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
@@ -52,7 +51,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     @Nullable
     private final ShardId shardId;
     @Nullable
-    private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
 
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
@@ -60,15 +58,13 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                                         TransportActionProvider transportActionProvider,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer,
-                                        @Nullable ShardId shardId,
-                                        @Nullable CollectInputSymbolVisitor docInputSymbolVisitor) {
+                                        @Nullable ShardId shardId) {
         this.clusterService = clusterService;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.symbolVisitor = symbolVisitor;
         this.normalizer = normalizer;
         this.shardId = shardId;
-        this.docInputSymbolVisitor = docInputSymbolVisitor;
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
@@ -76,7 +72,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                                         TransportActionProvider transportActionProvider,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer) {
-        this(clusterService, settings, transportActionProvider, symbolVisitor, normalizer, null, null);
+        this(clusterService, settings, transportActionProvider, symbolVisitor, normalizer, null);
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
@@ -293,7 +289,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
     @Override
     public Projector visitUpdateProjection(UpdateProjection projection, Context context) {
-        if (shardId == null || docInputSymbolVisitor == null) {
+        if (shardId == null) {
             throw new UnsupportedOperationException("Update projection can only be executed on a shard");
         }
 

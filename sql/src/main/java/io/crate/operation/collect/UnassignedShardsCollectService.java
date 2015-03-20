@@ -72,8 +72,6 @@ public class UnassignedShardsCollectService implements CollectService {
         /**
          * Determine if <code>shardId</code> is a primary or secondary shard.
          *
-         * @param shardId
-         * @return
          */
         public boolean isPrimary(ShardId shardId) {
             if (seenPrimaries == null) {
@@ -137,7 +135,7 @@ public class UnassignedShardsCollectService implements CollectService {
                 context.topLevelInputs(), context.docLevelExpressions(), downstream, iterable, condition);
     }
 
-    private static class UnassignedShardsCollector<R> implements CrateCollector {
+    private static class UnassignedShardsCollector implements CrateCollector {
 
         private final List<UnassignedShardCollectorExpression<?>> collectorExpressions;
         private final InputRow row;
