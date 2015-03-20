@@ -204,7 +204,6 @@ public class SymbolBasedBulkShardProcessor {
         if (pending.get() == 0) {
             setResult();
         }
-        stopExecutor();
     }
 
     private void stopExecutor() {
@@ -225,11 +224,15 @@ public class SymbolBasedBulkShardProcessor {
     }
 
     private void setResult() {
-        Throwable throwable = failure.get();
-        if (throwable == null) {
-            result.set(responses);
-        } else {
-            result.setException(throwable);
+        try {
+            Throwable throwable = failure.get();
+            if (throwable == null) {
+                result.set(responses);
+            } else {
+                result.setException(throwable);
+            }
+        } finally {
+            stopExecutor();
         }
     }
 
