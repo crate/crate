@@ -1,6 +1,9 @@
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'signing'
+plugins {
+    id 'java'
+    id 'maven'
+    id 'signing'
+    id 'com.github.johnrengelman.shadow' version '1.2.1'
+}
 
 archivesBaseName = "crate-client"
 
@@ -46,6 +49,7 @@ test {
         // Show that tests are run in the command-line output
         events 'started', 'passed'
     }
+
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }
 
@@ -59,18 +63,32 @@ test {
     }
 }
 
-jar {
+shadowJar {
     baseName 'crate-client'
+    classifier ''
     duplicatesStrategy 'exclude'
 
-    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
-        exclude 'META-INF/**'
-        exclude 'org/hyperic/**' // exclude sigar stuff
-    }}
+    exclude 'org/hyperic/**' // exclude sigar stuff
+    exclude 'META-INF/**'
+
+    // remember to update mapping in CrateClientClassLoader when changing this
+    relocate 'org.elasticsearch',     'io.crate.shade.org.elasticsearch'
+    relocate 'org.apache.lucene',     'io.crate.shade.org.apache.lucene'
+    relocate 'org.joda',              'io.crate.shade.org.joda'
+    relocate 'org.tartarus.snowball', 'io.crate.shade.org.tartarus.snowball'
+    relocate 'com.carrotsearch.hppc', 'io.crate.shade.com.carrotsearch.hppc'
+    relocate 'com.fasterxml.jackson', 'io.crate.shade.com.fasterxml.jackson'
+    relocate 'com.google',            'io.crate.shade.com.google'
+    relocate 'com.ning.compress',     'io.crate.shade.com.ning.compress'
+    relocate 'org.jboss.netty',       'io.crate.shade.org.jboss.netty'
+    relocate 'org.apache.log4j',      'io.crate.shade.org.apache.log4j'
+    relocate 'org.slf4j',             'io.crate.shade.org.slf4j'
+    relocate 'org.apache.commons',    'io.crate.shade.org.apache.commons'
+    relocate 'jsr166e',               'io.crate.shade.jsr166e'
 
     doLast {
         manifest {
-            attributes("Implementation-Title": "Crate Data Java Client")
+            attributes("Implementation-Title": "Crate.IO Java Client")
             version project.version
         }
     }
@@ -80,7 +98,7 @@ task buildJar(dependsOn: [':app:getVersion', ':core:compileSharedJava', ':sql:co
     doLast {
         ext.version = project(':app').getVersion.version
         project.version = ext.version
-        tasks.jar.execute()
+        tasks.shadowJar.execute()
     }
 }
 
@@ -117,7 +135,7 @@ task buildSourceJar (dependsOn: [':app:getVersion'] ) << {
 }
 
 artifacts {
-    archives jar
+    archives shadowJar
     archives javadocJar
     archives sourceJar
 }

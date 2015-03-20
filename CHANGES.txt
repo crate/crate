@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - produce a crate-client with all dependencies included under the 'io.crate'
+   package namespace in order to avoid conflicts
+
  - Fix: select queries querying for the primary key on custom schemas did now
    return the correct results
 

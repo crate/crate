@@ -4,6 +4,9 @@ Download and Setup
 
 .. highlight:: xml
 
+Setup
+=====
+
 The ``crate-client`` jar files are hosted on `Bintray`_ and available via `JCenter`_.
 
 If you want to use ``crate-client`` with your Maven project you need to
@@ -32,9 +35,35 @@ add the Bintray repository to your ``pom.xml``::
     </dependencies>
     ...
 
+.. highlight:: groovy
+
+Using Gradle::
+
+    repositories {
+        ...
+        jcenter()
+    }
+
+    dependencies {
+        compile 'io.crate:crate-client:...'
+        ...
+    }
+
+
 Alternatively you can follow the instructions on the Bintray repository overview page
 by clicking the "Set me up!" button.
 
+
+Dependencies
+============
+
+The ``crate-client`` includes all its dependencies bundled under the ``io.crate.shade``
+namespace in order to avoid conflicts with other jars included in your application.
+
+.. note::
+
+    It is not supported to load the client jar and the crate server jars in one application,
+    as this will result in conflicts.
 
 
 .. _`Bintray`: https://bintray.com/crate/crate/
