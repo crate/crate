@@ -50,4 +50,9 @@ public class RowN implements Row {
         assert cells != null;
         return cells[index];
     }
+
+    @Override
+    public Object[] materialize() {
+        return cells;
+    }
 }

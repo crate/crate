@@ -22,7 +22,6 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.distributed.ResultProviderBase;
@@ -41,7 +40,7 @@ public class CollectingProjector extends ResultProviderBase {
 
     @Override
     public boolean setNextRow(Row row) {
-        rows.add(Buckets.materialize(row));
+        rows.add(row.materialize());
         return true;
     }
 

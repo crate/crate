@@ -74,6 +74,11 @@ public class GroupingProjectorBenchmark {
         public Object get(int index) {
             return value;
         }
+
+        @Override
+        public Object[] materialize() {
+            return new Object[]{value};
+        }
     }
 
 
