@@ -41,10 +41,9 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.TreeMap;
 
 public class PlanNodeBuilder {
 
