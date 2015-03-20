@@ -70,6 +70,11 @@ public class UpsertByIdNode extends DMLPlanNode {
         public Object get(int index) {
             return row[index];
         }
+
+        @Override
+        public Object[] materialize() {
+            return row;
+        }
     }
 
 
