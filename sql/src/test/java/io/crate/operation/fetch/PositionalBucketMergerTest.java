@@ -21,7 +21,6 @@
 
 package io.crate.operation.fetch;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -30,6 +29,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
-public class PositionalBucketMergerTest extends RandomizedTest {
+public class PositionalBucketMergerTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -147,6 +147,11 @@ public class PositionalBucketMergerTest extends RandomizedTest {
         final List<Throwable> setNextRowExceptions = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(numUpstreams*2);
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
+        // register upstreams
+        for (int i = 0; i < bucketsPerUpstream.size()*2; i++) {
+            bucketMerger.registerUpstream(null);
+        }
+
         for (int i = 0; i < bucketsPerUpstream.size(); i++) {
             final int upstreamId = i;
 
@@ -160,7 +165,6 @@ public class PositionalBucketMergerTest extends RandomizedTest {
             }
 
             for (final List<Object[]> bucket : bucketsPerUpstream.get(i)) {
-                bucketMerger.registerUpstream(null);
                 executorService.execute(new Runnable() {
                     @Override
                     public void run() {

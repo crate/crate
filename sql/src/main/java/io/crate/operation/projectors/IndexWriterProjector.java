@@ -81,7 +81,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
         @Override
         public Object[] materialize() {
-            return Buckets.materialize(delegate);
+            return Buckets.materialize(this);
         }
     };
 

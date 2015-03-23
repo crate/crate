@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import io.crate.action.sql.query.CrateSearchContext;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -48,7 +49,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
 import static org.powermock.api.mockito.PowerMockito.*;
 
 /**
@@ -56,7 +56,7 @@ import static org.powermock.api.mockito.PowerMockito.*;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(CrateSearchContext.class)
-public class JobCollectContextTest {
+public class JobCollectContextTest extends CrateUnitTest {
 
     static final Function<Engine.Searcher, LuceneDocCollector> CONTEXT_FUNCTION =
             new Function<Engine.Searcher, LuceneDocCollector>() {
@@ -81,6 +81,7 @@ public class JobCollectContextTest {
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         jobCollectContext = spy(new JobCollectContext(UUID.randomUUID()));
         indexShard = mock(IndexShard.class);
         shardId = new ShardId("dummy", 1);
