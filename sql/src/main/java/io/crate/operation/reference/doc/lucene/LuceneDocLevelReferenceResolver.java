@@ -27,12 +27,17 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.types.*;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.index.mapper.MapperService;
 
 public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolver<LuceneCollectorExpression<?>> {
 
-    public static final LuceneDocLevelReferenceResolver INSTANCE = new LuceneDocLevelReferenceResolver();
+    private final @Nullable MapperService mapperService;
 
-    private LuceneDocLevelReferenceResolver() {
+    private final static NullValueCollectorExpression NULL_COLLECTOR_EXPRESSION = new NullValueCollectorExpression();
+
+    public LuceneDocLevelReferenceResolver(@Nullable MapperService mapperService) {
+        this.mapperService = mapperService;
     }
 
     @Override
@@ -55,6 +60,9 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
         }
 
         String colName = referenceInfo.ident().columnIdent().fqn();
+        if (this.mapperService != null && mapperService.smartNameFieldMapper(colName) == null) {
+            return NULL_COLLECTOR_EXPRESSION;
+        }
 
         switch (referenceInfo.type().id()) {
             case ByteType.ID:
@@ -82,6 +90,14 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
                 return new GeoPointColumnReference(colName);
             default:
                 throw new UnhandledServerException(String.format("unsupported type '%s'", referenceInfo.type().getName()));
+        }
+    }
+
+    private static class NullValueCollectorExpression extends LuceneCollectorExpression<Void> {
+
+        @Override
+        public Void value() {
+            return null;
         }
     }
 }
