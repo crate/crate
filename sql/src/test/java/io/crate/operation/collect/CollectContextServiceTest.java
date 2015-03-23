@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -37,7 +37,7 @@ import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 import static org.hamcrest.Matchers.*;
 
-public class CollectContextServiceTest extends RandomizedTest {
+public class CollectContextServiceTest extends CrateUnitTest {
 
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private final Settings settings = ImmutableSettings.EMPTY;

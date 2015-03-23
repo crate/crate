@@ -22,18 +22,17 @@
 package io.crate.operation.fetch;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.CollectContextService;
 import io.crate.planner.symbol.Reference;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -43,21 +42,24 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class NodeFetchOperationTest extends RandomizedTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class NodeFetchOperationTest extends CrateUnitTest {
 
     static ThreadPool threadPool;
     static CollectContextService collectContextService;
 
     @BeforeClass
-    public static void setUp() {
+    public static void beforeClass() {
         ThreadPoolExecutor threadPoolExecutor = mock(ThreadPoolExecutor.class);
         when(threadPoolExecutor.getPoolSize()).thenReturn(2);
         threadPool = mock(ThreadPool.class);
         when(threadPool.executor(any(String.class))).thenReturn(threadPoolExecutor);
         collectContextService = new CollectContextService(ImmutableSettings.EMPTY, threadPool);
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        threadPool = null;
+        collectContextService = null;
     }
 
     @Test
