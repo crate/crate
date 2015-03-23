@@ -22,10 +22,8 @@ dependencies {
         exclude group: 'com.github.spullara.mustache.java'
         exclude group: 'org.antlr'
         exclude group: 'net.java.dev.jna'
-        exclude group: 'com.spatial4j'
         exclude group: 'com.tdunning'
         exclude group: 'commons-cli'
-        exclude group: 'com.vividsolutions'
     }
     // needed by ES Version class - keep up to date with es dependencies
     compile 'org.apache.lucene:lucene-core:4.10.3'
@@ -84,6 +82,9 @@ shadowJar {
     relocate 'org.slf4j',             'io.crate.shade.org.slf4j'
     relocate 'org.apache.commons',    'io.crate.shade.org.apache.commons'
     relocate 'jsr166e',               'io.crate.shade.jsr166e'
+    relocate 'com.spatial4j',         'io.crate.shade.com.spatial4j'
+    relocate 'com.vividsolutions',    'io.crate.shade.com.vividsolutions'
+
 
     doLast {
         manifest {
