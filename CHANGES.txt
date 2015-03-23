@@ -5,8 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fix: Grouping on a dynamically created column of a partitioned table could
-   cause a Null Pointer Exception
+ - Fix: ip type conversion did not allow NULL values
+
+ - Fix: Grouping or sorting on a dynamically created column of a partitioned
+   table could cause a NullPointerException
 
  - include jts and spatial4j in client jar in order to properly use
    the ``geopoint`` type

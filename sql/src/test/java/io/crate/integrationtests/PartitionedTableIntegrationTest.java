@@ -1678,16 +1678,84 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testGroupOnDynamicObjectColumnWithFilter() throws Exception {
+    public void testFilterOnDynamicObjectColumn() throws Exception {
         execute("create table event (day timestamp primary key, data object) clustered into 6 shards partitioned by (day)");
         ensureYellow();
         execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("insert into event (day, data) values ('2015-02-08', {sessionid = 'ciao'})");
         execute("refresh table event");
-        execute("select data['sessionid'] from event where format('%s', data['sessionid']) = 'ciao' group by data['sessionid'] order by data['sessionid']");
+        waitNoPendingTasksOnAll();
+        execute("select data['sessionid'] from event where format('%s', data['sessionid']) = 'ciao' order by data['sessionid']");
         assertThat(response.rows().length, Is.is(1));
         assertThat((String)response.rows()[0][0], Is.is("ciao"));
+    }
+
+    @Test
+    public void testOrderByDynamicObjectColumn() throws Exception {
+        execute("create table event (day timestamp primary key, data object, number int) clustered into 6 shards partitioned by (day)");
+        ensureYellow();
+        execute("insert into event (day, data, number) values ('2015-01-03', {sessionid = null}, 42)");
+        execute("insert into event (day, data, number) values ('2015-01-01', {sessionid = 'hello'}, 42)");
+        execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
+        execute("refresh table event");
+        waitNoPendingTasksOnAll();
+        execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls first");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "NULL\n" +
+                "ciao\n" +
+                "hello\n"));
+
+        execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls last");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "ciao\n" +
+                "hello\n" +
+                "NULL\n"));
+
+        execute("select data['sessionid'] from event order by data['sessionid'] DESC nulls first");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "NULL\n" +
+                "hello\n" +
+                "ciao\n"));
+
+        execute("select data['sessionid'] from event order by data['sessionid'] DESC nulls last");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "hello\n" +
+                "ciao\n" +
+                "NULL\n"));
+    }
+
+    @Test
+    public void testDynamicColumnWhere() throws Exception {
+        execute("create table event (day timestamp primary key, data object, number int) clustered into 6 shards partitioned by (day)");
+        ensureYellow();
+        execute("insert into event (day, data, number) values ('2015-01-03', {sessionid = null}, 0)");
+        execute("insert into event (day, data, number) values ('2015-01-01', {sessionid = 'hello'}, 21)");
+        execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
+        execute("insert into event (day, number) values ('2015-03-08', 84)");
+        execute("refresh table event");
+        waitNoPendingTasksOnAll();
+
+        execute("select data " +
+                "from event " +
+                "where data['sessionid'] is null " +
+                "order by number");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "{sessionid=null}\n" +
+                "NULL\n"));
+
+        execute("select data " +
+                "from event " +
+                "where data['sessionid'] = 'ciao'");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select data " +
+                "from event " +
+                "where data['sessionid'] in ('hello', 'goodbye') " +
+                "order by number DESC");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "{sessionid=hello}\n"));
     }
 
     @Test
@@ -1697,6 +1765,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into event (day) values ('2015-01-03')");
         execute("insert into event (day, sessionid) values ('2015-01-01', 'hello')");
         execute("refresh table event");
+        waitNoPendingTasksOnAll();
+
         execute("select sessionid from event group by sessionid order by sessionid");
         assertThat(response.rows().length, Is.is(2));
         assertThat((String)response.rows()[0][0], Is.is("hello"));

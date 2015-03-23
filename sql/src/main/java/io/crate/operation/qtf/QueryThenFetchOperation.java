@@ -293,7 +293,10 @@ public class QueryThenFetchOperation {
             PageInfo pageInfo = ctx.pageInfo.get();
 
             int sortLimit = ctx.searchNode.offset() + pageInfo.size() + pageInfo.position();
-            ctx.sortedShardList = crateResultSorter.sortDocs(ctx.queryResults, 0, sortLimit);
+            ctx.sortedShardList = crateResultSorter.sortDocs(
+                    ctx.queryResults,
+                    0,
+                    sortLimit);
             lastEmittedDocs = searchPhaseController.getLastEmittedDocPerShard(
                     ctx.sortedShardList,
                     ctx.numShards);
