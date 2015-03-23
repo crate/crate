@@ -94,7 +94,7 @@ public class LuceneQueryBuilder {
 
     public LuceneQueryBuilder(Functions functions, SearchContext searchContext, IndexCache indexCache) {
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
-                new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
+                new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
         visitor = new Visitor(inputSymbolVisitor, indexCache);
         visitor.searchContext = searchContext;
     }

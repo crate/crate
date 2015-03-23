@@ -5,7 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
- - include jts and spatial4j in client jar in order to properly use 
+ - Fix: Grouping on a dynamically created column of a partitioned table could
+   cause a Null Pointer Exception
+
+ - include jts and spatial4j in client jar in order to properly use
    the ``geopoint`` type
 
  - produce a crate-client with all dependencies included under the 'io.crate'

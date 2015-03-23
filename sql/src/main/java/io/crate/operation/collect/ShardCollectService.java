@@ -48,6 +48,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
@@ -72,7 +73,6 @@ public class ShardCollectService {
     private final boolean isBlobShard;
     private final Functions functions;
     private final BlobIndices blobIndices;
-    private final CircuitBreaker circuitBreaker;
 
     @Inject
     public ShardCollectService(ThreadPool threadPool,
@@ -89,7 +89,7 @@ public class ShardCollectService {
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
                                BlobShardReferenceResolver blobShardReferenceResolver,
-                               CrateCircuitBreakerService breakerService) {
+                               MapperService mapperService) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.shardId = shardId;
@@ -101,10 +101,9 @@ public class ShardCollectService {
         this.bigArrays = bigArrays;
         this.functions = functions;
         this.blobIndices = blobIndices;
-        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
-        DocLevelReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : LuceneDocLevelReferenceResolver.INSTANCE);
+        DocLevelReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : new LuceneDocLevelReferenceResolver(mapperService));
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
                 functions,
                 resolver
@@ -134,7 +133,7 @@ public class ShardCollectService {
      *
      * @param collectNode describes the collectOperation
      * @param projectorChain the shard projector chain to get the downstream from
-     * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect()} to start
+     * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect(io.crate.breaker.RamAccountingContext)} to start
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode,

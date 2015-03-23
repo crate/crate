@@ -73,6 +73,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
@@ -212,6 +213,7 @@ public class LocalDataCollectTest {
             bind(MetaDataDeleteIndexService.class).toInstance(mock(MetaDataDeleteIndexService.class));
             bind(ClusterInfoService.class).toInstance(mock(ClusterInfoService.class));
             bind(TransportService.class).toInstance(mock(TransportService.class));
+            bind(MapperService.class).toInstance(mock(MapperService.class));
 
             bind(TransportShardBulkAction.class).toInstance(mock(TransportShardBulkAction.class));
             bind(TransportCreateIndexAction.class).toInstance(mock(TransportCreateIndexAction.class));

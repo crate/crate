@@ -113,7 +113,7 @@ public class CrateSearchService extends InternalSearchService {
                 bigArrays, dfsPhase, queryPhase, fetchPhase, indicesQueryCache);
         this.functions = functions;
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
-                new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
+                new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
         sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
     }
 
