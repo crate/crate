@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - include jts and spatial4j in client jar in order to properly use 
+   the ``geopoint`` type
+
  - produce a crate-client with all dependencies included under the 'io.crate'
    package namespace in order to avoid conflicts
 
