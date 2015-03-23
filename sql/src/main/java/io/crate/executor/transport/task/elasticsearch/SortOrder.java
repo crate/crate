@@ -23,19 +23,14 @@ package io.crate.executor.transport.task.elasticsearch;
 
 public class SortOrder {
 
-    private String missing;
-
-    public SortOrder(boolean reverseFlag, Boolean nullFirst) {
-        missing = "_last";
+    public static Object missing(boolean reverseFlag, Boolean nullFirst) {
+        Object missing = "_last";
         if (reverseFlag) {
             missing = "_first";     // null > 'anyValue'; null values at the beginning.
         }
         if (nullFirst != null) {
             missing = nullFirst ? "_first" : "_last";
         }
-    }
-
-    public String missing() {
         return missing;
     }
 }

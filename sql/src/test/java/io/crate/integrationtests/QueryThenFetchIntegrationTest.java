@@ -37,14 +37,17 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCrateSearchServiceSupportsOrderByOnFunctionWithBooleanReturnType() throws Exception {
-        execute("create table t (name string) with (number_of_replicas = 0)");
-        execute("insert into t (name) values ('Marvin'), ('Trillian')");
+        execute("create table t (name string, b byte) with (number_of_replicas = 0)");
+        execute("insert into t (name, b) values ('Marvin', 0), ('Trillian', 1), ('Arthur', 2), ('Max', 3)");
         execute("refresh table t");
         ensureGreen();
 
-        execute("select * from t order by substr(name, 1, 1) = 'M'");
-        assertThat(((String) response.rows()[0][0]), is("Trillian"));
-        assertThat(((String) response.rows()[1][0]), is("Marvin"));
+        execute("select * from t order by substr(name, 1, 1) = 'M', b");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "1| Trillian\n" +
+                "2| Arthur\n" +
+                "0| Marvin\n" +
+                "3| Max\n"));
     }
 
     @Test
