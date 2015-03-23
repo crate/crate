@@ -123,9 +123,15 @@ public class PositionalRowMergerTest extends CrateUnitTest {
         final List<Throwable> setNextRowExceptions = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(numUpstreams);
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
+
+        final List<RowDownstreamHandle> downstreamHandles = new ArrayList<>(numUpstreams);
+        // register upstreams
+        for (int i = 0; i < numUpstreams; i++) {
+            downstreamHandles.add(rowMerger.registerUpstream(null));
+        }
         for (int i = 0; i < numUpstreams; i++) {
             final int upstreamId = i;
-            final RowDownstreamHandle upstreamBuffer = rowMerger.registerUpstream(null);
+            final RowDownstreamHandle upstreamBuffer = downstreamHandles.get(i);
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {

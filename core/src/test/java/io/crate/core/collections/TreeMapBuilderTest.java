@@ -21,15 +21,15 @@
 
 package io.crate.core.collections;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.TreeMap;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 
-public class TreeMapBuilderTest {
+public class TreeMapBuilderTest extends CrateUnitTest {
 
     @Test
     public void testBuilder() throws Exception {
