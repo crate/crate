@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row;
 import io.crate.executor.Job;
@@ -238,12 +239,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
         ReferenceInfo idRefInfo = new ReferenceInfo(
-                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("id")),
+                new ReferenceIdent(tableInfo.ident(), "id"),
                 RowGranularity.DOC,
                 IntegerType.INSTANCE
         );
         ReferenceInfo nameRefInfo = new ReferenceInfo(
-                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("name")),
+                new ReferenceIdent(tableInfo.ident(), "name"),
                 RowGranularity.DOC,
                 StringType.INSTANCE
         );
@@ -272,13 +273,17 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             outputTypes.add(symbol.valueType());
         }
         collectNode.outputTypes(outputTypes);
+        collectNode.orderBy(new OrderBy(
+                ImmutableList.<Symbol>of(new Reference(idRefInfo)),
+                new boolean[]{false}, new Boolean[]{false}));
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         FetchProjection fetchProjection = new FetchProjection(
                 docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
                 collectNode.executionNodes());
 
-        MergeNode mergeNode = new MergeNode("merge", collectNode.executionNodes().size());
+        MergeNode mergeNode = MergeNode.sortedMergeNode("sorted merge", collectNode.executionNodes().size(),
+                new int[]{1}, new boolean[]{false}, new Boolean[]{false});
         mergeNode.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
         mergeNode.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         mergeNode.projections(ImmutableList.<Projection>of(fetchProjection));
@@ -286,14 +291,14 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(collectNode, mergeNode);
         Job job = executor.newJob(plan);
 
-        final List<Row> resultingRows = new ArrayList<>();
+        final List<Object[]> resultingRows = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
         ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
         Futures.addCallback(results, new FutureCallback<List<TaskResult>>() {
             @Override
             public void onSuccess(List<TaskResult> resultList) {
                 for (Row row : resultList.get(0).rows()) {
-                    resultingRows.add(row);
+                    resultingRows.add(row.materialize());
                 }
                 latch.countDown();
             }
@@ -307,16 +312,13 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         latch.await();
         assertThat(resultingRows.size(), is(2));
-        assertThat(resultingRows.get(0).size(), is(outputSymbols.size()));
-        // TODO: validate sorting when CollectNode supports sorting
-        Iterator<Row> it = resultingRows.iterator();
-        while (it.hasNext()) {
-            Row row = it.next();
-            assertThat((Integer) row.get(0), anyOf(is(1), is(2)));
-            assertThat((BytesRef) row.get(1), anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
-            assertThat((BytesRef) row.get(2), anyOf(is(new BytesRef("rthur")), is(new BytesRef("ord"))));
-        }
-
+        assertThat(resultingRows.get(0).length, is(outputSymbols.size()));
+        assertThat((Integer) resultingRows.get(0)[0], is(1));
+        assertThat((BytesRef) resultingRows.get(0)[1], is(new BytesRef("Arthur")));
+        assertThat((BytesRef) resultingRows.get(0)[2], is(new BytesRef("rthur")));
+        assertThat((Integer) resultingRows.get(1)[0], is(2));
+        assertThat((BytesRef) resultingRows.get(1)[1], is(new BytesRef("Ford")));
+        assertThat((BytesRef) resultingRows.get(1)[2], is(new BytesRef("ord")));
     }
 
     @Test
@@ -331,21 +333,21 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Planner.Context plannerContext = new Planner.Context();
 
         TableInfo tableInfo = docSchemaInfo.getTableInfo("locations");
-        ReferenceInfo idRefInfo = new ReferenceInfo(
-                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("id")),
+        ReferenceInfo positionRefInfo = new ReferenceInfo(
+                new ReferenceIdent(tableInfo.ident(), "position"),
                 RowGranularity.DOC,
-                StringType.INSTANCE
+                IntegerType.INSTANCE
         );
         ReferenceInfo nameRefInfo = new ReferenceInfo(
-                new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("name")),
+                new ReferenceIdent(tableInfo.ident(), "name"),
                 RowGranularity.DOC,
                 StringType.INSTANCE
         );
         ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
 
         Symbol docIdSymbol = new InputColumn(0, DataTypes.STRING);
-        List<Symbol> inputSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo), new Reference(idRefInfo));
-        final List<Symbol> outputSymbols = ImmutableList.<Symbol>of(new Reference(idRefInfo), new Reference(nameRefInfo));
+        List<Symbol> inputSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo), new Reference(positionRefInfo));
+        final List<Symbol> outputSymbols = ImmutableList.<Symbol>of(new Reference(positionRefInfo), new Reference(nameRefInfo));
 
         CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
         collectNode.toCollect(inputSymbols);
@@ -357,13 +359,17 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             outputTypes.add(symbol.valueType());
         }
         collectNode.outputTypes(outputTypes);
+        collectNode.orderBy(new OrderBy(
+                ImmutableList.<Symbol>of(new Reference(positionRefInfo)),
+                new boolean[]{false}, new Boolean[]{false}));
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         FetchProjection fetchProjection = new FetchProjection(
                 docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
                 collectNode.executionNodes(), bulkSize);
 
-        MergeNode mergeNode = new MergeNode("merge", collectNode.executionNodes().size());
+        MergeNode mergeNode = MergeNode.sortedMergeNode("sorted merge", collectNode.executionNodes().size(),
+                new int[]{1}, new boolean[]{false}, new Boolean[]{false});
         mergeNode.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
         mergeNode.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         mergeNode.projections(ImmutableList.<Projection>of(fetchProjection));
@@ -371,14 +377,14 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(collectNode, mergeNode);
         Job job = executor.newJob(plan);
 
-        final List<Row> resultingRows = new ArrayList<>();
+        final List<Object[]> resultingRows = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
         ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
         Futures.addCallback(results, new FutureCallback<List<TaskResult>>() {
             @Override
             public void onSuccess(List<TaskResult> resultList) {
                 for (Row row : resultList.get(0).rows()) {
-                    resultingRows.add(row);
+                    resultingRows.add(row.materialize());
                 }
                 latch.countDown();
             }
@@ -392,7 +398,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         latch.await();
 
         assertThat(resultingRows.size(), is(13));
-        assertThat(resultingRows.get(0).size(), is(outputSymbols.size()));
-        // TODO: validate sorting when CollectNode supports sorting
+        assertThat(resultingRows.get(0).length, is(outputSymbols.size()));
+        assertThat((Integer)resultingRows.get(0)[0], is(1));
+        assertThat((Integer)resultingRows.get(12)[0], is(6));
     }
 }
