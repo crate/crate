@@ -76,6 +76,8 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final List<String> executionNodes;
     private final int numNodes;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
+    private final Map<String, Object[]> partitionValuesCache = new HashMap<>();
+    private final Object partitionValuesCacheLock = new Object();
 
     private long inputCursor = 0;
     private boolean consumedRows = false;
@@ -220,10 +222,17 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     @Nullable
     private Row partitionedByRow(String index) {
         if (!partitionedBy.isEmpty() && PartitionName.isPartition(index)) {
-            List<BytesRef> partitionRawValues = PartitionName.fromStringSafe(index).values();
-            Object[] partitionValues = new Object[partitionRawValues.size()];
-            for (int i = 0; i < partitionRawValues.size(); i++) {
-                partitionValues[i] = partitionedBy.get(i).type().value(partitionRawValues.get(i));
+            Object[] partitionValues;
+            synchronized (partitionValuesCacheLock) {
+                partitionValues = partitionValuesCache.get(index);
+                if (partitionValues == null) {
+                    List<BytesRef> partitionRawValues = PartitionName.fromStringSafe(index).values();
+                    partitionValues = new Object[partitionRawValues.size()];
+                    for (int i = 0; i < partitionRawValues.size(); i++) {
+                        partitionValues[i] = partitionedBy.get(i).type().value(partitionRawValues.get(i));
+                    }
+                    partitionValuesCache.put(index, partitionValues);
+                }
             }
             return new RowN(partitionValues);
         }
