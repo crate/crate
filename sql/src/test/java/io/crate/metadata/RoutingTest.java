@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -30,10 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class RoutingTest {
+public class RoutingTest extends CrateUnitTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
