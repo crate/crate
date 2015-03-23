@@ -98,7 +98,7 @@ public class LuceneQueryBuilder {
 
     @Inject
     public LuceneQueryBuilder(Functions functions) {
-        inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
+        inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
     }
 
     public Context convert(WhereClause whereClause, SearchContext searchContext, IndexCache indexCache) throws UnsupportedFeatureException {

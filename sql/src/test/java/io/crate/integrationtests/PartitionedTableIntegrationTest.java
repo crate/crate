@@ -43,6 +43,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.hamcrest.Matchers;
+import org.hamcrest.core.Is;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1661,5 +1662,44 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
         assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
 
+    }
+
+    @Test
+    public void testGroupOnDynamicObjectColumn() throws Exception {
+        execute("create table event (day timestamp primary key, data object) clustered into 6 shards partitioned by (day)");
+        ensureYellow();
+        execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
+        execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
+        execute("refresh table event");
+        execute("select data['sessionid'] from event group by data['sessionid'] order by format('%s', data['sessionid'])");
+        assertThat(response.rows().length, Is.is(2));
+        assertThat((String)response.rows()[0][0], Is.is("hello"));
+        assertThat(response.rows()[1][0], Is.is(nullValue()));
+    }
+
+    @Test
+    public void testGroupOnDynamicObjectColumnWithFilter() throws Exception {
+        execute("create table event (day timestamp primary key, data object) clustered into 6 shards partitioned by (day)");
+        ensureYellow();
+        execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
+        execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
+        execute("insert into event (day, data) values ('2015-02-08', {sessionid = 'ciao'})");
+        execute("refresh table event");
+        execute("select data['sessionid'] from event where format('%s', data['sessionid']) = 'ciao' group by data['sessionid'] order by data['sessionid']");
+        assertThat(response.rows().length, Is.is(1));
+        assertThat((String)response.rows()[0][0], Is.is("ciao"));
+    }
+
+    @Test
+    public void testGroupOnDynamicColumn() throws Exception {
+        execute("create table event (day timestamp primary key) clustered into 6 shards partitioned by (day)");
+        ensureYellow();
+        execute("insert into event (day) values ('2015-01-03')");
+        execute("insert into event (day, sessionid) values ('2015-01-01', 'hello')");
+        execute("refresh table event");
+        execute("select sessionid from event group by sessionid order by sessionid");
+        assertThat(response.rows().length, Is.is(2));
+        assertThat((String)response.rows()[0][0], Is.is("hello"));
+        assertThat(response.rows()[1][0], Is.is(nullValue()));
     }
 }

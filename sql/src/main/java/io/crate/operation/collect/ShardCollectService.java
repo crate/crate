@@ -47,6 +47,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
@@ -85,7 +86,8 @@ public class ShardCollectService {
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
-                               BlobShardReferenceResolver blobShardReferenceResolver) {
+                               BlobShardReferenceResolver blobShardReferenceResolver,
+                               MapperService mapperService) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.luceneQueryBuilder = luceneQueryBuilder;
@@ -99,7 +101,7 @@ public class ShardCollectService {
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
-        DocLevelReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : LuceneDocLevelReferenceResolver.INSTANCE);
+        DocLevelReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : new LuceneDocLevelReferenceResolver(mapperService));
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
                 functions,
                 resolver
