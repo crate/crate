@@ -24,10 +24,12 @@ dependencies {
         exclude group: 'net.java.dev.jna'
         exclude group: 'com.tdunning'
         exclude group: 'commons-cli'
+        exclude group: 'org.slf4j'
     }
     // needed by ES Version class - keep up to date with es dependencies
     compile 'org.apache.lucene:lucene-core:4.10.3'
     compile 'org.apache.lucene:lucene-analyzers-common:4.10.3'
+
 
     compile files(project(':core').sourceSets.shared.output.classesDir)
     compile files(project(':sql').sourceSets.shared.output.classesDir)
@@ -62,6 +64,7 @@ test {
 }
 
 shadowJar {
+
     baseName 'crate-client'
     classifier ''
     duplicatesStrategy 'exclude'
@@ -79,13 +82,10 @@ shadowJar {
     relocate 'com.google',            'io.crate.shade.com.google'
     relocate 'com.ning.compress',     'io.crate.shade.com.ning.compress'
     relocate 'org.jboss.netty',       'io.crate.shade.org.jboss.netty'
-    relocate 'org.apache.log4j',      'io.crate.shade.org.apache.log4j'
-    relocate 'org.slf4j',             'io.crate.shade.org.slf4j'
     relocate 'org.apache.commons',    'io.crate.shade.org.apache.commons'
     relocate 'jsr166e',               'io.crate.shade.jsr166e'
     relocate 'com.spatial4j',         'io.crate.shade.com.spatial4j'
     relocate 'com.vividsolutions',    'io.crate.shade.com.vividsolutions'
-
 
     doLast {
         manifest {
@@ -102,6 +102,7 @@ task buildJar(dependsOn: [':app:getVersion', ':core:compileSharedJava', ':sql:co
         tasks.shadowJar.execute()
     }
 }
+tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
@@ -111,7 +112,7 @@ task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
     classifier = 'javadoc'
     from myJavadocs.destinationDir
     manifest {
-        attributes("Implementation-Title": "Crate Data Java Client")
+        attributes("Implementation-Title": "Crate.IO Java Client")
     }
 }
 
@@ -125,7 +126,7 @@ task sourceJar (type : Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource + project(':core').sourceSets.shared.allSource + project(':sql').sourceSets.shared.allSource
     manifest {
-        attributes("Implementation-Title": "Crate Data Java Client")
+        attributes("Implementation-Title": "Crate.IO Java Client")
     }
 }
 
@@ -151,7 +152,7 @@ install {
     repositories {
         mavenInstaller {
             pom.whenConfigured {
-                it.dependencies.clear()
+                pom -> pom.dependencies.clear()
             }
         }
     }
@@ -160,7 +161,7 @@ install {
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
-uploadArchives.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava', buildJar, buildJavadocJar, buildSourceJar, signJars])
+uploadArchives.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava', buildJavadocJar, buildSourceJar, buildJar, signJars])
 uploadArchives {
     repositories{
         mavenDeployer {
@@ -171,12 +172,12 @@ uploadArchives {
                 }
             }
             pom.whenConfigured {
-                it.dependencies.clear()
+                pom -> pom.dependencies.clear()
             }
             pom.project {
                 artifactId 'crate-client'
                 name 'crate-client'
-                description 'Crate Data Java Client'
+                description 'Crate.IO Java Client'
                 url 'https://crate.io'
                 scm {
                     url 'https://github.com/crate/crate'
