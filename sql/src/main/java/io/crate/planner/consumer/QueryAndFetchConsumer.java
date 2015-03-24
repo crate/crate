@@ -226,7 +226,8 @@ public class QueryAndFetchConsumer implements Consumer {
                             orderBy,
                             allOutputs,
                             orderByInputColumns,
-                            collectNode
+                            collectNode,
+                            context.consumerContext.plannerContext()
                     );
                 }
             } else {

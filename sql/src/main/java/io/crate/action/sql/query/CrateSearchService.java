@@ -324,10 +324,15 @@ public class CrateSearchService extends InternalSearchService {
 
     public static final Map<DataType, SortField.Type> luceneTypeMap = ImmutableMap.<DataType, SortField.Type>builder()
             .put(DataTypes.STRING, SortField.Type.STRING)
+            .put(DataTypes.TIMESTAMP, SortField.Type.LONG)
+            .put(DataTypes.BYTE, SortField.Type.LONG)
+            .put(DataTypes.SHORT, SortField.Type.LONG)
             .put(DataTypes.LONG, SortField.Type.LONG)
-            .put(DataTypes.INTEGER, SortField.Type.INT)
+            .put(DataTypes.INTEGER, SortField.Type.LONG)
             .put(DataTypes.DOUBLE, SortField.Type.DOUBLE)
             .put(DataTypes.FLOAT, SortField.Type.FLOAT)
+            .put(DataTypes.BOOLEAN, SortField.Type.STRING)
+            .put(DataTypes.IP, SortField.Type.LONG)
             .build();
 
 

@@ -41,10 +41,10 @@ import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.ESQueryThenFetchNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
@@ -95,77 +95,94 @@ public class QueryThenFetchConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(table);
             }
 
-            OrderBy orderBy = table.querySpec().orderBy();
-            if (orderBy == null){
-                // TODO: if _score is selected, ordering by _score using a TopNProjection is only temporarily and MUST be changed.
-                // Proposal: only order by _score if requested by user and order it on the shard
-                boolean scoreSelected = false;
-                ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
-                List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
+            // TODO: if _score is selected, ordering by _score using a TopNProjection is only temporarily and MUST be changed.
+            // Proposal: only order by _score if requested by user and order it on the shard
+            boolean scoreSelected = false;
+            ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
+            List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
 
-                List<Symbol> outputSymbols = new ArrayList<>(table.querySpec().outputs().size());
-                for (Symbol symbol : table.querySpec().outputs()) {
-                    if (SCORE_REFERENCE_DETECTOR.detect(symbol)) {
-                        scoreSelected = true;
+            List<Symbol> outputSymbols = new ArrayList<>(table.querySpec().outputs().size());
+            for (Symbol symbol : table.querySpec().outputs()) {
+                if (SCORE_REFERENCE_DETECTOR.detect(symbol)) {
+                    scoreSelected = true;
+                    collectSymbols.add(symbol);
+                }
+                outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
+            }
+
+            OrderBy orderBy = table.querySpec().orderBy();
+            if (orderBy != null) {
+                table.tableRelation().validateOrderBy(orderBy);
+                for (Symbol symbol : orderBy.orderBySymbols()) {
+                    if (!collectSymbols.contains(symbol)) {
+                        // order by symbols will be resolved on collect
                         collectSymbols.add(symbol);
                     }
-                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
                 }
+            }
 
-                CollectNode collectNode = PlanNodeBuilder.collect(
-                        tableInfo,
-                        context.plannerContext(),
-                        table.querySpec().where(),
+            CollectNode collectNode = PlanNodeBuilder.collect(
+                    tableInfo,
+                    context.plannerContext(),
+                    table.querySpec().where(),
+                    collectSymbols,
+                    ImmutableList.<Projection>of(),
+                    orderBy,
+                    table.querySpec().limit()
+            );
+            collectNode.keepContextForFetcher(true);
+
+            if (orderBy != null) {
+                MergeProjection mergeProjection = new MergeProjection(
                         collectSymbols,
-                        ImmutableList.<Projection>of()
-                );
-                collectNode.keepContextForFetcher(true);
+                        orderBy.orderBySymbols(),
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst());
+                collectNode.projections(ImmutableList.<Projection>of(mergeProjection));
+            }
 
-                List<Projection> mergeProjections = new ArrayList<>();
-                if (table.querySpec().isLimited() || scoreSelected) {
-                    TopNProjection topNProjection = new TopNProjection(
-                            MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                            table.querySpec().offset(),
-                            scoreSelected ? Arrays.<Symbol>asList(DEFAULT_SCORE_INPUT_COLUMN) : ImmutableList.<Symbol>of(),
-                            scoreSelected ? new boolean[]{true} : new boolean[0],
-                            scoreSelected ? new Boolean[]{false} : new Boolean[0]
-                            );
-                    List<Symbol> outputs = new ArrayList<>();
-                    outputs.add(DEFAULT_DOC_ID_INPUT_COLUMN);
-                    if (scoreSelected) {
-                        outputs.add(DEFAULT_SCORE_INPUT_COLUMN);
-                    }
-                    topNProjection.outputs(outputs);
-                    mergeProjections.add(topNProjection);
+            List<Projection> mergeProjections = new ArrayList<>();
+            if (table.querySpec().isLimited() || scoreSelected) {
+                TopNProjection topNProjection = new TopNProjection(
+                        MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                        table.querySpec().offset(),
+                        scoreSelected ? Arrays.<Symbol>asList(DEFAULT_SCORE_INPUT_COLUMN) : ImmutableList.<Symbol>of(),
+                        scoreSelected ? new boolean[]{true} : new boolean[0],
+                        scoreSelected ? new Boolean[]{false} : new Boolean[0]
+                        );
+                List<Symbol> outputs = new ArrayList<>();
+                outputs.add(DEFAULT_DOC_ID_INPUT_COLUMN);
+                if (scoreSelected) {
+                    outputs.add(DEFAULT_SCORE_INPUT_COLUMN);
                 }
+                topNProjection.outputs(outputs);
+                mergeProjections.add(topNProjection);
+            }
 
-                FetchProjection fetchProjection = new FetchProjection(
-                        DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
-                        tableInfo.partitionedByColumns(),
-                        collectNode.executionNodes(),
-                        table.querySpec().isLimited());
-                mergeProjections.add(fetchProjection);
+            FetchProjection fetchProjection = new FetchProjection(
+                    DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
+                    tableInfo.partitionedByColumns(),
+                    collectNode.executionNodes(),
+                    table.querySpec().isLimited());
+            mergeProjections.add(fetchProjection);
 
-                MergeNode localMergeNode = PlanNodeBuilder.localMerge(
+            MergeNode localMergeNode;
+            if (orderBy != null) {
+                localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                        mergeProjections,
+                        orderBy,
+                        collectSymbols,
+                        null,
+                        collectNode,
+                        context.plannerContext());
+            } else {
+                localMergeNode = PlanNodeBuilder.localMerge(
                         mergeProjections,
                         collectNode,
                         context.plannerContext());
-
-                return new QueryThenFetch(collectNode, localMergeNode);
-           } else {
-                table.tableRelation().validateOrderBy(orderBy);
-                return new ESQueryThenFetchNode(
-                        tableInfo.getRouting(table.querySpec().where(), null),
-                        table.querySpec().outputs(),
-                        orderBy.orderBySymbols(),
-                        orderBy.reverseFlags(),
-                        orderBy.nullsFirst(),
-                        table.querySpec().limit(),
-                        table.querySpec().offset(),
-                        table.querySpec().where(),
-                        tableInfo.partitionedByColumns()
-                );
             }
+
+            return new QueryThenFetch(collectNode, localMergeNode);
         }
 
         @Override

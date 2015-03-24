@@ -70,7 +70,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final RowDelegate partitionRowDelegate = new RowDelegate();
     private final Object rowDelegateLock = new Object();
     private final Row outputRow;
-    private final Map<String, NodeBucket> nodeBuckets = new HashMap<>();
+    private final Map<Integer, NodeBucket> nodeBuckets = new HashMap<>();
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean consumingRows = new AtomicBoolean(true);
     private final List<String> executionNodes;
@@ -165,17 +165,19 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         int jobSearchContextId = (int)(docId >> 32);
 
         String nodeId = jobSearchContextIdToNode.get(jobSearchContextId);
+        String index = jobSearchContextIdToShard.get(jobSearchContextId).getIndex();
+        int nodeIdIndex = Objects.hash(nodeId, index);
 
-        NodeBucket nodeBucket = nodeBuckets.get(nodeId);
+        NodeBucket nodeBucket = nodeBuckets.get(nodeIdIndex);
         if (nodeBucket == null) {
             nodeBucket = new NodeBucket(nodeId, jobSearchContextIdToShard.get(jobSearchContextId).getIndex(), executionNodes.indexOf(nodeId));
-            nodeBuckets.put(nodeId, nodeBucket);
+            nodeBuckets.put(nodeIdIndex, nodeBucket);
 
         }
         nodeBucket.add(inputCursor++, docId, row);
         if (bulkSize != NO_BULK_REQUESTS && nodeBucket.size() >= bulkSize) {
             flushNodeBucket(nodeBucket);
-            nodeBuckets.remove(nodeBucket.nodeId);
+            nodeBuckets.remove(nodeIdIndex);
         }
 
         return true;
@@ -196,9 +198,9 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     public void finish() {
         if (remainingUpstreams.decrementAndGet() == 0) {
             // flush all remaining buckets
-            Iterator<Map.Entry<String, NodeBucket>> it = nodeBuckets.entrySet().iterator();
+            Iterator<NodeBucket> it = nodeBuckets.values().iterator();
             while (it.hasNext()) {
-                flushNodeBucket(it.next().getValue());
+                flushNodeBucket(it.next());
                 it.remove();
             }
 

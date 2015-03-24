@@ -474,63 +474,74 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testESSearchPlan() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("select name from users where name = 'x' order by id limit 10");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESQueryThenFetchNode.class));
-        ESQueryThenFetchNode searchNode = (ESQueryThenFetchNode) planNode;
+    public void testQueryThenFetchPlan() throws Exception {
+        Plan plan = plan("select name from users where name = 'x' order by id limit 10");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertFalse(collectNode.isPartitioned());
 
-        assertThat(searchNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
-        assertTrue(searchNode.whereClause().hasQuery());
-        assertThat(searchNode.partitionBy().size(), is(0));
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
 
-        assertFalse(iterator.hasNext());
+        assertThat(resultNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode) resultNode;
+        assertTrue(mergeNode.finalProjection().isPresent());
+
+        Projection lastProjection = mergeNode.finalProjection().get();
+        assertThat(lastProjection, instanceOf(FetchProjection.class));
+        FetchProjection fetchProjection = (FetchProjection) lastProjection;
+        assertThat(fetchProjection.outputs().size(), is(1));
+        assertThat(fetchProjection.outputs().get(0), isReference("_doc['name']"));
     }
 
     @Test
-    public void testESSearchPlanPartitioned() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESQueryThenFetchNode.class));
-        ESQueryThenFetchNode searchNode = (ESQueryThenFetchNode) planNode;
+    public void testQueryThenFetchPlanPartitioned() throws Exception {
+        Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
 
         List<String> indices = new ArrayList<>();
-        Map<String, Map<String, List<Integer>>> locations = searchNode.routing().locations();
+        Map<String, Map<String, List<Integer>>> locations = collectNode.routing().locations();
         for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices, Matchers.contains(
                 new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()));
-        assertThat(searchNode.outputTypes().size(), is(3));
-        assertTrue(searchNode.whereClause().hasQuery());
-        assertThat(searchNode.partitionBy().size(), is(1));
-        assertThat(searchNode.partitionBy().get(0).ident().columnIdent().fqn(), is("date"));
 
-        assertFalse(iterator.hasNext());
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertTrue(collectNode.isPartitioned());
+
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(3));
     }
 
     @Test
-    public void testESSearchPlanFunction() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESQueryThenFetchNode.class));
-        ESQueryThenFetchNode searchNode = (ESQueryThenFetchNode) planNode;
+    public void testQueryThenFetchPlanFunction() throws Exception {
+        Plan plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
 
-        assertThat(searchNode.outputs().size(), is(2));
-        assertThat(searchNode.outputs().get(0), isFunction("format"));
-        assertThat(searchNode.outputs().get(1), isReference("name"));
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertFalse(collectNode.isPartitioned());
 
-        assertThat(searchNode.outputTypes().size(), is(2));
-        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
-        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(1));
-        assertTrue(searchNode.whereClause().hasQuery());
-        assertThat(searchNode.partitionBy().size(), is(0));
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(2));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(1));
 
-        assertThat(iterator.hasNext(), is(false));
+        assertThat(resultNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode) resultNode;
+        assertTrue(mergeNode.finalProjection().isPresent());
+
+        Projection lastProjection = mergeNode.finalProjection().get();
+        assertThat(lastProjection, instanceOf(FetchProjection.class));
+        FetchProjection fetchProjection = (FetchProjection) lastProjection;
+        assertThat(fetchProjection.outputs().size(), is(2));
+        assertThat(fetchProjection.outputs().get(0), isFunction("format"));
+        assertThat(fetchProjection.outputs().get(1), isReference("_doc['name']"));
+
     }
 
     @Test
@@ -1214,17 +1225,22 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test (expected = UnsupportedFeatureException.class)
     public void testInsertFromSubQueryWithLimit() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESQueryThenFetchNode.class));
+        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertFalse(collectNode.isPartitioned());
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
 
-        assertThat(localMergeNode.projections().size(), is(2));
-        assertThat(localMergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(resultNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode) resultNode;
+        assertTrue(mergeNode.finalProjection().isPresent());
+
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
     }
 
     @Test (expected = UnsupportedFeatureException.class)
