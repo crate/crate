@@ -307,7 +307,7 @@ public class CrateSearchService extends InternalSearchService {
                     "Can't use %s as an output", symbol));
         }
     }
-    
+
     @Nullable
     private Sort generateLuceneSort(SearchContext context,
                                     List<Symbol> symbols,
