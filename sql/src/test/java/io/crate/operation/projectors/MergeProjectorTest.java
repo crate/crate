@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.operation.RowDownstreamHandle;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -34,11 +35,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
-public class MergeProjectorTest {
+public class MergeProjectorTest extends CrateUnitTest {
 
     private Row spare(Object... cells) {
         if (cells == null) {
@@ -242,9 +242,15 @@ public class MergeProjectorTest {
         projector.downstream(collectingProjector);
         projector.startProjection();
 
+        // register upstreams
+        List<RowDownstreamHandle> downstreamHandles = new ArrayList<>(numUpstreams);
+        for (int i = 0; i < numUpstreams; i++) {
+            downstreamHandles.add(projector.registerUpstream(null));
+        }
+
         for (int i = 0; i < numUpstreams; i++) {
             final int upstreamId = i;
-            final RowDownstreamHandle downstreamHandle = projector.registerUpstream(null);
+            final RowDownstreamHandle downstreamHandle = downstreamHandles.get(i);
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {
