@@ -138,7 +138,7 @@ public class MergeProjector implements Projector  {
             ArrayList<RowDownstreamHandle> toRemove = new ArrayList<>();
             for (MergeProjectorDownstreamHandle handle : downstreamHandles) {
                 try {
-                    success &= handle.emitUntil(lowestToEmit);
+                    success = handle.emitUntil(lowestToEmit);
                     // if there is an emptyHandle don't try to fetch the nextLowest because we'll abort anyway
                     if(success && !emptyHandle && (nextLowest == null || ordering.compare(handle.firstRow(), nextLowest) > 0)) {
                         nextLowest = handle.firstRow();
@@ -152,7 +152,7 @@ public class MergeProjector implements Projector  {
                 }
                 if (!success) {
                     downstreamAborted();
-                    return success;
+                    return false;
                 }
             }
             if (toRemove.size() > 0) {
@@ -166,10 +166,11 @@ public class MergeProjector implements Projector  {
                 lowestToEmit = nextLowest;
             }
         }
-        return success;
+        return true;
     }
 
-    private @Nullable Row findLowestRow() {
+    @Nullable
+    private Row findLowestRow() {
         Row lowest = null;
         for (MergeProjectorDownstreamHandle handle : downstreamHandles ) {
             try {
@@ -179,9 +180,7 @@ public class MergeProjector implements Projector  {
                     lowest = handle.firstRow();
                 }
             } catch (NoSuchElementException e) {
-                if (handle.isFinished()) {
-                    continue;
-                } else {
+                if (!handle.isFinished()) {
                     return null; // There is an empty downstreamHandle, abort
                 }
             }
@@ -217,11 +216,12 @@ public class MergeProjector implements Projector  {
         }
 
         public boolean emitUntil(Row until) {
-            boolean success = true;
-            while (success && ordering.compare(rows.getFirst(), until) >= 0) {
-                success &= downstreamContext.setNextRow(rows.pollFirst());
+            while (ordering.compare(rows.getFirst(), until) >= 0) {
+                if(!downstreamContext.setNextRow(rows.pollFirst())) {
+                    return false;
+                }
             }
-            return success;
+            return true;
         }
 
         @Override
@@ -235,11 +235,7 @@ public class MergeProjector implements Projector  {
             }
             // Only try to emit if this handler was empty before
             // else we know that there must be a handler with a lower highest value than this.
-            if (rows.size() == 1) {
-                return projector.emit();
-            } else {
-                return true;
-            }
+            return rows.size() != 1 || projector.emit();
         }
 
         @Override
