@@ -25,12 +25,16 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
+import io.crate.executor.transport.distributed.ResultProviderBase;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.Projector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Reference;
@@ -53,6 +57,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+import java.util.Vector;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
@@ -122,7 +127,11 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         refresh(client());
     }
 
-    private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect) throws Exception{
+    private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect) throws Exception {
+        return createDocCollector(orderBy, limit, toCollect, collectingProjector);
+    }
+
+    private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, Projector projector) throws Exception {
         CollectNode node = new CollectNode();
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
@@ -132,7 +141,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         node.maxRowGranularity(RowGranularity.DOC);
 
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
-        when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
+        when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
         int jobSearchContextId = 0;
         JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
@@ -178,7 +187,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderForNonSelected() throws Exception {
-        collectingProjector.rows.clear();
+        // select "countryName" from countries order by population
+        TestCollectingProjector projector = new TestCollectingProjector();
         ReferenceIdent countriesIdent = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
         Reference countries = new Reference(new ReferenceInfo(countriesIdent, RowGranularity.DOC, DataTypes.STRING));
 
@@ -187,12 +197,77 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)population), new boolean[]{true}, new Boolean[]{true});
 
-        LuceneDocCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol)countries));
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol)countries), projector);
         docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
-        assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
-        assertThat(collectingProjector.rows.get(0).length, is(1));
-        assertThat(((BytesRef)collectingProjector.rows.get(NUMBER_OF_DOCS - 3)[0]).utf8ToString(), is("USA") );
-        assertThat(((BytesRef)collectingProjector.rows.get(NUMBER_OF_DOCS - 2)[0]).utf8ToString(), is("Austria") );
-        assertThat(((BytesRef)collectingProjector.rows.get(NUMBER_OF_DOCS - 1)[0]).utf8ToString(), is("Germany") );
+        assertThat(projector.rows.size(), is(NUMBER_OF_DOCS));
+
+        assertThat(projector.rows.get(0).size(), is(1));
+        assertThat(((BytesRef)projector.rows.get(NUMBER_OF_DOCS - 3).get(0)).utf8ToString(), is("USA") );
+        assertThat((Integer)projector.rows.get(NUMBER_OF_DOCS - 3).get(1), is(2));
+        assertThat(((BytesRef)projector.rows.get(NUMBER_OF_DOCS - 2).get(0)).utf8ToString(), is("Austria") );
+        assertThat((Integer)projector.rows.get(NUMBER_OF_DOCS - 2).get(1), is(1));
+        assertThat(((BytesRef)projector.rows.get(NUMBER_OF_DOCS - 1).get(0)).utf8ToString(), is("Germany") );
+        assertThat((Integer)projector.rows.get(NUMBER_OF_DOCS - 1).get(1), is(0));
+
+    }
+
+    @Test
+    public void testOrderForSelectedAndNonSelected() throws Exception {
+        // select "countryName", population from countries order by continent desc, population
+        TestCollectingProjector projector = new TestCollectingProjector();
+        ReferenceIdent countriesIdent = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
+        Reference countries = new Reference(new ReferenceInfo(countriesIdent, RowGranularity.DOC, DataTypes.STRING));
+
+        ReferenceIdent populationIdent = new ReferenceIdent(new TableIdent("doc", "countries"), "population");
+        Reference population = new Reference(new ReferenceInfo(populationIdent, RowGranularity.DOC, DataTypes.INTEGER));
+
+        ReferenceIdent continentIdent = new ReferenceIdent(new TableIdent("doc", "countries"), "continent");
+        Reference continent = new Reference(new ReferenceInfo(continentIdent, RowGranularity.DOC, DataTypes.STRING));
+
+        OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol) continent, (Symbol)population), new boolean[]{true, false}, new Boolean[]{false, false});
+
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol)countries, population), projector);
+        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        assertThat(projector.rows.size(), is(NUMBER_OF_DOCS));
+
+        Row row1 = projector.rows.get(0);
+        Row row2 = projector.rows.get(1);
+        Row row3 = projector.rows.get(2);
+
+        assertThat(row1.size(), is(2));
+        assertThat(((BytesRef)row1.get(0)).utf8ToString(), is("Germany"));
+        assertThat((Integer)row1.get(1), is(0));
+        assertThat(((BytesRef)row1.get(2)).utf8ToString(), is("Europe"));
+
+        assertThat(row2.size(), is(2));
+        assertThat(((BytesRef)row2.get(0)).utf8ToString(), is("Austria"));
+        assertThat((Integer)row2.get(1), is(1));
+        assertThat(((BytesRef)row2.get(2)).utf8ToString(), is("Europe"));
+
+        assertThat(row3.size(), is(2));
+        assertThat(((BytesRef)row3.get(0)).utf8ToString(), is("USA"));
+        assertThat((Integer)row3.get(1), is(2));
+        assertThat(((BytesRef)row3.get(2)).utf8ToString(), is("America"));
+    }
+
+    public class TestCollectingProjector extends ResultProviderBase {
+
+        public final Vector<Row> rows = new Vector<>();
+
+        @Override
+        public boolean setNextRow(Row row) {
+            rows.add(row);
+            return true;
+        }
+
+        @Override
+        public Bucket doFinish() {
+            return null;
+        }
+
+        @Override
+        public Throwable doFail(Throwable t) {
+            return t;
+        }
     }
 }

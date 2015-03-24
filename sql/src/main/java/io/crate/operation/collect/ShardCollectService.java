@@ -235,6 +235,7 @@ public class ShardCollectService {
                             return new LuceneDocCollector(
                                     docCtx.topLevelInputs(),
                                     docCtx.docLevelExpressions(),
+                                    docCtx.orderByOnlyExpressions(),
                                     collectNode,
                                     functions,
                                     downstream,

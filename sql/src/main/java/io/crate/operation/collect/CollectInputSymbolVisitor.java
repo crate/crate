@@ -50,6 +50,8 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
 
         protected ArrayList<E> docLevelExpressions = new ArrayList<>();
 
+        protected ArrayList<E> orderByOnlyExpressions = new ArrayList<>();
+
         private @Nullable OrderBy orderBy = null;
 
         public List<E> docLevelExpressions() {
@@ -63,6 +65,15 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         public @Nullable OrderBy orderBy() {
             return this.orderBy;
         }
+
+        public void addOrderByOnlyExpression(E expr) {
+            orderByOnlyExpressions.add(expr);
+        }
+
+        public ArrayList<E> orderByOnlyExpressions() {
+            return orderByOnlyExpressions;
+        }
+
     }
 
     public CollectInputSymbolVisitor(Functions functions, DocLevelReferenceResolver<E> referenceResolver) {
@@ -77,6 +88,13 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         if (node.toCollect() != null) {
             for (Symbol symbol : node.toCollect()) {
                 context.add(process(symbol, context));
+            }
+            if (node.orderBy() != null) {
+                for (Symbol symbol : node.orderBy().orderBySymbols()) {
+                    if ( !node.toCollect().contains(symbol)) {
+                        context.addOrderByOnlyExpression(process(symbol, context));
+                    }
+                }
             }
         }
         return context;
