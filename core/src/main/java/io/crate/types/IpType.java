@@ -37,6 +37,9 @@ public class IpType extends StringType {
 
     @Override
     public BytesRef value(Object value) {
+        if (value == null) {
+            return null;
+        }
         if (value instanceof BytesRef) {
             BytesRef ip = (BytesRef) value;
             validate(ip);

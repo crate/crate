@@ -23,6 +23,8 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
+import org.hamcrest.core.Is;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -74,5 +76,43 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         execute("select extract(day from ts) from t order by 1");
         assertThat((Integer) response.rows()[0][0], is(1));
         assertThat((Integer) response.rows()[1][0], is(17));
+    }
+
+    @Test
+    public void testOrderBySortTypes() throws Exception {
+        execute("create table xxx (" +
+                "  b byte," +
+                "  s short," +
+                "  i integer," +
+                "  l long," +
+                "  f float," +
+                "  d double," +
+                "  st string," +
+                "  boo boolean," +
+                "  t timestamp," +
+                "  ipp ip" +
+                ")");
+        ensureYellow();
+        execute("insert into xxx (b, s, i, l, f, d, st, boo, t, ipp) values (?, ?, ?, ?, ?, ?, ? ,?, ?, ?)", new Object[][]{
+                {1, 2, 3, 4L, 1.5f, -0.5d, "hallo", true, "1970-01-01", "127.0.0.1"},
+                {null, null, null, null, null, null, null, null, null, null},
+                {2, 4, 6, 8L, 3.1f, -4.5d, "goodbye", false, "2088-01-01", "10.0.0.1"},
+        });
+        execute("refresh table xxx");
+        execute("select b, s, i, l, f, d, st, boo, t, ipp " +
+                "from xxx " +
+                "order by b, s, i, l, f, d, st, boo, t, ipp");
+        assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
+                "1| 2| 3| 4| 1.5| -0.5| hallo| true| 0| 127.0.0.1\n" +
+                        "2| 4| 6| 8| 3.1| -4.5| goodbye| false| 3723753600000| 10.0.0.1\n" +
+                        "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL\n"));
+
+        execute("select b, s, i, l, f, d, st, boo, t, ipp " +
+                "from xxx " +
+                "order by b desc nulls first, s, i, l, f, d, st, boo, t, ipp");
+        assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
+                "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL\n" +
+                        "2| 4| 6| 8| 3.1| -4.5| goodbye| false| 3723753600000| 10.0.0.1\n" +
+                        "1| 2| 3| 4| 1.5| -0.5| hallo| true| 0| 127.0.0.1\n"));
     }
 }
