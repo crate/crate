@@ -204,7 +204,9 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             if (!ignoreSorting && collectorTopN && orderBy != null && orderBy.isSorted()) {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
-                localMergeNode = PlanNodeBuilder.sortedLocalMerge(handlerProjections, orderBy, table.querySpec().outputs(), null, collectNode);
+                localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                        handlerProjections, orderBy, table.querySpec().outputs(), null,
+                        collectNode, context.plannerContext());
                 handlerProjections.add(
                         projectionBuilder.topNProjection(
                                 table.querySpec().outputs(),
