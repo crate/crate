@@ -118,7 +118,8 @@ public class PlanNodeBuilder {
                                              OrderBy orderBy,
                                              List<Symbol> sourceSymbols,
                                              @Nullable List<Symbol> orderBySymbols,
-                                             DQLPlanNode previousNode) {
+                                             DQLPlanNode previousNode,
+                                             Planner.Context plannerContext) {
         int[] orderByIndices = OrderByPositionVisitor.orderByPositions(
                 MoreObjects.firstNonNull(orderBySymbols, orderBy.orderBySymbols()),
                 sourceSymbols
@@ -130,6 +131,8 @@ public class PlanNodeBuilder {
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
         );
+        node.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
+        node.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         node.projections(projections);
         connectTypes(previousNode, node);
         return node;

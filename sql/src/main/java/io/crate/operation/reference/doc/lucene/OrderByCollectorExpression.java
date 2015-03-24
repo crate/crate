@@ -15,13 +15,19 @@ import org.apache.lucene.util.BytesRefBuilder;
  */
 public class OrderByCollectorExpression extends LuceneCollectorExpression<Object> {
 
-    private Object value;
+    private static final BytesRef MAX_TERM;
+
+    static {
+        BytesRefBuilder builder = new BytesRefBuilder();
+        final char[] chars = Character.toChars(Character.MAX_CODE_POINT);
+        builder.copyChars(chars, 0, chars.length);
+        MAX_TERM = builder.toBytesRef();
+    }
 
     private final int orderIndex;
-
-    private final Object missingValue;
-
     private final DataType valueType;
+    private Object value;
+    private Object missingValue;
 
     public OrderByCollectorExpression(Symbol symbol, OrderBy orderBy) {
         assert orderBy.orderBySymbols().contains(symbol);
@@ -49,14 +55,6 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
     @Override
     public Object value() {
         return value;
-    }
-
-    private static final BytesRef MAX_TERM;
-    static {
-        BytesRefBuilder builder = new BytesRefBuilder();
-        final char[] chars = Character.toChars(Character.MAX_CODE_POINT);
-        builder.copyChars(chars, 0, chars.length);
-        MAX_TERM = builder.toBytesRef();
     }
 
     /** Calculates the missing Values as in {@link org.elasticsearch.index.fielddata.IndexFieldData}
