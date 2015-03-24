@@ -48,8 +48,6 @@ public class CrateClientClassLoader extends ClassLoader {
                     "Ocom.google".substring(1),
                     "Ocom.ning.compress".substring(1),
                     "Oorg.jboss.netty".substring(1),
-                    "Oorg.apache.log4j".substring(1),
-                    "Oorg.slf4j".substring(1),
                     "Oorg.apache.commons".substring(1),
                     "Ojsr166".substring(1)
             ) + ")"
