@@ -1671,7 +1671,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("refresh table event");
-        execute("select data['sessionid'] from event group by data['sessionid'] order by format('%s', data['sessionid'])");
+        waitNoPendingTasksOnAll();
+        execute("select data['sessionid'] from event group by data['sessionid'] order by data['sessionid']");
         assertThat(response.rows().length, Is.is(2));
         assertThat((String)response.rows()[0][0], Is.is("hello"));
         assertThat(response.rows()[1][0], Is.is(nullValue()));
