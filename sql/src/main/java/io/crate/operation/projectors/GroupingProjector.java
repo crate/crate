@@ -135,7 +135,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
+        if (remainingUpstreams.decrementAndGet() == 0) {
             if (grouper != null) {
                 grouper.finish();
                 cleanUp();
