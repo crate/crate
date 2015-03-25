@@ -23,7 +23,10 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;

@@ -275,9 +275,9 @@ public class MergeNode extends AbstractDQLPlanNode {
                 .add("inputTypes", inputTypes)
                 .add("sortedInputOutput", sortedInputOutput);
         if (sortedInputOutput) {
-            helper.add("orderByIndices", orderByIndices)
-                  .add("reverseFlags", reverseFlags)
-                  .add("nullsFirst", nullsFirst);
+            helper.add("orderByIndices", Arrays.toString(orderByIndices))
+                  .add("reverseFlags", Arrays.toString(reverseFlags))
+                  .add("nullsFirst", Arrays.toString(nullsFirst));
         }
         return helper.toString();
     }
