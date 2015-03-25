@@ -151,6 +151,14 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testLimitWithoutOrder() throws Exception{
+        collectingProjector.rows.clear();
+        LuceneDocCollector docCollector = createDocCollector(null, 5000, orderBy.orderBySymbols());
+        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        assertThat(collectingProjector.rows.size(), is(5000));
+    }
+
+    @Test
     public void testOrderedWithLimit() throws Exception{
         collectingProjector.rows.clear();
         LuceneDocCollector docCollector = createDocCollector(orderBy, 5000, orderBy.orderBySymbols());

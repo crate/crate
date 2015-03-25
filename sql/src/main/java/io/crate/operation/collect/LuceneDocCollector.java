@@ -106,6 +106,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private RamAccountingContext ramAccountingContext;
     private boolean producedRows = false;
     private Scorer scorer;
+    private int rowCount = 0;
 
     public LuceneDocCollector(List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
@@ -146,6 +147,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void collect(int doc) throws IOException {
+        rowCount++;
         if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
             // stop collecting because breaker limit was reached
             throw new UnexpectedCollectionTerminatedException(
@@ -180,7 +182,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             output = inputRow;
         }
 
-        if (!downstream.setNextRow(output)) {
+        if (!downstream.setNextRow(output) || (limit != null && rowCount == limit)) {
             // no more rows required, we can stop here
             throw new CollectionAbortedException();
         }
