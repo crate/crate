@@ -29,8 +29,12 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
+import io.crate.operation.Input;
 import io.crate.operation.PageConsumeListener;
+import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
@@ -41,7 +45,7 @@ import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
-import static io.crate.testing.TestingHelpers.createPage;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.is;
 
 
@@ -55,6 +59,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         final SortingBucketMerger merger = new SortingBucketMerger(
                 buckets, new int[] { 0 }, new boolean[] { false }, new Boolean[] { nullsFirst }, Optional.<Executor>absent());
         merger.downstream(collectingProjector);
+        collectingProjector.startProjection();
 
         final Iterator<BucketPage> pageIter = Iterators.forArray(pages);
         if (pageIter.hasNext()) {
@@ -323,7 +328,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
                 try {
                     future.set(mergeWith(2, null, page1, page2));
                 } catch (ExecutionException | InterruptedException e) {
-                    fail(e.getMessage());
+                    future.setException(e);
                 }
             }
         });
@@ -338,6 +343,70 @@ public class SortingBucketMergerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testThreadedWith100EqualResults() throws Exception {
+        final SettableFuture<Bucket> bucketFuture1 = SettableFuture.create();
+        final SettableFuture<Bucket> bucketFuture2 = SettableFuture.create();
+        final BucketPage page1 = new BucketPage(Arrays.<ListenableFuture<Bucket>>asList(bucketFuture1, bucketFuture2));
+
+        Thread thread1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Object[][] result = new Object[37][];
+                Arrays.fill(result, new Object[] { 1 });
+                bucketFuture1.set(new ArrayBucket(result));
+
+            }
+        });
+        Thread thread2 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Object[][] result = new Object[63][];
+                Arrays.fill(result, new Object[] { 1 });
+                bucketFuture2.set(new ArrayBucket(result));
+            }
+        });
+        final SettableFuture<Bucket> future = SettableFuture.create();
+        Thread mergeThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final SortingBucketMerger bucketMerger = new SortingBucketMerger(2, new int[]{0}, new boolean[]{false}, new Boolean[]{null}, Optional.<Executor>absent());
+                InputCollectExpression inputCollectExpression = new InputCollectExpression<>(0);
+                SimpleTopNProjector topN = new SimpleTopNProjector(Arrays.<Input<?>>asList(inputCollectExpression), new CollectExpression[]{ inputCollectExpression }, 100, 0);
+                bucketMerger.downstream(topN);
+                CollectingProjector collectingProjector = new CollectingProjector();
+                topN.downstream(collectingProjector);
+                collectingProjector.startProjection();
+                topN.startProjection();
+                bucketMerger.nextPage(page1, new PageConsumeListener() {
+                    @Override
+                    public void needMore() {
+                        bucketMerger.finish();
+                    }
+
+                    @Override
+                    public void finish() {
+                        bucketMerger.finish();
+                    }
+                });
+                try {
+                    future.set(collectingProjector.result().get());
+                } catch (InterruptedException | ExecutionException e) {
+                    future.setException(e);
+                }
+            }
+        });
+        mergeThread.start();
+        thread1.start();
+        thread2.start();
+        Bucket merged = future.get();
+        assertThat(merged, isSorted(0, false, null));
+        assertThat(merged.size(), is(100));
+        thread1.join();
+        thread2.join();
+        mergeThread.join();
+    }
+
+    @Test
     public void testWithSortingOnManyColumns() throws Exception {
         CollectingProjector collectingProjector = new CollectingProjector();
 
@@ -345,7 +414,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         final SortingBucketMerger merger = new SortingBucketMerger(
                 2, new int[]{1, 0}, new boolean[]{false, true}, new Boolean[]{null, true}, Optional.<Executor>absent());
         merger.downstream(collectingProjector);
-
+        collectingProjector.startProjection();
         BucketPage page1 = createPage(
                 Arrays.asList(
                         new Object[]{"A", "0"},
