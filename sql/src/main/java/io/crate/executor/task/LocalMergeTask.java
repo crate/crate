@@ -111,7 +111,7 @@ public class LocalMergeTask extends JobTask {
                 ramAccountingContext,
                 Optional.of(threadPool.executor(ThreadPool.Names.GENERIC))
         );
-
+        collectingProjector.startProjection();
         statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.id());
 
         // callback for projected result, closing all the stuff
@@ -152,7 +152,7 @@ public class LocalMergeTask extends JobTask {
             public void needMore() {
                 // currently only one page
                 LOGGER.trace("{} need more", mergeNode.jobId());
-                finish();
+                this.finish();
             }
 
             @Override
