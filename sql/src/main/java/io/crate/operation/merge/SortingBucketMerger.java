@@ -235,8 +235,7 @@ public class SortingBucketMerger implements BucketMerger {
                 }
             }
 
-            bi++;
-            if (bi == numBuckets) {
+            if (bi == (numBuckets-1)) {
                 // looked at all buckets..
                 boolean leastBucketItExhausted = false;
 
@@ -277,7 +276,6 @@ public class SortingBucketMerger implements BucketMerger {
 
                     leastRow = null;
                     bucketsWithRowEqualToLeast.clear();
-                    bi = 0;
                 }
                 if (leastBucketItExhausted) {
                     // need next page to continue...
@@ -297,7 +295,7 @@ public class SortingBucketMerger implements BucketMerger {
                     return;
                 }
             }
-            bi = bi % numBuckets;
+            bi = (bi+1) % numBuckets;
         }
     }
 
