@@ -128,7 +128,7 @@ public class QueryThenFetchConsumer implements Consumer {
                     collectSymbols,
                     ImmutableList.<Projection>of(),
                     orderBy,
-                    table.querySpec().limit() + table.querySpec().offset()
+                    MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset()
             );
             collectNode.keepContextForFetcher(true);
 
