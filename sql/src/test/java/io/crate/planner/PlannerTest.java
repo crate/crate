@@ -498,6 +498,30 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testQueryThenFetchPlanDefaultLimit() throws Exception {
+        QueryThenFetch plan = (QueryThenFetch)plan("select name from users");
+        CollectNode collectNode = plan.collectNode();
+        assertThat(collectNode.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+
+        MergeNode mergeNode = plan.mergeNode();
+        TopNProjection topN = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(0));
+        assertThat(topN.orderBy().size(), is(0));
+
+        // with offset
+        plan = (QueryThenFetch)plan("select name from users offset 20");
+        collectNode = plan.collectNode();
+        assertThat(collectNode.limit(), is(Constants.DEFAULT_SELECT_LIMIT + 20));
+
+        mergeNode = plan.mergeNode();
+        topN = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(20));
+        assertThat(topN.orderBy().size(), is(0));
+    }
+
+    @Test
     public void testQueryThenFetchPlanPartitioned() throws Exception {
         Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
         assertThat(plan, instanceOf(QueryThenFetch.class));

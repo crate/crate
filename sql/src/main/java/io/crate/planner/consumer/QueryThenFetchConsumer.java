@@ -142,22 +142,20 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             List<Projection> mergeProjections = new ArrayList<>();
-            if (table.querySpec().isLimited() || scoreSelected) {
-                TopNProjection topNProjection = new TopNProjection(
-                        MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                        table.querySpec().offset(),
-                        scoreSelected ? Arrays.<Symbol>asList(DEFAULT_SCORE_INPUT_COLUMN) : ImmutableList.<Symbol>of(),
-                        scoreSelected ? new boolean[]{true} : new boolean[0],
-                        scoreSelected ? new Boolean[]{false} : new Boolean[0]
-                        );
-                List<Symbol> outputs = new ArrayList<>();
-                outputs.add(DEFAULT_DOC_ID_INPUT_COLUMN);
-                if (scoreSelected) {
-                    outputs.add(DEFAULT_SCORE_INPUT_COLUMN);
-                }
-                topNProjection.outputs(outputs);
-                mergeProjections.add(topNProjection);
+            TopNProjection topNProjection = new TopNProjection(
+                    MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    table.querySpec().offset(),
+                    scoreSelected ? Arrays.<Symbol>asList(DEFAULT_SCORE_INPUT_COLUMN) : ImmutableList.<Symbol>of(),
+                    scoreSelected ? new boolean[]{true} : new boolean[0],
+                    scoreSelected ? new Boolean[]{false} : new Boolean[0]
+            );
+            List<Symbol> outputs = new ArrayList<>(2);
+            outputs.add(DEFAULT_DOC_ID_INPUT_COLUMN);
+            if (scoreSelected) {
+                outputs.add(DEFAULT_SCORE_INPUT_COLUMN);
             }
+            topNProjection.outputs(outputs);
+            mergeProjections.add(topNProjection);
 
             FetchProjection fetchProjection = new FetchProjection(
                     DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
