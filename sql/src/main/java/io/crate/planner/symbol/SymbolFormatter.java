@@ -26,12 +26,22 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfos;
 import org.apache.lucene.util.BytesRef;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
 public class SymbolFormatter extends SymbolVisitor<Void, String> {
+
+    public static final com.google.common.base.Function<Symbol, String> SYMBOL_FORMAT_FUNCTION = new com.google.common.base.Function<Symbol, String>() {
+
+        @Nullable
+        @Override
+        public String apply(Symbol input) {
+            return INSTANCE.process(input, null);
+        }
+    };
 
     private static final SymbolFormatter INSTANCE = new SymbolFormatter();
 
