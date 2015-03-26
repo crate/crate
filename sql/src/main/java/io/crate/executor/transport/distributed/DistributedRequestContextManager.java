@@ -91,14 +91,14 @@ public class DistributedRequestContextManager {
                               final ActionListener<NodeMergeResponse> listener) throws IOException {
         logger.trace("createContext: {}", mergeNode);
         final UUID operationId = UUID.randomUUID();
-        String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId);
+        String ramAccountingContextId = String.format("%s: %s", mergeNode.name(), operationId);
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.id());
+        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.name());
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
 
         ResultProvider resultProvider = new SingleBucketBuilder(streamerContext.outputStreamers());
-        // wiring projectorChain-result-future and responselistener
+        // wiring projectorChain-result-future and response listener
         wireActionListener(streamerContext.outputStreamers(), listener, resultProvider.result());
 
         PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(mergeNode, resultProvider, ramAccountingContext, Optional.<Executor>absent());

@@ -101,13 +101,14 @@ public class TransportCollectNodeAction {
         final UUID operationId;
         if (node.jobId().isPresent()) {
             operationId = UUID.randomUUID();
-            statsTables.operationStarted(operationId, node.jobId().get(), node.id());
+            statsTables.operationStarted(operationId, node.jobId().get(), node.name());
         } else {
             collectResponseListener.onFailure(new IllegalArgumentException("no jobId given for CollectOperation"));
             return;
         }
-        String ramAccountingContextId = String.format("%s: %s", node.id(), operationId);
-        final RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
+        String ramAccountingContextId = String.format("%s: %s", node.name(), operationId);
+        final RamAccountingContext ramAccountingContext =
+                new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
         final NodeCollectResponse response = new NodeCollectResponse(
                 planNodeStreamerVisitor.process(node, ramAccountingContext).outputStreamers());
