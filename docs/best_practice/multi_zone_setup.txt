@@ -99,7 +99,7 @@ so we can force awareness on nodes.
 
 You can force awareness an certain attributes, in our example, on the ``zone``::
 
-  cluster.routing.allocation.awareness.force.zone: us-east-1,us-west-1
+  cluster.routing.allocation.awareness.force.zone.values: us-east-1,us-west-1
 
 When set, never more replicas than needed are allocated on a specific group of nodes. For example,
 you have 2 nodes with ``zone`` set to ``us-east-1`` and create a table with 8 shards and 1 replica,
