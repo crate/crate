@@ -44,6 +44,8 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.HashMap;
+import java.util.Set;
 
 public class PlanNodeBuilder {
 
@@ -58,7 +60,7 @@ public class PlanNodeBuilder {
         CollectNode node = new CollectNode("distributing collect", routing);
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
-        node.downStreamNodes(downstreamNodes);
+        node.downstreamNodes(downstreamNodes);
         node.toCollect(toCollect);
         node.projections(projections);
 
@@ -72,8 +74,8 @@ public class PlanNodeBuilder {
         MergeNode node = new MergeNode("distributed merge", collectNode.executionNodes().size());
         node.projections(projections);
 
-        assert collectNode.downStreamNodes()!=null && collectNode.downStreamNodes().size()>0;
-        node.executionNodes(ImmutableSet.copyOf(collectNode.downStreamNodes()));
+        assert collectNode.hasDownstreams();
+        node.executionNodes(ImmutableSet.copyOf(collectNode.downstreamNodes()));
         connectTypes(collectNode, node);
         return node;
     }
@@ -164,11 +166,9 @@ public class PlanNodeBuilder {
                     tableInfo.ident().schema(), tableInfo.ident().name(), partitionIdent).stringValue());
         }
         plannerContext.allocateJobSearchContextIds(routing);
-        CollectNode node = new CollectNode("collect", routing);
+        CollectNode node = new CollectNode("collect", routing, toCollect, projections);
         node.whereClause(whereClause);
-        node.toCollect(toCollect);
         node.maxRowGranularity(tableInfo.rowGranularity());
-        node.projections(projections);
         node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
         node.orderBy(orderBy);

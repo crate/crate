@@ -52,7 +52,7 @@ import java.util.List;
  * collect documents from ES shard, a lucene index
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
-    
+
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
         final HashSet<String> requiredFields;

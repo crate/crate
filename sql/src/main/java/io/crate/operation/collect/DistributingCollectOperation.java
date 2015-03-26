@@ -101,7 +101,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Di
                 node, new RamAccountingContext("dummy", circuitBreaker)).outputStreamers();
         return new DistributingDownstream(
                 node.jobId().get(),
-                toDiscoveryNodes(node.downStreamNodes()),
+                toDiscoveryNodes(node.downstreamNodes()),
                 transportService,
                 streamers
         );
