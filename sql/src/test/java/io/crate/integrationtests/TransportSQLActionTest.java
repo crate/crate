@@ -1904,7 +1904,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         this.setup.setUpLocations();
         refresh();
         execute("select name, description, kind, _score from locations " +
-                "where match((kind, name_description_ft 0.5), 'Planet earth') using most_fields with (analyzer='english')");
+                "where match((kind, name_description_ft 0.5), 'Planet earth') using most_fields with (analyzer='english') order by _score desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.049483635\n" +
@@ -1913,7 +1913,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.017716927\n"));
 
         execute("select name, description, kind, _score from locations " +
-                "where match((kind, name_description_ft 0.5), 'Planet earth') using cross_fields");
+                "where match((kind, name_description_ft 0.5), 'Planet earth') using cross_fields order by _score desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.06658964\n" +
@@ -1941,7 +1941,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select characters.name AS characters_name, _score " +
                 "from characters " +
-                "where match(characters.quote_ft 1.0, 'country')");
+                "where match(characters.quote_ft 1.0, 'country') order by _score desc");
         assertThat(response.rows().length, is(2));
         assertThat((String) response.rows()[0][0], is("Trillian"));
         assertThat((float) response.rows()[0][1], is(0.15342641f));
@@ -1953,15 +1953,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testMatchTypes() throws Exception {
         this.setup.setUpLocations();
         refresh();
-        execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') using best_fields");
+        execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') using best_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Alpha Centauri| 0.22184466\n| 0.21719791\nAllosimanius Syneca| 0.09626817\nBartledan| 0.08423465\nGalactic Sector QQ7 Active J Gamma| 0.08144922\n"));
 
-        execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields");
+        execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Alpha Centauri| 0.12094267\n| 0.1035407\nAllosimanius Syneca| 0.05248235\nBartledan| 0.045922056\nGalactic Sector QQ7 Active J Gamma| 0.038827762\n"));
 
-        execute("select name, _score from locations where match((kind 0.4, name_description_ft 1.0), 'planet earth') using cross_fields");
+        execute("select name, _score from locations where match((kind 0.4, name_description_ft 1.0), 'planet earth') using cross_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Alpha Centauri| 0.14147125\n| 0.116184436\nAllosimanius Syneca| 0.061390605\nBartledan| 0.05371678\nGalactic Sector QQ7 Active J Gamma| 0.043569162\n"));
 
@@ -1987,7 +1987,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (fuzziness=0.5) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("End of the Galaxy| 1.4109559\nOuter Eastern Rim| 1.4109559\nNorth West Ripple| 1.2808706\nGalactic Sector QQ7 Active J Gamma| 1.2808706\nAltair| 0.3842612\nAlgol| 0.25617412\n"));
+                is("Outer Eastern Rim| 1.4109559\nEnd of the Galaxy| 1.4109559\nNorth West Ripple| 1.2808706\nGalactic Sector QQ7 Active J Gamma| 1.2808706\nAltair| 0.3842612\nAlgol| 0.25617412\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
                 "using best_fields with (operator='or', minimum_should_match=2) order by _score desc");
