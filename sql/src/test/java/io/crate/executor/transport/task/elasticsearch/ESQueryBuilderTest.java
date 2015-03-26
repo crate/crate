@@ -372,22 +372,20 @@ public class ESQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereReferenceAnyLike() throws Exception {
         FunctionIdent functionIdent = new FunctionIdent(AnyLikeOperator.NAME,
-                Arrays.<DataType>asList(new ArrayType(DataTypes.STRING), DataTypes.STRING));
+                Arrays.<DataType>asList(DataTypes.STRING, new ArrayType(DataTypes.STRING)));
         FunctionImplementation anyLikeImpl = functions.get(functionIdent);
         Function anyLike = new Function(anyLikeImpl.info(),
-                Arrays.<Symbol>asList(tagsField,
-                        Literal.newLiteral("foo%")));
+                Arrays.asList(Literal.newLiteral("foo%"), tagsField));
         xcontentAssert(anyLike, "{\"query\":{\"wildcard\":{\"tags\":\"foo*\"}}}");
     }
 
     @Test
     public void testWhereReferenceAnyNotLike() throws Exception {
         FunctionIdent functionIdent = new FunctionIdent(AnyNotLikeOperator.NAME,
-                Arrays.<DataType>asList(new ArrayType(DataTypes.STRING), DataTypes.STRING));
+                Arrays.<DataType>asList(DataTypes.STRING, new ArrayType(DataTypes.STRING)));
         FunctionImplementation anyNotLikeImpl = functions.get(functionIdent);
         Function anyNotLike = new Function(anyNotLikeImpl.info(),
-                Arrays.<Symbol>asList(tagsField,
-                        Literal.newLiteral("foo%")));
+                Arrays.asList(Literal.newLiteral("foo%"), tagsField));
         xcontentAssert(anyNotLike, "{\"query\":{\"regexp\":{\"tags\":{\"value\":\"~(foo.*)\",\"flags\":\"COMPLEMENT\"}}}}");
     }
 
@@ -526,11 +524,12 @@ public class ESQueryBuilderTest extends CrateUnitTest {
         DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
         Reference doubleArrayRef = createReference("d_array", doubleArrayType);
         FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>",
-                Arrays.<DataType>asList(doubleArrayType, DataTypes.DOUBLE)));
+                Arrays.asList(DataTypes.DOUBLE, doubleArrayType)));
 
-        Function whereClause = new Function(anyGreaterImpl.info(), Arrays.<Symbol>asList(doubleArrayRef, Literal.newLiteral(0.0)));
+        Function whereClause = new Function(anyGreaterImpl.info(),
+                Arrays.asList(Literal.newLiteral(0.0), doubleArrayRef));
 
-        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"d_array\":{\"gt\":0.0}}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"d_array\":{\"lt\":0.0}}}}");
     }
 
     @Test
@@ -540,12 +539,12 @@ public class ESQueryBuilderTest extends CrateUnitTest {
         DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
         Reference doubleArrayRef = createReference("d_array", doubleArrayType);
         FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>=",
-                Arrays.<DataType>asList(doubleArrayType, DataTypes.DOUBLE)));
+                Arrays.asList(DataTypes.DOUBLE, doubleArrayType)));
 
         Function whereClause = new Function(anyGreaterImpl.info(),
-                Arrays.<Symbol>asList(doubleArrayRef, Literal.newLiteral(0.0)));
+                Arrays.asList(Literal.newLiteral(0.0), doubleArrayRef));
 
-        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"d_array\":{\"gte\":0.0}}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"d_array\":{\"lte\":0.0}}}}");
     }
 
     @Test

@@ -47,12 +47,12 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
         }
         Literal valuesLiteral = Literal.newLiteral(new ArrayType(DataTypes.STRING), value);
         AnyNotLikeOperator impl = (AnyNotLikeOperator)new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
-                Arrays.asList(valuesLiteral.valueType(), patternLiteral.valueType())
+                Arrays.asList(patternLiteral.valueType(), valuesLiteral.valueType())
         );
 
         Function function = new Function(
                 impl.info(),
-                Arrays.<Symbol>asList(valuesLiteral, patternLiteral)
+                Arrays.<Symbol>asList(patternLiteral, valuesLiteral)
         );
         return impl.normalizeSymbol(function);
     }
@@ -69,10 +69,10 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
         }
         Literal valuesLiteral = Literal.newLiteral(new ArrayType(DataTypes.STRING), value);
         AnyNotLikeOperator impl = (AnyNotLikeOperator)new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
-                Arrays.asList(valuesLiteral.valueType(), DataTypes.STRING)
+                Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
 
-        return impl.evaluate(valuesLiteral, patternLiteral);
+        return impl.evaluate(patternLiteral, valuesLiteral);
     }
 
     @Test
@@ -155,9 +155,9 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
         Literal valuesLiteral = Literal.newLiteral(new ArrayType(DataTypes.STRING),
                 new Object[]{new BytesRef("A"), new BytesRef("B")});
         FunctionImplementation<Function> impl = new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
-                Arrays.asList(valuesLiteral.valueType(), DataTypes.STRING)
+                Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
-        Function anyNotLikeFunction = new Function(impl.info(), Arrays.<Symbol>asList(valuesLiteral, patternLiteral));
+        Function anyNotLikeFunction = new Function(impl.info(), Arrays.<Symbol>asList(patternLiteral, valuesLiteral));
         Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyNotLikeFunction);
         assertThat(normalized.value(), is(true));
         assertThat(new NotPredicate().evaluate(normalized), is(false));
