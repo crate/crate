@@ -275,7 +275,8 @@ public class PlannerTest extends CrateUnitTest {
 
         // distributed collect
         CollectNode collectNode = distributedGroupBy.collectNode();
-        assertThat(collectNode.downStreamNodes().size(), is(2));
+        assertThat(collectNode.hasDownstreams(), is(true));
+        assertThat(collectNode.downstreamNodes().size(), is(2));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectNode.executionNodes().size(), is(2));
         assertThat(collectNode.toCollect().size(), is(1));
@@ -738,7 +739,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from users group by id limit 20");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertFalse(collectNode.hasDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
@@ -795,7 +796,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id, date from empty_parted group by id, date limit 20");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertFalse(collectNode.hasDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
@@ -810,7 +811,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select (count(*) + 1), id from empty_parted group by id");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertFalse(collectNode.hasDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         TopNProjection topNProjection = (TopNProjection)collectNode.projections().get(1);
@@ -827,7 +828,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from empty_parted group by id");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertFalse(collectNode.hasDownstreams());
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
 
