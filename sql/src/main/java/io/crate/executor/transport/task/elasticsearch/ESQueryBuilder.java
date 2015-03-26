@@ -234,30 +234,26 @@ public class ESQueryBuilder {
 
         Visitor() {
             EqConverter eqConverter = new EqConverter();
-            RangeConverter ltConverter = new RangeConverter("lt");
-            RangeConverter lteConverter = new RangeConverter("lte");
-            RangeConverter gtConverter = new RangeConverter("gt");
-            RangeConverter gteConverter = new RangeConverter("gte");
             functions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
                     .put(AndOperator.NAME, new AndConverter())
                     .put(OrOperator.NAME, new OrConverter())
                     .put(EqOperator.NAME, eqConverter)
-                    .put(LtOperator.NAME, ltConverter)
-                    .put(LteOperator.NAME, lteConverter)
-                    .put(GtOperator.NAME, gtConverter)
-                    .put(GteOperator.NAME, gteConverter)
+                    .put(LtOperator.NAME, new RangeConverter("lt"))
+                    .put(LteOperator.NAME, new RangeConverter("lte"))
+                    .put(GtOperator.NAME, new RangeConverter("gt"))
+                    .put(GteOperator.NAME, new RangeConverter("gte"))
                     .put(LikeOperator.NAME, new LikeConverter())
                     .put(IsNullPredicate.NAME, new IsNullConverter())
                     .put(NotPredicate.NAME, new NotConverter())
                     .put(MatchPredicate.NAME, new MatchConverter())
                     .put(InOperator.NAME, new InConverter())
-                    .put(AnyEqOperator.NAME, eqConverter)
+                    .put(AnyEqOperator.NAME, new AnyEqConverter())
                     .put(AnyNeqOperator.NAME, new AnyNeqConverter())
-                    .put(AnyLtOperator.NAME, ltConverter)
-                    .put(AnyLteOperator.NAME, lteConverter)
-                    .put(AnyGtOperator.NAME, gtConverter)
-                    .put(AnyGteOperator.NAME, gteConverter)
-                    .put(AnyLikeOperator.NAME, new LikeConverter())
+                    .put(AnyLtOperator.NAME, new RangeConverter("gt", true))
+                    .put(AnyLteOperator.NAME, new RangeConverter("gte", true))
+                    .put(AnyGtOperator.NAME, new RangeConverter("lt", true))
+                    .put(AnyGteOperator.NAME, new RangeConverter("lte", true))
+                    .put(AnyLikeOperator.NAME, new LikeConverter(true))
                     .put(AnyNotLikeOperator.NAME, new AnyNotLikeConverter())
                     .put(WithinFunction.NAME, new WithinConverter())
                     .put(RegexpMatchOperator.NAME, new RegexpMatchConverter())
@@ -571,44 +567,46 @@ public class ESQueryBuilder {
             }
         }
 
-        abstract class CmpConverter extends Converter<Function> {
+        static abstract class CmpConverter extends Converter<Function> {
 
             @Nullable
             protected Tuple<String, Object> prepare(Function function) {
-                Preconditions.checkNotNull(function, "given function '%s' is null", function.getClass().getSimpleName());
                 Preconditions.checkArgument(function.arguments().size() == 2, "invalid number of arguments");
 
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
 
-                if (left.symbolType() == SymbolType.FUNCTION || right.symbolType() == SymbolType.FUNCTION) {
+                return getTuple(left, right);
+            }
+
+            protected Tuple<String, Object> getTuple(Symbol ref, Symbol valueSymbol) {
+                if (ref.symbolType() == SymbolType.FUNCTION || valueSymbol.symbolType() == SymbolType.FUNCTION) {
                     return null;
                 }
-
-                assert left.symbolType() == SymbolType.REFERENCE || left.symbolType() == SymbolType.DYNAMIC_REFERENCE;
-                if (DataTypes.isCollectionType(left.valueType()) && DataTypes.isCollectionType(right.valueType())) {
+                assert ref.symbolType() == SymbolType.REFERENCE || ref.symbolType() == SymbolType.DYNAMIC_REFERENCE;
+                if (DataTypes.isCollectionType(ref.valueType()) && DataTypes.isCollectionType(valueSymbol.valueType())) {
                     throw new UnsupportedOperationException("Cannot compare two arrays");
                 }
 
                 Object value;
-                if (Symbol.isLiteral(right, DataTypes.STRING)) {
-                    Literal l = (Literal)right;
+                if (Symbol.isLiteral(valueSymbol, DataTypes.STRING)) {
+                    Literal l = (Literal)valueSymbol;
                     value = l.value();
                     if (value instanceof BytesRef) {
                         value = ((BytesRef)value).utf8ToString();
                     }
                 } else {
-                    assert right.symbolType().isValueSymbol();
-                    value = ((Literal) right).value();
+                    assert valueSymbol.symbolType().isValueSymbol();
+                    value = ((Literal) valueSymbol).value();
                 }
-                return new Tuple<>(((Reference) left).info().ident().columnIdent().fqn(), value);
+                return new Tuple<>(((Reference) ref).info().ident().columnIdent().fqn(), value);
             }
         }
 
-        class EqConverter extends CmpConverter {
+        static class EqConverter extends CmpConverter {
             @Override
             public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = super.prepare(function);
+                Tuple<String, Object> tuple = prepare(function);
                 if (tuple == null) {
                     return false;
                 }
@@ -617,7 +615,55 @@ public class ESQueryBuilder {
             }
         }
 
-        class AnyNeqConverter extends CmpConverter {
+
+        static class AnyEqConverter extends CmpConverter {
+
+
+            @Override
+            public boolean convert(Function function, Context context) throws IOException {
+                Preconditions.checkArgument(function.arguments().size() == 2, "invalid number of arguments");
+
+                Symbol left = function.arguments().get(0);
+                Symbol right = function.arguments().get(1);
+
+                if (left.symbolType().isValueSymbol()){
+                    assert right.symbolType() == SymbolType.REFERENCE ||right.symbolType() == SymbolType.DYNAMIC_REFERENCE;
+                    // turn around arguments since the reference needs to be left
+                    return simpleEq(right, left, context);
+                } else if (right.symbolType().isValueSymbol()){
+                    assert left.symbolType() == SymbolType.REFERENCE ||left.symbolType() == SymbolType.DYNAMIC_REFERENCE;
+                    if (DataTypes.isCollectionType(right.valueType())){
+                        String refName = ((Reference) left).info().ident().columnIdent().fqn();
+                        context.builder.startObject("terms").field(refName);
+                        context.builder.startArray();
+                        for (Object value: AnyOperator.collectionValueToIterable(((Literal) right).value())){
+                            context.builder.value(value);
+                        }
+                        context.builder.endArray().endObject();
+                        return true;
+                    } else {
+                        return simpleEq(left, right, context);
+                    }
+                }
+
+
+
+                return false;
+            }
+
+            private boolean simpleEq(Symbol ref, Symbol literal, Context context) throws IOException {
+                Tuple<String, Object> tuple = getTuple(ref, literal);
+                if (tuple != null){
+                    context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+                } else {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+
+        static class AnyNeqConverter extends CmpConverter {
             // 1 != ANY (col) --> gt 1 or lt 1
             @Override
             public boolean convert(Function function, Context context) throws IOException {
@@ -651,7 +697,15 @@ public class ESQueryBuilder {
 
 
 
-        class LikeConverter extends CmpConverter {
+        static class LikeConverter extends SwappableCmpConverter {
+
+            public LikeConverter() {
+                super(false);
+            }
+
+            public LikeConverter(boolean swapped) {
+                super(swapped);
+            }
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
@@ -666,7 +720,11 @@ public class ESQueryBuilder {
             }
         }
 
-        class AnyNotLikeConverter extends LikeConverter {
+        static class AnyNotLikeConverter extends LikeConverter {
+
+            public AnyNotLikeConverter() {
+                super(true);
+            }
 
             public String negateWildcard(String wildCard) {
                 return String.format("~(%s)", wildCard);
@@ -726,17 +784,43 @@ public class ESQueryBuilder {
             }
         }
 
-        class RangeConverter extends CmpConverter {
+        static abstract class SwappableCmpConverter extends CmpConverter{
+            protected final boolean swapped;
+
+            public SwappableCmpConverter(boolean swapped) {
+                this.swapped = swapped;
+            }
+
+            @Nullable
+            @Override
+            protected Tuple<String, Object> prepare(Function function) {
+                Preconditions.checkArgument(function.arguments().size() == 2, "invalid number of arguments");
+                Symbol left = function.arguments().get(0);
+                Symbol right = function.arguments().get(1);
+                if (swapped){
+                    return getTuple(right, left);
+                } else {
+                    return getTuple(left, right);
+                }
+            }
+        }
+
+        static class RangeConverter extends SwappableCmpConverter {
 
             private final String operator;
 
             public RangeConverter(String operator) {
+                this(operator, false);
+            }
+
+            public RangeConverter(String operator, boolean swapped) {
+                super(swapped);
                 this.operator = operator;
             }
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = super.prepare(function);
+                Tuple<String, Object> tuple = prepare(function);
                 if (tuple == null) {
                     return false;
                 }
@@ -747,7 +831,7 @@ public class ESQueryBuilder {
             }
         }
 
-        class RegexpMatchConverter extends CmpConverter {
+        static class RegexpMatchConverter extends CmpConverter {
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
@@ -770,7 +854,7 @@ public class ESQueryBuilder {
             }
         }
 
-        class MatchConverter extends Converter<Function> {
+        static class MatchConverter extends Converter<Function> {
 
 
             @Override

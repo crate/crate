@@ -810,8 +810,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(true));
         Function anyFunction = (Function) analysis.relation().querySpec().where().query();
         assertThat(anyFunction.info().ident().name(), is(AnyEqOperator.NAME));
-        assertThat(anyFunction.arguments().get(0), isReference("friends['id']", new ArrayType(DataTypes.LONG)));
-        assertLiteralSymbol(anyFunction.arguments().get(1), 5L);
+        assertThat(anyFunction.arguments().get(1), isReference("friends['id']", new ArrayType(DataTypes.LONG)));
+        assertLiteralSymbol(anyFunction.arguments().get(0), 5L);
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -923,9 +923,9 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         Function query = (Function) analysis.relation().querySpec().where().query();
         assertThat(query.info().ident().name(), is("any_like"));
         assertThat(query.arguments().size(), is(2));
-        assertThat(query.arguments().get(0), isReference("tags"));
-        assertThat(query.arguments().get(1), instanceOf(Literal.class));
-        assertThat(query.arguments().get(1), isLiteral("awesome", DataTypes.STRING));
+        assertThat(query.arguments().get(0), instanceOf(Literal.class));
+        assertThat(query.arguments().get(0), isLiteral("awesome", DataTypes.STRING));
+        assertThat(query.arguments().get(1), isReference("tags"));
     }
 
     @Test
@@ -950,9 +950,9 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(query.info().ident().name(), is("any_not_like"));
 
         assertThat(query.arguments().size(), is(2));
-        assertThat(query.arguments().get(0), isReference("tags"));
-        assertThat(query.arguments().get(1), instanceOf(Literal.class));
-        assertThat(query.arguments().get(1), isLiteral("awesome", DataTypes.STRING));
+        assertThat(query.arguments().get(0), instanceOf(Literal.class));
+        assertThat(query.arguments().get(0), isLiteral("awesome", DataTypes.STRING));
+        assertThat(query.arguments().get(1), isReference("tags"));
     }
 
     @Test(expected = IllegalArgumentException.class)

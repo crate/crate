@@ -68,7 +68,6 @@ import static io.crate.planner.symbol.Literal.newLiteral;
  * In order to resolve QualifiedName or SubscriptExpressions it will use the fieldResolver given in the constructor and
  * generate a relationOutput for the matching Relation.
  * </p>
- *
  */
 public class ExpressionAnalyzer {
 
@@ -555,38 +554,31 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            // implicitly swapping arguments so we got 1. reference, 2. literal
-            Symbol left = process(node.getRight(), context);
-            Symbol right = process(node.getLeft(), context);
-            DataType leftType = left.valueType();
+            Symbol rightSymbol = process(node.getRight(), context);
+            Symbol leftSymbol = process(node.getLeft(), context);
+            DataType rightType = rightSymbol.valueType();
 
-            if (!DataTypes.isCollectionType(leftType)) {
+            if (!DataTypes.isCollectionType(rightType)) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.format("invalid array expression: '%s'", left));
+                        SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
             }
-            assert leftType instanceof CollectionType;
-
-            DataType leftInnerType = ((CollectionType) leftType).innerType();
-            if (leftInnerType.equals(DataTypes.OBJECT)) {
+            DataType rightInnerType = ((CollectionType) rightType).innerType();
+            if (rightInnerType.equals(DataTypes.OBJECT)) {
                 throw new IllegalArgumentException("ANY on object arrays is not supported");
             }
 
-            if (right.symbolType().isValueSymbol()) {
-                right = Literal.convert(right, leftInnerType);
+            if (leftSymbol.symbolType().isValueSymbol()) {
+                leftSymbol = Literal.convert(leftSymbol, rightInnerType);
             } else {
                 throw new IllegalArgumentException(
                         "The left side of an ANY comparison must be a value, not a column reference");
             }
             ComparisonExpression.Type operationType = node.getType();
             String operatorName;
-            if (SWAP_OPERATOR_TABLE.containsKey(operationType)) {
-                operatorName = AnyOperator.OPERATOR_PREFIX + SWAP_OPERATOR_TABLE.get(operationType).getValue();
-            } else {
-                operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
-            }
-            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftType, right.valueType()));
+            operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
+            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), rightType));
             FunctionInfo functionInfo = getFunctionInfo(functionIdent);
-            return context.allocateFunction(functionInfo, Arrays.asList(left, right));
+            return context.allocateFunction(functionInfo, Arrays.asList(leftSymbol, rightSymbol));
         }
 
         @Override
@@ -594,36 +586,36 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol left = process(node.getValue(), context);
-            Symbol right = process(node.getPattern(), context);
-            DataType leftType = left.valueType();
+            Symbol rightSymbol = process(node.getValue(), context);
+            Symbol leftSymbol = process(node.getPattern(), context);
+            DataType rightType = rightSymbol.valueType();
 
-            if (!DataTypes.isCollectionType(leftType)) {
+            if (!DataTypes.isCollectionType(rightType)) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.format("invalid array expression: '%s'", left));
+                        SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
             }
 
-            DataType leftInnerType = ((CollectionType) leftType).innerType();
-            if (leftInnerType.id() != StringType.ID) {
-                if (!(left instanceof Field)) {
-                    left = normalizeInputForType(left, new ArrayType(DataTypes.STRING));
+            DataType rightInnerType = ((CollectionType) rightType).innerType();
+            if (rightInnerType.id() != StringType.ID) {
+                if (!(rightSymbol instanceof Field)) {
+                    rightSymbol = normalizeInputForType(rightSymbol, new ArrayType(DataTypes.STRING));
                 } else {
                     throw new IllegalArgumentException(
-                            SymbolFormatter.format("elements not of type string: '%s'", left));
+                            SymbolFormatter.format("elements not of type string: '%s'", rightSymbol));
                 }
             }
 
-            if (right.symbolType().isValueSymbol()) {
-                right = normalizeInputForType(right, leftInnerType);
+            if (leftSymbol.symbolType().isValueSymbol()) {
+                leftSymbol = normalizeInputForType(leftSymbol, rightInnerType);
             } else {
                 throw new IllegalArgumentException(
                         "The left side of an ANY comparison must be a value, not a column reference");
             }
             String operatorName = node.inverse() ? AnyNotLikeOperator.NAME : AnyLikeOperator.NAME;
 
-            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftType, right.valueType()));
+            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), rightType));
             FunctionInfo functionInfo = getFunctionInfo(functionIdent);
-            return context.allocateFunction(functionInfo, Arrays.asList(left, right));
+            return context.allocateFunction(functionInfo, Arrays.asList(leftSymbol, rightSymbol));
         }
 
         @Override

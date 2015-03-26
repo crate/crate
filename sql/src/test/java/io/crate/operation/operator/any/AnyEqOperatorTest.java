@@ -43,7 +43,7 @@ public class AnyEqOperatorTest {
 
         AnyEqOperator anyEqOperator = new AnyEqOperator(
                 new FunctionInfo(
-                        new FunctionIdent("any_=", Arrays.<DataType>asList(new ArrayType(DataTypes.INTEGER), DataTypes.INTEGER)),
+                        new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
                         DataTypes.BOOLEAN)
         );
         return anyEqOperator.evaluate(new ObjectInput(value), new ObjectInput(arrayExpr));
@@ -53,44 +53,45 @@ public class AnyEqOperatorTest {
     private Boolean anyEqNormalizeSymbol(Object value, Object arrayExpr) {
         AnyEqOperator anyEqOperator = new AnyEqOperator(
                 new FunctionInfo(
-                        new FunctionIdent("any_=", Arrays.<DataType>asList(new ArrayType(DataTypes.INTEGER), DataTypes.INTEGER)),
+                        new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
                         DataTypes.BOOLEAN)
         );
         Function function = new Function(
                 anyEqOperator.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(new ArrayType(DataTypes.INTEGER), arrayExpr),
-                        Literal.newLiteral(DataTypes.INTEGER, value))
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(DataTypes.INTEGER, value),
+                        Literal.newLiteral(new ArrayType(DataTypes.INTEGER), arrayExpr))
         );
         return (Boolean)((Literal)anyEqOperator.normalizeSymbol(function)).value();
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertTrue(anyEq(new Object[]{1}, 1));
-        assertFalse(anyEq(new Object[]{2L}, 1L));
+        assertTrue(anyEq(1, new Object[]{1}));
+        assertFalse(anyEq(1L, new Object[]{2L}));
         assertTrue(anyEq(
+                ImmutableMap.<String, Object>builder()
+                        .put("int", 1)
+                        .put("boolean", true)
+                        .build(),
                 new Object[]{
                         ImmutableMap.<String, Object>builder()
                                 .put("int", 1)
                                 .put("boolean", true)
                                 .build()
-                },
+                }
+        ));
+        assertFalse(anyEq(
                 ImmutableMap.<String, Object>builder()
                         .put("int", 1)
                         .put("boolean", true)
-                        .build()
-        ));
-        assertFalse(anyEq(
+                        .build(),
                 new Object[]{
                         ImmutableMap.<String, Object>builder()
                                 .put("int", 2)
                                 .put("boolean", false)
                                 .build()
-                },
-                ImmutableMap.<String, Object>builder()
-                        .put("int", 1)
-                        .put("boolean", true)
-                        .build()
+                }
         ));
     }
 
