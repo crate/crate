@@ -230,6 +230,7 @@ public class SortingBucketMerger implements BucketMerger {
                 if (compare < 0) {
                     leastBi = bi;
                     leastRow = row;
+                    bucketsWithRowEqualToLeast.clear();
                 } else if (compare == 0) {
                     bucketsWithRowEqualToLeast.add(bi);
                 }
