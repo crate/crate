@@ -28,6 +28,8 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
@@ -36,44 +38,51 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * A plan node which collects data.
  */
-public class CollectNode extends AbstractDQLPlanNode {
+public class CollectNode extends AbstractDQLPlanNode implements ExecutionNode {
 
     private Optional<UUID> jobId = Optional.absent();
+    private int jobLocalId = -1;
     private Routing routing;
     private List<Symbol> toCollect;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
     private RowGranularity maxRowgranularity = RowGranularity.CLUSTER;
-    private List<String> downStreamNodes;
+    @Nullable
+    private List<String> downstreamNodes;
     private boolean isPartitioned = false;
-
-    public CollectNode(String id) {
-        super(id);
-    }
 
     public CollectNode() {
         super();
     }
 
-    /**
-     * This method returns true if downstreams are defined, which means that results of this collect
-     * operation should be sent to other nodes instead of being returned directly.
-     */
-    public boolean hasDownstreams() {
-        return downStreamNodes != null && downStreamNodes.size() > 0;
+    public CollectNode(String name) {
+        super(name);
     }
 
-    public List<String> downStreamNodes() {
-        return downStreamNodes;
+    public CollectNode(String name, Routing routing) {
+        this(name, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
     }
 
-    public void downStreamNodes(List<String> downStreamNodes) {
-        this.downStreamNodes = downStreamNodes;
+    public CollectNode(@Nullable UUID jobId, int jobLocalId, String name) {
+        super(name);
+        this.jobId = Optional.fromNullable(jobId);
+        this.jobLocalId = jobLocalId;
     }
+
+    public CollectNode(String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+        super(name);
+        this.routing = routing;
+        this.toCollect = toCollect;
+        this.projections = projections;
+    }
+
 
     @Override
     public Set<String> executionNodes() {
@@ -84,15 +93,17 @@ public class CollectNode extends AbstractDQLPlanNode {
         }
     }
 
-    public CollectNode(String id, Routing routing) {
-        this(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    @Nullable
+    public List<String> downstreamNodes() {
+        return downstreamNodes;
     }
 
-    public CollectNode(String id, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
-        super(id);
-        this.routing = routing;
-        this.toCollect = toCollect;
-        this.projections = projections;
+    public boolean hasDownstreams() {
+        return downstreamNodes != null && downstreamNodes.size() > 0;
+    }
+
+    public void downstreamNodes(List<String> downStreamNodes) {
+        this.downstreamNodes = downStreamNodes;
     }
 
     public WhereClause whereClause() {
@@ -154,8 +165,21 @@ public class CollectNode extends AbstractDQLPlanNode {
         this.jobId = Optional.fromNullable(jobId);
     }
 
+    public int jobLocalId() {
+        return jobLocalId;
+    }
+
+    public void jobLocalId(int jobLocalId) {
+        this.jobLocalId = jobLocalId;
+    }
+
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
+        return visitor.visitCollectNode(this, context);
+    }
+
+    @Override
+    public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context) {
         return visitor.visitCollectNode(this, context);
     }
 
@@ -183,13 +207,15 @@ public class CollectNode extends AbstractDQLPlanNode {
         whereClause = new WhereClause(in);
 
         int numDownStreams = in.readVInt();
-        downStreamNodes = new ArrayList<>(numDownStreams);
+        downstreamNodes = new ArrayList<>(numDownStreams);
         for (int i = 0; i < numDownStreams; i++) {
-            downStreamNodes.add(in.readString());
+            downstreamNodes.add(in.readString());
         }
         if (in.readBoolean()) {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
+        jobLocalId = in.readInt();
+        isPartitioned = in.readBoolean();
     }
 
     @Override
@@ -212,10 +238,10 @@ public class CollectNode extends AbstractDQLPlanNode {
         }
         whereClause.writeTo(out);
 
-        if (hasDownstreams()) {
-            out.writeVInt(downStreamNodes.size());
-            for (String node : downStreamNodes) {
-                out.writeString(node);
+        if (downstreamNodes != null) {
+            out.writeVInt(downstreamNodes.size());
+            for (String downstreamNode : downstreamNodes) {
+                out.writeString(downstreamNode);
             }
         } else {
             out.writeVInt(0);
@@ -225,6 +251,8 @@ public class CollectNode extends AbstractDQLPlanNode {
             out.writeLong(jobId.get().getMostSignificantBits());
             out.writeLong(jobId.get().getLeastSignificantBits());
         }
+        out.writeInt(jobLocalId);
+        out.writeBoolean(isPartitioned);
     }
 
     /**
@@ -242,10 +270,12 @@ public class CollectNode extends AbstractDQLPlanNode {
             changed = changed || newWhereClause != whereClause();
         }
         if (changed) {
-            result = new CollectNode(id(), routing, newToCollect, projections);
-            result.downStreamNodes = downStreamNodes;
+            result = new CollectNode(name(), routing, newToCollect, projections);
+            result.downstreamNodes = downstreamNodes;
             result.maxRowgranularity = maxRowgranularity;
             result.jobId = jobId;
+            result.jobLocalId = jobLocalId;
+            result.isPartitioned(isPartitioned);
             result.whereClause(newWhereClause);
         }
         return result;

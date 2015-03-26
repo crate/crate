@@ -38,7 +38,10 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class PlanNodeBuilder {
 
@@ -47,12 +50,10 @@ public class PlanNodeBuilder {
                                            List<Symbol> toCollect,
                                            List<String> downstreamNodes,
                                            ImmutableList<Projection> projections) {
-        CollectNode node = new CollectNode("distributing collect", tableInfo.getRouting(whereClause, null));
+        CollectNode node = new CollectNode("distributing collect", tableInfo.getRouting(whereClause, null), toCollect, projections);
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
-        node.downStreamNodes(downstreamNodes);
-        node.toCollect(toCollect);
-        node.projections(projections);
+        node.downstreamNodes(downstreamNodes);
 
         node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
@@ -64,8 +65,8 @@ public class PlanNodeBuilder {
         MergeNode node = new MergeNode("distributed merge", collectNode.executionNodes().size());
         node.projections(projections);
 
-        assert collectNode.downStreamNodes()!=null && collectNode.downStreamNodes().size()>0;
-        node.executionNodes(ImmutableSet.copyOf(collectNode.downStreamNodes()));
+        assert collectNode.hasDownstreams();
+        node.executionNodes(ImmutableSet.copyOf(collectNode.downstreamNodes()));
         connectTypes(collectNode, node);
         return node;
     }
@@ -113,11 +114,9 @@ public class PlanNodeBuilder {
             routing = filterRouting(routing, PartitionName.fromPartitionIdent(
                     tableInfo.ident().schema(), tableInfo.ident().name(), partitionIdent).stringValue());
         }
-        CollectNode node = new CollectNode("collect", routing);
+        CollectNode node = new CollectNode("collect", routing, toCollect, projections);
         node.whereClause(whereClause);
-        node.toCollect(toCollect);
         node.maxRowGranularity(tableInfo.rowGranularity());
-        node.projections(projections);
         node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
         return node;

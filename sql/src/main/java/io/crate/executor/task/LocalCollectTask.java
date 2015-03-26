@@ -64,7 +64,7 @@ public class LocalCollectTask extends JobTask {
         this.result = SettableFuture.create();
         resultList.add(result);
         ramAccountingContext = new RamAccountingContext(
-                String.format("%s: %s", collectNode.id(), collectNode.jobId()),
+                String.format("%s: %s", collectNode.name(), jobId),
                 circuitBreaker);
     }
 

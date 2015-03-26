@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
@@ -79,19 +79,19 @@ public class FileUriCollectNode extends CollectNode {
             return this;
         }
         FileUriCollectNode result = new FileUriCollectNode(
-                id(),
+                name(),
                 routing(),
                 normalizedTargetUri,
                 normalizedToCollect,
                 projections(),
                 compression(),
                 sharedStorage());
-        result.downStreamNodes(downStreamNodes());
+        result.downstreamNodes(downstreamNodes());
         result.maxRowGranularity(maxRowGranularity());
+        result.jobId(jobId().orNull());
+        result.jobLocalId(jobLocalId());
+        result.isPartitioned(isPartitioned());
         result.whereClause(normalizedWhereClause);
-        if (jobId().isPresent()) {
-            result.jobId(jobId().get());
-        }
         return result;
     }
 
@@ -118,8 +118,8 @@ public class FileUriCollectNode extends CollectNode {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("id", id())
+        return MoreObjects.toStringHelper(this)
+                .add("name", name())
                 .add("targetUri", targetUri)
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)

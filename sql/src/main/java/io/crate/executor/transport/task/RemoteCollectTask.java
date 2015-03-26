@@ -122,13 +122,9 @@ public class RemoteCollectTask extends JobTask {
 
     private void handlerSideCollect(final int resultIdx) {
         final UUID operationId;
-        if (collectNode.jobId().isPresent()) {
-            operationId = UUID.randomUUID();
-            statsTables.operationStarted(operationId, collectNode.jobId().get(), collectNode.id());
-        } else {
-            operationId = null;
-        }
-        String ramAccountingContextId = String.format("%s: %s", collectNode.id(), operationId);
+        operationId = UUID.randomUUID();
+        statsTables.operationStarted(operationId, jobId(), collectNode.name());
+        String ramAccountingContextId = String.format("%s: %s", collectNode.name(), operationId);
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
