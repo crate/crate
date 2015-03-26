@@ -25,7 +25,10 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.VersionInvalidException;
@@ -122,14 +125,13 @@ public class DistributedGroupByConsumer implements Consumer {
                     table.querySpec().groupBy(),
                     splitPoints.aggregates(),
                     Aggregation.Step.PARTIAL,
-                    Aggregation.Step.FINAL));
-
+                    Aggregation.Step.FINAL)
+            );
 
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy != null) {
                 table.tableRelation().validateOrderBy(orderBy);
             }
-
 
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
@@ -155,7 +157,8 @@ public class DistributedGroupByConsumer implements Consumer {
             }
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
                     collectNode,
-                    reducerProjections);
+                    reducerProjections
+            );
             // end: Reducer
 
             MergeNode localMergeNode = null;

@@ -35,7 +35,6 @@ import java.io.IOException;
 
 public class NodeMergeResponse extends TransportResponse {
 
-    private static final ESLogger logger = Loggers.getLogger(NodeMergeResponse.class);
     private final Streamer<?>[] streamers;
     private Bucket rows;
 

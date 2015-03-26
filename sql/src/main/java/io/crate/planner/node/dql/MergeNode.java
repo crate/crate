@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.types.DataType;
@@ -139,8 +139,8 @@ public class MergeNode extends AbstractDQLPlanNode {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("id", id())
+        return MoreObjects.toStringHelper(this)
+                .add("name", name())
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
                 .add("contextId", contextId)

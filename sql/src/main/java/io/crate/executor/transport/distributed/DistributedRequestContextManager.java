@@ -91,10 +91,10 @@ public class DistributedRequestContextManager {
                               final ActionListener<NodeMergeResponse> listener) throws IOException {
         logger.trace("createContext: {}", mergeNode);
         final UUID operationId = UUID.randomUUID();
-        String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId);
+        String ramAccountingContextId = String.format("%s: %s", mergeNode.name(), operationId);
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
+        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.name());
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
         SettableFuture<Bucket> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
