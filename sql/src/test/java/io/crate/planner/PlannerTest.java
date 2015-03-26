@@ -503,10 +503,12 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(collectNode.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         MergeNode mergeNode = plan.mergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
         TopNProjection topN = (TopNProjection)mergeNode.projections().get(0);
         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(topN.offset(), is(0));
-        assertThat(topN.orderBy().size(), is(0));
+        assertNull(topN.orderBy());
 
         // with offset
         plan = (QueryThenFetch)plan("select name from users offset 20");
@@ -514,10 +516,12 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(collectNode.limit(), is(Constants.DEFAULT_SELECT_LIMIT + 20));
 
         mergeNode = plan.mergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
         topN = (TopNProjection)mergeNode.projections().get(0);
         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(topN.offset(), is(20));
-        assertThat(topN.orderBy().size(), is(0));
+        assertNull(topN.orderBy());
     }
 
     @Test
