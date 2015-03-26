@@ -45,7 +45,8 @@ import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.TestingHelpers.createPage;
+import static io.crate.testing.TestingHelpers.isSorted;
 import static org.hamcrest.Matchers.is;
 
 
@@ -201,6 +202,24 @@ public class SortingBucketMergerTest extends CrateUnitTest {
 
         Bucket bucket = mergeWith(2, null, p1Buckets, p2Buckets);
         assertRows(bucket, "A", "A", "B", "B", "B", "B", "B", "C", "C", "C", "D", "D");
+    }
+
+    @Test
+    public void testMultiBucketsEqualValues() throws Exception {
+        BucketPage p846 = createPage(Arrays.<Object[]>asList(
+                        new Object[]{"B"}
+                ),
+                Arrays.<Object[]>asList(
+                        new Object[]{"B"}
+                ),
+                Arrays.<Object[]>asList(
+                        new Object[]{"A"}
+                ),
+                Arrays.<Object[]>asList(
+                        new Object[]{"A"}
+                ));
+        Bucket bucket = mergeWith(4, false, p846);
+        assertRows(bucket, "A", "A", "B", "B");
     }
 
     @Test
