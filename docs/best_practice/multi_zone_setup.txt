@@ -75,7 +75,7 @@ This requires that we know the number of different values of the ``zone`` attrib
 
 You can force awareness an certain attributes, in our example, on the ``zone``::
 
-  cluster.routing.allocation.awareness.force.zone: us-east-1,us-west-1
+  cluster.routing.allocation.awareness.force.zone.values: us-east-1,us-west-1
 
 When set, no more replicas than needed are allocated on a specific group of nodes.
 
