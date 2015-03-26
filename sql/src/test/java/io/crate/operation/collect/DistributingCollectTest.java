@@ -322,7 +322,7 @@ public class DistributingCollectTest extends CrateUnitTest {
                 any(TransportResponseHandler.class));
 
         CollectNode collectNode = new CollectNode("dcollect", shardRouting(0, 1));
-        collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
+        collectNode.downstreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.SHARD);
 
@@ -347,7 +347,7 @@ public class DistributingCollectTest extends CrateUnitTest {
                 //Matchers.<DistributedResultRequest>any(),
                 any(TransportResponseHandler.class));
         CollectNode collectNode = new CollectNode("dcollect", nodeRouting);
-        collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
+        collectNode.downstreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(Literal.newLiteral(true)));
@@ -374,7 +374,7 @@ public class DistributingCollectTest extends CrateUnitTest {
                 any(TransportResponseHandler.class));
 
         CollectNode collectNode = new CollectNode("collect all the things", shardRouting(0, 1));
-        collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
+        collectNode.downstreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
