@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Ordering by `_score` must be defined explictly now even when using a
+   `match` predicate.
+   Note: This is a backward incompatibility change.
+
  - Fix: Filtering by `_score` wasn't recognized on group-by queries.
 
  - Fix: Do not shutdown the BulkShardProcessor while there are pending requests

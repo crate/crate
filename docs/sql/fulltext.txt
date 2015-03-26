@@ -37,7 +37,7 @@ To get the relevance of a matching row, an internal system column
 It is a numeric value which is not absolute but relative to the other rows.
 The higher the score value, the more relevant the row::
 
-    cr> select name, _score from locations where match(name_description_ft, 'time');
+    cr> select name, _score from locations where match(name_description_ft, 'time') order by _score desc;
     +-----------+------------+
     | name      |     _score |
     +-----------+------------+
@@ -198,7 +198,7 @@ Usage
 
 A fulltext search is done using the :ref:`predicates_match` predicate::
 
-    cr> select name from locations where match(name_description_ft, 'time');
+    cr> select name from locations where match(name_description_ft, 'time') order by _score desc;
     +-----------+
     | name      |
     +-----------+
@@ -212,33 +212,24 @@ information about the quality of a match, the relevance of the row,
 the :ref:`_score <sql_ddl_system_column_score>` can be selected::
 
     cr> select name, _score
-    ... from locations where match(name_description_ft, 'time');
+    ... from locations where match(name_description_ft, 'time') order by _score desc;
     +-----------+------------+
     | name      |     _score |
     +-----------+------------+
     | Altair    | 0.56319076 |
     | Bartledan | 0.4590714  |
-    +-----------+------------+
-    SELECT 2 rows in set (... sec)
-
-The results of a query using MATCH are sorted by :ref:`_score <sql_ddl_system_column_score>`
-in a descending order by default. Of course it is possible to change it to use an ascending order instead::
-
-    cr> select name, _score
-    ... from locations where match(name_description_ft, 'time')
-    ... order by _score asc;
-    +-----------+------------+
-    | name      |     _score |
-    +-----------+------------+
-    | Bartledan | 0.4590714  |
-    | Altair    | 0.56319076 |
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
 .. note::
 
-    The `_score` is a relative and not an absolute value. It just sets a row
-    in relation to the other ones.
+    The `_score` is a relative and not an absolute value. It just sets
+    a row in relation to the other ones.
+
+.. note::
+
+   By default, results are not ordered. Ordering by `_score` must be
+   defined explicitly if needed.
 
 
 Searching On Multiple Columns
@@ -266,7 +257,7 @@ use ``phrase`` or ``phrase_prefix``::
     ... where match(
     ...     (name_description_ft, race['name'] 1.5, kind 0.75),
     ...     'end of the galaxy'
-    ... );
+    ... ) order by _score desc;
     +-------------------+-------------+
     | name              |      _score |
     +-------------------+-------------+

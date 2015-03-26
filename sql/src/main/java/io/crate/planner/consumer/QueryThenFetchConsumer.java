@@ -53,7 +53,6 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class QueryThenFetchConsumer implements Consumer {
@@ -110,6 +109,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
             }
 
+            List<Projection> collectProjections = new ArrayList<>();
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy != null) {
                 table.tableRelation().validateOrderBy(orderBy);
@@ -119,6 +119,13 @@ public class QueryThenFetchConsumer implements Consumer {
                         collectSymbols.add(symbol);
                     }
                 }
+
+                MergeProjection mergeProjection = new MergeProjection(
+                        collectSymbols,
+                        orderBy.orderBySymbols(),
+                        orderBy.reverseFlags(),
+                        orderBy.nullsFirst());
+                collectProjections.add(mergeProjection);
             }
 
             CollectNode collectNode = PlanNodeBuilder.collect(
@@ -131,23 +138,12 @@ public class QueryThenFetchConsumer implements Consumer {
                     MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset()
             );
             collectNode.keepContextForFetcher(true);
+            collectNode.projections(collectProjections);
 
-            if (orderBy != null) {
-                MergeProjection mergeProjection = new MergeProjection(
-                        collectSymbols,
-                        orderBy.orderBySymbols(),
-                        orderBy.reverseFlags(),
-                        orderBy.nullsFirst());
-                collectNode.projections(ImmutableList.<Projection>of(mergeProjection));
-            }
-
-            List<Projection> mergeProjections = new ArrayList<>();
+            List<Projection> mergeProjections = new ArrayList<>(2);
             TopNProjection topNProjection = new TopNProjection(
                     MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    table.querySpec().offset(),
-                    scoreSelected ? Arrays.<Symbol>asList(DEFAULT_SCORE_INPUT_COLUMN) : ImmutableList.<Symbol>of(),
-                    scoreSelected ? new boolean[]{true} : new boolean[0],
-                    scoreSelected ? new Boolean[]{false} : new Boolean[0]
+                    table.querySpec().offset()
             );
             List<Symbol> outputs = new ArrayList<>(2);
             outputs.add(DEFAULT_DOC_ID_INPUT_COLUMN);
