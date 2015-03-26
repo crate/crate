@@ -101,7 +101,7 @@ public class LocalMergeTask extends JobTask {
         }
 
         final UUID operationId = UUID.randomUUID();
-        String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId.toString());
+        String ramAccountingContextId = String.format("%s: %s", mergeNode.name(), operationId.toString());
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         CollectingProjector collectingProjector = new CollectingProjector();
@@ -112,7 +112,7 @@ public class LocalMergeTask extends JobTask {
                 Optional.of(threadPool.executor(ThreadPool.Names.GENERIC))
         );
         collectingProjector.startProjection();
-        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.id());
+        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.name());
 
         // callback for projected result, closing all the stuff
         Futures.addCallback(collectingProjector.result(), new FutureCallback<Bucket>() {
