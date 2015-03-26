@@ -36,12 +36,12 @@ public abstract class AbstractAnyLikeOperator<T extends AbstractAnyLikeOperator<
     }
 
     @Override
-    protected Boolean doEvaluate(Object right, Iterable<?> leftIterable) {
-        BytesRef rightBytesRef = (BytesRef)right;
+    protected Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
+        BytesRef rightBytesRef = (BytesRef) left;
         String pattern = rightBytesRef.utf8ToString();
 
         boolean hasNull = false;
-        for (Object elem : leftIterable) {
+        for (Object elem : rightIterable) {
             if (elem == null) {
                 hasNull = true;
                 continue;

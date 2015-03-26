@@ -75,13 +75,13 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
             return Literal.NULL;
         }
         if (left instanceof Literal && right instanceof Literal) {
-            Literal collLiteral = (Literal) left;
-            Object rightValue = ((Literal) right).value();
+            Literal collLiteral = (Literal) right;
+            Object leftValue = ((Literal) left).value();
             if (!DataTypes.isCollectionType(collLiteral.valueType())) {
                 throw new IllegalArgumentException("invalid array expression");
             }
             Iterable<?> collectionIterable = collectionValueToIterable(collLiteral.value());
-            Boolean result = doEvaluate(rightValue, collectionIterable);
+            Boolean result = doEvaluate(leftValue, collectionIterable);
             if (result == null) {
                 return Literal.NULL;
             } else {
@@ -92,21 +92,19 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
     }
 
     @SuppressWarnings("unchecked")
-    protected Boolean doEvaluate(Object right, Iterable<?> leftIterable) {
-        boolean rightComparable = right instanceof Comparable;
-        boolean rightIsMap = right instanceof Map;
+    protected Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
 
-        if (rightComparable) {
-            for (Object elem : leftIterable) {
-                assert (right.getClass().equals(elem.getClass()));
+        if (left instanceof Comparable) {
+            for (Object elem : rightIterable) {
+                assert (left.getClass().equals(elem.getClass()));
 
-                if (compare(((Comparable) right).compareTo(elem))) {
+                if (compare(((Comparable) left).compareTo(elem))) {
                     return true;
                 }
             }
-        } else if (rightIsMap) {
-            for (Object elem : leftIterable) {
-                if (compare(Objects.compare((Map) right, (Map) elem, MapComparator.getInstance()))) {
+        } else if (left instanceof Map) {
+            for (Object elem : rightIterable) {
+                if (compare(Objects.compare((Map) left, (Map) elem, MapComparator.getInstance()))) {
                     return true;
                 }
             }
@@ -121,19 +119,19 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
         assert (args.length == 2);
         assert args[0] != null;
 
-        Object collectionReference = args[0].value();
-        Object value = args[1].value();
+        Object value = args[0].value();
+        Object collectionReference = args[1].value();
 
         if (collectionReference == null || value == null) {
             return null;
         }
-        Iterable<?> leftIterable;
+        Iterable<?> rightIterable;
         try {
-           leftIterable = collectionValueToIterable(collectionReference);
+           rightIterable = collectionValueToIterable(collectionReference);
         } catch (IllegalArgumentException e) {
             return false;
         }
-        return doEvaluate(value, leftIterable);
+        return doEvaluate(value, rightIterable);
     }
 
     public static Iterable<?> collectionValueToIterable(Object collectionRef) throws IllegalArgumentException {
@@ -157,8 +155,8 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(
                     dataTypes.size() == 2 &&
-                            DataTypes.isCollectionType(dataTypes.get(0)) &&
-                            ((CollectionType)dataTypes.get(0)).innerType().equals(dataTypes.get(1))
+                            DataTypes.isCollectionType(dataTypes.get(1)) &&
+                            ((CollectionType)dataTypes.get(1)).innerType().equals(dataTypes.get(0))
             );
             return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
         }
