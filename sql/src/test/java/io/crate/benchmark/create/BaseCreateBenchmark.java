@@ -19,11 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark.create;
+package io.crate.benchmark.create;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
-import io.crate.module.sql.benchmark.BenchmarkBase;
+import io.crate.benchmark.BenchmarkBase;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

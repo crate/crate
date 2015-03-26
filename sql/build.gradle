@@ -32,7 +32,7 @@ test {
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }
 
-    exclude('io/crate/module/sql/benchmark/**')
+    exclude('io/crate/benchmark/**')
 
     // allow to set the number of test forks from the CLI
     if (project.hasProperty('testForks')) {
@@ -67,7 +67,7 @@ task bench(type: Test, dependsOn: [':app:getVersion']) {
     systemProperty 'jub.charts.dir', benchmark_dir
 
 
-    include('io/crate/module/sql/benchmark/**')
+    include('io/crate/benchmark/**')
 
     testLogging {
         // show standard out and standard error of the test JVM(s) on the console

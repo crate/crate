@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark;
+package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
@@ -69,7 +69,7 @@ public class SelectBenchmark extends BenchmarkBase {
     private static byte[] searchSource;
 
     @Override
-    public boolean loadData() {
+    public boolean importData() {
         return true;
     }
 

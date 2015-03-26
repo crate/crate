@@ -18,7 +18,7 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
-package io.crate.module.sql.benchmark;
+package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
@@ -28,9 +28,6 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.SQLBulkRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -58,40 +55,38 @@ public class UpsertBenchmark extends BenchmarkBase {
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
-    @Before
-    public void setUp() throws Exception {
-        if (NODE1 == null) {
-            NODE1 = cluster.startNode(getNodeSettings(1));
-        }
-        if (NODE2 == null) {
-            NODE2 = cluster.startNode(getNodeSettings(2));
-        }
-        if (!indexExists()) {
-            execute("create table traffic_logs (" +
-                    "    id integer primary key," +
-                    "    url string," +
-                    "    count integer" +
-                    ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
-            for(int i = 0; i < 500; i++) {
-                execute("insert into traffic_logs (id, url, count) VALUES (?, ?, ?)",
-                        new Object[]{i+1, "http://crate.io", 1}, true);
-            }
-            refresh(client());
-        }
+    @Override
+    protected String tableName() {
+        return INDEX_NAME;
+    }
+
+    @Override
+    protected void createTable() {
+        execute("create table traffic_logs (" +
+                "    id integer primary key," +
+                "    url string," +
+                "    count integer" +
+                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+        client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
+
+
         BULK_ARGS_MANY = new Object[1000][];
         for (int i = 0; i < 1000; i++) {
             BULK_ARGS_MANY[i] = new Object[]{(i/100), "http://crate.io", i};
         }
     }
 
-    @AfterClass
-    public static void afterClass() {
-        cluster.client().admin().indices().prepareDelete(INDEX_NAME).execute().actionGet();
+    @Override
+    public boolean generateData() {
+        return true;
     }
 
     @Override
-    public boolean indexExists() {
-        return getClient(false).admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
+    protected void doGenerateData() throws Exception {
+        for(int i = 0; i < 500; i++) {
+            execute("insert into traffic_logs (id, url, count) VALUES (?, ?, ?)",
+                    new Object[]{i+1, "http://crate.io", 1}, true);
+        }
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark;
+package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
@@ -29,15 +29,10 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -45,11 +40,6 @@ import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertFalse;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-groupby-history", labelWith = LabelType.CUSTOM_KEY)
@@ -68,9 +58,6 @@ public class GroupByBenchmark extends BenchmarkBase {
     public static SQLRequest countDistinctRequest = new SQLRequest(String.format("select count(distinct \"countryName\") from %s group by continent", INDEX_NAME));
     public static SQLRequest arbitraryRequest = new SQLRequest(String.format("select arbitrary(\"countryName\") from %s group by continent", INDEX_NAME));
 
-    public static boolean dataGenerated = false;
-
-
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -80,11 +67,22 @@ public class GroupByBenchmark extends BenchmarkBase {
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
-    public boolean loadData() {
+    public boolean importData() {
         return false;
     }
 
-    private byte[] generateRowSource() throws IOException {
+    @Override
+    public boolean generateData() {
+        return true;
+    }
+
+    @Override
+    protected int numberOfDocuments() {
+        return NUMBER_OF_DOCUMENTS;
+    }
+
+    @Override
+    protected byte[] generateRowSource() throws IOException {
         Random random = getRandom();
         byte[] buffer = new byte[32];
         random.nextBytes(buffer);
@@ -97,50 +95,6 @@ public class GroupByBenchmark extends BenchmarkBase {
                 .field("population", random.nextInt(Integer.MAX_VALUE))
                 .endObject()
                 .bytes().toBytes();
-    }
-
-    @Before
-    public void generateData() throws Exception {
-        if (!dataGenerated) {
-
-            logger.info("generating {} documents...", NUMBER_OF_DOCUMENTS);
-            ExecutorService executor = Executors.newFixedThreadPool(4);
-            for (int i=0; i<4; i++) {
-                executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        int numDocsToCreate = NUMBER_OF_DOCUMENTS/4;
-                        logger.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
-                        Client client = getClient(false);
-                        BulkRequest bulkRequest = new BulkRequest();
-
-                        for (int i=0; i < numDocsToCreate; i+=1000) {
-                            bulkRequest.requests().clear();
-                            try {
-                                byte[] source = generateRowSource();
-                                for (int j=0; j<1000;j++) {
-                                    IndexRequest indexRequest = new IndexRequest(INDEX_NAME, "default", String.valueOf(i+j) + String.valueOf(Thread.currentThread().getId()));
-                                    indexRequest.source(source);
-                                    bulkRequest.add(indexRequest);
-                                }
-                                BulkResponse response = client.bulk(bulkRequest).actionGet();
-                                assertFalse(response.hasFailures());
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                });
-            }
-            executor.shutdown();
-            executor.awaitTermination(2L, TimeUnit.MINUTES);
-            executor.shutdownNow();
-            getClient(true).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
-            getClient(false).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
-            refresh(client());
-            dataGenerated = true;
-            logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);
-        }
     }
 
 

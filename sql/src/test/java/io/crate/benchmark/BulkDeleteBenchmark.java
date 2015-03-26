@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark;
+package io.crate.benchmark;
 
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
@@ -37,12 +37,9 @@ import io.crate.analyze.Id;
 import io.crate.metadata.ColumnIdent;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.client.Client;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -69,35 +66,21 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
     public static final String SINGLE_INSERT_SQL_STMT = "INSERT INTO users (id, name, age) Values (?, ?, ?)";
     public static final String DELETE_SQL_STMT = "DELETE FROM users where id = ?";
 
-
-    @Before
-    public void setUp() throws Exception {
-        if (NODE1 == null) {
-            NODE1 = cluster.startNode(getNodeSettings(1));
-        }
-        if (NODE2 == null) {
-            NODE2 = cluster.startNode(getNodeSettings(2));
-        }
-        if(!indexExists()){
-            execute("create table users (" +
-                    "    id string primary key," +
-                    "    name string," +
-                    "    age integer" +
-                    ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
-            refresh(client());
-        }
-
-    }
-
-    @AfterClass
-    public static void afterClass() {
-        cluster.client().admin().indices().prepareDelete("users").execute().actionGet();
+    @Override
+    protected String tableName() {
+        return INDEX_NAME;
     }
 
     @Override
-    public boolean indexExists() {
-        return getClient(false).admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
+    protected void createTable() {
+        execute("create table users (" +
+                "    id string primary key," +
+                "    name string," +
+                "    age integer" +
+                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+        client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
+
 
     private HashMap<String, String> createSampleData() {
         Object[][] bulkArgs = new Object[ROWS][];

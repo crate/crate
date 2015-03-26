@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark;
+package io.crate.benchmark;
 
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
@@ -30,9 +30,6 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.SQLBulkRequest;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -56,38 +53,23 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
 
     public static final String SINGLE_INSERT_SQL_STMT = "insert into motiondata (d, device_id, ts, ax) values (?,?,?,?)";
 
-
-    @Before
-    public void setUp() throws Exception {
-        if (NODE1 == null) {
-            NODE1 = cluster.startNode(getNodeSettings(1));
-        }
-        if (NODE2 == null) {
-            NODE2 = cluster.startNode(getNodeSettings(2));
-        }
-        if(!indexExists()){
-            execute("create table motiondata (\n" +
-                    "  d string,\n" +
-                    "  device_id string,\n" +
-                    "  ts timestamp,\n" +
-                    "  ax double,\n" +
-                    "  primary key (d, device_id, ts)\n" +
-                    ")\n" +
-                    "partitioned by (d)\n" +
-                    "clustered by (device_id)", new Object[0], false);
-            refresh(client());
-        }
-
-    }
-
-    @AfterClass
-    public static void afterClass() {
-        cluster.client().admin().indices().prepareDelete(INDEX_NAME).execute().actionGet();
+    @Override
+    protected String tableName() {
+        return INDEX_NAME;
     }
 
     @Override
-    public boolean indexExists() {
-        return getClient(false).admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
+    protected void createTable() {
+        execute("create table motiondata (\n" +
+                "  d string,\n" +
+                "  device_id string,\n" +
+                "  ts timestamp,\n" +
+                "  ax double,\n" +
+                "  primary key (d, device_id, ts)\n" +
+                ")\n" +
+                "partitioned by (d)\n" +
+                "clustered by (device_id)", new Object[0], false);
+        client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
 
     private SQLBulkRequest getBulkArgsRequest() {

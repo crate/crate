@@ -19,37 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark;
+package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 public class AddingTableColumnsBenchmark extends BenchmarkBase {
 
     @Rule
-    public TestRule benchmarkRun = new BenchmarkRule();
+    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
-    private static boolean tablesCreated = false;
+    @Override
+    protected String tableName() {
+        return "table_10";
+    }
 
-    @Before
-    public void setUp() throws Exception {
-        if (!tablesCreated) {
-            if (NODE1 == null) {
-                NODE1 = cluster.startNode(getNodeSettings(1));
-            }
-            if (NODE2 == null) {
-                NODE2 = cluster.startNode(getNodeSettings(2));
-            }
+    @Override
+    protected void createTable() {
+        createTable(10, "table_10");
+        createTable(5000, "table_5k");
+    }
 
-            createTable(10, "table_10");
-            createTable(5000, "table_5k");
-
-            tablesCreated = true;
-        }
+    @Override
+    public boolean generateData() {
+        return true;
     }
 
     private void createTable(int columnsAmount, String tableName) {
@@ -71,7 +68,7 @@ public class AddingTableColumnsBenchmark extends BenchmarkBase {
                 " population integer," +
                 " continent string" +
                 ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], false);
-
+        client().admin().cluster().prepareHealth(tableName).setWaitForGreenStatus().execute().actionGet();
     }
 
     @BenchmarkOptions(benchmarkRounds = 2, warmupRounds = 5)

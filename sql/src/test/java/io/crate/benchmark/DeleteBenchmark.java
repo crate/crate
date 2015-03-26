@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark;
+package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
@@ -36,7 +36,6 @@ import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -65,14 +64,13 @@ public class DeleteBenchmark extends BenchmarkBase {
     private List<String> countryCodes = new ArrayList<>(250);
 
     @Override
-    public boolean loadData() {
+    public boolean importData() {
         return true;
     }
 
-    @Before
     public void prepare() throws Exception {
         if (ids.isEmpty() || countryCodes.isEmpty()) {
-            doLoadData();
+            doImportData();
             // setupOnce non-static
             SQLRequest request = new SQLRequest("SELECT \"_id\", \"countryCode\" FROM countries");
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();

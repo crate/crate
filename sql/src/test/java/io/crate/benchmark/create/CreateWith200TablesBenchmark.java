@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark.create;
+package io.crate.benchmark.create;
 
 public class CreateWith200TablesBenchmark extends BaseCreateBenchmark {
 
