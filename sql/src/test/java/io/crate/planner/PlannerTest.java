@@ -752,7 +752,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from users group by id order by 1 desc nulls last limit 20");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertNull(collectNode.downstreamNodes());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
@@ -774,7 +774,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertNull(collectNode.downstreamNodes());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));

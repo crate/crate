@@ -180,7 +180,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, Projector projector, List<Symbol> input) throws Exception{
-        CollectNode node = new CollectNode();
+        CollectNode node = new CollectNode("collect");
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
         node.limit(limit);
