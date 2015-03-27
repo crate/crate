@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module.sql.benchmark;
+package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
@@ -29,7 +29,6 @@ import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.benchmark.BenchmarkBase;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
