@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,44 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.planner.node;
 
-import io.crate.Streamer;
-import io.crate.core.collections.Bucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 
-public class NodeCollectResponse extends TransportResponse {
+public class ExecutionNodes {
 
-    private Bucket rows;
-    private final Streamer<?>[] streamers;
-
-    public NodeCollectResponse(Streamer<?>[] streamers) {
-        this.streamers = streamers;
+    public static ExecutionNode fromStream(StreamInput in) throws IOException {
+        ExecutionNode.Type type = ExecutionNode.Type.values()[in.readVInt()];
+        ExecutionNode node = type.factory().create();
+        node.readFrom(in);
+        return node;
     }
 
-    public void rows(Bucket rows) {
-        this.rows = rows;
-    }
-
-    public Bucket rows() {
-        return rows;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        StreamBucket bucket = new StreamBucket(streamers);
-        bucket.readFrom(in);
-        rows = bucket;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        StreamBucket.writeBucket(out, streamers, rows);
+    public static void toStream(StreamOutput out, ExecutionNode node) throws IOException {
+        out.writeVInt(node.type().ordinal());
+        node.writeTo(out);
     }
 }
