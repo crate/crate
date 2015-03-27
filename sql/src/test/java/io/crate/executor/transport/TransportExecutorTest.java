@@ -32,32 +32,27 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
-import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.projectors.TopN;
-import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
-import io.crate.planner.node.dql.*;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESCountNode;
+import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.search.SearchHits;
@@ -69,9 +64,7 @@ import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
@@ -195,153 +188,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testESSearchTask() throws Exception {
-        setup.setUpCharacters();
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        ESQueryThenFetchNode node = new ESQueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL, null),
-                Arrays.<Symbol>asList(idRef, nameRef),
-                Arrays.<Symbol>asList(nameRef, idRef),
-                new boolean[]{false, false},
-                new Boolean[]{null, null},
-                null, null, WhereClause.MATCH_ALL,
-                null
-        );
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
-
-        task.start();
-        Bucket rows = task.result().get(0).get().rows();
-        assertThat(rows, contains(
-                isRow(1, "Arthur"),
-                isRow(4, "Arthur"),
-                isRow(2, "Ford"),
-                isRow(3, "Trillian")
-        ));
-    }
-
-    @Test
-    public void testESSearchTaskWithFilter() throws Exception {
-        setup.setUpCharacters();
-
-        Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        ESQueryThenFetchNode node = new ESQueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef),
-                Arrays.<Symbol>asList(nameRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null, null,
-                new WhereClause(whereClause),
-                null
-        );
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
-
-        task.start();
-        Bucket rows = task.result().get(0).get().rows();
-        assertThat(rows, contains(isRow(2, "Ford")));
-    }
-
-    @Test
-    public void testESSearchTaskWithFunction() throws Exception {
-        execute("create table searchf (id int primary key, date timestamp) with (number_of_replicas=0)");
-        ensureGreen();
-        execute("insert into searchf (id, date) values (1, '1980-01-01'), (2, '1980-01-02')");
-        refresh();
-
-        Reference id_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(
-                        new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "searchf"),
-                        "id"),
-                RowGranularity.DOC,
-                DataTypes.INTEGER
-        ));
-        Reference date_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(
-                        new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "searchf"),
-                        "date"),
-                RowGranularity.DOC,
-                DataTypes.TIMESTAMP
-        ));
-        Function function = new Function(new FunctionInfo(
-                new FunctionIdent(DateTruncFunction.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.TIMESTAMP)),
-                DataTypes.TIMESTAMP
-        ), Arrays.<Symbol>asList(Literal.newLiteral("day"), new InputColumn(1)));
-        Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
-                DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(id_ref, Literal.newLiteral(2))
-        );
-
-        DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
-        ESQueryThenFetchNode node = new ESQueryThenFetchNode(
-                searchf.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(id_ref, date_ref),
-                Arrays.<Symbol>asList(id_ref),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null, null,
-                new WhereClause(whereClause),
-                null
-        );
-        MergeNode mergeNode = new MergeNode("merge", 1);
-        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.TIMESTAMP));
-        mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.TIMESTAMP));
-        TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
-        topN.outputs(Arrays.<Symbol>asList(new InputColumn(0), function));
-        mergeNode.projections(Arrays.<Projection>asList(topN));
-        Plan plan = new IterablePlan(node, mergeNode);
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(2));
-
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get().rows();
-        assertThat(rows, contains(isRow(2, 315619200000L)));
-    }
-
-    @Test
-    public void testESSearchTaskPartitioned() throws Exception {
-        setup.setUpPartitionedTableWithName();
-        // get partitions
-        ImmutableOpenMap<String, List<AliasMetaData>> aliases =
-                client().admin().indices().prepareGetAliases().addAliases("parted")
-                        .execute().actionGet().getAliases();
-
-        DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        ESQueryThenFetchNode node = new ESQueryThenFetchNode(
-                parted.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef),
-                Arrays.<Symbol>asList(nameRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null, null,
-                WhereClause.MATCH_ALL,
-                Arrays.asList(partedDateRef.info())
-        );
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
-
-        task.start();
-        Bucket rows = task.result().get(0).get().rows();
-        assertThat(rows, contains(
-                isRow(3, "Ford", 1396388720242L),
-                isRow(1, "Trillian", null),
-                isRow(2, null, 0L)
-        ));
-    }
-
-    @Test
     public void testESDeleteByQueryTask() throws Exception {
         setup.setUpCharacters();
 
@@ -362,25 +208,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Bucket rows = taskResult.rows();
         assertThat(rows, contains(isRow(-1L)));
 
-        // verify deletion
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        ESQueryThenFetchNode searchNode = new ESQueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef),
-                Arrays.<Symbol>asList(nameRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null, null,
-                new WhereClause(whereClause),
-                null
-        );
-        plan = new IterablePlan(searchNode);
-        job = executor.newJob(plan);
-        QueryThenFetchTask searchTask = (QueryThenFetchTask) job.tasks().get(0);
-
-        searchTask.start();
-        rows = searchTask.result().get(0).get().rows();
-        assertThat(rows, emptyIterable());
+        execute("select * from characters where id = 2");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
