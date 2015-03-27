@@ -21,13 +21,13 @@
 
 package io.crate.planner;
 
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class PlanModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(PlanNodeStreamerVisitor.class).asEagerSingleton();
+        bind(StreamerVisitor.class).asEagerSingleton();
     }
 }

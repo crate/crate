@@ -32,7 +32,7 @@ import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.PageDownstreamFactory;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -54,7 +54,7 @@ public class TransportMergeNodeAction {
     private final static String startMergeAction = "crate/sql/node/merge/start";
     private final TransportService transportService;
     private final ClusterService clusterService;
-    private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
+    private final StreamerVisitor planNodeStreamerVisitor;
     private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
 
@@ -71,7 +71,7 @@ public class TransportMergeNodeAction {
         this.threadPool = threadPool;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
 
-        this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
+        planNodeStreamerVisitor = new StreamerVisitor(functions);
         this.contextManager = new DistributedRequestContextManager(pageDownstreamFactory, functions, statsTables, circuitBreaker);
 
         transportService.registerHandler(startMergeAction, new StartMergeHandler());
@@ -147,7 +147,7 @@ public class TransportMergeNodeAction {
             this.nodeId = this.node.id();
             this.request = request;
             this.listener = listener;
-            PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(
+            StreamerVisitor.Context streamerContext = planNodeStreamerVisitor.processPlanNode(
                     request.mergeNode(),
                     new RamAccountingContext("dummy", circuitBreaker));
             this.streamers = streamerContext.outputStreamers();
