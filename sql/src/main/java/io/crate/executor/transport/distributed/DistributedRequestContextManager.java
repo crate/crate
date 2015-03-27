@@ -34,7 +34,7 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.ResultProvider;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -70,7 +70,7 @@ public class DistributedRequestContextManager {
     private final Set<UUID> unprocessedFailureIds = new HashSet<>();
     private final Object lock = new Object();
     private final PageDownstreamFactory pageDownstreamFactory;
-    private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
+    private final StreamerVisitor planNodeStreamerVisitor;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
 
@@ -81,7 +81,7 @@ public class DistributedRequestContextManager {
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
-        this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
+        this.planNodeStreamerVisitor = new StreamerVisitor(functions);
     }
 
     /**
@@ -95,13 +95,14 @@ public class DistributedRequestContextManager {
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.name());
-        PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
+        StreamerVisitor.Context streamerContext = planNodeStreamerVisitor.processPlanNode(mergeNode, ramAccountingContext);
 
         ResultProvider resultProvider = new SingleBucketBuilder(streamerContext.outputStreamers());
         // wiring projectorChain-result-future and response listener
         wireActionListener(streamerContext.outputStreamers(), listener, resultProvider.result());
 
         PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(mergeNode, resultProvider, ramAccountingContext, Optional.<Executor>absent());
+
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
                 pageDownstream,
                 mergeNode.numUpstreams(),

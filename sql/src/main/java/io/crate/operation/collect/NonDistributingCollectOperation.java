@@ -25,7 +25,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -48,7 +48,7 @@ public class NonDistributingCollectOperation extends MapSideDataCollectOperation
                                            IndicesService indicesService,
                                            ThreadPool threadPool,
                                            CollectServiceResolver collectServiceResolver,
-                                           PlanNodeStreamerVisitor streamerVisitor,
+                                           StreamerVisitor streamerVisitor,
                                            CollectContextService collectContextService) {
         super(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool,
                 functions, referenceResolver,

@@ -26,7 +26,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.CollectingProjector;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -36,6 +36,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+/**
+ * only used for testing
+ */
 @Singleton
 public class LocalCollectOperation extends MapSideDataCollectOperation<RowDownstream> {
 
@@ -49,7 +52,7 @@ public class LocalCollectOperation extends MapSideDataCollectOperation<RowDownst
                                  IndicesService indicesService,
                                  ThreadPool threadPool,
                                  CollectServiceResolver collectServiceResolver,
-                                 PlanNodeStreamerVisitor streamerVisitor,
+                                 StreamerVisitor streamerVisitor,
                                  CollectContextService collectContextService) {
         super(clusterService, settings, transportActionProvider,
                 bulkRetryCoordinatorPool, functions, referenceResolver,

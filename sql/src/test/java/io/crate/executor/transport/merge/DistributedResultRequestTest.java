@@ -70,6 +70,7 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -118,6 +119,39 @@ public class DistributedResultRequestTest extends CrateUnitTest {
                 return nonSortingBucketMerger;
             }
         });
+    }
+
+    @Test
+    public void testStreaming() throws Exception {
+
+        DistributedRequestContextManager cm = mock(DistributedRequestContextManager.class);
+
+        Streamer<?>[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
+        when(cm.getStreamer((UUID) anyObject())).thenReturn(Optional.of(streamers));
+
+        Object[][] rows = new Object[][]{
+                {new BytesRef("ab")},{null},{new BytesRef("cd")}
+        };
+        UUID uuid = UUID.randomUUID();
+
+        DistributedResultRequest r1 = new DistributedResultRequest(uuid, streamers);
+        r1.rows(new ArrayBucket(rows));
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        r1.writeTo(out);
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        DistributedResultRequest r2 = new DistributedResultRequest(cm);
+        r2.readFrom(in);
+        r2.streamers(streamers);
+        assertTrue(r2.rowsCanBeRead());
+
+        assertEquals(r1.rows().size(), r2.rows().size());
+
+        assertThat(r2.rows(), contains(
+                isRow("ab"),
+                isRow(null),
+                isRow("cd")
+        ));
     }
 
     @Test

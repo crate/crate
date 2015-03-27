@@ -27,7 +27,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
@@ -102,7 +102,7 @@ public class MapSideDataCollectOperationTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                         )
                 ),
-                new PlanNodeStreamerVisitor(functions),
+                new StreamerVisitor(functions),
                 collectContextService
         );
 

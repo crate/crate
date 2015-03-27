@@ -52,7 +52,7 @@ import java.util.List;
  * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
  */
 @Singleton
-public class PlanNodeStreamerVisitor extends PlanNodeVisitor<PlanNodeStreamerVisitor.Context, Void> {
+public class StreamerVisitor {
 
     public static class Context {
         private List<Streamer<?>> inputStreamers = new ArrayList<>();
@@ -73,17 +73,51 @@ public class PlanNodeStreamerVisitor extends PlanNodeVisitor<PlanNodeStreamerVis
     }
 
     private final Functions functions;
+    private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
+    private final ExecutionNodeStreamerVisitor executionNodeStreamerVisitor;
 
     @Inject
-    public PlanNodeStreamerVisitor(Functions functions) {
+    public StreamerVisitor(Functions functions) {
         this.functions = functions;
+        this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor();
+        this.executionNodeStreamerVisitor = new ExecutionNodeStreamerVisitor();
     }
 
-    public Context process(PlanNode node, RamAccountingContext ramAccountingContext) {
+    public Context processPlanNode(PlanNode node, RamAccountingContext ramAccountingContext) {
         Context context = new Context(ramAccountingContext);
-        super.process(node, context);
+        planNodeStreamerVisitor.process(node, context);
         return context;
     }
+
+    public Context processExecutionNode(ExecutionNode executionNode, RamAccountingContext ramAccountingContext) {
+        Context context = new Context(ramAccountingContext);
+        executionNodeStreamerVisitor.process(executionNode, context);
+        return context;
+    }
+
+    private class PlanNodeStreamerVisitor extends PlanNodeVisitor<Context, Void> {
+
+        @Override
+        public Void visitCollectNode(CollectNode node, Context context) {
+            extractFromCollectNode(node, context);
+            return null;
+        }
+
+        @Override
+        public Void visitMergeNode(MergeNode node, Context context) {
+            extractFromMergeNode(node, context);
+            return null;
+        }
+    }
+
+    private class ExecutionNodeStreamerVisitor extends ExecutionNodeVisitor<Context, Void> {
+        @Override
+        public Void visitCollectNode(CollectNode collectNode, Context context) {
+            extractFromCollectNode(collectNode, context);
+            return null;
+        }
+    }
+
 
     private Streamer<?> resolveStreamer(Aggregation aggregation, Aggregation.Step step) {
         Streamer<?> streamer;
@@ -108,8 +142,7 @@ public class PlanNodeStreamerVisitor extends PlanNodeVisitor<PlanNodeStreamerVis
         return streamer;
     }
 
-    @Override
-    public Void visitCollectNode(CollectNode node, Context context) {
+    private void extractFromCollectNode(CollectNode node, Context context) {
         // get aggregations, if any
         List<Aggregation> aggregations = ImmutableList.of();
         List<Projection> projections = Lists.reverse(node.projections());
@@ -144,11 +177,9 @@ public class PlanNodeStreamerVisitor extends PlanNodeVisitor<PlanNodeStreamerVis
                 context.outputStreamers.add(outputType.streamer());
             }
         }
-        return null;
     }
 
-    @Override
-    public Void visitMergeNode(MergeNode node, Context context) {
+    private void extractFromMergeNode(MergeNode node, Context context) {
         if (node.projections().isEmpty()) {
             for (DataType dataType : node.inputTypes()) {
                 if (dataType != null && dataType != UndefinedType.INSTANCE) {
@@ -157,14 +188,12 @@ public class PlanNodeStreamerVisitor extends PlanNodeVisitor<PlanNodeStreamerVis
                     throw new IllegalStateException("Can't resolve Streamer from null dataType");
                 }
             }
-            return null;
+            return;
         }
 
         Projection firstProjection = node.projections().get(0);
         setInputStreamers(node.inputTypes(), firstProjection, context);
         setOutputStreamers(node.outputTypes(), node.inputTypes(), node.projections(), context);
-
-        return null;
     }
 
     private void setOutputStreamers(List<DataType> outputTypes,

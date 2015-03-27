@@ -53,7 +53,7 @@ public class CollectNodeTest extends CrateUnitTest {
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode();
+        CollectNode cn2 = new CollectNode("collect");
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));
 
@@ -76,7 +76,7 @@ public class CollectNodeTest extends CrateUnitTest {
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode();
+        CollectNode cn2 = new CollectNode("collect");
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));
 

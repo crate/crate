@@ -43,7 +43,8 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.ValueSymbolVisitor;
@@ -69,7 +70,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public abstract class MapSideDataCollectOperation<T extends RowDownstream> implements CollectOperation, RowUpstream {
 
-    protected final PlanNodeStreamerVisitor streamerVisitor;
+    protected final StreamerVisitor streamerVisitor;
     private final IndicesService indicesService;
     protected final EvaluatingNormalizer nodeNormalizer;
     protected final ClusterService clusterService;
@@ -91,7 +92,7 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver,
-                                       PlanNodeStreamerVisitor streamerVisitor,
+                                       StreamerVisitor streamerVisitor,
                                        CollectContextService collectContextService) {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getCorePoolSize();
@@ -351,9 +352,7 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
     }
 
     protected Streamer<?>[] getStreamers(CollectNode node) {
-        PlanNodeStreamerVisitor.Context ctx = new PlanNodeStreamerVisitor.Context(null);
-        streamerVisitor.process(node, ctx);
-        return ctx.outputStreamers();
+        return streamerVisitor.processPlanNode((PlanNode) node, null).outputStreamers();
     }
 
 }
