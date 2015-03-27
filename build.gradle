@@ -9,13 +9,18 @@ buildscript {
 }
 
 plugins {
-  id "com.github.kt3k.coveralls" version "2.3.1"
+    id "com.github.kt3k.coveralls" version "2.3.1"
 }
 
 allprojects {
     apply plugin: 'idea'
     apply plugin: 'findbugs'
     apply plugin: 'jacoco'
+
+    tasks.withType(JavaCompile) {
+        sourceCompatibility = "1.7"
+        targetCompatibility = "1.7"
+    }
 
     jacoco {
         toolVersion = "0.7.1.201405082137"
@@ -30,6 +35,8 @@ allprojects {
         ignoreFailures = true
     }
 }
+
+
 
 final testOutputs = [:].withDefault {[]}
 
@@ -114,7 +121,6 @@ task jacocoReport(type: JacocoReport) {
 }
 
 subprojects {
-
     idea {
         module {
             iml {

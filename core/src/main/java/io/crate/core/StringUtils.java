@@ -45,8 +45,8 @@ public class StringUtils {
     }
 
     /**
-     * Return the common ancestors of a list of fields.<br />
-     * A field is a string that can use the dotted-notation to indicate nesting.<br />
+     * Return the common ancestors of a list of fields.<br>
+     * A field is a string that can use the dotted-notation to indicate nesting.<br>
      *
      * <pre>
      * fields:  [ "a", "a.b", "b.c", "b.c.d"]

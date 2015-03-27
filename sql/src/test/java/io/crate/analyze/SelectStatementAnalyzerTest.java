@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -1194,11 +1193,11 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                 ")");
         Function match = (Function) analysis.relation().querySpec().where().query();
         Map<String, Object> options = ((Literal<Map<String, Object>>) match.arguments().get(3)).value();
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(options),
-                is("zero_terms_query:all, cutoff_frequency:5, minimum_should_match:4, " +
-                        "rewrite:constant_score_boolean, prefix_length:4, tie_breaker:0.75, " +
-                        "slop:3, analyzer:german, boost:4.6, max_expansions:3, fuzzy_rewrite:top_terms_20, " +
-                        "fuzziness:12, operator:or"));
+        assertThat(mapToSortedString(options),
+                is("analyzer=german, boost=4.6, cutoff_frequency=5, " +
+                        "fuzziness=12, fuzzy_rewrite=top_terms_20, max_expansions=3, minimum_should_match=4, " +
+                        "operator=or, prefix_length=4, rewrite=constant_score_boolean, slop=3, tie_breaker=0.75, " +
+                        "zero_terms_query=all"));
     }
 
     @Test

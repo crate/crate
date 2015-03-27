@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -121,10 +122,9 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testSelectDoc() throws Exception {
         SQLResponse response = executor.exec("select _doc from characters order by name desc limit 1");
         assertArrayEquals(new String[]{"_doc"}, response.cols());
-        assertEquals(
-                "{details={job=Mathematician}, name=Trillian, age=32, " +
-                        "birthdate=276912000000, gender=female, race=Human}\n",
-                TestingHelpers.printedTable(response.rows()));
+
+        assertThat(mapToSortedString((Map<String, Object>) response.rows()[0][0]),
+                is("age=32, birthdate=276912000000, details={job=Mathematician}, gender=female, name=Trillian, race=Human"));
     }
 
     @Test

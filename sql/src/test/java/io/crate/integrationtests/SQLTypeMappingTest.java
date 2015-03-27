@@ -374,7 +374,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
         setUpObjectTable();
         Map<String, Object> strictContent = new HashMap<String, Object>(){{
-            put("new_col", "a string");
             put("another_new_col", "1970-01-01T00:00:00");
         }};
         execute("insert into test12 (strict_field) values (?)",

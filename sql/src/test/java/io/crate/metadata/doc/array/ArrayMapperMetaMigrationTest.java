@@ -40,6 +40,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -161,7 +162,8 @@ public class ArrayMapperMetaMigrationTest extends CrateUnitTest {
         Object gotMapping = ArrayMapperMetaMigration.getColumnMapping(mapping, ColumnIdent.fromPath("a"));
         assertThat(gotMapping, Matchers.is(notNullValue()));
         assertThat(gotMapping, instanceOf(Map.class));
-        assertThat(XContentFactory.jsonBuilder().map((Map) gotMapping).string(), Matchers.is("{\"properties\":{\"b\":{\"type\":\"string\"}},\"type\":\"object\"}"));
+
+        assertThat(mapToSortedString((Map<String, Object>) gotMapping), is("properties={b={type=string}}, type=object"));
     }
 
     @Test
@@ -189,7 +191,8 @@ public class ArrayMapperMetaMigrationTest extends CrateUnitTest {
     public void testPutByIdent() throws Exception {
         Map<String, Object> mapping = XContentHelper.convertToMap("{\"a\":{\"type\":\"object\", \"properties\":{\"b\":{\"type\":\"string\"}}}}".getBytes(), false).v2();
         ArrayMapperMetaMigration.overrideExistingColumnMapping(mapping, ColumnIdent.fromPath("a.b"), 1);
-        assertThat(XContentFactory.jsonBuilder().map(mapping).string(), Matchers.is("{\"a\":{\"properties\":{\"b\":1},\"type\":\"object\"}}"));
+
+        assertThat(mapToSortedString(mapping), is("a={properties={b=1}, type=object}"));
     }
 
     @Test
@@ -198,14 +201,15 @@ public class ArrayMapperMetaMigrationTest extends CrateUnitTest {
         ArrayMapperMetaMigration.overrideExistingColumnMapping(mapping, ColumnIdent.fromPath("a.b"), 1);
 
         // unchanged
-        assertThat(XContentFactory.jsonBuilder().map(mapping).string(), Matchers.is("{\"a\":{\"properties\":{\"c\":{\"type\":\"string\"}},\"type\":\"object\"}}"));
+        assertThat(mapToSortedString(mapping), is("a={properties={c={type=string}}, type=object}"));
     }
 
     @Test
     public void testPutByIdentNewNestedUnchanged() throws Exception {
         Map<String, Object> mapping = XContentHelper.convertToMap("{\"a\":{\"type\":\"object\", \"properties\":{\"c\":{\"type\":\"string\"}}}}".getBytes(), false).v2();
         ArrayMapperMetaMigration.overrideExistingColumnMapping(mapping, ColumnIdent.fromPath("a.b.c"), 1);
-        assertThat(XContentFactory.jsonBuilder().map(mapping).string(), Matchers.is("{\"a\":{\"properties\":{\"c\":{\"type\":\"string\"}},\"type\":\"object\"}}"));
+
+        assertThat(mapToSortedString(mapping), is("a={properties={c={type=string}}, type=object}"));
     }
 
     @Test
@@ -219,6 +223,7 @@ public class ArrayMapperMetaMigrationTest extends CrateUnitTest {
     public void testPutTopLevelNewUnchanged() throws Exception {
         Map<String, Object> mapping = XContentHelper.convertToMap("{\"a\":{\"type\":\"object\", \"properties\":{\"c\":{\"type\":\"string\"}}}}".getBytes(), false).v2();
         ArrayMapperMetaMigration.overrideExistingColumnMapping(mapping, ColumnIdent.fromPath("b"), 1);
-        assertThat(XContentFactory.jsonBuilder().map(mapping).string(), Matchers.is("{\"a\":{\"properties\":{\"c\":{\"type\":\"string\"}},\"type\":\"object\"}}"));
+
+        assertThat(mapToSortedString(mapping), is("a={properties={c={type=string}}, type=object}"));
     }
 }

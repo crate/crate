@@ -19,24 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.types;
+package io.crate.testing;
 
-/**
- * A type that has a fixed size for every value
- */
-public interface FixedWidthType {
+import java.util.LinkedHashMap;
 
-    /**
-     * The fixed amount of memory a value object instance of type t requires.
-     * (t is the type described by our DataType interface or something that implements FixedWidthType)
-     *
-     *
-     * Implementations here may not be 100% accurate because sizes may vary between JVM implementations
-     * and then there is also stuff like padding and other JVM magic.
-     *
-     * See also:
-     *  https://blogs.oracle.com/jrose/entry/fixnums_in_the_vm
-     *  http://www.javaworld.com/article/2077496/testing-debugging/java-tip-130--do-you-know-your-data-size-.html
-     */
-    int fixedSize();
+public class LinkedMaps {
+
+    public static <K, V> LinkedHashMap<K, V> of(K key, V value) {
+        LinkedHashMap<K, V> map = new LinkedHashMap<>();
+        map.put(key, value);
+        return map;
+    }
+
+    public static <K, V> LinkedHashMap<K, V> of(K key1, V value1, K key2, V value2) {
+        LinkedHashMap<K, V> map = new LinkedHashMap<>();
+        map.put(key1, value1);
+        map.put(key2, value2);
+        return map;
+    }
 }

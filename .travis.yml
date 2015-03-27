@@ -1,6 +1,12 @@
 language: java
 jdk:
   - openjdk7
+  - oraclejdk8
+
+matrix:
+  allow_failures:
+    - jdk: oraclejdk8
+
 sudo: false
 env:
   global:

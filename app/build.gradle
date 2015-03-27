@@ -19,7 +19,6 @@ configurations {
 }
 
 
-
 task release(dependsOn: 'distTar') << {
     logger.info("released version: " + getVersion.version);
 }

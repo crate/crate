@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 
@@ -371,7 +372,8 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select coolness from test");
         assertEquals(1, response.rowCount());
-        assertEquals("{y=2, x=3}", response.rows()[0][0].toString());
+        //noinspection unchecked
+        assertEquals("x=3, y=2", mapToSortedString((Map<String, Object>) response.rows()[0][0]));
     }
 
     @Test

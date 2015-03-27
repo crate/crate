@@ -82,6 +82,29 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
     }
 
     /**
+     * executes the given statement and if a column unknown exception occurs it will retry up to 10 times
+     */
+    public SQLResponse executeWithRetryOnUnknownColumn(String statement) {
+        SQLActionException lastException = null;
+        int retry = 0;
+        while (retry < 10) {
+            try {
+                response = execute(statement);
+                return response;
+            } catch (SQLActionException e) {
+                lastException = e;
+                String message = e.getMessage();
+                if (message.startsWith("Column") && message.endsWith("unknown")) {
+                    retry++;
+                } else {
+                    throw e;
+                }
+            }
+        }
+        throw lastException;
+    }
+
+    /**
      * Execute an SQL Statement on a random node of the cluster
      *
      * @param stmt the SQL Statement

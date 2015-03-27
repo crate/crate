@@ -21,7 +21,8 @@
 
 package io.crate.testing;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Joiner;
+import com.google.common.collect.*;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
@@ -95,6 +96,50 @@ public class TestingHelpers {
             out.print("\n");
         }
         return os.toString();
+    }
+
+    private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").withKeyValueSeparator("=");
+
+    private static LinkedHashMap<String, Object> sortMapByKeyRecursive(Map<String, Object> map) {
+        LinkedHashMap<String, Object> sortedMap = new LinkedHashMap<>(map.size(), 1.0f);
+        ArrayList<String> sortedKeys = Lists.newArrayList(map.keySet());
+        Collections.sort(sortedKeys);
+        for (String sortedKey : sortedKeys) {
+            Object o = map.get(sortedKey);
+            if (o instanceof Map) {
+                //noinspection unchecked
+                sortedMap.put(sortedKey, sortMapByKeyRecursive((Map<String, Object>) o));
+            } else if (o instanceof Collection){
+                sortedMap.put(sortedKey, sortCollectionRecursive((Collection) o));
+            } else {
+                sortedMap.put(sortedKey, o);
+            }
+        }
+        return sortedMap;
+    }
+
+    private static Collection sortCollectionRecursive(Collection collection) {
+        if (collection.size() == 0) {
+            return collection;
+        }
+        Object firstElement = collection.iterator().next();
+        if (firstElement instanceof Map) {
+            ArrayList sortedList = new ArrayList(collection.size());
+            for (Object obj : collection) {
+                //noinspection unchecked
+                sortedList.add(sortMapByKeyRecursive((Map<String, Object>) obj));
+            }
+            Collections.sort(sortedList);
+            return sortedList;
+        }
+
+        ArrayList sortedList = Lists.newArrayList(collection);
+        Collections.sort(sortedList);
+        return sortedList;
+    }
+
+    public static String mapToSortedString(Map<String, Object> map) {
+        return MAP_JOINER.join(sortMapByKeyRecursive(map));
     }
 
     public static Function createFunction(String functionName, DataType returnType, Symbol... arguments) {

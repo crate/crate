@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
@@ -40,6 +39,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
@@ -222,14 +222,13 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         assertThat(name.dataType(), is("string"));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(mapping), is("_meta:{primary_keys=[id]}, " +
-                "properties:{" +
-                "id={index=not_analyzed, store=false, doc_values=true, type=long}, " +
-                "details={dynamic=true, index=not_analyzed, store=false, properties={" +
-                  "foo={dynamic=true, index=not_analyzed, store=false, properties={" +
-                    "name={index=not_analyzed, store=false, doc_values=true, type=string}, " +
-                    "score={index=not_analyzed, store=false, doc_values=true, type=float}}, doc_values=false, type=object}}, doc_values=false, type=object}}, " +
-                "_all:{enabled=false}"));
+        assertThat(mapToSortedString(mapping), is("_all={enabled=false}, " +
+                "_meta={primary_keys=[id]}, " +
+                "properties={details={doc_values=false, dynamic=true, index=not_analyzed, properties={" +
+                "foo={doc_values=false, dynamic=true, index=not_analyzed, properties={" +
+                "name={doc_values=true, index=not_analyzed, store=false, type=string}, " +
+                "score={doc_values=true, index=not_analyzed, store=false, type=float}}, store=false, type=object}}, store=false, type=object}, " +
+                "id={doc_values=true, index=not_analyzed, store=false, type=long}}"));
     }
 
     @Test
@@ -283,13 +282,11 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         assertThat(price.dataType(), is("string"));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(mapping), is("_meta:{}, " +
-                "properties:{" +
-                  "details={dynamic=true, index=not_analyzed, store=false, properties={" +
-                    "stuff={dynamic=true, index=not_analyzed, store=false, properties={" +
-                      "foo={dynamic=true, index=not_analyzed, store=false, properties={" +
-                        "price={index=not_analyzed, store=false, doc_values=true, type=string}, " +
-                        "score={index=not_analyzed, store=false, doc_values=true, type=float}}, doc_values=false, type=object}}, doc_values=false, type=object}}, doc_values=false, type=object}}, " +
-                "_all:{enabled=false}"));
+        assertThat(mapToSortedString(mapping), is("_all={enabled=false}, _meta={}, properties={details={doc_values=false, " +
+                "dynamic=true, index=not_analyzed, properties={stuff={doc_values=false, dynamic=true, index=not_analyzed, " +
+                "properties={foo={doc_values=false, dynamic=true, index=not_analyzed, " +
+                "properties={price={doc_values=true, index=not_analyzed, store=false, type=string}, " +
+                "score={doc_values=true, index=not_analyzed, store=false, type=float}}, store=false, type=object}}, " +
+                "store=false, type=object}}, store=false, type=object}}"));
     }
 }

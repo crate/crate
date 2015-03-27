@@ -37,6 +37,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -166,8 +167,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
                 "}}}";
 
-        assertEquals(expectedMapping, getIndexMapping("test"));
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+        JSONAssert.assertEquals(expectedMapping, getIndexMapping("test"), JSONCompareMode.LENIENT);
+        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), JSONCompareMode.LENIENT);
     }
 
     @Test

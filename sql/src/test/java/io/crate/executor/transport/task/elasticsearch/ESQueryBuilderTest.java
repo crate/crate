@@ -45,6 +45,7 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.LinkedMaps;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -298,18 +299,12 @@ public class ESQueryBuilderTest extends CrateUnitTest {
         Function match = new Function(matchImpl.info(),
                 Arrays.<Symbol>asList(
                         Literal.newLiteral(
-                                new MapBuilder<String, Object>()
-                                        .put(name_ref.info().ident().columnIdent().fqn(), null)
-                                        .put(extrafield.info().ident().columnIdent().fqn(), 4.5d)
-                                        .map()),
+                                LinkedMaps.<String, Object>of(
+                                        extrafield.info().ident().columnIdent().fqn(), 4.5d,
+                                        name_ref.info().ident().columnIdent().fqn(), null)),
                         Literal.newLiteral("arthur"),
                         Literal.newLiteral(MatchPredicate.DEFAULT_MATCH_TYPE),
-                        Literal.newLiteral(
-                                new MapBuilder<String, Object>()
-                                        .put("tie_breaker", 0.5)
-                                        .put("analyzer", "english")
-                                        .map()
-                        )
+                        Literal.newLiteral(LinkedMaps.<String, Object>of("tie_breaker", 0.5, "analyzer", "english"))
                 ));
         xcontentAssert(match, "{\"query\":{\"multi_match\":{\"type\":\"best_fields\"," +
                 "\"fields\":[\"extrafield^4.5\",\"name\"]," +
@@ -322,6 +317,8 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 MatchPredicate.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
         );
         MatchPredicate matchImpl = (MatchPredicate) functions.get(ident);
+
+
         Function match = new Function(matchImpl.info(),
                 Arrays.<Symbol>asList(
                         Literal.newLiteral(
@@ -331,12 +328,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                                         .map()),
                         Literal.newLiteral("arthur"),
                         Literal.newLiteral("phrase"),
-                        Literal.newLiteral(
-                                new MapBuilder<String, Object>()
-                                        .put("fuzziness", 3)
-                                        .put("max_expansions", 6)
-                                        .map()
-                        )
+                        Literal.newLiteral(LinkedMaps.<String, Object>of("max_expansions", 6, "fuzziness", 3))
                 ));
         xcontentAssert(match, "{\"query\":{\"multi_match\":{\"type\":\"phrase\"," +
                 "\"fields\":[\"name^0.003\",\"object_field.nested\"]," +

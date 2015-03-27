@@ -21,13 +21,13 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import io.crate.sql.tree.*;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.CoreMatchers.is;
 
 public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
@@ -40,8 +40,8 @@ public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
         props.add(new GenericProperty("fuzziness", new ParameterExpression(1)));
         Map<String, Object> processed = MatchOptionsAnalysis.process(props, new Object[]{12});
         assertThat(
-                Joiner.on(", ").withKeyValueSeparator(":").join(processed),
-                is("fuzziness:12, operator:and, analyzer:english"));
+                mapToSortedString(processed),
+                is("analyzer=english, fuzziness=12, operator=and"));
     }
 
     @Test

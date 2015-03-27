@@ -32,10 +32,7 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class SetAnalyzerTest extends BaseAnalyzerTest {
 
@@ -103,7 +100,7 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSetInvalidStringValue() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'something' is not an allowed value. Allowed values are: primaries, none, full");
+        expectedException.expectMessage("'something' is not an allowed value. Allowed values are:");
         analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'something'");
     }
 

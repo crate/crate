@@ -30,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -82,7 +83,14 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         Object[] threadPools = (Object[]) response.rows()[0][0];
         assertThat(threadPools.length, greaterThanOrEqualTo(1));
 
-        Map<String, Object> threadPool = (Map<String, Object>) threadPools[0];
+        Map<String, Object> threadPool = null;
+        for (Object t : threadPools) {
+            Map<String, Object> map = (Map<String, Object>) t;
+            if (map.get("name").equals("generic")) {
+                threadPool = map;
+                break;
+            }
+        }
         assertThat((String) threadPool.get("name"), is("generic"));
         assertThat((Integer) threadPool.get("active"), greaterThanOrEqualTo(0));
         assertThat((Long) threadPool.get("rejected"), greaterThanOrEqualTo(0L));
@@ -97,9 +105,10 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = executor.exec("select thread_pools['name'], thread_pools['queue'] from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
 
-        Object[] names = (Object[]) response.rows()[0][0];
+        Object[] objects = (Object[]) response.rows()[0][0];
+        String[] names = Arrays.copyOf(objects, objects.length, String[].class);
         assertThat(names.length, greaterThanOrEqualTo(1));
-        assertThat((String) names[0], is("generic"));
+        assertThat(names, Matchers.hasItemInArray("generic"));
 
         Object[] queues = (Object[]) response.rows()[0][1];
         assertThat(queues.length, greaterThanOrEqualTo(1));

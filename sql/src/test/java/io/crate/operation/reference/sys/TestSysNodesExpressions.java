@@ -20,7 +20,6 @@
  */
 package io.crate.operation.reference.sys;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Build;
 import io.crate.Version;
@@ -75,9 +74,11 @@ import org.mockito.stubbing.Answer;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
@@ -395,12 +396,9 @@ public class TestSysNodesExpressions extends CrateUnitTest {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME);
         SysObjectReference fs = (SysObjectReference) resolver.getImplementation(ident);
 
-        Joiner.MapJoiner mapJoiner = Joiner.on(", ").withKeyValueSeparator(":");
         Map<String, Object> v = fs.value();
-        Map<String, Object> total = (Map<String, Object>) v.get("total");
-        assertThat(mapJoiner.join(total),
-                is("reads:84, bytes_written:84, bytes_read:84, available:86016, " +
-                        "writes:84, used:84, size:86016"));
+        String total = mapToSortedString((Map<String, Object>) v.get("total"));
+        assertThat(total, is("available=86016, bytes_read=84, bytes_written=84, reads=84, size=86016, used=84, writes=84"));
         Object[] disks = (Object[]) v.get("disks");
         assertThat(disks.length, is(2));
         Map<String, Object> disk0 = (Map<String, Object>) disks[0];
@@ -433,13 +431,9 @@ public class TestSysNodesExpressions extends CrateUnitTest {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME);
         SysObjectReference fs = (SysObjectReference) resolver.getImplementation(ident);
 
-        Joiner.MapJoiner mapJoiner = Joiner.on(", ").withKeyValueSeparator(":");
         Map<String, Object> v = fs.value();
-        Map<String, Object> total = (Map<String, Object>) v.get("total");
-
-        assertThat(mapJoiner.join(total),
-                is("reads:-1, bytes_written:-1, bytes_read:-1, available:-1, " +
-                        "writes:-1, used:-1, size:-1"));
+        assertThat(mapToSortedString((Map<String, Object>) v.get("total")),
+                is("available=-1, bytes_read=-1, bytes_written=-1, reads=-1, size=-1, used=-1, writes=-1"));
         Object[] disks = (Object[]) v.get("disks");
         assertThat(disks.length, is(0));
 
@@ -479,24 +473,24 @@ public class TestSysNodesExpressions extends CrateUnitTest {
         SysObjectReference networkRef = (SysObjectReference) resolver.getImplementation(ident);
 
         Map<String, Object> networkStats = networkRef.value();
-        assertThat(Joiner.on(", ").withKeyValueSeparator("=").join(networkStats),
+        assertThat(mapToSortedString(networkStats),
                 is("tcp={" +
-                        "packets={sent=42, rst_sent=42, received=42, retransmitted=42, errors_received=42}, " +
-                        "connections={accepted=42, dropped=42, initiated=42, embryonic_dropped=42, curr_established=42}" +
+                        "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+                        "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
                         "}"));
     }
 
     @Test
     public void testNetworkTCP() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "network", Arrays.asList("tcp"));
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "network", Collections.singletonList("tcp"));
         SysObjectReference tcpRef = (SysObjectReference) resolver.getImplementation(ident);
 
         Map<String, Object> tcpStats = tcpRef.value();
 
         assertThat(tcpStats, instanceOf(Map.class));
-        assertThat(Joiner.on(", ").withKeyValueSeparator("=").join(tcpStats),
-                is("packets={sent=42, rst_sent=42, received=42, retransmitted=42, errors_received=42}, " +
-                        "connections={accepted=42, dropped=42, initiated=42, embryonic_dropped=42, curr_established=42}"));
+        assertThat(mapToSortedString(tcpStats),
+                is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+                "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
     }
 
 

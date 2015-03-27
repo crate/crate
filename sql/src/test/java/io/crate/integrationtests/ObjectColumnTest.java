@@ -62,8 +62,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         }};
         execute("insert into ot (title, author) values (?, ?)",
                 new Object[]{
-                    "Life, the Universe and Everything",
-                    authorMap
+                        "Life, the Universe and Everything",
+                        authorMap
                 });
         refresh();
         execute("select title, author from ot order by title");
@@ -169,7 +169,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                 new Object[]{"The Hitchhiker's Guide to the Galaxy"});
         assertEquals(1, response.rowCount());
         assertEquals(
-                new HashMap<String, Object>(){{
+                new HashMap<String, Object>() {{
                     put("num_pages", 224);
                     put("published", "1978-01-01");
                 }},
@@ -281,10 +281,11 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         execute("insert into test (message, person) values " +
                 "('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         execute("refresh table test");
-        waitNoPendingTasksOnAll();
 
-        execute("select message, person['name'], person['addresses']['city'] from test " +
+        waitNoPendingTasksOnAll();
+        executeWithRetryOnUnknownColumn("select message, person['name'], person['addresses']['city'] from test " +
                 "where person['name'] = 'Youri'");
+
         assertEquals(1L, response.rowCount());
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
                 response.cols());

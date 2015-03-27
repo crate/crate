@@ -31,19 +31,21 @@ import java.io.IOException;
 /**
  * SQL requests can be made either as bulk operation or as single operation.
  *
- * The TransportActions {@link io.crate.action.sql.TransportSQLAction} and {@link io.crate.action.sql.TransportSQLBulkAction}
+ * The TransportActions TransportSQLAction TransportSQLBulkAction
  * are responsible to execute them.
  *
  * In order to use the actions either send a
  * {@link io.crate.action.sql.SQLRequest} or
  * {@link SQLBulkRequest}
  *
- * to them using the {@link io.crate.action.sql.SQLAction} or {@link io.crate.action.sql.SQLBulkAction}
+ * to them using the SQLAction or SQLBulkAction
  *
  *
  * this abstract base class provides the shared components
  * {@link #stmt()}, {@link #creationTime()} and {@link #includeTypesOnResponse()}
  * which both concrete classes use.
+ *
+ * (not using links for TransportSQLAction as they're not included for the client and would case an error under oraclejdk8)
  */
 public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
 

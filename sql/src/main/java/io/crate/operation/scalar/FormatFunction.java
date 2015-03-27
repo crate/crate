@@ -60,6 +60,8 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
         assert args.length > 1;
         assert args[0].value() != null;
 
+
+
         Object[] values = new Object[args.length - 1];
         for (int i = 0; i < args.length - 1; i++) {
             if (args[i + 1].value() instanceof BytesRef) {

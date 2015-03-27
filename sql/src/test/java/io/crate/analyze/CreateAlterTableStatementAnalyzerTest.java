@@ -43,9 +43,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -291,16 +290,13 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(metaMapping), is("primary_keys:[id]"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(mappingProperties), is(
-                    "details:{" +
-                      "inner={dynamic=true, index=not_analyzed, store=false, properties={" +
-                            "tags={inner={index=not_analyzed, store=false, doc_values=false, type=string}, " +
-                                "type=array}, " +
-                            "age={index=not_analyzed, store=false, doc_values=true, type=integer}, " +
-                            "name={index=not_analyzed, store=false, doc_values=true, type=string}}, " +
-                          "doc_values=false, "+
-                        "type=object}, " +
-                      "type=array}, id:{index=not_analyzed, store=false, doc_values=true, type=integer}"));
+        assertThat(mapToSortedString(mappingProperties),
+                is("details={inner={doc_values=false, dynamic=true, index=not_analyzed, " +
+                        "properties={age={doc_values=true, index=not_analyzed, store=false, type=integer}, " +
+                        "name={doc_values=true, index=not_analyzed, store=false, type=string}, " +
+                        "tags={inner={doc_values=false, index=not_analyzed, store=false, type=string}, type=array}}," +
+                        " store=false, type=object}, type=array}, " +
+                        "id={doc_values=true, index=not_analyzed, store=false, type=integer}"));
     }
 
     @Test

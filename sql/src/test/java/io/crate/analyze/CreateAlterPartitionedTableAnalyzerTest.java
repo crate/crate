@@ -21,11 +21,10 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
-import io.crate.metadata.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -43,9 +42,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -105,8 +103,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
         // partitioned columns must be not indexed in mapping
         Map<String, Object> nameMapping = (Map<String, Object>)analysis.mappingProperties().get("name");
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(nameMapping), is(
-                "index:no, store:false, doc_values:false, type:string"));
+        assertThat(mapToSortedString(nameMapping), is(
+                "doc_values=false, index=no, store=false, type=string"));
 
         Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
         assertThat((Map<String, Object>) metaMapping.get("columns"), not(hasKey("name")));
@@ -125,9 +123,9 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
                 ") partitioned by (name, date)");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> properties = analysis.mappingProperties();
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(properties), is(
-                "date:{index=no, store=false, doc_values=false, type=date}, " +
-                "name:{index=no, store=false, doc_values=false, type=string}"));
+        assertThat(mapToSortedString(properties),
+                is("date={doc_values=false, index=no, store=false, type=date}, " +
+                    "name={doc_values=false, index=no, store=false, type=string}"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
                 allOf(
                         not(hasKey("name")),
@@ -149,9 +147,9 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
                 ") partitioned by (date, o['name'])");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>)analysis.mappingProperties().get("o");
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(oMapping), is(
-                "dynamic:true, index:not_analyzed, store:false, properties:{"+
-                    "name={index=no, store=false, doc_values=false, type=string}}, doc_values:false, type:object"));
+        assertThat(mapToSortedString(oMapping), is(
+                "doc_values=false, dynamic=true, index=not_analyzed, properties={"+
+                    "name={doc_values=false, index=no, store=false, type=string}}, store=false, type=object"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"), not(hasKey("date")));
 
         Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");
@@ -230,8 +228,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
 
         Map<String, Object> oMapping = (Map<String, Object>)analysis.mappingProperties().get("id1");
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(oMapping), is(
-                "index:no, store:false, doc_values:false, type:integer"));
+        assertThat(mapToSortedString(oMapping), is(
+                "doc_values=false, index=no, store=false, type=integer"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
                 not(hasKey("id1")));
     }
