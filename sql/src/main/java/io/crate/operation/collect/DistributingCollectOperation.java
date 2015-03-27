@@ -30,7 +30,8 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributingDownstream;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -65,7 +66,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Di
                                         IndicesService indicesService,
                                         ThreadPool threadPool,
                                         TransportService transportService,
-                                        PlanNodeStreamerVisitor streamerVisitor,
+                                        StreamerVisitor streamerVisitor,
                                         CollectServiceResolver collectServiceResolver,
                                         CrateCircuitBreakerService breakerService) {
         super(clusterService, settings, transportActionProvider,
@@ -91,10 +92,8 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Di
     @Override
     public DistributingDownstream createDownstream(CollectNode node) {
         assert node.jobId().isPresent();
-        PlanNodeStreamerVisitor.Context streamerContext = new PlanNodeStreamerVisitor.Context(null);
-        streamerVisitor.process(node, streamerContext);
-        Streamer<?>[] streamers = streamerVisitor.process(
-                node, new RamAccountingContext("dummy", circuitBreaker)).outputStreamers();
+        Streamer<?>[] streamers = streamerVisitor.processPlanNode(
+                (PlanNode) node, new RamAccountingContext("dummy", circuitBreaker)).outputStreamers();
         return new DistributingDownstream(
                 node.jobId().get(),
                 toDiscoveryNodes(node.downstreamNodes()),

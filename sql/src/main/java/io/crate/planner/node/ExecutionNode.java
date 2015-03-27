@@ -21,11 +21,34 @@
 
 package io.crate.planner.node;
 
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.FileUriCollectNode;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.Set;
 
 public interface ExecutionNode extends Streamable {
+
+    public static interface ExecutionNodeFactory<T extends ExecutionNode> {
+        public T create();
+    }
+
+    public static enum Type {
+        COLLECT(CollectNode.FACTORY),
+        FILE_URI_COLLECT(FileUriCollectNode.FACTORY);
+
+        private final ExecutionNodeFactory factory;
+
+        private Type(ExecutionNodeFactory factory) {
+            this.factory = factory;
+        }
+
+        public ExecutionNodeFactory factory() {
+            return factory;
+        }
+    }
+
+    public Type type();
 
     public String name();
 

@@ -42,6 +42,7 @@ import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
@@ -80,6 +81,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final QueryThenFetchOperation queryThenFetchOperation;
 
+    private final StreamerVisitor streamerVisitor;
+
     @Inject
     public TransportExecutor(Settings settings,
                              TransportActionProvider transportActionProvider,
@@ -91,7 +94,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
-                             QueryThenFetchOperation queryThenFetchOperation) {
+                             QueryThenFetchOperation queryThenFetchOperation,
+                             StreamerVisitor streamerVisitor) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -101,6 +105,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.queryThenFetchOperation = queryThenFetchOperation;
+        this.streamerVisitor = streamerVisitor;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
@@ -229,7 +234,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     new RemoteCollectTask(
                         jobId,
                         node,
-                        transportActionProvider.transportCollectNodeAction(),
+                        transportActionProvider.transportJobInitAction(),
+                        streamerVisitor,
                         handlerSideDataCollectOperation,
                         globalProjectionToProjectionVisitor,
                         statsTables,

@@ -48,6 +48,12 @@ import java.util.UUID;
  */
 public class CollectNode extends AbstractDQLPlanNode implements ExecutionNode {
 
+    public static final ExecutionNodeFactory<CollectNode> FACTORY = new ExecutionNodeFactory<CollectNode>() {
+        @Override
+        public CollectNode create() {
+            return new CollectNode();
+        }
+    };
     private Optional<UUID> jobId = Optional.absent();
     private int jobLocalId = -1;
     private Routing routing;
@@ -58,7 +64,7 @@ public class CollectNode extends AbstractDQLPlanNode implements ExecutionNode {
     private List<String> downstreamNodes;
     private boolean isPartitioned = false;
 
-    public CollectNode() {
+    protected CollectNode() {
         super();
     }
 
@@ -85,9 +91,14 @@ public class CollectNode extends AbstractDQLPlanNode implements ExecutionNode {
 
 
     @Override
+    public Type type() {
+        return Type.COLLECT;
+    }
+
+    @Override
     public Set<String> executionNodes() {
-        if (routing != null && routing.hasLocations()) {
-            return routing.locations().keySet();
+        if (routing != null) {
+            return routing.nodes();
         } else {
             return ImmutableSet.of();
         }

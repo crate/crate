@@ -32,7 +32,7 @@ import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.collect.StatsTables;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -67,7 +67,7 @@ public class DistributedRequestContextManager {
     private final Set<UUID> unprocessedFailureIds = new HashSet<>();
     private final Object lock = new Object();
     private final DownstreamOperationFactory downstreamOperationFactory;
-    private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
+    private final StreamerVisitor planNodeStreamerVisitor;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
 
@@ -78,7 +78,7 @@ public class DistributedRequestContextManager {
         this.downstreamOperationFactory = downstreamOperationFactory;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
-        this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
+        this.planNodeStreamerVisitor = new StreamerVisitor(functions);
     }
 
     /**
@@ -95,7 +95,7 @@ public class DistributedRequestContextManager {
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.name());
-        PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
+        StreamerVisitor.Context streamerContext = planNodeStreamerVisitor.processPlanNode(mergeNode, ramAccountingContext);
         SettableFuture<Bucket> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
                 downstreamOperationFactory.create(mergeNode, ramAccountingContext),

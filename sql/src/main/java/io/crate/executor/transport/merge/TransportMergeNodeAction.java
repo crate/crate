@@ -38,7 +38,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
@@ -62,7 +62,7 @@ public class TransportMergeNodeAction {
     private final static String startMergeAction = "crate/sql/node/merge/start";
     private final TransportService transportService;
     private final ClusterService clusterService;
-    private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
+    private final StreamerVisitor planNodeStreamerVisitor;
     private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
 
@@ -85,7 +85,7 @@ public class TransportMergeNodeAction {
                 referenceResolver, functions, RowGranularity.DOC
         );
 
-        planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
+        planNodeStreamerVisitor = new StreamerVisitor(functions);
         this.contextManager = new DistributedRequestContextManager(new DownstreamOperationFactory<MergeNode>() {
             @Override
             public DownstreamOperation create(MergeNode node, RamAccountingContext ramAccountingContext) {
@@ -173,7 +173,7 @@ public class TransportMergeNodeAction {
             this.nodeId = this.node.id();
             this.request = request;
             this.listener = listener;
-            PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(
+            StreamerVisitor.Context streamerContext = planNodeStreamerVisitor.processPlanNode(
                     request.mergeNode(),
                     new RamAccountingContext("dummy", circuitBreaker));
             this.streamers = streamerContext.outputStreamers();
