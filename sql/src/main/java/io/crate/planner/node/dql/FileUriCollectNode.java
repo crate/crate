@@ -37,12 +37,18 @@ import java.util.List;
 
 public class FileUriCollectNode extends CollectNode {
 
+    public static ExecutionNodeFactory<FileUriCollectNode> FACTORY = new ExecutionNodeFactory<FileUriCollectNode>() {
+        @Override
+        public FileUriCollectNode create() {
+            return new FileUriCollectNode();
+        }
+    };
     private Symbol targetUri;
     private String compression;
     private Boolean sharedStorage;
 
-    public FileUriCollectNode() {
-
+    private FileUriCollectNode() {
+        super();
     }
 
     public FileUriCollectNode(String id,
@@ -64,6 +70,11 @@ public class FileUriCollectNode extends CollectNode {
 
     public FileReadingCollector.FileFormat fileFormat() {
         return FileReadingCollector.FileFormat.JSON;
+    }
+
+    @Override
+    public Type type() {
+        return Type.FILE_URI_COLLECT;
     }
 
     @Override
