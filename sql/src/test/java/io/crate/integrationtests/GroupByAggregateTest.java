@@ -21,8 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
@@ -42,7 +40,6 @@ import static org.hamcrest.Matchers.isIn;
 
 
 
-@Seed("28FA742257F52FD7")
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
@@ -358,11 +355,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         execute("select sum(income), department from employees group by department order by sum(income) asc");
         assertEquals(4, response.rowCount());
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "10000.0| engineering\n" +
-                "1.00000000049E9| HR\n" +
-                "1.7976931348623157E308| management\n" +
-                "NULL| internship\n"));
 
         assertEquals("engineering", response.rows()[0][1]);
         assertEquals(10000.0, response.rows()[0][0]);
@@ -987,7 +979,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         }
     }
 
-    @Repeat(iterations=10)
     @Test
     public void groupByAggregateStdDevByte() throws Exception {
         this.setup.groupBySetup("byte");
