@@ -21,18 +21,14 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.Lists;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.CrateSearchService;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.operation.*;
-import io.crate.operation.fetch.OrderedRowDelegate;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
@@ -97,7 +93,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private final int jobSearchContextId;
     private final boolean keepContextForFetcher;
     private final List<OrderByCollectorExpression> orderByCollectorExpressions = new ArrayList<>();
-    private final List<OrderByCollectorExpression> orderByOnlyCollectorExpressions;
     private final Integer limit;
     private final OrderBy orderBy;
 
@@ -110,7 +105,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     public LuceneDocCollector(List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              List<OrderByCollectorExpression> orderByOnlyCollectorExpressions,
                               CollectNode collectNode,
                               Functions functions,
                               RowDownstream downStreamProjector,
@@ -123,7 +117,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         this.downstream = downStreamProjector.registerUpstream(this);
         this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
-        this.orderByOnlyCollectorExpressions = orderByOnlyCollectorExpressions;
         for (LuceneCollectorExpression expr : collectorExpressions) {
             if ( expr instanceof OrderByCollectorExpression) {
                 orderByCollectorExpressions.add((OrderByCollectorExpression)expr);
@@ -168,21 +161,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
         }
-        Row output;
-        if (orderByOnlyCollectorExpressions.size() > 0) {
-            List<Object> orderByOnlyValues = new ArrayList<>(orderByCollectorExpressions.size());
-            orderByOnlyValues.addAll(Lists.transform(orderByOnlyCollectorExpressions, new Function<OrderByCollectorExpression, Object>() {
-                @Override
-                public Object apply(OrderByCollectorExpression input) {
-                    return input.value();
-                }
-            }));
-            output = new OrderedRowDelegate(inputRow, orderByOnlyValues);
-        } else {
-            output = inputRow;
-        }
 
-        if (!downstream.setNextRow(output) || (limit != null && rowCount == limit)) {
+        if (!downstream.setNextRow(inputRow) || (limit != null && rowCount == limit)) {
             // no more rows required, we can stop here
             throw new CollectionAbortedException();
         }
