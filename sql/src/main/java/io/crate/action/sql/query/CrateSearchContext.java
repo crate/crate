@@ -40,6 +40,7 @@ import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
+import org.elasticsearch.search.lookup.SearchLookup;
 
 import java.io.IOException;
 import java.util.Map;
@@ -83,6 +84,13 @@ public class CrateSearchContext extends DefaultSearchContext {
 
     public boolean isEngineSearcherShared() {
         return isEngineSearcherShared;
+    }
+
+    public SearchLookup lookup(boolean shared) {
+        if (shared) {
+            return super.lookup();
+        }
+        return new SearchLookup(mapperService(), fieldData(), new String[]{Constants.DEFAULT_MAPPING_TYPE});
     }
 
     @Override

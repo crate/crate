@@ -80,8 +80,12 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
 
     private void findLeastUpstreamBufferId() {
         for (int i = 0; i < upstreamBuffers.size(); i++) {
+            UpstreamBuffer upstreamBuffer = upstreamBuffers.get(i);
+            if (upstreamBuffer.size() == 0) {
+                continue;
+            }
             try {
-                Row row = upstreamBuffers.get(i).first();
+                Row row = upstreamBuffer.first();
                 Long orderingValue = (Long)row.get(orderingColumnIndex);
                 if (orderingValue == outputCursor) {
                     leastUpstreamBufferCursor = orderingValue;
@@ -178,6 +182,12 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
         public Row first() {
             synchronized (lock) {
                 return rows.getFirst();
+            }
+        }
+
+        public int size() {
+            synchronized (lock) {
+                return rows.size();
             }
         }
     }
