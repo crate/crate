@@ -28,7 +28,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.*;
-import io.crate.executor.Page;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
@@ -67,10 +66,6 @@ public class TestingHelpers {
 
     public static String printedTable(Bucket result) {
         return printRows(Arrays.asList(Buckets.materialize(result)));
-    }
-
-    public static String printedPage(Page page) {
-        return printRows(page);
     }
 
     public static String printRows(Iterable<Object[]> rows) {
