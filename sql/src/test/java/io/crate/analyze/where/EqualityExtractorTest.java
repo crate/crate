@@ -29,20 +29,25 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.operator.OrOperator;
+import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 public class EqualityExtractorTest extends BaseAnalyzerTest {
@@ -91,6 +96,16 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         return new Function(AndOperator.INFO, Arrays.asList(left, right));
     }
 
+    private Function AnyEq(Symbol left, Symbol right) {
+        return new Function(
+                new FunctionInfo(
+                    new FunctionIdent(AnyEqOperator.NAME, ImmutableList.of(left.valueType(), right.valueType())),
+                    DataTypes.BOOLEAN
+                ),
+                Arrays.asList(left, right)
+        );
+    }
+
     private Function Or(Symbol left, Symbol right) {
         return new Function(OrOperator.INFO, Arrays.asList(left, right));
     }
@@ -120,7 +135,7 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testPK2_2ColOr() throws Exception {
+    public void testNoExtract2ColPKWithOr() throws Exception {
         Symbol query = Or(
                 Eq(Ref("x"), Literal.newLiteral(1)),
                 Eq(Ref("y"), Literal.newLiteral(2))
@@ -130,23 +145,25 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         assertNull(matches);
     }
 
-
+    @SuppressWarnings("unchecked")
     @Test
-    public void testPK2_NestedOr() throws Exception {
+    public void testExtract2ColPKWithAndAndNestedOr() throws Exception {
         Symbol query = And(
                 Eq("x", 1),
                 Or(Or(Eq("y", 2), Eq("y", 3)), Eq("y", 4))
         );
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertThat(matches.size(), is(3));
-
-        for (List<Symbol> match : matches) {
-            System.out.println(match);
-        }
+        assertThat(matches, containsInAnyOrder(
+                        contains(isLiteral(1), isLiteral(2)),
+                        contains(isLiteral(1), isLiteral(3)),
+                        contains(isLiteral(1), isLiteral(4)))
+        );
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void testPK2_OrFullDistinctKeys() throws Exception {
+    public void testExtract2ColPKWithOrFullDistinctKeys() throws Exception {
         Symbol query = Or(
                 And(Eq("x", 1), Eq("y", 2)),
                 And(Eq("x", 3), Eq("y", 4))
@@ -154,27 +171,29 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertThat(matches.size(), is(2));
 
-        for (List<Symbol> match : matches) {
-            System.out.println(match);
-        }
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral(1), isLiteral(2)),
+                contains(isLiteral(3), isLiteral(4))
+        ));
     }
 
     @Test
-    public void testPK2_OrFullDuplicateKeys() throws Exception {
+    public void testExtract2ColPKWithOrFullDuplicateKeys() throws Exception {
         Symbol query = Or(
                 And(Eq("x", 1), Eq("y", 2)),
                 And(Eq("x", 1), Eq("y", 4))
         );
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertThat(matches.size(), is(2));
-        for (List<Symbol> match : matches) {
-            System.out.println(match);
-        }
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral(1), isLiteral(2)),
+                contains(isLiteral(1), isLiteral(4))
+        ));
     }
 
 
     @Test
-    public void testRoutingAnd() throws Exception {
+    public void testExtractRoutingFromAnd() throws Exception {
         Symbol query = And(
                 Eq("x", 1),
                 Eq("y", 2)
@@ -182,30 +201,34 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         List<List<Symbol>> matches = analyzeParentX(query);
         assertThat(matches.size(), is(1));
 
-        for (List<Symbol> match : matches) {
-            System.out.println(match);
-        }
+        assertThat(matches, contains(
+                contains(isLiteral(1))
+        ));
     }
 
     @Test
-    public void testRoutingForeignOnly() throws Exception {
+    public void testExtractNoRoutingFromForeignOnly() throws Exception {
         Symbol query = Eq("y", 2);
         List<List<Symbol>> matches = analyzeParentX(query);
         assertNull(matches);
     }
 
     @Test
-    public void testRoutingOr() throws Exception {
+    public void testExtractRoutingFromOr() throws Exception {
         Symbol query = Or(
                 Eq("x", 1),
                 Eq("x", 2)
         );
         List<List<Symbol>> matches = analyzeParentX(query);
         assertThat(matches.size(), is(2));
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral(1)),
+                contains(isLiteral(2))
+        ));
     }
 
     @Test
-    public void testPKAnd() throws Exception {
+    public void testNoExtractSinglePKFromAnd() throws Exception {
         Symbol query = And(
                 Eq("x", 1),
                 Eq("x", 2)
@@ -217,16 +240,23 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
 
 
     @Test
-    public void testRoutingOrNested() throws Exception {
+    public void testExtractRoutingFromNestedOr() throws Exception {
         Symbol query = Or(Eq("x", 1),
                 Or(Or(Eq("x", 2), Eq("x", 3)), Eq("x", 4))
         );
         List<List<Symbol>> matches = analyzeParentX(query);
         assertThat(matches.size(), is(4));
+
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral(1)),
+                contains(isLiteral(2)),
+                contains(isLiteral(3)),
+                contains(isLiteral(4))
+        ));
     }
 
     @Test
-    public void testRoutingOrForeign() throws Exception {
+    public void testExtractNoRoutingFromOrWithForeignColumn() throws Exception {
         Symbol query = Or(
                 Eq("x", 1),
                 Eq("a", 2)
@@ -236,7 +266,7 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testPK1AndForeign() throws Exception {
+    public void testNoExtractSinglePKFromAndWithForeignColumn() throws Exception {
         // x=1 or (x=2 and a=2)
         Symbol query = Or(
                 Eq("x", 1),
@@ -249,7 +279,7 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
 
 
     @Test
-    public void testPK2_NestedOrWithDuplicates() throws Exception {
+    public void testExtract2ColPKFromNestedOrWithDuplicates() throws Exception {
         Symbol query = And(
                 Eq("x", 1),
                 Or(Or(Eq("y", 2), Eq("y", 2)), Eq("y", 4))
@@ -257,14 +287,15 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertThat(matches.size(), is(2));
 
-        for (List<Symbol> match : matches) {
-            System.out.println(match);
-        }
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral(1), isLiteral(2)),
+                contains(isLiteral(1), isLiteral(4))
+        ));
     }
 
 
     @Test
-    public void testPK2_Eq1_Foreign2() throws Exception {
+    public void testNoExtract2ColPKFromAndEq1PartAnd2ForeignColumns() throws Exception {
         Symbol query = And(
                 Eq(Ref("x"), Literal.newLiteral(1)),
                 Or(
@@ -296,7 +327,7 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
      *
      */
     @Test
-    public void testPK2_Eq1_Foreign1() throws Exception {
+    public void testNoExtract2ColPKFromAndWithEq1PartAnd1ForeignColumnInOr() throws Exception {
         Symbol query = And(
                 Eq("x", 1),
                 Or(
@@ -308,9 +339,8 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         assertNull(matches);
     }
 
-
     @Test
-    public void testPK2_3EqAndOr() throws Exception {
+    public void testExtract2ColPKFrom1PartAndOtherPart2EqOr() throws Exception {
         Symbol query = And(
                 Eq(Ref("x"), Literal.newLiteral(1)),
                 Or(
@@ -320,17 +350,110 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
 
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertThat(matches.size(), is(2));
-        for (List<Symbol> match : matches) {
-            System.out.println(match);
-        }
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral(1), isLiteral(2)),
+                contains(isLiteral(1), isLiteral(3))
+        ));
     }
 
-
     @Test
-    public void testPK2_Eq1() throws Exception {
+    public void testNoExtract2ColPKFromOnly1Part() throws Exception {
         Symbol query = Eq(Ref("x"), Literal.newLiteral(1));
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertNull(matches);
     }
 
+    @Test
+    public void testExtractSinglePKFromAnyEq() throws Exception {
+        Symbol query = AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}));
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches.size(), is(3));
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral("a")),
+                contains(isLiteral("b")),
+                contains(isLiteral("c"))
+        ));
+    }
+
+    @Test
+    public void testExtract2ColPKFromAnyEq() throws Exception {
+        Symbol query = And(
+                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
+                Eq("y", 4));
+        List<List<Symbol>> matches = analyzeExactXY(query);
+        assertThat(matches.size(), is(3));
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral("a"), isLiteral(4)),
+                contains(isLiteral("b"), isLiteral(4)),
+                contains(isLiteral("c"), isLiteral(4))
+        ));
+
+
+    }
+
+    @Test
+    public void testExtractSinglePKFromAnyEqInOr() throws Exception {
+        Symbol query = Or(
+                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
+                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("d"), new BytesRef("e"), new BytesRef("c")}))
+                );
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches.size(), is(5));
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral("a")),
+                contains(isLiteral("b")),
+                contains(isLiteral("c")),
+                contains(isLiteral("d")),
+                contains(isLiteral("e"))
+
+        ));
+    }
+
+    @Test
+    public void testExtractSinglePKFromOrInAnd() throws Exception {
+        Symbol query = And(
+                Or(Eq("x", 1), Or(Eq("x", 2), Eq("x", 3))),
+                Or(Eq("x", 1), Or(Eq("x", 4), Eq("x", 5)))
+        );
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches.size(), is(1));
+        assertThat(matches, contains(
+                contains(isLiteral(1))
+        ));
+    }
+
+    @Test
+    public void testExtractSinglePK1FromAndAnyEq() throws Exception {
+        Symbol query = And(
+                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
+                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("d"), new BytesRef("e"), new BytesRef("c")}))
+        );
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches, is(notNullValue()));
+        assertThat(matches.size(), is(1)); // STRING c
+        assertThat(matches, contains(
+                contains(isLiteral(new BytesRef("c")))
+        ));
+    }
+
+    @Test
+    public void testExtract2ColPKFromAnyEqAnd() throws Exception {
+        Symbol query = And(
+                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
+                AnyEq(Ref("y"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}))
+        );
+        List<List<Symbol>> matches = analyzeExactXY(query);
+        assertThat(matches.size(), is(9)); // cartesian product: 3 * 3
+        assertThat(matches, containsInAnyOrder(
+                contains(isLiteral("a"), isLiteral("a")),
+                contains(isLiteral("a"), isLiteral("b")),
+                contains(isLiteral("a"), isLiteral("c")),
+                contains(isLiteral("b"), isLiteral("a")),
+                contains(isLiteral("b"), isLiteral("b")),
+                contains(isLiteral("b"), isLiteral("c")),
+                contains(isLiteral("c"), isLiteral("a")),
+                contains(isLiteral("c"), isLiteral("b")),
+                contains(isLiteral("c"), isLiteral("c"))
+        ));
+    }
 }

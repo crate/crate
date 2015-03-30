@@ -32,6 +32,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.emptyIterable;
@@ -233,7 +234,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         projector.finish();
 
         Bucket rows = projector.result().get();
-        assertThat(rows, contains(isRow(null), isRow(1)));
+        assertThat(rows, contains(isNullRow(), isRow(1)));
     }
 
     @Test
@@ -254,7 +255,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         projector.finish();
 
         Bucket rows = projector.result().get();
-        assertThat(rows, contains(isRow(1), isRow(null)));
+        assertThat(rows, contains(isRow(1), isNullRow()));
     }
 
     @Test
@@ -275,7 +276,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         projector.finish();
 
         Bucket rows = projector.result().get();
-        assertThat(rows, contains(isRow(1), isRow(null)));
+        assertThat(rows, contains(isRow(1), isNullRow()));
     }
 
     @Test
@@ -296,7 +297,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         projector.finish();
 
         Bucket rows = projector.result().get();
-        assertThat(rows, contains(isRow(null), isRow(1)));
+        assertThat(rows, contains(isNullRow(), isRow(1)));
     }
 
     @Test

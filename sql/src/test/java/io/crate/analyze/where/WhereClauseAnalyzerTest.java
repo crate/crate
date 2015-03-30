@@ -32,6 +32,8 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.operator.any.AnyEqOperator;
+import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
@@ -39,7 +41,9 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -54,8 +58,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
-import static io.crate.testing.TestingHelpers.isDocKey;
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -98,6 +101,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                     TestingTableInfo.builder(new TableIdent("doc", "users"), RowGranularity.DOC, twoNodeRouting)
                             .add("id", DataTypes.STRING, null)
                             .add("name", DataTypes.STRING, null)
+                            .add("tags", new ArrayType(DataTypes.STRING), null)
                             .addPrimaryKey("id")
                             .clusteredBy("id")
                             .build());
@@ -433,7 +437,6 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(whereClause.docKeys().get(), contains(isDocKey("jalla")));
     }
 
-
     @Test
     public void test1ColPrimaryKeySetLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from sys.nodes where id in ('jalla', 'kelle')");
@@ -590,4 +593,52 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         }
     }
 
- }
+    @Test
+    public void testAnyInvalidArrayType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("array expression of invalid type array(string)");
+        analyzeSelectWhere("select * from users_multi_pk where awesome = any(['foo', 'bar', 'baz'])");
+    }
+
+    @Test
+    public void testInConvertedToAnyIfOnlyLiterals() throws Exception {
+        StringBuilder sb = new StringBuilder("select id from sys.shards where id in (");
+        int i=0;
+        for (; i < 1500; i++) {
+            sb.append(i);
+            sb.append(',');
+        }
+        sb.append(i++);
+        sb.append(')');
+        String s = sb.toString();
+
+        WhereClause whereClause = analyzeSelectWhere(s);
+        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, new SetType(DataTypes.INTEGER))));
+    }
+
+    @Test
+    public void testInNormalizedToAnyWithScalars() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where id in (null, 1+2, 3+4, abs(-99))");
+        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME));
+        assertThat(whereClause.docKeys().isPresent(), is(true));
+        assertThat(whereClause.docKeys().get(), containsInAnyOrder(isNullDocKey(), isDocKey("3"), isDocKey("7"), isDocKey("99")));
+    }
+
+    @Test
+    public void testAnyEqConvertableArrayTypeLiterals() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where name = any([1, 2, 3])");
+        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+    }
+
+    @Test
+    public void testAnyLikeConvertableArrayTypeLiterals() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where name like any([1, 2, 3])");
+        assertThat(whereClause.query(), isFunction(AnyLikeOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+    }
+
+    @Test
+    public void testAnyLikeArrayLiteral() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where name like any(['a', 'b', 'c'])");
+        assertThat(whereClause.query(), isFunction(AnyLikeOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+    }
+}

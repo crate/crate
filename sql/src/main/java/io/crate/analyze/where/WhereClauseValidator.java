@@ -1,14 +1,17 @@
 package io.crate.analyze.where;
 
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.GteOperator;
+import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.ComparisonExpression;
 
 import java.util.Locale;
+import java.util.Set;
 import java.util.Stack;
 
 public abstract class WhereClauseValidator {
@@ -25,7 +28,7 @@ public abstract class WhereClauseValidator {
 
         public static class Context {
 
-            public final Stack<Function> functions = new Stack();
+            public final Stack<Function> functions = new Stack<>();
             private final WhereClause whereClause;
 
             public Context(WhereClause whereClause) {
@@ -33,13 +36,15 @@ public abstract class WhereClauseValidator {
             }
         }
 
-        private final static String _SCORE = "_score";
+        private static final String _SCORE = "_score";
+        private static final Set<String> SCORE_ALLOWED_COMPARISONS = ImmutableSet.of(GteOperator.NAME);
 
-        private final static String _VERSION = "_version";
+        private static final String _VERSION = "_version";
+        private static final Set<String> VERSION_ALLOWED_COMPARISONS = ImmutableSet.of(EqOperator.NAME, AnyEqOperator.NAME);
 
-        private final static String VERSION_ERROR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
+        private static final String VERSION_ERROR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
 
-        private final static String SCORE_ERROR = String.format(Locale.ENGLISH,
+        private static final String SCORE_ERROR = String.format(Locale.ENGLISH,
                 "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
                 _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue());
 
@@ -81,17 +86,18 @@ public abstract class WhereClauseValidator {
 
         private void validateSysReference(Context context, String columnName) {
             if (columnName.equalsIgnoreCase(_VERSION)) {
-                validateSysReference(context, EqOperator.NAME, VERSION_ERROR);
+                validateSysReference(context, VERSION_ALLOWED_COMPARISONS, VERSION_ERROR);
             } else if (columnName.equalsIgnoreCase(_SCORE)) {
-                validateSysReference(context, GteOperator.NAME, SCORE_ERROR);
+                validateSysReference(context, SCORE_ALLOWED_COMPARISONS, SCORE_ERROR);
             }
         }
-            private void validateSysReference(Context context, String requiredFunctionName, String error) {
+
+        private void validateSysReference(Context context, Set<String> requiredFunctionNames, String error) {
             if(context.functions.isEmpty()){
                 throw new UnsupportedOperationException(error);
             }
             Function function = context.functions.lastElement();
-            if(!function.info().ident().name().equalsIgnoreCase(requiredFunctionName)
+            if(!requiredFunctionNames.contains(function.info().ident().name().toLowerCase())
                     || insideNotPredicate(context)) {
                 throw new UnsupportedOperationException(error);
             }

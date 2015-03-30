@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import java.util.UUID;
 
+import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Matchers.anyObject;
@@ -70,7 +71,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         assertThat(r2.rows(), contains(
                 isRow("ab"),
-                isRow(null),
+                isNullRow(),
                 isRow("cd")
         ));
     }

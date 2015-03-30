@@ -38,6 +38,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
+import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
@@ -425,11 +426,11 @@ public class ExpressionAnalyzer {
             return context.allocateFunction(ExtractFunctions.functionInfo(node.getField()), Arrays.asList(expression));
         }
 
+
         @Override
         protected Symbol visitInPredicate(InPredicate node, ExpressionAnalysisContext context) {
 
             Symbol left = process(node.getValue(), context);
-
 
             DataType leftType = left.valueType();
             if (leftType.equals(DataTypes.UNDEFINED)) {
@@ -438,9 +439,44 @@ public class ExpressionAnalyzer {
                 return Literal.NULL;
             }
 
-            InListExpression listExpression = ((InListExpression) node.getValueList());
+            List<Expression> expressions = ((InListExpression) node.getValueList()).getValues();
 
-            Set<Function> comparisons = new HashSet<>(listExpression.getValues().size());
+            boolean useAny = true;
+            Set<Literal> literals = new HashSet<>(expressions.size());
+            for (Expression expression : expressions) {
+                Symbol arrayElement = process(expression, context);
+                Literal literal;
+                if (arrayElement instanceof Literal) {
+                    literal = (Literal) arrayElement;
+                } else {
+                    Symbol normalized = normalize(arrayElement);
+                    if (normalized instanceof Literal) {
+                        literal = (Literal)normalized;
+                    } else {
+                        useAny = false;
+                        break;
+                    }
+                }
+                try {
+                    literals.add(Literal.convert(literal, leftType));
+                } catch (Throwable e) {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",
+                                    SymbolFormatter.format(literal),
+                                    leftType.getName()));
+                }
+            }
+            if (useAny){
+                return context.allocateFunction(
+                        new FunctionInfo(
+                                new FunctionIdent(AnyEqOperator.NAME, Arrays.asList(leftType, new SetType(leftType))),
+                                DataTypes.BOOLEAN
+                        ),
+                        Arrays.asList(left, Literal.implodeCollection(leftType, literals))
+                );
+            }
+
+            Set<Function> comparisons = new HashSet<>(expressions.size());
             FunctionInfo eqInfo = new FunctionInfo(
                     new FunctionIdent(EqOperator.NAME, Arrays.asList(leftType, leftType)),
                     DataTypes.BOOLEAN);
@@ -459,6 +495,7 @@ public class ExpressionAnalyzer {
                 }
                 comparisons.add(context.allocateFunction(eqInfo, Arrays.asList(left, right)));
             }
+
             if (comparisons.size() == 1) {
                 return comparisons.iterator().next();
             } else {
@@ -580,16 +617,25 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException("ANY on object arrays is not supported");
             }
 
-            if (leftSymbol.symbolType().isValueSymbol()) {
-                leftSymbol = Literal.convert(leftSymbol, rightInnerType);
-            } else {
-                throw new IllegalArgumentException(
-                        "The left side of an ANY comparison must be a value, not a column reference");
+            // always try to convert literal to reference type
+            if (!rightInnerType.equals(leftSymbol.valueType())) {
+                if (rightInnerType.isConvertableTo(leftSymbol.valueType())) {
+                    if (rightSymbol.symbolType().isValueSymbol()) {
+                        rightSymbol = Literal.convert(rightSymbol, new ArrayType(leftSymbol.valueType()));
+                    } else {
+                        leftSymbol = normalizeInputForType(leftSymbol, rightInnerType);
+                    }
+                } else {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH,
+                                    "array expression of invalid type array(%s)", rightInnerType));
+                }
             }
+
             ComparisonExpression.Type operationType = node.getType();
             String operatorName;
             operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
-            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), rightType));
+            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), rightSymbol.valueType()));
             FunctionInfo functionInfo = getFunctionInfo(functionIdent);
             return context.allocateFunction(functionInfo, Arrays.asList(leftSymbol, rightSymbol));
         }
@@ -607,26 +653,26 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException(
                         SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
             }
-
             DataType rightInnerType = ((CollectionType) rightType).innerType();
+
+            // always try to convert literal to reference type
             if (rightInnerType.id() != StringType.ID) {
-                if (!(rightSymbol instanceof Field)) {
-                    rightSymbol = normalizeInputForType(rightSymbol, new ArrayType(DataTypes.STRING));
+                if (rightInnerType.isConvertableTo(DataTypes.STRING)) {
+                    if (rightSymbol.symbolType().isValueSymbol()) {
+                        rightSymbol = Literal.convert(rightSymbol, new ArrayType(DataTypes.STRING));
+                    } else {
+                        leftSymbol = normalizeInputForType(leftSymbol, DataTypes.STRING);
+                    }
                 } else {
                     throw new IllegalArgumentException(
-                            SymbolFormatter.format("elements not of type string: '%s'", rightSymbol));
+                            String.format(Locale.ENGLISH,
+                                    "array expression of invalid type array(%s)", rightInnerType));
                 }
             }
 
-            if (leftSymbol.symbolType().isValueSymbol()) {
-                leftSymbol = normalizeInputForType(leftSymbol, rightInnerType);
-            } else {
-                throw new IllegalArgumentException(
-                        "The left side of an ANY comparison must be a value, not a column reference");
-            }
             String operatorName = node.inverse() ? AnyNotLikeOperator.NAME : AnyLikeOperator.NAME;
 
-            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), rightType));
+            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), rightSymbol.valueType()));
             FunctionInfo functionInfo = getFunctionInfo(functionIdent);
             return context.allocateFunction(functionInfo, Arrays.asList(leftSymbol, rightSymbol));
         }
@@ -718,12 +764,16 @@ public class ExpressionAnalyzer {
         @Override
         public Symbol visitArrayLiteral(ArrayLiteral node, ExpressionAnalysisContext context) {
             // TODO: support everything that is immediately evaluable as values
-            if (node.values().isEmpty()) {
+            return toArrayLiteral(node.values(), context);
+        }
+
+        private Literal toArrayLiteral(List<Expression> values, ExpressionAnalysisContext context) {
+            if (values.isEmpty()) {
                 return newLiteral(new ArrayType(UndefinedType.INSTANCE), new Object[0]);
             } else {
                 DataType innerType = null;
-                List<Literal> literals = new ArrayList<>(node.values().size());
-                for (Expression e : node.values()) {
+                List<Literal> literals = new ArrayList<>(values.size());
+                for (Expression e : values) {
                     Symbol arrayElement = process(e, context);
                     if (innerType == null || (innerType == DataTypes.UNDEFINED && !arrayElement.valueType().equals(innerType))) {
                         innerType = arrayElement.valueType();

@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: allow more than 1k elements in the IN query
+
+ - allow to use ANY expression to compare primitive values against an array literal
+
  - Fix: ip type conversion did not allow NULL values
 
  - Fix: Grouping or sorting on a dynamically created column of a partitioned
