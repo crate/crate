@@ -44,10 +44,6 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitESQueryThenFetchNode(ESQueryThenFetchNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
     public R visitESGetNode(ESGetNode node, C context) {
         return visitPlanNode(node, context);
     }
