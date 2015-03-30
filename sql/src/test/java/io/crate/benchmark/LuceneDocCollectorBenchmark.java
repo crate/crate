@@ -82,6 +82,14 @@ import static org.mockito.Mockito.when;
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
 public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
+    @Rule
+    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
+
     public static boolean dataGenerated = false;
     public static final int NUMBER_OF_DOCUMENTS = 100_000;
     public static final int BENCHMARK_ROUNDS = 100;
@@ -98,13 +106,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
     public byte[] generateRowSource() throws IOException {
@@ -154,8 +155,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                     ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], true);
             client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
             refresh(client());
-            doGenerateData();
         }
+        doGenerateData();
 
         IndicesService instanceFromNode = cluster.getInstanceFromFirstNode(IndicesService.class);
         IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
