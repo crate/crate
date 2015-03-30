@@ -106,7 +106,8 @@ public class LuceneDocFetcher implements RowUpstream {
 
         CollectorContext collectorContext = new CollectorContext()
                 .visitor(fieldsVisitor)
-                .searchContext(searchContext);
+                .searchContext(searchContext)
+                .searchLookup(searchContext.lookup(false));
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
@@ -114,7 +115,7 @@ public class LuceneDocFetcher implements RowUpstream {
 
         try {
             for (int index = 0; index < shardDocIdsBucket.size(); index++) {
-                int docId = shardDocIdsBucket.docIds()[index];
+                int docId = shardDocIdsBucket.docId(index);
                 int readerIndex = ReaderUtil.subIndex(docId, searchContext.searcher().getIndexReader().leaves());
                 AtomicReaderContext subReaderContext = searchContext.searcher().getIndexReader().leaves().get(readerIndex);
                 int subDoc = docId - subReaderContext.docBase;

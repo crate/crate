@@ -37,6 +37,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.ScoreReferenceDetector;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.projectors.FetchProjector;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -153,10 +154,17 @@ public class QueryThenFetchConsumer implements Consumer {
             topNProjection.outputs(outputs);
             mergeProjections.add(topNProjection);
 
+            // by default don't split fetch requests into pages/chunks,
+            // only if record set is higher than default limit
+            int bulkSize = FetchProjector.NO_BULK_REQUESTS;
+            if (topNProjection.limit() > Constants.DEFAULT_SELECT_LIMIT) {
+                bulkSize = Constants.DEFAULT_SELECT_LIMIT;
+            }
             FetchProjection fetchProjection = new FetchProjection(
                     DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
                     tableInfo.partitionedByColumns(),
                     collectNode.executionNodes(),
+                    bulkSize,
                     table.querySpec().isLimited());
             mergeProjections.add(fetchProjection);
 

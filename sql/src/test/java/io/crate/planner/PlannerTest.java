@@ -23,6 +23,7 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.projectors.FetchProjector;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
@@ -510,6 +511,9 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(topN.offset(), is(0));
         assertNull(topN.orderBy());
 
+        FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
+        assertThat(fetchProjection.bulkSize(), is(FetchProjector.NO_BULK_REQUESTS));
+
         // with offset
         plan = (QueryThenFetch)plan("select name from users offset 20");
         collectNode = plan.collectNode();
@@ -522,6 +526,43 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(topN.offset(), is(20));
         assertNull(topN.orderBy());
+
+        fetchProjection = (FetchProjection)mergeNode.projections().get(1);
+        assertThat(fetchProjection.bulkSize(), is(FetchProjector.NO_BULK_REQUESTS));
+    }
+
+    @Test
+    public void testQueryThenFetchPlanHighLimit() throws Exception {
+        QueryThenFetch plan = (QueryThenFetch)plan("select name from users limit 100000");
+        CollectNode collectNode = plan.collectNode();
+        assertThat(collectNode.limit(), is(100_000));
+
+        MergeNode mergeNode = plan.mergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
+        TopNProjection topN = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(topN.limit(), is(100_000));
+        assertThat(topN.offset(), is(0));
+        assertNull(topN.orderBy());
+
+        FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
+        assertThat(fetchProjection.bulkSize(), is(Constants.DEFAULT_SELECT_LIMIT));
+
+        // with offset
+        plan = (QueryThenFetch)plan("select name from users limit 100000 offset 20");
+        collectNode = plan.collectNode();
+        assertThat(collectNode.limit(), is(100_000 + 20));
+
+        mergeNode = plan.mergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
+        topN = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(topN.limit(), is(100_000));
+        assertThat(topN.offset(), is(20));
+        assertNull(topN.orderBy());
+
+        fetchProjection = (FetchProjection)mergeNode.projections().get(1);
+        assertThat(fetchProjection.bulkSize(), is(Constants.DEFAULT_SELECT_LIMIT));
     }
 
     @Test

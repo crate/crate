@@ -93,7 +93,7 @@ public class DocCollectorExpression extends
 
         @Override
         public void startCollect(CollectorContext context) {
-            sourceLookup = context.searchContext().lookup().source();
+            sourceLookup = context.searchLookup().source();
         }
     }
 }
