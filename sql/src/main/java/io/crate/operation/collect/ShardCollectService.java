@@ -101,8 +101,7 @@ public class ShardCollectService {
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
                                BlobShardReferenceResolver blobShardReferenceResolver,
-                               MapperService mapperService,
-                               CollectContextService collectContextService) {
+                               MapperService mapperService) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.luceneQueryBuilder = luceneQueryBuilder;

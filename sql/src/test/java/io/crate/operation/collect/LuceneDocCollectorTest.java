@@ -26,16 +26,19 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
+import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.scalar.arithmetic.MultiplyFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -51,9 +54,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -123,8 +128,12 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect) throws Exception{
+        return createDocCollector(orderBy, limit, toCollect, WhereClause.MATCH_ALL);
+    }
+
+    private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause) throws Exception{
         CollectNode node = new CollectNode();
-        node.whereClause(WhereClause.MATCH_ALL);
+        node.whereClause(whereClause);
         node.orderBy(orderBy);
         node.limit(limit);
         node.jobId(UUID.randomUUID());
@@ -202,5 +211,54 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(((BytesRef)collectingProjector.rows.get(NUMBER_OF_DOCS - 3)[0]).utf8ToString(), is("USA") );
         assertThat(((BytesRef)collectingProjector.rows.get(NUMBER_OF_DOCS - 2)[0]).utf8ToString(), is("Austria") );
         assertThat(((BytesRef)collectingProjector.rows.get(NUMBER_OF_DOCS - 1)[0]).utf8ToString(), is("Germany") );
+    }
+
+    @Test
+    public void testOrderByScalar() throws Exception {
+        collectingProjector.rows.clear();
+        Reference population = createReference("population", DataTypes.INTEGER);
+        Function scalarFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(MultiplyFunction.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
+                        DataTypes.LONG),
+                Arrays.<Symbol>asList(population, Literal.newLiteral(-1))
+        );
+
+        OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)scalarFunction), new boolean[]{false}, new Boolean[]{false});
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol)population));
+        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
+        assertThat(((Integer)collectingProjector.rows.get(NUMBER_OF_DOCS - 2)[0]), is(1) );
+        assertThat(((Integer)collectingProjector.rows.get(NUMBER_OF_DOCS - 1)[0]), is(0) );
+    }
+
+    @Test
+    public void testMinScoreQuery() throws Exception {
+        collectingProjector.rows.clear();
+        // where _score = 1.1
+        Reference minScore_ref = new Reference(
+                new ReferenceInfo(new ReferenceIdent(null, "_score"), RowGranularity.DOC, DataTypes.DOUBLE));
+
+        Function function = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(1.1))
+        );
+        WhereClause whereClause = new WhereClause(function);
+        LuceneDocCollector docCollector = createDocCollector(null, null, orderBy.orderBySymbols(), whereClause);
+        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        assertThat(collectingProjector.rows.size(), is(0));
+
+        // where _score = 1.0
+        collectingProjector.rows.clear();
+        function = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(1.0))
+        );
+        whereClause = new WhereClause(function);
+        docCollector = createDocCollector(null, null, orderBy.orderBySymbols(), whereClause);
+        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
     }
 }

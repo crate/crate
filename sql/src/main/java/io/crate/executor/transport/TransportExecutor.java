@@ -39,7 +39,6 @@ import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -79,7 +78,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
-    private final QueryThenFetchOperation queryThenFetchOperation;
     private final MergeOperation mergeOperation;
 
     @Inject
@@ -93,8 +91,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
-                             CrateCircuitBreakerService breakerService,
-                             QueryThenFetchOperation queryThenFetchOperation) {
+                             CrateCircuitBreakerService breakerService) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -104,7 +101,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
-        this.queryThenFetchOperation = queryThenFetchOperation;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
@@ -276,15 +272,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         jobId,
                         transportActionProvider.transportMergeNodeAction(), node));
             }
-        }
-
-        @Override
-        public ImmutableList<Task> visitESQueryThenFetchNode(ESQueryThenFetchNode node, UUID jobId) {
-            return singleTask(new QueryThenFetchTask(
-                    jobId,
-                    queryThenFetchOperation,
-                    functions,
-                    node));
         }
 
         @Override
