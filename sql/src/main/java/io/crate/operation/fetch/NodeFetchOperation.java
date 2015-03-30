@@ -221,8 +221,8 @@ public class NodeFetchOperation {
             docIds.add(docId);
         }
 
-        public int[] docIds() {
-            return docIds.toArray();
+        public int docId(int index) {
+            return docIds.get(index);
         }
 
         public int size() {

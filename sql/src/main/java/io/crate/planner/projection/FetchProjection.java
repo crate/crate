@@ -67,16 +67,6 @@ public class FetchProjection extends Projection {
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes,
-                           boolean closeContexts) {
-        this(docIdSymbol, inputSymbols, outputSymbols, partitionBy, executionNodes,
-                FetchProjector.NO_BULK_REQUESTS, closeContexts);
-    }
-
-    public FetchProjection(Symbol docIdSymbol,
-                           List<Symbol> inputSymbols,
-                           List<Symbol> outputSymbols,
-                           List<ReferenceInfo> partitionBy,
-                           Set<String> executionNodes,
                            int bulkSize) {
         this(docIdSymbol, inputSymbols, outputSymbols, partitionBy, executionNodes,
                 bulkSize, false);

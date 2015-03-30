@@ -23,7 +23,6 @@ package io.crate.operation.projectors;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.*;
@@ -371,7 +370,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         @Override
         public Object[] materialize() {
-            return Buckets.materialize(this);
+            return delegate.materialize();
         }
     }
 
