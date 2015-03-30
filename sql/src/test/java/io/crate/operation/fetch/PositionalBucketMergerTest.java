@@ -62,13 +62,13 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
 
         final List<List<List<Object[]>>> bucketsPerUpstream = new ArrayList<>(numUpstreams);
         List<List<Object[]>> upstream1 = new ArrayList<>(2);
-        upstream1.add(ImmutableList.of(new Object[]{4L}, new Object[]{6L}, new Object[]{7L}));
-        upstream1.add(ImmutableList.of(new Object[]{0L}, new Object[]{1L}, new Object[]{3L}));
+        upstream1.add(ImmutableList.of(new Object[]{4}, new Object[]{6}, new Object[]{7}));
+        upstream1.add(ImmutableList.of(new Object[]{0}, new Object[]{1}, new Object[]{3}));
         bucketsPerUpstream.add(upstream1);
 
         List<List<Object[]>> upstream2 = new ArrayList<>(2);
-        upstream2.add(ImmutableList.of(new Object[]{2L}, new Object[]{5L}));
-        upstream2.add(ImmutableList.of(new Object[]{8L}, new Object[]{9L}));
+        upstream2.add(ImmutableList.of(new Object[]{2}, new Object[]{5}));
+        upstream2.add(ImmutableList.of(new Object[]{8}, new Object[]{9}));
         bucketsPerUpstream.add(upstream2);
 
         final List<Throwable> setNextRowExceptions = new ArrayList<>();
@@ -84,7 +84,7 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
                     public void run() {
                         List<Row> rows1 = new ArrayList<>();
                         for (Object[] row : bucket) {
-                            rows1.add(new PositionalRowDelegate(new RowN(row), (long) row[0]));
+                            rows1.add(new PositionalRowDelegate(new RowN(row), (int) row[0]));
                         }
                         try {
                             bucketMerger.setNextBucket(rows1, upstreamId);
@@ -120,7 +120,7 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
         assertThat(result.size(), is(10));
         Iterator<Row> it = result.iterator();
         for (int i = 0; i < 10; i++) {
-            assertThat((long) it.next().get(0), is((long) i));
+            assertThat((int) it.next().get(0), is(i));
         }
 
         executorService.awaitTermination(1, TimeUnit.SECONDS);
@@ -135,13 +135,13 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
 
         final List<List<List<Object[]>>> bucketsPerUpstream = new ArrayList<>(numUpstreams);
         List<List<Object[]>> upstream1 = new ArrayList<>(2);
-        upstream1.add(ImmutableList.of(new Object[]{4L}, new Object[]{6L}, new Object[]{7L}));
-        upstream1.add(ImmutableList.of(new Object[]{0L}, new Object[]{1L}, new Object[]{3L}));
+        upstream1.add(ImmutableList.of(new Object[]{4}, new Object[]{6}, new Object[]{7}));
+        upstream1.add(ImmutableList.of(new Object[]{0}, new Object[]{1}, new Object[]{3}));
         bucketsPerUpstream.add(upstream1);
 
         List<List<Object[]>> upstream2 = new ArrayList<>(2);
-        upstream2.add(ImmutableList.of(new Object[]{2L}, new Object[]{5L}));
-        upstream2.add(ImmutableList.of(new Object[]{8L}, new Object[]{9L}));
+        upstream2.add(ImmutableList.of(new Object[]{2}, new Object[]{5}));
+        upstream2.add(ImmutableList.of(new Object[]{8}, new Object[]{9}));
         bucketsPerUpstream.add(upstream2);
 
         final List<Throwable> setNextRowExceptions = new ArrayList<>();
@@ -170,7 +170,7 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
                     public void run() {
                         List<Row> rows1 = new ArrayList<>();
                         for (Object[] row : bucket) {
-                            rows1.add(new PositionalRowDelegate(new RowN(row), (long) row[0]));
+                            rows1.add(new PositionalRowDelegate(new RowN(row), (int) row[0]));
                         }
                         try {
                             bucketMerger.setNextBucket(rows1, upstreamId);

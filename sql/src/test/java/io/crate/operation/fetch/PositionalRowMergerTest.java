@@ -54,23 +54,29 @@ public class PositionalRowMergerTest extends CrateUnitTest {
         final PositionalRowMerger rowMerger = new PositionalRowMerger(resultProvider, 1);
 
         final List<List<Object[]>> rowsPerUpstream = new ArrayList<>(numUpstreams);
-        rowsPerUpstream.add(ImmutableList.of(new Object[]{0L}, new Object[]{2L}, new Object[]{6L}));
-        rowsPerUpstream.add(ImmutableList.of(new Object[]{1L}, new Object[]{4L}, new Object[]{7L}));
-        rowsPerUpstream.add(ImmutableList.of(new Object[]{3L}, new Object[]{5L}, new Object[]{8L}, new Object[]{9L}));
+        rowsPerUpstream.add(ImmutableList.of(new Object[]{0}, new Object[]{2}, new Object[]{6}));
+        rowsPerUpstream.add(ImmutableList.of(new Object[]{1}, new Object[]{4}, new Object[]{7}));
+        rowsPerUpstream.add(ImmutableList.of(new Object[]{3}, new Object[]{5}, new Object[]{8}, new Object[]{9}));
 
         final List<Throwable> setNextRowExceptions = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(numUpstreams);
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
+
+        final List<RowDownstreamHandle> downstreamHandles = new ArrayList<>(numUpstreams);
+        // register upstreams
+        for (int i = 0; i < numUpstreams; i++) {
+            downstreamHandles.add(rowMerger.registerUpstream(null));
+        }
         for (int i = 0; i < numUpstreams; i++) {
             final int upstreamId = i;
-            final RowDownstreamHandle upstreamBuffer = rowMerger.registerUpstream(null);
+            final RowDownstreamHandle upstreamBuffer = downstreamHandles.get(i);
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {
                     List<Object[]> rows = rowsPerUpstream.get(upstreamId);
                     for (Object[] row : rows) {
                         try {
-                            upstreamBuffer.setNextRow(new PositionalRowDelegate(new RowN(row), (long)row[0]));
+                            upstreamBuffer.setNextRow(new PositionalRowDelegate(new RowN(row), (int)row[0]));
                         } catch (Exception e) {
                             setNextRowExceptions.add(e);
                         }
@@ -102,7 +108,7 @@ public class PositionalRowMergerTest extends CrateUnitTest {
         assertThat(result.size(), is(10));
         Iterator<Row> it = result.iterator();
         for (int i = 0; i < 10; i++) {
-            assertThat((long) it.next().get(0), is((long) i));
+            assertThat((int) it.next().get(0), is(i));
         }
 
         executorService.awaitTermination(1, TimeUnit.SECONDS);
@@ -116,8 +122,8 @@ public class PositionalRowMergerTest extends CrateUnitTest {
         final PositionalRowMerger rowMerger = new PositionalRowMerger(resultProvider, 1);
 
         final List<List<Object[]>> rowsPerUpstream = new ArrayList<>(numUpstreams);
-        rowsPerUpstream.add(ImmutableList.of(new Object[]{0L}, new Object[]{2L}));
-        rowsPerUpstream.add(ImmutableList.of(new Object[]{1L}));
+        rowsPerUpstream.add(ImmutableList.of(new Object[]{0}, new Object[]{2}));
+        rowsPerUpstream.add(ImmutableList.of(new Object[]{1}));
         rowsPerUpstream.add(ImmutableList.<Object[]>of());
 
         final List<Throwable> setNextRowExceptions = new ArrayList<>();
@@ -142,7 +148,7 @@ public class PositionalRowMergerTest extends CrateUnitTest {
                         List<Object[]> rows = rowsPerUpstream.get(upstreamId);
                         for (Object[] row : rows) {
                             try {
-                                upstreamBuffer.setNextRow(new PositionalRowDelegate(new RowN(row), (long) row[0]));
+                                upstreamBuffer.setNextRow(new PositionalRowDelegate(new RowN(row), (int) row[0]));
                             } catch (Exception e) {
                                 setNextRowExceptions.add(e);
                             }

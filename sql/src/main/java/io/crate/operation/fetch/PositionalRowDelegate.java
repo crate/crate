@@ -24,10 +24,10 @@ package io.crate.operation.fetch;
 import io.crate.core.collections.Row;
 
 public class PositionalRowDelegate implements Row {
-    private final long position;
-    private Object[] cells;
+    private final int position;
+    private final Object[] cells;
 
-    public PositionalRowDelegate(Row delegate, long position) {
+    public PositionalRowDelegate(Row delegate, int position) {
         this.cells = delegate.materialize();
         this.position = position;
     }

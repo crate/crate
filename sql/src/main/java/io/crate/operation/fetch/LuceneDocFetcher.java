@@ -78,7 +78,7 @@ public class LuceneDocFetcher implements RowUpstream {
         }
     }
 
-    private void fetch(long position, int doc) throws Exception {
+    private void fetch(int position, int doc) throws Exception {
         if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
             // stop fetching because breaker limit was reached
             throw new UnexpectedFetchTerminatedException(

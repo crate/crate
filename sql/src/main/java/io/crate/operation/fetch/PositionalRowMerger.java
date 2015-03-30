@@ -46,8 +46,8 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
     private final AtomicInteger upstreamsRemaining = new AtomicInteger(0);
     private final List<UpstreamBuffer> upstreamBuffers = new ArrayList<>();
     private final int orderingColumnIndex;
-    private volatile long outputCursor = 0;
-    private volatile long leastUpstreamBufferCursor = -1;
+    private volatile int outputCursor = 0;
+    private volatile int leastUpstreamBufferCursor = -1;
     private volatile int leastUpstreamBufferId = -1;
     private final AtomicBoolean consumeRows = new AtomicBoolean(true);
 
@@ -86,7 +86,7 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
             }
             try {
                 Row row = upstreamBuffer.first();
-                Long orderingValue = (Long)row.get(orderingColumnIndex);
+                int orderingValue = (int)row.get(orderingColumnIndex);
                 if (orderingValue == outputCursor) {
                     leastUpstreamBufferCursor = orderingValue;
                     leastUpstreamBufferId = i;
@@ -151,7 +151,7 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
             if (!merger.consumeRows.get()) {
                 return false;
             }
-            if (row.get(merger.orderingColumnIndex) == merger.outputCursor) {
+            if ((int)row.get(merger.orderingColumnIndex) == merger.outputCursor) {
                 if (!merger.emitRow(row)) {
                     return false;
                 }

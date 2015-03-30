@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
 import io.crate.core.collections.Row;
@@ -78,7 +79,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final Map<String, Object[]> partitionValuesCache = new HashMap<>();
     private final Object partitionValuesCacheLock = new Object();
 
-    private long inputCursor = 0;
+    private int inputCursor = 0;
     private boolean consumedRows = false;
     private boolean needInputRow = false;
 
@@ -323,7 +324,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         private final String nodeId;
         private final String index;
         private final List<Row> inputRows = new ArrayList<>();
-        private final LongArrayList cursors = new LongArrayList();
+        private final IntArrayList cursors = new IntArrayList();
         private final LongArrayList docIds = new LongArrayList();
 
         public NodeBucket(String nodeId, String index, int nodeIdx) {
@@ -332,7 +333,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
             this.nodeIdx = nodeIdx;
         }
 
-        public void add(long cursor, Long docId, Row row) {
+        public void add(int cursor, Long docId, Row row) {
             cursors.add(cursor);
             docIds.add(docId);
             inputRows.add(new RowN(row.materialize()));
@@ -346,7 +347,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
             return docIds;
         }
 
-        public long cursor(int index) {
+        public int cursor(int index) {
             return cursors.get(index);
         }
 

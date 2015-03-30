@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Merge multiple upstream buckets, whereas every row is ordered by a positional unique long.
+ * Merge multiple upstream buckets, whereas every row is ordered by a positional unique integer.
  * Emits rows as soon as possible. Buckets from one upstream can be consumed in an undefined
  * order. The main purpose of this implementation is merging ordered node responses.
  */
@@ -42,8 +42,8 @@ public class PositionalBucketMerger implements RowUpstream {
     private final AtomicInteger upstreamsRemaining = new AtomicInteger(0);
     private final int orderingColumnIndex;
     private final UpstreamBucket[] remainingBuckets;
-    private volatile long outputCursor = 0;
-    private volatile long leastBucketCursor = -1;
+    private volatile int outputCursor = 0;
+    private volatile int leastBucketCursor = -1;
     private volatile int leastBucketId = -1;
     private final AtomicBoolean consumeBuckets = new AtomicBoolean(true);
 
@@ -62,7 +62,7 @@ public class PositionalBucketMerger implements RowUpstream {
         Iterator<Row> bucketIt = bucket.iterator();
         while (bucketIt.hasNext()) {
             Row firstRow = bucketIt.next();
-            if (firstRow.get(orderingColumnIndex) == outputCursor) {
+            if ((int)firstRow.get(orderingColumnIndex) == outputCursor) {
                 bucketIt.remove();
                 if (!emitRow(firstRow)) {
                     return false;
@@ -87,7 +87,7 @@ public class PositionalBucketMerger implements RowUpstream {
             int idx = 0;
             while(bucketIt.hasNext()) {
                 Row row = bucketIt.next();
-                int compare = Long.compare((Long) row.get(orderingColumnIndex), (Long) newFirstRow.get(orderingColumnIndex));
+                int compare = Integer.compare((int) row.get(orderingColumnIndex), (int) newFirstRow.get(orderingColumnIndex));
                 if (compare == 1) {
                     remainingBucket.addAll(idx, newBucket);
                     return;
@@ -126,7 +126,7 @@ public class PositionalBucketMerger implements RowUpstream {
             }
             try {
                 Row row = bucketIt.getFirst();
-                Long orderingValue = (Long)row.get(orderingColumnIndex);
+                int orderingValue = (int)row.get(orderingColumnIndex);
                 if (orderingValue == outputCursor) {
                     leastBucketCursor = orderingValue;
                     leastBucketId = i;

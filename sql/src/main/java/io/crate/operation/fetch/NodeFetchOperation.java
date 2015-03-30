@@ -64,7 +64,7 @@ public class NodeFetchOperation {
     private final ThreadPoolExecutor executor;
     private final int poolSize;
 
-    private long inputCursor = 0;
+    private int inputCursor = 0;
 
     private static final ESLogger LOGGER = Loggers.getLogger(NodeFetchOperation.class);
 
@@ -213,10 +213,10 @@ public class NodeFetchOperation {
 
     static class ShardDocIdsBucket {
 
-        private final LongArrayList positions = new LongArrayList();
+        private final IntArrayList positions = new IntArrayList();
         private final IntArrayList docIds = new IntArrayList();
 
-        public void add(long position, int docId) {
+        public void add(int position, int docId) {
             positions.add(position);
             docIds.add(docId);
         }
@@ -229,7 +229,7 @@ public class NodeFetchOperation {
             return docIds.size();
         }
 
-        public long position(int idx) {
+        public int position(int idx) {
             return positions.get(idx);
         }
     }
