@@ -482,7 +482,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis = analyze("select load from sys.nodes where load['1'] in (1.0, 2.0, 4.0, 8.0, 16.0)");
 
         Function whereClause = (Function) analysis.relation().querySpec().where().query();
-        assertEquals(OrOperator.NAME, whereClause.info().ident().name());
+        assertEquals(AnyEqOperator.NAME, whereClause.info().ident().name());
     }
 
     @Test
@@ -1271,7 +1271,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(andFunction.info().ident().name(), is("op_and"));
         assertThat(andFunction.arguments().size(), is(2));
 
-        assertThat(andFunction.arguments().get(0), isFunction("op_or"));
+        assertThat(andFunction.arguments().get(0), isFunction("any_="));
         assertThat(andFunction.arguments().get(1), isFunction("op_not"));
     }
 
@@ -1288,7 +1288,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         Function havingFunction = (Function) analysis.relation().querySpec().having().query();
 
         // assert that the in was converted to or
-        assertThat(havingFunction.info().ident().name(), is("op_or"));
+        assertThat(havingFunction.info().ident().name(), is(AnyEqOperator.NAME));
     }
 
     @Test
@@ -1561,4 +1561,11 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(currentTime.valueType(), is((DataType) DataTypes.TIMESTAMP));
     }
 
+    @Test
+    public void testAnyRightLiteral() throws Exception {
+        SelectAnalyzedStatement stmt = analyze("select id from sys.shards where id = any ([1,2])");
+        WhereClause whereClause = stmt.relation().querySpec().where();
+        assertThat(whereClause.hasQuery(), is(true));
+        assertThat(whereClause.query(), isFunction("any_=", ImmutableList.<DataType>of(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))));
+    }
 }

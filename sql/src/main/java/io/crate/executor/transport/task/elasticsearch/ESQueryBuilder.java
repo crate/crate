@@ -22,8 +22,9 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.*;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -47,11 +48,13 @@ import io.crate.operation.scalar.regex.RegexMatcher;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -249,11 +252,11 @@ public class ESQueryBuilder {
                     .put(InOperator.NAME, new InConverter())
                     .put(AnyEqOperator.NAME, new AnyEqConverter())
                     .put(AnyNeqOperator.NAME, new AnyNeqConverter())
-                    .put(AnyLtOperator.NAME, new RangeConverter("gt", true))
-                    .put(AnyLteOperator.NAME, new RangeConverter("gte", true))
-                    .put(AnyGtOperator.NAME, new RangeConverter("lt", true))
-                    .put(AnyGteOperator.NAME, new RangeConverter("lte", true))
-                    .put(AnyLikeOperator.NAME, new LikeConverter(true))
+                    .put(AnyLtOperator.NAME, new AnyRangeConverter("gt", "lt"))
+                    .put(AnyLteOperator.NAME, new AnyRangeConverter("gte", "lte"))
+                    .put(AnyGtOperator.NAME, new AnyRangeConverter("lt", "gt"))
+                    .put(AnyGteOperator.NAME, new AnyRangeConverter("lte", "gte"))
+                    .put(AnyLikeOperator.NAME, new AnyLikeConverter())
                     .put(AnyNotLikeOperator.NAME, new AnyNotLikeConverter())
                     .put(WithinFunction.NAME, new WithinConverter())
                     .put(RegexpMatchOperator.NAME, new RegexpMatchConverter())
@@ -287,6 +290,30 @@ public class ESQueryBuilder {
              * Concrete implementation must not write to the context if it returns false.
              */
             public abstract boolean convert(T function, Context context) throws IOException;
+
+            @Nullable
+            protected Tuple<String, Object> getTuple(Symbol ref, Symbol valueSymbol) {
+                if (ref.symbolType() == SymbolType.FUNCTION || valueSymbol.symbolType() == SymbolType.FUNCTION) {
+                    return null;
+                }
+                assert ref.symbolType() == SymbolType.REFERENCE || ref.symbolType() == SymbolType.DYNAMIC_REFERENCE;
+                if (DataTypes.isCollectionType(ref.valueType()) && DataTypes.isCollectionType(valueSymbol.valueType())) {
+                    throw new UnsupportedOperationException("Cannot compare two arrays");
+                }
+
+                Object value;
+                if (Symbol.isLiteral(valueSymbol, DataTypes.STRING)) {
+                    Literal l = (Literal)valueSymbol;
+                    value = l.value();
+                    if (value instanceof BytesRef) {
+                        value = ((BytesRef)value).utf8ToString();
+                    }
+                } else {
+                    assert valueSymbol.symbolType().isValueSymbol();
+                    value = ((Literal) valueSymbol).value();
+                }
+                return new Tuple<>(((Reference) ref).info().ident().columnIdent().fqn(), value);
+            }
         }
 
         static abstract class ScalarConverter extends Converter<Function> {
@@ -579,46 +606,31 @@ public class ESQueryBuilder {
                 return getTuple(left, right);
             }
 
-            protected Tuple<String, Object> getTuple(Symbol ref, Symbol valueSymbol) {
-                if (ref.symbolType() == SymbolType.FUNCTION || valueSymbol.symbolType() == SymbolType.FUNCTION) {
-                    return null;
-                }
-                assert ref.symbolType() == SymbolType.REFERENCE || ref.symbolType() == SymbolType.DYNAMIC_REFERENCE;
-                if (DataTypes.isCollectionType(ref.valueType()) && DataTypes.isCollectionType(valueSymbol.valueType())) {
-                    throw new UnsupportedOperationException("Cannot compare two arrays");
-                }
-
-                Object value;
-                if (Symbol.isLiteral(valueSymbol, DataTypes.STRING)) {
-                    Literal l = (Literal)valueSymbol;
-                    value = l.value();
-                    if (value instanceof BytesRef) {
-                        value = ((BytesRef)value).utf8ToString();
-                    }
-                } else {
-                    assert valueSymbol.symbolType().isValueSymbol();
-                    value = ((Literal) valueSymbol).value();
-                }
-                return new Tuple<>(((Reference) ref).info().ident().columnIdent().fqn(), value);
-            }
-        }
-
-        static class EqConverter extends CmpConverter {
             @Override
             public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = prepare(function);
                 if (tuple == null) {
                     return false;
                 }
-                context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+                return buildESQuery(tuple.v1(), tuple.v2(), context);
+            }
+
+            /**
+             * build ES query from extracted columnName and value
+             * @throws IOException
+             */
+            public abstract boolean buildESQuery(String columnName, Object value, Context context) throws IOException;
+        }
+
+        static class EqConverter extends CmpConverter {
+            @Override
+            public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
+                context.builder.startObject("term").field(columnName, value).endObject();
                 return true;
             }
         }
 
-
-        static class AnyEqConverter extends CmpConverter {
-
-
+        static abstract class AbstractAnyConverter extends Converter<Function> {
             @Override
             public boolean convert(Function function, Context context) throws IOException {
                 Preconditions.checkArgument(function.arguments().size() == 2, "invalid number of arguments");
@@ -626,125 +638,195 @@ public class ESQueryBuilder {
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
 
+                if (left.symbolType() == SymbolType.FUNCTION || right.symbolType() == SymbolType.FUNCTION) {
+                    return false;
+                }
+
+                assert DataTypes.isCollectionType(right.valueType()) : "right side of ANY expression is no collection type";
+
                 if (left.symbolType().isValueSymbol()){
-                    assert right.symbolType() == SymbolType.REFERENCE ||right.symbolType() == SymbolType.DYNAMIC_REFERENCE;
-                    // turn around arguments since the reference needs to be left
-                    return simpleEq(right, left, context);
+                    assert right.symbolType() == SymbolType.REFERENCE || right.symbolType() == SymbolType.DYNAMIC_REFERENCE;
+                    return convertArrayReference((Reference) right, (Literal) left, context);
                 } else if (right.symbolType().isValueSymbol()){
-                    assert left.symbolType() == SymbolType.REFERENCE ||left.symbolType() == SymbolType.DYNAMIC_REFERENCE;
-                    if (DataTypes.isCollectionType(right.valueType())){
-                        String refName = ((Reference) left).info().ident().columnIdent().fqn();
-                        context.builder.startObject("terms").field(refName);
-                        context.builder.startArray();
-                        for (Object value: AnyOperator.collectionValueToIterable(((Literal) right).value())){
-                            context.builder.value(value);
+                    assert left.symbolType() == SymbolType.REFERENCE || left.symbolType() == SymbolType.DYNAMIC_REFERENCE;
+                    return convertArrayLiteral((Reference)left, (Literal) right, context);
+                }
+                return false;
+            }
+
+            /**
+             * converts BytesRefs to String on the fly
+             */
+            protected Iterable<?> toIterable(Object value) {
+                return Iterables.transform(AnyOperator.collectionValueToIterable(value), new com.google.common.base.Function<Object, Object>() {
+                    @Nullable
+                    @Override
+                    public Object apply(@Nullable Object input) {
+                        if (input != null && input instanceof BytesRef) {
+                            input = ((BytesRef)input).utf8ToString();
                         }
-                        context.builder.endArray().endObject();
-                        return true;
-                    } else {
-                        return simpleEq(left, right, context);
+                        return input;
                     }
-                }
-
-
-
-                return false;
+                });
             }
 
-            private boolean simpleEq(Symbol ref, Symbol literal, Context context) throws IOException {
-                Tuple<String, Object> tuple = getTuple(ref, literal);
-                if (tuple != null){
-                    context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
-                } else {
-                    return true;
-                }
-                return false;
-            }
+            public abstract boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException;
+
+            public abstract boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException;
         }
 
 
-        static class AnyNeqConverter extends CmpConverter {
-            // 1 != ANY (col) --> gt 1 or lt 1
+        static class AnyEqConverter extends AbstractAnyConverter {
+
             @Override
-            public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = super.prepare(function);
+            public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                Tuple<String, Object> tuple = getTuple(arrayReference, literal);
+                if (tuple == null) {
+                    return false;
+                }
+                context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+                return true;
+            }
+
+            @Override
+            public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                String refName = reference.info().ident().columnIdent().fqn();
+                context.builder.startObject("terms").field(refName);
+                context.builder.startArray();
+                for (Object value: toIterable(arrayLiteral.value())){
+                    context.builder.value(value);
+                }
+                context.builder.endArray().endObject();
+                return true;
+            }
+        }
+
+        static class AnyNeqConverter extends AbstractAnyConverter {
+
+            @Override
+            public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                // 1 != ANY (array_col) --> gt 1 or lt 1
+                Tuple<String, Object> tuple = getTuple(arrayReference, literal);
                 if (tuple == null) {
                     return false;
                 }
                 context.builder.startObject("bool")
-                                .field("minimum_should_match", 1)
-                                .startArray("should")
-                                    .startObject()
-                                        .startObject("range")
-                                            .startObject(tuple.v1())
-                                                .field("lt", tuple.v2())
-                                            .endObject()
-                                        .endObject()
+                        .field("minimum_should_match", 1)
+                        .startArray("should")
+                            .startObject()
+                                .startObject("range")
+                                    .startObject(tuple.v1())
+                                        .field("lt", tuple.v2())
                                     .endObject()
-                                    .startObject()
-                                        .startObject("range")
-                                            .startObject(tuple.v1())
-                                            .field("gt", tuple.v2())
-                                            .endObject()
-                                        .endObject()
+                                .endObject()
+                            .endObject()
+                            .startObject()
+                                .startObject("range")
+                                    .startObject(tuple.v1())
+                                        .field("gt", tuple.v2())
                                     .endObject()
-                                .endArray()
-                            .endObject();
+                                .endObject()
+                            .endObject()
+                        .endArray()
+                    .endObject();
                 return true;
-            }
-        }
-
-
-
-
-        static class LikeConverter extends SwappableCmpConverter {
-
-            public LikeConverter() {
-                super(false);
-            }
-
-            public LikeConverter(boolean swapped) {
-                super(swapped);
             }
 
             @Override
-            public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> prepare = prepare(function);
-                if (prepare == null) {
-                    return false;
+            public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                // col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
+                String columnName = reference.info().ident().columnIdent().fqn();
+                context.builder.startObject("bool").startObject("must_not")
+                        .startObject("bool").startArray("must");
+                for (Object value: toIterable(arrayLiteral.value())) {
+                    context.builder.startObject()
+                            .startObject("term").field(columnName, value).endObject()
+                            .endObject();
                 }
-                String like = prepare.v2().toString();
-                like = convertWildcard(like);
-                context.builder.startObject("wildcard").field(prepare.v1(), like).endObject();
+                context.builder.endArray().endObject();
+
+                context.builder.endObject().endObject();
                 return true;
             }
         }
 
-        static class AnyNotLikeConverter extends LikeConverter {
+        static class LikeConverter extends CmpConverter {
 
-            public AnyNotLikeConverter() {
-                super(true);
+            @Override
+            public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
+                String like = value.toString();
+                like = convertWildcard(like);
+                context.builder.startObject("wildcard").field(columnName, like).endObject();
+                return true;
             }
+        }
+
+        static class AnyLikeConverter extends AbstractAnyConverter {
+
+            private final LikeConverter likeConverter = new LikeConverter();
+
+            @Override
+            public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                Tuple<String, Object> tuple = getTuple(arrayReference, literal);
+                if (tuple == null) {
+                    return false;
+                }
+                likeConverter.buildESQuery(arrayReference.ident().columnIdent().fqn(),
+                        BytesRefs.toString(literal.value()), context);
+                return true;
+            }
+
+            @Override
+            public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
+                context.builder.startObject("bool").field("minimum_should_match", 1).startArray("should");
+                String columnName = reference.ident().columnIdent().fqn();
+
+                for (Object value : toIterable(arrayLiteral.value())) {
+                    context.builder.startObject();
+                    likeConverter.buildESQuery(columnName, value, context);
+                    context.builder.endObject();
+                }
+                context.builder.endArray().endObject();
+                return false;
+            }
+        }
+
+        static class AnyNotLikeConverter extends AbstractAnyConverter {
+
+            private final LikeConverter likeConverter = new LikeConverter();
 
             public String negateWildcard(String wildCard) {
                 return String.format("~(%s)", wildCard);
             }
 
             @Override
-            public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> prepare = prepare(function);
-                if (prepare == null) {
-                    return false;
-                }
-                String notLike = prepare.v2().toString();
+            public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                String notLike = BytesRefs.toString(literal.value());
                 notLike = negateWildcard(convertWildcardToRegex(notLike));
                 context.builder.startObject("regexp")
-                            .startObject(prepare.v1())
-                            .field("value", notLike)
-                            .field("flags", "COMPLEMENT")
-                            .endObject()
-                            .endObject();
+                        .startObject(arrayReference.ident().columnIdent().fqn())
+                        .field("value", notLike)
+                        .field("flags", "COMPLEMENT")
+                        .endObject()
+                        .endObject();
                 return true;
+            }
+
+            @Override
+            public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
+                context.builder.startObject("bool").startObject("must_not")
+                        .startObject("bool").startArray("must");
+                String columnName = reference.ident().columnIdent().fqn();
+                for (Object value : toIterable(arrayLiteral.value())) {
+                    context.builder.startObject();
+                    likeConverter.buildESQuery(columnName, value, context);
+                    context.builder.endObject();
+                }
+                context.builder.endArray().endObject()
+                        .endObject().endObject();
+                return false;
             }
         }
 
@@ -785,49 +867,54 @@ public class ESQueryBuilder {
             }
         }
 
-        static abstract class SwappableCmpConverter extends CmpConverter{
-            protected final boolean swapped;
-
-            public SwappableCmpConverter(boolean swapped) {
-                this.swapped = swapped;
-            }
-
-            @Nullable
-            @Override
-            protected Tuple<String, Object> prepare(Function function) {
-                Preconditions.checkArgument(function.arguments().size() == 2, "invalid number of arguments");
-                Symbol left = function.arguments().get(0);
-                Symbol right = function.arguments().get(1);
-                if (swapped){
-                    return getTuple(right, left);
-                } else {
-                    return getTuple(left, right);
-                }
-            }
-        }
-
-        static class RangeConverter extends SwappableCmpConverter {
+        static class RangeConverter extends CmpConverter {
 
             private final String operator;
 
             public RangeConverter(String operator) {
-                this(operator, false);
-            }
-
-            public RangeConverter(String operator, boolean swapped) {
-                super(swapped);
                 this.operator = operator;
             }
 
             @Override
-            public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = prepare(function);
+            public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
+                context.builder.startObject("range")
+                        .startObject(columnName).field(operator, value).endObject()
+                        .endObject();
+                return true;
+            }
+        }
+
+        static class AnyRangeConverter extends AbstractAnyConverter {
+
+            private final RangeConverter rangeConverter;
+            private final RangeConverter inverseRangeConverter;
+
+            AnyRangeConverter(String operator, String inverseOperator) {
+                this.rangeConverter = new RangeConverter(operator);
+                inverseRangeConverter = new RangeConverter(inverseOperator);
+            }
+
+            @Override
+            public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                // 1 < ANY (array_col) --> {range: { array_col: { lt: 1}}}
+                Tuple<String, Object> tuple = getTuple(arrayReference, literal);
                 if (tuple == null) {
                     return false;
                 }
-                context.builder.startObject("range")
-                        .startObject(tuple.v1()).field(operator, tuple.v2()).endObject()
-                        .endObject();
+                return rangeConverter.buildESQuery(tuple.v1(), tuple.v2(), context);
+            }
+
+            @Override
+            public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                // col < ANY ([1,2,3]) --> or (<(col, 1), <(col, 2), <(col,3))
+                context.builder.startObject("bool").field("minimum_should_match", 1).startArray("should");
+                String columnName = reference.ident().columnIdent().fqn();
+                for (Object value : toIterable(arrayLiteral.value())) {
+                    context.builder.startObject();
+                    inverseRangeConverter.buildESQuery(columnName, value, context);
+                    context.builder.endObject();
+                }
+                context.builder.endArray().endObject();
                 return true;
             }
         }
@@ -835,23 +922,19 @@ public class ESQueryBuilder {
         static class RegexpMatchConverter extends CmpConverter {
 
             @Override
-            public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = super.prepare(function);
-                if (tuple == null) {
-                    return false;
-                }
+            public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
                 Preconditions.checkArgument(
-                        tuple.v2() == null || tuple.v2() instanceof String,
+                        value == null || value instanceof String,
                         "Can only use ~ with patterns of type string");
                 Preconditions.checkArgument(
-                        !RegexMatcher.isPcrePattern(tuple.v2()),
+                        !RegexMatcher.isPcrePattern(value),
                         "Using ~ with PCRE regular expressions currently not supported for this type of query");
-                context.builder.startObject("regexp").startObject(tuple.v1())
-                        .field("value", tuple.v2())
+                context.builder.startObject("regexp").startObject(columnName)
+                        .field("value", value)
                         .field("flags", "ALL")
                         .endObject()
-                .endObject();
-                return false;
+                        .endObject();
+                return true;
             }
         }
 
@@ -885,7 +968,7 @@ public class ESQueryBuilder {
                     // legacy match
                     Map.Entry<String, Object> entry = idents.entrySet().iterator().next();
                     context.builder.startObject(Fields.MATCH).startObject(entry.getKey())
-                            .field(Fields.QUERY, queryString);
+                            .utf8Field(Fields.QUERY, queryString);
                     if (entry.getValue() != null) {
                         context.builder.field(Fields.BOOST, entry.getValue());
                     }
@@ -898,7 +981,7 @@ public class ESQueryBuilder {
                         i++;
                     }
                     context.builder.startObject(Fields.MULTI_MATCH)
-                            .field(Fields.TYPE, matchType != null ? matchType : MatchPredicate.DEFAULT_MATCH_TYPE)
+                            .utf8Field(Fields.TYPE, matchType != null ? matchType : MatchPredicate.DEFAULT_MATCH_TYPE)
                             .array(Fields.FIELDS, columnNames)
                             .field(Fields.QUERY, queryString.utf8ToString());
                     if (options != null) {

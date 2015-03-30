@@ -28,12 +28,15 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.planner.symbol.*;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -102,10 +105,108 @@ public class EqualityExtractor {
 
     }
 
+    /**
+     * Wraps any_= functions and exhibits the same logical semantics like
+     * OR-chained comparisons.
+     *
+     * creates EqProxies for every single any array element
+     * and shares pre existing proxies - so true value can be set on
+     * this "parent" if a shared comparison is "true"
+     */
+    static class AnyEqProxy extends EqProxy implements Iterable<EqProxy> {
+
+        private Map<Function, EqProxy> proxies;
+        @Nullable
+        private ChildEqProxy delegate = null;
+
+        public AnyEqProxy(Function compared, Map<Function, EqProxy> existingProxies) {
+            super(compared);
+            initProxies(existingProxies);
+        }
+
+        private void initProxies(Map<Function, EqProxy> existingProxies) {
+            Symbol left = origin.arguments().get(0);
+            DataType leftType = origin.info().ident().argumentTypes().get(0);
+            DataType rightType = ((CollectionType)origin.info().ident().argumentTypes().get(1)).innerType();
+            FunctionInfo eqInfo = new FunctionInfo(
+                    new FunctionIdent(
+                            EqOperator.NAME,
+                            ImmutableList.of(leftType, rightType)
+                    ),
+                    DataTypes.BOOLEAN
+            );
+            Literal arrayLiteral = (Literal)origin.arguments().get(1);
+            proxies = new HashMap<>();
+            for (Literal arrayElem : Literal.explodeCollection(arrayLiteral)) {
+                Function f = new Function(eqInfo, Arrays.asList(left, arrayElem));
+                EqProxy existingProxy = existingProxies.get(f);
+                if (existingProxy == null) {
+                    existingProxy = new ChildEqProxy(f, this);
+                } else if (existingProxy instanceof ChildEqProxy) {
+                    ((ChildEqProxy) existingProxy).addParent(this);
+                }
+                proxies.put(f, existingProxy);
+            }
+        }
+
+        @Override
+        public Iterator<EqProxy> iterator() {
+            return proxies.values().iterator();
+        }
+
+        @Override
+        public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+            if (delegate != null) {
+                return delegate.accept(visitor, context);
+            }
+            return super.accept(visitor, context);
+        }
+
+        public void setDelegate(@Nullable ChildEqProxy childEqProxy) {
+            delegate = childEqProxy;
+        }
+
+        public void cleanDelegate() {
+            delegate = null;
+        }
+
+        static class ChildEqProxy extends EqProxy {
+
+            private List<AnyEqProxy> parentProxies = new ArrayList<>();
+
+            ChildEqProxy(Function origin, AnyEqProxy parent) {
+                super(origin);
+                this.addParent(parent);
+            }
+
+            public void addParent(AnyEqProxy parentProxy) {
+                parentProxies.add(parentProxy);
+            }
+
+            @Override
+            public void setTrue() {
+                super.setTrue();
+                for (AnyEqProxy parent : parentProxies) {
+                    parent.setTrue();
+                    parent.setDelegate(this);
+                }
+            }
+
+            @Override
+            public void reset() {
+                super.reset();
+                for (AnyEqProxy parent : parentProxies) {
+                    parent.reset();
+                    parent.cleanDelegate();
+                }
+            }
+        }
+    }
+
     static class EqProxy extends Symbol {
 
-        private Symbol current;
-        private final Function origin;
+        protected Symbol current;
+        protected final Function origin;
 
         public Function origin() {
             return origin;
@@ -182,6 +283,15 @@ public class EqualityExtractor {
             }
 
             public EqProxy add(Function compared){
+                if (compared.info().ident().name().equals(AnyEqOperator.NAME)) {
+                    AnyEqProxy anyEqProxy = new AnyEqProxy(compared, proxies);
+                    for (EqProxy proxiedProxy : anyEqProxy) {
+                        if (!proxies.containsKey(proxiedProxy.origin())) {
+                            proxies.put(proxiedProxy.origin(), proxiedProxy);
+                        }
+                    }
+                    return anyEqProxy;
+                }
                 EqProxy proxy = proxies.get(compared);
                 if (proxy==null){
                     proxy = new EqProxy(compared);
@@ -210,7 +320,7 @@ public class EqualityExtractor {
                 List<Set<EqProxy>> comps = new ArrayList<>(comparisons.size());
                 for (Comparison comparison : comparisons.values()) {
                     // TODO: probably create a view instead of a seperate set
-                    comps.add(new HashSet(comparison.proxies.values()));
+                    comps.add(new HashSet<>(comparison.proxies.values()));
                 }
                 return comps;
             }
@@ -237,10 +347,23 @@ public class EqualityExtractor {
 
         public Symbol visitFunction(Function function, Context context) {
 
-            if (function.info().ident().name().equals(EqOperator.NAME)) {
+            String functionName = function.info().ident().name();
+            if (functionName.equals(EqOperator.NAME)) {
                 if (function.arguments().get(0) instanceof Reference) {
                     Comparison comparison = context.comparisons.get(
                             ((Reference) function.arguments().get(0)).ident().columnIdent());
+                    if (comparison != null) {
+                        context.proxyBelow = true;
+                        EqProxy x = comparison.add(function);
+                        return x;
+                    }
+                }
+            } else if (functionName.equals(AnyEqOperator.NAME) && function.arguments().get(1).symbolType().isValueSymbol()) {
+                // ref = any ([1,2,3])
+                if (function.arguments().get(0) instanceof Reference) {
+                    Reference reference = (Reference) function.arguments().get(0);
+                    Comparison comparison = context.comparisons.get(
+                            reference.ident().columnIdent());
                     if (comparison != null) {
                         context.proxyBelow = true;
                         EqProxy x = comparison.add(function);
@@ -263,6 +386,5 @@ public class EqualityExtractor {
             return new Function(function.info(), args);
         }
     }
-
 
 }

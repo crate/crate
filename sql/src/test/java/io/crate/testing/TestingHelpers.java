@@ -279,7 +279,7 @@ public class TestingHelpers {
         };
     }
 
-    private static final com.google.common.base.Function bytesRefToString =
+    private static final com.google.common.base.Function<Object, Object> bytesRefToString =
             new com.google.common.base.Function<Object, Object>() {
 
                 @Nullable
@@ -292,7 +292,7 @@ public class TestingHelpers {
                 }
             };
 
-    private static final com.google.common.base.Function stringToBytesRef =
+    private static final com.google.common.base.Function<Object, Object> stringToBytesRef =
             new com.google.common.base.Function<Object, Object>() {
 
                 @Nullable
@@ -304,6 +304,10 @@ public class TestingHelpers {
                     return input;
                 }
             };
+
+    public static Matcher<Row> isNullRow() {
+        return isRow((Object)null);
+    }
 
     public static Matcher<Row> isRow(Object... cells) {
         if (cells == null) {
@@ -341,6 +345,9 @@ public class TestingHelpers {
         };
     }
 
+    public static Matcher<DocKeys.DocKey> isNullDocKey() {
+        return isDocKey(new Object[]{null});
+    }
 
     public static Matcher<DocKeys.DocKey> isDocKey(Object... keys) {
         final List<Object> expected = Arrays.asList(keys);
@@ -476,9 +483,9 @@ public class TestingHelpers {
             public void describeTo(Description description) {
                 description.appendText("is function ").appendText(name);
                 if (argumentTypes != null) {
-                    description.appendText("with argument types: ");
+                    description.appendText(" with argument types: ");
                     for (DataType type : argumentTypes) {
-                        description.appendText(type.toString());
+                        description.appendText(type.toString()).appendText(" ");
                     }
                 }
             }
