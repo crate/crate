@@ -109,4 +109,24 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("select * from t where stars in (null)");
         assertThat(response.rowCount(), is(0L));
     }
+
+    public void testInWithArgs() throws Exception {
+        execute("create table t (i int) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t values (1), (2)");
+        execute("refresh table t");
+
+        StringBuilder sb = new StringBuilder("select i from t where i in (");
+
+        int i=0;
+        for (; i < 1500; i++) {
+            sb.append(i);
+            sb.append(',');
+        }
+        sb.append(i);
+        sb.append(')');
+
+        execute(sb.toString());
+        assertThat(response.rowCount(), is(2L));
+    }
 }

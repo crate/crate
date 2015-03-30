@@ -30,12 +30,12 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.OrOperator;
+import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import io.crate.types.SetType;
-import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -60,13 +60,12 @@ import java.util.*;
  */
 public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, Symbol> {
 
-    private static final ImmutableSet<String> logicalBinaryExpressions = ImmutableSet.of(
+    private static final ImmutableSet<String> LOGICAL_BINARY_EXPRESSIONS = ImmutableSet.of(
             AndOperator.NAME, OrOperator.NAME
     );
     private static final ImmutableSet<String> PK_COMPARISONS = ImmutableSet.of(
-            EqOperator.NAME, InOperator.NAME
+            EqOperator.NAME, InOperator.NAME, AnyEqOperator.NAME
     );
-    private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
 
 
     public static class Context {
@@ -218,7 +217,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     @Override
     public Function visitFunction(Function function, Context context) {
         String functionName = function.info().ident().name();
-        if (logicalBinaryExpressions.contains(functionName)) {
+        if (LOGICAL_BINARY_EXPRESSIONS.contains(functionName)) {
             function = continueTraversal(function, context);
             return function;
         }

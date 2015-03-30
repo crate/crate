@@ -850,7 +850,7 @@ public class PlannerTest {
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
-        Upsert planNode =  (Upsert) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");;
+        Upsert planNode =  (Upsert) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
         assertThat(planNode.nodes().size(), is(1));
 
         List<DQLPlanNode> childNodes = planNode.nodes().get(0);

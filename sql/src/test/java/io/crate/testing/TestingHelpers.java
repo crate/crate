@@ -325,9 +325,9 @@ public class TestingHelpers {
             public void describeTo(Description description) {
                 description.appendText("is function ").appendText(name);
                 if (argumentTypes != null) {
-                    description.appendText("with argument types: ");
+                    description.appendText(" with argument types: ");
                     for (DataType type : argumentTypes) {
-                        description.appendText(type.toString());
+                        description.appendText(type.toString()).appendText(" ");
                     }
                 }
             }

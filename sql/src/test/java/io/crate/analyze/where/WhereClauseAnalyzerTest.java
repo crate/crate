@@ -33,26 +33,33 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.operator.any.AnyEqOperator;
+import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
+import static io.crate.testing.TestingHelpers.isFunction;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -61,6 +68,9 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
 
     private Analyzer analyzer;
     private AnalysisMetaData ctxMetaData;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -91,6 +101,7 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                     TestingTableInfo.builder(new TableIdent("doc", "users"), RowGranularity.DOC, twoNodeRouting)
                             .add("id", DataTypes.STRING, null)
                             .add("name", DataTypes.STRING, null)
+                            .add("tags", new ArrayType(DataTypes.STRING), null)
                             .addPrimaryKey("id")
                             .clusteredBy("id")
                             .build());
@@ -402,7 +413,6 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         assertEquals("jalla", ctx.ids().get(0));
     }
 
-
     @Test
     public void test1ColPrimaryKeySetLiteral() throws Exception {
         WhereClauseContext ctx = analyzeSelectWhere("select name from sys.nodes where id in ('jalla', 'kelle')");
@@ -541,5 +551,54 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                 is("logical conjunction of the conditions in the WHERE clause which involve " +
                     "partitioned columns led to a query that can't be executed."));
         }
+    }
+
+    @Test
+    public void testAnyInvalidArrayType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("array expression of invalid type array(string)");
+        analyzeSelectWhere("select * from users_multi_pk where awesome = any(['foo', 'bar', 'baz'])");
+    }
+
+    @Test
+    public void testInConvertedToAnyIfOnlyLiterals() throws Exception {
+        StringBuilder sb = new StringBuilder("select id from sys.shards where id in (");
+        int i=0;
+        for (; i < 1500; i++) {
+            sb.append(i);
+            sb.append(',');
+        }
+        sb.append(i++);
+        sb.append(')');
+        String s = sb.toString();
+
+        WhereClause whereClause = analyzeSelectWhere(s).whereClause();
+        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, new SetType(DataTypes.INTEGER))));
+    }
+
+    @Test
+    public void testInNormalizedToAnyWithScalars() throws Exception {
+        WhereClauseContext whereClauseCtx = analyzeSelectWhere("select * from users where id in (1+2, 3+4, abs(-99))");
+        assertThat(whereClauseCtx.whereClause().query(), isFunction(AnyEqOperator.NAME));
+        assertThat(whereClauseCtx.ids().size(), is(3));
+        assertThat(whereClauseCtx.ids(), containsInAnyOrder(is("3"), is("7"), is("99")));
+    }
+
+    @Test
+    public void testAnyEqConvertableArrayTypeLiterals() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where name = any([1, 2, 3])").whereClause();
+        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+    }
+
+    @Test
+    public void testAnyLikeConvertableArrayTypeLiterals() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where name like any([1, 2, 3])").whereClause();
+        assertThat(whereClause.query(), isFunction(AnyLikeOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+    }
+
+    @Test
+    public void testAnyLikeArrayLiteral() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where name like any(['a', 'b', 'c'])").whereClause();
+        assertThat(whereClause.query(), isFunction(AnyLikeOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
     }
 }

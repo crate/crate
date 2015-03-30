@@ -40,7 +40,6 @@ import static org.mockito.Mockito.when;
 
 public class DistributedResultRequestTest {
 
-
     @Test
     public void testStreaming() throws Exception {
 

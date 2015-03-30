@@ -1,7 +1,7 @@
 package io.crate.planner.symbol;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.FluentIterable;
 import com.spatial4j.core.shape.Shape;
 import io.crate.operation.Input;
 import io.crate.types.*;
@@ -22,8 +22,8 @@ public class Literal<ReturnType>
     protected DataType type;
 
     public final static Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
-    private final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
-    private final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
+    public final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
+    public final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
 
     public static final SymbolFactory<Literal> FACTORY = new SymbolFactory<Literal>() {
         @Override
@@ -33,13 +33,13 @@ public class Literal<ReturnType>
     };
 
     public static Literal implodeCollection(DataType itemType, Set<Literal> literals) {
-        ImmutableSet.Builder<Object> builder = ImmutableSet.builder();
+        Set<Object> set = new HashSet<>(literals.size(), 1.0F);
         for (Literal literal : literals) {
             assert literal.valueType() == itemType :
                     String.format("Literal type: %s does not match item type: %s", literal.valueType(), itemType);
-            builder.add(literal.value());
+            set.add(literal.value());
         }
-        return new Literal<>(new SetType(itemType), builder.build());
+        return new Literal<>(new SetType(itemType), Collections.unmodifiableSet(set));
     }
 
     public static Literal implodeCollection(DataType itemType, List<Literal> literals) {
@@ -55,9 +55,18 @@ public class Literal<ReturnType>
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
         Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
-        Collection values = (Collection) collectionLiteral.value();
+        Iterable values;
+        int size;
+        Object literalValue = collectionLiteral.value();
+        if (literalValue instanceof Collection) {
+            values = (Iterable)literalValue;
+            size = ((Collection)literalValue).size();
+        } else {
+            values = FluentIterable.of((Object[])literalValue);
+            size = ((Object[])literalValue).length;
+        }
 
-        List<Literal> literals = new ArrayList<>(values.size());
+        List<Literal> literals = new ArrayList<>(size);
         for (Object value : values) {
             literals.add(new Literal<>(
                     ((CollectionType)collectionLiteral.valueType()).innerType(),

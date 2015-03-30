@@ -491,13 +491,28 @@ contains an element 'netball'::
 ::
 
     cr> select race['name'], race['interests'] from locations
-    ... where '%books%' LIKE ANY(race['interests']);
+    ... where 'books%' LIKE ANY(race['interests']);
     +----------------+-----------------------------------------+
     | race['name']   | race['interests']                       |
     +----------------+-----------------------------------------+
     | Bartledannians | ["netball", "books with 100.000 words"] |
     +----------------+-----------------------------------------+
     SELECT 1 row in set (... sec)
+
+It can also be used on array literals::
+
+    cr> select name, race['interests'] from locations
+    ... where name = ANY (['Bartledan', 'Algol'])
+    +-----------+-----------------------------------------+
+    | name      | race['interests']                       |
+    +-----------+-----------------------------------------+
+    | Algol     | NULL                                    |
+    | Bartledan | ["netball", "books with 100.000 words"] |
+    +-----------+-----------------------------------------+
+    SELECT 2 rows in set (... sec)
+
+This way it can be used as a shortcut for ``name = 'Bartledan' OR name = 'Algol'``
+or any other ANY comparison.
 
 Syntax of the ANY Operator:
 

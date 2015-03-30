@@ -96,6 +96,10 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
 
         if (left instanceof Comparable) {
             for (Object elem : rightIterable) {
+                if (elem == null) {
+                    // ignore null values
+                    continue;
+                }
                 assert (left.getClass().equals(elem.getClass()));
 
                 if (compare(((Comparable) left).compareTo(elem))) {
@@ -137,8 +141,8 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
     public static Iterable<?> collectionValueToIterable(Object collectionRef) throws IllegalArgumentException {
         if (collectionRef instanceof Object[]) {
             return Arrays.asList((Object[])collectionRef);
-        } else if (collectionRef instanceof Set) {
-            return (Set<?>)collectionRef;
+        } else if (collectionRef instanceof Collection) {
+            return (Collection<?>)collectionRef;
         } else {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "cannot cast %s to Iterable", collectionRef));

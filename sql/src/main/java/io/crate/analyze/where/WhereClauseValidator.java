@@ -1,6 +1,7 @@
 package io.crate.analyze.where;
 
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.GteOperator;
@@ -12,6 +13,7 @@ import io.crate.planner.symbol.SymbolVisitor;
 import io.crate.sql.tree.ComparisonExpression;
 
 import java.util.Locale;
+import java.util.Set;
 import java.util.Stack;
 
 public class WhereClauseValidator {
@@ -25,17 +27,18 @@ public class WhereClauseValidator {
     private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
 
         public static class Context {
-
-            public final Stack<Function> functions = new Stack();
+            public final Stack<Function> functions = new Stack<>();
         }
 
-        private final static String _SCORE = "_score";
+        private static final String _SCORE = "_score";
+        private static final Set<String> SCORE_ALLOWED_COMPARISONS = ImmutableSet.of(GteOperator.NAME);
 
-        private final static String _VERSION = "_version";
+        private static final String _VERSION = "_version";
+        private static final Set<String> VERSION_ALLOWED_COMPARISONS = ImmutableSet.of(EqOperator.NAME);
 
-        private final static String VERSION_ERROR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
+        private static final String VERSION_ERROR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
 
-        private final static String SCORE_ERROR = String.format(Locale.ENGLISH,
+        private static final String SCORE_ERROR = String.format(Locale.ENGLISH,
                 "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
                 _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue());
 
@@ -43,9 +46,9 @@ public class WhereClauseValidator {
         public Symbol visitField(Field field, Context context) {
             String columnName = field.path().outputName();
             if(columnName.equalsIgnoreCase(_VERSION)){
-                validateSysReference(context, EqOperator.NAME, VERSION_ERROR);
+                validateSysReference(context, VERSION_ALLOWED_COMPARISONS, VERSION_ERROR);
             } else if(columnName.equalsIgnoreCase(_SCORE)){
-                validateSysReference(context, GteOperator.NAME, SCORE_ERROR);
+                validateSysReference(context, SCORE_ALLOWED_COMPARISONS, SCORE_ERROR);
             }
             return super.visitField(field, context);
         }
@@ -74,12 +77,12 @@ public class WhereClauseValidator {
             return false;
         }
 
-        private void validateSysReference(Context context, String requiredFunctionName, String error) {
+        private void validateSysReference(Context context, Set<String> requiredFunctionNames, String error) {
             if(context.functions.isEmpty()){
                 throw new UnsupportedOperationException(error);
             }
             Function function = context.functions.lastElement();
-            if(!function.info().ident().name().equalsIgnoreCase(requiredFunctionName)
+            if(!requiredFunctionNames.contains(function.info().ident().name().toLowerCase())
                     || insideNotPredicate(context)) {
                 throw new UnsupportedOperationException(error);
             }

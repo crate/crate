@@ -21,9 +21,11 @@
 
 package io.crate.lucene;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.spatial4j.core.shape.Rectangle;
 import com.spatial4j.core.shape.Shape;
@@ -179,6 +181,9 @@ public class LuceneQueryBuilder {
         return wildcardString.replaceAll("\\\\_", "_");
     }
 
+    public static String negateWildcard(String wildCard) {
+        return String.format(Locale.ENGLISH, "~(%s)", wildCard);
+    }
 
     static class Visitor extends SymbolVisitor<Context, Query> {
 
@@ -198,7 +203,7 @@ public class LuceneQueryBuilder {
             public Query apply (Function input, Context context) throws IOException;
         }
 
-        abstract class CmpQuery implements FunctionToQuery {
+        abstract static class CmpQuery implements FunctionToQuery {
 
             @Nullable
             protected Tuple<Reference, Literal> prepare(Function input) {
@@ -216,22 +221,80 @@ public class LuceneQueryBuilder {
             }
         }
 
-        /**
-         * 1 != any ( col ) -->  gt 1 or lt 1
-         */
-        class AnyNeqQuery extends CmpQuery {
+        static abstract class AbstractAnyQuery implements FunctionToQuery {
 
             @Override
-            public Query apply(Function input, Context context) {
-                Tuple<Reference, Literal> tuple = prepare(input);
-                if (tuple == null) {
+            public Query apply(Function function, Context context) throws IOException {
+                Symbol left = function.arguments().get(0);
+                Symbol collectionSymbol = function.arguments().get(1);
+                Preconditions.checkArgument(DataTypes.isCollectionType(collectionSymbol.valueType()),
+                        "invalid argument for ANY expression");
+                if (left.symbolType().isValueSymbol()) {
+                    // 1 = any (array_col) - simple eq
+                    assert collectionSymbol.symbolType().isReference() : "no reference found in ANY expression";
+                    return applyArrayReference((Reference)collectionSymbol, (Literal)left, context);
+                } else if (collectionSymbol.symbolType().isValueSymbol()) {
+                    assert left.symbolType().isReference() : "no reference found in ANY expression";
+                    return applyArrayLiteral((Reference)left, (Literal)collectionSymbol, context);
+                } else {
+                    // should never get here - 2 literal arguments must have been normalized away yet
                     return null;
                 }
-                Reference reference = tuple.v1();
-                Object value = tuple.v2().value();
+            }
 
-                String columnName = reference.info().ident().columnIdent().fqn();
+            /**
+             * converts Strings to BytesRef on the fly
+             */
+            public static Iterable<?> toIterable(Object value) {
+                return Iterables.transform(AnyOperator.collectionValueToIterable(value), new com.google.common.base.Function<Object, Object>() {
+                    @javax.annotation.Nullable
+                    @Override
+                    public Object apply(@javax.annotation.Nullable Object input) {
+                        if (input != null && input instanceof String) {
+                            input = new BytesRef((String)input);
+                        }
+                        return input;
+                    }
+                });
+            }
+
+            protected abstract Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException;
+            protected abstract Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException;
+        }
+
+        static class AnyEqQuery extends AbstractAnyQuery {
+
+            @Override
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                QueryBuilderHelper builder = QueryBuilderHelper.forType(((CollectionType)arrayReference.valueType()).innerType());
+                return builder.eq(arrayReference.ident().columnIdent().fqn(), literal.value());
+            }
+
+            @Override
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
+
+                BooleanFilter filter = new BooleanFilter();
+                for (Object value : toIterable(arrayLiteral.value())) {
+                    filter.add(builder.eqFilter(columnName, value), BooleanClause.Occur.SHOULD);
+                }
+                return new FilteredQuery(
+                        Queries.newMatchAllQuery(),
+                        filter
+                );
+            }
+        }
+
+        static class AnyNeqQuery extends AbstractAnyQuery {
+
+            @Override
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                // 1 != any ( col ) -->  gt 1 or lt 1
+                String columnName = arrayReference.info().ident().columnIdent().fqn();
+                Object value = literal.value();
+
+                QueryBuilderHelper builder = QueryBuilderHelper.forType(arrayReference.valueType());
                 BooleanQuery query = new BooleanQuery();
                 query.setMinimumNumberShouldMatch(1);
                 query.add(
@@ -244,31 +307,75 @@ public class LuceneQueryBuilder {
                 );
                 return query;
             }
-        }
-
-        class AnyNotLikeQuery extends CmpQuery {
-
-            private String negateWildcard(String wildCard) {
-                return String.format("~(%s)", wildCard);
-            }
 
             @Override
-            public Query apply(Function input, Context context) {
-                Tuple<Reference, Literal> prepare = prepare(input);
-                if (prepare == null) {
-                    return null;
-                }
-                String notLike = negateWildcard(
-                        convertWildcardToRegex(BytesRefs.toString(prepare.v2().value())));
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
+                String columnName = reference.info().ident().columnIdent().fqn();
+                QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
+                BooleanFilter filter = new BooleanFilter();
 
+                BooleanFilter notFilter = new BooleanFilter();
+                for (Object value : toIterable(arrayLiteral.value())) {
+                    notFilter.add(builder.eqFilter(columnName, value), BooleanClause.Occur.MUST);
+                }
+                filter.add(notFilter, BooleanClause.Occur.MUST_NOT);
+
+                return new FilteredQuery(Queries.newMatchAllQuery(), filter);
+            }
+        }
+
+        static class AnyNotLikeQuery extends AbstractAnyQuery {
+
+            @Override
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                String notLike = negateWildcard(
+                        convertWildcardToRegex(BytesRefs.toString(literal.value())));
                 return new RegexpQuery(new Term(
-                        prepare.v1().info().ident().columnIdent().fqn(),
+                        arrayReference.info().ident().columnIdent().fqn(),
                         notLike),
                         RegexpFlag.COMPLEMENT.value()
                 );
             }
+
+            @Override
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
+                BooleanQuery query = new BooleanQuery();
+                BooleanQuery notQuery = new BooleanQuery();
+
+                String columnName = reference.ident().columnIdent().fqn();
+                QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
+                for (Object value : toIterable(arrayLiteral.value())) {
+                    notQuery.add(builder.like(columnName, value), BooleanClause.Occur.MUST);
+                }
+                query.add(notQuery, BooleanClause.Occur.MUST_NOT);
+                return query;
+            }
         }
-        class LikeQuery extends CmpQuery {
+
+        static class AnyLikeQuery extends AbstractAnyQuery {
+
+            private final LikeQuery likeQuery = new LikeQuery();
+
+            @Override
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                return likeQuery.toQuery(arrayReference, literal.value());
+            }
+
+            @Override
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
+                BooleanQuery booleanQuery = new BooleanQuery();
+                booleanQuery.setMinimumNumberShouldMatch(1);
+                for (Object value : toIterable(arrayLiteral.value())) {
+                    booleanQuery.add(likeQuery.toQuery(reference, value), BooleanClause.Occur.SHOULD);
+                }
+                return booleanQuery;
+            }
+        }
+
+        static class LikeQuery extends CmpQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -276,9 +383,13 @@ public class LuceneQueryBuilder {
                 if (tuple == null) {
                     return null;
                 }
-                String columnName = tuple.v1().info().ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.like(columnName, tuple.v2().value());
+                return toQuery(tuple.v1(), tuple.v2().value());
+            }
+
+            public Query toQuery(Reference reference, Object value) {
+                String columnName = reference.info().ident().columnIdent().fqn();
+                QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
+                return builder.like(columnName, value);
             }
         }
 
@@ -420,63 +531,100 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class LtQuery extends CmpQuery {
+        static class AnyRangeQuery extends AbstractAnyQuery {
+
+            private final RangeQuery rangeQuery;
+            private final RangeQuery inverseRangeQuery;
+
+            AnyRangeQuery(String comparison, String inverseComparison) {
+                rangeQuery = new RangeQuery(comparison);
+                inverseRangeQuery = new RangeQuery(inverseComparison);
+            }
 
             @Override
-            public Query apply(Function input, Context context) {
-                Tuple<Reference, Literal> tuple = super.prepare(input);
-                if (tuple == null) {
-                    return null;
-                }
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+                // 1 < ANY (array_col) --> array_col > 1
+                return rangeQuery.toQuery(
+                        arrayReference,
+                        ((CollectionType)arrayReference.valueType()).innerType(),
+                        literal.value()
+                );
+            }
 
-                String columnName = tuple.v1().info().ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.rangeQuery(columnName, null, tuple.v2().value(), false, false);
+            @Override
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+                // col < ANY ([1,2,3]) --> or(col<1, col<2, col<3)
+                BooleanQuery booleanQuery = new BooleanQuery();
+                booleanQuery.setMinimumNumberShouldMatch(1);
+                for (Object value : toIterable(arrayLiteral.value())) {
+                    booleanQuery.add(inverseRangeQuery.toQuery(reference, reference.valueType(), value), BooleanClause.Occur.SHOULD);
+                }
+                return booleanQuery;
             }
         }
 
-        class LteQuery extends CmpQuery {
+        static class RangeQuery extends CmpQuery {
 
-            @Override
-            public Query apply(Function input, Context context) {
-                Tuple<Reference, Literal> tuple = super.prepare(input);
-                if (tuple == null) {
-                    return null;
+            private final boolean includeLower;
+            private final boolean includeUpper;
+            private final com.google.common.base.Function<Object, Tuple<?, ?>> boundsFunction;
+
+            private static final com.google.common.base.Function<Object, Tuple<?, ?>> LOWER_BOUND = new com.google.common.base.Function<Object, Tuple<?,?>>() {
+                @javax.annotation.Nullable
+                @Override
+                public Tuple<?, ?> apply(@Nullable Object input) {
+                    return new Tuple<>(input, null);
                 }
+            };
 
-                String columnName = tuple.v1().info().ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.rangeQuery(columnName, null, tuple.v2().value(), false, true);
+            private static final com.google.common.base.Function<Object, Tuple<?, ?>> UPPER_BOUND = new com.google.common.base.Function<Object, Tuple<?,?>>() {
+                @Override
+                public Tuple<?, ?> apply(Object input) {
+                    return new Tuple<>(null, input);
+                }
+            };
+
+            public RangeQuery(String comparison) {
+                switch (comparison) {
+                    case "lt":
+                        boundsFunction = UPPER_BOUND;
+                        includeLower = false;
+                        includeUpper = false;
+                        break;
+                    case "gt":
+                        boundsFunction = LOWER_BOUND;
+                        includeLower = false;
+                        includeUpper = false;
+                        break;
+                    case "lte":
+                        boundsFunction = UPPER_BOUND;
+                        includeLower = false;
+                        includeUpper = true;
+                        break;
+                    case "gte":
+                        boundsFunction = LOWER_BOUND;
+                        includeLower = true;
+                        includeUpper = false;
+                        break;
+                    default:
+                        throw new IllegalArgumentException("invalid comparison");
+                }
             }
-        }
-
-        class GtQuery extends CmpQuery {
-
             @Override
-            public Query apply(Function input, Context context) {
+            public Query apply(Function input, Context context) throws IOException {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
                 if (tuple == null) {
                     return null;
                 }
-
-                String columnName = tuple.v1().info().ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.rangeQuery(columnName, tuple.v2().value(), null, false, false);
+                return toQuery(tuple.v1(), tuple.v1().valueType(), tuple.v2().value());
             }
-        }
 
-        class GteQuery extends CmpQuery {
-
-            @Override
-            public Query apply(Function input, Context context) {
-                Tuple<Reference, Literal> tuple = super.prepare(input);
-                if (tuple == null) {
-                    return null;
-                }
-
-                String columnName = tuple.v1().info().ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.rangeQuery(columnName, tuple.v2().value(), null, true, false);
+            public Query toQuery(Reference reference, DataType type, Object value) {
+                String columnName = reference.info().ident().columnIdent().fqn();
+                QueryBuilderHelper builder = QueryBuilderHelper.forType(type);
+                Tuple<?, ?> bounds = boundsFunction.apply(value);
+                assert bounds != null;
+                return builder.rangeQuery(columnName, bounds.v1(), bounds.v2(), includeLower, includeUpper);
             }
         }
 
@@ -749,35 +897,32 @@ public class LuceneQueryBuilder {
             return (GeoPointFieldMapper) mapper;
         }
 
-        private final EqQuery eqQuery = new EqQuery();
-        private final LtQuery ltQuery = new LtQuery();
-        private final LteQuery lteQuery = new LteQuery();
-        private final GtQuery gtQuery = new GtQuery();
-        private final GteQuery gteQuery = new GteQuery();
-        private final LikeQuery likeQuery = new LikeQuery();
-        private final WithinQuery withinQuery = new WithinQuery();
+        private static final RangeQuery ltQuery = new RangeQuery("lt");
+        private static final RangeQuery lteQuery = new RangeQuery("lte");
+        private static final RangeQuery gtQuery = new RangeQuery("gt");
+        private static final RangeQuery gteQuery = new RangeQuery("gte");
         private final ImmutableMap<String, FunctionToQuery> functions =
                 ImmutableMap.<String, FunctionToQuery>builder()
-                        .put(WithinFunction.NAME, withinQuery)
+                        .put(WithinFunction.NAME, new WithinQuery())
                         .put(AndOperator.NAME, new AndQuery())
                         .put(OrOperator.NAME, new OrQuery())
-                        .put(EqOperator.NAME, eqQuery)
+                        .put(EqOperator.NAME, new EqQuery())
                         .put(LtOperator.NAME, ltQuery)
                         .put(LteOperator.NAME, lteQuery)
                         .put(GteOperator.NAME, gteQuery)
                         .put(GtOperator.NAME, gtQuery)
-                        .put(LikeOperator.NAME, likeQuery)
+                        .put(LikeOperator.NAME, new LikeQuery())
                         .put(InOperator.NAME, new InQuery())
                         .put(NotPredicate.NAME, new NotQuery())
                         .put(IsNullPredicate.NAME, new IsNullQuery())
                         .put(MatchPredicate.NAME, new ToMatchQuery())
-                        .put(AnyEqOperator.NAME, eqQuery)
+                        .put(AnyEqOperator.NAME, new AnyEqQuery())
                         .put(AnyNeqOperator.NAME, new AnyNeqQuery())
-                        .put(AnyLtOperator.NAME, ltQuery)
-                        .put(AnyLteOperator.NAME, lteQuery)
-                        .put(AnyGteOperator.NAME, gteQuery)
-                        .put(AnyGtOperator.NAME, gtQuery)
-                        .put(AnyLikeOperator.NAME, likeQuery)
+                        .put(AnyLtOperator.NAME, new AnyRangeQuery("gt", "lt"))
+                        .put(AnyLteOperator.NAME, new AnyRangeQuery("gte", "lte"))
+                        .put(AnyGteOperator.NAME, new AnyRangeQuery("lte", "gte"))
+                        .put(AnyGtOperator.NAME, new AnyRangeQuery("lt", "gt"))
+                        .put(AnyLikeOperator.NAME, new AnyLikeQuery())
                         .put(AnyNotLikeOperator.NAME, new AnyNotLikeQuery())
                         .put(RegexpMatchOperator.NAME, new RegexpMatchQuery())
                         .put(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
@@ -786,7 +931,7 @@ public class LuceneQueryBuilder {
         private final ImmutableMap<String, InnerFunctionToQuery> innerFunctions =
                 ImmutableMap.<String, InnerFunctionToQuery>builder()
                         .put(DistanceFunction.NAME, new DistanceQuery())
-                        .put(WithinFunction.NAME, withinQuery)
+                        .put(WithinFunction.NAME, new WithinQuery())
                         .build();
 
         @Override

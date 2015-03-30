@@ -27,8 +27,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.operation.operator.*;
-import io.crate.operation.operator.any.AnyLikeOperator;
-import io.crate.operation.operator.any.AnyNotLikeOperator;
+import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
@@ -405,6 +404,37 @@ public class ESQueryBuilderTest {
     }
 
     @Test
+    public void testAnyLikeArrayReference() throws Exception {
+        FunctionIdent functionIdent = new FunctionIdent(AnyLikeOperator.NAME,
+                Arrays.<DataType>asList(DataTypes.STRING, new ArrayType(DataTypes.STRING)));
+        FunctionImplementation anyLikeImpl = functions.get(functionIdent);
+        Function anyLike = new Function(anyLikeImpl.info(),
+                Arrays.asList(name_ref, Literal.newLiteral(new Object[]{"foo%", "%bar"}, new ArrayType(DataTypes.STRING))));
+        xcontentAssert(anyLike, "{\"query\":{\"bool\":{\"minimum_should_match\":1,\"should\":[" +
+                    "{\"wildcard\":{\"name\":\"foo*\"}}," +
+                    "{\"wildcard\":{\"name\":\"*bar\"}}" +
+                "]}}}");
+    }
+
+    @Test
+    public void testAnyNotLikeArrayReference() throws Exception {
+        // col NOT LIKE ANY (['foo%', '%bar']) --> not(and(like(col, 'foo%'), like(col, '%bar')))
+        FunctionIdent functionIdent = new FunctionIdent(AnyNotLikeOperator.NAME,
+                Arrays.<DataType>asList(DataTypes.STRING, new ArrayType(DataTypes.STRING)));
+        FunctionImplementation anyNotLikeImpl = functions.get(functionIdent);
+        Function anyNotLike = new Function(anyNotLikeImpl.info(),
+                Arrays.asList(name_ref, Literal.newLiteral(new Object[]{"foo%", "%bar"}, new ArrayType(DataTypes.STRING))));
+        xcontentAssert(anyNotLike, "{\"query\":{" +
+                        "\"bool\":{\"must_not\":{" +
+                            "\"bool\":{\"must\":[" +
+                                "{\"wildcard\":{\"name\":\"foo*\"}}," +
+                                "{\"wildcard\":{\"name\":\"*bar\"}}" +
+                            "]" +
+                        "}}}}}"
+        );
+    }
+
+    @Test
     public void testMinScoreIsSet() throws Exception {
         Reference minScore_ref = new Reference(
                 new ReferenceInfo(new ReferenceIdent(null, "_score"), RowGranularity.DOC, DataTypes.DOUBLE));
@@ -534,7 +564,7 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testAnyGreater() throws Exception {
-        // 0.0 < ANY_OF (d_array)
+        // 0.0 < ANY (d_array)
 
         DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
         Reference doubleArrayRef = createReference("d_array", doubleArrayType);
@@ -549,11 +579,11 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testAnyGreaterEquals() throws Exception {
-        // 0.0 <= ANY_OF (d_array)
+        // 0.0 <= ANY (d_array)
 
         DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
         Reference doubleArrayRef = createReference("d_array", doubleArrayType);
-        FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>=",
+        FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent(AnyGteOperator.NAME,
                 Arrays.asList(DataTypes.DOUBLE, doubleArrayType)));
 
         Function whereClause = new Function(anyGreaterImpl.info(),
@@ -563,12 +593,79 @@ public class ESQueryBuilderTest {
     }
 
     @Test
+    public void testAnyGreaterEqualsArrayLiteral() throws Exception {
+        // col <= ANY ([1,2,3])
+
+        DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
+        Literal doubleArrayLiteral = Literal.newLiteral(new Object[]{1.0d, 0.5d, -1.0d}, doubleArrayType);
+        Reference doubleRef = createReference("d", DataTypes.DOUBLE);
+        FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent(AnyGteOperator.NAME,
+                Arrays.asList(DataTypes.DOUBLE, doubleArrayType)));
+
+        Function whereClause = new Function(anyGreaterImpl.info(),
+                Arrays.asList(doubleRef, doubleArrayLiteral));
+
+        xcontentAssert(whereClause, "{\"query\":{\"bool\":{\"minimum_should_match\":1,\"should\":[" +
+                    "{\"range\":{\"d\":{\"gte\":1.0}}}," +
+                    "{\"range\":{\"d\":{\"gte\":0.5}}}," +
+                    "{\"range\":{\"d\":{\"gte\":-1.0}}}" +
+                "]}}}");
+    }
+
+    @Test
+    public void testAnyEqLiteralArrayColumn() throws Exception {
+        DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
+        Reference doubleArrayRef = createReference("d_array", new ArrayType(DataTypes.DOUBLE));
+        Literal doubleLiteral = Literal.newLiteral(4.2d);
+        FunctionImplementation anyEqImpl = functions.get(new FunctionIdent(AnyEqOperator.NAME,
+                Arrays.asList(DataTypes.DOUBLE, doubleArrayType)));
+        Function whereClause = new Function(anyEqImpl.info(),
+                Arrays.asList(doubleLiteral, doubleArrayRef));
+        xcontentAssert(whereClause, "{\"query\":{\"term\":{\"d_array\":4.2}}}");
+    }
+
+    @Test
+    public void testAnyEqReferenceAndArrayLiteral() throws Exception {
+        DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
+        Reference doubleRef = createReference("d", DataTypes.DOUBLE);
+        Literal doubleArrayLiteral = Literal.newLiteral(doubleArrayType, new Object[]{-1.5d, 0.0d, 1.5d});
+        FunctionImplementation anyEqImpl = functions.get(new FunctionIdent(AnyEqOperator.NAME,
+                Arrays.asList(DataTypes.DOUBLE, doubleArrayType)));
+
+        Function whereClause = new Function(anyEqImpl.info(),
+                Arrays.asList(doubleRef, doubleArrayLiteral));
+        xcontentAssert(whereClause, "{\"query\":{\"terms\":{\"d\":[-1.5,0.0,1.5]}}}");
+    }
+
+    @Test
+    public void testAnyNeqReferenceAndArrayLiteral() throws Exception {
+        // col != ANY ([1, 2, 3]) --> not(terms(col, [1,2,3]))
+        DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
+        Reference doubleRef = createReference("d", DataTypes.DOUBLE);
+        Literal doubleArrayLiteral = Literal.newLiteral(doubleArrayType, new Object[]{-1.5d, 0.0d, 1.5d});
+        FunctionImplementation anyNeqImpl = functions.get(new FunctionIdent(AnyNeqOperator.NAME,
+                Arrays.asList(DataTypes.DOUBLE, doubleArrayType)));
+
+        Function whereClause = new Function(anyNeqImpl.info(),
+                Arrays.asList(doubleRef, doubleArrayLiteral));
+        xcontentAssert(whereClause, "{\"query\":" +
+                "{\"bool\":{\"must_not\":" +
+                    "{\"bool\":{\"must\":[" +
+                        "{\"term\":{\"d\":-1.5}}," +
+                        "{\"term\":{\"d\":0.0}}," +
+                        "{\"term\":{\"d\":1.5}}" +
+                    "]}}" +
+                "}}" +
+            "}");
+    }
+
+    @Test
     public void testDistanceGteQuery() throws Exception {
         Function distanceFunction = new Function(
                 new FunctionInfo(
                         new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
                         DataTypes.DOUBLE),
-                Arrays.<Symbol>asList(
+                Arrays.asList(
                         createReference("location", DataTypes.GEO_POINT),
                         Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
                 )
@@ -577,7 +674,7 @@ public class ESQueryBuilderTest {
                 new FunctionInfo(
                         new FunctionIdent(GteOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
                         DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(distanceFunction, Literal.newLiteral(20.0d))
+                Arrays.asList(distanceFunction, Literal.newLiteral(20.0d))
         );
         xcontentAssert(whereClause,
                 "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_distance_range\":{\"location\":[10.0,20.0],\"gte\":20.0}}}}}");
@@ -865,7 +962,7 @@ public class ESQueryBuilderTest {
         DataType intArray = new ArrayType(DataTypes.INTEGER);
         generator.convert(new WhereClause(createFunction(EqOperator.NAME, DataTypes.BOOLEAN,
                 createReference("a", intArray),
-                Literal.newLiteral(intArray, new Object[] { 10, 20})
+                Literal.newLiteral(intArray, new Object[]{10, 20})
         )));
     }
 
