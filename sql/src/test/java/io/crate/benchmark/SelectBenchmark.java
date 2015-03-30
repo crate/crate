@@ -43,6 +43,7 @@ import org.junit.rules.TestRule;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -176,7 +177,7 @@ public class SelectBenchmark extends BenchmarkBase {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             GetRequest request = getApiGetRequest(false);
             GetResponse response = getClient(false).execute(GetAction.INSTANCE, request).actionGet();
-            assertTrue(String.format("Queried row '%s' does not exist (API). Round: %d", request.id(), apiGetRound), response.isExists());
+            assertTrue(String.format(Locale.ENGLISH, "Queried row '%s' does not exist (API). Round: %d", request.id(), apiGetRound), response.isExists());
             apiGetRound++;
         }
     }
@@ -188,7 +189,7 @@ public class SelectBenchmark extends BenchmarkBase {
             SQLRequest request = getSqlGetRequest(false);
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();
             assertEquals(
-                    String.format("Queried row '%s' does not exist (SQL). Round: %d", request.args()[0], sqlGetRound),
+                    String.format(Locale.ENGLISH, "Queried row '%s' does not exist (SQL). Round: %d", request.args()[0], sqlGetRound),
                     1,
                     response.rows().length
             );

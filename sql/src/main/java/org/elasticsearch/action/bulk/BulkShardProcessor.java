@@ -275,7 +275,7 @@ public class BulkShardProcessor {
     }
 
     private void execute(ShardUpsertRequest updateRequest) {
-        trace(String.format("execute shard request %d", updateRequest.shardId()));
+        trace(String.format(Locale.ENGLISH, "execute shard request %d", updateRequest.shardId()));
         transportShardUpsertActionDelegate.execute(updateRequest, new ResponseListener(updateRequest));
     }
 

@@ -43,10 +43,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -572,7 +569,7 @@ public class PagingTasksTest extends BaseTransportExecutorTest {
 
             for (int i = 0 ; i<expected.length && i < actual.length; i++) {
                 assertThat(
-                        String.format("elements at index %d differ for page (%s) %d", i, pageInfo, run),
+                        String.format(Locale.ENGLISH, "elements at index %d differ for page (%s) %d", i, pageInfo, run),
                         actual[i], is(expected[i]));
                 i++;
             }

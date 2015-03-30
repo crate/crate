@@ -16,6 +16,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Locale;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
 public class BlobIntegrationTest extends BlobHttpIntegrationTest {
@@ -223,7 +224,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testIndexOnNonBlobTable() throws IOException {
         // this test works only if ES API is enabled
-        HttpPut httpPut = new HttpPut(String.format("http://%s:%s/test_no_blobs/default/1",
+        HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/test_no_blobs/default/1",
                 address.getHostName(), address.getPort()));
         String blobData = String.format("{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
         httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_OCTET_STREAM));

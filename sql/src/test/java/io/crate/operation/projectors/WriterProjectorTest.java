@@ -39,6 +39,7 @@ import org.junit.rules.TemporaryFolder;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -71,11 +72,11 @@ public class WriterProjectorTest extends CrateUnitTest {
 
         projector.registerUpstream(null);
         for (int i = 0; i < 5; i++) {
-            projector.setNextRow(new Row1(new BytesRef(String.format("input line %02d", i))));
+            projector.setNextRow(new Row1(new BytesRef(String.format(Locale.ENGLISH, "input line %02d", i))));
         }
         projector.finish();
 
-        Bucket rows = ((ResultProvider) downstream).result().get();
+        Bucket rows = downstream.result().get();
         assertThat(rows, contains(isRow(5L)));
 
         assertEquals("input line 00\n" +

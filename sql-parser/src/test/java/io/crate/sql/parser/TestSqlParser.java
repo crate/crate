@@ -28,6 +28,8 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import org.testng.annotations.Test;
 
+import java.util.Locale;
+
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.tree.QueryUtil.selectList;
 import static io.crate.sql.tree.QueryUtil.table;
@@ -73,7 +75,7 @@ public class TestSqlParser
     public void testParameter() throws Exception {
         assertExpression("?", new ParameterExpression(1));
         for (int i=0;i<1000;i++) {
-            assertExpression(String.format("$%d", i), new ParameterExpression(i));
+            assertExpression(String.format(Locale.ENGLISH, "$%d", i), new ParameterExpression(i));
         }
     }
 

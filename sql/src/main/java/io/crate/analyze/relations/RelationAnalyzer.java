@@ -42,10 +42,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Singleton
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, RelationAnalysisContext> {
@@ -302,13 +299,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         assert longLiteral.valueType().equals(DataTypes.LONG) : "longLiteral must have valueType long";
         int idx = ((Long) longLiteral.value()).intValue() - 1;
         if (idx < 0) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "%s position %s is not in select list", clauseName, idx + 1));
         }
         try {
             return outputSymbols.get(idx);
         } catch (IndexOutOfBoundsException e) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "%s position %s is not in select list", clauseName, idx + 1));
         }
     }

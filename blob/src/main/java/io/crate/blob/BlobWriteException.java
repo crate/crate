@@ -23,9 +23,11 @@ package io.crate.blob;
 
 import org.elasticsearch.ElasticsearchException;
 
+import java.util.Locale;
+
 public class BlobWriteException extends ElasticsearchException {
 
     public BlobWriteException(String digest, long size, Throwable cause) {
-        super(String.format("digest: %s size: %s", digest, size), cause);
+        super(String.format(Locale.ENGLISH, "digest: %s size: %s", digest, size), cause);
     }
 }

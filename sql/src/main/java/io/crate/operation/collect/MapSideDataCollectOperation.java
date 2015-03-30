@@ -304,7 +304,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                     shardCollectors.add(collector);
                 } catch (IndexShardMissingException e) {
                     throw new UnhandledServerException(
-                            String.format("unknown shard id %d on index '%s'",
+                            String.format(Locale.ENGLISH, "unknown shard id %d on index '%s'",
                                     shardId, entry.getKey()), e);
                 } catch (Exception e) {
                     logger.error("Error while getting collector", e);

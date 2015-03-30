@@ -44,6 +44,7 @@ import org.junit.Before;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -89,7 +90,7 @@ public class BlobHttpIntegrationTest extends CrateIntegrationTest {
 
     protected CloseableHttpResponse put(String uri, String body) throws IOException {
 
-        HttpPut httpPut = new HttpPut(String.format("http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+        HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
         if(body != null){
             StringEntity bodyEntity = new StringEntity(body);
             httpPut.setEntity(bodyEntity);
@@ -117,7 +118,7 @@ public class BlobHttpIntegrationTest extends CrateIntegrationTest {
                         Integer statusCode = res.getStatusLine().getStatusCode();
                         String resultContent = EntityUtils.toString(res.getEntity());
                         if (!resultContent.equals(expected)) {
-                            logger.warn(String.format("incorrect response %d -- length: %d expected: %d\n",
+                            logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d\n",
                                     indexerId, resultContent.length(), expected.length()));
                         }
                         results.put(indexerId, (statusCode >= 200 && statusCode < 300 && expected.equals(resultContent)));
@@ -140,7 +141,7 @@ public class BlobHttpIntegrationTest extends CrateIntegrationTest {
     }
 
     protected CloseableHttpResponse get(String uri, Header[] headers) throws IOException {
-        HttpGet httpGet = new HttpGet(String.format("http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
         if(headers != null){
            httpGet.setHeaders(headers);
         }
@@ -148,12 +149,12 @@ public class BlobHttpIntegrationTest extends CrateIntegrationTest {
     }
 
     protected CloseableHttpResponse head(String uri) throws IOException {
-        HttpHead httpHead = new HttpHead(String.format("http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+        HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
         return httpClient.execute(httpHead);
     }
 
     protected CloseableHttpResponse delete(String uri) throws IOException {
-        HttpDelete httpDelete = new HttpDelete(String.format("http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+        HttpDelete httpDelete = new HttpDelete(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
         return httpClient.execute(httpDelete);
     }
 
@@ -163,7 +164,7 @@ public class BlobHttpIntegrationTest extends CrateIntegrationTest {
 
         try {
             HttpClientContext context = HttpClientContext.create();
-            HttpHead httpHead = new HttpHead(String.format("http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+            HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
             response = httpClient.execute(httpHead, context);
             // get all redirection locations
             if(context.getRedirectLocations() != null){

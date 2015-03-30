@@ -23,6 +23,8 @@ package io.crate.exceptions;
 
 import org.elasticsearch.index.shard.ShardId;
 
+import java.util.Locale;
+
 public class UnavailableShardsException extends RuntimeException implements CrateException {
 
     public UnavailableShardsException(ShardId shardId) {
@@ -30,7 +32,7 @@ public class UnavailableShardsException extends RuntimeException implements Crat
     }
 
     private static String genMessage(ShardId shardId) {
-        return String.format("the shard %s of table %s is not available",
+        return String.format(Locale.ENGLISH, "the shard %s of table %s is not available",
             shardId.getId(), shardId.getIndex());
     }
 
