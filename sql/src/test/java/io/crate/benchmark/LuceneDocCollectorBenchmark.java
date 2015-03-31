@@ -57,6 +57,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.junit.Before;
 import org.junit.Rule;
@@ -124,42 +125,23 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     }
 
     @Override
-    public Client getClient(boolean firstNode) {
-        return cluster.client(NODE1);
+    public boolean generateData() {
+        return true;
     }
 
     @Override
     @Before
     public void setUp() throws Exception {
-        if (NODE1 == null) {
-            NODE1 = cluster.startNode(getNodeSettings(1));
-        }
-        if (!indexExists()) {
-            execute("create table \"" + INDEX_NAME + "\" (" +
-                    " \"areaInSqKm\" float," +
-                    " capital string," +
-                    " continent string," +
-                    " \"continentName\" string," +
-                    " \"countryCode\" string," +
-                    " \"countryName\" string," +
-                    " north float," +
-                    " east float," +
-                    " south float," +
-                    " west float," +
-                    " \"fipsCode\" string," +
-                    " \"currencyCode\" string," +
-                    " languages string," +
-                    " \"isoAlpha3\" string," +
-                    " \"isoNumeric\" string," +
-                    " population integer" +
-                    ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], true);
-            client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
-            refresh(client());
-        }
-        doGenerateData();
+        super.setUp();
 
-        IndicesService instanceFromNode = cluster.getInstanceFromFirstNode(IndicesService.class);
-        IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
+        IndexService indexService;
+        try {
+            IndicesService instanceFromNode = cluster.getInstanceFromNode(NODE2, IndicesService.class);
+            indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
+        } catch (IndexMissingException e) {
+            IndicesService instanceFromNode = cluster.getInstanceFromNode(NODE1, IndicesService.class);
+            indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
+        }
 
         shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
         collectContextService = indexService.shardInjector(0).getInstance(CollectContextService.class);
@@ -167,6 +149,29 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "continent");
         reference = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
         orderBy = new OrderBy(ImmutableList.of((Symbol) reference), new boolean[]{false}, new Boolean[]{false});
+    }
+
+    @Override
+    protected void createTable() {
+        execute("create table \"" + INDEX_NAME + "\" (" +
+                " \"areaInSqKm\" float," +
+                " capital string," +
+                " continent string," +
+                " \"continentName\" string," +
+                " \"countryCode\" string," +
+                " \"countryName\" string," +
+                " north float," +
+                " east float," +
+                " south float," +
+                " west float," +
+                " \"fipsCode\" string," +
+                " \"currencyCode\" string," +
+                " languages string," +
+                " \"isoAlpha3\" string," +
+                " \"isoNumeric\" string," +
+                " population integer" +
+                ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], true);
+        client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> input) throws Exception{
