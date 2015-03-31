@@ -40,7 +40,7 @@ public class SplitPoints {
         int estimate = querySpec.outputs().size();
         this.querySpec = querySpec;
         this.toCollect = new ArrayList<>(estimate);
-        this.aggregates = new ArrayList<>(estimate-1);
+        this.aggregates = new ArrayList<>(estimate);
         this.leaves = new ArrayList<>(estimate);
     }
 

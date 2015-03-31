@@ -80,6 +80,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     private long inputCursor = 0;
     private boolean consumedRows = false;
+    private boolean needInputRow = false;
 
     private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
 
@@ -130,6 +131,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         List<Input<?>> inputs = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
             if (inputSymbols.contains(symbol)) {
+                needInputRow = true;
                 inputs.add(rowInputSymbolVisitor.process(symbol, collectRowContext));
             } else {
                 inputs.add(rowInputSymbolVisitor.process(symbol, fetchRowContext));
@@ -260,8 +262,10 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                 int idx = 0;
                 synchronized (rowDelegateLock) {
                     for (Row row : response.rows()) {
-                        collectRowDelegate.delegate(nodeBucket.inputRow(idx));
                         fetchRowDelegate.delegate(row);
+                        if (needInputRow) {
+                            collectRowDelegate.delegate(nodeBucket.inputRow(idx));
+                        }
                         if (partitionRow != null) {
                             partitionRowDelegate.delegate(partitionRow);
                         }

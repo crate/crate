@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
@@ -48,9 +47,9 @@ import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.planner.projection.builder.SplitPoints;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
@@ -59,10 +58,10 @@ import java.util.List;
 public class QueryThenFetchConsumer implements Consumer {
 
     private static final Visitor VISITOR = new Visitor();
+    private static final OutputOrderReferenceCollector OUTPUT_ORDER_REFERENCE_COLLECTOR = new OutputOrderReferenceCollector();
     private static final ScoreReferenceDetector SCORE_REFERENCE_DETECTOR = new ScoreReferenceDetector();
     private static final ColumnIdent DOC_ID_COLUMN_IDENT = new ColumnIdent(DocSysColumns.DOCID.name());
     private static final InputColumn DEFAULT_DOC_ID_INPUT_COLUMN = new InputColumn(0, DataTypes.STRING);
-    private static final InputColumn DEFAULT_SCORE_INPUT_COLUMN = new InputColumn(1, DataTypes.FLOAT);
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
@@ -95,37 +94,50 @@ public class QueryThenFetchConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(table);
             }
 
-            // TODO: if _score is selected, ordering by _score using a TopNProjection is only temporarily and MUST be changed.
-            // Proposal: only order by _score if requested by user and order it on the shard
-            boolean scoreSelected = false;
-            ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
-            List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
-
-            List<Symbol> outputSymbols = new ArrayList<>(table.querySpec().outputs().size());
-            for (Symbol symbol : table.querySpec().outputs()) {
-                if (SCORE_REFERENCE_DETECTOR.detect(symbol)) {
-                    scoreSelected = true;
-                    collectSymbols.add(symbol);
-                }
-                outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
-            }
-
+            boolean outputsAreAllOrdered = false;
             List<Projection> collectProjections = new ArrayList<>();
+            List<Projection> mergeProjections = new ArrayList<>();
+            List<Symbol> collectSymbols = new ArrayList<>();
+            List<Symbol> outputSymbols = new ArrayList<>();
+            ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
+
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+
+            // MAP/COLLECT related
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy != null) {
                 table.tableRelation().validateOrderBy(orderBy);
-                for (Symbol symbol : orderBy.orderBySymbols()) {
-                    if (!collectSymbols.contains(symbol)) {
-                        // order by symbols will be resolved on collect
-                        collectSymbols.add(symbol);
-                    }
+
+                // detect if all output columns are used in orderBy,
+                // if so, no fetch projection is needed
+                // TODO: if no dedicated fetchPhase is needed we should stick to QAF instead
+                OutputOrderReferenceContext outputOrderContext =
+                        OUTPUT_ORDER_REFERENCE_COLLECTOR.collect(splitPoints.leaves());
+                outputOrderContext.collectOrderBy = true;
+                OUTPUT_ORDER_REFERENCE_COLLECTOR.collect(orderBy.orderBySymbols(), outputOrderContext);
+                outputsAreAllOrdered = outputOrderContext.outputsAreAllOrdered();
+                if (outputsAreAllOrdered) {
+                    collectSymbols = splitPoints.toCollect();
+                } else {
+                    collectSymbols.addAll(orderBy.orderBySymbols());
                 }
 
-                MergeProjection mergeProjection = new MergeProjection(
+            }
+            if (!outputsAreAllOrdered) {
+                collectSymbols.add(0, new Reference(docIdRefInfo));
+                for (Symbol symbol : table.querySpec().outputs()) {
+                    // _score can only be resolved during collect
+                    if (SCORE_REFERENCE_DETECTOR.detect(symbol) && !collectSymbols.contains(symbol)) {
+                        collectSymbols.add(symbol);
+                    }
+                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
+                }
+            }
+            if (orderBy != null) {
+                MergeProjection mergeProjection = projectionBuilder.mergeProjection(
                         collectSymbols,
-                        orderBy.orderBySymbols(),
-                        orderBy.reverseFlags(),
-                        orderBy.nullsFirst());
+                        orderBy);
                 collectProjections.add(mergeProjection);
             }
 
@@ -138,35 +150,43 @@ public class QueryThenFetchConsumer implements Consumer {
                     orderBy,
                     MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset()
             );
-            collectNode.keepContextForFetcher(true);
+            collectNode.keepContextForFetcher(!outputsAreAllOrdered);
             collectNode.projections(collectProjections);
+            // MAP/COLLECT related END
 
-            List<Projection> mergeProjections = new ArrayList<>(2);
-            TopNProjection topNProjection = new TopNProjection(
-                    MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    table.querySpec().offset()
-            );
-            List<Symbol> outputs = new ArrayList<>(2);
-            outputs.add(DEFAULT_DOC_ID_INPUT_COLUMN);
-            if (scoreSelected) {
-                outputs.add(DEFAULT_SCORE_INPUT_COLUMN);
-            }
-            topNProjection.outputs(outputs);
-            mergeProjections.add(topNProjection);
+            // HANDLER/MERGE/FETCH related
+            TopNProjection topNProjection;
+            if (!outputsAreAllOrdered) {
+                topNProjection = projectionBuilder.topNProjection(
+                        collectSymbols,
+                        null,
+                        table.querySpec().offset(),
+                        table.querySpec().limit(),
+                        null);
+                mergeProjections.add(topNProjection);
 
-            // by default don't split fetch requests into pages/chunks,
-            // only if record set is higher than default limit
-            int bulkSize = FetchProjector.NO_BULK_REQUESTS;
-            if (topNProjection.limit() > Constants.DEFAULT_SELECT_LIMIT) {
-                bulkSize = Constants.DEFAULT_SELECT_LIMIT;
+                // by default don't split fetch requests into pages/chunks,
+                // only if record set is higher than default limit
+                int bulkSize = FetchProjector.NO_BULK_REQUESTS;
+                if (topNProjection.limit() > Constants.DEFAULT_SELECT_LIMIT) {
+                    bulkSize = Constants.DEFAULT_SELECT_LIMIT;
+                }
+                FetchProjection fetchProjection = new FetchProjection(
+                        DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
+                        tableInfo.partitionedByColumns(),
+                        collectNode.executionNodes(),
+                        bulkSize,
+                        table.querySpec().isLimited());
+                mergeProjections.add(fetchProjection);
+            } else {
+                topNProjection = projectionBuilder.topNProjection(
+                        collectSymbols,
+                        null,
+                        table.querySpec().offset(),
+                        table.querySpec().limit(),
+                        table.querySpec().outputs());
+                mergeProjections.add(topNProjection);
             }
-            FetchProjection fetchProjection = new FetchProjection(
-                    DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
-                    tableInfo.partitionedByColumns(),
-                    collectNode.executionNodes(),
-                    bulkSize,
-                    table.querySpec().isLimited());
-            mergeProjections.add(fetchProjection);
 
             MergeNode localMergeNode;
             if (orderBy != null) {
@@ -183,6 +203,7 @@ public class QueryThenFetchConsumer implements Consumer {
                         collectNode,
                         context.plannerContext());
             }
+            // HANDLER/MERGE/FETCH related END
 
             return new QueryThenFetch(collectNode, localMergeNode);
         }
@@ -193,4 +214,65 @@ public class QueryThenFetchConsumer implements Consumer {
         }
     }
 
+    static class OutputOrderReferenceContext {
+
+        private List<Reference> outputReferences = new ArrayList<>();
+        private List<Reference> orderByReferences = new ArrayList<>();
+        public boolean collectOrderBy = false;
+
+        public void addReference(Reference reference) {
+            if (collectOrderBy) {
+                orderByReferences.add(reference);
+            } else {
+                outputReferences.add(reference);
+            }
+        }
+
+        public boolean outputsAreAllOrdered() {
+            return orderByReferences.containsAll(outputReferences);
+        }
+
+    }
+
+    static class OutputOrderReferenceCollector extends SymbolVisitor<OutputOrderReferenceContext, Void> {
+
+        public OutputOrderReferenceContext collect(List<Symbol> symbols) {
+            OutputOrderReferenceContext context = new OutputOrderReferenceContext();
+            collect(symbols, context);
+            return context;
+        }
+
+        public void collect(List<Symbol> symbols, OutputOrderReferenceContext context) {
+            for (Symbol symbol : symbols) {
+                process(symbol, context);
+            }
+        }
+
+        @Override
+        public Void visitAggregation(Aggregation aggregation, OutputOrderReferenceContext context) {
+            for (Symbol symbol : aggregation.inputs()) {
+                process(symbol, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, OutputOrderReferenceContext context) {
+            context.addReference(symbol);
+            return null;
+        }
+
+        @Override
+        public Void visitDynamicReference(DynamicReference symbol, OutputOrderReferenceContext context) {
+            return visitReference(symbol, context);
+        }
+
+        @Override
+        public Void visitFunction(Function function, OutputOrderReferenceContext context) {
+            for (Symbol symbol : function.arguments()) {
+                process(symbol, context);
+            }
+            return null;
+        }
+    }
 }
