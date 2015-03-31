@@ -51,8 +51,8 @@ import static org.junit.Assert.assertEquals;
 @BenchmarkMethodChart(filePrefix = "benchmark-select-limit-order")
 public class SelectLimitOrderBenchmark extends BenchmarkBase {
 
-    public static final int BENCHMARK_ROUNDS = 100;
-    public static final int NUMBER_OF_DOCUMENTS = 200_000;
+    public static final int BENCHMARK_ROUNDS = 10;
+    public static final int NUMBER_OF_DOCUMENTS = 1_200_000;
     public static final String INDEX_NAME = "bench_select_limit_order";
 
     private String[] generatedStrings;
@@ -155,42 +155,38 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void benchLimit1000_ES() throws Exception {
-        Integer limit = 1000;
+    public void benchLimit1000000_ES() throws Exception {
+        Integer limit = 1_000_000;
         Integer offset = 0;
         boolean orderBy = false;
-        // run bench multiple times per round, otherwise resulting numbers are too small to compare
-        runESBenchmark(10, limit, offset, orderBy);
+        runESBenchmark(1, limit, offset, orderBy);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void benchLimit1000_SQL() throws Exception {
-        Integer limit = 1000;
+    public void benchLimit1000000_SQL() throws Exception {
+        Integer limit = 1_000_000;
         Integer offset = 0;
         boolean orderBy = false;
-        // run bench multiple times per round, otherwise resulting numbers are too small to compare
-        runSQLBenchmark(10, limit, offset, orderBy);
+        runSQLBenchmark(1, limit, offset, orderBy);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void benchLimit1000Order_ES() throws Exception {
-        Integer limit = 1000;
+    public void benchLimit1000000Order_ES() throws Exception {
+        Integer limit = 1_000_000;
         Integer offset = 0;
         boolean orderBy = true;
-        // run bench multiple times per round, otherwise resulting numbers are too small to compare
-        runESBenchmark(10, limit, offset, orderBy);
+        runESBenchmark(1, limit, offset, orderBy);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void benchLimit1000Order_SQL() throws Exception {
-        Integer limit = 1000;
+    public void benchLimit1000000Order_SQL() throws Exception {
+        Integer limit = 1_000_000;
         Integer offset = 0;
         boolean orderBy = true;
-        // run bench multiple times per round, otherwise resulting numbers are too small to compare
-        runSQLBenchmark(10, limit, offset, orderBy);
+        runSQLBenchmark(1, limit, offset, orderBy);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
