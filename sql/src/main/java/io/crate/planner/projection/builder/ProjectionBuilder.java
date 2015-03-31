@@ -149,12 +149,11 @@ public class ProjectionBuilder {
     }
 
     public MergeProjection mergeProjection(
-            Collection<Symbol> inputs,
+            List<Symbol> inputs,
             OrderBy orderBy
     ) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        List<Symbol> outputs = inputVisitor.process(inputs, context);
-        return new MergeProjection(outputs,
+        return new MergeProjection(inputs,
                 inputVisitor.process(orderBy.orderBySymbols(), context),
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst());

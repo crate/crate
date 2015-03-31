@@ -498,6 +498,30 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testQueryThenFetchPlanNoFetch() throws Exception {
+        // testing that a fetch projection is not added if all output symbols are included
+        // at the orderBy symbols
+        Plan plan = plan("select name from users where name = 'x' order by name limit 10");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertFalse(collectNode.isPartitioned());
+
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
+
+        assertThat(resultNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode) resultNode;
+        assertTrue(mergeNode.finalProjection().isPresent());
+
+        Projection lastProjection = mergeNode.finalProjection().get();
+        assertThat(lastProjection, instanceOf(TopNProjection.class));
+        TopNProjection topNProjection = (TopNProjection) lastProjection;
+        assertThat(topNProjection.outputs().size(), is(1));
+    }
+
+    @Test
     public void testQueryThenFetchPlanDefaultLimit() throws Exception {
         QueryThenFetch plan = (QueryThenFetch)plan("select name from users");
         CollectNode collectNode = plan.collectNode();
