@@ -163,7 +163,7 @@ public class MergeProjector implements Projector  {
         private AtomicBoolean finished = new AtomicBoolean(false);
         private Row firstRow = null;
 
-        private LinkedList<Row> rows = new LinkedList<>();
+        private ArrayDeque<Row> rows = new ArrayDeque<>();
 
         public MergeProjectorDownstreamHandle(MergeProjector projector) {
             this.projector = projector;
@@ -178,10 +178,10 @@ public class MergeProjector implements Projector  {
         public Row poll() {
             synchronized (lock) {
                 Row row = rows.poll();
-                try {
-                    firstRow = rows.getFirst();
-                } catch (NoSuchElementException e) {
+                if (rows.size() == 0) {
                     firstRow = null;
+                } else {
+                    firstRow = rows.getFirst();
                 }
                 return row;
             }

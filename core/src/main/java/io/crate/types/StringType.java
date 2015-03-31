@@ -57,11 +57,11 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
         if (value == null) {
             return null;
         }
-        if (value instanceof String) {
-            return new BytesRef((String)value);
-        }
         if (value instanceof BytesRef) {
             return (BytesRef)value;
+        }
+        if (value instanceof String) {
+            return new BytesRef((String)value);
         }
         if (value instanceof Boolean) {
             if ((boolean)value) {
