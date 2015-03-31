@@ -22,7 +22,6 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.Ordering;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.operation.RowDownstream;
@@ -33,19 +32,18 @@ import org.elasticsearch.common.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MergeProjector implements Projector  {
 
     private final Ordering<Row> ordering;
-    private List<MergeProjectorDownstreamHandle> downstreamHandles = new ArrayList<>();
-    private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
-
+    private final List<MergeProjectorDownstreamHandle> downstreamHandles = new ArrayList<>();
+    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
+    private final AtomicBoolean downstreamAborted = new AtomicBoolean(false);
     private RowDownstreamHandle downstreamContext;
-
     private Row lowestToEmit = null;
+    private final Object lowestToEmitLock = new Object();
 
-    private AtomicBoolean downstreamAborted = new AtomicBoolean(false);
 
     public MergeProjector(int[] orderBy,
                           boolean[] reverseFlags,
@@ -59,13 +57,14 @@ public class MergeProjector implements Projector  {
 
     @Override
     public void startProjection() {
-        if (downstreamHandles.size() <= 0) {
-            finishDownStream();
+        if (remainingUpstreams.get() == 0) {
+            upstreamFinished();
         }
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+        remainingUpstreams.incrementAndGet();
         MergeProjectorDownstreamHandle handle = new MergeProjectorDownstreamHandle(this);
         downstreamHandles.add(handle);
         return handle;
@@ -76,95 +75,62 @@ public class MergeProjector implements Projector  {
         downstreamContext = downstream.registerUpstream(this);
     }
 
-    public void upstreamFinished(MergeProjectorDownstreamHandle handle) {
-        if (!handle.isEmpty()) {
-            return;
+    public void upstreamFinished() {
+        emit();
+        if (remainingUpstreams.decrementAndGet() <= 0) {
+            if (downstreamContext != null) {
+                downstreamContext.finish();
+            }
         }
-        synchronized (this) {
-            downstreamHandles.remove(handle);
-        }
-        if (!downstreamAborted.get()) {
-            emit();
-        }
-        finishDownStream();
     }
 
-    public void finishDownStream() {
-        if (downstreamHandles.size() > 0) {
-            return;
-        }
-        if (downstreamContext != null) {
-            Throwable throwable = upstreamFailure.get();
-            if (throwable == null) {
-                downstreamContext.finish();
-            } else {
+    public void upstreamFailed(Throwable throwable) {
+        downstreamAborted.compareAndSet(false, true);
+        if (remainingUpstreams.decrementAndGet() == 0) {
+            if (downstreamContext != null) {
                 downstreamContext.fail(throwable);
             }
         }
     }
 
-    public void upstreamFailed(Throwable throwable, MergeProjectorDownstreamHandle handle) {
-        upstreamFailure.set(throwable);
-        synchronized (this) {
-            downstreamHandles.remove(handle);
+    public boolean emit() {
+        Row lowestToEmit;
+        synchronized (lowestToEmitLock) {
+            lowestToEmit = this.lowestToEmit;
         }
-        downstreamAborted();
-    }
-
-    private void downstreamAborted() {
-        if(downstreamAborted.compareAndSet(false, true)) {
-            if (downstreamContext != null) {
-                Throwable throwable = upstreamFailure.get();
-                if (throwable == null) {
-                    downstreamContext.finish();
-                } else {
-                    downstreamContext.fail(throwable);
-                }
-            }
-            for (MergeProjectorDownstreamHandle handle : downstreamHandles) {
-                handle.close();
-            }
-        }
-    }
-
-    public synchronized boolean emit() {
-        boolean success = true;
-        if (lowestToEmit == null ) {
+        if (lowestToEmit == null) {
             lowestToEmit = findLowestRow();
         }
+
         while (lowestToEmit != null) {
             Row nextLowest = null;
             boolean emptyHandle = false;
-            ArrayList<RowDownstreamHandle> toRemove = new ArrayList<>();
             for (MergeProjectorDownstreamHandle handle : downstreamHandles) {
-                try {
-                    success = handle.emitUntil(lowestToEmit);
-                    // if there is an emptyHandle don't try to fetch the nextLowest because we'll abort anyway
-                    if(success && !emptyHandle && (nextLowest == null || ordering.compare(handle.firstRow(), nextLowest) > 0)) {
-                        nextLowest = handle.firstRow();
-                    }
-                } catch (NoSuchElementException e) {
-                    if (handle.isFinished()) {
-                        toRemove.add(handle);
-                    } else {
-                        emptyHandle = true;
-                    }
-                }
-                if (!success) {
-                    downstreamAborted();
+                if (!handle.emitUntil(lowestToEmit)) {
+                    downstreamAborted.set(true);
                     return false;
                 }
-            }
-            if (toRemove.size() > 0) {
-                downstreamHandles.removeAll(toRemove);
-                finishDownStream();
+                Row row = handle.firstRow();
+                if (row == null) {
+                    if (!handle.isFinished()) {
+                        emptyHandle = true;
+                    }
+                    continue;
+                }
+
+                if (nextLowest == null || ordering.compare(row, nextLowest) > 0) {
+                    nextLowest = row;
+                }
             }
             // If there is one empty handle everything which can be emitted is emitted
-            if(emptyHandle) {
+            if (emptyHandle) {
                 break;
             } else {
                 lowestToEmit = nextLowest;
             }
+        }
+        synchronized (lowestToEmitLock) {
+            this.lowestToEmit = lowestToEmit;
         }
         return true;
     }
@@ -173,16 +139,18 @@ public class MergeProjector implements Projector  {
     private Row findLowestRow() {
         Row lowest = null;
         for (MergeProjectorDownstreamHandle handle : downstreamHandles ) {
-            try {
-                if (lowest == null) {
-                    lowest = handle.firstRow();
-                } else if (ordering.compare(handle.firstRow(), lowest) > 0) {
-                    lowest = handle.firstRow();
-                }
-            } catch (NoSuchElementException e) {
+            Row row = handle.firstRow();
+            if (row == null) {
                 if (!handle.isFinished()) {
                     return null; // There is an empty downstreamHandle, abort
                 }
+                continue;
+            }
+
+            if (lowest == null) {
+                lowest = row;
+            } else if (ordering.compare(row, lowest) > 0) {
+                lowest = row;
             }
         }
         return lowest;
@@ -191,10 +159,9 @@ public class MergeProjector implements Projector  {
     public class MergeProjectorDownstreamHandle implements RowDownstreamHandle {
 
         private final MergeProjector projector;
-
-        private boolean finished = false;
-
-        private boolean closed = false;
+        private final Object lock = new Object();
+        private AtomicBoolean finished = new AtomicBoolean(false);
+        private Row firstRow = null;
 
         private LinkedList<Row> rows = new LinkedList<>();
 
@@ -202,23 +169,36 @@ public class MergeProjector implements Projector  {
             this.projector = projector;
         }
 
-        public Row firstRow() throws NoSuchElementException{
-            return rows.getFirst();
+        public Row firstRow() throws NoSuchElementException {
+            synchronized (lock) {
+                return firstRow;
+            }
+        }
+
+        public Row poll() {
+            synchronized (lock) {
+                Row row = rows.poll();
+                try {
+                    firstRow = rows.getFirst();
+                } catch (NoSuchElementException e) {
+                    firstRow = null;
+                }
+                return row;
+            }
         }
 
         public boolean isEmpty() {
-            return rows.isEmpty();
-        }
-
-        public void close() {
-            rows.clear();
-            closed = true;
+            synchronized (lock) {
+                return rows.isEmpty();
+            }
         }
 
         public boolean emitUntil(Row until) {
-            while (ordering.compare(rows.getFirst(), until) >= 0) {
-                if(!downstreamContext.setNextRow(rows.pollFirst())) {
-                    return false;
+            synchronized (lock) {
+                while (firstRow != null && ordering.compare(firstRow, until) >= 0) {
+                    if (!downstreamContext.setNextRow(poll())) {
+                        return false;
+                    }
                 }
             }
             return true;
@@ -226,31 +206,37 @@ public class MergeProjector implements Projector  {
 
         @Override
         public boolean setNextRow(Row row) {
-            if (closed) {
+            if (projector.downstreamAborted.get()) {
                 return false;
             }
-            row = new RowN(Buckets.materialize(row));
-            synchronized (this.projector) {
-                rows.addLast(row);
+            row = new RowN(row.materialize());
+            int size;
+            synchronized (lock) {
+                rows.add(row);
+                size = rows.size();
+                if (firstRow == null) {
+                    firstRow = row;
+                }
             }
             // Only try to emit if this handler was empty before
             // else we know that there must be a handler with a lower highest value than this.
-            return rows.size() != 1 || projector.emit();
+            return size != 1 || projector.emit();
         }
 
         @Override
         public void finish() {
-            finished = true;
-            projector.upstreamFinished(this);
+            if (finished.compareAndSet(false, true)) {
+                projector.upstreamFinished();
+            }
         }
 
         public boolean isFinished() {
-            return finished;
+            return finished.get();
         }
 
         @Override
         public void fail(Throwable throwable) {
-            projector.upstreamFailed(throwable, this);
+            projector.upstreamFailed(throwable);
         }
     }
 }
