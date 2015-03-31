@@ -80,6 +80,7 @@ task bench(type: Test, dependsOn: [':app:getVersion']) {
 
 
     include('io/crate/benchmark/**')
+    exclude('io/crate/benchmark/LuceneDocCollector**')
 
     testLogging {
         // show standard out and standard error of the test JVM(s) on the console
