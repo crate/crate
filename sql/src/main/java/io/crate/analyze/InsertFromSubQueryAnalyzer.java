@@ -75,9 +75,9 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
     @Override
     public AbstractInsertAnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis analysis) {
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
+        TableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
+                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         TableRelation tableRelation = new TableRelation(tableInfo);
-        validateTable(tableInfo);
 
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 

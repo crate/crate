@@ -137,7 +137,7 @@ public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
                 .add(new TestMetaDataModule())
                 .createInjector();
         expressionAnalyzer = new ExpressionAnalyzer(injector.getInstance(AnalysisMetaData.class),
-                new ParameterContext(new Object[0], new Object[0][]),
+                new ParameterContext(new Object[0], new Object[0][], null),
                 new FullQualifedNameFieldProvider(
                         ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                             new QualifiedName(Arrays.asList("doc", "test1")), new TableRelation(userTableInfo)))

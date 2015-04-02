@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for setting the default schema name in the SQLRequest class
+
+ - Attempting to refresh a system table will now result in an error as system
+   tables are read-only and don't need to be refreshed.
+
  - Fix: documented minimum required java version
 
  - Updated crash to version 0.11.5 which contains the following changes:

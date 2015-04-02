@@ -26,6 +26,7 @@ import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 /**
@@ -47,6 +48,7 @@ import java.io.IOException;
  */
 public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
 
+    private static final String SCHEMA_HEADER_KEY = "_s";
 
     protected String stmt;
     protected long creationTime;
@@ -98,6 +100,22 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
         return creationTime;
     }
 
+    public void setDefaultSchema(String schemaName) {
+        if (schemaName == null) {
+            if (hasHeader(SCHEMA_HEADER_KEY)) {
+                // can't remove header but want to reset schemaName...
+                putHeader(SCHEMA_HEADER_KEY, null);
+            }
+            return; // don't set schemaName if null to avoid overhead
+        }
+        putHeader(SCHEMA_HEADER_KEY, schemaName);
+    }
+
+    @Nullable
+    public String getDefaultSchema() {
+        return getHeader(SCHEMA_HEADER_KEY);
+    }
+
     @Override
     public ActionRequestValidationException validate() {
         if (stmt == null) {
@@ -111,16 +129,12 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        stmt = in.readString();
-        creationTime = in.readVLong();
-        includeTypesOnResponse = in.readBoolean();
+        // don't serialize shared fields from BULK/SINGLE request because they have different serialization order
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(stmt);
-        out.writeVLong(creationTime);
-        out.writeBoolean(includeTypesOnResponse);
+        // don't serialize shared fields from BULK/SINGLE request because they have different serialization order
     }
 }

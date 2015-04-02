@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -161,16 +162,19 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     @Override
     public DocTableInfo getTableInfo(String name) {
-        // TODO: implement index based tables
         try {
             return cache.get(name);
         } catch (ExecutionException e) {
             throw new UnhandledServerException("Failed to get TableInfo", e.getCause());
         } catch (UncheckedExecutionException e) {
-            if (e.getCause() instanceof TableUnknownException) {
+            Throwable cause = e.getCause();
+            if (cause == null) {
+                throw e;
+            }
+            if (cause instanceof TableUnknownException) {
                 return null;
             }
-            throw e;
+            throw Throwables.propagate(cause);
         }
     }
 

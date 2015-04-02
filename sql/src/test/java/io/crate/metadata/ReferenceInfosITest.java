@@ -156,23 +156,4 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
         assertTrue(ti.getRouting(null, null).locations().containsKey(null));
     }
-
-    @Test
-    public void testSysSchemaTables() throws Exception {
-        SchemaInfo si = referenceInfos.getSchemaInfo("sys");
-        // TODO:
-//        assertThat(si.tableNames(), contains("cluster", "nodes", "shards", "jobs", "jobs_log",
-//            "operations", "operations_log"));
-    }
-
-    @Test
-    public void testDocSchemaTables() throws Exception {
-        execute("create table users (id int primary key)");
-        ensureGreen();
-        // TODO:
-//        SchemaInfo si = referenceInfos.getSchemaInfo(null);
-//        assertThat(si.tableNames(), containsInAnyOrder("users"));
-    }
-
-
 }

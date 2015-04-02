@@ -60,7 +60,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     @Override
     public AddColumnAnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
         AddColumnAnalyzedStatement statement = new AddColumnAnalyzedStatement(referenceInfos);
-        setTableAndPartitionName(node.table(), statement);
+        setTableAndPartitionName(node.table(), statement, analysis.parameterContext());
 
         statement.analyzedTableElements(TableElementsAnalyzer.analyze(
                 node.tableElement(),
@@ -128,11 +128,11 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         }
     }
 
-    private void setTableAndPartitionName(Table node, AddColumnAnalyzedStatement context) {
+    private void setTableAndPartitionName(Table node, AddColumnAnalyzedStatement context, ParameterContext parameterContext) {
         if (!node.partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
-        context.table(TableIdent.of(node));
+        context.table(TableIdent.of(node, parameterContext.defaultSchema()));
     }
 
 }

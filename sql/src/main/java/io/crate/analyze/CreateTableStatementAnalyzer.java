@@ -73,9 +73,8 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     @Override
     public CreateTableAnalyzedStatement visitCreateTable(CreateTable node, Context context) {
         assert context.statement == null;
-        context.statement = new CreateTableAnalyzedStatement(referenceInfos, fulltextAnalyzerResolver);
-        TableIdent tableIdent = TableIdent.of(node.name());
-        context.statement.table(tableIdent);
+        context.statement = new CreateTableAnalyzedStatement(fulltextAnalyzerResolver);
+        setTableIdent(node, context);
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
@@ -97,6 +96,11 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         }
 
         return context.statement;
+    }
+
+    private void setTableIdent(CreateTable node, Context context) {
+        TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.parameterContext().defaultSchema());
+        context.statement.table(tableIdent, referenceInfos);
     }
 
     @Override

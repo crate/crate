@@ -22,24 +22,16 @@
 package io.crate.analyze;
 
 
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
-import static java.lang.String.format;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -49,45 +41,34 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
 
     private ReferenceInfos referenceInfos;
 
-    private SchemaInfo docSchemaInfo;
-
     private DropTableAnalyzedStatement dropTableAnalyzedStatement;
 
     @Before
     public void prepare() {
         referenceInfos = mock(ReferenceInfos.class);
-        docSchemaInfo = mock(DocSchemaInfo.class);
-        when(docSchemaInfo.getTableInfo(any(String.class))).thenReturn(null);
     }
 
     @Test
-    public void unknownTableRaisesExceptionIfNotIgnored() throws Exception {
+    public void testUnknownTableRaisesExceptionIfNotIgnored() throws Exception {
         expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage(format("Table '%s.%s' unknown", IRRELEVANT, IRRELEVANT));
-
-
-        getSchemaInfoReturns(docSchemaInfo);
+        expectedException.expectMessage(String.format("Table '%s.%s' unknown", IRRELEVANT, IRRELEVANT));
 
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
+        when(referenceInfos.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
         dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, false);
-
         dropTableAnalyzedStatement.table(tableIdent);
-
     }
 
     @Test
     public void unknownTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
-
-        getSchemaInfoReturns(docSchemaInfo);
-
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
+        when(referenceInfos.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
         dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, true);
-
         dropTableAnalyzedStatement.table(tableIdent);
-        assertThat(dropTableAnalyzedStatement.noop(), is(true));
 
+        assertThat(dropTableAnalyzedStatement.noop(), is(true));
     }
 
     @Test
@@ -95,62 +76,12 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
         TableInfo tableInfo = mock(DocTableInfo.class);
         when(tableInfo.isPartitioned()).thenReturn(false);
         when(tableInfo.isAlias()).thenReturn(false);
-        when(docSchemaInfo.getTableInfo(any(String.class))).thenReturn(tableInfo);
 
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
-        getSchemaInfoReturns(docSchemaInfo);
 
         dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, true);
 
         dropTableAnalyzedStatement.table(tableIdent);
         assertThat(dropTableAnalyzedStatement.noop(), is(false));
-    }
-
-    @Test
-    public void deletingAliasRaisesException() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Table alias not allowed in DROP TABLE statement.");
-
-        TableInfo tableInfo = mock(DocTableInfo.class);
-        when(tableInfo.isPartitioned()).thenReturn(false);
-        when(tableInfo.isAlias()).thenReturn(true);
-        when(docSchemaInfo.getTableInfo(any(String.class))).thenReturn(tableInfo);
-
-        TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
-        getSchemaInfoReturns(docSchemaInfo);
-
-        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, true);
-
-        dropTableAnalyzedStatement.table(tableIdent);
-    }
-
-    @Test
-    public void deletingSystemSchemaRaisesException() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(format("cannot delete 'System.%s'", IRRELEVANT));
-
-        getSchemaInfoReturns(new SysSchemaInfo(mock(ClusterService.class)));
-        TableIdent ident = new TableIdent("System", IRRELEVANT);
-
-        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, false);
-
-        dropTableAnalyzedStatement.table(ident);
-    }
-
-    @Test
-    public void deletingNullSchemaRaisesException() throws Exception {
-        expectedException.expect(SchemaUnknownException.class);
-        expectedException.expectMessage("Schema 'null' unknown");
-
-        getSchemaInfoReturns(null);
-        TableIdent ident = new TableIdent();
-
-        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, false);
-
-        dropTableAnalyzedStatement.table(ident);
-    }
-
-    private void getSchemaInfoReturns(SchemaInfo schemaInfo) {
-        when(referenceInfos.getSchemaInfo(anyString())).thenReturn(schemaInfo);
     }
 }

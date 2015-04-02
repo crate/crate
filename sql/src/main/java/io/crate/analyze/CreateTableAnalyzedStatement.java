@@ -21,15 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableAlreadyExistsException;
-import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.*;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -37,53 +30,22 @@ import java.util.Map;
 
 public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    protected final ReferenceInfos referenceInfos;
     protected final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private AnalyzedTableElements analyzedTableElements;
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
+    private TableIdent tableIdent;
 
-    public CreateTableAnalyzedStatement(ReferenceInfos referenceInfos,
-                                        FulltextAnalyzerResolver fulltextAnalyzerResolver){
-        this.referenceInfos = referenceInfos;
+    public CreateTableAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver){
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
-    @Override
-    public void table(TableIdent tableIdent) {
-        try {
-            TableInfo existingTable = referenceInfos.getTableInfoUnsafe(tableIdent);
-            // no exception thrown, table exists
-            // is it an orphaned alias? allow it,
-            // as it will be deleted before the actual table creation
-            if (!isOrphanedAlias(existingTable)) {
-                throw new TableAlreadyExistsException(existingTable.ident().fqn());
-            }
-        } catch (TableUnknownException | SchemaUnknownException e) {
-            // ok, that is expected
+    public void table(TableIdent tableIdent, ReferenceInfos referenceInfos) {
+        tableIdent.validate();
+        if (referenceInfos.tableExists(tableIdent)) {
+            throw new TableAlreadyExistsException(tableIdent);
         }
-        super.table(tableIdent); // name validated here
-    }
-
-    /**
-     * checks if the given TableInfo has been created from an orphaned alias left from
-     * an incomplete drop table on a partitioned table
-     */
-    private boolean isOrphanedAlias(TableInfo table) {
-        if (!table.isPartitioned() && table.isAlias()
-                && table.concreteIndices().length >= 1) {
-
-            boolean isPartitionAlias = true;
-            for (String index : table.concreteIndices()) {
-                if (!PartitionName.isPartition(index, table.ident().schema(), table.ident().name())) {
-                    isPartitionAlias = false;
-                    break;
-                }
-            }
-            return isPartitionAlias;
-        }
-        return false;
-
+        this.tableIdent = tableIdent;
     }
 
     @Override

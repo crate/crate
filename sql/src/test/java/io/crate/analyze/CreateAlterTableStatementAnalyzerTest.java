@@ -22,16 +22,14 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.exceptions.InvalidSchemaNameException;
-import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -278,7 +276,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat((String)details.get("type"), is("array"));
         Map<String, Object> inner = (Map<String, Object>)details.get("inner");
-        assertThat((String)inner.get("type"), is("string"));
+        assertThat((String) inner.get("type"), is("string"));
     }
 
     @Test
@@ -430,8 +428,10 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("alter table users set (foobar='2')");
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testAlterSystemTable() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The table sys.shards is read-only. Write, Drop or Alter operations are not supported");
         analyze("alter table sys.shards reset (number_of_replicas)");
     }
 
@@ -643,5 +643,30 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(InvalidColumnNameException.class);
         expectedException.expectMessage("column name \"'test\" is invalid");
         analyze("create table my_table (\"'test\" string)");
+    }
+
+    @Test
+    public void testCreateTableShouldRaiseErrorIfItExists() throws Exception {
+        expectedException.expect(TableAlreadyExistsException.class);
+        analyze("create table users (\"'test\" string)");
+    }
+
+    @Test
+    public void testExplicitSchemaHasPrecedenceOverDefaultSchema() throws Exception {
+        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
+                SqlParser.createStatement("create table foo.bar (x string)"),
+                new ParameterContext(new Object[0], new Object[0][], "hoschi")).analyzedStatement();
+
+        // schema from statement must take precedence
+        assertThat(statement.tableIdent().schema(), is("foo"));
+    }
+
+    @Test
+    public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() throws Exception {
+        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
+                SqlParser.createStatement("create table bar (x string)"),
+                new ParameterContext(new Object[0], new Object[0][], "hoschi")).analyzedStatement();
+
+        assertThat(statement.tableIdent().schema(), is("hoschi"));
     }
 }

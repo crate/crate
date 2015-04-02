@@ -48,7 +48,7 @@ public class CopyAnalyzedStatement implements AnalyzedStatement {
         return selectedColumns;
     }
 
-    public static enum Mode {
+    public enum Mode {
         FROM,
         TO
     }

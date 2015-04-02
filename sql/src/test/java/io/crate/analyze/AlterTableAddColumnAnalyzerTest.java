@@ -75,7 +75,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAddColumnOnSystemTableIsNotAllowed() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("tables of schema \"sys\" are read only.");
+        expectedException.expectMessage("The table sys.shards is read-only. Write, Drop or Alter operations are not supported");
         analyze("alter table sys.shards add column foobar string");
     }
 

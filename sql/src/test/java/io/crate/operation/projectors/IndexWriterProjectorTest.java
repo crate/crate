@@ -24,18 +24,17 @@ package io.crate.operation.projectors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.RowN;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -76,7 +75,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 cluster().getInstance(TransportCreateIndexAction.class),
                 new TableIdent(null, "bulk_import"),
                 null,
-                new Reference(referenceInfos.getReferenceInfo(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW))),
+                new Reference(new ReferenceInfo(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING)),
                 Arrays.asList(ID_IDENT),
                 Arrays.<Symbol>asList(new InputColumn(0)),
                 Arrays.<Input<?>>asList(),

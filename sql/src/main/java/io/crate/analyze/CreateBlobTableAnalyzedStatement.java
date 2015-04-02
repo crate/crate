@@ -21,9 +21,13 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 
 public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+
+    private TableIdent tableIdent;
 
     public String tableName() {
         return tableIdent.name();
@@ -36,5 +40,13 @@ public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStateme
 
     public TableIdent tableIdent() {
         return tableIdent;
+    }
+
+    public void table(TableIdent tableIdent, ReferenceInfos referenceInfos) {
+        tableIdent.validate();
+        if (referenceInfos.tableExists(tableIdent)) {
+            throw new TableAlreadyExistsException(tableIdent);
+        }
+        this.tableIdent = tableIdent;
     }
 }

@@ -27,20 +27,13 @@ public class Analyzer {
 
     private final AnalyzerDispatcher dispatcher;
 
-    private final static Object[] EMPTY_ARGS = new Object[0];
-    private final static Object[][] EMPTY_BULK_ARGS = new Object[0][];
-
     @Inject
     public Analyzer(AnalyzerDispatcher dispatcher) {
         this.dispatcher = dispatcher;
     }
 
-    public Analysis analyze(Statement statement) {
-        return analyze(statement, EMPTY_ARGS, EMPTY_BULK_ARGS);
-    }
-
-    public Analysis analyze(Statement statement, Object[] parameters, Object[][] bulkParams) {
-        Analysis analysis = new Analysis(new ParameterContext(parameters, bulkParams));
+    public Analysis analyze(Statement statement, ParameterContext parameterContext) {
+        Analysis analysis = new Analysis(parameterContext);
         AnalyzedStatement analyzedStatement = dispatcher.process(statement, analysis);
         assert analyzedStatement != null : "analyzed statement must not be null";
         analysis.analyzedStatement(analyzedStatement);

@@ -21,43 +21,12 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 
 public class DropTableAnalyzedStatement extends AbstractDropTableAnalyzedStatement {
 
     public DropTableAnalyzedStatement(ReferenceInfos referenceInfos, boolean ignoreNonExistentTable) {
         super(referenceInfos, ignoreNonExistentTable);
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        if (schemaInfo == null) {
-            if (dropIfExists) {
-                noop = true;
-                return;
-            }
-            throw new SchemaUnknownException(tableIdent.schema());
-        }
-        if (schemaInfo.systemSchema()) {
-            throw new UnsupportedOperationException(
-                    String.format("cannot delete '%s'.", tableIdent.fqn()));
-        }
-        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
-
-        if (tableInfo == null) {
-            this.noop = true;
-        }
-        if (tableInfo == null && !dropIfExists) {
-            throw new TableUnknownException(tableIdent.fqn());
-        } else if (tableInfo != null && tableInfo.isAlias() && !tableInfo.isPartitioned()) {
-            throw new UnsupportedOperationException("Table alias not allowed in DROP TABLE statement.");
-        }
-        this.tableIdent = tableIdent;
     }
 
     @Override

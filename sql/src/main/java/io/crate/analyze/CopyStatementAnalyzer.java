@@ -63,7 +63,8 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
     @Override
     public CopyAnalyzedStatement visitCopyFromStatement(CopyFromStatement node, Analysis analysis) {
         CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
+        TableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
+                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         statement.table(tableInfo);
         TableRelation tableRelation = new TableRelation(tableInfo);
 
@@ -103,7 +104,8 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
     public CopyAnalyzedStatement visitCopyTo(CopyTo node, Analysis analysis) {
         CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
         statement.mode(CopyAnalyzedStatement.Mode.TO);
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
+        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(
+                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         statement.table(tableInfo);
         TableRelation tableRelation = new TableRelation(tableInfo);
 

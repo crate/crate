@@ -164,7 +164,8 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     }
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt, Object[][] bulkArgs) {
-        return (DeleteAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt), new Object[0], bulkArgs).analyzedStatement();
+        return (DeleteAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
+                new ParameterContext(new Object[0], bulkArgs, ReferenceInfos.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt) {
@@ -172,13 +173,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     }
 
     private UpdateAnalyzedStatement analyzeUpdate(String stmt) {
-        return (UpdateAnalyzedStatement) analyzer.analyze(
-                SqlParser.createStatement(stmt), new Object[0], new Object[0][]).analyzedStatement();
+        return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
+                new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
-        SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(
-                SqlParser.createStatement(stmt), args, new Object[0][]).analyzedStatement();
+        SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
+                new ParameterContext(args, new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)).analyzedStatement();
         return statement.relation().querySpec().where();
     }
 

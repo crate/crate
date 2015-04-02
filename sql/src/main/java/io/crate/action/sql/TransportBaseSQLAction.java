@@ -83,8 +83,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             .build(
                     new CacheLoader<String, Statement>() {
                         @Override
-                        public Statement load(@Nonnull String key) throws Exception {
-                            return SqlParser.createStatement(key);
+                        public Statement load(@Nonnull String statement) throws Exception {
+                            return SqlParser.createStatement(statement);
                         }
                     }
             );
@@ -171,7 +171,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         }
 
     }
-
 
     @Override
     protected void doExecute(TRequest request, ActionListener<TResponse> listener) {

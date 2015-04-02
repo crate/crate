@@ -85,6 +85,9 @@ public class DocTableInfoBuilder {
         } else {
             try {
                 concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.esName());
+                if (concreteIndices.length == 0) {
+                    throw new TableUnknownException(ident);
+                }
                 docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
             } catch (IndexMissingException ex) {
                 throw new TableUnknownException(ident.fqn(), ex);

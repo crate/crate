@@ -110,8 +110,7 @@ public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
     public void readFrom(StreamInput in) throws IOException {
         columnIdent = new ColumnIdent();
         columnIdent.readFrom(in);
-        tableIdent = new TableIdent();
-        tableIdent.readFrom(in);
+        tableIdent = TableIdent.fromStream(in);
     }
 
     @Override

@@ -64,4 +64,20 @@ public class SQLRequestTest extends CrateUnitTest {
         assertThat(request.includeTypesOnResponse(), is(true));
         assertThat(request.stmt(), is("select * from users"));
     }
+
+    @Test
+    public void testSerializationWithHeadersSet() throws Exception {
+        SQLRequest request = new SQLRequest("select * from users");
+        request.setDefaultSchema("foo");
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        SQLRequest inRequest = new SQLRequest();
+        inRequest.readFrom(in);
+
+        assertThat(inRequest.stmt(), is("select * from users"));
+        assertThat(inRequest.getDefaultSchema(), is("foo"));
+    }
 }

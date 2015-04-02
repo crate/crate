@@ -21,14 +21,16 @@
 
 package io.crate.exceptions;
 
+import io.crate.metadata.TableIdent;
+
 import java.util.Locale;
 
 public class TableAlreadyExistsException extends ConflictException {
 
     private static final String MESSAGE_TMPL = "The table '%s' already exists.";
 
-    public TableAlreadyExistsException(String tableName) {
-        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName));
+    public TableAlreadyExistsException(TableIdent tableIdent) {
+        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableIdent));
     }
 
     public TableAlreadyExistsException(String tableName, Throwable e) {

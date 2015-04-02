@@ -144,8 +144,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        tableIdent = new TableIdent();
-        tableIdent.readFrom(in);
+        tableIdent = TableIdent.fromStream(in);
 
         partitionIdent = in.readOptionalString();
         int numIdSymbols = in.readVInt();

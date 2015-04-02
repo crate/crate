@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
@@ -41,7 +41,7 @@ public class Table
 
     public Table(QualifiedName name, @Nullable List<Assignment> partitionProperties) {
         this.name = name;
-        this.partitionProperties = Objects.firstNonNull(partitionProperties, ImmutableList.<Assignment>of());
+        this.partitionProperties = MoreObjects.firstNonNull(partitionProperties, ImmutableList.<Assignment>of());
     }
 
     public QualifiedName getName()
@@ -62,7 +62,7 @@ public class Table
     @Override
     public String toString()
     {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .addValue(name)
                 .add("partitionProperties", partitionProperties)
                 .toString();

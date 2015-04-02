@@ -21,13 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
 import io.crate.exceptions.PartitionUnknownException;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
@@ -43,17 +40,8 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
         this.referenceInfos = referenceInfos;
     }
 
-    @Override
     public void table(TableIdent tableIdent) {
-        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        if (schemaInfo == null) {
-            throw new SchemaUnknownException(tableIdent.schema());
-        }
-        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
-        if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.fqn());
-        }
-        this.tableInfo = tableInfo;
+        tableInfo = referenceInfos.getWritableTable(tableIdent);
     }
 
     public TableInfo table() {

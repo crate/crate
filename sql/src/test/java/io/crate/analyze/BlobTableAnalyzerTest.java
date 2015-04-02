@@ -23,12 +23,17 @@ package io.crate.analyze;
 
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.TestingTableInfo;
+import io.crate.planner.RowGranularity;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
@@ -58,8 +63,13 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
-            when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(TEST_BLOB_TABLE_TABLE_INFO);
+
+            TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "myblobs");
+            TableInfo myBlobsInfo = TestingTableInfo.builder(myBlobsIdent, RowGranularity.DOC, shardRouting)
+                    .schemaInfo(schemaInfo)
+                    .build();
+
+            when(schemaInfo.getTableInfo(myBlobsIdent.name())).thenReturn(myBlobsInfo);
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -95,6 +105,12 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
         assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
         assertThat(analysis.tableParameter().settings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+    }
+
+    @Test
+    public void testCreateBlobTableRaisesErrorIfAlreadyExists() throws Exception {
+        expectedException.expect(TableAlreadyExistsException.class);
+        analyze("create blob table myblobs");
     }
 
     @Test
@@ -146,8 +162,8 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropBlobTable() {
-        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table users");
-        assertThat(analysis.tableIdent().name(), is("users"));
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table myblobs");
+        assertThat(analysis.tableIdent().name(), is("myblobs"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
     }
 
@@ -158,8 +174,8 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropBlobTableWithValidSchema() {
-        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table \"blob\".users");
-        assertThat(analysis.tableIdent().name(), is("users"));
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table \"blob\".myblobs");
+        assertThat(analysis.tableIdent().name(), is("myblobs"));
     }
 
     @Test (expected = TableUnknownException.class)
@@ -169,9 +185,9 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropBlobTableIfExists() throws Exception {
-        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table if exists users");
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table if exists myblobs");
         assertThat(analysis.dropIfExists(), is(true));
-        assertThat(analysis.tableIdent().name(), is("users"));
+        assertThat(analysis.tableIdent().name(), is("myblobs"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
     }
 

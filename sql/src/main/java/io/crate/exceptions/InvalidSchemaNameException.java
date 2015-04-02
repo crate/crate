@@ -23,8 +23,8 @@ package io.crate.exceptions;
 
 public class InvalidSchemaNameException extends ValidationException {
 
-    public InvalidSchemaNameException(String tableName) {
-        super(String.format("schema name \"%s\" is invalid.", tableName));
+    public InvalidSchemaNameException(String schemaName) {
+        super(String.format("schema name \"%s\" is invalid.", schemaName));
     }
 
     @Override

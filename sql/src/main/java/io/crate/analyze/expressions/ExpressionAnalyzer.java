@@ -259,7 +259,7 @@ public class ExpressionAnalyzer {
     private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
-            TableInfo tableInfo = referenceInfos.getTableInfoUnsafe(info.ident().tableIdent());
+            TableInfo tableInfo = referenceInfos.getTableInfo(info.ident().tableIdent());
             ReferenceInfo nestedInfo = tableInfo.getReferenceInfo(nestedIdent);
             if (nestedInfo == null) {
                 if (info.columnPolicy() == ColumnPolicy.IGNORED) {

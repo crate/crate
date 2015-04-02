@@ -24,6 +24,7 @@ package io.crate.analyze;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Locale;
 
 import static io.crate.planner.symbol.Literal.newLiteral;
@@ -31,16 +32,26 @@ import static io.crate.planner.symbol.Literal.newLiteral;
 public class ParameterContext {
 
     final Object[] parameters;
+
     final Object[][] bulkParameters;
+
+    @Nullable
+    private final String defaultSchema;
 
     private int currentIdx = 0;
 
-    public ParameterContext(Object[] parameters, Object[][] bulkParameters) {
+    public ParameterContext(Object[] parameters, Object[][] bulkParameters, @Nullable String defaultSchema) {
         this.parameters = parameters;
+        this.defaultSchema = defaultSchema;
         if (bulkParameters.length > 0) {
             validateBulkParams(bulkParameters);
         }
         this.bulkParameters = bulkParameters;
+    }
+
+    @Nullable
+    public String defaultSchema() {
+        return defaultSchema;
     }
 
     private void validateBulkParams(Object[][] bulkParams) {

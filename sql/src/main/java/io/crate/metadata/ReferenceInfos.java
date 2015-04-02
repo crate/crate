@@ -21,10 +21,8 @@
 
 package io.crate.metadata;
 
-import io.crate.exceptions.Exceptions;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -42,9 +40,12 @@ import org.elasticsearch.common.inject.Inject;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListener {
 
@@ -52,7 +53,6 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
     public static final String DEFAULT_SCHEMA_NAME = "doc";
 
     private final Map<String, SchemaInfo> builtInSchemas;
-    private final SchemaInfo defaultSchemaInfo;
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
 
@@ -63,7 +63,6 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
                           ClusterService clusterService,
                           TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
         this.builtInSchemas = builtInSchemas;
-        this.defaultSchemaInfo = builtInSchemas.get(DEFAULT_SCHEMA_NAME);
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         schemas.putAll(builtInSchemas);
@@ -71,13 +70,17 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
         clusterService.add(this);
     }
 
-    @Nullable
-    public TableInfo getTableInfo(TableIdent ident) {
-        SchemaInfo schemaInfo = getSchemaInfo(ident.schema());
-        if (schemaInfo != null) {
-            return schemaInfo.getTableInfo(ident.name());
+    public TableInfo getWritableTable(TableIdent tableIdent) {
+        TableInfo tableInfo = getTableInfo(tableIdent);
+        if ((tableInfo.schemaInfo().systemSchema() && !tableInfo.schemaInfo().name().equals(BlobSchemaInfo.NAME))) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "The table %s is read-only. Write, Drop or Alter operations are not supported", tableInfo.ident()));
         }
-        return null;
+        if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "%s is an alias. Write, Drop or Alter operations are not supported", tableInfo.ident()));
+        }
+        return tableInfo;
     }
 
     /**
@@ -89,43 +92,23 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
      * @throws io.crate.exceptions.TableUnknownException if table given in <code>ident</code> does
      *         not exist in the given schema
      */
-    public TableInfo getTableInfoUnsafe(TableIdent ident) {
+    public TableInfo getTableInfo(TableIdent ident) {
+        SchemaInfo schemaInfo = getSchemaInfo(ident);
         TableInfo info;
-        SchemaInfo schemaInfo = getSchemaInfo(ident.schema());
-        if (schemaInfo == null) {
-            throw new SchemaUnknownException(ident.schema());
-        }
-        try {
-            info = schemaInfo.getTableInfo(ident.name());
-            if (info == null) {
-                throw new TableUnknownException(ident.name());
-            }
-        } catch (Exception e) {
-            Throwable throwable = Exceptions.unwrap(e);
-            if (throwable instanceof TableAliasSchemaException) {
-                throw (TableAliasSchemaException) throwable;
-            }
-            throw new TableUnknownException(ident.name(), throwable);
+        info = schemaInfo.getTableInfo(ident.name());
+        if (info == null) {
+            throw new TableUnknownException(ident);
         }
         return info;
     }
 
-    @Nullable
-    public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        TableInfo tableInfo = getTableInfo(ident.tableIdent());
-        if (tableInfo != null) {
-            return tableInfo.getReferenceInfo(ident.columnIdent());
+    private SchemaInfo getSchemaInfo(TableIdent ident) {
+        String schemaName = firstNonNull(ident.schema(), DEFAULT_SCHEMA_NAME);
+        SchemaInfo schemaInfo = schemas.get(schemaName);
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(schemaName);
         }
-        return null;
-    }
-
-    @Nullable
-    public SchemaInfo getSchemaInfo(@Nullable String schemaName) {
-        if (schemaName == null) {
-            return defaultSchemaInfo;
-        } else {
-            return schemas.get(schemaName);
-        }
+        return schemaInfo;
     }
 
     @Override
@@ -201,4 +184,36 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
         return true;
     }
 
+    public boolean tableExists(TableIdent tableIdent) {
+        SchemaInfo schemaInfo = schemas.get(firstNonNull(tableIdent.schema(), DEFAULT_SCHEMA_NAME));
+        if (schemaInfo == null) {
+            return false;
+        }
+        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        //noinspection RedundantIfStatement
+        if (tableInfo == null || isOrphanedAlias(tableInfo)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * checks if the given TableInfo has been created from an orphaned alias left from
+     * an incomplete drop table on a partitioned table
+     */
+    private static boolean isOrphanedAlias(TableInfo table) {
+        if (!table.isPartitioned() && table.isAlias()
+                && table.concreteIndices().length >= 1) {
+
+            boolean isPartitionAlias = true;
+            for (String index : table.concreteIndices()) {
+                if (!PartitionName.isPartition(index, table.ident().schema(), table.ident().name())) {
+                    isPartitionAlias = false;
+                    break;
+                }
+            }
+            return isPartitionAlias;
+        }
+        return false;
+    }
 }

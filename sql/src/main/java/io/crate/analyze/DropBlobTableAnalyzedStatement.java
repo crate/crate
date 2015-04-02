@@ -21,36 +21,12 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.table.SchemaInfo;
 
 public class DropBlobTableAnalyzedStatement extends AbstractDropTableAnalyzedStatement {
 
-
     public DropBlobTableAnalyzedStatement(ReferenceInfos referenceInfos, boolean ignoreNonExistentTable) {
         super(referenceInfos, ignoreNonExistentTable);
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-        assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
-        this.tableIdent = tableIdent;
-        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        assert schemaInfo != null; // schema info for blob must exist.
-
-        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
-        if (tableInfo == null) {
-            this.noop = true;
-        }
-        if (tableInfo == null && !dropIfExists) {
-            throw new TableUnknownException(tableIdent.name());
-        } else if (!noop && tableInfo.isAlias()) {
-            throw new UnsupportedOperationException("Table alias not allowed in DROP BLOB TABLE statement.");
-        }
-        this.tableIdent = tableIdent;
     }
 
     @Override

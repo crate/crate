@@ -24,7 +24,10 @@ package io.crate.action.sql;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.is;
 
 public class SQLBaseRequestTest extends CrateUnitTest {
 
@@ -57,5 +60,21 @@ public class SQLBaseRequestTest extends CrateUnitTest {
 
         Object[][] empty = new Object[0][];
         assertArrayEquals(empty, serialized.bulkArgs());
+    }
+
+    @Test
+    public void testResetSchemaName() throws Exception {
+        SQLRequest request = new SQLRequest("select * from sys.cluster");
+        request.setDefaultSchema(null);
+
+        assertThat(request.getDefaultSchema(), Matchers.nullValue());
+        assertThat(request.hasHeader("_s"), is(false));
+
+        request.setDefaultSchema("foo");
+        assertThat(request.getDefaultSchema(), is("foo"));
+
+        request.setDefaultSchema(null);
+        assertThat(request.getDefaultSchema(), Matchers.nullValue());
+        assertThat(request.hasHeader("_s"), is(true));
     }
 }

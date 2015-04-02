@@ -137,13 +137,4 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
         analysis.expectsAffectedRows(true);
         return super.process(node, analysis);
     }
-
-    protected void validateTable(TableInfo tableInfo) throws UnsupportedOperationException, IllegalArgumentException {
-        if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
-            throw new UnsupportedOperationException("aliases are read only.");
-        }
-        if (tableInfo.schemaInfo().systemSchema()) {
-            throw new UnsupportedOperationException("Can't insert into system tables, they are read only");
-        }
-    }
 }

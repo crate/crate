@@ -23,9 +23,7 @@ package io.crate;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
 
-import java.util.Set;
 import java.util.regex.Pattern;
 
 public class Constants {
@@ -47,7 +45,6 @@ public class Constants {
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
-    public static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
 
     public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]]"));
 }

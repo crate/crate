@@ -63,7 +63,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         mockedAnalysisMetaData = mock(AnalysisMetaData.class);
-        emptyParameterContext = new ParameterContext(new Object[0], new Object[0][]);
+        emptyParameterContext = new ParameterContext(new Object[0], new Object[0][], null);
         dummySources = ImmutableMap.of(new QualifiedName("foo"), mock(AnalyzedRelation.class));
         context = new ExpressionAnalysisContext();
 

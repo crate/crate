@@ -28,6 +28,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
@@ -112,23 +113,13 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
     }
 
     @Test
-    public void testWrongSchema() throws Exception {
-        // unsupported schema
-        ReferenceIdent ident = new ReferenceIdent(new TableIdent("something", "sometable"), "somecolumn");
-        assertNull(referenceInfos.getReferenceInfo(ident));
-
-    }
-
-
-    @Test
     public void testInfoLookup() throws Exception {
-
         ReferenceIdent ident = LOAD_INFO.ident();
-        assertEquals(LOAD_INFO, referenceInfos.getReferenceInfo(ident));
+        TableInfo sysNodesTableInfo = referenceInfos.getTableInfo(SysNodesTableInfo.IDENT);
+        assertEquals(LOAD_INFO, sysNodesTableInfo.getReferenceInfo(ident.columnIdent()));
 
         ident = LOAD1_INFO.ident();
-        assertEquals(referenceInfos.getReferenceInfo(ident), LOAD1_INFO);
-
+        assertEquals(sysNodesTableInfo.getReferenceInfo(ident.columnIdent()), LOAD1_INFO);
     }
 
     @Test
