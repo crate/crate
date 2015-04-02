@@ -1047,4 +1047,15 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "1| 44\n" +
                 "1| 45\n"));
     }
+
+    @Test
+    public void testNestedAggregationsWithDistinct() throws Exception {
+        // aggregations are nested inside a (divide) scalar
+        execute("create table t (id string, load float, channel string)");
+        ensureYellow();
+        execute("insert into t (id, load, channel) values (1, 1.2, 'abc'), (2, 0.3, 'abc')");
+        refresh();
+        execute("select channel, sum(load)/count(distinct id) from t where channel = 'abc' group by channel");
+        assertThat(response.rowCount(), is(1L));
+    }
 }

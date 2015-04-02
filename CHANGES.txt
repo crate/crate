@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix an issue while analyzing nested aggregations.
+
  - Fix: ip type conversion did not allow NULL values
 
  - Fix: Grouping or sorting on a dynamically created column of a partitioned

@@ -84,7 +84,6 @@ public class PlannerContextBuilder {
         } else {
             // need to split on aggregations
             for (Symbol symbol : symbols) {
-                context.parent = null;
                 Symbol splitSymbol = Planner.splitter.process(symbol, context);
                 Symbol resolvedSymbol;
                 if (context.parent != null && splitSymbol.symbolType() == SymbolType.FUNCTION) {
@@ -109,6 +108,7 @@ public class PlannerContextBuilder {
                 }
                 context.addResolvedSymbol(symbol, resolvedSymbol);
                 context.outputs.add(resolvedSymbol);
+                context.parent = null;
             }
         }
         return this;

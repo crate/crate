@@ -37,22 +37,20 @@ class PlannerAggregationSplitter extends SymbolVisitor<PlannerContext, Symbol> {
             context.parent = aggregation;
         }
 
-
-        if (context.parent != null && context.parent.symbolType() == SymbolType.AGGREGATION) {
-            // beneath a aggregation. Just mark everything as to collect
-            int idx = 0;
-            for (Symbol symbol : function.arguments()) {
-                function.arguments().set(idx, context.allocateToCollect(symbol));
-                idx++;
-            }
-        } else {
-            int idx = 0;
-            for (Symbol symbol : function.arguments()) {
-                function.arguments().set(idx, process(symbol, context));
-                idx++;
-            }
+        int idx = 0;
+        for (Symbol symbol : function.arguments()) {
+            function.arguments().set(idx, process(symbol, context));
+            idx++;
         }
         return result;
+    }
+
+    @Override
+    public Symbol visitReference(Reference symbol, PlannerContext context) {
+        if (context.parent != null && context.parent.symbolType() == SymbolType.AGGREGATION) {
+            return context.allocateToCollect(symbol);
+        }
+        return symbol;
     }
 
     @Override
