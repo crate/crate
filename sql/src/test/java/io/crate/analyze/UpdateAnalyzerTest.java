@@ -114,20 +114,23 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
     protected UpdateAnalyzedStatement analyze(String statement) {
-        return ((UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement)).analyzedStatement());
+        return analyze(statement, new Object[0]);
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[] params) {
-        return ((UpdateAnalyzedStatement) analyzer.analyze(
-                SqlParser.createStatement(statement),
+        return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
                 params,
-                new Object[0][]).analyzedStatement());
+                new Object[0][],
+                ReferenceInfos.DEFAULT_SCHEMA_NAME
+        ).analyzedStatement();
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
                 new Object[0],
-                bulkArgs).analyzedStatement();
+                bulkArgs,
+                ReferenceInfos.DEFAULT_SCHEMA_NAME
+        ).analyzedStatement();
     }
 
     @Test

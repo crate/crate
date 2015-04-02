@@ -429,7 +429,50 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
+    public R visitDelete(Delete node, C context) {
+        process(node.getRelation(), context);
+        return null;
+    }
+
+    @Override
     public R visitCopyFromStatement(CopyFromStatement node, C context) {
+        process(node.table(), context);
+        return null;
+    }
+
+    @Override
+    public R visitCopyTo(CopyTo node, C context) {
+        process(node.table(), context);
+        return null;
+    }
+
+    @Override
+    public R visitAlterTable(AlterTable node, C context) {
+        process(node.table(), context);
+        return null;
+    }
+
+    @Override
+    public R visitInsertFromSubquery(InsertFromSubquery node, C context) {
+        process(node.table(), context);
+        process(node.subQuery(), context);
+        return null;
+    }
+
+    @Override
+    public R visitDropTable(DropTable node, C context) {
+        process(node.table(), context);
+        return super.visitDropTable(node, context);
+    }
+
+    @Override
+    public R visitCreateTable(CreateTable node, C context) {
+        process(node.name(), context);
+        return null;
+    }
+
+    @Override
+    public R visitRefreshStatement(RefreshStatement node, C context) {
         process(node.table(), context);
         return null;
     }

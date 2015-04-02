@@ -26,6 +26,7 @@ import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 /**
@@ -98,6 +99,15 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
      */
     public long creationTime() {
         return creationTime;
+    }
+
+    public void setDefaultSchema(String schemaName) {
+        putHeader("_s", schemaName);
+    }
+
+    @Nullable
+    public String getDefaultSchema() {
+        return getHeader("_s");
     }
 
     @Override

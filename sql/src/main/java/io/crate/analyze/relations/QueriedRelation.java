@@ -25,6 +25,5 @@ import io.crate.analyze.QuerySpec;
 
 public interface QueriedRelation extends AnalyzedRelation {
 
-    public QuerySpec querySpec();
-
+    QuerySpec querySpec();
 }
