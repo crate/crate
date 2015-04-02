@@ -32,6 +32,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -277,7 +278,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat((String)details.get("type"), is("array"));
         Map<String, Object> inner = (Map<String, Object>)details.get("inner");
-        assertThat((String)inner.get("type"), is("string"));
+        assertThat((String) inner.get("type"), is("string"));
     }
 
     @Test
@@ -639,5 +640,24 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(InvalidColumnNameException.class);
         expectedException.expectMessage("column name \"'test\" is invalid");
         analyze("create table my_table (\"'test\" string)");
+    }
+
+    @Test
+    public void testExplicitSchemaHasPrecedenceOverDefaultSchema() throws Exception {
+        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
+                SqlParser.createStatement("create table foo.bar (x string)"),
+                new Object[0], new Object[0][], "hoschi").analyzedStatement();
+
+        // schema from statement must take precedence
+        assertThat(statement.tableIdent.schema(), is("foo"));
+    }
+
+    @Test
+    public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() throws Exception {
+        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
+                SqlParser.createStatement("create table bar (x string)"),
+                new Object[0], new Object[0][], "hoschi").analyzedStatement();
+
+        assertThat(statement.tableIdent.schema(), is("hoschi"));
     }
 }

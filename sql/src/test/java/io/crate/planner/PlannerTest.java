@@ -251,7 +251,8 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     private Plan plan(String statement) {
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement)));
+        return planner.plan(analyzer.analyze(
+                SqlParser.createStatement(statement), new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME));
     }
 
     @Test
