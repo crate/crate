@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: COPY FROM is now skipping empty lines.
+
  - Fix: allow more than 1k elements in the IN query
 
  - allow to use ANY expression to compare primitive values against an array literal

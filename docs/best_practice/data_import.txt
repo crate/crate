@@ -205,7 +205,7 @@ JSON Import Format
 ..................
 
 Crate has native support for ``JSON`` formatted data, where each line is a
-``JSON`` string and represents a single record.
+``JSON`` string and represents a single record. Empty lines are skipped.
 The keys of the ``JSON`` objects are mapped to the columns when imported.
 
 For example: ``users.json``
