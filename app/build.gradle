@@ -8,7 +8,7 @@ buildscript {
     }
 }
 
-apply plugin:'distribution'
+apply plugin: 'distribution'
 apply plugin: 'java'
 apply plugin: 'eu.appsatori.fatjar'
 
@@ -97,7 +97,7 @@ distZip {
 ext {
     downloadDir = new File(buildDir, 'downloads')
     plugin_crateadmin_version = '0.11.4'
-    crash_version = '0.11.4'
+    crash_version = '0.11.5'
 }
 
 evaluationDependsOn(':es')
