@@ -40,9 +40,6 @@ public class ColumnExtractingLineExpression extends LineCollectorExpression<Obje
     }
 
     @Override
-    public void setNextLine(String line) {}
-
-    @Override
     public void startCollect(CollectorContext context) {
         this.context = context.lineContext();
     }
