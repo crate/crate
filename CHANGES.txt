@@ -2,8 +2,8 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2015/04/03 0.47.8
+=================
 
  - Updated crash to version 0.11.5 which contains the following changes:
 
