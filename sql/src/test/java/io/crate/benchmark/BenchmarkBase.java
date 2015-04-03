@@ -276,7 +276,7 @@ public class BenchmarkBase {
         byte[] bulkPayload = bytesFromPath(path, this.getClass());
         BulkResponse bulk = getClient(queryPlannerEnabled).prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
         for (BulkItemResponse item : bulk.getItems()) {
-            assert !item.isFailed() : String.format("unable to index data {}", item);
+            assert !item.isFailed() : String.format("unable to index data %s", item);
         }
     }
 }
