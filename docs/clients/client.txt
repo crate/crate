@@ -90,6 +90,25 @@ will print::
     "string"
 
 
+Default Schema
+--------------
+
+In case the schema name isn't set explicitly in the statement Crate will
+default to ``doc``. In order to overwrite that default it is possible to set
+the default schema name on the ``SQLRequest``::
+
+    SQLRequest request = new SQLRequest("select * from t");
+    request.setDefaultSchema('custom_schema');
+
+This will then return the results from ``custom_schema.t`` instead of
+``doc.t``.
+
+.. note::
+
+    This is also supported on the SQLBulkRequest class that is described
+    further below.
+
+
 Parameter Substitution
 ======================
 
