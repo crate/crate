@@ -31,7 +31,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -152,6 +154,44 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from quotes");
         assertEquals(3L, response.rowCount());
+    }
+
+    @Test
+    public void testCopyFromFileWithEmptyLine() throws Exception {
+        execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        File newFile = folder.newFile();
+        BufferedWriter writer = new BufferedWriter(new FileWriter(newFile));
+        writer.write("{id:1}\n");
+        writer.write("\n");
+        writer.write("{id:2}\n");
+        writer.flush();
+        writer.close();
+
+        execute("copy foo from ?", new Object[]{newFile.getPath()});
+        assertEquals(2L, response.rowCount());
+        refresh();
+
+        execute("select * from foo order by id");
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[1][0], is(2));
+    }
+
+    @Test
+    public void testCopyFromInvalidJson() throws Exception {
+        execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        File newFile = folder.newFile();
+        BufferedWriter writer = new BufferedWriter(new FileWriter(newFile));
+        writer.write("{id:1}\n");
+        writer.write("{|}");
+        writer.write("{id:2}\n");
+        writer.flush();
+        writer.close();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Failed to parse content to map");
+        execute("copy foo from ?", new Object[]{newFile.getPath()});
     }
 
     @Test

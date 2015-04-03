@@ -170,6 +170,9 @@ public class FileReadingCollector implements CrateCollector {
 
                 try {
                     while ((line = reader.readLine()) != null) {
+                        if (line.length() == 0) { // skip empty lines
+                            continue;
+                        }
                         collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
                         newRow = new Object[inputs.size()];
                         int i = 0;

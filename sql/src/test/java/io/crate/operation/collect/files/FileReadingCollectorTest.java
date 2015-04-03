@@ -53,7 +53,6 @@ import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,14 +62,17 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
 
     private static File tmpFile;
     private static File tmpFileGz;
+    private static File tmpFileEmptyLine;
     private FileCollectInputSymbolVisitor inputSymbolVisitor;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
         Path copy_from = Files.createTempDirectory("copy_from");
         Path copy_from_gz = Files.createTempDirectory("copy_from_gz");
+        Path copy_from_empty = Files.createTempDirectory("copy_from_empty");
         tmpFileGz = File.createTempFile("fileReadingCollector", ".json.gz", copy_from_gz.toFile());
         tmpFile = File.createTempFile("fileReadingCollector", ".json", copy_from.toFile());
+        tmpFileEmptyLine = File.createTempFile("emptyLine", ".json", copy_from_empty.toFile());
         try (BufferedWriter writer =
                      new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz))))) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
@@ -78,6 +80,11 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
         }
         try (FileWriter writer = new FileWriter(tmpFile)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
+            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
+        }
+        try (FileWriter writer = new FileWriter(tmpFileEmptyLine)) {
+            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
+            writer.write("\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
     }
@@ -96,6 +103,7 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
     public static void tearDownClass() throws Exception {
         tmpFile.delete();
         tmpFileGz.delete();
+        tmpFileEmptyLine.delete();
     }
 
     @Test
@@ -144,10 +152,16 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
     }
 
     private void assertCorrectResult(Object[][] rows) throws Throwable {
-        assertThat(((BytesRef)rows[0][0]).utf8ToString(), is(
+        assertThat(((BytesRef) rows[0][0]).utf8ToString(), is(
                 "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(((BytesRef)rows[1][0]).utf8ToString(), is(
+        assertThat(((BytesRef) rows[1][0]).utf8ToString(), is(
                 "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+    }
+
+    @Test
+    public void testCollectWithEmptyLine() throws Throwable {
+        CollectingProjector projector = getObjects(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
+        assertCorrectResult(projector.result().get());
     }
 
     private CollectingProjector getObjects(String fileUri) throws Throwable {
