@@ -38,10 +38,6 @@ public class SourceAsMapLineExpression extends LineCollectorExpression<Map<Strin
     }
 
     @Override
-    public void setNextLine(String line) {
-    }
-
-    @Override
     public void startCollect(CollectorContext context) {
         this.context = context.lineContext();
     }

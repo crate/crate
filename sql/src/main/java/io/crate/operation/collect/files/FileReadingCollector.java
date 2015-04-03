@@ -172,9 +172,6 @@ public class FileReadingCollector implements CrateCollector {
                     while ((line = reader.readLine()) != null) {
                         collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
                         newRow = new Object[inputs.size()];
-                        for (LineCollectorExpression expression : collectorExpressions) {
-                            expression.setNextLine(line);
-                        }
                         int i = 0;
                         for (Input<?> input : inputs) {
                             newRow[i++] = input.value();
