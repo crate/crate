@@ -174,9 +174,6 @@ public class FileReadingCollector implements CrateCollector {
                 try {
                     while ((line = reader.readLine()) != null) {
                         collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
-                        for (LineCollectorExpression expression : collectorExpressions) {
-                            expression.setNextLine(line);
-                        }
                         if (!downstream.setNextRow(row)) {
                             throw new CollectionAbortedException();
                         }

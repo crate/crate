@@ -37,10 +37,6 @@ public class SourceLineExpression extends LineCollectorExpression<BytesRef> {
     }
 
     @Override
-    public void setNextLine(String line) {
-    }
-
-    @Override
     public void startCollect(CollectorContext context) {
         this.context = context.lineContext();
     }
