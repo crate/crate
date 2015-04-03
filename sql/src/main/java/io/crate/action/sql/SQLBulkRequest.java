@@ -57,6 +57,11 @@ public class SQLBulkRequest extends SQLBaseRequest {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+
+        stmt = in.readString();
+        creationTime = in.readVLong();
+        includeTypesOnResponse = in.readBoolean();
+
         int bulkArgsLength = in.readVInt();
         if (bulkArgsLength == 0) {
             bulkArgs = EMPTY_BULK_ARGS;
@@ -75,6 +80,11 @@ public class SQLBulkRequest extends SQLBaseRequest {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+
+        out.writeString(stmt);
+        out.writeVLong(creationTime);
+        out.writeBoolean(includeTypesOnResponse);
+
         out.writeVInt(bulkArgs.length);
         for (int i = 0, bulkArgsLength = bulkArgs.length; i < bulkArgsLength; i++) {
             Object[] bulkArg = bulkArgs[i];

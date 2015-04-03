@@ -131,16 +131,12 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        stmt = in.readString();
-        creationTime = in.readVLong();
-        includeTypesOnResponse = in.readBoolean();
+        // don't serialize shared fields from BULK/SINGLE request because they have different serialization order
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(stmt);
-        out.writeVLong(creationTime);
-        out.writeBoolean(includeTypesOnResponse);
+        // don't serialize shared fields from BULK/SINGLE request because they have different serialization order
     }
 }

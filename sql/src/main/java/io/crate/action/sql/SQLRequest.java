@@ -21,6 +21,7 @@
 
 package io.crate.action.sql;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -69,14 +70,13 @@ public class SQLRequest extends SQLBaseRequest {
      *      args = new Object[] { "myYvalue" }
      */
     public void args(Object[] args) {
-        this.args = Objects.firstNonNull(args, EMPTY_ARGS);
+        this.args = MoreObjects.firstNonNull(args, EMPTY_ARGS);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        // doesn't call super to stay compatible with older crate version
+        super.readFrom(in);
 
-        in.readBoolean(); // read headers boolean / TransportRequest base class
         stmt = in.readString();
         int length = in.readVInt();
         args = new Object[length];
@@ -89,9 +89,7 @@ public class SQLRequest extends SQLBaseRequest {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        // doesn't call super to stay compatible with older crate version
-
-        out.writeBoolean(false); // headers == null from TransportRequest base class
+        super.writeTo(out);
 
         out.writeString(stmt);
         out.writeVInt(args.length);
@@ -104,7 +102,7 @@ public class SQLRequest extends SQLBaseRequest {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("stmt", stmt)
                 .add("args", Arrays.asList(args))
                 .add("creationTime", creationTime).toString();
