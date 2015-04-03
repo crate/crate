@@ -50,6 +50,7 @@ import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
+@SuppressWarnings("unchecked")
 public class EqualityExtractorTest extends BaseAnalyzerTest {
 
     @Override
@@ -145,7 +146,6 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         assertNull(matches);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testExtract2ColPKWithAndAndNestedOr() throws Exception {
         Symbol query = And(
@@ -161,7 +161,6 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         );
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testExtract2ColPKWithOrFullDistinctKeys() throws Exception {
         Symbol query = Or(
