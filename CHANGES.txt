@@ -5,6 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for setting the default schema name in the SQLRequest class
+
+ - Fix: Filtering by `_score` wasn't recognized on group-by queries.
+
+2015/04/03 0.47.8
+=================
+
  - Updated crash to version 0.11.5 which contains the following changes:
 
     - Fixed an issue with pasting multi-line statements from clipboard.
@@ -18,7 +25,7 @@ Unreleased
 
  - allow to use ANY expression to compare primitive values against an array literal
 
- - Added support for setting the default schema name in the SQLRequest class
+ - Fix an issue while analyzing nested aggregations.
 
  - Fix: ip type conversion did not allow NULL values
 
@@ -31,12 +38,17 @@ Unreleased
  - produce a crate-client with all dependencies included under the 'io.crate'
    package namespace in order to avoid conflicts
 
- - Fix: Filtering by `_score` wasn't recognized on group-by queries.
+ - Fix: select queries querying for the primary key on custom schemas did now
+   return the correct results
+
+ - Fixed an issue that caused ``where somefield in (null)`` to match all rows
 
  - Fix: Do not shutdown the BulkShardProcessor while there are pending requests
    anymore
 
  - Fix: The ``format`` scalar function now always uses Locale.ENGLISH
+
+ - Fixed misleading error message for trying to group by invalid data type.
 
 2015/03/17 0.48.0
 =================
