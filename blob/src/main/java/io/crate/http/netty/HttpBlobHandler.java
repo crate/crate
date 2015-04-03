@@ -212,7 +212,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             throws Exception {
         Throwable ex = e.getCause();
         if (ex instanceof ClosedChannelException) {
-            logger.info("channel closed: {}", ex.toString());
+            logger.trace("channel closed: {}", ex.toString());
             return;
         } else if (ex instanceof IOException) {
             logger.warn(ex.getMessage());
