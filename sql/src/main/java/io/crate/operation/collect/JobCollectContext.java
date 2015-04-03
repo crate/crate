@@ -197,11 +197,13 @@ public class JobCollectContext implements Releasable {
     @Override
     public void close() {
         if (closed.compareAndSet(false, true)) { // prevent double release
-            Iterator<Integer> it = activeCollectors.keySet().iterator();
-            while (it.hasNext()) {
-                Integer jobSearchContextId = it.next();
-                closeContext(jobSearchContextId, false);
-                it.remove();
+            synchronized (lock) {
+                Iterator<Integer> it = activeCollectors.keySet().iterator();
+                while (it.hasNext()) {
+                    Integer jobSearchContextId = it.next();
+                    closeContext(jobSearchContextId, false);
+                    it.remove();
+                }
             }
         }
     }
