@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
@@ -173,9 +174,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     @Test
     public void testOrderedWithLimitHigherThanPageSize() throws Exception{
         collectingProjector.rows.clear();
-        LuceneDocCollector docCollector = createDocCollector(orderBy, LuceneDocCollector.PAGE_SIZE + 5000, orderBy.orderBySymbols());
+        LuceneDocCollector docCollector = createDocCollector(orderBy, Constants.PAGE_SIZE + 5000, orderBy.orderBySymbols());
         docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
-        assertThat(collectingProjector.rows.size(), is(LuceneDocCollector.PAGE_SIZE + 5000));
+        assertThat(collectingProjector.rows.size(), is(Constants.PAGE_SIZE + 5000));
         assertThat(((BytesRef)collectingProjector.rows.get(0)[0]).utf8ToString(), is("Austria") );
         assertThat(((BytesRef)collectingProjector.rows.get(1)[0]).utf8ToString(), is("Germany") );
         assertThat(((BytesRef)collectingProjector.rows.get(2)[0]).utf8ToString(), is("USA") );

@@ -27,6 +27,7 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
@@ -296,7 +297,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                                     .addField("continent")
                                     .addSort(fieldSort("continent").missing("_last"))
                                     .setScroll("1m")
-                                    .setSize(LuceneDocCollector.PAGE_SIZE)
+                                    .setSize(Constants.PAGE_SIZE)
                                     .execute().actionGet();
         totalHits += response.getHits().hits().length;
         while ( totalHits < NUMBER_OF_DOCUMENTS) {

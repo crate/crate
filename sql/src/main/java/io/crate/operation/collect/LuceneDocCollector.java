@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.MoreObjects;
+import io.crate.Constants;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.CrateSearchService;
 import io.crate.analyze.OrderBy;
@@ -48,8 +49,6 @@ import java.util.List;
  * collect documents from ES shard, a lucene index
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
-
-    public final static int PAGE_SIZE = 10000;
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -209,7 +208,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         boolean failed = false;
         try {
             if( orderBy != null) {
-                Integer batchSize = MoreObjects.firstNonNull(limit, PAGE_SIZE);
+                Integer batchSize = MoreObjects.firstNonNull(limit, Constants.PAGE_SIZE);
                 Sort sort = CrateSearchService.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
                 TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
                 ScoreDoc lastCollected = collectTopFields(topFieldDocs);
