@@ -60,6 +60,7 @@ import org.mockito.stubbing.Answer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateUnitTest {
 
     private Injector injector;
@@ -144,7 +145,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testShardInfoLookup() throws Exception {
         ReferenceInfo info = SysShardsTableInfo.INFOS.get(new ColumnIdent("id"));
-        assertEquals(info, referenceInfos.getReferenceInfo(info.ident()));
+        assertEquals(info, referenceInfos.getTableInfo(SysShardsTableInfo.IDENT).getReferenceInfo(info.ident().columnIdent()));
     }
 
     @Test

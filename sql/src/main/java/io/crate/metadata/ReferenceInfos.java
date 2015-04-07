@@ -111,15 +111,6 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
     }
 
     @Nullable
-    public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        TableInfo tableInfo = getTableInfo(ident.tableIdent());
-        if (tableInfo != null) {
-            return tableInfo.getReferenceInfo(ident.columnIdent());
-        }
-        return null;
-    }
-
-    @Nullable
     public SchemaInfo getSchemaInfo(@Nullable String schemaName) {
         if (schemaName == null) {
             return defaultSchemaInfo;
