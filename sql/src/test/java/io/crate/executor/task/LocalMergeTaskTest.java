@@ -38,7 +38,7 @@ import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.merge.NonSortingBucketMerger;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -82,7 +82,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
 
     private ImplementationSymbolVisitor symbolVisitor;
     private GroupProjection groupProjection;
-    private MergeOperation mergeOperation;
+    private PageDownstreamFactory pageDownstreamFactory;
     private ThreadPool threadPool;
 
     @Before
@@ -110,8 +110,8 @@ public class LocalMergeTaskTest extends CrateUnitTest {
         groupProjection.values(Arrays.asList(
                 new Aggregation(minAggFunction.info(), Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
-        mergeOperation = mock(MergeOperation.class);
-        when(mergeOperation.getAndInitPageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class), any(Optional.class))).thenAnswer(new Answer<PageDownstream>() {
+        pageDownstreamFactory = mock(PageDownstreamFactory.class);
+        when(pageDownstreamFactory.createMergeNodePageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class), any(Optional.class))).thenAnswer(new Answer<PageDownstream>() {
             @Override
             public PageDownstream answer(InvocationOnMock invocation) throws Throwable {
                 NonSortingBucketMerger nonSortingBucketMerger = new NonSortingBucketMerger();
@@ -168,7 +168,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
 
             LocalMergeTask localMergeTask = new LocalMergeTask(
                     UUID.randomUUID(),
-                    mergeOperation,
+                    pageDownstreamFactory,
                     mergeNode,
                     mock(StatsTables.class),
                     new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA), threadPool);

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.merge;
+package io.crate.operation;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
@@ -31,8 +31,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
-import io.crate.operation.PageConsumeListener;
-import io.crate.operation.PageDownstream;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.CollectingProjector;
@@ -69,7 +67,7 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 
-public class MergeOperationTest extends CrateUnitTest {
+public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     private static final RamAccountingContext ramAccountingContext =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
@@ -123,7 +121,7 @@ public class MergeOperationTest extends CrateUnitTest {
         }
         Bucket rows = new ArrayBucket(objs);
         BucketPage page = new BucketPage(Futures.immediateFuture(rows));
-        final MergeOperation mergeOperation = new MergeOperation(
+        final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
@@ -131,7 +129,7 @@ public class MergeOperationTest extends CrateUnitTest {
                 functions
         );
         CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
+        final PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
         final SettableFuture<?> future = SettableFuture.create();
         pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
@@ -160,7 +158,7 @@ public class MergeOperationTest extends CrateUnitTest {
         mergeNode.projections(Arrays.<Projection>asList(
                 groupProjection
         ));
-        final MergeOperation mergeOperation = new MergeOperation(
+        final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
@@ -168,7 +166,7 @@ public class MergeOperationTest extends CrateUnitTest {
                 functions
         );
         CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
+        final PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
 
         Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
         BucketPage page1 = new BucketPage(Futures.immediateFuture(rows));

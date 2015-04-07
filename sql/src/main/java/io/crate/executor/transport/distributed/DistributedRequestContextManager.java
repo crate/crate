@@ -32,7 +32,7 @@ import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
@@ -69,16 +69,16 @@ public class DistributedRequestContextManager {
     private final Map<UUID, List<DistributedResultRequest>> unprocessedRequests = new HashMap<>();
     private final Set<UUID> unprocessedFailureIds = new HashSet<>();
     private final Object lock = new Object();
-    private final MergeOperation mergeOperation;
+    private final PageDownstreamFactory pageDownstreamFactory;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
 
-    public DistributedRequestContextManager(MergeOperation mergeOperation,
+    public DistributedRequestContextManager(PageDownstreamFactory pageDownstreamFactory,
                                             Functions functions,
                                             StatsTables statsTables,
                                             CircuitBreaker circuitBreaker) {
-        this.mergeOperation = mergeOperation;
+        this.pageDownstreamFactory = pageDownstreamFactory;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
         this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
@@ -101,7 +101,7 @@ public class DistributedRequestContextManager {
         // wiring projectorChain-result-future and responselistener
         wireActionListener(streamerContext.outputStreamers(), listener, resultProvider.result());
 
-        PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(mergeNode, resultProvider, ramAccountingContext, Optional.<Executor>absent());
+        PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(mergeNode, resultProvider, ramAccountingContext, Optional.<Executor>absent());
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
                 pageDownstream,
                 mergeNode.numUpstreams(),

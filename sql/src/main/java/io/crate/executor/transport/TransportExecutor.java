@@ -37,7 +37,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
@@ -78,7 +78,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
-    private final MergeOperation mergeOperation;
+    private final PageDownstreamFactory pageDownstreamFactory;
 
     @Inject
     public TransportExecutor(Settings settings,
@@ -87,7 +87,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
-                             MergeOperation mergeOperation,
+                             PageDownstreamFactory pageDownstreamFactory,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
@@ -95,7 +95,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
-        this.mergeOperation = mergeOperation;
+        this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
@@ -263,7 +263,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (node.executionNodes().isEmpty()) {
                 return singleTask(new LocalMergeTask(
                         jobId,
-                        mergeOperation,
+                        pageDownstreamFactory,
                         node,
                         statsTables,
                         circuitBreaker, threadPool));

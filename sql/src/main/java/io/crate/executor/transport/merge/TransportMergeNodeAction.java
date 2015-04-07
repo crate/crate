@@ -31,7 +31,7 @@ import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
@@ -63,7 +63,7 @@ public class TransportMergeNodeAction {
                                     TransportService transportService,
                                     final Functions functions,
                                     final ThreadPool threadPool,
-                                    final MergeOperation mergeOperation,
+                                    final PageDownstreamFactory pageDownstreamFactory,
                                     StatsTables statsTables,
                                     CrateCircuitBreakerService breakerService) {
         this.transportService = transportService;
@@ -72,7 +72,7 @@ public class TransportMergeNodeAction {
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
 
         this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
-        this.contextManager = new DistributedRequestContextManager(mergeOperation, functions, statsTables, circuitBreaker);
+        this.contextManager = new DistributedRequestContextManager(pageDownstreamFactory, functions, statsTables, circuitBreaker);
 
         transportService.registerHandler(startMergeAction, new StartMergeHandler());
         transportService.registerHandler(failAction, new FailureHandler(contextManager));

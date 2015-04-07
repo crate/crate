@@ -19,15 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.merge;
+package io.crate.operation;
 
 import com.google.common.base.Optional;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.PageDownstream;
+import io.crate.operation.merge.BucketMerger;
+import io.crate.operation.merge.NonSortingBucketMerger;
+import io.crate.operation.merge.SortingBucketMerger;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ResultProvider;
@@ -40,20 +41,17 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.concurrent.Executor;
 
-/**
- * merge rows - that's it
- */
 @Singleton
-public class MergeOperation {
+public class PageDownstreamFactory {
 
     private final ProjectionToProjectorVisitor projectionToProjectorVisitor;
 
     @Inject
-    public MergeOperation(ClusterService clusterService,
-                          Settings settings,
-                          TransportActionProvider transportActionProvider,
-                          ReferenceResolver referenceResolver,
-                          Functions functions) {
+    public PageDownstreamFactory(ClusterService clusterService,
+                                 Settings settings,
+                                 TransportActionProvider transportActionProvider,
+                                 ReferenceResolver referenceResolver,
+                                 Functions functions) {
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver,
                 functions,
@@ -67,10 +65,10 @@ public class MergeOperation {
         );
     }
 
-    public PageDownstream getAndInitPageDownstream(MergeNode mergeNode,
-                                                   ResultProvider resultProvider,
-                                                   RamAccountingContext ramAccountingContext,
-                                                   Optional<Executor> executorOptional) {
+    public PageDownstream createMergeNodePageDownstream(MergeNode mergeNode,
+                                                        ResultProvider resultProvider,
+                                                        RamAccountingContext ramAccountingContext,
+                                                        Optional<Executor> executorOptional) {
         BucketMerger bucketMerger;
         if (mergeNode.sortedInputOutput()) {
             bucketMerger = new SortingBucketMerger(

@@ -21,11 +21,12 @@
 
 package io.crate.operation.merge;
 
+import io.crate.operation.PageDownstreamFactory;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class MergeOperationModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(MergeOperation.class).asEagerSingleton();
+        bind(PageDownstreamFactory.class).asEagerSingleton();
     }
 }

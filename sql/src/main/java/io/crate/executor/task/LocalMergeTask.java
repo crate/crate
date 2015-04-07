@@ -40,7 +40,7 @@ import io.crate.executor.TaskResult;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -61,7 +61,7 @@ public class LocalMergeTask extends JobTask {
 
     private static final ESLogger LOGGER = Loggers.getLogger(LocalMergeTask.class);
 
-    private final MergeOperation mergeOperation;
+    private final PageDownstreamFactory pageDownstreamFactory;
     private final MergeNode mergeNode;
     private final StatsTables statsTables;
     private final SettableFuture<TaskResult> result;
@@ -72,13 +72,13 @@ public class LocalMergeTask extends JobTask {
     private List<ListenableFuture<TaskResult>> upstreamResults;
 
     public LocalMergeTask(UUID jobId,
-                          MergeOperation mergeOperation,
+                          PageDownstreamFactory pageDownstreamFactory,
                           MergeNode mergeNode,
                           StatsTables statsTables,
                           CircuitBreaker circuitBreaker,
                           ThreadPool threadPool) {
         super(jobId);
-        this.mergeOperation = mergeOperation;
+        this.pageDownstreamFactory = pageDownstreamFactory;
         this.mergeNode = mergeNode;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
@@ -105,7 +105,7 @@ public class LocalMergeTask extends JobTask {
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = mergeOperation.getAndInitPageDownstream(
+        final PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
                 collectingProjector,
                 ramAccountingContext,

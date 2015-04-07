@@ -35,7 +35,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.merge.NonSortingBucketMerger;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.TopN;
@@ -76,7 +76,7 @@ import static org.mockito.Mockito.when;
 public class DistributedResultRequestTest extends CrateUnitTest {
 
     private Functions functions;
-    private MergeOperation mergeOperation;
+    private PageDownstreamFactory pageDownstreamFactory;
     private MergeNode dummyMergeNode;
     private UUID contextId;
     private Object[][] rows;
@@ -108,8 +108,8 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
         dummyMergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
 
-        mergeOperation = mock(MergeOperation.class);
-        when(mergeOperation.getAndInitPageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class), any(Optional.class))).thenAnswer(new Answer<PageDownstream>() {
+        pageDownstreamFactory = mock(PageDownstreamFactory.class);
+        when(pageDownstreamFactory.createMergeNodePageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class), any(Optional.class))).thenAnswer(new Answer<PageDownstream>() {
             @Override
             public PageDownstream answer(InvocationOnMock invocation) throws Throwable {
                 NonSortingBucketMerger nonSortingBucketMerger = new NonSortingBucketMerger();
@@ -143,7 +143,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         // receiver
         DistributedRequestContextManager contextManager =
                 new DistributedRequestContextManager(
-                        mergeOperation,
+                        pageDownstreamFactory,
                         functions,
                         new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)),
                         new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA)
@@ -195,7 +195,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         Bucket bucket = new ArrayBucket(rows);
         DistributedRequestContextManager contextManager =
-                new DistributedRequestContextManager(mergeOperation, functions,
+                new DistributedRequestContextManager(pageDownstreamFactory, functions,
                         new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)),
                         new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
