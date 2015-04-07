@@ -21,11 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
@@ -39,21 +36,8 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         this.referenceInfos = referenceInfos;
     }
 
-    @Override
     public void table(TableIdent tableIdent) {
-        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        if (schemaInfo == null) {
-            throw new SchemaUnknownException(tableIdent.schema());
-        } else if (schemaInfo.systemSchema()) {
-            throw new UnsupportedOperationException(String.format(
-                    "tables of schema \"%s\" are read only.", tableIdent.schema()));
-        }
-        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
-        if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.fqn());
-        }
-        this.tableInfo = tableInfo;
-        this.tableIdent = tableIdent;
+        tableInfo = referenceInfos.getWritableTable(tableIdent);
     }
 
     public TableInfo table() {

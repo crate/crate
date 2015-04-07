@@ -25,7 +25,6 @@ import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.executor.TaskResult;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
@@ -90,14 +89,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         if (executor != null) {
             executor = null;
         }
-    }
-
-
-    @Test
-    public void testRefreshSystemTable() throws Exception {
-        SQLResponse response = executor.exec("refresh table sys.shards");
-        assertFalse(response.hasRowCount());
-        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
     }
 
     @Test

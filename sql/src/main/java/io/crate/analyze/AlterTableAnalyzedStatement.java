@@ -23,11 +23,8 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import io.crate.metadata.PartitionName;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
@@ -42,22 +39,8 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         this.referenceInfos = referenceInfos;
     }
 
-    @Override
     public void table(TableIdent tableIdent) {
-        this.tableIdent = tableIdent;
-
-        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        if (schemaInfo == null) {
-            throw new SchemaUnknownException(tableIdent.schema());
-        }
-        if (schemaInfo.systemSchema()) {
-            throw new IllegalArgumentException("Tables inside a system schema cannot be altered");
-        }
-
-        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
-        if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.fqn());
-        }
+        tableInfo = referenceInfos.getWritableTable(tableIdent);
     }
 
     public TableInfo table() {

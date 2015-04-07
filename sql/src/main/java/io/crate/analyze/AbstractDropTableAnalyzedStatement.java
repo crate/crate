@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
@@ -28,8 +30,9 @@ import io.crate.metadata.table.TableInfo;
 public abstract class AbstractDropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     protected final ReferenceInfos referenceInfos;
+    protected final boolean dropIfExists;
+
     protected TableInfo tableInfo;
-    protected boolean dropIfExists;
     protected boolean noop;
 
     public AbstractDropTableAnalyzedStatement(ReferenceInfos referenceInfos, boolean dropIfExists) {
@@ -38,18 +41,27 @@ public abstract class AbstractDropTableAnalyzedStatement extends AbstractDDLAnal
     }
 
     public String index() {
-        return tableIdent.esName();
+        return tableIdent().esName();
     }
-
-    @Override
-    public abstract void table(TableIdent tableIdent);
 
     public TableInfo table() {
         return tableInfo;
     }
 
     public TableIdent tableIdent(){
-        return tableIdent;
+        return tableInfo.ident();
+    }
+
+    public void table(TableIdent tableIdent) {
+        try {
+            tableInfo = referenceInfos.getWritableTable(tableIdent);
+        } catch (SchemaUnknownException | TableUnknownException e) {
+            if (dropIfExists) {
+                noop = true;
+            } else {
+                throw e;
+            }
+        }
     }
 
     public boolean noop(){

@@ -22,10 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.exceptions.InvalidSchemaNameException;
-import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -427,8 +424,10 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("alter table users set (foobar='2')");
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testAlterSystemTable() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The table sys.shards is read-only. Write, Drop or Alter operations are not supported");
         analyze("alter table sys.shards reset (number_of_replicas)");
     }
 
@@ -643,21 +642,27 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableShouldRaiseErrorIfItExists() throws Exception {
+        expectedException.expect(TableAlreadyExistsException.class);
+        analyze("create table users (\"'test\" string)");
+    }
+
+    @Test
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() throws Exception {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
                 SqlParser.createStatement("create table foo.bar (x string)"),
-                new Object[0], new Object[0][], "hoschi").analyzedStatement();
+                new ParameterContext(new Object[0], new Object[0][], "hoschi")).analyzedStatement();
 
         // schema from statement must take precedence
-        assertThat(statement.tableIdent.schema(), is("foo"));
+        assertThat(statement.tableIdent().schema(), is("foo"));
     }
 
     @Test
     public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() throws Exception {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
                 SqlParser.createStatement("create table bar (x string)"),
-                new Object[0], new Object[0][], "hoschi").analyzedStatement();
+                new ParameterContext(new Object[0], new Object[0][], "hoschi")).analyzedStatement();
 
-        assertThat(statement.tableIdent.schema(), is("hoschi"));
+        assertThat(statement.tableIdent().schema(), is("hoschi"));
     }
 }

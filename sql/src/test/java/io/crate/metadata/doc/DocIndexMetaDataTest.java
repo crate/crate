@@ -21,6 +21,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.*;
@@ -34,6 +35,7 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -41,6 +43,7 @@ import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -806,8 +809,11 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         ClusterState state = mock(ClusterState.class);
         MetaData metaData = mock(MetaData.class);
         when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+        when(metaData.concreteIndices(Mockito.any(IndicesOptions.class), Mockito.any(String[].class))).thenReturn(new String[0]);
         when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+        when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(state.metaData()).thenReturn(metaData);
+        when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
         when(clusterService.state()).thenReturn(state);
         TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
@@ -819,7 +825,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class))
         );
 
-        Analysis analysis = new Analysis(new ParameterContext(new Object[0], new Object[0][]));
+        Analysis analysis = new Analysis(new ParameterContext(new Object[0], new Object[0][], null));
         CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(statement, analysis);
 
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()

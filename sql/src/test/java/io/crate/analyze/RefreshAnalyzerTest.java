@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -32,19 +32,23 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class RefreshAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+
     private final static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
 
     static class TestMetaDataModule extends MetaDataModule {
@@ -55,6 +59,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             BlobTableInfo blobTableInfo = mock(BlobTableInfo.class);
             when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
+            when(blobTableInfo.schemaInfo()).thenReturn(schemaInfo);
             when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
 
@@ -80,9 +85,8 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshSystemTable() throws Exception {
-        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table sys.shards");
-        assertTrue(analysis.table().schemaInfo().systemSchema());
-        assertThat(analysis.table().ident().name(), is("shards"));
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("refresh table sys.shards");
     }
 
     @Test
@@ -115,13 +119,15 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
         analyze("refresh table parted partition (invalid_column='hddsGNJHSGFEFZÜ')");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testRefreshNonPartitioned() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
         analyze("refresh table users partition (foo='n')");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testRefreshSysPartitioned() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
         analyze("refresh table sys.shards partition (id='n')");
     }
 

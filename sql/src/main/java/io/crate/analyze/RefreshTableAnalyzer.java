@@ -50,7 +50,7 @@ public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAn
     @Override
     public RefreshTableAnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis analysis) {
         RefreshTableAnalyzedStatement statement = new RefreshTableAnalyzedStatement(referenceInfos);
-        statement.table(TableIdent.of(node.table()));
+        statement.table(TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         if (!node.table().partitionProperties().isEmpty()) {
             setParitionIdent(node.table().partitionProperties(), statement, analysis.parameterContext());
         }

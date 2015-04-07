@@ -23,42 +23,21 @@ package io.crate.analyze;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.List;
-
 public class Analyzer {
 
     private final AnalyzerDispatcher dispatcher;
-    private final static SchemaApplier SCHEMA_APPLIER = new SchemaApplier();
 
     @Inject
     public Analyzer(AnalyzerDispatcher dispatcher) {
         this.dispatcher = dispatcher;
     }
 
-    public Analysis analyze(Statement statement, Object[] parameters, Object[][] bulkParams, @Nullable String defaultSchema) {
-        if (defaultSchema != null) {
-            SCHEMA_APPLIER.process(statement, defaultSchema);
-        }
-        Analysis analysis = new Analysis(new ParameterContext(parameters, bulkParams));
+    public Analysis analyze(Statement statement, ParameterContext parameterContext) {
+        Analysis analysis = new Analysis(parameterContext);
         AnalyzedStatement analyzedStatement = dispatcher.process(statement, analysis);
         assert analyzedStatement != null : "analyzed statement must not be null";
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
-    }
-
-    private static class SchemaApplier extends DefaultTraversalVisitor<Void, String> {
-
-        @Override
-        protected Void visitTable(Table node, String schemaName) {
-            QualifiedName name = node.getName();
-            List<String> parts = name.getParts();
-            if (parts.size() == 1) {
-                node.setName(new QualifiedName(Arrays.asList(schemaName, parts.get(0))));
-            }
-            return null;
-        }
     }
 
     public static class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {

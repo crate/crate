@@ -5,13 +5,16 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for setting the default schema name in the SQLRequest class
+
+ - Attempting to refresh a system table will now result in an error as system
+   tables are read-only and don't need to be refreshed.
+
  - Ordering by `_score` must be defined explictly now even when using a
    `match` predicate.
    Note: This is a backward incompatibility change.
 
  - Fix: documented minimum required java version
-
- - Added support for setting the default schema name in the SQLRequest class
 
  - Fix: Filtering by `_score` wasn't recognized on group-by queries.
 

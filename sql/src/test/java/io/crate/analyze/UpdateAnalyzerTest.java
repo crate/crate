@@ -50,10 +50,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
-import static junit.framework.Assert.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -119,18 +116,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[] params) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
-                params,
-                new Object[0][],
-                ReferenceInfos.DEFAULT_SCHEMA_NAME
-        ).analyzedStatement();
+                new ParameterContext(params, new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
-                new Object[0],
-                bulkArgs,
-                ReferenceInfos.DEFAULT_SCHEMA_NAME
-        ).analyzedStatement();
+                new ParameterContext(new Object[0], bulkArgs, ReferenceInfos.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     @Test

@@ -21,11 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
@@ -37,18 +35,9 @@ public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         this.referenceInfos = referenceInfos;
     }
 
-    @Override
     public void table(TableIdent tableIdent) {
-        assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
-        this.tableIdent = tableIdent;
-
-        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        assert schemaInfo != null; // schemaInfo for blob must exist.
-
-        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
-        if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.fqn());
-        }
+        assert BlobSchemaInfo.NAME.equals(tableIdent.schema());
+        tableInfo = referenceInfos.getTableInfo(tableIdent);
     }
 
     public TableInfo table() {

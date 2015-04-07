@@ -198,10 +198,6 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .clusteredBy("name")
             .build();
 
-    static final TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "myblobs");
-    static final TableInfo TEST_BLOB_TABLE_TABLE_INFO = TestingTableInfo.builder(TEST_BLOB_TABLE_IDENT, RowGranularity.DOC, shardRouting)
-            .build();
-
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.<DataType>asList(DataTypes.LONG)),
             DataTypes.LONG);
@@ -312,12 +308,12 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
     protected AnalyzedStatement analyze(String statement, Object[] params) {
         return analyzer.analyze(SqlParser.createStatement(statement),
-                params, new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME).analyzedStatement();
+                new ParameterContext(params, new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     protected AnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return analyzer.analyze(SqlParser.createStatement(statement),
-                new Object[0], bulkArgs, ReferenceInfos.DEFAULT_SCHEMA_NAME).analyzedStatement();
+                new ParameterContext(new Object[0], bulkArgs, ReferenceInfos.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     protected List<Module> getModules() {

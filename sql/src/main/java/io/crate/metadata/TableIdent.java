@@ -24,6 +24,9 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.ImmutableSet;
+import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.exceptions.InvalidTableNameException;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -32,31 +35,42 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 public class TableIdent implements Comparable<TableIdent>, Streamable {
+
+    private static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
 
     @Nullable
     private String schema;
     private String name;
 
-    public static TableIdent of(Table tableNode) {
+
+    public static TableIdent of(Table tableNode, @Nullable String fallbackSchema) {
         List<String> parts = tableNode.getName().getParts();
         Preconditions.checkArgument(parts.size() < 3,
                 "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
         if (parts.size() == 2) {
             return new TableIdent(parts.get(0), parts.get(1));
         }
-        return new TableIdent(null, parts.get(0));
+        return new TableIdent(fallbackSchema, parts.get(0));
     }
 
-    public TableIdent() {
-
+    public static TableIdent fromStream(StreamInput in) throws IOException {
+        TableIdent tableIdent = new TableIdent();
+        tableIdent.readFrom(in);
+        return tableIdent;
     }
 
     public TableIdent(@Nullable String schema, String name) {
-        Preconditions.checkNotNull(name, "table name is null");
+        assert name != null : "table name must not be null";
+
         this.schema = schema;
         this.name = name;
+    }
+
+    private TableIdent() {
+
     }
 
     @Nullable
@@ -77,6 +91,24 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
 
     public String esName() {
         return fqn();
+    }
+
+    public void validate() throws InvalidSchemaNameException, InvalidTableNameException {
+        if (schema != null && !isValidTableOrSchemaName(schema)) {
+            throw new InvalidSchemaNameException(schema);
+        }
+        if (!isValidTableOrSchemaName(name)) {
+            throw new InvalidTableNameException(name);
+        }
+    }
+
+    private static boolean isValidTableOrSchemaName(String name) {
+        for (String illegalCharacter: INVALID_TABLE_NAME_CHARACTERS) {
+            if (name.contains(illegalCharacter) || name.length() == 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -101,6 +133,9 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
 
     @Override
     public String toString() {
+        if (schema == null) {
+            return name;
+        }
         return String.format("%s.%s", schema, name);
     }
 

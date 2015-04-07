@@ -23,21 +23,30 @@ package io.crate.analyze;
 
 import io.crate.Constants;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 @Singleton
 public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalyzedStatement> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
+    private final ReferenceInfos referenceInfos;
 
+    @Inject
+    public CreateBlobTableStatementAnalyzer(ReferenceInfos referenceInfos) {
+        this.referenceInfos = referenceInfos;
+    }
 
     @Override
     public CreateBlobTableAnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis analysis) {
         CreateBlobTableAnalyzedStatement statement = new CreateBlobTableAnalyzedStatement();
-        statement.table(tableToIdent(node.name()));
+        TableIdent tableIdent = tableToIdent(node.name());
+        statement.table(tableIdent, referenceInfos);
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();
@@ -64,5 +73,4 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
 
         return statement;
     }
-
 }

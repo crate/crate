@@ -90,9 +90,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     @Override
     public AbstractInsertAnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis analysis) {
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node.table()));
+        TableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
+                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         TableRelation tableRelation = new TableRelation(tableInfo);
-        validateTable(tableInfo);
 
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         ExpressionAnalyzer expressionAnalyzer =

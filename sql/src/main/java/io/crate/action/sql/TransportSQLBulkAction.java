@@ -23,6 +23,7 @@ package io.crate.action.sql;
 
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.ParameterContext;
 import io.crate.executor.Executor;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
@@ -64,7 +65,8 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
 
     @Override
     public Analysis getAnalysis(Statement statement, SQLBulkRequest request) {
-        return analyzer.analyze(statement, SQLRequest.EMPTY_ARGS, request.bulkArgs(), request.getDefaultSchema());
+        return analyzer.analyze(statement, new ParameterContext(
+                SQLRequest.EMPTY_ARGS, request.bulkArgs(), request.getDefaultSchema()));
     }
 
     @Override

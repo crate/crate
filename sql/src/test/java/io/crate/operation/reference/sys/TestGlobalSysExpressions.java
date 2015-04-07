@@ -115,7 +115,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
     @Test
     public void testInfoLookup() throws Exception {
         ReferenceIdent ident = LOAD_INFO.ident();
-        TableInfo sysNodesTableInfo = referenceInfos.getTableInfoUnsafe(SysNodesTableInfo.IDENT);
+        TableInfo sysNodesTableInfo = referenceInfos.getTableInfo(SysNodesTableInfo.IDENT);
         assertEquals(LOAD_INFO, sysNodesTableInfo.getReferenceInfo(ident.columnIdent()));
 
         ident = LOAD1_INFO.ident();

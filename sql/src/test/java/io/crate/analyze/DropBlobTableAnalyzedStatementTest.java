@@ -26,16 +26,11 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.metadata.blob.BlobSchemaInfo.NAME;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.any;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,56 +42,30 @@ public class DropBlobTableAnalyzedStatementTest extends CrateUnitTest {
 
     private DropBlobTableAnalyzedStatement dropBlobTableAnalyzedStatement;
 
-    private SchemaInfo schemaInfo;
 
     @Before
     public void prepare() {
         referenceInfos = mock(ReferenceInfos.class);
-
-        schemaInfo = mock(BlobSchemaInfo.class);
-        when(referenceInfos.getSchemaInfo(any(String.class))).thenReturn(schemaInfo);
     }
 
     @Test
-    public void deletingNoExistingTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
-        TableIdent tableIdent = new TableIdent(NAME, IRRELEVANT);
+    public void testDeletingNoExistingTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
+        TableIdent tableIdent = new TableIdent(BlobSchemaInfo.NAME, IRRELEVANT);
+        when(referenceInfos.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
         dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(referenceInfos, true);
-
         dropBlobTableAnalyzedStatement.table(tableIdent);
-
         assertThat(dropBlobTableAnalyzedStatement.noop(), is(true));
     }
 
     @Test
-    public void deletingAliasTableRaisesException() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Table alias not allowed in DROP BLOB TABLE statement.");
-
-        TableInfo tableInfo = mock(BlobTableInfo.class);
-        when(tableInfo.isPartitioned()).thenReturn(false);
-        when(tableInfo.isAlias()).thenReturn(true);
-        when(schemaInfo.getTableInfo(any(String.class))).thenReturn(tableInfo);
-
-        TableIdent tableIdent = new TableIdent(NAME, IRRELEVANT);
-
-        dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(referenceInfos, false);
-
-        dropBlobTableAnalyzedStatement.table(tableIdent);
-    }
-
-    @Test
-    public void deletingNonExistingTableRaisesException() throws Exception {
-
+    public void testDeletingNonExistingTableRaisesException() throws Exception {
         expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("Table 'Irrelevant' unknown");
-
-        TableIdent tableIdent = new TableIdent(NAME, IRRELEVANT);
+        expectedException.expectMessage("Table 'blob.Irrelevant' unknown");
+        TableIdent tableIdent = new TableIdent(BlobSchemaInfo.NAME, IRRELEVANT);
+        when(referenceInfos.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
         dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(referenceInfos, false);
-
         dropBlobTableAnalyzedStatement.table(tableIdent);
     }
-
-
 }

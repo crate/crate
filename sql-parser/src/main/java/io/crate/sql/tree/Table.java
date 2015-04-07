@@ -30,7 +30,7 @@ import java.util.List;
 public class Table
         extends QueryBody
 {
-    private QualifiedName name;
+    private final QualifiedName name;
     private final List<Assignment> partitionProperties;
 
     public Table(QualifiedName name)
@@ -86,9 +86,5 @@ public class Table
         int result = name.hashCode();
         result = 31 * result + partitionProperties.hashCode();
         return result;
-    }
-
-    public void setName(QualifiedName qualifiedName) {
-        name = qualifiedName;
     }
 }

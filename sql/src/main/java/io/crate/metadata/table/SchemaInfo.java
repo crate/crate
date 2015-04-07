@@ -26,9 +26,9 @@ import javax.annotation.Nullable;
 public interface SchemaInfo<T extends TableInfo> extends Iterable<T> {
 
     @Nullable
-    public TableInfo getTableInfo(String name);
+    TableInfo getTableInfo(String name);
 
-    public String name();
+    String name();
 
-    public boolean systemSchema();
+    boolean systemSchema();
 }

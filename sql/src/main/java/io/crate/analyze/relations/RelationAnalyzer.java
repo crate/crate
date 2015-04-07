@@ -332,7 +332,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitTable(Table node, RelationAnalysisContext context) {
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfoUnsafe(TableIdent.of(node));
+        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(
+                TableIdent.of(node, context.parameterContext().defaultSchema()));
         TableRelation tableRelation = new TableRelation(tableInfo);
         context.addSourceRelation(tableInfo.schemaInfo().name(), tableInfo.ident().name(), tableRelation);
         return tableRelation;

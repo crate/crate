@@ -31,7 +31,6 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)

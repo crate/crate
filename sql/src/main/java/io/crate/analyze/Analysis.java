@@ -61,5 +61,4 @@ public class Analysis {
     public AnalyzedRelation rootRelation(){
         return rootRelation;
     }
-
 }

@@ -21,14 +21,16 @@
 
 package io.crate.exceptions;
 
+import io.crate.metadata.TableIdent;
+
 public class TableUnknownException extends ResourceUnknownException {
 
     public TableUnknownException(String tableName, Throwable e) {
         super(String.format("Table '%s' unknown", tableName), e);
     }
 
-    public TableUnknownException(String tableName) {
-        super(String.format("Table '%s' unknown", tableName));
+    public TableUnknownException(TableIdent tableIdent) {
+        super(String.format("Table '%s' unknown", tableIdent));
     }
 
     @Override

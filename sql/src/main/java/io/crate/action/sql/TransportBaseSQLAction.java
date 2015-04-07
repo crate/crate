@@ -78,27 +78,16 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     private static final String[] EMPTY_NAMES = new String[0];
 
 
-    private final LoadingCache<RequestCacheKey, Statement> statementCache = CacheBuilder.newBuilder()
+    private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
             .maximumSize(100)
             .build(
-                    new CacheLoader<RequestCacheKey, Statement>() {
+                    new CacheLoader<String, Statement>() {
                         @Override
-                        public Statement load(@Nonnull RequestCacheKey request) throws Exception {
-                            return SqlParser.createStatement(request.statement);
+                        public Statement load(@Nonnull String statement) throws Exception {
+                            return SqlParser.createStatement(statement);
                         }
                     }
             );
-
-    private static class RequestCacheKey {
-
-        private final String schema;
-        private final String statement;
-
-        public RequestCacheKey(String schema, String statement) {
-            this.schema = schema;
-            this.statement = statement;
-        }
-    }
 
     private final ClusterService clusterService;
     protected final Analyzer analyzer;
@@ -192,7 +181,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return;
         }
         try {
-            Statement statement = statementCache.get(new RequestCacheKey(request.getDefaultSchema(), request.stmt()));
+            Statement statement = statementCache.get(request.stmt());
             Analysis analysis = getAnalysis(statement, request);
             processAnalysis(analysis, request, listener);
         } catch (Throwable e) {
