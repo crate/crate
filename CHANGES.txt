@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: documented minimum required java version
+
  - Updated crash to version 0.11.5 which contains the following changes:
 
     - Fixed an issue with pasting multi-line statements from clipboard.
