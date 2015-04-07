@@ -33,7 +33,7 @@ import io.crate.operation.RowUpstream;
  */
 public class NoOpProjector implements Projector, RowDownstreamHandle {
 
-    public static NoOpProjector INSTANCE = new NoOpProjector();
+    public static final NoOpProjector INSTANCE = new NoOpProjector();
 
     private NoOpProjector() {
 
