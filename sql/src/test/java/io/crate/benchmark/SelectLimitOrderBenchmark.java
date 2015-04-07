@@ -51,7 +51,7 @@ import static org.junit.Assert.assertEquals;
 @BenchmarkMethodChart(filePrefix = "benchmark-select-limit-order")
 public class SelectLimitOrderBenchmark extends BenchmarkBase {
 
-    public static final int BENCHMARK_ROUNDS = 10;
+    public static final int BENCHMARK_ROUNDS = 5;
     public static final int NUMBER_OF_DOCUMENTS = 1_200_000;
     public static final String INDEX_NAME = "bench_select_limit_order";
 
@@ -68,7 +68,7 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
     @Override
     protected void createTable() {
         execute("create table " + INDEX_NAME +
-                " (str_val string, int_val int) " +
+                " (str_val string, int_val int, long_val long) " +
                 "clustered into 4 shards with (number_of_replicas=0)");
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
 
@@ -92,6 +92,7 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
                 .startObject()
                 .field("str_val", generatedStrings[random.nextInt(generatedStrings.length)])
                 .field("int_val", random.nextInt(Integer.MAX_VALUE))
+                .field("long_val", random.nextLong())
                 .endObject()
                 .bytes().toBytes();
     }
@@ -106,7 +107,7 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
     }
 
 
-    protected SearchRequest getApiSearchRequest(Integer limit, Integer offset, boolean orderBy) throws IOException {
+    protected SearchRequest getApiSearchRequest(Integer limit, Integer offset, boolean orderBy, boolean selectAll) throws IOException {
         XContentBuilder builder =  XContentFactory.jsonBuilder()
                 .startObject()
                     .field("from", offset)
@@ -115,6 +116,12 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
         if (orderBy) {
             builder.array("sort", "str_val", "int_val");
         }
+        if (selectAll) {
+            builder.array("fields", "str_val", "int_val", "long_val");
+        } else {
+            // return only fields used in sort
+            builder.array("fields", "str_val", "int_val");
+        }
         builder.startObject("query")
                     .startObject("match_all")
                 .endObject()
@@ -122,8 +129,14 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
         return new SearchRequest(new String[]{INDEX_NAME}, builder.bytes().toBytes()).types("default");
     }
 
-    protected SQLRequest getSqlSearchRequest(Integer limit, Integer offset, boolean orderBy) {
-        String stmt = "SELECT * FROM " + INDEX_NAME;
+    protected SQLRequest getSqlSearchRequest(Integer limit, Integer offset, boolean orderBy, boolean selectAll) {
+        String stmt;
+        if (selectAll) {
+            stmt = "SELECT *";
+        } else {
+            stmt = "SELECT str_val, int_val";
+        }
+        stmt += " FROM " + INDEX_NAME;
         if (orderBy) {
             stmt += " ORDER BY str_val, int_val";
         }
@@ -131,26 +144,22 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
         return new SQLRequest(stmt);
     }
 
-    protected void runESBenchmark(int numRequest, Integer limit, Integer offset, boolean orderBy) throws Exception {
-        for (int i=0; i<numRequest; i++) {
-            SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiSearchRequest(limit, offset, orderBy)).actionGet();
-            assertEquals(
-                    "Did not get all wanted rows (ES)",
-                    limit.longValue(),
-                    response.getHits().hits().length
-            );
-        }
+    protected void runESBenchmark(Integer limit, Integer offset, boolean orderBy, boolean selectAll) throws Exception {
+        SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiSearchRequest(limit, offset, orderBy, selectAll)).actionGet();
+        assertEquals(
+                "Did not get all wanted rows (ES)",
+                limit.longValue(),
+                response.getHits().hits().length
+        );
     }
 
-    protected void runSQLBenchmark(int numRequest, Integer limit, Integer offset, boolean orderBy) throws Exception {
-        for (int i=0; i<numRequest; i++) {
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest(limit, offset, orderBy)).actionGet();
-            assertEquals(
-                    "Did not get all wanted rows (SQL)",
-                    limit.longValue(),
-                    response.rowCount()
-            );
-        }
+    protected void runSQLBenchmark(Integer limit, Integer offset, boolean orderBy, boolean selectAll) throws Exception {
+        SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest(limit, offset, orderBy, selectAll)).actionGet();
+        assertEquals(
+                "Did not get all wanted rows (SQL)",
+                limit.longValue(),
+                response.rowCount()
+        );
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
@@ -159,7 +168,8 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
         Integer limit = 1_000_000;
         Integer offset = 0;
         boolean orderBy = false;
-        runESBenchmark(1, limit, offset, orderBy);
+        boolean selectAllFields = false;
+        runESBenchmark(limit, offset, orderBy, selectAllFields);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
@@ -168,7 +178,8 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
         Integer limit = 1_000_000;
         Integer offset = 0;
         boolean orderBy = false;
-        runSQLBenchmark(1, limit, offset, orderBy);
+        boolean selectAllFields = false;
+        runSQLBenchmark(limit, offset, orderBy, selectAllFields);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
@@ -177,7 +188,8 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
         Integer limit = 1_000_000;
         Integer offset = 0;
         boolean orderBy = true;
-        runESBenchmark(1, limit, offset, orderBy);
+        boolean selectAllFields = false;
+        runESBenchmark(limit, offset, orderBy, selectAllFields);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
@@ -186,24 +198,47 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
         Integer limit = 1_000_000;
         Integer offset = 0;
         boolean orderBy = true;
-        runSQLBenchmark(1, limit, offset, orderBy);
+        boolean selectAllFields = false;
+        runSQLBenchmark(limit, offset, orderBy, selectAllFields);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void benchLimit100Offset100000Order_ES() throws Exception {
-        Integer limit = 100;
-        Integer offset = 100_000;
+    public void benchLimit1000000Order_Fetch_ES() throws Exception {
+        Integer limit = 1_000_000;
+        Integer offset = 0;
         boolean orderBy = true;
-        runESBenchmark(1, limit, offset, orderBy);
+        boolean selectAllFields = true;
+        runESBenchmark(limit, offset, orderBy, selectAllFields);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void benchLimit100Offset100000Order_SQL() throws Exception {
-        Integer limit = 100;
-        Integer offset = 100_000;
+    public void benchLimit1000000Order_Fetch_SQL() throws Exception {
+        Integer limit = 1_000_000;
+        Integer offset = 0;
         boolean orderBy = true;
-        runSQLBenchmark(1, limit, offset, orderBy);
+        boolean selectAllFields = true;
+        runSQLBenchmark(limit, offset, orderBy, selectAllFields);
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void benchLimit1Offset1000000Order_ES() throws Exception {
+        Integer limit = 1;
+        Integer offset = 1_000_000;
+        boolean orderBy = true;
+        boolean selectAllFields = false;
+        runESBenchmark(limit, offset, orderBy, selectAllFields);
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void benchLimit1Offset1000000Order_SQL() throws Exception {
+        Integer limit = 1;
+        Integer offset = 1_000_000;
+        boolean orderBy = true;
+        boolean selectAllFields = false;
+        runSQLBenchmark(limit, offset, orderBy, selectAllFields);
     }
 }
