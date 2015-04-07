@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: documented minimum required java version
+
  - Added support for setting the default schema name in the SQLRequest class
 
  - Fix: Filtering by `_score` wasn't recognized on group-by queries.
