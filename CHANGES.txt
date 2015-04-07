@@ -2,6 +2,11 @@
 Changes for Crate
 =================
 
+Unreleased
+==========
+
+ - Fix: documented minimum required java version
+
 2015/04/03 0.47.8
 =================
 
