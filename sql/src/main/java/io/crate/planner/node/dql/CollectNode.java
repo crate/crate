@@ -25,6 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
@@ -36,7 +37,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * A plan node which collects data.
@@ -47,9 +51,13 @@ public class CollectNode extends AbstractDQLPlanNode {
     private Routing routing;
     private List<Symbol> toCollect;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
-    private RowGranularity maxRowgranularity = RowGranularity.CLUSTER;
+    private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
     private List<String> downStreamNodes;
     private boolean isPartitioned = false;
+    private boolean keepContextForFetcher = false;
+
+    private @Nullable Integer limit = null;
+    private @Nullable OrderBy orderBy = null;
 
     public CollectNode(String id) {
         super(id);
@@ -57,6 +65,17 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     public CollectNode() {
         super();
+    }
+
+    public CollectNode(String id, Routing routing) {
+        this(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    }
+
+    public CollectNode(String id, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+        super(id);
+        this.routing = routing;
+        this.toCollect = toCollect;
+        this.projections = projections;
     }
 
     /**
@@ -84,15 +103,20 @@ public class CollectNode extends AbstractDQLPlanNode {
         }
     }
 
-    public CollectNode(String id, Routing routing) {
-        this(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    public @Nullable Integer limit() {
+        return limit;
     }
 
-    public CollectNode(String id, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
-        super(id);
-        this.routing = routing;
-        this.toCollect = toCollect;
-        this.projections = projections;
+    public void limit(Integer limit) {
+        this.limit = limit;
+    }
+
+    public @Nullable OrderBy orderBy() {
+        return orderBy;
+    }
+
+    public void orderBy(@Nullable OrderBy orderBy) {
+        this.orderBy = orderBy;
     }
 
     public WhereClause whereClause() {
@@ -137,12 +161,12 @@ public class CollectNode extends AbstractDQLPlanNode {
     }
 
     public RowGranularity maxRowGranularity() {
-        return maxRowgranularity;
+        return maxRowGranularity;
     }
 
     public void maxRowGranularity(RowGranularity newRowGranularity) {
-        if (maxRowgranularity.compareTo(newRowGranularity) < 0) {
-            maxRowgranularity = newRowGranularity;
+        if (maxRowGranularity.compareTo(newRowGranularity) < 0) {
+            maxRowGranularity = newRowGranularity;
         }
     }
 
@@ -173,7 +197,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             toCollect = ImmutableList.of();
         }
 
-        maxRowgranularity = RowGranularity.fromStream(in);
+        maxRowGranularity = RowGranularity.fromStream(in);
 
         if (in.readBoolean()) {
             routing = new Routing();
@@ -190,6 +214,15 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (in.readBoolean()) {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
+        keepContextForFetcher = in.readBoolean();
+
+        if( in.readBoolean()) {
+            limit = in.readVInt();
+        }
+
+        if (in.readBoolean()) {
+            orderBy = OrderBy.fromStream(in);
+        }
     }
 
     @Override
@@ -202,7 +235,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             Symbol.toStream(toCollect.get(i), out);
         }
 
-        RowGranularity.toStream(maxRowgranularity, out);
+        RowGranularity.toStream(maxRowGranularity, out);
 
         if (routing != null) {
             out.writeBoolean(true);
@@ -225,6 +258,19 @@ public class CollectNode extends AbstractDQLPlanNode {
             out.writeLong(jobId.get().getMostSignificantBits());
             out.writeLong(jobId.get().getLeastSignificantBits());
         }
+        out.writeBoolean(keepContextForFetcher);
+        if (limit != null ) {
+            out.writeBoolean(true);
+            out.writeVInt(limit);
+        } else {
+            out.writeBoolean(false);
+        }
+        if (orderBy != null) {
+            out.writeBoolean(true);
+            OrderBy.toStream(orderBy, out);
+        } else {
+            out.writeBoolean(false);
+        }
     }
 
     /**
@@ -244,10 +290,19 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (changed) {
             result = new CollectNode(id(), routing, newToCollect, projections);
             result.downStreamNodes = downStreamNodes;
-            result.maxRowgranularity = maxRowgranularity;
+            result.maxRowGranularity = maxRowGranularity;
             result.jobId = jobId;
+            result.keepContextForFetcher = keepContextForFetcher;
             result.whereClause(newWhereClause);
         }
         return result;
+    }
+
+    public void keepContextForFetcher(boolean keepContextForFetcher) {
+        this.keepContextForFetcher = keepContextForFetcher;
+    }
+
+    public boolean keepContextForFetcher() {
+        return keepContextForFetcher;
     }
 }

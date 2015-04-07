@@ -57,7 +57,8 @@ public class GroupByBenchmark extends BenchmarkBase {
     public static SQLRequest countColumnRequest = new SQLRequest(String.format("select count(\"countryName\") from %s group by continent", INDEX_NAME));
     public static SQLRequest countDistinctRequest = new SQLRequest(String.format("select count(distinct \"countryName\") from %s group by continent", INDEX_NAME));
     public static SQLRequest arbitraryRequest = new SQLRequest(String.format("select arbitrary(\"countryName\") from %s group by continent", INDEX_NAME));
-
+    public static SQLRequest groupByRoutingColumnRequest = new SQLRequest(String.format("select sum(population), type from %s group by type order by 1", INDEX_NAME));
+    public static SQLRequest groupByRoutingColumnRequestHighLimit = new SQLRequest(String.format("select sum(population), type from %s group by type order by 1 limit 100000", INDEX_NAME));
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -92,6 +93,7 @@ public class GroupByBenchmark extends BenchmarkBase {
                 .field("continent", new BytesArray(buffer, 0, 4).toUtf8())
                 .field("countryCode", new BytesArray(buffer, 4, 8).toUtf8())
                 .field("countryName", new BytesArray(buffer, 8, 24).toUtf8())
+                .field("type", getRandom().nextInt(100_000))
                 .field("population", random.nextInt(Integer.MAX_VALUE))
                 .endObject()
                 .bytes().toBytes();
@@ -138,5 +140,17 @@ public class GroupByBenchmark extends BenchmarkBase {
     @Test
     public void testGroupByAnyPerformance() {
         getClient(false).execute(SQLAction.INSTANCE, arbitraryRequest).actionGet();
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
+    @Test
+    public void testGroupByRoutingColumn() throws Exception {
+        getClient(false).execute(SQLAction.INSTANCE, groupByRoutingColumnRequest).actionGet();
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
+    @Test
+    public void testGroupByRoutingColumnLimit100000() throws Exception {
+        getClient(false).execute(SQLAction.INSTANCE, groupByRoutingColumnRequestHighLimit).actionGet();
     }
 }

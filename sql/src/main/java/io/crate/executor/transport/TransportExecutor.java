@@ -37,8 +37,8 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.qtf.QueryThenFetchOperation;
 import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -78,7 +78,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
-    private final QueryThenFetchOperation queryThenFetchOperation;
+    private final PageDownstreamFactory pageDownstreamFactory;
 
     @Inject
     public TransportExecutor(Settings settings,
@@ -87,20 +87,20 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
+                             PageDownstreamFactory pageDownstreamFactory,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
-                             CrateCircuitBreakerService breakerService,
-                             QueryThenFetchOperation queryThenFetchOperation) {
+                             CrateCircuitBreakerService breakerService) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
+        this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
-        this.queryThenFetchOperation = queryThenFetchOperation;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
@@ -213,6 +213,12 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return null;
         }
 
+        @Override
+        public Void visitQueryThenFetch(QueryThenFetch plan, Job job) {
+            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
+            job.addTasks(nodeVisitor.visitMergeNode(plan.mergeNode(), job.id()));
+            return null;
+        }
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
@@ -229,6 +235,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         jobId,
                         node,
                         transportActionProvider.transportCollectNodeAction(),
+                        transportActionProvider.transportCloseContextNodeAction(),
                         handlerSideDataCollectOperation,
                         statsTables,
                         circuitBreaker));
@@ -252,32 +259,19 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (node == null) {
                return ImmutableList.of();
             }
-            node.contextId(jobId);
+            node.jobId(jobId);
             if (node.executionNodes().isEmpty()) {
                 return singleTask(new LocalMergeTask(
                         jobId,
-                        threadPool,
-                        clusterService,
-                        settings,
-                        transportActionProvider,
-                        globalImplementationSymbolVisitor,
+                        pageDownstreamFactory,
                         node,
                         statsTables,
-                        circuitBreaker));
+                        circuitBreaker, threadPool));
             } else {
                 return singleTask(new DistributedMergeTask(
                         jobId,
                         transportActionProvider.transportMergeNodeAction(), node));
             }
-        }
-
-        @Override
-        public ImmutableList<Task> visitQueryThenFetchNode(QueryThenFetchNode node, UUID jobId) {
-            return singleTask(new QueryThenFetchTask(
-                    jobId,
-                    queryThenFetchOperation,
-                    functions,
-                    node));
         }
 
         @Override

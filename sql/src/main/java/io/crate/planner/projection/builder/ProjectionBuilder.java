@@ -27,10 +27,7 @@ import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.metadata.FunctionInfo;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
@@ -49,9 +46,6 @@ public class ProjectionBuilder {
 
     public ProjectionBuilder(QuerySpec querySpec) {
         this.querySpec = querySpec;
-
-
-
     }
 
     public SplitPoints getSplitPoints() {
@@ -153,4 +147,16 @@ public class ProjectionBuilder {
         result.outputs(outputsProcessed);
         return result;
     }
+
+    public MergeProjection mergeProjection(
+            List<Symbol> inputs,
+            OrderBy orderBy
+    ) {
+        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+        return new MergeProjection(inputs,
+                inputVisitor.process(orderBy.orderBySymbols(), context),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst());
+    }
+
 }

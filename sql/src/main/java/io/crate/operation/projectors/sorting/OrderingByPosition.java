@@ -22,15 +22,52 @@
 package io.crate.operation.projectors.sorting;
 
 import com.google.common.collect.Ordering;
+import io.crate.core.collections.Row;
 
 import javax.annotation.Nullable;
 
-public class OrderingByPosition extends Ordering<Object[]> {
+public abstract class OrderingByPosition<T> extends Ordering<T> {
 
-    private final int position;
-    private final Ordering<Comparable> ordering;
+    public static OrderingByPosition<Row> rowOrdering(int position, boolean reverse, Boolean nullsFirst) {
+        return new RowOrdering(position, reverse, nullsFirst);
+    }
 
-    public OrderingByPosition (int position, boolean reverse, Boolean nullFirst) {
+    private static class RowOrdering extends OrderingByPosition<Row> {
+
+        public RowOrdering(int position, boolean reverse, Boolean nullsFirst) {
+            super(position, reverse, nullsFirst);
+        }
+
+        @Override
+        public int compare(@Nullable Row left, @Nullable Row right) {
+            Comparable l = left != null ? (Comparable) left.get(position) : null;
+            Comparable r = right != null ? (Comparable) right.get(position) : null;
+            return ordering.compare(l, r);
+        }
+    }
+
+    public static OrderingByPosition<Object[]> arrayOrdering(int position, boolean reverse, Boolean nullsFirst) {
+        return new ArrayOrdering(position, reverse, nullsFirst);
+    }
+
+    private static class ArrayOrdering extends OrderingByPosition<Object[]> {
+
+        private ArrayOrdering(int position, boolean reverse, Boolean nullsFirst) {
+            super(position, reverse, nullsFirst);
+        }
+
+        @Override
+        public int compare(@Nullable Object[] left, @Nullable Object[] right) {
+            Comparable l = left != null ? (Comparable) left[position] : null;
+            Comparable r = right != null ? (Comparable) right[position] : null;
+            return ordering.compare(l, r);
+        }
+    }
+
+    protected final int position;
+    protected final Ordering<Comparable> ordering;
+
+    private OrderingByPosition (int position, boolean reverse, @Nullable Boolean nullFirst) {
         this.position = position;
 
         // note, that we are reverse for the queue so this conditional is by intent
@@ -52,12 +89,5 @@ public class OrderingByPosition extends Ordering<Object[]> {
             }
         }
         this.ordering = ordering;
-    }
-
-    @Override
-    public int compare(@Nullable Object[] left, @Nullable Object[] right) {
-        Comparable l = left != null ? (Comparable) left[position] : null;
-        Comparable r = right != null ? (Comparable) right[position] : null;
-        return ordering.compare(l, r);
     }
 }

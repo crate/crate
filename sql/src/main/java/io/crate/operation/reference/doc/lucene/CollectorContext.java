@@ -23,11 +23,14 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.operation.collect.LuceneDocCollector;
 import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.search.lookup.SearchLookup;
 
 public class CollectorContext {
 
     private SearchContext searchContext;
+    private SearchLookup searchLookup;
     private LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
+    private int jobSearchContextId;
 
     public CollectorContext() {
     }
@@ -50,4 +53,25 @@ public class CollectorContext {
         return fieldsVisitor;
     }
 
+
+    public CollectorContext jobSearchContextId(int jobSearchContextId) {
+        this.jobSearchContextId = jobSearchContextId;
+        return this;
+    }
+
+    public int jobSearchContextId() {
+        return jobSearchContextId;
+    }
+
+    public CollectorContext searchLookup(SearchLookup searchLookup) {
+        this.searchLookup = searchLookup;
+        return this;
+    }
+
+    public SearchLookup searchLookup() {
+        if (searchLookup == null) {
+            return searchContext.lookup();
+        }
+        return searchLookup;
+    }
 }

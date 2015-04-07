@@ -1,6 +1,6 @@
 package io.crate.metadata;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -8,21 +8,20 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class Routing implements Streamable {
 
-    private Map<String, Map<String, Set<Integer>>> locations;
+    private Map<String, Map<String, List<Integer>>> locations;
     private volatile int numShards = -1;
+    private int jobSearchContextIdBase = -1;
 
     public Routing() {
 
     }
 
-    public Routing(@Nullable Map<String, Map<String, Set<Integer>>> locations) {
+    public Routing(@Nullable Map<String, Map<String, List<Integer>>> locations) {
+        assert assertLocationsAllTreeMap(locations) : "locations must be a TreeMap only and must contain only TreeMap's";
         this.locations = locations;
     }
 
@@ -33,7 +32,7 @@ public class Routing implements Streamable {
      *  </p>
      */
     @Nullable
-    public Map<String, Map<String, Set<Integer>>> locations() {
+    public Map<String, Map<String, List<Integer>>> locations() {
         return locations;
     }
 
@@ -55,10 +54,12 @@ public class Routing implements Streamable {
     public int numShards(String nodeId) {
         int count = 0;
         if (hasLocations()) {
-            Map<String, Set<Integer>> nodeRouting = locations.get(nodeId);
+            Map<String, List<Integer>> nodeRouting = locations.get(nodeId);
             if (nodeRouting != null) {
-                for (Set<Integer> shardIds : nodeRouting.values()) {
-                    count += shardIds.size();
+                for (List<Integer> shardIds : nodeRouting.values()) {
+                    if (shardIds != null) {
+                        count += shardIds.size();
+                    }
                 }
             }
         }
@@ -73,10 +74,12 @@ public class Routing implements Streamable {
         if (numShards == -1) {
             int count = 0;
             if (hasLocations()) {
-                for (Map<String, Set<Integer>> nodeRouting : locations.values()) {
+                for (Map<String, List<Integer>> nodeRouting : locations.values()) {
                     if (nodeRouting != null) {
-                        for (Set<Integer> shardIds : nodeRouting.values()) {
-                            count += shardIds.size();
+                        for (List<Integer> shardIds : nodeRouting.values()) {
+                            if (shardIds != null) {
+                                count += shardIds.size();
+                            }
                         }
                     }
                 }
@@ -92,10 +95,10 @@ public class Routing implements Streamable {
      */
     public boolean containsShards(String nodeId) {
         if (!hasLocations()) return false;
-        Map<String, Set<Integer>> nodeRouting = locations.get(nodeId);
+        Map<String, List<Integer>> nodeRouting = locations.get(nodeId);
         if (nodeRouting == null) return false;
 
-        for (Map.Entry<String, Set<Integer>> tableEntry : nodeRouting.entrySet()) {
+        for (Map.Entry<String, List<Integer>> tableEntry : nodeRouting.entrySet()) {
             if (tableEntry.getValue() != null && !tableEntry.getValue().isEmpty()) {
                 return true;
             }
@@ -103,12 +106,21 @@ public class Routing implements Streamable {
         return false;
     }
 
+    public void jobSearchContextIdBase(int jobSearchContextIdBase) {
+        this.jobSearchContextIdBase = jobSearchContextIdBase;
+    }
+
+    public int jobSearchContextIdBase() {
+        return jobSearchContextIdBase;
+    }
+
     @Override
     public String toString() {
-        Objects.ToStringHelper helper = Objects.toStringHelper(this);
+        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this);
         if (hasLocations()) {
             helper.add("locations", locations);
         }
+        helper.add("jobSearchContextIdBase", jobSearchContextIdBase);
         return helper.toString();
 
     }
@@ -117,28 +129,30 @@ public class Routing implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         int numLocations = in.readVInt();
         if (numLocations > 0) {
-            locations = new HashMap<>(numLocations);
+            locations = new TreeMap<>();
 
             String nodeId;
             int numInner;
-            Map<String, Set<Integer>> innerMap;
+            Map<String, List<Integer>> innerMap;
             for (int i = 0; i < numLocations; i++) {
-                nodeId = in.readOptionalString();
+                nodeId = in.readString();
                 numInner = in.readVInt();
-                innerMap = new HashMap<>(numInner);
+                innerMap = new TreeMap<>();
 
                 locations.put(nodeId, innerMap);
                 for (int j = 0; j < numInner; j++) {
                     String key = in.readString();
-                    Set<Integer> shardIds = new HashSet<>();
-
                     int numShards = in.readVInt();
+                    List<Integer> shardIds = new ArrayList<>(numShards);
                     for (int k = 0; k<numShards;k++){
                         shardIds.add(in.readVInt());
                     }
                     innerMap.put(key, shardIds);
                 }
             }
+        }
+        if (in.readBoolean()) {
+            jobSearchContextIdBase = in.readVInt();
         }
     }
 
@@ -147,17 +161,17 @@ public class Routing implements Streamable {
         if (hasLocations()) {
             out.writeVInt(locations.size());
 
-            for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
-                out.writeOptionalString(entry.getKey());
+            for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
+                out.writeString(entry.getKey());
 
                 if (entry.getValue() == null) {
                     out.writeVInt(0);
                 } else {
 
                     out.writeVInt(entry.getValue().size());
-                    for (Map.Entry<String, Set<Integer>> innerEntry : entry.getValue().entrySet()) {
+                    for (Map.Entry<String, List<Integer>> innerEntry : entry.getValue().entrySet()) {
                         out.writeString(innerEntry.getKey());
-                        Set<Integer> shardIds = innerEntry.getValue();
+                        List<Integer> shardIds = innerEntry.getValue();
                         if (shardIds == null || shardIds.size() == 0) {
                             out.writeVInt(0);
                         } else {
@@ -172,5 +186,25 @@ public class Routing implements Streamable {
         } else {
             out.writeVInt(0);
         }
+        if (jobSearchContextIdBase > -1) {
+            out.writeBoolean(true);
+            out.writeVInt(jobSearchContextIdBase);
+        } else {
+            out.writeBoolean(false);
+        }
+    }
+
+    private boolean assertLocationsAllTreeMap(@Nullable Map<String, Map<String, List<Integer>>> locations) {
+        if (locations != null) {
+            if (!(locations instanceof TreeMap)) {
+                return false;
+            }
+            for (Map<String, List<Integer>> innerMap : locations.values()) {
+                if (!(innerMap instanceof TreeMap)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

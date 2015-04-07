@@ -21,13 +21,14 @@
 
 package io.crate.planner;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -61,6 +62,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -77,12 +79,61 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private Functions functions;
     private AggregationProjection localMergeProjection;
 
-    protected static class Context {
+    public static class Context {
 
-        private final Analysis analysis;
+        private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
+        private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
+        private int jobSearchContextIdBaseSeq = 0;
 
-        Context(Analysis analysis) {
-            this.analysis = analysis;
+        /**
+         * Increase current {@link #jobSearchContextIdBaseSeq} by number of shards affected by given
+         * <code>routing</code> parameter and register a {@link org.elasticsearch.index.shard.ShardId}
+         * under each incremented jobSearchContextId.
+         * The current {@link #jobSearchContextIdBaseSeq} is set on the {@link io.crate.metadata.Routing} instance,
+         * in order to be able to re-generate jobSearchContextId's for every shard in a deterministic way.
+         *
+         * Skip generating jobSearchContextId's if {@link io.crate.metadata.Routing#jobSearchContextIdBase} is already
+         * set on the given <code>routing</code>.
+         */
+        public void allocateJobSearchContextIds(Routing routing) {
+            if (routing.jobSearchContextIdBase() > -1 || routing.hasLocations() == false
+                    || routing.numShards() == 0) {
+                return;
+            }
+            int jobSearchContextId = jobSearchContextIdBaseSeq;
+            jobSearchContextIdBaseSeq += routing.numShards();
+            routing.jobSearchContextIdBase(jobSearchContextId);
+            for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
+                String nodeId = nodeEntry.getKey();
+                Map<String, List<Integer>> nodeRouting = nodeEntry.getValue();
+                if (nodeRouting != null) {
+                    for (Map.Entry<String, List<Integer>> entry : nodeRouting.entrySet()) {
+                        for (Integer shardId : entry.getValue()) {
+                            jobSearchContextIdToShard.put(jobSearchContextId, new ShardId(entry.getKey(), shardId));
+                            jobSearchContextIdToNode.put(jobSearchContextId, nodeId);
+                            jobSearchContextId++;
+                        }
+                    }
+                }
+            }
+        }
+
+        @Nullable
+        public ShardId shardId(int jobSearchContextId) {
+            return jobSearchContextIdToShard.get(jobSearchContextId);
+        }
+
+        public IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard() {
+            return jobSearchContextIdToShard;
+        }
+
+        @Nullable
+        public String nodeId(int jobSearchContextId) {
+            return jobSearchContextIdToNode.get(jobSearchContextId);
+        }
+
+        public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
+            return jobSearchContextIdToNode;
         }
     }
 
@@ -101,7 +152,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(analysis));
+        return process(analyzedStatement, new Context());
     }
 
     @Override
@@ -111,23 +162,23 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitSelectStatement(SelectAnalyzedStatement statement, Context context) {
-        return consumingPlanner.plan(statement.relation());
+        return consumingPlanner.plan(statement.relation(), context);
     }
 
     @Override
-    protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
-        Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
-        return processInsertStatement(analysis);
+    protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement statement, Context context) {
+        Preconditions.checkState(!statement.sourceMaps().isEmpty(), "no values given");
+        return processInsertStatement(statement);
     }
 
     @Override
-    protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement analysis, Context context) {
-        return consumingPlanner.plan(analysis);
+    protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, Context context) {
+        return consumingPlanner.plan(statement, context);
     }
 
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
-        return consumingPlanner.plan(statement);
+        return consumingPlanner.plan(statement, context);
     }
 
     @Override
@@ -154,15 +205,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     protected Plan visitCopyStatement(final CopyAnalyzedStatement analysis, Context context) {
         IterablePlan plan = new IterablePlan();
         if (analysis.mode() == CopyAnalyzedStatement.Mode.FROM) {
-            copyFromPlan(analysis, plan);
+            copyFromPlan(analysis, plan, context);
         } else if (analysis.mode() == CopyAnalyzedStatement.Mode.TO) {
-            copyToPlan(analysis, plan);
+            copyToPlan(analysis, plan, context);
         }
 
         return plan;
     }
 
-    private void copyToPlan(CopyAnalyzedStatement analysis, IterablePlan plan) {
+    private void copyToPlan(CopyAnalyzedStatement analysis, IterablePlan plan, Context context) {
         TableInfo tableInfo = analysis.table();
         WriterProjection projection = new WriterProjection();
         projection.uri(analysis.uri());
@@ -195,6 +246,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableInfo,
+                context,
                 WhereClause.MATCH_ALL,
                 outputs,
                 ImmutableList.<Projection>of(projection),
@@ -202,11 +254,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         );
         plan.add(collectNode);
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection()), collectNode);
+                ImmutableList.<Projection>of(localMergeProjection()), collectNode, context);
         plan.add(mergeNode);
     }
 
-    private void copyFromPlan(CopyAnalyzedStatement analysis, IterablePlan plan) {
+    private void copyFromPlan(CopyAnalyzedStatement analysis, IterablePlan plan, Context context) {
         /**
          * copy from has two "modes":
          *
@@ -300,17 +352,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         PlanNodeBuilder.setOutputTypes(collectNode);
         plan.add(collectNode);
         plan.add(PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection()), collectNode));
+                ImmutableList.<Projection>of(localMergeProjection()), collectNode, context));
     }
 
     private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {
         final AtomicInteger counter = new AtomicInteger(maxNodes);
-        final Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         allNodes.dataNodes().keys().forEach(new ObjectProcedure<String>() {
             @Override
             public void apply(String value) {
                 if (counter.getAndDecrement() > 0) {
-                    locations.put(value, ImmutableMap.<String, Set<Integer>>of());
+                    locations.put(value, TreeMapBuilder.<String, List<Integer>>newMapBuilder().map());
                 }
             }
         });

@@ -100,8 +100,10 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 if (analyzedRelation.resultIsDistributed()) {
                     // add local merge Node which aggregates the distributed results
                     AggregationProjection aggregationProjection = QueryAndFetchConsumer.localMergeProjection(this.analysisMetaData.functions());
-                    mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(aggregationProjection),
-                                                           analyzedRelation.resultNode());
+                    mergeNode = PlanNodeBuilder.localMerge(
+                            ImmutableList.<Projection>of(aggregationProjection),
+                            analyzedRelation.resultNode(),
+                            context.consumerContext.plannerContext());
                 }
                 context.result = true;
                 return new InsertFromSubQuery(((PlannedAnalyzedRelation) innerRelation).plan(), mergeNode);

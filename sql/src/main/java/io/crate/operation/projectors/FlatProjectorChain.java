@@ -21,15 +21,18 @@
 
 package io.crate.operation.projectors;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowUpstream;
 import io.crate.planner.projection.Projection;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * A chain of connected projectors rows will flow through.
@@ -54,13 +57,27 @@ public class FlatProjectorChain {
     public FlatProjectorChain(List<Projection> projections,
                               ProjectionToProjectorVisitor projectorVisitor,
                               RamAccountingContext ramAccountingContext) {
-        this(projections, projectorVisitor, ramAccountingContext, Optional.<ResultProvider>absent());
+        this(projections, projectorVisitor, ramAccountingContext,
+                Optional.<ResultProvider>absent());
     }
 
     public FlatProjectorChain(List<Projection> projections,
                               ProjectionToProjectorVisitor projectorVisitor,
                               RamAccountingContext ramAccountingContext,
                               Optional<ResultProvider> resultProvider) {
+        this(projections, projectorVisitor, ramAccountingContext,
+                resultProvider, Optional.<UUID>absent(),
+                Optional.<IntObjectOpenHashMap<String>>absent(),
+                Optional.<IntObjectOpenHashMap<ShardId>>absent());
+    }
+
+    public FlatProjectorChain(List<Projection> projections,
+                              ProjectionToProjectorVisitor projectorVisitor,
+                              RamAccountingContext ramAccountingContext,
+                              Optional<ResultProvider> resultProvider,
+                              Optional<UUID> jobId,
+                              Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
+                              Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
         if (projections.size() == 0) {
             if (resultProvider.isPresent()) {
                 this.resultProvider = resultProvider.get();
@@ -68,13 +85,14 @@ public class FlatProjectorChain {
                 this.resultProvider = new CollectingProjector();
             }
             assert (this.resultProvider() instanceof Projector);
-            firstProjector = (Projector) this.resultProvider;
+            firstProjector = this.resultProvider;
             projectors = ImmutableList.of(firstProjector);
         } else {
             projectors = new ArrayList<>();
             Projector previousProjector = null;
             for (Projection projection : projections) {
-                Projector projector = projectorVisitor.process(projection, ramAccountingContext);
+                Projector projector = projectorVisitor.process(projection, ramAccountingContext,
+                        jobId, jobSearchContextIdToNode, jobSearchContextIdToShard);
                 projectors.add(projector);
                 if (previousProjector != null) {
                     previousProjector.downstream(projector);
@@ -101,7 +119,7 @@ public class FlatProjectorChain {
             }
             if (addedResultProvider) {
                 previousProjector.downstream(this.resultProvider);
-                projectors.add((Projector) this.resultProvider);
+                projectors.add(this.resultProvider);
             }
         }
     }

@@ -31,9 +31,6 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
-import io.crate.core.StringUtils;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
@@ -46,7 +43,6 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.RegexMatcher;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Function;
 import io.crate.types.DataTypes;
@@ -139,57 +135,6 @@ public class ESQueryBuilder {
         whereClause(context, whereClause);
         context.builder.endObject();
         return context.builder.bytes();
-    }
-
-    /**
-     * use to create a full elasticsearch query "statement" including fields, size, etc.
-     */
-    public BytesReference convert(QueryThenFetchNode node) throws IOException {
-        assert node != null;
-        List<? extends Symbol> outputs;
-
-        outputs = node.outputs();
-        Context context = new Context();
-        context.builder = XContentFactory.jsonBuilder().startObject();
-        XContentBuilder builder = context.builder;
-
-        List<String> fields = new ArrayList<>(outputs.size());
-        boolean needWholeSource = false;
-        for (Symbol output : outputs) {
-            assert output instanceof Reference;
-            Reference ref = (Reference) output;
-            ColumnIdent columnIdent = ref.info().ident().columnIdent();
-            if (columnIdent.isSystemColumn()){
-                if (DocSysColumns.VERSION.equals(columnIdent)){
-                    builder.field("version", true);
-                } else if (DocSysColumns.RAW.equals(columnIdent)|| DocSysColumns.DOC.equals(columnIdent)){
-                    needWholeSource = true;
-                }
-            } else if (node.partitionBy().indexOf(ref.info()) < 0) { // do not include partitioned by columns
-                fields.add(columnIdent.fqn());
-            }
-        }
-
-        if (!needWholeSource){
-            if (fields.size() > 0){
-                builder.startObject("_source");
-                builder.field("include", StringUtils.commonAncestors(fields));
-                builder.endObject();
-            } else {
-                builder.field("_source", false);
-            }
-        }
-        whereClause(context, node.whereClause());
-
-        if (context.ignoredFields.containsKey("_score")) {
-            builder.field("min_score", ((Number) context.ignoredFields.get("_score")).doubleValue());
-        }
-
-        builder.field("from", node.offset());
-        builder.field("size", node.limit());
-
-        builder.endObject();
-        return builder.bytes();
     }
 
     /**

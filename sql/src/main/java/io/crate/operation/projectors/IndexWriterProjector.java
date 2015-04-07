@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
@@ -76,6 +77,11 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                 return generator.generateSource();
             }
             return delegate.get(index);
+        }
+
+        @Override
+        public Object[] materialize() {
+            return Buckets.materialize(this);
         }
     };
 

@@ -21,12 +21,18 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-public class OrderBy {
+public class OrderBy implements Streamable {
 
     private List<Symbol> orderBySymbols;
     private boolean[] reverseFlags;
@@ -40,6 +46,8 @@ public class OrderBy {
         this.reverseFlags = reverseFlags;
         this.nullsFirst = nullsFirst;
     }
+
+    private OrderBy() {};
 
     public List<Symbol> orderBySymbols() {
         return orderBySymbols;
@@ -59,5 +67,49 @@ public class OrderBy {
 
     public void normalize(EvaluatingNormalizer normalizer) {
         normalizer.normalizeInplace(orderBySymbols);
+    }
+
+    public static void toStream(OrderBy orderBy, StreamOutput out) throws IOException {
+        orderBy.writeTo(out);
+    }
+
+    public static OrderBy fromStream(StreamInput in) throws IOException {
+        OrderBy orderBy = new OrderBy();
+        orderBy.readFrom(in);
+        return orderBy;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        int numOrderBy = in.readVInt();
+        reverseFlags = new boolean[numOrderBy];
+
+        for (int i = 0; i < reverseFlags.length; i++) {
+            reverseFlags[i] = in.readBoolean();
+        }
+
+        orderBySymbols = new ArrayList<>(numOrderBy);
+        for (int i = 0; i < reverseFlags.length; i++) {
+            orderBySymbols.add(Symbol.fromStream(in));
+        }
+
+        nullsFirst = new Boolean[numOrderBy];
+        for (int i = 0; i < numOrderBy; i++) {
+            nullsFirst[i] = in.readOptionalBoolean();
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeVInt(reverseFlags.length);
+        for (boolean reverseFlag : reverseFlags) {
+            out.writeBoolean(reverseFlag);
+        }
+        for (Symbol symbol : orderBySymbols) {
+            Symbol.toStream(symbol, out);
+        }
+        for (Boolean nullFirst : nullsFirst) {
+            out.writeOptionalBoolean(nullFirst);
+        }
     }
 }

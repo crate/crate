@@ -21,18 +21,28 @@
 
 package io.crate.executor.task;
 
+import com.google.common.base.Optional;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.PageDownstream;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.PageDownstreamFactory;
+import io.crate.operation.merge.NonSortingBucketMerger;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
@@ -53,27 +63,32 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LocalMergeTaskTest extends CrateUnitTest {
 
     private ImplementationSymbolVisitor symbolVisitor;
     private GroupProjection groupProjection;
+    private PageDownstreamFactory pageDownstreamFactory;
     private ThreadPool threadPool;
 
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        Injector injector = new ModulesBuilder()
+        final Injector injector = new ModulesBuilder()
                 .add(new AggregationImplModule())
                 .add(new AbstractModule() {
                     @Override
@@ -82,8 +97,8 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                     }
                 })
                 .createInjector();
-        Functions functions = injector.getInstance(Functions.class);
-        ReferenceResolver referenceResolver = new GlobalReferenceResolver(
+        final Functions functions = injector.getInstance(Functions.class);
+        final ReferenceResolver referenceResolver = new GlobalReferenceResolver(
                 Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
 
@@ -95,12 +110,28 @@ public class LocalMergeTaskTest extends CrateUnitTest {
         groupProjection.values(Arrays.asList(
                 new Aggregation(minAggFunction.info(), Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
-        threadPool = new ThreadPool(getClass().getSimpleName());
-    }
-
-    @After
-    public void cleanUp() {
-        threadPool.shutdownNow();
+        pageDownstreamFactory = mock(PageDownstreamFactory.class);
+        when(pageDownstreamFactory.createMergeNodePageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class), any(Optional.class))).thenAnswer(new Answer<PageDownstream>() {
+            @Override
+            public PageDownstream answer(InvocationOnMock invocation) throws Throwable {
+                NonSortingBucketMerger nonSortingBucketMerger = new NonSortingBucketMerger();
+                MergeNode mergeNode = (MergeNode) invocation.getArguments()[0];
+                ProjectionToProjectorVisitor projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
+                        mock(ClusterService.class),
+                        ImmutableSettings.EMPTY,
+                        mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+                        symbolVisitor,
+                        new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver)
+                );
+                ResultProvider resultProvider = (ResultProvider)invocation.getArguments()[1];
+                FlatProjectorChain projectorChain = new FlatProjectorChain(mergeNode.projections(), projectionToProjectorVisitor, mock(RamAccountingContext.class), Optional.of(resultProvider));
+                nonSortingBucketMerger.downstream(projectorChain.firstProjector());
+                projectorChain.startProjections();
+                return nonSortingBucketMerger;
+            }
+        });
+        threadPool = mock(ThreadPool.class);
+        when(threadPool.executor(anyString())).thenReturn(MoreExecutors.sameThreadExecutor());
     }
 
     private ListenableFuture<TaskResult> getUpstreamResult(int numRows) {
@@ -137,14 +168,10 @@ public class LocalMergeTaskTest extends CrateUnitTest {
 
             LocalMergeTask localMergeTask = new LocalMergeTask(
                     UUID.randomUUID(),
-                    threadPool,
-                    mock(ClusterService.class),
-                    ImmutableSettings.EMPTY,
-                    mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                    symbolVisitor,
+                    pageDownstreamFactory,
                     mergeNode,
                     mock(StatsTables.class),
-                    new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+                    new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA), threadPool);
             localMergeTask.upstreamResult(upstreamResults);
             localMergeTask.start();
 

@@ -50,4 +50,6 @@ public class Constants {
     public static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
 
     public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]]"));
+
+    public final static int PAGE_SIZE = 10000;
 }

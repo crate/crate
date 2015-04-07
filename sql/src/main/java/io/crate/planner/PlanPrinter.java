@@ -21,14 +21,25 @@
 
 package io.crate.planner;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
-import io.crate.planner.node.*;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
 import io.crate.planner.symbol.SymbolVisitor;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static java.lang.String.format;
 
@@ -178,19 +189,6 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
         }
 
         @Override
-        public Void visitQueryThenFetchNode(QueryThenFetchNode node, PrintContext context) {
-            context.print(node.toString());
-            context.indent();
-            context.print("outputs:");
-            for (Symbol symbol : node.outputs()) {
-                symbolPrinter.process(symbol, context);
-            }
-
-            context.dedent();
-            return null;
-        }
-
-        @Override
         public Void visitCollectNode(CollectNode node, PrintContext context) {
             context.print("Collect");
             context.indent();
@@ -204,6 +202,49 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             processProjections(node, context);
             context.dedent();
 
+            return null;
+        }
+
+        @Override
+        public Void visitSymbolBasedUpsertByIdNode(SymbolBasedUpsertByIdNode node, PrintContext context) {
+            context.print(node.getClass().getSimpleName());
+            context.indent();
+            if (node.insertColumns() != null) {
+                context.print("insertColumns: %s", Joiner.on(", ").join(Iterables.transform(Arrays.asList(node.insertColumns()), SymbolFormatter.SYMBOL_FORMAT_FUNCTION)));
+            }
+            if (node.updateColumns() != null) {
+                context.print("updateColumns: %s", Joiner.on(", ").join(node.updateColumns()));
+            }
+            context.print("items: ");
+            context.indent();
+            for (SymbolBasedUpsertByIdNode.Item item : node.items()) {
+                context.print(printItem(item));
+            }
+            context.dedent();
+            context.print("bulk: %s", node.isBulkRequest());
+            context.print("partitioned: %s", node.isPartitionedTable());
+            context.dedent();
+            return null;
+        }
+
+        private String printItem(SymbolBasedUpsertByIdNode.Item item) {
+            MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(item)
+                    .add("index", item.index())
+                    .add("id", item.id())
+                    .add("routing", item.routing())
+                    .add("version", item.version());
+            if (item.insertValues() != null) {
+                helper.add("insertValues", Arrays.toString(item.insertValues()));
+            }
+            if (item.updateAssignments() != null) {
+                helper.add("updateAssignments", Joiner.on(", ").join(Lists.transform(Arrays.asList(item.updateAssignments()), SymbolFormatter.SYMBOL_FORMAT_FUNCTION)));
+            }
+            return helper.toString();
+        }
+
+        @Override
+        protected Void visitPlanNode(PlanNode node, PrintContext context) {
+            context.print(node.getClass().getSimpleName());
             return null;
         }
     }
@@ -243,6 +284,32 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     @Override
     protected Void visitPlan(Plan plan, PrintContext context) {
         context.print("Plan: " + plan.getClass().getCanonicalName());
+        return null;
+    }
+
+    @Override
+    public Void visitUpsert(Upsert node, PrintContext context) {
+        context.print("Upsert: ");
+        context.indent();
+        for (List<DQLPlanNode> nodes : node.nodes()) {
+            for (DQLPlanNode planNode : nodes) {
+                planNodePrinter.process(planNode, context);
+            }
+        }
+        context.dedent();
+        return null;
+    }
+
+    @Override
+    public Void visitNonDistributedGroupBy(NonDistributedGroupBy node, PrintContext context) {
+        context.print(node.getClass().getSimpleName() + ": ");
+        context.indent();
+        planNodePrinter.process(node.collectNode(), context);
+        if (node.localMergeNode() != null) {
+            planNodePrinter.process(node.localMergeNode(), context);
+        }
+        context.print("distributed: %s", node.resultIsDistributed());
+        context.dedent();
         return null;
     }
 

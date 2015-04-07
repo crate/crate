@@ -27,7 +27,7 @@ public class Buckets {
         Object[][] res = new Object[bucket.size()][];
         int i = 0;
         for (Row row : bucket) {
-            res[i++] = materialize(row);
+            res[i++] = row.materialize();
         }
         return res;
     }

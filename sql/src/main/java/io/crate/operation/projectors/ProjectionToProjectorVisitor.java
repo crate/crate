@@ -21,6 +21,8 @@
 
 package io.crate.operation.projectors;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
@@ -28,6 +30,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
@@ -36,10 +39,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> {
 
@@ -51,7 +51,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     @Nullable
     private final ShardId shardId;
     @Nullable
-
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
@@ -89,6 +88,21 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
     public Projector process(Projection projection, RamAccountingContext ramAccountingContext) {
         return super.process(projection, new Context(ramAccountingContext));
+    }
+
+    public Projector process(Projection projection,
+                             RamAccountingContext ramAccountingContext,
+                             Optional<UUID> jobId) {
+        return super.process(projection, new Context(ramAccountingContext, jobId));
+    }
+
+    public Projector process(Projection projection,
+                             RamAccountingContext ramAccountingContext,
+                             Optional<UUID> jobId,
+                             Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
+                             Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
+        return super.process(projection, new Context(ramAccountingContext, jobId,
+                jobSearchContextIdToNode, jobSearchContextIdToShard));
     }
 
     @Override
@@ -132,6 +146,16 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                     projection.offset());
         }
         return projector;
+    }
+
+    @Override
+    public Projector visitMergeProjection(MergeProjection projection, Context context) {
+        int[] orderByIndices = OrderByPositionVisitor.orderByPositions(projection.orderBy(),
+                (List<Symbol>)projection.outputs());
+        return new MergeProjector(
+                orderByIndices,
+                projection.reverseFlags(),
+                projection.nullsFirst());
     }
 
     @Override
@@ -306,12 +330,57 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 projection.requiredVersion());
     }
 
+    @Override
+    public Projector visitFetchProjection(FetchProjection projection, Context context) {
+        assert context.jobId.isPresent() : "FetchProjector needs a jobId";
+        assert context.jobSearchContextIdToNode.isPresent() : "FetchProjector needs jobSearchContextIdToNode";
+        assert context.jobSearchContextIdToShard.isPresent() : "FetchProjector needs jobSearchContextIdToShard";
+
+        ImplementationSymbolVisitor.Context ctxDocId = new ImplementationSymbolVisitor.Context();
+        symbolVisitor.process(projection.docIdSymbol(), ctxDocId);
+        assert ctxDocId.collectExpressions().size() == 1;
+
+        return new FetchProjector(
+                transportActionProvider.transportFetchNodeAction(),
+                transportActionProvider.transportCloseContextNodeAction(),
+                symbolVisitor.functions(),
+                context.jobId.get(),
+                ctxDocId.collectExpressions().iterator().next(),
+                projection.inputSymbols(),
+                projection.outputSymbols(),
+                projection.partitionedBy(),
+                context.jobSearchContextIdToNode.get(),
+                context.jobSearchContextIdToShard.get(),
+                projection.executionNodes(),
+                projection.bulkSize(),
+                projection.closeContexts()
+                );
+    }
+
     public static class Context {
 
         private final RamAccountingContext ramAccountingContext;
+        private final Optional<UUID> jobId;
+        private final Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode;
+        private final Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard;
 
         public Context(RamAccountingContext ramAccountingContext) {
+            this(ramAccountingContext, Optional.<UUID>absent());
+        }
+
+        public Context(RamAccountingContext ramAccountingContext, Optional<UUID> jobId) {
+            this(ramAccountingContext, jobId, Optional.<IntObjectOpenHashMap<String>>absent(),
+                    Optional.<IntObjectOpenHashMap<ShardId>>absent());
+        }
+
+        public Context(RamAccountingContext ramAccountingContext,
+                       Optional<UUID> jobId,
+                       Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
+                       Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
             this.ramAccountingContext = ramAccountingContext;
+            this.jobId = jobId;
+            this.jobSearchContextIdToNode = jobSearchContextIdToNode;
+            this.jobSearchContextIdToShard = jobSearchContextIdToShard;
         }
 
     }

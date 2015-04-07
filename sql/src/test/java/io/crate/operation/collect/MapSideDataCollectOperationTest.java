@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.planner.PlanNodeBuilder;
@@ -45,10 +46,7 @@ import org.mockito.Answers;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
@@ -81,6 +79,7 @@ public class MapSideDataCollectOperationTest {
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
 
+        CollectContextService collectContextService = mock(CollectContextService.class);
         LocalCollectOperation collectOperation = new LocalCollectOperation(
                 clusterService,
                 ImmutableSettings.EMPTY,
@@ -96,7 +95,8 @@ public class MapSideDataCollectOperationTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                         )
                 ),
-                new PlanNodeStreamerVisitor(functions)
+                new PlanNodeStreamerVisitor(functions),
+                collectContextService
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
@@ -106,7 +106,9 @@ public class MapSideDataCollectOperationTest {
         }
 
         Routing routing = new Routing(
-                ImmutableMap.<String, Map<String, Set<Integer>>>of("dummyNodeId", new HashMap<String, Set<Integer>>())
+                TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+                .put("dummyNodeId", new TreeMap<String, List<Integer>>())
+                .map()
         );
         FileUriCollectNode collectNode = new FileUriCollectNode(
                 "test",
@@ -120,12 +122,12 @@ public class MapSideDataCollectOperationTest {
                 null,
                 false
         );
+        collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
         Bucket objects = collectOperation.collect(collectNode, null).get();
         assertThat(objects, contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)
-
         ));
     }
 }

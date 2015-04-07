@@ -155,7 +155,9 @@ public class Literal<ReturnType>
         if (obj == null || getClass() != obj.getClass()) return false;
         Literal literal = (Literal) obj;
         if (valueType().equals(literal.valueType())) {
-            return Objects.equals(value(), literal.value());
+            if (valueType().compareValueTo(value, literal.value) == 0) {
+                return true;
+            }
         }
         return false;
     }

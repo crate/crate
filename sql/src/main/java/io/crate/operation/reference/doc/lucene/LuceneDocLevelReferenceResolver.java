@@ -57,6 +57,10 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
             return new IdCollectorExpression();
         } else if (DocCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
             return DocCollectorExpression.create(referenceInfo);
+        } else if (DocIdCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
+            return new DocIdCollectorExpression();
+        } else if (ScoreCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
+            return new ScoreCollectorExpression();
         }
 
         String colName = referenceInfo.ident().columnIdent().fqn();

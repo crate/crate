@@ -47,6 +47,8 @@ public class TransportActionProvider {
 
     private final Provider<TransportCollectNodeAction> transportCollectNodeActionProvider;
     private final Provider<TransportMergeNodeAction> transportMergeNodeActionProvider;
+    private final Provider<TransportFetchNodeAction> transportFetchNodeActionProvider;
+    private final Provider<TransportCloseContextNodeAction> transportCloseContextNodeActionProvider;
 
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
     private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
@@ -69,6 +71,8 @@ public class TransportActionProvider {
     @Inject
     public TransportActionProvider(Provider<TransportCollectNodeAction> transportCollectNodeActionProvider,
                                    Provider<TransportMergeNodeAction> transportMergeNodeActionProvider,
+                                   Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
+                                   Provider<TransportCloseContextNodeAction> transportCloseContextNodeActionProvider,
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
                                    Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
                                    Provider<TransportGetIndexTemplatesAction> transportGetIndexTemplatesActionProvider,
@@ -100,6 +104,8 @@ public class TransportActionProvider {
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
         this.transportCollectNodeActionProvider = transportCollectNodeActionProvider;
         this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
+        this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
+        this.transportCloseContextNodeActionProvider = transportCloseContextNodeActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
@@ -164,6 +170,14 @@ public class TransportActionProvider {
 
     public TransportMergeNodeAction transportMergeNodeAction() {
         return transportMergeNodeActionProvider.get();
+    }
+
+    public TransportFetchNodeAction transportFetchNodeAction() {
+        return transportFetchNodeActionProvider.get();
+    }
+
+    public TransportCloseContextNodeAction transportCloseContextNodeAction() {
+        return transportCloseContextNodeActionProvider.get();
     }
 
     public TransportPutMappingAction transportPutMappingAction() {

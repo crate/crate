@@ -22,10 +22,13 @@
 package io.crate.core.collections;
 
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterators;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+
 
 public class CollectionBucket implements Bucket {
 
@@ -55,6 +58,16 @@ public class CollectionBucket implements Bucket {
                 public Object get(int index) {
                     return current[index];
                 }
+
+                @Override
+                public Object[] materialize() {
+                    return Buckets.materialize(this);
+                }
+
+                @Override
+                public String toString() {
+                    return Arrays.toString(current);
+                }
             };
 
             @Override
@@ -64,5 +77,11 @@ public class CollectionBucket implements Bucket {
             }
         });
     }
-}
 
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("numRows", rows.size())
+                .toString();
+    }
+}

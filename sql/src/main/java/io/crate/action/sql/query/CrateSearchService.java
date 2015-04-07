@@ -23,7 +23,7 @@ package io.crate.action.sql.query;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Constants;
+import io.crate.analyze.OrderBy;
 import io.crate.core.StringUtils;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.ColumnIdent;
@@ -73,6 +73,7 @@ import java.util.Set;
 public class CrateSearchService extends InternalSearchService {
 
     private final Functions functions;
+
     private LuceneQueryBuilder luceneQueryBuilder;
 
     @Inject
@@ -99,8 +100,8 @@ public class CrateSearchService extends InternalSearchService {
                 cacheRecycler,
                 pageCacheRecycler,
                 bigArrays, dfsPhase, queryPhase, fetchPhase, indicesQueryCache);
-        this.functions = functions;
         this.luceneQueryBuilder = luceneQueryBuilder;
+        this.functions = functions;
     }
 
 
@@ -202,8 +203,6 @@ public class CrateSearchService extends InternalSearchService {
         }
         SearchContext context = new CrateSearchContext(
                 idGenerator.incrementAndGet(),
-                0, // TODO: is this necessary? seems not, wasn't set before
-                new String[] { Constants.DEFAULT_MAPPING_TYPE },
                 System.currentTimeMillis(),
                 searchShardTarget,
                 engineSearcher,
@@ -231,8 +230,11 @@ public class CrateSearchService extends InternalSearchService {
             OutputContext outputContext = new OutputContext(context, request.partitionBy());
             OUTPUTS_VISITOR.process(request.outputs(), outputContext);
 
+            CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
+                    new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(context.mapperService()));
+            SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
             context.sort(generateLuceneSort(
-                    context, request.orderBy(), request.reverseFlags(), request.nullsFirst()));
+                    context, request.orderBy(), request.reverseFlags(), request.nullsFirst(), sortSymbolVisitor));
 
             context.from(request.offset());
             context.size(request.limit());
@@ -309,18 +311,24 @@ public class CrateSearchService extends InternalSearchService {
     }
 
     @Nullable
-    private Sort generateLuceneSort(SearchContext context,
-                                    List<Symbol> symbols,
-                                    boolean[] reverseFlags,
-                                    Boolean[] nullsFirst) {
+    private static Sort generateLuceneSort(SearchContext context,
+                                           List<Symbol> symbols,
+                                           boolean[] reverseFlags,
+                                           Boolean[] nullsFirst,
+                                           SortSymbolVisitor sortSymbolVisitor) {
         if (symbols.isEmpty()) {
             return null;
         }
-        CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
-                new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(context.mapperService()));
-        SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
         SortField[] sortFields = sortSymbolVisitor.generateSortFields(symbols, context, reverseFlags, nullsFirst);
         return new Sort(sortFields);
+    }
+
+    @Nullable
+    public static Sort generateLuceneSort(SearchContext context,
+                                     OrderBy orderBy,
+                                     CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor) {
+        SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
+        return generateLuceneSort(context, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst(), sortSymbolVisitor);
     }
 
 }

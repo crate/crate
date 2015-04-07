@@ -22,12 +22,12 @@
 package io.crate.testing;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.*;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.where.DocKeys;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
-import io.crate.core.collections.Row;
-import io.crate.executor.Page;
+import io.crate.core.collections.*;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
@@ -66,10 +66,6 @@ public class TestingHelpers {
 
     public static String printedTable(Bucket result) {
         return printRows(Arrays.asList(Buckets.materialize(result)));
-    }
-
-    public static String printedPage(Page page) {
-        return printRows(page);
     }
 
     public static String printRows(Iterable<Object[]> rows) {
@@ -542,4 +538,76 @@ public class TestingHelpers {
     public static Matcher<Throwable> cause(Class<? extends Throwable> type, String expectedMessage) {
         return new CauseMatcher(type, expectedMessage);
     }
+
+    public static BucketPage createPage(List<Object[]> ... buckets) {
+        List<ListenableFuture<Bucket>> futures = new ArrayList<>();
+        for (List<Object[]> bucket : buckets) {
+            Bucket realBucket = new CollectionBucket(bucket);
+            futures.add(Futures.immediateFuture(realBucket));
+        }
+        return new BucketPage(futures);
+    }
+
+    public static Object[][] range(int from, int to) {
+        int size = to-from;
+        Object[][] result = new Object[to-from][];
+        for (int i = 0; i < size; i++) {
+            result[i] = new Object[] { i + from };
+        }
+        return result;
+    }
+
+    public static Matcher<Bucket> isSorted(int sortingPos) {
+        return isSorted(sortingPos, false, null);
+    }
+
+    public static Matcher<Bucket> isSorted(final int sortingPos, final boolean reverse, @Nullable final Boolean nullsFirst) {
+        Ordering ordering = Ordering.natural();
+        if (reverse) {
+            ordering = ordering.reverse();
+        }
+        if (nullsFirst != null && nullsFirst) {
+            ordering = ordering.nullsFirst();
+        } else {
+            ordering = ordering.nullsLast();
+        }
+        final Ordering ord = ordering;
+        return new TypeSafeDiagnosingMatcher<Bucket>() {
+
+
+            @Override
+            protected boolean matchesSafely(Bucket item, Description mismatchDescription) {
+                Object previous = null;
+                int i = 0;
+                for (Row row : item) {
+                    Object current = row.get(sortingPos);
+                    if (previous != null) {
+                        if (ord.compare(previous, current) > 0) {
+                            mismatchDescription
+                                    .appendText("element ").appendValue(current)
+                                    .appendText("at position ").appendValue(i)
+                                    .appendText("is bigger than previous element ")
+                                    .appendValue(previous);
+                            return false;
+                        }
+                    }
+                    i++;
+                    previous = current;
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("expected bucket to be sorted by position: ")
+                        .appendValue(sortingPos);
+                if (reverse) {
+                    description.appendText(" reverse ");
+                }
+                description.appendText("nulls ").appendText(nullsFirst != null && nullsFirst ? "first" : "last");
+            }
+        };
+    }
+
+
 }

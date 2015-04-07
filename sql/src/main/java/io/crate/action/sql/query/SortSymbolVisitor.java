@@ -45,7 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
+public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
 
     public static final Map<DataType, SortField.Type> LUCENE_TYPE_MAP = ImmutableMap.<DataType, SortField.Type>builder()
             .put(DataTypes.BOOLEAN, SortField.Type.STRING)

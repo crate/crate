@@ -79,7 +79,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return globalAggregates(table, table.tableRelation(),  table.querySpec().where());
+            return globalAggregates(table, table.tableRelation(),  table.querySpec().where(), context);
         }
 
         @Override
@@ -100,7 +100,8 @@ public class GlobalAggregateConsumer implements Consumer {
 
     public static PlannedAnalyzedRelation globalAggregates(QueriedTable table,
                                                            TableRelation tableRelation,
-                                                           WhereClause whereClause) {
+                                                           WhereClause whereClause,
+                                                           ConsumerContext context) {
         assert noGroupBy(table.querySpec().groupBy()) : "must not have group by clause for global aggregate queries";
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
@@ -116,6 +117,7 @@ public class GlobalAggregateConsumer implements Consumer {
 
         CollectNode collectNode = PlanNodeBuilder.collect(
                 tableRelation.tableInfo(),
+                context.plannerContext(),
                 whereClause,
                 splitPoints.leaves(),
                 ImmutableList.<Projection>of(ap)
@@ -147,7 +149,8 @@ public class GlobalAggregateConsumer implements Consumer {
                 table.querySpec().outputs()
                 );
         projections.add(topNProjection);
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode,
+                context.plannerContext());
         return new GlobalAggregate(collectNode, localMergeNode);
     }
 

@@ -19,6 +19,14 @@ dependencies {
     testCompile project(':testing')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
     testCompile 'com.h2database:h2:1.3.173'
+    testCompile ('org.powermock:powermock-module-junit4:1.6.1') {
+        exclude group: 'junit', module: 'junit'
+    }
+    testCompile ('org.powermock:powermock-api-mockito:1.6.1') {
+        exclude group: 'junit', module: 'junit'
+        exclude group: 'org.mockito', module: 'mockito-all'
+    }
+    testCompile 'org.javassist:javassist:3.19.0-GA'
 }
 
 buildscript {
@@ -31,12 +39,16 @@ test {
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }
 
+    testLogging.exceptionFormat = 'full'
     exclude('io/crate/benchmark/**')
 
     // allow to set the number of test forks from the CLI
     if (project.hasProperty('testForks')) {
         maxParallelForks = project.testForks as int
     }
+    // fix powermock issue - causing VerifyErrors being thrown
+    // see: https://issues.jboss.org/browse/JASSIST-228
+    jvmArgs '-XX:-UseSplitVerifier'
 
     jacoco {
         excludes = [

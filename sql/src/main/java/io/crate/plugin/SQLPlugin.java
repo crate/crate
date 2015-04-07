@@ -40,8 +40,10 @@ import io.crate.metadata.settings.Setting;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
+import io.crate.operation.collect.CollectContextService;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.CollectShardModule;
+import io.crate.operation.merge.MergeOperationModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
@@ -98,7 +100,9 @@ public class SQLPlugin extends AbstractPlugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> services() {
-        return ImmutableList.<Class<? extends LifecycleComponent>>of(SQLService.class);
+        return ImmutableList.<Class<? extends LifecycleComponent>>of(
+                SQLService.class,
+                CollectContextService.class);
     }
 
     @Override
@@ -110,6 +114,7 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(CircuitBreakerModule.class);
             modules.add(TransportExecutorModule.class);
             modules.add(CollectOperationModule.class);
+            modules.add(MergeOperationModule.class);
             modules.add(MetaDataModule.class);
             modules.add(MetaDataSysModule.class);
             modules.add(MetaDataDocModule.class);

@@ -21,14 +21,12 @@
 
 package io.crate.executor;
 
-import com.google.common.collect.Iterators;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
+import io.crate.core.collections.SingleRowBucket;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nullable;
-import java.util.Iterator;
 
 public class RowCountResult implements TaskResult {
 
@@ -42,17 +40,7 @@ public class RowCountResult implements TaskResult {
 
     private RowCountResult(long rowCount, Throwable throwable) {
         this.row = new Row1(rowCount);
-        this.rows = new Bucket(){
-            @Override
-            public Iterator<Row> iterator() {
-                return Iterators.<Row>singletonIterator(row);
-            }
-
-            @Override
-            public int size() {
-                return 1;
-            }
-        };
+        this.rows = new SingleRowBucket(row);
         this.error = throwable;
     }
 

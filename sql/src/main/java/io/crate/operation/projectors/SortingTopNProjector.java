@@ -45,7 +45,7 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
 
     private RowDownstreamHandle downstream;
 
-    private RowPriorityQueue pq;
+    private RowPriorityQueue<Object[]> pq;
     private final Comparator[] comparators;
     private final Input<?>[] inputs;
     private final CollectExpression<?>[] collectExpressions;
@@ -85,7 +85,7 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
         for (int i = 0; i < orderBy.length; i++) {
             int col = orderBy[i];
             boolean reverse = reverseFlags[i];
-            comparators[i] = new OrderingByPosition(col, reverse, nullsFirst[i]);
+            comparators[i] = OrderingByPosition.arrayOrdering(col, reverse, nullsFirst[i]);
         }
     }
 
@@ -94,7 +94,7 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
         super.startProjection();
         synchronized (this){
             if (pq==null) {
-                pq = new RowPriorityQueue(maxSize, comparators);
+                pq = new RowPriorityQueue<>(maxSize, comparators);
             }
         }
     }
@@ -120,7 +120,7 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
     }
 
     @Override
-    public void finishProjection() {
+    public Bucket doFinish() {
         Bucket bucket;
         if (pq != null){
             final int resultSize = Math.max(pq.size() - offset, 0);
@@ -138,9 +138,16 @@ public class SortingTopNProjector extends ResultProviderBase implements Projecto
                 downstream.setNextRow(row);
             }
             downstream.finish();
-        } else {
-            result.set(bucket);
         }
+        return bucket;
+    }
+
+    @Override
+    public Throwable doFail(Throwable t) {
+        if (downstream != null) {
+            downstream.fail(t);
+        }
+        return t;
     }
 
     @Override

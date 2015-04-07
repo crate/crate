@@ -78,7 +78,7 @@ public class UpdateConsumer implements Consumer {
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation plannedAnalyzedRelation = visitor.process(rootRelation, null);
+        PlannedAnalyzedRelation plannedAnalyzedRelation = visitor.process(rootRelation, context);
         if (plannedAnalyzedRelation == null) {
             return false;
         }
@@ -86,10 +86,10 @@ public class UpdateConsumer implements Consumer {
         return true;
     }
 
-    class Visitor extends AnalyzedRelationVisitor<Void, PlannedAnalyzedRelation> {
+    class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
-        public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, Void context) {
+        public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
             assert statement.sourceRelation() instanceof TableRelation : "sourceRelation of update statement must be a TableRelation";
             TableRelation tableRelation = (TableRelation) statement.sourceRelation();
             TableInfo tableInfo = tableRelation.tableInfo();
@@ -113,7 +113,7 @@ public class UpdateConsumer implements Consumer {
                     }
                     upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);
                 } else {
-                    childNodes.add(upsertByQuery(nestedAnalysis, tableInfo, whereClause));
+                    childNodes.add(upsertByQuery(nestedAnalysis, context, tableInfo, whereClause));
                 }
             }
             if (childNodes.size()>0){
@@ -124,6 +124,7 @@ public class UpdateConsumer implements Consumer {
         }
 
         private List<DQLPlanNode> upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
+                                                ConsumerContext consumerContext,
                                                 TableInfo tableInfo,
                                                 WhereClause whereClause) {
 
@@ -156,6 +157,7 @@ public class UpdateConsumer implements Consumer {
 
                 CollectNode collectNode = PlanNodeBuilder.collect(
                         tableInfo,
+                        consumerContext.plannerContext(),
                         whereClause,
                         ImmutableList.<Symbol>of(uidReference),
                         ImmutableList.<Projection>of(updateProjection),
@@ -163,7 +165,8 @@ public class UpdateConsumer implements Consumer {
                         Preference.PRIMARY.type()
                 );
                 MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                        ImmutableList.<Projection>of(localMergeProjection), collectNode);
+                        ImmutableList.<Projection>of(localMergeProjection), collectNode,
+                        consumerContext.plannerContext());
                 return ImmutableList.<DQLPlanNode>of(collectNode, mergeNode);
             } else {
                 return ImmutableList.of();
@@ -204,7 +207,7 @@ public class UpdateConsumer implements Consumer {
         }
 
         @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
             return null;
         }
     }

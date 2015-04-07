@@ -23,27 +23,29 @@ package io.crate.executor.task;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.BucketPage;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.TransportActionProvider;
-import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.PageConsumeListener;
+import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.merge.MergeOperation;
+import io.crate.operation.PageDownstreamFactory;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.node.dql.MergeNode;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -51,50 +53,36 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * merging rows locally on the handler
  */
 public class LocalMergeTask extends JobTask {
 
-    private static final ESLogger logger = Loggers.getLogger(LocalMergeTask.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(LocalMergeTask.class);
 
+    private final PageDownstreamFactory pageDownstreamFactory;
     private final MergeNode mergeNode;
     private final StatsTables statsTables;
-    private final ClusterService clusterService;
-    private final Settings settings;
-    private final TransportActionProvider transportActionProvider;
-    private final ImplementationSymbolVisitor symbolVisitor;
-    private final ThreadPool threadPool;
     private final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> resultList;
     private final CircuitBreaker circuitBreaker;
+    private final ThreadPool threadPool;
 
     private List<ListenableFuture<TaskResult>> upstreamResults;
 
-    /**
-     *
-     * @param implementationSymbolVisitor symbol visitor (on cluster level)
-     */
     public LocalMergeTask(UUID jobId,
-                          ThreadPool threadPool,
-                          ClusterService clusterService,
-                          Settings settings,
-                          TransportActionProvider transportActionProvider,
-                          ImplementationSymbolVisitor implementationSymbolVisitor,
+                          PageDownstreamFactory pageDownstreamFactory,
                           MergeNode mergeNode,
                           StatsTables statsTables,
-                          CircuitBreaker circuitBreaker) {
+                          CircuitBreaker circuitBreaker,
+                          ThreadPool threadPool) {
         super(jobId);
-        this.threadPool = threadPool;
-        this.clusterService = clusterService;
-        this.settings = settings;
-        this.transportActionProvider = transportActionProvider;
-        this.symbolVisitor = implementationSymbolVisitor;
+        this.pageDownstreamFactory = pageDownstreamFactory;
         this.mergeNode = mergeNode;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
+        this.threadPool = threadPool;
         this.result = SettableFuture.create();
         this.resultList = Arrays.<ListenableFuture<TaskResult>>asList(this.result);
     }
@@ -116,13 +104,18 @@ public class LocalMergeTask extends JobTask {
         String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId.toString());
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        final MergeOperation mergeOperation = new MergeOperation(
-                clusterService, settings, transportActionProvider, symbolVisitor,
-                mergeNode, ramAccountingContext);
-        final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
-        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
+        CollectingProjector collectingProjector = new CollectingProjector();
+        final PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
+                mergeNode,
+                collectingProjector,
+                ramAccountingContext,
+                Optional.of(threadPool.executor(ThreadPool.Names.GENERIC))
+        );
+        collectingProjector.startProjection();
+        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.id());
 
-        Futures.addCallback(mergeOperation.result(), new FutureCallback<Bucket>() {
+        // callback for projected result, closing all the stuff
+        Futures.addCallback(collectingProjector.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket rows) {
                 ramAccountingContext.close();
@@ -133,45 +126,45 @@ public class LocalMergeTask extends JobTask {
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 ramAccountingContext.close();
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
-                        ramAccountingContext.totalBytes());
+                statsTables.operationFinished(operationId, Exceptions.messageOf(t), ramAccountingContext.totalBytes());
                 result.setException(t);
             }
         });
-
-        for (final ListenableFuture<TaskResult> upstreamResult : upstreamResults) {
-            Futures.addCallback(upstreamResult, new FutureCallback<TaskResult>() {
-                @Override
-                public void onSuccess(@Nullable TaskResult rows) {
-                    assert rows != null;
-                    traceLogResult(rows);
-                    boolean shouldContinue;
-
-                    try {
-                        shouldContinue = mergeOperation.addRows(rows.rows());
-
-                        if (countdown.decrementAndGet() == 0 || !shouldContinue) {
-                            mergeOperation.finished();
-                        }
-                    } catch (Throwable ex) {
-                        onFailure(ex);
-                        logger.error("Failed to add rows", ex);
+        // transform taskresults into bucket futures
+        BucketPage page = new BucketPage(Lists.transform(upstreamResults, new Function<ListenableFuture<TaskResult>, ListenableFuture<Bucket>>() {
+            @Nullable
+            @Override
+            public ListenableFuture<Bucket> apply(@Nullable ListenableFuture<TaskResult> future) {
+                assert future != null : "taskresult future is null";
+                return Futures.transform(future, new Function<TaskResult, Bucket>() {
+                    @Nullable
+                    @Override
+                    public Bucket apply(@Nullable TaskResult taskResult) {
+                        assert taskResult != null : "taskresult is null";
+                        traceLogResult(taskResult);
+                        return taskResult.rows();
                     }
-                }
+                });
+            }
+        }));
+        pageDownstream.nextPage(page, new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                // currently only one page
+                LOGGER.trace("{} need more", mergeNode.jobId());
+                this.finish();
+            }
 
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    ramAccountingContext.close();
-                    statsTables.operationFinished(operationId, Exceptions.messageOf(t),
-                            ramAccountingContext.totalBytes());
-                    result.setException(t);
-                }
-            }, threadPool.executor(ThreadPool.Names.GENERIC));
-        }
+            @Override
+            public void finish() {
+                LOGGER.trace("{} page finished", mergeNode.jobId());
+                pageDownstream.finish();
+            }
+        });
     }
 
     private void traceLogResult(TaskResult taskResult) {
-        if (logger.isTraceEnabled()) {
+        if (LOGGER.isTraceEnabled()) {
             String result = Joiner.on(", ").join(Collections2.transform(Arrays.asList(taskResult),
                 new Function<TaskResult, String>() {
                     @Nullable
@@ -185,7 +178,7 @@ public class LocalMergeTask extends JobTask {
                     }
                 })
             );
-            logger.trace(String.format("received result: %s", result));
+            LOGGER.trace(String.format("received result: %s", result));
         }
     }
 

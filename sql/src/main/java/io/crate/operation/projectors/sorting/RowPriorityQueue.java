@@ -25,7 +25,7 @@ import org.apache.lucene.util.PriorityQueue;
 
 import java.util.Comparator;
 
-public class RowPriorityQueue extends PriorityQueue<Object[]> {
+public class RowPriorityQueue<T> extends PriorityQueue<T> {
 
     private final Comparator[] comparators;
 
@@ -35,7 +35,7 @@ public class RowPriorityQueue extends PriorityQueue<Object[]> {
     }
 
     @Override
-    protected boolean lessThan(Object[] a, Object[] b) {
+    public boolean lessThan(T a, T b) {
         for (Comparator c : comparators) {
             //noinspection unchecked
             int compared = c.compare(a, b);

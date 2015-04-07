@@ -31,6 +31,7 @@ import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributedFailureRequest;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
@@ -105,7 +106,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Mu
         }
 
         @Override
-        protected void onAllShardsFinished() {
+        public void onAllShardsFinished() {
             Throwable throwable = lastException.get();
             if (throwable != null) {
                 setException(throwable);
@@ -159,7 +160,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Mu
 
                         @Override
                         public void handleException(TransportException exp) {
-                            Throwable cause = exp.getCause();
+                            Throwable cause = Exceptions.unwrap(exp);
                             if (cause instanceof EsRejectedExecutionException) {
                                 sendFailure(request.contextId(), node);
                             } else {
@@ -234,10 +235,11 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Mu
                                         TransportService transportService,
                                         PlanNodeStreamerVisitor streamerVisitor,
                                         CollectServiceResolver collectServiceResolver,
+                                        CollectContextService collectContextService,
                                         CrateCircuitBreakerService breakerService) {
         super(clusterService, settings, transportActionProvider,
                 functions, referenceResolver, indicesService,
-                threadPool, collectServiceResolver, streamerVisitor);
+                threadPool, collectServiceResolver, streamerVisitor, collectContextService);
         this.transportService = transportService;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
     }

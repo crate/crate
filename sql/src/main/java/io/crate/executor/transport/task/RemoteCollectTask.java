@@ -32,19 +32,22 @@ import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.NodeCollectRequest;
-import io.crate.executor.transport.NodeCollectResponse;
-import io.crate.executor.transport.TransportCollectNodeAction;
+import io.crate.executor.transport.*;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RemoteCollectTask extends JobTask {
 
@@ -52,18 +55,25 @@ public class RemoteCollectTask extends JobTask {
     private final List<ListenableFuture<TaskResult>> result;
     private final String[] nodeIds;
     private final TransportCollectNodeAction transportCollectNodeAction;
+    private final TransportCloseContextNodeAction transportCloseContextNodeAction;
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
+    private final AtomicInteger nodeResponses = new AtomicInteger(0);
+    private final AtomicBoolean someNodeHasFailures = new AtomicBoolean(false);
+
+    private static final ESLogger LOGGER = Loggers.getLogger(RemoteCollectTask.class);
 
     public RemoteCollectTask(UUID jobId,
                              CollectNode collectNode,
                              TransportCollectNodeAction transportCollectNodeAction,
+                             TransportCloseContextNodeAction transportCloseContextNodeAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                              StatsTables statsTables, CircuitBreaker circuitBreaker) {
         super(jobId);
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
+        this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
@@ -89,11 +99,12 @@ public class RemoteCollectTask extends JobTask {
         for (int i = 0; i < nodeIds.length; i++) {
             final int resultIdx = i;
 
-            if (nodeIds[i] == null) {
+            if (nodeIds[i].equals(TableInfo.NULL_NODE_ID)) {
                 handlerSideCollect(resultIdx);
                 continue;
             }
 
+            nodeResponses.incrementAndGet();
             transportCollectNodeAction.execute(
                     nodeIds[i],
                     request,
@@ -101,11 +112,18 @@ public class RemoteCollectTask extends JobTask {
                         @Override
                         public void onResponse(NodeCollectResponse response) {
                             ((SettableFuture<TaskResult>) result.get(resultIdx)).set(new QueryResult(response.rows()));
+                            if (nodeResponses.decrementAndGet() == 0 && someNodeHasFailures.get()) {
+                                freeAllContexts();
+                            }
                         }
 
                         @Override
                         public void onFailure(Throwable e) {
                             ((SettableFuture<TaskResult>) result.get(resultIdx)).setException(e);
+                            someNodeHasFailures.set(true);
+                            if (nodeResponses.decrementAndGet() == 0) {
+                                freeAllContexts();
+                            }
                         }
                     }
             );
@@ -153,5 +171,24 @@ public class RemoteCollectTask extends JobTask {
     @Override
     public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("RemoteCollectTask does not support upstream results");
+    }
+
+    public void freeAllContexts() {
+        if (collectNode.keepContextForFetcher()) {
+            LOGGER.trace("closing job context {} on {} nodes", collectNode.jobId().get(), nodeIds.length);
+            for (final String nodeId : nodeIds) {
+                transportCloseContextNodeAction.execute(nodeId, new NodeCloseContextRequest(collectNode.jobId().get()), new ActionListener<NodeCloseContextResponse>() {
+                    @Override
+                    public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        LOGGER.warn("Closing job context {} failed on node {} with: {}", collectNode.jobId().get(), nodeId, e.getMessage());
+                    }
+                });
+            }
+
+        }
     }
 }

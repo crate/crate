@@ -21,31 +21,33 @@
 
 package io.crate.core.collections;
 
+import com.google.common.base.MoreObjects;
+
 import java.util.Iterator;
 
 public class ArrayBucket implements Bucket {
 
     private final Object[][] rows;
-    private final int rowSize;
+    private final int numColumns;
 
 
     /**
-     * Cosntructs a new ArrayBucket with rows of the given size, regardless what length of the row arrays is.
+     * Cosntructs a new ArrayBucket with rows of the given size, regardless of what length the row arrays is.
      *
      * @param rows    the backing array of this bucket
-     * @param rowSize the size of rows emitted from this bucket
+     * @param numColumns the size of rows emitted from this bucket
      */
-    public ArrayBucket(Object[][] rows, int rowSize) {
+    public ArrayBucket(Object[][] rows, int numColumns) {
         this.rows = rows;
-        this.rowSize = rowSize;
+        this.numColumns = numColumns;
     }
 
     public ArrayBucket(Object[][] rows) {
         this.rows = rows;
         if (rows.length > 0) {
-            rowSize = rows[0].length;
+            numColumns = rows[0].length;
         } else {
-            rowSize = -1;
+            numColumns = -1;
         }
     }
 
@@ -62,12 +64,17 @@ public class ArrayBucket implements Bucket {
             final Row row = new Row() {
                 @Override
                 public int size() {
-                    return rowSize;
+                    return numColumns;
                 }
 
                 @Override
                 public Object get(int index) {
                     return current[index];
+                }
+
+                @Override
+                public Object[] materialize() {
+                    return Buckets.materialize(this);
                 }
             };
 
@@ -87,5 +94,13 @@ public class ArrayBucket implements Bucket {
 
             }
         };
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("numRows", size())
+                .add("numColumns", numColumns)
+                .toString();
     }
 }

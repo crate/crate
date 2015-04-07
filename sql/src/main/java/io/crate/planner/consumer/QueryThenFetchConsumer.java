@@ -21,20 +21,47 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.ScoreReferenceDetector;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.projectors.FetchProjector;
+import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.MergeProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.planner.projection.builder.SplitPoints;
+import io.crate.planner.symbol.*;
+import io.crate.types.DataTypes;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class QueryThenFetchConsumer implements Consumer {
 
     private static final Visitor VISITOR = new Visitor();
+    private static final OutputOrderReferenceCollector OUTPUT_ORDER_REFERENCE_COLLECTOR = new OutputOrderReferenceCollector();
+    private static final ScoreReferenceDetector SCORE_REFERENCE_DETECTOR = new ScoreReferenceDetector();
+    private static final ColumnIdent DOC_ID_COLUMN_IDENT = new ColumnIdent(DocSysColumns.DOCID.name());
+    private static final InputColumn DEFAULT_DOC_ID_INPUT_COLUMN = new InputColumn(0, DataTypes.STRING);
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
@@ -67,35 +94,184 @@ public class QueryThenFetchConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(table);
             }
 
+            boolean outputsAreAllOrdered = false;
+            List<Projection> collectProjections = new ArrayList<>();
+            List<Projection> mergeProjections = new ArrayList<>();
+            List<Symbol> collectSymbols = new ArrayList<>();
+            List<Symbol> outputSymbols = new ArrayList<>();
+            ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
+
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+
+            // MAP/COLLECT related
             OrderBy orderBy = table.querySpec().orderBy();
-            if (orderBy == null){
-                return new QueryThenFetchNode(
-                        tableInfo.getRouting(table.querySpec().where(), null),
-                        table.querySpec().outputs(),
-                        null, null, null,
-                        table.querySpec().limit(),
-                        table.querySpec().offset(),
-                        table.querySpec().where(),
-                        tableInfo.partitionedByColumns()
-                );
-            } else {
+            if (orderBy != null) {
                 table.tableRelation().validateOrderBy(orderBy);
-                return new QueryThenFetchNode(
-                        tableInfo.getRouting(table.querySpec().where(), null),
-                        table.querySpec().outputs(),
-                        orderBy.orderBySymbols(),
-                        orderBy.reverseFlags(),
-                        orderBy.nullsFirst(),
-                        table.querySpec().limit(),
-                        table.querySpec().offset(),
-                        table.querySpec().where(),
-                        tableInfo.partitionedByColumns()
-                );
+
+                // detect if all output columns are used in orderBy,
+                // if so, no fetch projection is needed
+                // TODO: if no dedicated fetchPhase is needed we should stick to QAF instead
+                OutputOrderReferenceContext outputOrderContext =
+                        OUTPUT_ORDER_REFERENCE_COLLECTOR.collect(splitPoints.leaves());
+                outputOrderContext.collectOrderBy = true;
+                OUTPUT_ORDER_REFERENCE_COLLECTOR.collect(orderBy.orderBySymbols(), outputOrderContext);
+                outputsAreAllOrdered = outputOrderContext.outputsAreAllOrdered();
+                if (outputsAreAllOrdered) {
+                    collectSymbols = splitPoints.toCollect();
+                } else {
+                    collectSymbols.addAll(orderBy.orderBySymbols());
+                }
+
             }
+            if (!outputsAreAllOrdered) {
+                collectSymbols.add(0, new Reference(docIdRefInfo));
+                for (Symbol symbol : table.querySpec().outputs()) {
+                    // _score can only be resolved during collect
+                    if (SCORE_REFERENCE_DETECTOR.detect(symbol) && !collectSymbols.contains(symbol)) {
+                        collectSymbols.add(symbol);
+                    }
+                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
+                }
+            }
+            if (orderBy != null) {
+                MergeProjection mergeProjection = projectionBuilder.mergeProjection(
+                        collectSymbols,
+                        orderBy);
+                collectProjections.add(mergeProjection);
+            }
+
+            CollectNode collectNode = PlanNodeBuilder.collect(
+                    tableInfo,
+                    context.plannerContext(),
+                    table.querySpec().where(),
+                    collectSymbols,
+                    ImmutableList.<Projection>of(),
+                    orderBy,
+                    MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset()
+            );
+            collectNode.keepContextForFetcher(!outputsAreAllOrdered);
+            collectNode.projections(collectProjections);
+            // MAP/COLLECT related END
+
+            // HANDLER/MERGE/FETCH related
+            TopNProjection topNProjection;
+            if (!outputsAreAllOrdered) {
+                topNProjection = projectionBuilder.topNProjection(
+                        collectSymbols,
+                        null,
+                        table.querySpec().offset(),
+                        table.querySpec().limit(),
+                        null);
+                mergeProjections.add(topNProjection);
+
+                // by default don't split fetch requests into pages/chunks,
+                // only if record set is higher than default limit
+                int bulkSize = FetchProjector.NO_BULK_REQUESTS;
+                if (topNProjection.limit() > Constants.DEFAULT_SELECT_LIMIT) {
+                    bulkSize = Constants.DEFAULT_SELECT_LIMIT;
+                }
+                FetchProjection fetchProjection = new FetchProjection(
+                        DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
+                        tableInfo.partitionedByColumns(),
+                        collectNode.executionNodes(),
+                        bulkSize,
+                        table.querySpec().isLimited());
+                mergeProjections.add(fetchProjection);
+            } else {
+                topNProjection = projectionBuilder.topNProjection(
+                        collectSymbols,
+                        null,
+                        table.querySpec().offset(),
+                        table.querySpec().limit(),
+                        table.querySpec().outputs());
+                mergeProjections.add(topNProjection);
+            }
+
+            MergeNode localMergeNode;
+            if (orderBy != null) {
+                localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                        mergeProjections,
+                        orderBy,
+                        collectSymbols,
+                        null,
+                        collectNode,
+                        context.plannerContext());
+            } else {
+                localMergeNode = PlanNodeBuilder.localMerge(
+                        mergeProjections,
+                        collectNode,
+                        context.plannerContext());
+            }
+            // HANDLER/MERGE/FETCH related END
+
+            return new QueryThenFetch(collectNode, localMergeNode);
         }
 
         @Override
         protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+            return null;
+        }
+    }
+
+    static class OutputOrderReferenceContext {
+
+        private List<Reference> outputReferences = new ArrayList<>();
+        private List<Reference> orderByReferences = new ArrayList<>();
+        public boolean collectOrderBy = false;
+
+        public void addReference(Reference reference) {
+            if (collectOrderBy) {
+                orderByReferences.add(reference);
+            } else {
+                outputReferences.add(reference);
+            }
+        }
+
+        public boolean outputsAreAllOrdered() {
+            return orderByReferences.containsAll(outputReferences);
+        }
+
+    }
+
+    static class OutputOrderReferenceCollector extends SymbolVisitor<OutputOrderReferenceContext, Void> {
+
+        public OutputOrderReferenceContext collect(List<Symbol> symbols) {
+            OutputOrderReferenceContext context = new OutputOrderReferenceContext();
+            collect(symbols, context);
+            return context;
+        }
+
+        public void collect(List<Symbol> symbols, OutputOrderReferenceContext context) {
+            for (Symbol symbol : symbols) {
+                process(symbol, context);
+            }
+        }
+
+        @Override
+        public Void visitAggregation(Aggregation aggregation, OutputOrderReferenceContext context) {
+            for (Symbol symbol : aggregation.inputs()) {
+                process(symbol, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, OutputOrderReferenceContext context) {
+            context.addReference(symbol);
+            return null;
+        }
+
+        @Override
+        public Void visitDynamicReference(DynamicReference symbol, OutputOrderReferenceContext context) {
+            return visitReference(symbol, context);
+        }
+
+        @Override
+        public Void visitFunction(Function function, OutputOrderReferenceContext context) {
+            for (Symbol symbol : function.arguments()) {
+                process(symbol, context);
+            }
             return null;
         }
     }

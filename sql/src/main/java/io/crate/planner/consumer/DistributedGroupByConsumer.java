@@ -102,6 +102,7 @@ public class DistributedGroupByConsumer implements Consumer {
 
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                     tableInfo,
+                    context.consumerContext.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
                     Lists.newArrayList(routing.nodes()),
@@ -166,7 +167,8 @@ public class DistributedGroupByConsumer implements Consumer {
                         table.querySpec().offset(),
                         table.querySpec().limit(),
                         null);
-                localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
+                localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN),
+                        mergeNode, context.consumerContext.plannerContext());
             }
             context.result = true;
             return new DistributedGroupBy(

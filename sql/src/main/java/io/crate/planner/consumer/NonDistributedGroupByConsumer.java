@@ -129,6 +129,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableInfo,
+                    context.consumerContext.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
                     ImmutableList.<Projection>of(groupProjection)
@@ -186,7 +187,8 @@ public class NonDistributedGroupByConsumer implements Consumer {
                         table.querySpec().outputs()
                 ));
             }
-            MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode);
+            MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode,
+                    context.consumerContext.plannerContext());
             return new NonDistributedGroupBy(collectNode, localMergeNode);
         }
     }

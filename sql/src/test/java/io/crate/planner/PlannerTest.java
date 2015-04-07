@@ -1,12 +1,11 @@
 package io.crate.planner;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
@@ -24,6 +23,7 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.projectors.FetchProjector;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
@@ -47,6 +47,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
@@ -64,25 +65,25 @@ public class PlannerTest extends CrateUnitTest {
 
     private Analyzer analyzer;
     private Planner planner;
-    Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
-            .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
-            .build());
+    Routing shardRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
+            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
+            .map());
 
-    Routing nodesRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
-            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
-            .build());
+    Routing nodesRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+            .map());
 
-    final Routing partedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.parted.04232chj", ImmutableSet.of(1, 2)))
-            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
-            .build());
+    final Routing partedRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
+            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+            .map());
 
-    final Routing clusteredPartedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", ImmutableSet.of(1, 2)))
-            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", ImmutableSet.of(3)))
-            .build());
+    final Routing clusteredPartedRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g",  Arrays.asList(1, 2)).map())
+            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g",  Arrays.asList(3)).map())
+            .map());
 
 
     class TestModule extends MetaDataModule {
@@ -475,63 +476,166 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testESSearchPlan() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("select name from users where name = 'x' order by id limit 10");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
-        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
+    public void testQueryThenFetchPlan() throws Exception {
+        Plan plan = plan("select name from users where name = 'x' order by id limit 10");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertFalse(collectNode.isPartitioned());
 
-        assertThat(searchNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
-        assertTrue(searchNode.whereClause().hasQuery());
-        assertThat(searchNode.partitionBy().size(), is(0));
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
 
-        assertFalse(iterator.hasNext());
+        assertThat(resultNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode) resultNode;
+        assertTrue(mergeNode.finalProjection().isPresent());
+
+        Projection lastProjection = mergeNode.finalProjection().get();
+        assertThat(lastProjection, instanceOf(FetchProjection.class));
+        FetchProjection fetchProjection = (FetchProjection) lastProjection;
+        assertThat(fetchProjection.outputs().size(), is(1));
+        assertThat(fetchProjection.outputs().get(0), isReference("_doc['name']"));
     }
 
     @Test
-    public void testESSearchPlanPartitioned() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
-        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
+    public void testQueryThenFetchPlanNoFetch() throws Exception {
+        // testing that a fetch projection is not added if all output symbols are included
+        // at the orderBy symbols
+        Plan plan = plan("select name from users where name = 'x' order by name limit 10");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertFalse(collectNode.isPartitioned());
+
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
+
+        assertThat(resultNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode) resultNode;
+        assertTrue(mergeNode.finalProjection().isPresent());
+
+        Projection lastProjection = mergeNode.finalProjection().get();
+        assertThat(lastProjection, instanceOf(TopNProjection.class));
+        TopNProjection topNProjection = (TopNProjection) lastProjection;
+        assertThat(topNProjection.outputs().size(), is(1));
+    }
+
+    @Test
+    public void testQueryThenFetchPlanDefaultLimit() throws Exception {
+        QueryThenFetch plan = (QueryThenFetch)plan("select name from users");
+        CollectNode collectNode = plan.collectNode();
+        assertThat(collectNode.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+
+        MergeNode mergeNode = plan.mergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
+        TopNProjection topN = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(0));
+        assertNull(topN.orderBy());
+
+        FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
+        assertThat(fetchProjection.bulkSize(), is(FetchProjector.NO_BULK_REQUESTS));
+
+        // with offset
+        plan = (QueryThenFetch)plan("select name from users offset 20");
+        collectNode = plan.collectNode();
+        assertThat(collectNode.limit(), is(Constants.DEFAULT_SELECT_LIMIT + 20));
+
+        mergeNode = plan.mergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
+        topN = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(20));
+        assertNull(topN.orderBy());
+
+        fetchProjection = (FetchProjection)mergeNode.projections().get(1);
+        assertThat(fetchProjection.bulkSize(), is(FetchProjector.NO_BULK_REQUESTS));
+    }
+
+    @Test
+    public void testQueryThenFetchPlanHighLimit() throws Exception {
+        QueryThenFetch plan = (QueryThenFetch)plan("select name from users limit 100000");
+        CollectNode collectNode = plan.collectNode();
+        assertThat(collectNode.limit(), is(100_000));
+
+        MergeNode mergeNode = plan.mergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
+        TopNProjection topN = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(topN.limit(), is(100_000));
+        assertThat(topN.offset(), is(0));
+        assertNull(topN.orderBy());
+
+        FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
+        assertThat(fetchProjection.bulkSize(), is(Constants.DEFAULT_SELECT_LIMIT));
+
+        // with offset
+        plan = (QueryThenFetch)plan("select name from users limit 100000 offset 20");
+        collectNode = plan.collectNode();
+        assertThat(collectNode.limit(), is(100_000 + 20));
+
+        mergeNode = plan.mergeNode();
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
+        topN = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(topN.limit(), is(100_000));
+        assertThat(topN.offset(), is(20));
+        assertNull(topN.orderBy());
+
+        fetchProjection = (FetchProjection)mergeNode.projections().get(1);
+        assertThat(fetchProjection.bulkSize(), is(Constants.DEFAULT_SELECT_LIMIT));
+    }
+
+    @Test
+    public void testQueryThenFetchPlanPartitioned() throws Exception {
+        Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
 
         List<String> indices = new ArrayList<>();
-        Map<String, Map<String, Set<Integer>>> locations = searchNode.routing().locations();
-        for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
+        Map<String, Map<String, List<Integer>>> locations = collectNode.routing().locations();
+        for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices, Matchers.contains(
                 new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()));
-        assertThat(searchNode.outputTypes().size(), is(3));
-        assertTrue(searchNode.whereClause().hasQuery());
-        assertThat(searchNode.partitionBy().size(), is(1));
-        assertThat(searchNode.partitionBy().get(0).ident().columnIdent().fqn(), is("date"));
 
-        assertFalse(iterator.hasNext());
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertTrue(collectNode.isPartitioned());
+
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(3));
     }
 
     @Test
-    public void testESSearchPlanFunction() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
-        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
+    public void testQueryThenFetchPlanFunction() throws Exception {
+        Plan plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
 
-        assertThat(searchNode.outputs().size(), is(2));
-        assertThat(searchNode.outputs().get(0), isFunction("format"));
-        assertThat(searchNode.outputs().get(1), isReference("name"));
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertFalse(collectNode.isPartitioned());
 
-        assertThat(searchNode.outputTypes().size(), is(2));
-        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
-        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(1));
-        assertTrue(searchNode.whereClause().hasQuery());
-        assertThat(searchNode.partitionBy().size(), is(0));
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(2));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(1));
 
-        assertThat(iterator.hasNext(), is(false));
+        assertThat(resultNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode) resultNode;
+        assertTrue(mergeNode.finalProjection().isPresent());
+
+        Projection lastProjection = mergeNode.finalProjection().get();
+        assertThat(lastProjection, instanceOf(FetchProjection.class));
+        FetchProjection fetchProjection = (FetchProjection) lastProjection;
+        assertThat(fetchProjection.outputs().size(), is(2));
+        assertThat(fetchProjection.outputs().get(0), isFunction("format"));
+        assertThat(fetchProjection.outputs().get(1), isReference("_doc['name']"));
+
     }
 
     @Test
@@ -637,6 +741,50 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
+    }
+
+    @Test
+    public void testNonDistributedGroupByOnClusteredColumnSorted() throws Exception {
+        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+                "select count(*), id from users group by id order by 1 desc nulls last limit 20");
+        CollectNode collectNode = planNode.collectNode();
+        assertNull(collectNode.downStreamNodes());
+        assertThat(collectNode.projections().size(), is(2));
+        assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
+
+        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        MergeNode mergeNode = planNode.localMergeNode();
+        assertThat(mergeNode.projections().size(), is(1));
+        TopNProjection projection = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(projection.orderBy(), is(nullValue()));
+        assertThat(mergeNode.sortedInputOutput(), is(true));
+        assertThat(mergeNode.orderByIndices().length, is(1));
+        assertThat(mergeNode.orderByIndices()[0], is(0));
+        assertThat(mergeNode.reverseFlags()[0], is(true));
+        assertThat(mergeNode.nullsFirst()[0], is(false));
+    }
+
+    @Test
+    public void testNonDistributedGroupByOnClusteredColumnSortedScalar() throws Exception {
+        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+                "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
+        CollectNode collectNode = planNode.collectNode();
+        assertNull(collectNode.downStreamNodes());
+        assertThat(collectNode.projections().size(), is(2));
+        assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
+
+        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        MergeNode mergeNode = planNode.localMergeNode();
+        assertThat(mergeNode.projections().size(), is(1));
+        TopNProjection projection = (TopNProjection)mergeNode.projections().get(0);
+        assertThat(projection.orderBy(), is(nullValue()));
+        assertThat(mergeNode.sortedInputOutput(), is(true));
+        assertThat(mergeNode.orderByIndices().length, is(1));
+        assertThat(mergeNode.orderByIndices()[0], is(0));
+        assertThat(mergeNode.reverseFlags()[0], is(false));
+        assertThat(mergeNode.nullsFirst()[0], is(nullValue()));
     }
 
     @Test
@@ -1171,17 +1319,22 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test (expected = UnsupportedFeatureException.class)
     public void testInsertFromSubQueryWithLimit() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
+        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        assertTrue(collectNode.whereClause().hasQuery());
+        assertFalse(collectNode.isPartitioned());
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
+        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        assertThat(resultNode.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
 
-        assertThat(localMergeNode.projections().size(), is(2));
-        assertThat(localMergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(resultNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode) resultNode;
+        assertTrue(mergeNode.finalProjection().isPresent());
+
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
     }
 
     @Test (expected = UnsupportedFeatureException.class)
@@ -1628,7 +1781,7 @@ public class PlannerTest extends CrateUnitTest {
         // only one partition hit
         Plan optimizedPlan = plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
         assertThat(optimizedPlan, instanceOf(NonDistributedGroupBy.class));
-        NonDistributedGroupBy optimizedGroupBy = (NonDistributedGroupBy)optimizedPlan;
+        NonDistributedGroupBy optimizedGroupBy = (NonDistributedGroupBy) optimizedPlan;
 
         assertThat(optimizedGroupBy.collectNode().isPartitioned(), is(true));
         assertThat(optimizedGroupBy.collectNode().projections().size(), is(1));
@@ -1658,6 +1811,38 @@ public class PlannerTest extends CrateUnitTest {
                 .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("12345"))).stringValue())
                 .build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("custom..partitioned.table.04130", "custom..partitioned.table.04332chj6gqg"));
+    }
 
+    @Test
+    public void testAllocatedJobSearchContextIds() throws Exception {
+        CollectNode collectNode = new CollectNode("collect", shardRouting);
+        int shardNum = collectNode.routing().numShards();
+
+        Planner.Context plannerContext = new Planner.Context();
+        plannerContext.allocateJobSearchContextIds(collectNode.routing());
+
+        java.lang.reflect.Field f = plannerContext.getClass().getDeclaredField("jobSearchContextIdBaseSeq");
+        f.setAccessible(true);
+        int jobSearchContextIdBaseSeq = (Integer)f.get(plannerContext);
+
+        assertThat(jobSearchContextIdBaseSeq, is(shardNum));
+        assertThat(collectNode.routing().jobSearchContextIdBase(), is(jobSearchContextIdBaseSeq-shardNum));
+
+        int idx = 0;
+        for (Map.Entry<String, Map<String, List<Integer>>> locations : collectNode.routing().locations().entrySet()) {
+            String nodeId = locations.getKey();
+            for (Map.Entry<String, List<Integer>> entry : locations.getValue().entrySet()) {
+                for (Integer shardId : entry.getValue()) {
+                    assertThat(plannerContext.shardId(idx), is(new ShardId(entry.getKey(), shardId)));
+                    assertThat(plannerContext.nodeId(idx), is(nodeId));
+                    idx++;
+                }
+            }
+        }
+
+        // jobSearchContextIdBase must only set once on a Routing instance
+        int jobSearchContextIdBase = collectNode.routing().jobSearchContextIdBase();
+        plannerContext.allocateJobSearchContextIds(collectNode.routing());
+        assertThat(collectNode.routing().jobSearchContextIdBase(), is(jobSearchContextIdBase));
     }
 }

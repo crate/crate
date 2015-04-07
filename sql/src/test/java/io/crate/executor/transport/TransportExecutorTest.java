@@ -23,8 +23,10 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
@@ -32,21 +34,21 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
-import io.crate.executor.transport.task.elasticsearch.QueryThenFetchTask;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
-import io.crate.planner.IterablePlan;
-import io.crate.planner.Plan;
-import io.crate.planner.RowGranularity;
+import io.crate.planner.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -55,9 +57,7 @@ import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.search.SearchHits;
@@ -69,9 +69,7 @@ import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
@@ -107,10 +105,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     @Test
     public void testRemoteCollectTask() throws Exception {
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(2);
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
 
         for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
-            locations.put(discoveryNode.id(), new HashMap<String, Set<Integer>>());
+            locations.put(discoveryNode.id(), new TreeMap<String, List<Integer>>());
         }
 
         Routing routing = new Routing(locations);
@@ -195,26 +193,154 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testESSearchTask() throws Exception {
+    public void testQTFTask() throws Exception {
+        // select id, name from characters;
         setup.setUpCharacters();
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        ReferenceInfo docIdRefInfo = characters.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
+        List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
+        List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
 
+        Planner.Context ctx = new Planner.Context();
+
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                characters,
+                ctx,
+                WhereClause.MATCH_ALL,
+                collectSymbols,
+                ImmutableList.<Projection>of(),
+                null,
+                Constants.DEFAULT_SELECT_LIMIT
+        );
+        collectNode.keepContextForFetcher(true);
+
+        FetchProjection fetchProjection = new FetchProjection(
+                new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
+                characters.partitionedByColumns(),
+                collectNode.executionNodes(),
+                5);
+
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(
+                ImmutableList.<Projection>of(fetchProjection),
+                collectNode,
+                ctx);
+
+        Plan plan = new QueryThenFetch(collectNode, localMergeNode);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().size(), is(2));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Bucket rows = result.get(0).get().rows();
+        assertThat(rows, containsInAnyOrder(
+                isRow(1, "Arthur"),
+                isRow(4, "Arthur"),
+                isRow(2, "Ford"),
+                isRow(3, "Trillian")
+        ));
+    }
+
+    @Test
+    public void testQTFTaskWithFilter() throws Exception {
+        // select id, name from characters where name = 'Ford';
+        setup.setUpCharacters();
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        ReferenceInfo docIdRefInfo = characters.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
+        List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
+        List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
+
+        Function whereClause = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
+
+        Planner.Context ctx = new Planner.Context();
+
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                characters,
+                ctx,
+                new WhereClause(whereClause),
+                collectSymbols,
+                ImmutableList.<Projection>of(),
+                null,
+                Constants.DEFAULT_SELECT_LIMIT
+        );
+        collectNode.keepContextForFetcher(true);
+
+        FetchProjection fetchProjection = new FetchProjection(
+                new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
+                characters.partitionedByColumns(),
+                collectNode.executionNodes(),
+                5);
+
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(
+                ImmutableList.<Projection>of(fetchProjection),
+                collectNode,
+                ctx);
+
+        Plan plan = new QueryThenFetch(collectNode, localMergeNode);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().size(), is(2));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Bucket rows = result.get(0).get().rows();
+        assertThat(rows, contains(isRow(2, "Ford")));
+    }
+
+    @Test
+    public void testQTFTaskOrdered() throws Exception {
+        // select id, name from characters order by name, female;
+        setup.setUpCharacters();
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        QueryThenFetchNode node = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL, null),
-                Arrays.<Symbol>asList(idRef, nameRef),
-                Arrays.<Symbol>asList(nameRef, idRef),
+        OrderBy orderBy = new OrderBy(Arrays.<Symbol>asList(nameRef, femaleRef),
                 new boolean[]{false, false},
-                new Boolean[]{null, null},
-                null, null, WhereClause.MATCH_ALL,
-                null
-        );
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
+                new Boolean[]{false, false});
 
-        task.start();
-        Bucket rows = task.result().get(0).get().rows();
+        ReferenceInfo docIdRefInfo = characters.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
+        // add nameRef and femaleRef to collectSymbols because this are ordered by values
+        List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo), nameRef, femaleRef);
+        List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
+
+        MergeProjection mergeProjection = new MergeProjection(
+                collectSymbols,
+                orderBy.orderBySymbols(),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst()
+        );
+        Planner.Context ctx = new Planner.Context();
+
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                characters,
+                ctx,
+                WhereClause.MATCH_ALL,
+                collectSymbols,
+                ImmutableList.<Projection>of(),
+                orderBy,
+                Constants.DEFAULT_SELECT_LIMIT
+        );
+        collectNode.projections(ImmutableList.<Projection>of(mergeProjection));
+        collectNode.keepContextForFetcher(true);
+
+        FetchProjection fetchProjection = new FetchProjection(
+                new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
+                characters.partitionedByColumns(),
+                collectNode.executionNodes(),
+                5);
+
+        MergeNode localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                ImmutableList.<Projection>of(fetchProjection),
+                orderBy,
+                collectSymbols,
+                null,
+                collectNode,
+                ctx);
+
+        Plan plan = new QueryThenFetch(collectNode, localMergeNode);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().size(), is(2));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(
                 isRow(1, "Arthur"),
                 isRow(4, "Arthur"),
@@ -224,36 +350,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testESSearchTaskWithFilter() throws Exception {
-        setup.setUpCharacters();
-
-        Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
-
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        QueryThenFetchNode node = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef),
-                Arrays.<Symbol>asList(nameRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null, null,
-                new WhereClause(whereClause),
-                null
-        );
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
-
-        task.start();
-        Bucket rows = task.result().get(0).get().rows();
-        assertThat(rows, contains(isRow(2, "Ford")));
-    }
-
-    @Test
-    public void testESSearchTaskWithFunction() throws Exception {
+    public void testQTFTaskWithFunction() throws Exception {
+        // select id, date_trunc('day', date) from searchf where id = 2;
         execute("create table searchf (id int primary key, date timestamp) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into searchf (id, date) values (1, '1980-01-01'), (2, '1980-01-02')");
@@ -276,7 +374,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Function function = new Function(new FunctionInfo(
                 new FunctionIdent(DateTruncFunction.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.TIMESTAMP)),
                 DataTypes.TIMESTAMP
-        ), Arrays.<Symbol>asList(Literal.newLiteral("day"), new InputColumn(1)));
+        ), Arrays.<Symbol>asList(Literal.newLiteral("month"), date_ref));
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
                 DataTypes.BOOLEAN),
@@ -284,57 +382,84 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         );
 
         DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
-        QueryThenFetchNode node = new QueryThenFetchNode(
-                searchf.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(id_ref, date_ref),
-                Arrays.<Symbol>asList(id_ref),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null, null,
+        ReferenceInfo docIdRefInfo = searchf.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
+
+        Planner.Context ctx = new Planner.Context();
+        List<Symbol> collectSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo));
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                searchf,
+                ctx,
                 new WhereClause(whereClause),
-                null
+                collectSymbols,
+                ImmutableList.<Projection>of(),
+                null,
+                Constants.DEFAULT_SELECT_LIMIT
         );
-        MergeNode mergeNode = new MergeNode("merge", 1);
-        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.TIMESTAMP));
-        mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.TIMESTAMP));
+        collectNode.keepContextForFetcher(true);
+
         TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
-        topN.outputs(Arrays.<Symbol>asList(new InputColumn(0), function));
-        mergeNode.projections(Arrays.<Projection>asList(topN));
-        Plan plan = new IterablePlan(node, mergeNode);
+        topN.outputs(Arrays.<Symbol>asList(new InputColumn(0)));
+
+        FetchProjection fetchProjection = new FetchProjection(
+                new InputColumn(0, DataTypes.STRING), collectSymbols,
+                Arrays.<Symbol>asList(id_ref, function),
+                searchf.partitionedByColumns(),
+                collectNode.executionNodes(),
+                5);
+
+        MergeNode mergeNode = PlanNodeBuilder.localMerge(
+                ImmutableList.<Projection>of(topN, fetchProjection),
+                collectNode,
+                ctx);
+        Plan plan = new QueryThenFetch(collectNode, mergeNode);
+
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(2));
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
-        assertThat(rows, contains(isRow(2, 315619200000L)));
+        assertThat(rows, contains(isRow(2, 315532800000L)));
     }
 
     @Test
-    public void testESSearchTaskPartitioned() throws Exception {
+    public void testQTFTaskPartitioned() throws Exception {
         setup.setUpPartitionedTableWithName();
-        // get partitions
-        ImmutableOpenMap<String, List<AliasMetaData>> aliases =
-                client().admin().indices().prepareGetAliases().addAliases("parted")
-                        .execute().actionGet().getAliases();
-
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        QueryThenFetchNode node = new QueryThenFetchNode(
-                parted.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef),
-                Arrays.<Symbol>asList(nameRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null, null,
-                WhereClause.MATCH_ALL,
-                Arrays.asList(partedDateRef.info())
-        );
-        Plan plan = new IterablePlan(node);
-        Job job = executor.newJob(plan);
-        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
+        Planner.Context ctx = new Planner.Context();
 
-        task.start();
-        Bucket rows = task.result().get(0).get().rows();
-        assertThat(rows, contains(
+        ReferenceInfo docIdRefInfo = parted.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
+        List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
+        List<Symbol> outputSymbols =  Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef);
+
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                parted,
+                ctx,
+                WhereClause.MATCH_ALL,
+                collectSymbols,
+                ImmutableList.<Projection>of(),
+                null,
+                Constants.DEFAULT_SELECT_LIMIT
+        );
+        collectNode.keepContextForFetcher(true);
+
+        FetchProjection fetchProjection = new FetchProjection(
+                new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
+                parted.partitionedByColumns(),
+                collectNode.executionNodes(),
+                5);
+
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(
+                ImmutableList.<Projection>of(fetchProjection),
+                collectNode,
+                ctx);
+
+        Plan plan = new QueryThenFetch(collectNode, localMergeNode);
+        Job job = executor.newJob(plan);
+
+        assertThat(job.tasks().size(), is(2));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Bucket rows = result.get(0).get().rows();
+        assertThat(rows, containsInAnyOrder(
                 isRow(3, "Ford", 1396388720242L),
                 isRow(1, "Trillian", null),
                 isRow(2, null, 0L)
@@ -363,24 +488,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(rows, contains(isRow(-1L)));
 
         // verify deletion
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        QueryThenFetchNode searchNode = new QueryThenFetchNode(
-                characters.getRouting(WhereClause.MATCH_ALL),
-                Arrays.<Symbol>asList(idRef, nameRef),
-                Arrays.<Symbol>asList(nameRef),
-                new boolean[]{false},
-                new Boolean[]{null},
-                null, null,
-                new WhereClause(whereClause),
-                null
-        );
-        plan = new IterablePlan(searchNode);
-        job = executor.newJob(plan);
-        QueryThenFetchTask searchTask = (QueryThenFetchTask) job.tasks().get(0);
-
-        searchTask.start();
-        rows = searchTask.result().get(0).get().rows();
-        assertThat(rows, emptyIterable());
+        execute("select * from characters where id = 2");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test

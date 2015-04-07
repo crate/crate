@@ -76,7 +76,7 @@ public class DocCollectorExpression extends
         };
     }
 
-    abstract static class ChildDocCollectorExpression<ReturnType> extends
+    public abstract static class ChildDocCollectorExpression<ReturnType> extends
             LuceneCollectorExpression<ReturnType> implements ColumnReferenceExpression {
 
         protected SourceLookup sourceLookup;
@@ -93,7 +93,7 @@ public class DocCollectorExpression extends
 
         @Override
         public void startCollect(CollectorContext context) {
-            sourceLookup = context.searchContext().lookup().source();
+            sourceLookup = context.searchLookup().source();
         }
     }
 }

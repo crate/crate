@@ -136,7 +136,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testCopyFromPartitionedTableClustomSchema() throws Exception {
+    public void testCopyFromPartitionedTableCustomSchema() throws Exception {
         execute("create table my_schema.parted (" +
                 "  id long, " +
                 "  month timestamp, " +
@@ -330,7 +330,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testInsertPartitionedTableOnlyPartitionedColumnsAlreadyExsists() throws Exception {
+    public void testInsertPartitionedTableOnlyPartitionedColumnsAlreadyExists() throws Exception {
         execute("create table parted (name string, date timestamp)" +
                 "partitioned by (name, date)");
         ensureYellow();

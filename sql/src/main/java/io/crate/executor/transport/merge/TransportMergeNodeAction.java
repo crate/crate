@@ -26,20 +26,13 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.DistributedResultRequestHandler;
 import io.crate.executor.transport.ResponseForwarder;
-import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.DownstreamOperation;
-import io.crate.operation.DownstreamOperationFactory;
-import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.merge.MergeOperation;
-import io.crate.planner.RowGranularity;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -47,7 +40,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
@@ -68,12 +60,10 @@ public class TransportMergeNodeAction {
 
     @Inject
     public TransportMergeNodeAction(final ClusterService clusterService,
-                                    final Settings settings,
-                                    final TransportActionProvider transportActionProvider,
                                     TransportService transportService,
-                                    ReferenceResolver referenceResolver,
                                     final Functions functions,
                                     final ThreadPool threadPool,
+                                    final PageDownstreamFactory pageDownstreamFactory,
                                     StatsTables statsTables,
                                     CrateCircuitBreakerService breakerService) {
         this.transportService = transportService;
@@ -81,24 +71,8 @@ public class TransportMergeNodeAction {
         this.threadPool = threadPool;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
 
-        final ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
-                referenceResolver, functions, RowGranularity.DOC
-        );
-
-        planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
-        this.contextManager = new DistributedRequestContextManager(new DownstreamOperationFactory<MergeNode>() {
-            @Override
-            public DownstreamOperation create(MergeNode node, RamAccountingContext ramAccountingContext) {
-                return new MergeOperation(
-                        clusterService,
-                        settings,
-                        transportActionProvider,
-                        implementationSymbolVisitor,
-                        node,
-                        ramAccountingContext
-                );
-            }
-        }, functions, statsTables, circuitBreaker);
+        this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
+        this.contextManager = new DistributedRequestContextManager(pageDownstreamFactory, functions, statsTables, circuitBreaker);
 
         transportService.registerHandler(startMergeAction, new StartMergeHandler());
         transportService.registerHandler(failAction, new FailureHandler(contextManager));

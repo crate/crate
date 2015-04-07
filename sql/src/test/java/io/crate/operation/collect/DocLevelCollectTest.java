@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
@@ -122,18 +121,18 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Routing routing(String table) {
-        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
 
         for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(table)) {
-            Map<String, Set<Integer>> shardIds = locations.get(shardRouting.currentNodeId());
+            Map<String, List<Integer>> shardIds = locations.get(shardRouting.currentNodeId());
             if (shardIds == null) {
-                shardIds = new HashMap<>();
+                shardIds = new TreeMap<>();
                 locations.put(shardRouting.currentNodeId(), shardIds);
             }
 
-            Set<Integer> shardIdSet = shardIds.get(shardRouting.index());
+            List<Integer> shardIdSet = shardIds.get(shardRouting.index());
             if (shardIdSet == null) {
-                shardIdSet = new HashSet<>();
+                shardIdSet = new ArrayList<>();
                 shardIds.put(shardRouting.index(), shardIdSet);
             }
             shardIdSet.add(shardRouting.id());
@@ -146,11 +145,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
         Bucket result = collect(collectNode);
         assertThat(result, contains(
-                isRow(2,  "{\"id\":1,\"doc\":2}", "1"),
-                isRow(4,  "{\"id\":3,\"doc\":4}", "3")
+                isRow(2, "{\"id\":1,\"doc\":2}", "1"),
+                isRow(4, "{\"id\":3,\"doc\":4}", "3")
         ));
     }
 
@@ -159,6 +159,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
+        collectNode.jobId(UUID.randomUUID());
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.whereClause(new WhereClause(new Function(
@@ -166,7 +167,6 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
         PlanNodeBuilder.setOutputTypes(collectNode);
-
 
         Bucket result = collect(collectNode);
         assertThat(result, contains(isRow(2)));
@@ -188,11 +188,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.isPartitioned(true);
+        collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
 
         Bucket result = collect(collectNode);
         for (Row row : result) {
-            System.out.println("Row:" + Arrays.toString(Buckets.materialize(row)));
+            System.out.println("Row:" + Arrays.toString(row.materialize()));
         }
 
         assertThat(result, containsInAnyOrder(

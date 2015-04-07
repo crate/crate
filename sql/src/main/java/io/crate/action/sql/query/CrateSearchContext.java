@@ -22,12 +22,15 @@
 package io.crate.action.sql.query;
 
 import com.google.common.base.Optional;
+import io.crate.Constants;
 import org.apache.lucene.util.Counter;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.service.IndexService;
@@ -37,15 +40,17 @@ import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
+import org.elasticsearch.search.lookup.SearchLookup;
 
 import java.io.IOException;
 import java.util.Map;
 
 public class CrateSearchContext extends DefaultSearchContext {
 
+    private final Engine.Searcher engineSearcher;
+    private volatile boolean isEngineSearcherShared = false;
+
     public CrateSearchContext(long id,
-                              final int numShards,
-                              final String[] types,
                               final long nowInMillis,
                               SearchShardTarget shardTarget,
                               Engine.Searcher engineSearcher,
@@ -58,30 +63,59 @@ public class CrateSearchContext extends DefaultSearchContext {
                               Counter timeEstimateCounter,
                               Optional<Scroll> scroll,
                               long keepAlive) {
-        super(id, new CrateSearchShardRequest(numShards, types, nowInMillis, scroll, indexShard),
+        super(id, new CrateSearchShardRequest(nowInMillis, scroll, indexShard),
                 shardTarget, engineSearcher, indexService,
                 indexShard, scriptService, cacheRecycler, pageCacheRecycler,
                 bigArrays, timeEstimateCounter);
+        this.engineSearcher = engineSearcher;
         if (scroll.isPresent()) {
             scroll(scroll.get());
         }
         keepAlive(keepAlive);
     }
 
+    public Engine.Searcher engineSearcher() {
+        return engineSearcher;
+    }
+
+    public void sharedEngineSearcher(boolean isShared) {
+        isEngineSearcherShared = isShared;
+    }
+
+    public boolean isEngineSearcherShared() {
+        return isEngineSearcherShared;
+    }
+
+    public SearchLookup lookup(boolean shared) {
+        if (shared) {
+            return super.lookup();
+        }
+        return new SearchLookup(mapperService(), fieldData(), new String[]{Constants.DEFAULT_MAPPING_TYPE});
+    }
+
+    @Override
+    public void doClose() throws ElasticsearchException {
+        if (scanContext() != null) {
+            scanContext().clear();
+        }
+        // clear and scope phase we have
+        Releasables.close(searcher());
+        if (!isEngineSearcherShared) {
+            Releasables.close(engineSearcher);
+        }
+    }
+
+
     private static class CrateSearchShardRequest implements ShardSearchRequest {
 
-        private final int numShards;
-        private final String[] types;
+        private final String[] types = new String[]{Constants.DEFAULT_MAPPING_TYPE};
         private final long nowInMillis;
         private final Scroll scroll;
         private final String index;
         private final int shardId;
 
-        private CrateSearchShardRequest(int numShards, String[] types,
-                                        long nowInMillis, Optional<Scroll> scroll,
+        private CrateSearchShardRequest(long nowInMillis, Optional<Scroll> scroll,
                                         IndexShard indexShard) {
-            this.numShards = numShards;
-            this.types = types;
             this.nowInMillis = nowInMillis;
             this.scroll = scroll.orNull();
             this.index = indexShard.indexService().index().name();
@@ -121,7 +155,7 @@ public class CrateSearchContext extends DefaultSearchContext {
 
         @Override
         public int numberOfShards() {
-            return numShards;
+            return 0;
         }
 
         @Override

@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Ordering by `_score` must be defined explictly now even when using a
+   `match` predicate.
+   Note: This is a backward incompatibility change.
+
  - Fix: documented minimum required java version
 
  - Added support for setting the default schema name in the SQLRequest class

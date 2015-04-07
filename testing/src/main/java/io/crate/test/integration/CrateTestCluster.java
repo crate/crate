@@ -112,6 +112,16 @@ public class CrateTestCluster implements Iterable<Client> {
         this(clusterSeed, 2, "network", clusterName, NodeSettingsSource.EMPTY);
     }
 
+    public <T> T getInstanceFromNode(String nodeName, Class<T> clazz) {
+        NodeAndClient node = nodes.get(nodeName);
+        return node.node.injector().getInstance(clazz);
+    }
+
+    public <T> T getInstanceFromFirstNode(Class<T> clazz) {
+        String name = nodes.keySet().iterator().next();
+        return getInstanceFromNode(name, clazz);
+    }
+
     public CrateTestCluster(long clusterSeed, int numNodes, String mode, String clusterName, NodeSettingsSource nodeSettingsSource) {
         this.clusterName = clusterName;
         random = new Random(clusterSeed);

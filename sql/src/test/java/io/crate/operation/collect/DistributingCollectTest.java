@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
@@ -29,6 +28,7 @@ import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
@@ -227,6 +227,7 @@ public class DistributingCollectTest extends CrateUnitTest {
         protected void configure() {
             IndexShard shard = mock(InternalIndexShard.class);
             bind(IndexShard.class).toInstance(shard);
+            when(shard.shardId()).thenReturn(shardId);
             Index index = new Index(TEST_TABLE_NAME);
             bind(Index.class).toInstance(index);
             bind(ShardId.class).toInstance(shardId);
@@ -272,19 +273,22 @@ public class DistributingCollectTest extends CrateUnitTest {
         testThreadPool.shutdownNow();
     }
 
-    private final Routing nodeRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(1){{
-        put(TEST_NODE_ID, new HashMap<String, Set<Integer>>());
-    }});
+    private final Routing nodeRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+        .put(TEST_NODE_ID, new TreeMap<String, List<Integer>>())
+        .map());
 
     private Routing shardRouting(final Integer ... shardIds) {
-        return new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
-            put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
-                put(TEST_TABLE_NAME, ImmutableSet.copyOf(shardIds));
-            }});
-            put(OTHER_NODE_ID, new HashMap<String, Set<Integer>>(){{
-                put(TEST_TABLE_NAME, ImmutableSet.copyOf(shardIds));
-            }});
-        }});
+        return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put(TEST_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder()
+                    .put(TEST_TABLE_NAME, Arrays.asList(shardIds))
+                    .map()
+            )
+            .put(OTHER_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder()
+                    .put(TEST_TABLE_NAME, Arrays.asList(shardIds))
+                    .map()
+            )
+            .map()
+        );
     }
 
 

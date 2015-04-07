@@ -38,7 +38,6 @@ import static org.hamcrest.Matchers.is;
 
 public class SymbolFormatterTest extends CrateUnitTest {
 
-
     private void assertFormat(Symbol s, String formatted) {
         assertThat(SymbolFormatter.format(s), is(formatted));
     }

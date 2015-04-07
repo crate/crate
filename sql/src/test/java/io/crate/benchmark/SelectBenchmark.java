@@ -60,6 +60,8 @@ public class SelectBenchmark extends BenchmarkBase {
     private List<String> someIds = new ArrayList<>(10);
     private List<String> someIdsQueryPlannerEnabled = new ArrayList<>(10);
 
+    public static final SQLRequest SYS_SHARDS_REQUEST = new SQLRequest("select * from sys.shards order by schema_name, table_name");
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -247,5 +249,14 @@ public class SelectBenchmark extends BenchmarkBase {
                     response.rowCount()
             );
         }
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testSelectSysShardsBenchmark() throws Exception {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            getClient(false).execute(SQLAction.INSTANCE, SYS_SHARDS_REQUEST).actionGet();
+        }
+
     }
 }

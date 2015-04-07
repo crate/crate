@@ -24,14 +24,16 @@ package io.crate.executor.transport.distributed;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
-import io.crate.operation.DownstreamOperationFactory;
+import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.PageDownstreamFactory;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
@@ -42,6 +44,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Executor;
 
 
 /**
@@ -66,27 +69,24 @@ public class DistributedRequestContextManager {
     private final Map<UUID, List<DistributedResultRequest>> unprocessedRequests = new HashMap<>();
     private final Set<UUID> unprocessedFailureIds = new HashSet<>();
     private final Object lock = new Object();
-    private final DownstreamOperationFactory downstreamOperationFactory;
+    private final PageDownstreamFactory pageDownstreamFactory;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
 
-    public DistributedRequestContextManager(DownstreamOperationFactory downstreamOperationFactory,
+    public DistributedRequestContextManager(PageDownstreamFactory pageDownstreamFactory,
                                             Functions functions,
                                             StatsTables statsTables,
                                             CircuitBreaker circuitBreaker) {
-        this.downstreamOperationFactory = downstreamOperationFactory;
+        this.pageDownstreamFactory = pageDownstreamFactory;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
         this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
     }
 
     /**
-     * called to create a new DownstreamOperationContext
+     * called to create and store a new DownstreamOperationContext
      */
-    // TODO: add outputTypes to the downstreamOperation and remove the mergeNode dependency here.
-    // the downstreamOperationFactory can then be removed and the downstreamOperation can be passed into
-    // createContext directly.
     public void createContext(final MergeNode mergeNode,
                               final ActionListener<NodeMergeResponse> listener) throws IOException {
         logger.trace("createContext: {}", mergeNode);
@@ -94,27 +94,31 @@ public class DistributedRequestContextManager {
         String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId);
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
+        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.id());
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
-        SettableFuture<Bucket> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
+
+        ResultProvider resultProvider = new SingleBucketBuilder(streamerContext.outputStreamers());
+        // wiring projectorChain-result-future and responselistener
+        wireActionListener(streamerContext.outputStreamers(), listener, resultProvider.result());
+
+        PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(mergeNode, resultProvider, ramAccountingContext, Optional.<Executor>absent());
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
-                downstreamOperationFactory.create(mergeNode, ramAccountingContext),
-                settableFuture,
+                pageDownstream,
+                mergeNode.numUpstreams(),
                 streamerContext.inputStreamers(),
                 new DoneCallback() {
                     @Override
                     public void finished() {
-                        logger.trace("DoneCallback.finished: {} {}", mergeNode.contextId());
-                        activeMergeOperations.remove(mergeNode.contextId());
+                        logger.trace("DoneCallback.finished: {}", mergeNode.jobId());
+                        activeMergeOperations.remove(mergeNode.jobId());
                         statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
                         ramAccountingContext.close();
                     }
                 }
         );
-        logger.trace("createContext.put: {} {}", this, mergeNode.contextId(), downstreamOperationContext);
-        put(mergeNode.contextId(), downstreamOperationContext);
+        logger.trace("createContext.put: {} {}", this, mergeNode.jobId(), downstreamOperationContext);
+        put(mergeNode.jobId(), downstreamOperationContext);
     }
-
 
     /**
      * use to retrieve the streamers to read the incoming rows
@@ -152,10 +156,14 @@ public class DistributedRequestContextManager {
         }
     }
 
-    private SettableFuture<Bucket> wrapActionListener(final Streamer<?>[] streamers,
-                                                      final ActionListener<NodeMergeResponse> listener) {
-        SettableFuture<Bucket> settableFuture = SettableFuture.create();
-        Futures.addCallback(settableFuture, new FutureCallback<Bucket>() {
+    /**
+     * bind the MergeResult future to the MergeResponse listener by creating a response
+     * from the result.
+     */
+    private void wireActionListener(final Streamer<?>[] streamers,
+                                    final ActionListener<NodeMergeResponse> listener,
+                                    ListenableFuture<Bucket> mergeResultFuture) {
+        Futures.addCallback(mergeResultFuture, new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket result) {
                 listener.onResponse(new NodeMergeResponse(streamers, result));
@@ -166,7 +174,6 @@ public class DistributedRequestContextManager {
                 listener.onFailure(t);
             }
         });
-        return settableFuture;
     }
 
     private void put(UUID contextId, DownstreamOperationContext downstreamOperationContext) {

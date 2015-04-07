@@ -21,14 +21,19 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Objects;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -40,10 +45,42 @@ public class MergeNode extends AbstractDQLPlanNode {
     private List<DataType> inputTypes;
     private int numUpstreams;
     private Set<String> executionNodes;
-    private UUID contextId;
+    private UUID jobId;
+    @Nullable
+    private IntObjectOpenHashMap<String> jobSearchContextIdToNode;
+    @Nullable
+    private IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
+
+    /**
+     * expects sorted input and produces sorted output
+     */
+    private boolean sortedInputOutput = false;
+    private int[] orderByIndices;
+    private boolean[] reverseFlags;
+    private Boolean[] nullsFirst;
 
     public MergeNode() {
         numUpstreams = 0;
+    }
+
+    public MergeNode(String id, int numUpstreams) {
+        super(id);
+        this.numUpstreams = numUpstreams;
+    }
+
+    public static MergeNode sortedMergeNode(String id, int numUpstreams,
+                     int[] orderByIndices,
+                     boolean[] reverseFlags,
+                     Boolean[] nullsFirst) {
+        Preconditions.checkArgument(
+                orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
+                "ordering parameters must be of the same length");
+        MergeNode mergeNode = new MergeNode(id, numUpstreams);
+        mergeNode.sortedInputOutput = true;
+        mergeNode.orderByIndices = orderByIndices;
+        mergeNode.reverseFlags = reverseFlags;
+        mergeNode.nullsFirst = nullsFirst;
+        return mergeNode;
     }
 
     @Override
@@ -59,21 +96,16 @@ public class MergeNode extends AbstractDQLPlanNode {
         this.executionNodes = executionNodes;
     }
 
-    public MergeNode(String id, int numUpstreams) {
-        super(id);
-        this.numUpstreams = numUpstreams;
-    }
-
     public int numUpstreams() {
         return numUpstreams;
     }
 
-    public UUID contextId() {
-        return contextId;
+    public UUID jobId() {
+        return jobId;
     }
 
-    public void contextId(UUID contextId) {
-        this.contextId = contextId;
+    public void jobId(UUID jobId) {
+        this.jobId = jobId;
     }
 
     public List<DataType> inputTypes() {
@@ -82,6 +114,43 @@ public class MergeNode extends AbstractDQLPlanNode {
 
     public void inputTypes(List<DataType> inputTypes) {
         this.inputTypes = inputTypes;
+    }
+
+    public void jobSearchContextIdToNode(IntObjectOpenHashMap<String> jobSearchContextIdToNode) {
+        this.jobSearchContextIdToNode = jobSearchContextIdToNode;
+    }
+
+    @Nullable
+    public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
+        return jobSearchContextIdToNode;
+    }
+
+    public void jobSearchContextIdToShard(IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard) {
+        this.jobSearchContextIdToShard = jobSearchContextIdToShard;
+    }
+
+    @Nullable
+    public IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard() {
+        return jobSearchContextIdToShard;
+    }
+
+    public boolean sortedInputOutput() {
+        return sortedInputOutput;
+    }
+
+    @Nullable
+    public int[] orderByIndices() {
+        return orderByIndices;
+    }
+
+    @Nullable
+    public boolean[] reverseFlags() {
+        return reverseFlags;
+    }
+
+    @Nullable
+    public Boolean[] nullsFirst() {
+        return nullsFirst;
     }
 
     @Override
@@ -94,7 +163,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         super.readFrom(in);
 
         numUpstreams = in.readVInt();
-        contextId = new UUID(in.readLong(), in.readLong());
+        jobId = new UUID(in.readLong(), in.readLong());
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -111,6 +180,34 @@ public class MergeNode extends AbstractDQLPlanNode {
                 executionNodes.add(in.readString());
             }
         }
+
+        int numJobSearchContextIdToNode = in.readVInt();
+        if (numJobSearchContextIdToNode > 0) {
+            jobSearchContextIdToNode = new IntObjectOpenHashMap<>(numJobSearchContextIdToNode);
+            for (int i = 0; i < numJobSearchContextIdToNode; i++) {
+                jobSearchContextIdToNode.put(in.readVInt(), in.readString());
+            }
+        }
+        int numJobSearchContextIdToShard = in.readVInt();
+        if (numJobSearchContextIdToShard > 0) {
+            jobSearchContextIdToShard = new IntObjectOpenHashMap<>(numJobSearchContextIdToShard);
+            for (int i = 0; i < numJobSearchContextIdToShard; i++) {
+                jobSearchContextIdToShard.put(in.readVInt(), ShardId.readShardId(in));
+            }
+        }
+
+        sortedInputOutput = in.readBoolean();
+        if (sortedInputOutput) {
+            int orderByIndicesLength = in.readVInt();
+            orderByIndices = new int[orderByIndicesLength];
+            reverseFlags = new boolean[orderByIndicesLength];
+            nullsFirst = new Boolean[orderByIndicesLength];
+            for (int i = 0; i < orderByIndicesLength; i++) {
+                orderByIndices[i] = in.readVInt();
+                reverseFlags[i] = in.readBoolean();
+                nullsFirst[i] = in.readOptionalBoolean();
+            }
+        }
     }
 
     @Override
@@ -118,8 +215,8 @@ public class MergeNode extends AbstractDQLPlanNode {
         super.writeTo(out);
 
         out.writeVInt(numUpstreams);
-        out.writeLong(contextId.getMostSignificantBits());
-        out.writeLong(contextId.getLeastSignificantBits());
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
 
         int numCols = inputTypes.size();
         out.writeVInt(numCols);
@@ -135,18 +232,53 @@ public class MergeNode extends AbstractDQLPlanNode {
                 out.writeString(node);
             }
         }
+
+        if (jobSearchContextIdToNode == null) {
+            out.writeVInt(0);
+        } else {
+            out.writeVInt(jobSearchContextIdToNode.size());
+            for (IntObjectCursor<String> entry : jobSearchContextIdToNode) {
+                out.writeVInt(entry.key);
+                out.writeString(entry.value);
+            }
+        }
+        if (jobSearchContextIdToShard == null) {
+            out.writeVInt(0);
+        } else {
+            out.writeVInt(jobSearchContextIdToShard.size());
+            for (IntObjectCursor<ShardId> entry : jobSearchContextIdToShard) {
+                out.writeVInt(entry.key);
+                entry.value.writeTo(out);
+            }
+        }
+
+        out.writeBoolean(sortedInputOutput);
+        if (sortedInputOutput) {
+            out.writeVInt(orderByIndices.length);
+            for (int i = 0; i < orderByIndices.length; i++) {
+                out.writeVInt(orderByIndices[i]);
+                out.writeBoolean(reverseFlags[i]);
+                out.writeOptionalBoolean(nullsFirst[i]);
+            }
+        }
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
                 .add("id", id())
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
-                .add("contextId", contextId)
+                .add("jobId", jobId)
                 .add("numUpstreams", numUpstreams)
                 .add("executionNodes", executionNodes)
                 .add("inputTypes", inputTypes)
-                .toString();
+                .add("sortedInputOutput", sortedInputOutput);
+        if (sortedInputOutput) {
+            helper.add("orderByIndices", Arrays.toString(orderByIndices))
+                  .add("reverseFlags", Arrays.toString(reverseFlags))
+                  .add("nullsFirst", Arrays.toString(nullsFirst));
+        }
+        return helper.toString();
     }
 }

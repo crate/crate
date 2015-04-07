@@ -48,8 +48,11 @@ public class TopNProjection extends Projection {
 
     List<Symbol> outputs = ImmutableList.of();
 
+    @Nullable
     List<Symbol> orderBy;
+    @Nullable
     boolean[] reverseFlags;
+    @Nullable
     private Boolean[] nullsFirst;
 
     public TopNProjection() {
@@ -87,14 +90,17 @@ public class TopNProjection extends Projection {
         return offset;
     }
 
+    @Nullable
     public List<Symbol> orderBy() {
         return orderBy;
     }
 
+    @Nullable
     public boolean[] reverseFlags() {
         return reverseFlags;
     }
 
+    @Nullable
     public Boolean[] nullsFirst() {
         return nullsFirst;
     }
