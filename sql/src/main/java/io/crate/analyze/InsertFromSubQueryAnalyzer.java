@@ -45,7 +45,6 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
         private final TableRelation targetTableRelation;
         private final List<Reference> targetColumns;
-        private final List<String> assignmentColumns = new ArrayList<>();
 
         public ValuesResolver(TableRelation targetTableRelation, List<Reference> targetColumns) {
             this.targetTableRelation = targetTableRelation;
@@ -62,7 +61,6 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
                         argumentColumn));
             }
             assert reference != null;
-            assignmentColumns.add(reference.ident().columnIdent().fqn());
             return new InputColumn(i, argumentColumn.valueType());
         }
     }
