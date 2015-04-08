@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
@@ -68,8 +67,9 @@ import static org.mockito.Mockito.when;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
 public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
+    private final static Integer PAGE_SIZE = 2000;
     private final static String INDEX_NAME = "countries";
-    private final static Integer NUMBER_OF_DOCS = 25000;
+    private final static Integer NUMBER_OF_DOCS = 2500;
     private ShardId shardId = new ShardId(INDEX_NAME, 0);
     private OrderBy orderBy;
     private CollectContextService collectContextService;
@@ -148,23 +148,24 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
+        collector.pageSize(PAGE_SIZE);
         return collector;
     }
 
     @Test
     public void testLimitWithoutOrder() throws Exception{
         collectingProjector.rows.clear();
-        LuceneDocCollector docCollector = createDocCollector(null, 5000, orderBy.orderBySymbols());
+        LuceneDocCollector docCollector = createDocCollector(null, 500, orderBy.orderBySymbols());
         docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
-        assertThat(collectingProjector.rows.size(), is(5000));
+        assertThat(collectingProjector.rows.size(), is(500));
     }
 
     @Test
     public void testOrderedWithLimit() throws Exception{
         collectingProjector.rows.clear();
-        LuceneDocCollector docCollector = createDocCollector(orderBy, 5000, orderBy.orderBySymbols());
+        LuceneDocCollector docCollector = createDocCollector(orderBy, 500, orderBy.orderBySymbols());
         docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
-        assertThat(collectingProjector.rows.size(), is(5000));
+        assertThat(collectingProjector.rows.size(), is(500));
         assertThat(((BytesRef)collectingProjector.rows.get(0)[0]).utf8ToString(), is("Austria") );
         assertThat(((BytesRef)collectingProjector.rows.get(1)[0]).utf8ToString(), is("Germany") );
         assertThat(((BytesRef)collectingProjector.rows.get(2)[0]).utf8ToString(), is("USA") );
@@ -174,9 +175,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     @Test
     public void testOrderedWithLimitHigherThanPageSize() throws Exception{
         collectingProjector.rows.clear();
-        LuceneDocCollector docCollector = createDocCollector(orderBy, Constants.PAGE_SIZE + 5000, orderBy.orderBySymbols());
+        LuceneDocCollector docCollector = createDocCollector(orderBy, PAGE_SIZE + 250, orderBy.orderBySymbols());
         docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
-        assertThat(collectingProjector.rows.size(), is(Constants.PAGE_SIZE + 5000));
+        assertThat(collectingProjector.rows.size(), is(PAGE_SIZE + 250));
         assertThat(((BytesRef)collectingProjector.rows.get(0)[0]).utf8ToString(), is("Austria") );
         assertThat(((BytesRef)collectingProjector.rows.get(1)[0]).utf8ToString(), is("Germany") );
         assertThat(((BytesRef)collectingProjector.rows.get(2)[0]).utf8ToString(), is("USA") );

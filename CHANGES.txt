@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Reduced amount of used memory on sorted queries
+
  - Fixed an issue with the LIKE predicate if used on a system table where it
    wouldn't match if the content contains newline characters
 
