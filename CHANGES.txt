@@ -15,6 +15,9 @@ Unreleased
 
  - Using unsupported URI schema in COPY FROM statement now results in an error.
 
+ - Fixed an issue with the LIKE predicate if used on a system table where it
+   wouldn't match if the content contains newline characters
+
  - Fix: documented minimum required java version
 
 2015/04/03 0.47.8

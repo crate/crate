@@ -81,10 +81,8 @@ public class LikeOperator extends Operator<BytesRef> {
     }
 
     private boolean matches(String expression, String pattern) {
-        return Pattern.matches(
-                patternToRegex(pattern, DEFAULT_ESCAPE, true),
-                expression
-        );
+        return Pattern.compile(
+                patternToRegex(pattern, DEFAULT_ESCAPE, true), Pattern.DOTALL).matcher(expression).matches();
     }
 
     public static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
