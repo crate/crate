@@ -23,8 +23,10 @@ package io.crate.metadata;
 
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -43,12 +45,37 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         return this;
     }
 
-    protected static boolean anyNonLiterals(List<Symbol> arguments) {
+    protected static boolean anyNonLiterals(Collection<? extends Symbol> arguments) {
         for (Symbol symbol : arguments) {
             if (!symbol.symbolType().isValueSymbol()) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * This method will evaluate the function using the given scalar if all arguments are literals.
+     * Otherwise it will return the function as is or NULL in case it contains a null literal
+     *
+     */
+    public static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar, Function function) {
+        Input[] inputs = new Input[function.arguments().size()];
+        int idx = 0;
+        for (Symbol arg : function.arguments()) {
+            if (arg instanceof Input) {
+                Input inputArg =  (Input) arg;
+                if (inputArg.value() == null) {
+                    return Literal.newLiteral(arg.valueType(), null);
+                } else {
+                    inputs[idx] = inputArg;
+                    idx++;
+                }
+            } else {
+                return function;
+            }
+        }
+        //noinspection unchecked
+        return Literal.newLiteral(function.info().returnType(), scalar.evaluate(inputs));
     }
 }
