@@ -2,8 +2,8 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2015/04/09 0.48.1
+=================
 
  - Updated crate-admin to version 0.11.5 which contains following changes:
 
