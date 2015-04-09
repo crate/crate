@@ -558,6 +558,7 @@ It can also be used on array literals::
 
     cr> select name, race['interests'] from locations
     ... where name = ANY (['Bartledan', 'Algol'])
+    ... order by name asc;
     +-----------+-----------------------------------------+
     | name      | race['interests']                       |
     +-----------+-----------------------------------------+
