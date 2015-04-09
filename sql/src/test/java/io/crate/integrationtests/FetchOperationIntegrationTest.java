@@ -22,11 +22,14 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row;
 import io.crate.executor.Job;
@@ -40,14 +43,13 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.scalar.SubstrFunction;
-import io.crate.planner.IterablePlan;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
-import io.crate.planner.RowGranularity;
+import io.crate.planner.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateTestCluster;
@@ -172,7 +174,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("id")),
                 RowGranularity.DOC,
                 IntegerType.INSTANCE
-                );
+        );
         ReferenceInfo nameRefInfo = new ReferenceInfo(
                 new ReferenceIdent(tableInfo.ident(), DocSysColumns.DOC.name(), ImmutableList.of("name")),
                 RowGranularity.DOC,
@@ -260,8 +262,14 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                                 new FunctionIdent(SubstrFunction.NAME, ImmutableList.<DataType>of(StringType.INSTANCE, IntegerType.INSTANCE)),
                                 StringType.INSTANCE),
                         Arrays.asList(new Reference(nameRefInfo), Literal.newLiteral(2))
-                        )
+                )
         );
+
+        QuerySpec querySpec = new QuerySpec();
+        querySpec.where(WhereClause.MATCH_ALL);
+        querySpec.orderBy(new OrderBy(
+                ImmutableList.<Symbol>of(new Reference(idRefInfo)),
+                new boolean[]{false}, new Boolean[]{false}));
 
         CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
         collectNode.toCollect(inputSymbols);
@@ -273,10 +281,14 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             outputTypes.add(symbol.valueType());
         }
         collectNode.outputTypes(outputTypes);
-        collectNode.orderBy(new OrderBy(
-                ImmutableList.<Symbol>of(new Reference(idRefInfo)),
-                new boolean[]{false}, new Boolean[]{false}));
+        collectNode.orderBy(querySpec.orderBy());
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
+
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(querySpec);
+        MergeProjection mergeProjection = projectionBuilder.mergeProjection(
+                inputSymbols,
+                querySpec.orderBy());
+        collectNode.projections(ImmutableList.<Projection>of(mergeProjection));
 
         FetchProjection fetchProjection = new FetchProjection(
                 docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
@@ -349,24 +361,31 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         List<Symbol> inputSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo), new Reference(positionRefInfo));
         final List<Symbol> outputSymbols = ImmutableList.<Symbol>of(new Reference(positionRefInfo), new Reference(nameRefInfo));
 
-        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
-        collectNode.toCollect(inputSymbols);
-        collectNode.jobId(UUID.randomUUID());
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.keepContextForFetcher(true);
-        List<DataType> outputTypes = new ArrayList<>(inputSymbols.size());
-        for (Symbol symbol : inputSymbols) {
-            outputTypes.add(symbol.valueType());
-        }
-        collectNode.outputTypes(outputTypes);
-        collectNode.orderBy(new OrderBy(
+        QuerySpec querySpec = new QuerySpec();
+        querySpec.where(WhereClause.MATCH_ALL);
+        querySpec.orderBy(new OrderBy(
                 ImmutableList.<Symbol>of(new Reference(positionRefInfo)),
                 new boolean[]{false}, new Boolean[]{false}));
-        plannerContext.allocateJobSearchContextIds(collectNode.routing());
+
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(querySpec);
+        MergeProjection mergeProjection = projectionBuilder.mergeProjection(
+                inputSymbols,
+                querySpec.orderBy());
+
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                tableInfo,
+                plannerContext,
+                querySpec.where(),
+                inputSymbols,
+                ImmutableList.<Projection>of(mergeProjection),
+                querySpec.orderBy(),
+                MoreObjects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset()
+        );
+        collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
                 docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
-                collectNode.executionNodes(), bulkSize);
+                collectNode.executionNodes(), bulkSize, querySpec.isLimited());
 
         MergeNode mergeNode = MergeNode.sortedMergeNode("sorted merge", collectNode.executionNodes().size(),
                 new int[]{1}, new boolean[]{false}, new Boolean[]{false});
