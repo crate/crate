@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue with the LIKE predicate if used on a system table where it
+   wouldn't match if the content contains newline characters
+
  - Ordering by `_score` must be defined explictly now even when using a
    `match` predicate.
    Note: This is a backward incompatibility change.
