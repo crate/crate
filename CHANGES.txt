@@ -5,6 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Ordering by `_score` must be defined explictly now even when using a
+   `match` predicate.
+   Note: This is a backward incompatibility change.
+
+2015/04/09 0.48.1
+=================
+
  - Updated crate-admin to version 0.11.5 which contains following changes:
 
     - fix: concurrent ajax requests caused partition information
@@ -15,13 +22,41 @@ Unreleased
  - Attempting to refresh a system table will now result in an error as system
    tables are read-only and don't need to be refreshed.
 
- - Ordering by `_score` must be defined explictly now even when using a
-   `match` predicate.
-   Note: This is a backward incompatibility change.
-
  - Fix: documented minimum required java version
 
+ - Updated crash to version 0.11.5 which contains the following changes:
+
+    - Fixed an issue with pasting multi-line statements from clipboard.
+
+    - Added argcomplete support. If argcomplete is available bash argument
+      completion will work if argcomplete is loaded.
+
+ - Fix: COPY FROM is now skipping empty lines.
+
+ - Fix: allow more than 1k elements in the IN query
+
+ - allow to use ANY expression to compare primitive values against an array literal
+
+ - Fix: ip type conversion did not allow NULL values
+
+ - Fix: Grouping or sorting on a dynamically created column of a partitioned
+   table could cause a NullPointerException
+
+ - include jts and spatial4j in client jar in order to properly use
+   the ``geopoint`` type
+
+ - produce a crate-client with all dependencies included under the 'io.crate'
+   package namespace in order to avoid conflicts
+
  - Fix: Filtering by `_score` wasn't recognized on group-by queries.
+
+ - Fix: Do not shutdown the BulkShardProcessor while there are pending requests
+   anymore
+
+ - Fix: The ``format`` scalar function now always uses Locale.ENGLISH
+
+ - Fixed misleading error message for trying to group by invalid data type.
+
 
 2015/04/03 0.47.8
 =================
