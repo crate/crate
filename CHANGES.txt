@@ -2,6 +2,12 @@
 Changes for Crate
 =================
 
+Unreleased
+==========
+
+ - Fixed an issue with the LIKE predicate if used on a system table where it
+   wouldn't match if the content contains newline characters
+
 2015/04/09 0.48.1
 =================
 

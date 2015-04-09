@@ -99,6 +99,19 @@ public class LikeOperatorTest extends CrateUnitTest {
     }
 
     @Test
+    public void testLikeOnMultilineStatement() throws Exception {
+        String stmt = "SELECT date_trunc('day', ts), sum(num_steps) as num_steps, count(*) as num_records \n" +
+                "FROM steps\n" +
+                "WHERE month_partition = '201409'\n" +
+                "GROUP BY 1 ORDER BY 1 DESC limit 100";
+
+        assertFalse(likeNormalize(stmt, "  SELECT%"));
+        assertTrue(likeNormalize(stmt, "SELECT%"));
+        assertTrue(likeNormalize(stmt, "SELECT date_trunc%"));
+        assertTrue(likeNormalize(stmt, "% date_trunc%"));
+    }
+
+    @Test
     public void testExpressionToRegexZeroOrMore() {
         String expression = "fo%bar";
         assertEquals("^fo.*bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
