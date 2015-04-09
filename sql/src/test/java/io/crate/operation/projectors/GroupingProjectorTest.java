@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -71,7 +71,7 @@ public class GroupingProjectorTest extends CrateUnitTest {
         projector.registerUpstream(null);
         projector.downstream(collectingProjector);
 
-        Row emptyRow = new RowN(new Object[]{});
+        Row emptyRow = new RowNUnsafe(new Object[]{});
 
         projector.startProjection();
         projector.setNextRow(emptyRow);

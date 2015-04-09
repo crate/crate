@@ -25,7 +25,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.executor.transport.distributed.ResultProviderBase;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.RowDownstream;
@@ -49,7 +49,7 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
                                 AggregationContext[] aggregations,
                                 RamAccountingContext ramAccountingContext) {
         cells = new Object[aggregations.length];
-        row = new RowN(cells);
+        row = new RowNUnsafe(cells);
         states = new Object[aggregations.length];
         this.collectExpressions = collectExpressions;
         aggregators = new Aggregator[aggregations.length];

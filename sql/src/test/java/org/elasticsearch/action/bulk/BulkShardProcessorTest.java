@@ -22,7 +22,7 @@
 package org.elasticsearch.action.bulk;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.metadata.ReferenceIdent;
@@ -116,11 +116,11 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 insertAssignments
         );
         try {
-            bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);
+            bulkShardProcessor.add("foo", new RowNUnsafe(new Object[]{1, "bar1"}), null);
 
             ActionListener<ShardUpsertResponse> listener = ref.get();
             listener.onFailure(new RuntimeException("a random exception"));
-            assertFalse(bulkShardProcessor.add("foo", new RowN(new Object[]{2, "bar2"}), null));
+            assertFalse(bulkShardProcessor.add("foo", new RowNUnsafe(new Object[]{2, "bar2"}), null));
             bulkShardProcessor.result().get();
         } catch (ExecutionException e) {
             throw e.getCause();
@@ -173,7 +173,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 insertAssignments
         );
 
-        bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);
+        bulkShardProcessor.add("foo", new RowNUnsafe(new Object[]{1, "bar1"}), null);
         final ActionListener<ShardUpsertResponse> listener = ref.get();
 
         listener.onFailure(new EsRejectedExecutionException());
@@ -195,7 +195,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                             latch.countDown();
                         }
                     }, 10, TimeUnit.MILLISECONDS);
-                    bulkShardProcessor.add("foo", new RowN(new Object[]{2, "bar2"}), null);
+                    bulkShardProcessor.add("foo", new RowNUnsafe(new Object[]{2, "bar2"}), null);
                     hasBlocked.set(false);
                 }
             });

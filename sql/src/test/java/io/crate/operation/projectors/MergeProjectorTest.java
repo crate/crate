@@ -23,7 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
@@ -44,7 +44,7 @@ public class MergeProjectorTest extends CrateUnitTest {
         if (cells == null) {
             cells = new Object[]{null};
         }
-        return new RowN(cells);
+        return new RowNUnsafe(cells);
     }
 
     @Test

@@ -27,7 +27,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.operation.*;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
@@ -262,7 +262,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
             // 2nd level
             ramAccountingContext.addBytes(RamAccountingContext.roundUp(
                     (1 + aggregators.length) * 4 + 12));
-            RowN row = new RowN(1 + aggregators.length);
+            RowNUnsafe row = new RowNUnsafe(1 + aggregators.length);
             for (Map.Entry<Object, Object[]> entry : result.entrySet()) {
                 Object[] cells = new Object[row.size()];
                 singleTransformToRow(entry, cells, aggregators);
@@ -354,7 +354,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
             ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 +
                     (keyInputs.size() + aggregators.length) * 4));
             //Object[][] rows = new Object[result.size()][keyInputs.size() + aggregators.length];
-            RowN row = new RowN(keyInputs.size() + aggregators.length);
+            RowNUnsafe row = new RowNUnsafe(keyInputs.size() + aggregators.length);
             for (Map.Entry<List<Object>, Object[]> entry : result.entrySet()) {
                 Object[] cells = new Object[row.size()];
                 transformToRow(entry, cells, aggregators);

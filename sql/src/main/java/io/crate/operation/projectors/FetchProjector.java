@@ -25,7 +25,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.executor.transport.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -238,7 +238,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                     partitionValuesCache.put(index, partitionValues);
                 }
             }
-            return new RowN(partitionValues);
+            return new RowNUnsafe(partitionValues);
         }
         return null;
     }
@@ -336,7 +336,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         public void add(int cursor, Long docId, Row row) {
             cursors.add(cursor);
             docIds.add(docId);
-            inputRows.add(new RowN(row.materialize()));
+            inputRows.add(new RowNUnsafe(row.materialize()));
         }
 
         public int size() {

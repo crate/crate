@@ -21,7 +21,7 @@
 
 package io.crate.operation;
 
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.metadata.*;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -148,7 +148,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
         // keyExpressions: [ in0, in1 ]
         CollectExpression[] keyExpressions = context.collectExpressions().toArray(new CollectExpression[2]);
 
-        RowN row = new RowN(new Object[]{1L, 2L});
+        RowNUnsafe row = new RowNUnsafe(new Object[]{1L, 2L});
         keyExpressions[0].setNextRow(row);
         keyExpressions[1].setNextRow(row);
         assertThat((Long) keyExpressions[0].value(), is(1L));
@@ -199,7 +199,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
         assertThat(allInputs.size(), is(2)); // only 2 because count is no input
 
         CollectExpression[] collectExpressions = context.collectExpressions().toArray(new CollectExpression[2]);
-        RowN row = new RowN(new Object[]{1L, 2L});
+        RowNUnsafe row = new RowNUnsafe(new Object[]{1L, 2L});
         collectExpressions[0].setNextRow(row);
         collectExpressions[1].setNextRow(row);
         assertThat((Long) collectExpressions[0].value(), is(1L));

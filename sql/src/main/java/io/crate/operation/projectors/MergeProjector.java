@@ -23,7 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.Ordering;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
@@ -209,7 +209,7 @@ public class MergeProjector implements Projector  {
             if (projector.downstreamAborted.get()) {
                 return false;
             }
-            row = new RowN(row.materialize());
+            row = new RowNUnsafe(row.materialize());
             int size;
             synchronized (lock) {
                 rows.add(row);

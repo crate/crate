@@ -24,7 +24,7 @@ package io.crate.executor.task;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.Routing;
 import io.crate.operation.RowDownstream;
@@ -57,7 +57,7 @@ public class LocalCollectTaskTest extends CrateUnitTest {
         @Override
         public void collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
             RowDownstreamHandle handle = downstream.registerUpstream(this);
-            handle.setNextRow(new RowN(new Object[]{1}));
+            handle.setNextRow(new RowNUnsafe(new Object[]{1}));
             handle.finish();
         }
     }

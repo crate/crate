@@ -23,7 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
@@ -43,7 +43,7 @@ public class ShardingProjectorTest extends CrateUnitTest {
         if (cells==null){
             cells = new Object[]{null};
         }
-        return new RowN(cells);
+        return new RowNUnsafe(cells);
     }
 
     @Test

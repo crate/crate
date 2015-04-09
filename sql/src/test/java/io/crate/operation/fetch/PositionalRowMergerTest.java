@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.test.integration.CrateUnitTest;
@@ -76,7 +76,7 @@ public class PositionalRowMergerTest extends CrateUnitTest {
                     List<Object[]> rows = rowsPerUpstream.get(upstreamId);
                     for (Object[] row : rows) {
                         try {
-                            upstreamBuffer.setNextRow(new PositionalRowDelegate(new RowN(row), (int)row[0]));
+                            upstreamBuffer.setNextRow(new PositionalRowDelegate(new RowNUnsafe(row), (int)row[0]));
                         } catch (Exception e) {
                             setNextRowExceptions.add(e);
                         }
@@ -148,7 +148,7 @@ public class PositionalRowMergerTest extends CrateUnitTest {
                         List<Object[]> rows = rowsPerUpstream.get(upstreamId);
                         for (Object[] row : rows) {
                             try {
-                                upstreamBuffer.setNextRow(new PositionalRowDelegate(new RowN(row), (int) row[0]));
+                                upstreamBuffer.setNextRow(new PositionalRowDelegate(new RowNUnsafe(row), (int) row[0]));
                             } catch (Exception e) {
                                 setNextRowExceptions.add(e);
                             }

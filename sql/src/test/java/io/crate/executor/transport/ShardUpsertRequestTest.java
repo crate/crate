@@ -22,7 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.Constants;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -74,7 +74,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 insertAssignments);
 
         request.add(123, "99",
-                new RowN(new Object[]{99, new BytesRef("Marvin")}),
+                new RowNUnsafe(new Object[]{99, new BytesRef("Marvin")}),
                 null, "99");
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -122,7 +122,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 "99");
 
         request.add(123, "99",
-                new RowN(new Object[]{ new BytesRef("Marvin") }),
+                new RowNUnsafe(new Object[]{ new BytesRef("Marvin") }),
                 2L, null);
 
 
@@ -176,7 +176,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 "99");
 
         request.add(123, "99",
-                new RowN(new Object[]{ 99, new BytesRef("Marvin") }),
+                new RowNUnsafe(new Object[]{ 99, new BytesRef("Marvin") }),
                 2L, null);
 
 

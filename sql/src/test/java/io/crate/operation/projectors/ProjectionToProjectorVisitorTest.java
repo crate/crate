@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -76,7 +76,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     private FunctionInfo avgInfo;
     private Functions functions;
 
-    private final RowN spare = new RowN(new Object[]{});
+    private final RowNUnsafe spare = new RowNUnsafe(new Object[]{});
 
     private Row spare(Object... cells) {
         spare.cells(cells);
@@ -84,7 +84,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     }
 
     private Row row(Object... cells) {
-        return new RowN(cells);
+        return new RowNUnsafe(cells);
     }
 
     @Before

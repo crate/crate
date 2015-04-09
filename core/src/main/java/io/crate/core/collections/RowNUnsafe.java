@@ -21,16 +21,21 @@
 
 package io.crate.core.collections;
 
-public class RowN implements Row {
+/**
+ * A {@link Row} implementation consuming a Object array and DO NOT ensure
+ * safety of the Object array on {@link #materialize}, it will just return the consumed
+ * Object array. For a safe implementation see {@link RowNSafe}.
+ */
+public class RowNUnsafe implements Row {
 
     private final int size;
     private Object[] cells;
 
-    public RowN(int size){
+    public RowNUnsafe(int size){
         this.size = size;
     }
 
-    public RowN(Object[] cells) {
+    public RowNUnsafe(Object[] cells) {
         this(cells.length);
         this.cells = cells;
     }

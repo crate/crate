@@ -23,7 +23,7 @@ package io.crate.operation.projectors;
 
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -43,7 +43,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     private static final Input<Integer> INPUT = new InputCollectExpression<>(0);
     private static final Literal<Boolean> TRUE_LITERAL = Literal.newLiteral(true);
 
-    private final RowN spare = new RowN(new Object[]{});
+    private final RowNUnsafe spare = new RowNUnsafe(new Object[]{});
 
     private Row spare(Object... cells) {
         if (cells == null) {

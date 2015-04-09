@@ -22,7 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNUnsafe;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -97,7 +97,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             public void run() {
                 for (int i = 0; i < 100; i++) {
                     indexWriter.setNextRow(
-                            new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}));
+                            new RowNUnsafe(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}));
                 }
             }
         });
@@ -106,7 +106,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             public void run() {
                 for (int i = 100; i < 200; i++) {
                     indexWriter.setNextRow(
-                            new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Trillian\"}")}));
+                            new RowNUnsafe(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Trillian\"}")}));
                 }
             }
         });

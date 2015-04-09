@@ -26,7 +26,7 @@ import com.google.common.base.Throwables;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNSafe;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -125,7 +125,7 @@ public class StreamBucket implements Bucket, Streamable {
         private final StreamInput input = bytes.streamInput();
         private int pos = 0;
         private final Object[] current = new Object[streamers.length];
-        private final Row row = new RowN(current);
+        private final Row row = new RowNSafe(current);
 
         @Override
         public boolean hasNext() {
