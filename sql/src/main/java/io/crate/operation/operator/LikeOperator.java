@@ -22,9 +22,9 @@
 package io.crate.operation.operator;
 
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -57,13 +57,7 @@ public class LikeOperator extends Operator<BytesRef> {
         assert (symbol != null);
         assert (symbol.arguments().size() == 2);
 
-        if (!symbol.arguments().get(0).symbolType().isValueSymbol()) {
-            return symbol;
-        }
-
-        Literal expression = (Literal) symbol.arguments().get(0);
-        Literal pattern = (Literal) symbol.arguments().get(1);
-        return Literal.newLiteral(evaluate(expression, pattern));
+        return Scalar.evaluateIfLiterals(this, symbol);
     }
 
     @Override
