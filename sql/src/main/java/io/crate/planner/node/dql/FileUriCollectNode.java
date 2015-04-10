@@ -51,14 +51,15 @@ public class FileUriCollectNode extends CollectNode {
         super();
     }
 
-    public FileUriCollectNode(String id,
+    public FileUriCollectNode(int executionNodeId,
+                              String name,
                               Routing routing,
                               Symbol targetUri,
                               List<Symbol> toCollect,
                               List<Projection> projections,
                               String compression,
                               Boolean sharedStorage) {
-        super(id, routing, toCollect, projections);
+        super(executionNodeId, name, routing, toCollect, projections);
         this.targetUri = targetUri;
         this.compression = compression;
         this.sharedStorage = sharedStorage;
@@ -90,6 +91,7 @@ public class FileUriCollectNode extends CollectNode {
             return this;
         }
         FileUriCollectNode result = new FileUriCollectNode(
+                executionNodeId(),
                 name(),
                 routing(),
                 normalizedTargetUri,
@@ -100,7 +102,6 @@ public class FileUriCollectNode extends CollectNode {
         result.downstreamNodes(downstreamNodes());
         result.maxRowGranularity(maxRowGranularity());
         result.jobId(jobId().orNull());
-        result.jobLocalId(jobLocalId());
         result.isPartitioned(isPartitioned());
         result.whereClause(normalizedWhereClause);
         return result;

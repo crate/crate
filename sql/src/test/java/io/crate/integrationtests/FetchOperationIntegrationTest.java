@@ -118,7 +118,10 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             outputTypes.add(symbol.valueType());
         }
 
-        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
+        CollectNode collectNode = new CollectNode(
+                plannerContext.nextExecutionNodeId(),
+                "collect",
+                tableInfo.getRouting(WhereClause.MATCH_ALL, null));
         collectNode.toCollect(toCollect);
         collectNode.outputTypes(outputTypes);
         collectNode.maxRowGranularity(RowGranularity.DOC);
@@ -271,7 +274,10 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 ImmutableList.<Symbol>of(new Reference(idRefInfo)),
                 new boolean[]{false}, new Boolean[]{false}));
 
-        CollectNode collectNode = new CollectNode("collect", tableInfo.getRouting(WhereClause.MATCH_ALL, null));
+        CollectNode collectNode = new CollectNode(
+                plannerContext.nextExecutionNodeId(),
+                "collect",
+                tableInfo.getRouting(WhereClause.MATCH_ALL, null));
         collectNode.toCollect(inputSymbols);
         collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.DOC);
@@ -294,7 +300,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
                 collectNode.executionNodes());
 
-        MergeNode mergeNode = MergeNode.sortedMergeNode("sorted merge", collectNode.executionNodes().size(),
+        MergeNode mergeNode = MergeNode.sortedMergeNode(
+                plannerContext.nextExecutionNodeId(),
+                "sorted merge", collectNode.executionNodes().size(),
                 new int[]{1}, new boolean[]{false}, new Boolean[]{false});
         mergeNode.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
         mergeNode.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
@@ -387,7 +395,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
                 collectNode.executionNodes(), bulkSize, querySpec.isLimited());
 
-        MergeNode mergeNode = MergeNode.sortedMergeNode("sorted merge", collectNode.executionNodes().size(),
+        MergeNode mergeNode = MergeNode.sortedMergeNode(
+                plannerContext.nextExecutionNodeId(),
+                "sorted merge", collectNode.executionNodes().size(),
                 new int[]{1}, new boolean[]{false}, new Boolean[]{false});
         mergeNode.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
         mergeNode.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
