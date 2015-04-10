@@ -44,8 +44,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.HashMap;
-import java.util.Set;
 
 public class PlanNodeBuilder {
 
@@ -57,7 +55,10 @@ public class PlanNodeBuilder {
                                                   ImmutableList<Projection> projections) {
         Routing routing = tableInfo.getRouting(whereClause, null);
         plannerContext.allocateJobSearchContextIds(routing);
-        CollectNode node = new CollectNode("distributing collect", routing);
+        CollectNode node = new CollectNode(
+                plannerContext.nextExecutionNodeId(),
+                "distributing collect",
+                routing);
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
         node.downstreamNodes(downstreamNodes);
@@ -70,8 +71,12 @@ public class PlanNodeBuilder {
     }
 
     public static MergeNode distributedMerge(CollectNode collectNode,
-                                      List<Projection> projections) {
-        MergeNode node = new MergeNode("distributed merge", collectNode.executionNodes().size());
+                                             Planner.Context plannerContext,
+                                             List<Projection> projections) {
+        MergeNode node = new MergeNode(
+                plannerContext.nextExecutionNodeId(),
+                "distributed merge",
+                collectNode.executionNodes().size());
         node.projections(projections);
 
         assert collectNode.hasDownstreams();
@@ -83,7 +88,10 @@ public class PlanNodeBuilder {
     public static MergeNode localMerge(List<Projection> projections,
                                        DQLPlanNode previousNode,
                                        Planner.Context plannerContext) {
-        MergeNode node = new MergeNode("localMerge", previousNode.executionNodes().size());
+        MergeNode node = new MergeNode(
+                plannerContext.nextExecutionNodeId(),
+                "localMerge",
+                previousNode.executionNodes().size());
         node.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
         node.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         node.projections(projections);
@@ -114,6 +122,7 @@ public class PlanNodeBuilder {
                 sourceSymbols
         );
         MergeNode node = MergeNode.sortedMergeNode(
+                plannerContext.nextExecutionNodeId(),
                 "sortedLocalMerge",
                 previousNode.executionNodes().size(),
                 orderByIndices,
@@ -166,7 +175,12 @@ public class PlanNodeBuilder {
                     tableInfo.ident().schema(), tableInfo.ident().name(), partitionIdent).stringValue());
         }
         plannerContext.allocateJobSearchContextIds(routing);
-        CollectNode node = new CollectNode("collect", routing, toCollect, projections);
+        CollectNode node = new CollectNode(
+                plannerContext.nextExecutionNodeId(),
+                "collect",
+                routing,
+                toCollect,
+                projections);
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
         node.isPartitioned(tableInfo.isPartitioned());

@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -35,8 +36,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
+public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, ExecutionNode {
 
+    private int executionNodeId;
     private String name;
     protected List<Projection> projections = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
@@ -46,12 +48,18 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
 
     }
 
-    protected AbstractDQLPlanNode(String name) {
+    protected AbstractDQLPlanNode(int executionNodeId, String name) {
+        this.executionNodeId = executionNodeId;
         this.name = name;
     }
 
     public String name() {
         return name;
+    }
+
+    @Override
+    public int executionNodeId() {
+        return executionNodeId;
     }
 
     public boolean hasProjections() {
@@ -104,6 +112,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         name = in.readString();
+        executionNodeId = in.readVInt();
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -126,6 +135,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
+        out.writeVInt(executionNodeId);
 
         int numCols = outputTypes.size();
         out.writeVInt(numCols);

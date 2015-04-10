@@ -117,6 +117,7 @@ public class MapSideDataCollectOperationTest {
                 .map()
         );
         FileUriCollectNode collectNode = new FileUriCollectNode(
+                0,
                 "test",
                 routing,
                 Literal.newLiteral(Paths.get(tmpFile.toURI()).toUri().toString()),

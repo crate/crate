@@ -115,7 +115,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ReferenceInfo load1 = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
         Symbol reference = new Reference(load1);
 
-        CollectNode collectNode = new CollectNode("collect", routing);
+        CollectNode collectNode = new CollectNode(0, "collect", routing);
         collectNode.toCollect(Arrays.asList(reference));
         collectNode.outputTypes(asList(load1.type()));
         collectNode.maxRowGranularity(RowGranularity.NODE);
@@ -139,7 +139,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ReferenceInfo clusterNameInfo = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
         Symbol reference = new Reference(clusterNameInfo);
 
-        CollectNode collectNode = new CollectNode("lcollect", new Routing());
+        CollectNode collectNode = new CollectNode(0, "lcollect", new Routing());
         collectNode.toCollect(asList(reference, Literal.newLiteral(2.3f)));
         collectNode.outputTypes(asList(clusterNameInfo.type()));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
