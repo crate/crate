@@ -23,6 +23,5 @@ package io.crate.operation;
 
 public interface Input<T> {
 
-    public T value();
-
+    T value();
 }

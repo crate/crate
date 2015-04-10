@@ -25,9 +25,9 @@ import io.crate.core.collections.BucketPage;
 
 public interface PageDownstream {
 
-    public void nextPage(BucketPage page, PageConsumeListener listener);
+    void nextPage(BucketPage page, PageConsumeListener listener);
 
-    public void finish();
+    void finish();
 
-    public void fail(Throwable t);
+    void fail(Throwable t);
 }

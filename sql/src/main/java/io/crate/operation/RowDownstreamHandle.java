@@ -38,16 +38,16 @@ public interface RowDownstreamHandle {
      *
      * @return false if the downstream does not need any more rows, true otherwise.
      */
-    public boolean setNextRow(Row row);
+    boolean setNextRow(Row row);
 
     /**
      * Called from the upstream to indicate that all rows are sent.
      */
-    public void finish();
+    void finish();
 
     /**
      * Is called from the upstream in case of a failure.
      */
-    public void fail(Throwable throwable);
+    void fail(Throwable throwable);
 
 }

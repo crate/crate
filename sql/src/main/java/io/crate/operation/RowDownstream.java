@@ -33,6 +33,6 @@ public interface RowDownstream {
      * @param upstream the upstream to be registered
      * @return A downstream handle to push rows to.
      */
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream);
+    RowDownstreamHandle registerUpstream(RowUpstream upstream);
 
 }

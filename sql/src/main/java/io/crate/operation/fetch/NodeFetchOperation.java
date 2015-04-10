@@ -26,14 +26,16 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
+import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.DocLevelReferenceResolver;
@@ -44,6 +46,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -168,30 +171,24 @@ public class NodeFetchOperation {
     private void runFetchThreaded(final ShardCollectFuture result,
                                   final List<LuceneDocFetcher> shardFetchers,
                                   final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
-        int availableThreads = Math.max(poolSize - executor.getActiveCount(), 2);
-        if (availableThreads < shardFetchers.size()) {
-            Iterable<List<LuceneDocFetcher>> partition = Iterables.partition(
-                    shardFetchers, shardFetchers.size() / availableThreads);
-            for (final List<LuceneDocFetcher> fetchers : partition) {
-                executor.execute(new Runnable() {
+
+        ThreadPools.runWithAvailableThreads(
+                executor,
+                poolSize,
+                Lists.transform(shardFetchers, new Function<LuceneDocFetcher, Runnable>() {
+
+                    @Nullable
                     @Override
-                    public void run() {
-                        for (LuceneDocFetcher fetcher : fetchers) {
-                            doFetch(result, fetcher, ramAccountingContext);
-                        }
+                    public Runnable apply(final LuceneDocFetcher input) {
+                        return new Runnable() {
+                            @Override
+                            public void run() {
+                                doFetch(result, input, ramAccountingContext);
+                            }
+                        };
                     }
-                });
-            }
-        } else {
-            for (final LuceneDocFetcher fetcher : shardFetchers) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        doFetch(result, fetcher, ramAccountingContext);
-                    }
-                });
-            }
-        }
+                })
+        );
     }
 
 

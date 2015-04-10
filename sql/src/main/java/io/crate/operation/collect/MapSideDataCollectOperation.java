@@ -21,9 +21,10 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -37,6 +38,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
@@ -376,30 +378,23 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                 }
             });
         } else {
-            int availableThreads = Math.max(poolSize - executor.getActiveCount(), 2);
-            if (availableThreads < shardCollectors.size()) {
-                Iterable<List<CrateCollector>> partition = Iterables.partition(
-                        shardCollectors, shardCollectors.size() / availableThreads);
-                for (final List<CrateCollector> collectors : partition) {
-                    executor.execute(new Runnable() {
+            ThreadPools.runWithAvailableThreads(
+                    executor,
+                    poolSize,
+                    Lists.transform(shardCollectors, new Function<CrateCollector, Runnable>() {
+
+                        @Nullable
                         @Override
-                        public void run() {
-                            for (CrateCollector collector : collectors) {
-                                doCollect(result, collector, ramAccountingContext);
-                            }
+                        public Runnable apply(final CrateCollector input) {
+                            return new Runnable() {
+                                @Override
+                                public void run() {
+                                    doCollect(result, input, ramAccountingContext);
+                                }
+                            };
                         }
-                    });
-                }
-            } else {
-                for (final CrateCollector shardCollector : shardCollectors) {
-                    executor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            doCollect(result, shardCollector, ramAccountingContext);
-                        }
-                    });
-                }
-            }
+                    })
+            );
         }
     }
 

@@ -23,7 +23,7 @@ package io.crate.operation;
 
 public interface PageConsumeListener {
 
-    public void needMore();
+    void needMore();
 
-    public void finish();
+    void finish();
 }
