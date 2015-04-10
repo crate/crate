@@ -138,7 +138,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize) throws Exception{
-        CollectNode node = new CollectNode("collect");
+        CollectNode node = new CollectNode(0, "collect");
         node.whereClause(whereClause);
         node.orderBy(orderBy);
         node.limit(limit);
@@ -328,7 +328,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, false});
 
-        CollectNode node = new CollectNode("collect");
+        CollectNode node = new CollectNode(0, "collect");
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
         node.jobId(UUID.randomUUID());

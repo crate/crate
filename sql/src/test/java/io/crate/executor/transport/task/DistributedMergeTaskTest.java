@@ -51,7 +51,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         }
 
         // select count(*), user ... group by user
-        MergeNode mergeNode = new MergeNode("merge1", 2);
+        MergeNode mergeNode = new MergeNode(0, "merge1", 2);
         mergeNode.jobId(UUID.randomUUID());
         mergeNode.executionNodes(nodes);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));

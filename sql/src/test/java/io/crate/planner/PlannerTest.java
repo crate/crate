@@ -1820,10 +1820,11 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testAllocatedJobSearchContextIds() throws Exception {
-        CollectNode collectNode = new CollectNode("collect", shardRouting);
+        Planner.Context plannerContext = new Planner.Context();
+        CollectNode collectNode = new CollectNode(
+                plannerContext.nextExecutionNodeId(), "collect", shardRouting);
         int shardNum = collectNode.routing().numShards();
 
-        Planner.Context plannerContext = new Planner.Context();
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         java.lang.reflect.Field f = plannerContext.getClass().getDeclaredField("jobSearchContextIdBaseSeq");
@@ -1849,5 +1850,17 @@ public class PlannerTest extends CrateUnitTest {
         int jobSearchContextIdBase = collectNode.routing().jobSearchContextIdBase();
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
         assertThat(collectNode.routing().jobSearchContextIdBase(), is(jobSearchContextIdBase));
+    }
+
+    @Test
+    public void testExecutionNodeIdSequence() throws Exception {
+        Planner.Context plannerContext = new Planner.Context();
+        CollectNode collectNode1 = new CollectNode(
+                plannerContext.nextExecutionNodeId(), "collect1", shardRouting);
+        CollectNode collectNode2 = new CollectNode(
+                plannerContext.nextExecutionNodeId(), "collect2", shardRouting);
+
+        assertThat(collectNode1.executionNodeId(), is(0));
+        assertThat(collectNode2.executionNodeId(), is(1));
     }
 }

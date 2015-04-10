@@ -22,10 +22,11 @@
 package io.crate.planner.node.dql;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -41,6 +42,13 @@ import java.util.*;
  * A plan node which merges results from upstreams
  */
 public class MergeNode extends AbstractDQLPlanNode {
+
+    public static final ExecutionNodeFactory<MergeNode> FACTORY = new ExecutionNodeFactory<MergeNode>() {
+        @Override
+        public MergeNode create() {
+            return new MergeNode();
+        }
+    };
 
     private List<DataType> inputTypes;
     private int numUpstreams;
@@ -63,24 +71,31 @@ public class MergeNode extends AbstractDQLPlanNode {
         numUpstreams = 0;
     }
 
-    public MergeNode(String id, int numUpstreams) {
-        super(id);
+    public MergeNode(int executionNodeId, String name, int numUpstreams) {
+        super(executionNodeId, name);
         this.numUpstreams = numUpstreams;
     }
 
-    public static MergeNode sortedMergeNode(String id, int numUpstreams,
-                     int[] orderByIndices,
-                     boolean[] reverseFlags,
-                     Boolean[] nullsFirst) {
+    public static MergeNode sortedMergeNode(int executionNodeId,
+                                            String name,
+                                            int numUpstreams,
+                                            int[] orderByIndices,
+                                            boolean[] reverseFlags,
+                                            Boolean[] nullsFirst) {
         Preconditions.checkArgument(
                 orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
                 "ordering parameters must be of the same length");
-        MergeNode mergeNode = new MergeNode(id, numUpstreams);
+        MergeNode mergeNode = new MergeNode(executionNodeId, name, numUpstreams);
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
         mergeNode.reverseFlags = reverseFlags;
         mergeNode.nullsFirst = nullsFirst;
         return mergeNode;
+    }
+
+    @Override
+    public Type type() {
+        return Type.MERGE;
     }
 
     @Override
@@ -155,6 +170,11 @@ public class MergeNode extends AbstractDQLPlanNode {
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
+        return visitor.visitMergeNode(this, context);
+    }
+
+    @Override
+    public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context) {
         return visitor.visitMergeNode(this, context);
     }
 
@@ -266,6 +286,7 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
+                .add("executionNodeId", executionNodeId())
                 .add("name", name())
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
