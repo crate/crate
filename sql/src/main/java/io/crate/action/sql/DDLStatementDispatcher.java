@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.*;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -38,21 +39,15 @@ import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.OutputName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
-import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.Planner;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -79,7 +74,10 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -94,16 +92,19 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
     private final BlobIndices blobIndices;
     private final Provider<Executor> executorProvider;
     private final TransportActionProvider transportActionProvider;
+    private final Planner planner;
 
     @Inject
     public DDLStatementDispatcher(ClusterService clusterService,
                                   BlobIndices blobIndices,
                                   Provider<Executor> executorProvider,
-                                  TransportActionProvider transportActionProvider) {
+                                  TransportActionProvider transportActionProvider,
+                                  Planner planner) {
         this.clusterService = clusterService;
         this.blobIndices = blobIndices;
         this.executorProvider = executorProvider;
         this.transportActionProvider = transportActionProvider;
+        this.planner = planner;
     }
 
     @Override
@@ -156,27 +157,21 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
     }
 
     private Plan genCountStarPlan(TableInfo table) {
-        Aggregation countAggregationPartial = new Aggregation(
-                CountAggregation.COUNT_STAR_FUNCTION,
-                ImmutableList.<Symbol>of(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL);
-        Aggregation countAggregationFinal = new Aggregation(
-                CountAggregation.COUNT_STAR_FUNCTION,
-                ImmutableList.<Symbol>of(new InputColumn(0, DataTypes.LONG)),
-                Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL);
+        QuerySpec querySpec = new QuerySpec();
+        querySpec.where(WhereClause.MATCH_ALL);
+        Function countFunction = new Function(
+                CountAggregation.COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());
+        querySpec.outputs(ImmutableList.<Symbol>of(countFunction));
+        querySpec.hasAggregates(true);
 
-        CollectNode collectNode = new CollectNode(
-                "count",
-                table.getRouting(WhereClause.MATCH_ALL, null),
-                ImmutableList.<Symbol>of(),
-                Arrays.<Projection>asList(new AggregationProjection(ImmutableList.of(countAggregationPartial))));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.outputTypes(ImmutableList.<DataType>of(DataTypes.UNDEFINED));
-        MergeNode mergeNode = new MergeNode("local count merge", collectNode.executionNodes().size());
-        mergeNode.projections(ImmutableList.<Projection>of(new AggregationProjection(ImmutableList.of(countAggregationFinal))));
-        return new IterablePlan(collectNode, mergeNode);
+        QueriedTable queriedTable = new QueriedTable(
+                QualifiedName.of(table.ident().fqn()),
+                new TableRelation(table),
+                ImmutableList.of(new OutputName("count(*)")),
+                querySpec
+                );
+        SelectAnalyzedStatement statement = new SelectAnalyzedStatement(queriedTable);
+        return planner.process(statement, new Planner.Context());
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<Long> result) {
