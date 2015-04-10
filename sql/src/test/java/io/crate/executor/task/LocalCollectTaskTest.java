@@ -65,7 +65,7 @@ public class LocalCollectTaskTest extends CrateUnitTest {
     @Test
     public void testCollectTask() throws Exception {
 
-        final CollectNode collectNode = new CollectNode("ei-die", CLUSTER_ROUTING);
+        final CollectNode collectNode = new CollectNode(0, "ei-die", CLUSTER_ROUTING);
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
         collectNode.jobId(testJobId);
         collectNode.toCollect(ImmutableList.<Symbol>of(Literal.newLiteral(4)));

@@ -81,7 +81,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
 
     @Test
     public void testGetOutputStreamersFromCollectNode() throws Exception {
-        CollectNode collectNode = new CollectNode("bla", EMPTY_ROUTING);
+        CollectNode collectNode = new CollectNode(0, "bla", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.FLOAT, DataTypes.OBJECT));
         StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode, ramAccountingContext);
         Streamer<?>[] streamers = ctx.outputStreamers();
@@ -102,7 +102,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
     @Test
     public void testGetOutputStreamersFromCollectNodeWithWrongNull() throws Exception {
         // null means we expect an aggstate here
-        CollectNode collectNode = new CollectNode("bla", EMPTY_ROUTING);
+        CollectNode collectNode = new CollectNode(0, "bla", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, DataTypes.OBJECT));
         StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode, ramAccountingContext);
         // assume an unknown column
@@ -116,7 +116,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
 
     @Test
     public void testGetOutputStreamersFromCollectNodeWithAggregations() throws Exception {
-        CollectNode collectNode = new CollectNode("bla", EMPTY_ROUTING);
+        CollectNode collectNode = new CollectNode(0, "bla", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, null, DataTypes.DOUBLE));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList( // not a real use case, only for test convenience, sorry
@@ -135,7 +135,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
 
     @Test
     public void testGetOutputStreamersFromCollectNodeWithGroupAndTopNProjection() throws Exception {
-        CollectNode collectNode = new CollectNode("mynode", EMPTY_ROUTING);
+        CollectNode collectNode = new CollectNode(0, "mynode", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED));
         GroupProjection groupProjection = new GroupProjection(
                 Arrays.<Symbol>asList(Literal.newLiteral("key")),
@@ -154,7 +154,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
 
     @Test
     public void testGetInputStreamersForMergeNode() throws Exception {
-        MergeNode mergeNode = new MergeNode("mörtsch", 2);
+        MergeNode mergeNode = new MergeNode(0, "mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.SHORT, DataTypes.TIMESTAMP));
         StreamerVisitor.Context ctx = visitor.processPlanNode(mergeNode, ramAccountingContext);
         Streamer<?>[] streamers = ctx.inputStreamers();
@@ -166,14 +166,14 @@ public class StreamerVisitorTest extends CrateUnitTest {
 
     @Test(expected= IllegalStateException.class)
     public void testGetInputStreamersForMergeNodeWithWrongNull() throws Exception {
-        MergeNode mergeNode = new MergeNode("mörtsch", 2);
+        MergeNode mergeNode = new MergeNode(0, "mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, DataTypes.TIMESTAMP));
         visitor.processPlanNode(mergeNode, ramAccountingContext);
     }
 
     @Test
     public void testGetInputStreamersForMergeNodeWithAggregations() throws Exception {
-        MergeNode mergeNode = new MergeNode("mörtsch", 2);
+        MergeNode mergeNode = new MergeNode(0, "mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.TIMESTAMP));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList(
@@ -204,7 +204,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
          *      longStreamer,  stringStreamer
          */
 
-        MergeNode mergeNode = new MergeNode("mörtsch", 2);
+        MergeNode mergeNode = new MergeNode(0, "mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED));
         GroupProjection groupProjection = new GroupProjection(
                 Arrays.<Symbol>asList(Literal.newLiteral("key")),

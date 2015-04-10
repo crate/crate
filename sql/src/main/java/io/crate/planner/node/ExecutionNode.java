@@ -23,6 +23,7 @@ package io.crate.planner.node;
 
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.Set;
@@ -35,7 +36,8 @@ public interface ExecutionNode extends Streamable {
 
     public static enum Type {
         COLLECT(CollectNode.FACTORY),
-        FILE_URI_COLLECT(FileUriCollectNode.FACTORY);
+        FILE_URI_COLLECT(FileUriCollectNode.FACTORY),
+        MERGE(MergeNode.FACTORY);
 
         private final ExecutionNodeFactory factory;
 
@@ -51,6 +53,8 @@ public interface ExecutionNode extends Streamable {
     public Type type();
 
     public String name();
+
+    public int executionNodeId();
 
     public Set<String> executionNodes();
 

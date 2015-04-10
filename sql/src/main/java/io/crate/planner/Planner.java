@@ -84,6 +84,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
         private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
         private int jobSearchContextIdBaseSeq = 0;
+        private int executionNodeId = 0;
 
         /**
          * Increase current {@link #jobSearchContextIdBaseSeq} by number of shards affected by given
@@ -134,6 +135,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
             return jobSearchContextIdToNode;
+        }
+
+        public int nextExecutionNodeId() {
+            return executionNodeId++;
         }
     }
 
@@ -341,6 +346,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectNode collectNode = new FileUriCollectNode(
+                context.nextExecutionNodeId(),
                 "copyFrom",
                 generateRouting(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
                 analysis.uri(),

@@ -156,7 +156,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                     new Boolean[]{null, null});
             topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
-            MergeNode mergeNode = new MergeNode("merge", 2);
+            MergeNode mergeNode = new MergeNode(0, "merge", 2);
             mergeNode.projections(Arrays.asList(
                     groupProjection,
                     topNProjection

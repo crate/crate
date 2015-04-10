@@ -158,6 +158,7 @@ public class DistributedGroupByConsumer implements Consumer {
             }
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
                     collectNode,
+                    context.consumerContext.plannerContext(),
                     reducerProjections
             );
             // end: Reducer
