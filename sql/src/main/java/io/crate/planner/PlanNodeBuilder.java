@@ -52,9 +52,7 @@ public class PlanNodeBuilder {
                                                   WhereClause whereClause,
                                                   List<Symbol> toCollect,
                                                   List<String> downstreamNodes,
-                                                  ImmutableList<Projection> projections,
-                                                  @Nullable OrderBy orderBy,
-                                                  @Nullable Integer limit) {
+                                                  ImmutableList<Projection> projections) {
         Routing routing = tableInfo.getRouting(whereClause, null);
         plannerContext.allocateJobSearchContextIds(routing);
         CollectNode node = new CollectNode("distributing collect", routing);
@@ -66,18 +64,7 @@ public class PlanNodeBuilder {
 
         node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
-        node.orderBy(orderBy);
-        node.limit(limit);
         return node;
-    }
-
-    public static CollectNode distributingCollect(TableInfo tableInfo,
-                                                  Planner.Context plannerContext,
-                                                  WhereClause whereClause,
-                                                  List<Symbol> toCollect,
-                                                  List<String> downstreamNodes,
-                                                  ImmutableList<Projection> projections) {
-        return distributingCollect(tableInfo, plannerContext, whereClause, toCollect, downstreamNodes, projections, null, null);
     }
 
     public static MergeNode distributedMerge(CollectNode collectNode,
