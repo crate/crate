@@ -101,7 +101,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         rows[2] = new Object[]{3, new BytesRef("Marvin")};
 
         contextId = UUID.randomUUID();
-        dummyMergeNode = new MergeNode("dummy", 1);
+        dummyMergeNode = new MergeNode(0, "dummy", 1);
         dummyMergeNode.jobId(contextId);
         dummyMergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
         TopNProjection topNProjection = new TopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET);

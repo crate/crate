@@ -22,6 +22,7 @@
 package io.crate.planner.node;
 
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.Nullable;
 
 public class ExecutionNodeVisitor<C, R> {
@@ -34,7 +35,11 @@ public class ExecutionNodeVisitor<C, R> {
         return null;
     }
 
-    public R visitCollectNode(CollectNode collectNode, C context) {
-        return visitExecutionNode(collectNode, context);
+    public R visitCollectNode(CollectNode node, C context) {
+        return visitExecutionNode(node, context);
+    }
+
+    public R visitMergeNode(MergeNode node, C context) {
+        return visitExecutionNode(node, context);
     }
 }
