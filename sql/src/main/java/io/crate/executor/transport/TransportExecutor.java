@@ -32,6 +32,7 @@ import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -54,10 +55,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class TransportExecutor implements Executor, TaskExecutor {
 
@@ -70,6 +68,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final Settings settings;
     private final ClusterService clusterService;
+    private final JobContextService jobContextService;
     private final TransportActionProvider transportActionProvider;
 
     private final ImplementationSymbolVisitor globalImplementationSymbolVisitor;
@@ -85,6 +84,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     @Inject
     public TransportExecutor(Settings settings,
+                             JobContextService jobContextService,
                              TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
                              Functions functions,
@@ -97,6 +97,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              CrateCircuitBreakerService breakerService,
                              StreamerVisitor streamerVisitor) {
         this.settings = settings;
+        this.jobContextService = jobContextService;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.pageDownstreamFactory = pageDownstreamFactory;
@@ -220,8 +221,20 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitQueryThenFetch(QueryThenFetch plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.mergeNode(), job.id()));
+            plan.collectNode().jobId(job.id());
+            plan.mergeNode().jobId(job.id());
+            job.addTask(new ExecutionNodesTask(
+                    job.id(),
+                    jobContextService,
+                    pageDownstreamFactory,
+                    statsTables,
+                    threadPool,
+                    transportActionProvider.transportJobInitAction(),
+                    transportActionProvider.transportCloseContextNodeAction(),
+                    circuitBreaker,
+                    plan.mergeNode(),
+                    plan.collectNode()
+            ));
             return null;
         }
     }

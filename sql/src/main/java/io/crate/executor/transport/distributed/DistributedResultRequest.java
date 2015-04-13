@@ -23,11 +23,15 @@ package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
+import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.executor.transport.StreamBucket;
+import org.elasticsearch.common.io.ThrowableObjectInputStream;
+import org.elasticsearch.common.io.ThrowableObjectOutputStream;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -40,9 +44,7 @@ public class DistributedResultRequest extends TransportRequest {
     private Bucket rows;
     private UUID jobId;
 
-    // TODO: change failure flag to string or enum so that the receiver can recreate the
-    // exception and the error handling in the DistributedMergeTask can be simplified.
-    private boolean failure = false;
+    private Throwable throwable = null;
 
     public DistributedResultRequest() {
     }
@@ -54,7 +56,7 @@ public class DistributedResultRequest extends TransportRequest {
         this.streamers = streamers;
     }
 
-    public UUID contextId() {
+    public UUID jobId() {
         return jobId;
     }
 
@@ -89,19 +91,39 @@ public class DistributedResultRequest extends TransportRequest {
         this.rows = rows;
     }
 
+    public boolean isLast() {
+        return true; // TODO: make settable
+    }
+
+    public void throwable(Throwable throwable) {
+        this.throwable = throwable;
+    }
+
+    @Nullable
+    public Throwable throwable() {
+        return throwable;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         jobId = new UUID(in.readLong(), in.readLong());
         executionNodeId = in.readVInt();
         bucketIdx = in.readVInt();
-        if (in.readBoolean()) {
-            failure = true;
-            return;
+
+        boolean failure = in.readBoolean();
+        if (failure) {
+            ThrowableObjectInputStream tis = new ThrowableObjectInputStream(in);
+            try {
+                throwable = (Throwable) tis.readObject();
+            } catch (ClassNotFoundException e) {
+                throwable = new UnknownUpstreamFailure();
+            }
+        } else {
+            StreamBucket bucket = new StreamBucket(streamers);
+            bucket.readFrom(in);
+            rows = bucket;
         }
-        StreamBucket bucket = new StreamBucket(streamers);
-        bucket.readFrom(in);
-        rows = bucket;
     }
 
     @Override
@@ -111,21 +133,15 @@ public class DistributedResultRequest extends TransportRequest {
         out.writeLong(jobId.getLeastSignificantBits());
         out.writeVInt(executionNodeId);
         out.writeVInt(bucketIdx);
+
+        boolean failure = throwable != null;
+        out.writeBoolean(failure);
         if (failure) {
-            out.writeBoolean(true);
-            return;
+            ThrowableObjectOutputStream too = new ThrowableObjectOutputStream(out);
+            too.writeObject(throwable);
+        } else {
+            // TODO: we should not rely on another bucket in this class and instead write to the stream directly
+            StreamBucket.writeBucket(out, streamers, rows);
         }
-        out.writeBoolean(false);
-
-        // TODO: we should not rely on another bucket in this class and instead write to the stream directly
-        StreamBucket.writeBucket(out, streamers, rows);
-    }
-
-    public void failure(boolean failure) {
-        this.failure = failure;
-    }
-
-    public boolean failure() {
-        return this.failure;
     }
 }

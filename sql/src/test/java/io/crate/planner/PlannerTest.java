@@ -86,12 +86,17 @@ public class PlannerTest extends CrateUnitTest {
             .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g",  Arrays.asList(3)).map())
             .map());
 
+    private ClusterService clusterService;
+
 
     class TestModule extends MetaDataModule {
 
         @Override
         protected void configure() {
-            ClusterService clusterService = mock(ClusterService.class);
+            clusterService = mock(ClusterService.class);
+            DiscoveryNode localNode = mock(DiscoveryNode.class);
+            when(localNode.id()).thenReturn("foo");
+            when(clusterService.localNode()).thenReturn(localNode);
             ClusterState clusterState = mock(ClusterState.class);
             MetaData metaData = mock(MetaData.class);
             when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
@@ -1819,7 +1824,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testAllocatedJobSearchContextIds() throws Exception {
-        Planner.Context plannerContext = new Planner.Context();
+        Planner.Context plannerContext = new Planner.Context(clusterService);
         CollectNode collectNode = new CollectNode(
                 plannerContext.nextExecutionNodeId(), "collect", shardRouting);
         int shardNum = collectNode.routing().numShards();
@@ -1853,7 +1858,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testExecutionNodeIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context();
+        Planner.Context plannerContext = new Planner.Context(clusterService);
         CollectNode collectNode1 = new CollectNode(
                 plannerContext.nextExecutionNodeId(), "collect1", shardRouting);
         CollectNode collectNode2 = new CollectNode(

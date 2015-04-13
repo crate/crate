@@ -136,7 +136,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectDocId() throws Exception {
         setUpCharacters();
-        Planner.Context plannerContext = new Planner.Context();
+        Planner.Context plannerContext = new Planner.Context(clusterService());
         Job job = createCollectJob(plannerContext, false);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
 
@@ -167,7 +167,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testFetchAction() throws Exception {
         setUpCharacters();
-        Planner.Context plannerContext = new Planner.Context();
+        Planner.Context plannerContext = new Planner.Context(clusterService());
         Job job = createCollectJob(plannerContext, true);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TransportFetchNodeAction transportFetchNodeAction = cluster().getInstance(TransportFetchNodeAction.class);
@@ -240,7 +240,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testFetchProjection() throws Exception {
         setUpCharacters();
-        Planner.Context plannerContext = new Planner.Context();
+        Planner.Context plannerContext = new Planner.Context(clusterService());
 
         TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
         ReferenceInfo idRefInfo = new ReferenceInfo(
@@ -350,7 +350,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpLocations();
         sqlExecutor.refresh("locations");
         int bulkSize = 2;
-        Planner.Context plannerContext = new Planner.Context();
+        Planner.Context plannerContext = new Planner.Context(clusterService());
 
         TableInfo tableInfo = docSchemaInfo.getTableInfo("locations");
         ReferenceInfo positionRefInfo = new ReferenceInfo(

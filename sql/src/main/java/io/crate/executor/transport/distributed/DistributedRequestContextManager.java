@@ -139,19 +139,20 @@ public class DistributedRequestContextManager {
      */
     public void addToContext(DistributedResultRequest request) throws Exception {
         synchronized (lock) {
-            DownstreamOperationContext operationContext = activeMergeOperations.get(request.contextId());
+            DownstreamOperationContext operationContext = activeMergeOperations.get(request.jobId());
             if (operationContext != null) {
-                if (request.failure()) {
-                    operationContext.addFailure(null);
-                } else {
+                Throwable throwable = request.throwable();
+                if (throwable == null) {
                     request.streamers(operationContext.streamers());
                     operationContext.add(request.rows());
+                } else {
+                    operationContext.addFailure(throwable);
                 }
             } else {
-                List<DistributedResultRequest> requests = unprocessedRequests.get(request.contextId());
+                List<DistributedResultRequest> requests = unprocessedRequests.get(request.jobId());
                 if (requests == null) {
                     requests = new ArrayList<>();
-                    unprocessedRequests.put(request.contextId(), requests);
+                    unprocessedRequests.put(request.jobId(), requests);
                 }
                 requests.add(request);
             }

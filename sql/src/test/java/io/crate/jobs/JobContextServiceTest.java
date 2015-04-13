@@ -40,10 +40,11 @@ import static org.hamcrest.Matchers.is;
 
 public class JobContextServiceTest extends CrateUnitTest {
 
+
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private final Settings settings = ImmutableSettings.EMPTY;
-
-    private final JobContextService jobContextService = new JobContextService(settings, testThreadPool);
+    private final JobContextService jobContextService = new JobContextService(
+            settings, testThreadPool);
 
     @After
     public void cleanUp() throws Exception {

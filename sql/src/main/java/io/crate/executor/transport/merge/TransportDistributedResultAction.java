@@ -29,6 +29,7 @@ import io.crate.executor.transport.ResponseForwarder;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.PageDownstreamFactory;
@@ -61,6 +62,7 @@ public class TransportDistributedResultAction {
 
     @Inject
     public TransportDistributedResultAction(final ClusterService clusterService,
+                                            JobContextService jobContextService,
                                             TransportService transportService,
                                             final Functions functions,
                                             final ThreadPool threadPool,
@@ -77,7 +79,7 @@ public class TransportDistributedResultAction {
 
         transportService.registerHandler(startMergeAction, new StartMergeHandler());
         transportService.registerHandler(failAction, new FailureHandler(contextManager));
-        transportService.registerHandler(DISTRIBUTED_RESULT_ACTION, new DistributedResultRequestHandler(contextManager));
+        transportService.registerHandler(DISTRIBUTED_RESULT_ACTION, new DistributedResultRequestHandler(jobContextService, contextManager));
     }
 
     public void startMerge(String node, NodeMergeRequest request, ActionListener<NodeMergeResponse> listener) {
