@@ -194,10 +194,9 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = jobContextService.acquireContext(node.jobId().get());
+        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(node.jobId().get()).collectContext();
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
-        return collector;
+        return (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
     }
 
     protected void doGenerateData() throws Exception {

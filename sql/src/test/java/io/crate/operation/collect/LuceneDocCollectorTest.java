@@ -146,10 +146,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = jobContextService.acquireContext(node.jobId().get());
+        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(node.jobId().get()).collectContext();
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
-        return collector;
+        return (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
     }
 
     @Test
@@ -223,7 +222,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 new FunctionInfo(
                         new FunctionIdent(MultiplyFunction.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
                         DataTypes.LONG),
-                Arrays.<Symbol>asList(population, Literal.newLiteral(-1))
+                Arrays.asList(population, Literal.newLiteral(-1))
         );
 
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)scalarFunction), new boolean[]{false}, new Boolean[]{false});
@@ -244,7 +243,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         Function function = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
                 DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(1.1))
+                Arrays.asList(minScore_ref, Literal.newLiteral(1.1))
         );
         WhereClause whereClause = new WhereClause(function);
         LuceneDocCollector docCollector = createDocCollector(null, null, orderBy.orderBySymbols(), whereClause);
@@ -256,7 +255,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         function = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
                 DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(1.0))
+                Arrays.asList(minScore_ref, Literal.newLiteral(1.0))
         );
         whereClause = new WhereClause(function);
         docCollector = createDocCollector(null, null, orderBy.orderBySymbols(), whereClause);
