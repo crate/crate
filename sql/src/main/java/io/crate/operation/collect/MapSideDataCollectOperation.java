@@ -172,7 +172,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                                             RamAccountingContext ramAccountingContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
         assert collectNode.jobId().isPresent() : "no jobId present for collect operation";
-        String localNodeId = clusterService.localNode().id();
+        String localNodeId = clusterService.state().nodes().localNodeId();
         if (collectNode.executionNodes().contains(localNodeId)) {
             if (!collectNode.routing().containsShards(localNodeId)) {
                 // node collect
@@ -249,7 +249,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                     ImmutableMap.<String, FileInputFactory>of(),
                     fileUriCollectNode.sharedStorage(),
                     readers.length,
-                    Arrays.binarySearch(readers, clusterService.localNode().id())
+                    Arrays.binarySearch(readers, clusterService.state().nodes().localNodeId())
             );
         } else {
             CollectService service = collectServiceResolver.getService(collectNode.routing());
@@ -274,7 +274,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
      */
     protected ListenableFuture<Bucket> handleShardCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
 
-        String localNodeId = clusterService.localNode().id();
+        String localNodeId = clusterService.state().nodes().localNodeId();
         final int numShards = collectNode.routing().numShards(localNodeId);
 
         collectNode = collectNode.normalize(nodeNormalizer);

@@ -130,7 +130,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
             if (!shard.active()) {
                 continue;
             }
-            if (shard.currentNodeId().equals(clusterService.localNode().getId())) {
+            if (shard.currentNodeId().equals(clusterService.state().nodes().localNodeId())) {
                 return null;
             }
             nodeIds.add(shard.currentNodeId());

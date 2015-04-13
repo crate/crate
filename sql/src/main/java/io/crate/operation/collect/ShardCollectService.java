@@ -196,7 +196,9 @@ public class ShardCollectService {
                                                    final int jobSearchContextId) throws Exception {
         final CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
         final SearchShardTarget searchShardTarget = new SearchShardTarget(
-                clusterService.localNode().id(), shardId.getIndex(), shardId.id());
+                clusterService.state().nodes().localNodeId(),
+                shardId.getIndex(),
+                shardId.id());
         final IndexShard indexShard = indexService.shardSafe(shardId.id());
 
         return jobCollectContext.createCollectorAndContext(
