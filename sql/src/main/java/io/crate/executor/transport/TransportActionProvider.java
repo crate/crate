@@ -22,7 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.action.job.TransportJobAction;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -46,7 +46,7 @@ import org.elasticsearch.common.inject.Provider;
 
 public class TransportActionProvider {
 
-    private final Provider<TransportMergeNodeAction> transportMergeNodeActionProvider;
+    private final Provider<TransportDistributedResultAction> transportDistributedResultActionProvider;
     private final Provider<TransportFetchNodeAction> transportFetchNodeActionProvider;
     private final Provider<TransportCloseContextNodeAction> transportCloseContextNodeActionProvider;
 
@@ -71,7 +71,7 @@ public class TransportActionProvider {
     private final Provider<TransportJobAction> transportJobInitActionProvider;
 
     @Inject
-    public TransportActionProvider(Provider<TransportMergeNodeAction> transportMergeNodeActionProvider,
+    public TransportActionProvider(Provider<TransportDistributedResultAction> transportDistributedResultActionProvider,
                                    Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
                                    Provider<TransportCloseContextNodeAction> transportCloseContextNodeActionProvider,
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
@@ -103,7 +103,7 @@ public class TransportActionProvider {
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.symbolBasedTransportShardUpsertActionProvider = symbolBasedTransportShardUpsertActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
-        this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
+        this.transportDistributedResultActionProvider = transportDistributedResultActionProvider;
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
         this.transportCloseContextNodeActionProvider = transportCloseContextNodeActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
@@ -169,8 +169,8 @@ public class TransportActionProvider {
         return transportJobInitActionProvider.get();
     }
 
-    public TransportMergeNodeAction transportMergeNodeAction() {
-        return transportMergeNodeActionProvider.get();
+    public TransportDistributedResultAction transportDistributedResultAction() {
+        return transportDistributedResultActionProvider.get();
     }
 
     public TransportFetchNodeAction transportFetchNodeAction() {

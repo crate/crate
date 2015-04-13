@@ -44,14 +44,15 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 
-public class TransportMergeNodeAction {
+public class TransportDistributedResultAction {
 
-    private static final ESLogger logger = Loggers.getLogger(TransportMergeNodeAction.class);
+    private static final ESLogger logger = Loggers.getLogger(TransportDistributedResultAction.class);
     private final DistributedRequestContextManager contextManager;
 
-    public final static String mergeRowsAction = "crate/sql/node/merge/add_rows";
+    public final static String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
     public final static String failAction = "crate/sql/node/merge/fail";
     private final static String startMergeAction = "crate/sql/node/merge/start";
+
     private final TransportService transportService;
     private final ClusterService clusterService;
     private final StreamerVisitor planNodeStreamerVisitor;
@@ -59,13 +60,13 @@ public class TransportMergeNodeAction {
     private final CircuitBreaker circuitBreaker;
 
     @Inject
-    public TransportMergeNodeAction(final ClusterService clusterService,
-                                    TransportService transportService,
-                                    final Functions functions,
-                                    final ThreadPool threadPool,
-                                    final PageDownstreamFactory pageDownstreamFactory,
-                                    StatsTables statsTables,
-                                    CrateCircuitBreakerService breakerService) {
+    public TransportDistributedResultAction(final ClusterService clusterService,
+                                            TransportService transportService,
+                                            final Functions functions,
+                                            final ThreadPool threadPool,
+                                            final PageDownstreamFactory pageDownstreamFactory,
+                                            StatsTables statsTables,
+                                            CrateCircuitBreakerService breakerService) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
@@ -76,7 +77,7 @@ public class TransportMergeNodeAction {
 
         transportService.registerHandler(startMergeAction, new StartMergeHandler());
         transportService.registerHandler(failAction, new FailureHandler(contextManager));
-        transportService.registerHandler(mergeRowsAction, new DistributedResultRequestHandler(contextManager));
+        transportService.registerHandler(DISTRIBUTED_RESULT_ACTION, new DistributedResultRequestHandler(contextManager));
     }
 
     public void startMerge(String node, NodeMergeRequest request, ActionListener<NodeMergeResponse> listener) {
@@ -107,7 +108,7 @@ public class TransportMergeNodeAction {
         public void start() {
             transportService.sendRequest(
                     node,
-                    mergeRowsAction,
+                    DISTRIBUTED_RESULT_ACTION,
                     request,
                     new BaseTransportResponseHandler<DistributedResultResponse>() {
                         @Override

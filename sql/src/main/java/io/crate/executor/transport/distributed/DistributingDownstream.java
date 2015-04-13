@@ -24,7 +24,7 @@ package io.crate.executor.transport.distributed;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -102,7 +102,7 @@ public class DistributingDownstream extends ResultProviderBase {
     private void sendRequest(final DistributedResultRequest request, final DiscoveryNode node) {
         transportService.submitRequest(
                 node,
-                TransportMergeNodeAction.mergeRowsAction,
+                TransportDistributedResultAction.DISTRIBUTED_RESULT_ACTION,
                 request,
                 new BaseTransportResponseHandler<DistributedResultResponse>() {
                     @Override
@@ -142,7 +142,7 @@ public class DistributingDownstream extends ResultProviderBase {
     private void sendFailure(UUID contextId, final DiscoveryNode node) {
         transportService.submitRequest(
                 node,
-                TransportMergeNodeAction.failAction,
+                TransportDistributedResultAction.failAction,
                 new DistributedFailureRequest(contextId),
                 new BaseTransportResponseHandler<DistributedResultResponse>() {
                     @Override
