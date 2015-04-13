@@ -28,6 +28,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributingDownstream;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.PlanNode;
@@ -68,11 +69,11 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation<Di
                                         TransportService transportService,
                                         StreamerVisitor streamerVisitor,
                                         CollectServiceResolver collectServiceResolver,
-                                        CollectContextService collectContextService,
+                                        JobContextService jobContextService,
                                         CrateCircuitBreakerService breakerService) {
         super(clusterService, settings, transportActionProvider,
                 functions, referenceResolver, indicesService,
-                threadPool, collectServiceResolver, streamerVisitor, collectContextService);
+                threadPool, collectServiceResolver, streamerVisitor, jobContextService);
         this.transportService = transportService;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
     }

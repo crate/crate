@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.metadata.Functions;
-import io.crate.operation.collect.CollectContextService;
+import io.crate.jobs.JobContextService;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -46,7 +46,7 @@ import static org.mockito.Mockito.when;
 public class NodeFetchOperationTest extends CrateUnitTest {
 
     static ThreadPool threadPool;
-    static CollectContextService collectContextService;
+    static JobContextService jobContextService;
 
     @BeforeClass
     public static void beforeClass() {
@@ -54,13 +54,13 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         when(threadPoolExecutor.getPoolSize()).thenReturn(2);
         threadPool = mock(ThreadPool.class);
         when(threadPool.executor(any(String.class))).thenReturn(threadPoolExecutor);
-        collectContextService = new CollectContextService(ImmutableSettings.EMPTY, threadPool);
+        jobContextService = new JobContextService(ImmutableSettings.EMPTY, threadPool);
     }
 
     @AfterClass
     public static void afterClass() {
         threadPool = null;
-        collectContextService = null;
+        jobContextService = null;
     }
 
     @Test
@@ -71,7 +71,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 new LongArrayList(),
                 ImmutableList.<Reference>of(),
                 true,
-                collectContextService,
+                jobContextService,
                 threadPool,
                 mock(Functions.class),
                 mock(RamAccountingContext.class));
@@ -84,14 +84,14 @@ public class NodeFetchOperationTest extends CrateUnitTest {
     @Test
     public void testFetchOperationNoLuceneDocCollector() throws Exception {
         UUID jobId = UUID.randomUUID();
-        collectContextService.acquireContext(jobId);
+        jobContextService.acquireContext(jobId);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
                 LongArrayList.from(0L),
                 ImmutableList.<Reference>of(),
                 true,
-                collectContextService,
+                jobContextService,
                 threadPool,
                 mock(Functions.class),
                 mock(RamAccountingContext.class));

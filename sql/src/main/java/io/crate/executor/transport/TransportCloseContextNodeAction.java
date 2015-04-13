@@ -23,7 +23,7 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Preconditions;
 import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.CollectContextService;
+import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
@@ -44,7 +44,7 @@ import java.util.UUID;
  * and should NOT be re-used somewhere else.
  * We will refactor this architecture later on, so a fetch projection will only close related
  * operation contexts and NOT a whole job context.
- * (This requires a refactoring of the {@link CollectContextService} architecture)
+ * (This requires a refactoring of the {@link JobContextService} architecture)
  */
 @Singleton
 public class TransportCloseContextNodeAction {
@@ -53,7 +53,7 @@ public class TransportCloseContextNodeAction {
     private final TransportService transportService;
     private final ClusterService clusterService;
     private final StatsTables statsTables;
-    private final CollectContextService collectContextService;
+    private final JobContextService jobContextService;
     private final String executorName = ThreadPool.Names.SEARCH;
     private final ThreadPool threadPool;
 
@@ -62,11 +62,11 @@ public class TransportCloseContextNodeAction {
                                     ThreadPool threadPool,
                                     ClusterService clusterService,
                                     StatsTables statsTables,
-                                    CollectContextService collectContextService) {
+                                    JobContextService jobContextService) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.statsTables = statsTables;
-        this.collectContextService = collectContextService;
+        this.jobContextService = jobContextService;
         this.threadPool = threadPool;
 
         transportService.registerHandler(transportAction, new TransportHandler());
@@ -85,7 +85,7 @@ public class TransportCloseContextNodeAction {
         statsTables.operationStarted(operationId, request.jobId(), "closeContext");
 
         try {
-            collectContextService.closeContext(request.jobId());
+            jobContextService.closeContext(request.jobId());
             statsTables.operationFinished(operationId, null, 0);
             response.onResponse(new NodeCloseContextResponse());
         } catch (Exception e) {

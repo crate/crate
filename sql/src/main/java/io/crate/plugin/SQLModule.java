@@ -21,7 +21,6 @@
 
 package io.crate.plugin;
 
-import io.crate.operation.collect.CollectContextService;
 import io.crate.service.SQLService;
 import org.elasticsearch.common.inject.AbstractModule;
 import io.crate.action.sql.DDLStatementDispatcher;
