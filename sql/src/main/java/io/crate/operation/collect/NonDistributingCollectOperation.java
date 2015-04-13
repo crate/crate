@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.StreamerVisitor;
@@ -49,11 +50,10 @@ public class NonDistributingCollectOperation extends MapSideDataCollectOperation
                                            ThreadPool threadPool,
                                            CollectServiceResolver collectServiceResolver,
                                            StreamerVisitor streamerVisitor,
-                                           CollectContextService collectContextService) {
-        super(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool,
-                functions, referenceResolver,
+                                           JobContextService jobContextService) {
+        super(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool, functions, referenceResolver,
                 indicesService, threadPool, collectServiceResolver, streamerVisitor,
-                collectContextService);
+                jobContextService);
     }
 
     public SingleBucketBuilder createDownstream(CollectNode node){

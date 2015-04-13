@@ -30,6 +30,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.JobContextService;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -227,7 +228,7 @@ public class ShardCollectService {
                                     bigArrays,
                                     threadPool.estimatedTimeInMillisCounter(),
                                     Optional.<Scroll>absent(),
-                                    CollectContextService.DEFAULT_KEEP_ALIVE
+                                    JobContextService.DEFAULT_KEEP_ALIVE
                             );
                             LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(
                                     collectNode.whereClause(), localContext, indexService.cache());

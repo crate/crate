@@ -30,6 +30,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -75,7 +76,7 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
     protected final EvaluatingNormalizer nodeNormalizer;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
-    private final CollectContextService collectContextService;
+    private final JobContextService jobContextService;
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
     private final CollectServiceResolver collectServiceResolver;
     private final ProjectionToProjectorVisitor projectorVisitor;
@@ -93,12 +94,12 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver,
                                        StreamerVisitor streamerVisitor,
-                                       CollectContextService collectContextService) {
+                                       JobContextService jobContextService) {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getCorePoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
-        this.collectContextService = collectContextService;
+        this.jobContextService = jobContextService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.collectServiceResolver = collectServiceResolver;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -234,7 +235,7 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
         }
 
         assert collectNode.jobId().isPresent() : "jobId must be set on CollectNode";
-        JobCollectContext jobCollectContext = collectContextService.acquireContext(collectNode.jobId().get());
+        JobCollectContext jobCollectContext = jobContextService.acquireContext(collectNode.jobId().get());
         ShardProjectorChain projectorChain = new ShardProjectorChain(
                 numShards,
                 collectNode.projections(),
@@ -303,7 +304,7 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
         }
 
         // release the job collect context
-        collectContextService.releaseContext(collectNode.jobId().get());
+        jobContextService.releaseContext(collectNode.jobId().get());
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("started {} shardCollectors", numShards);

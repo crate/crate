@@ -31,6 +31,7 @@ import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -103,7 +104,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public final static ESLogger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
 
     private ShardId shardId = new ShardId(INDEX_NAME, 0);
-    private CollectContextService collectContextService;
+    private JobContextService jobContextService;
     private ShardCollectService shardCollectService;
     private OrderBy orderBy;
     private CollectingProjector collectingProjector = new CollectingProjector();
@@ -148,7 +149,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         }
 
         shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
-        collectContextService = indexService.shardInjector(0).getInstance(CollectContextService.class);
+        jobContextService = indexService.shardInjector(0).getInstance(JobContextService.class);
 
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "continent");
         reference = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
@@ -196,7 +197,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
+        JobCollectContext jobCollectContext = jobContextService.acquireContext(node.jobId().get());
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(PAGE_SIZE);
