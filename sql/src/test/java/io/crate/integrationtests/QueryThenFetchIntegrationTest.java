@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -76,6 +77,18 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         execute("select extract(day from ts) from t order by 1");
         assertThat((Integer) response.rows()[0][0], is(1));
         assertThat((Integer) response.rows()[1][0], is(17));
+    }
+
+    @Test
+    public void testPushBasedQTF() throws Exception {
+        // use high limit to trigger push based qtf
+
+        execute("create table t (x string) with (number_of_replicas = 0)");
+        execute("insert into t (x) values ('a')");
+        execute("refresh table t");
+
+        execute("select * from t limit ?", new Object[] {Constants.PAGE_SIZE + 10000 });
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test

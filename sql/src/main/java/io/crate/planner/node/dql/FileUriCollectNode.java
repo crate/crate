@@ -37,7 +37,7 @@ import java.util.List;
 
 public class FileUriCollectNode extends CollectNode {
 
-    public static ExecutionNodeFactory<FileUriCollectNode> FACTORY = new ExecutionNodeFactory<FileUriCollectNode>() {
+    public static final ExecutionNodeFactory<FileUriCollectNode> FACTORY = new ExecutionNodeFactory<FileUriCollectNode>() {
         @Override
         public FileUriCollectNode create() {
             return new FileUriCollectNode();

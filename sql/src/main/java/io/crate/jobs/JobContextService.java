@@ -51,7 +51,8 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     @Inject
-    public JobContextService(Settings settings, ThreadPool threadPool) {
+    public JobContextService(Settings settings,
+                             ThreadPool threadPool) {
         super(settings);
         this.threadPool = threadPool;
         this.keepAliveReaper = threadPool.scheduleWithFixedDelay(
@@ -135,6 +136,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     protected void contextProcessedSuccessfully(JobExecutionContext context) {
         context.accessed(threadPool.estimatedTimeInMillis());
+    }
+
+    public void initializeFinalMerge(UUID jobId, int executionNodeId, PageDownstreamContext pageDownstreamContext) {
+        JobExecutionContext jobExecutionContext = getOrCreateContext(jobId);
+        jobExecutionContext.setPageDownstreamContext(executionNodeId, pageDownstreamContext);
     }
 
     class Reaper implements Runnable {

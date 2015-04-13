@@ -219,11 +219,7 @@ public class TransportJobAction {
                         public void onSuccess(@Nullable Bucket result) {
                             statsTables.operationFinished(operationId, null, context.ramAccountingContext.totalBytes());
                             context.ramAccountingContext.close();
-                            if (result == null) {
-                                context.directResultFuture.set(Bucket.EMPTY);
-                            } else {
-                                context.directResultFuture.set(result);
-                            }
+                            context.directResultFuture.set(result);
                         }
 
                         @Override

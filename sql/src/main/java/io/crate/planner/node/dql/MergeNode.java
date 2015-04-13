@@ -25,7 +25,9 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.types.DataType;
@@ -105,6 +107,16 @@ public class MergeNode extends AbstractDQLPlanNode {
         } else {
             return executionNodes;
         }
+    }
+
+    @Override
+    public List<String> downstreamNodes() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public int downstreamExecutionNodeId() {
+        return ExecutionNode.NO_EXECUTION_NODE;
     }
 
     public void executionNodes(Set<String> executionNodes) {
