@@ -44,22 +44,23 @@ public class DistributingDownstream extends ResultProviderBase {
 
     private final UUID jobId;
     private final MultiBucketBuilder bucketBuilder;
-    private final TransportService transportService;
     private final DistributedResultRequest[] requests;
     private List<DiscoveryNode> downstreams;
+    private final TransportService transportService;
 
 
     public DistributingDownstream(UUID jobId,
+                                  int targetExecutionNodeId,
                                   List<DiscoveryNode> downstreams,
                                   TransportService transportService,
                                   Streamer<?>[] streamers) {
         this.downstreams = downstreams;
+        this.transportService = transportService;
         this.bucketBuilder = new MultiBucketBuilder(streamers, downstreams.size());
         this.jobId = jobId;
-        this.transportService = transportService;
         this.requests = new DistributedResultRequest[downstreams.size()];
         for (int i = 0, length = downstreams.size(); i < length; i++) {
-            this.requests[i] = new DistributedResultRequest(jobId, streamers);
+            this.requests[i] = new DistributedResultRequest(jobId, targetExecutionNodeId, i, streamers);
         }
     }
 
