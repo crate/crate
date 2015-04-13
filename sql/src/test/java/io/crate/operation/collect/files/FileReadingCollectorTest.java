@@ -166,6 +166,13 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         assertCorrectResult(projector.result().get());
     }
 
+    @Test
+    public void unsupportedURITest() throws Throwable {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("URI scheme is not supported");
+        getObjects("https://crate.io/docs/en/latest/sql/reference/copy_from.html");
+    }
+
     private void assertCorrectResult(Bucket rows) throws Throwable {
         Iterator<Row> it = rows.iterator();
         assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));

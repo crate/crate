@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Using unsupported URI schema in COPY FROM statement now results in an error.
+
  - Fixed an issue with the LIKE predicate if used on a system table where it
    wouldn't match if the content contains newline characters
 
