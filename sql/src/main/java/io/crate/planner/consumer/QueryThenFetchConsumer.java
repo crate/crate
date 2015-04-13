@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -53,6 +54,7 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class QueryThenFetchConsumer implements Consumer {
@@ -77,7 +79,8 @@ public class QueryThenFetchConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            if (table.querySpec().hasAggregates() || table.querySpec().groupBy()!=null) {
+            QuerySpec querySpec = table.querySpec();
+            if (querySpec.hasAggregates() || querySpec.groupBy()!=null) {
                 return null;
             }
             TableInfo tableInfo = table.tableRelation().tableInfo();
@@ -85,12 +88,12 @@ public class QueryThenFetchConsumer implements Consumer {
                 return null;
             }
 
-            if(table.querySpec().where().hasVersions()){
+            if(querySpec.where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
 
-            if (table.querySpec().where().noMatch()) {
+            if (querySpec.where().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(table);
             }
 
@@ -101,11 +104,11 @@ public class QueryThenFetchConsumer implements Consumer {
             List<Symbol> outputSymbols = new ArrayList<>();
             ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(querySpec);
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // MAP/COLLECT related
-            OrderBy orderBy = table.querySpec().orderBy();
+            OrderBy orderBy = querySpec.orderBy();
             if (orderBy != null) {
                 table.tableRelation().validateOrderBy(orderBy);
 
@@ -126,7 +129,7 @@ public class QueryThenFetchConsumer implements Consumer {
             }
             if (!outputsAreAllOrdered) {
                 collectSymbols.add(0, new Reference(docIdRefInfo));
-                for (Symbol symbol : table.querySpec().outputs()) {
+                for (Symbol symbol : querySpec.outputs()) {
                     // _score can only be resolved during collect
                     if (SCORE_REFERENCE_DETECTOR.detect(symbol) && !collectSymbols.contains(symbol)) {
                         collectSymbols.add(symbol);
@@ -144,12 +147,14 @@ public class QueryThenFetchConsumer implements Consumer {
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableInfo,
                     context.plannerContext(),
-                    table.querySpec().where(),
+                    querySpec.where(),
                     collectSymbols,
                     ImmutableList.<Projection>of(),
                     orderBy,
-                    MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset()
+                    MoreObjects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset()
             );
+
+
             collectNode.keepContextForFetcher(!outputsAreAllOrdered);
             collectNode.projections(collectProjections);
             // MAP/COLLECT related END
@@ -160,8 +165,8 @@ public class QueryThenFetchConsumer implements Consumer {
                 topNProjection = projectionBuilder.topNProjection(
                         collectSymbols,
                         null,
-                        table.querySpec().offset(),
-                        table.querySpec().limit(),
+                        querySpec.offset(),
+                        querySpec.limit(),
                         null);
                 mergeProjections.add(topNProjection);
 
@@ -176,15 +181,15 @@ public class QueryThenFetchConsumer implements Consumer {
                         tableInfo.partitionedByColumns(),
                         collectNode.executionNodes(),
                         bulkSize,
-                        table.querySpec().isLimited());
+                        querySpec.isLimited());
                 mergeProjections.add(fetchProjection);
             } else {
                 topNProjection = projectionBuilder.topNProjection(
                         collectSymbols,
                         null,
-                        table.querySpec().offset(),
-                        table.querySpec().limit(),
-                        table.querySpec().outputs());
+                        querySpec.offset(),
+                        querySpec.limit(),
+                        querySpec.outputs());
                 mergeProjections.add(topNProjection);
             }
 
@@ -205,6 +210,11 @@ public class QueryThenFetchConsumer implements Consumer {
             }
             // HANDLER/MERGE/FETCH related END
 
+            Integer limit = querySpec.limit();
+            if (limit != null && limit + querySpec.offset() > Constants.PAGE_SIZE) {
+                collectNode.downstreamNodes(Collections.singletonList(context.plannerContext().clusterService().localNode().id()));
+                collectNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
+            }
             return new QueryThenFetch(collectNode, localMergeNode);
         }
 

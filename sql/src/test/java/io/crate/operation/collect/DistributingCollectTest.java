@@ -344,7 +344,6 @@ public class DistributingCollectTest extends CrateUnitTest {
                 any(DiscoveryNode.class),
                 Matchers.same(TransportDistributedResultAction.DISTRIBUTED_RESULT_ACTION),
                 capture.capture(),
-                //Matchers.<DistributedResultRequest>any(),
                 any(TransportResponseHandler.class));
         CollectNode collectNode = new CollectNode(0, "dcollect", nodeRouting);
         collectNode.downstreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));

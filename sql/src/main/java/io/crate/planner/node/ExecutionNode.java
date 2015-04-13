@@ -26,24 +26,27 @@ import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import java.util.List;
 import java.util.Set;
 
 public interface ExecutionNode extends Streamable {
 
-    public static final String DIRECT_RETURN_DOWNSTREAM_NODE = "_response";
+    String DIRECT_RETURN_DOWNSTREAM_NODE = "_response";
 
-    public static interface ExecutionNodeFactory<T extends ExecutionNode> {
-        public T create();
+    int NO_EXECUTION_NODE = Integer.MAX_VALUE;
+
+    interface ExecutionNodeFactory<T extends ExecutionNode> {
+        T create();
     }
 
-    public static enum Type {
+    enum Type {
         COLLECT(CollectNode.FACTORY),
         FILE_URI_COLLECT(FileUriCollectNode.FACTORY),
         MERGE(MergeNode.FACTORY);
 
         private final ExecutionNodeFactory factory;
 
-        private Type(ExecutionNodeFactory factory) {
+        Type(ExecutionNodeFactory factory) {
             this.factory = factory;
         }
 
@@ -52,13 +55,17 @@ public interface ExecutionNode extends Streamable {
         }
     }
 
-    public Type type();
+    Type type();
 
-    public String name();
+    String name();
 
-    public int executionNodeId();
+    int executionNodeId();
 
-    public Set<String> executionNodes();
+    Set<String> executionNodes();
 
-    public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context);
+    List<String> downstreamNodes();
+
+    int downstreamExecutionNodeId();
+
+    <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context);
 }

@@ -30,18 +30,17 @@ import org.elasticsearch.transport.TransportRequest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
 
 public class JobRequest extends TransportRequest {
 
     private UUID jobId;
-    private List<ExecutionNode> executionNodes;
+    private Collection<? extends ExecutionNode> executionNodes;
 
     protected JobRequest() {
     }
 
-    public JobRequest(UUID jobId, List<ExecutionNode> executionNodes) {
+    public JobRequest(UUID jobId, Collection<? extends ExecutionNode> executionNodes) {
         // TODO: assert that only 1 DIRECT_RETURN_DOWNSTREAM_NODE on all execution nodes is set
         this.jobId = jobId;
         this.executionNodes = executionNodes;
@@ -51,7 +50,7 @@ public class JobRequest extends TransportRequest {
         return jobId;
     }
 
-    public Collection<ExecutionNode> executionNodes() {
+    public Collection<? extends ExecutionNode> executionNodes() {
         return this.executionNodes;
     }
 
@@ -62,11 +61,12 @@ public class JobRequest extends TransportRequest {
         jobId = new UUID(in.readLong(), in.readLong());
 
         int numExecutionNodes = in.readVInt();
-        executionNodes = new ArrayList<>(numExecutionNodes);
+        ArrayList<ExecutionNode> executionNodes = new ArrayList<>(numExecutionNodes);
         for (int i = 0; i < numExecutionNodes; i++) {
             ExecutionNode node = ExecutionNodes.fromStream(in);
             executionNodes.add(node);
         }
+        this.executionNodes = executionNodes;
     }
 
     @Override

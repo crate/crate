@@ -24,6 +24,7 @@ package io.crate.types;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.Streamer;
 import io.crate.TimestampFormat;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -273,5 +274,15 @@ public class DataTypes {
         if (TYPE_REGISTRY.put(id, dataTypeFactory) != null) {
             throw new IllegalArgumentException("Already got a dataType with id " + id);
         };
+    }
+
+    public static Streamer<?>[] getStreamer(Collection<? extends DataType> dataTypes) {
+        Streamer<?>[] streamer = new Streamer[dataTypes.size()];
+        int idx = 0;
+        for (DataType dataType : dataTypes) {
+            streamer[idx] = dataType.streamer();
+            idx++;
+        }
+        return streamer;
     }
 }

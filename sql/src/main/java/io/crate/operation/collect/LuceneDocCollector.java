@@ -228,7 +228,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         } catch (Exception e) {
             failed = true;
             downstream.fail(e);
-            return;
         } finally {
             jobCollectContext.releaseContext(searchContext);
             if (!keepContextForFetcher || !producedRows || failed) {

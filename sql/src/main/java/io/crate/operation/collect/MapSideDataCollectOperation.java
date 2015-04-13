@@ -146,9 +146,15 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
             return new SingleBucketBuilder(getStreamers(node));
         } else {
+            // TODO: set bucketIdx properly
+            ArrayList<String> server = Lists.newArrayList(node.executionNodes());
+            Collections.sort(server);
+            int bucketIdx = server.indexOf(clusterService.localNode().id());
+
             return new DistributingDownstream(
                     node.jobId().get(),
-                    node.executionNodeId() + 1,
+                    node.downstreamExecutionNodeId(),
+                    bucketIdx,
                     toDiscoveryNodes(node.downstreamNodes()),
                     transportService,
                     getStreamers(node)

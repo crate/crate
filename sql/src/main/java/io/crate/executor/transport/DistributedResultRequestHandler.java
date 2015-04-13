@@ -24,15 +24,31 @@ package io.crate.executor.transport;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.PageDownstreamContext;
+import io.crate.operation.PageConsumeListener;
+import io.crate.planner.node.ExecutionNode;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
+
 public class DistributedResultRequestHandler extends BaseTransportRequestHandler<DistributedResultRequest> {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(DistributedResultRequestHandler.class);
+
+    private final JobContextService jobContextService;
+
+    @Deprecated
     private final DistributedRequestContextManager contextManager;
 
-    public DistributedResultRequestHandler(DistributedRequestContextManager contextManager) {
+    public DistributedResultRequestHandler(JobContextService jobContextService, DistributedRequestContextManager contextManager) {
+        this.jobContextService = jobContextService;
         this.contextManager = contextManager;
     }
 
@@ -42,10 +58,70 @@ public class DistributedResultRequestHandler extends BaseTransportRequestHandler
     }
 
     @Override
-    public void messageReceived(DistributedResultRequest request, TransportChannel channel) throws Exception {
+    public void messageReceived(final DistributedResultRequest request, final TransportChannel channel) throws Exception {
+        LOGGER.trace("DistributedResultRequestHandler: messageReceived");
+
+        if (request.executionNodeId() == ExecutionNode.NO_EXECUTION_NODE) {
+            fallback(request, channel);
+            return;
+        }
+        final PageDownstreamContext pageDownstreamContext = getPageDownstreamContext(request, channel);
+        if (pageDownstreamContext == null) return;
+
+        Throwable throwable = request.throwable();
+        if (throwable != null) {
+            channel.sendResponse(new DistributedResultResponse(false));
+            pageDownstreamContext.failure(throwable);
+        } else {
+            request.streamers(pageDownstreamContext.streamer());
+            pageDownstreamContext.setBucket(request.bucketIdx(), request.rows(), request.isLast(), new PageConsumeListener() {
+                @Override
+                public void needMore() {
+                    try {
+                        if (pageDownstreamContext.allExhausted()) {
+                            pageDownstreamContext.finish();
+                            channel.sendResponse(new DistributedResultResponse(false));
+                        } else {
+                            channel.sendResponse(new DistributedResultResponse(!pageDownstreamContext.isExhausted(request.bucketIdx())));
+                        }
+                    } catch (IOException e) {
+                        LOGGER.error("Could not send DistributedResultResponse", e);
+                    }
+                }
+
+                @Override
+                public void finish() {
+                    try {
+                        channel.sendResponse(new DistributedResultResponse(false));
+                        pageDownstreamContext.finish();
+                    } catch (IOException e) {
+                        LOGGER.error("Could not send DistributedResultResponse", e);
+                    }
+                }
+            });
+        }
+    }
+
+    @Nullable
+    private PageDownstreamContext getPageDownstreamContext(DistributedResultRequest request, TransportChannel channel) throws IOException {
+        JobExecutionContext context = jobContextService.getContext(request.jobId());
+        if (context == null) {
+            channel.sendResponse(new IllegalStateException("JobContext is missing"));
+            return null;
+        }
+        final PageDownstreamContext pageDownstreamContext = context.getPageDownstreamContext(request.executionNodeId());
+        if (pageDownstreamContext == null) {
+            channel.sendResponse(new IllegalStateException("JobExecutionContext is missing"));
+            return null;
+        }
+        return pageDownstreamContext;
+    }
+
+    @Deprecated
+    private void fallback(DistributedResultRequest request, TransportChannel channel) throws IOException {
         try {
             contextManager.addToContext(request);
-            channel.sendResponse(new DistributedResultResponse());
+            channel.sendResponse(new DistributedResultResponse(false));
         } catch (Exception ex) {
             channel.sendResponse(ex);
         }
