@@ -49,8 +49,6 @@ public class JobCollectContext implements Releasable {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
-    private volatile long lastAccessTime = -1;
-    private volatile long keepAlive;
 
     public JobCollectContext(UUID id) {
         this.id = id;
@@ -206,22 +204,6 @@ public class JobCollectContext implements Releasable {
                 }
             }
         }
-    }
-
-    public void accessed(long accessTime) {
-        this.lastAccessTime = accessTime;
-    }
-
-    public long lastAccessTime() {
-        return this.lastAccessTime;
-    }
-
-    public long keepAlive() {
-        return this.keepAlive;
-    }
-
-    public void keepAlive(long keepAlive) {
-        this.keepAlive = keepAlive;
     }
 
     /**

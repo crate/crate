@@ -44,7 +44,6 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
@@ -220,8 +219,6 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      *
      * @param collectNode {@link CollectNode} containing routing information and symbols to collect
-     * @param downstream
-     * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.dql.CollectNode#routing}
      */
     protected void handleShardCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
         String localNodeId = clusterService.state().nodes().localNodeId();
@@ -235,7 +232,7 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
         }
 
         assert collectNode.jobId().isPresent() : "jobId must be set on CollectNode";
-        JobCollectContext jobCollectContext = jobContextService.acquireContext(collectNode.jobId().get());
+        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(collectNode.jobId().get()).collectContext();
         ShardProjectorChain projectorChain = new ShardProjectorChain(
                 numShards,
                 collectNode.projections(),
@@ -353,7 +350,7 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
     }
 
     protected Streamer<?>[] getStreamers(CollectNode node) {
-        return streamerVisitor.processPlanNode((PlanNode) node, null).outputStreamers();
+        return streamerVisitor.processPlanNode(node, null).outputStreamers();
     }
 
 }

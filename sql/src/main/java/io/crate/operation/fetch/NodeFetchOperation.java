@@ -29,6 +29,7 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
@@ -58,7 +59,7 @@ public class NodeFetchOperation implements RowUpstream {
     private final UUID jobId;
     private final List<Reference> toFetchReferences;
     private final boolean closeContext;
-    private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap();
+    private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap<>();
 
     private final JobContextService jobContextService;
     private final RamAccountingContext ramAccountingContext;
@@ -114,12 +115,13 @@ public class NodeFetchOperation implements RowUpstream {
     public void fetch(RowDownstream rowDownstream) throws Exception {
         int numShards = shardBuckets.size();
 
-        JobCollectContext jobCollectContext = jobContextService.acquireContext(jobId, false);
-        if (jobCollectContext == null) {
-            String errorMsg = String.format(Locale.ENGLISH, "No jobCollectContext found for job '%s'", jobId);
+        JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
+        if (jobExecutionContext == null) {
+            String errorMsg = String.format(Locale.ENGLISH, "No jobExecutionContext found for job '%s'", jobId);
             LOGGER.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
+        JobCollectContext jobCollectContext = jobExecutionContext.collectContext();
 
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(rowDownstream, toFetchReferences.size());
 

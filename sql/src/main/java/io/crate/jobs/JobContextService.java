@@ -31,6 +31,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
@@ -42,11 +43,12 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     // TODO: maybe make configurable
     public static long DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
-    public static TimeValue DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
+    protected static TimeValue DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
+
 
     private final ThreadPool threadPool;
     private final ScheduledFuture<?> keepAliveReaper;
-    private final ConcurrentMap<UUID, JobCollectContext> activeContexts =
+    private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     @Inject
@@ -64,7 +66,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     @Override
     protected void doStop() throws ElasticsearchException {
-        for (JobCollectContext context : activeContexts.values()) {
+        for (JobExecutionContext context : activeContexts.values()) {
             context.close();
         }
         activeContexts.clear();
@@ -76,34 +78,43 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     /**
-     * Return a {@link JobCollectContext} for given <code>jobId</code>, create new one if not found.
+     * @return a {@link JobCollectContext} for given <code>jobId</code>, null if context doesn't exist.
      */
-    public JobCollectContext acquireContext(UUID jobId, boolean create) {
-        if (!create) {
-            return activeContexts.get(jobId);
+    @Nullable
+    public JobExecutionContext getContext(UUID jobId) {
+        JobExecutionContext jobExecutionContext = activeContexts.get(jobId);
+        if (jobExecutionContext == null) {
+            return null;
         }
-        JobCollectContext jobCollectContext = new JobCollectContext(jobId);
-        jobCollectContext.keepAlive(DEFAULT_KEEP_ALIVE);
-        JobCollectContext jobCollectContextExisting =
-                activeContexts.putIfAbsent(jobId, jobCollectContext);
-        if (jobCollectContextExisting != null) {
-            jobCollectContext = jobCollectContextExisting;
-        }
-        contextProcessing(jobCollectContext);
-        return jobCollectContext;
+        contextProcessing(jobExecutionContext);
+        return jobExecutionContext;
     }
 
-    public JobCollectContext acquireContext(UUID jobId) {
-        return acquireContext(jobId, true);
+    /**
+     * @return a {@link JobCollectContext} for given <code>jobId</code>, create new one if not found.
+     */
+    public JobExecutionContext getOrCreateContext(UUID jobId) {
+        JobExecutionContext jobExecutionContext = activeContexts.get(jobId);
+        if (jobExecutionContext != null) {
+            return jobExecutionContext;
+        }
+
+        jobExecutionContext = new JobExecutionContext(jobId, DEFAULT_KEEP_ALIVE);
+        JobExecutionContext existingContext = activeContexts.putIfAbsent(jobId, jobExecutionContext);
+        if (existingContext != null) {
+            jobExecutionContext = existingContext;
+        }
+        contextProcessing(jobExecutionContext);
+        return jobExecutionContext;
     }
 
     /**
      * Release a {@link JobCollectContext}, just settings its last accessed time.
      */
     public void releaseContext(UUID jobId) {
-        JobCollectContext jobCollectContext = activeContexts.get(jobId);
-        if (jobCollectContext != null) {
-            contextProcessedSuccessfully(jobCollectContext);
+        JobExecutionContext jobExecutionContext = activeContexts.get(jobId);
+        if (jobExecutionContext != null) {
+            contextProcessedSuccessfully(jobExecutionContext);
         }
     }
 
@@ -111,19 +122,19 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
      * Close {@link JobCollectContext} for given <code>jobId</code> and remove if from active map.
      */
     public void closeContext(UUID jobId) {
-        JobCollectContext jobCollectContext = activeContexts.get(jobId);
-        if (jobCollectContext != null) {
-            activeContexts.remove(jobId, jobCollectContext);
-            jobCollectContext.close();
+        JobExecutionContext jobExecutionContext = activeContexts.get(jobId);
+        if (jobExecutionContext != null) {
+            activeContexts.remove(jobId, jobExecutionContext);
+            jobExecutionContext.close();
         }
     }
 
-    protected void contextProcessing(JobCollectContext context) {
+    protected void contextProcessing(JobExecutionContext context) {
         // disable timeout while executing a job
         context.accessed(-1);
     }
 
-    protected void contextProcessedSuccessfully(JobCollectContext context) {
+    protected void contextProcessedSuccessfully(JobExecutionContext context) {
         context.accessed(threadPool.estimatedTimeInMillis());
     }
 
@@ -131,7 +142,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         @Override
         public void run() {
             final long time = threadPool.estimatedTimeInMillis();
-            for (JobCollectContext context : activeContexts.values()) {
+            for (JobExecutionContext context : activeContexts.values()) {
                 // Use the same value for both checks since lastAccessTime can
                 // be modified by another thread between checks!
                 final long lastAccessTime = context.lastAccessTime();

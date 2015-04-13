@@ -77,14 +77,14 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "No jobCollectContext found for job '%s'", jobId));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "No jobExecutionContext found for job '%s'", jobId));
         nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
     }
 
     @Test
     public void testFetchOperationNoLuceneDocCollector() throws Exception {
         UUID jobId = UUID.randomUUID();
-        jobContextService.acquireContext(jobId);
+        jobContextService.getOrCreateContext(jobId);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
