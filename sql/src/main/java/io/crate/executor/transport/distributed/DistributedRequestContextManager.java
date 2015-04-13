@@ -29,6 +29,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.merge.NodeMergeResponse;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.metadata.Functions;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
@@ -51,7 +52,7 @@ import java.util.concurrent.Executor;
  * this class handles the contexts for each {@link io.crate.executor.transport.task.DistributedMergeTask}
  *
  * there is a possible race condition that the
- * {@link io.crate.executor.transport.merge.TransportMergeNodeAction} receives results from a collector
+ * {@link TransportDistributedResultAction} receives results from a collector
  * before the MergeTasks.start() method initialized the context.
  *
  * in case of this race condition the rows that are sent from the collector cannot be de-serialized immediately

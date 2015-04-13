@@ -6,7 +6,7 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
@@ -43,7 +43,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         AggregationFunction countAggregation =
                 (AggregationFunction)functions.get(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()));
 
-        TransportMergeNodeAction transportMergeNodeAction = cluster().getInstance(TransportMergeNodeAction.class);
+        TransportDistributedResultAction transportDistributedResultAction = cluster().getInstance(TransportDistributedResultAction.class);
 
         Set<String> nodes = new HashSet<>();
         for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
@@ -80,7 +80,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
         NoopListener noopListener = new NoopListener();
 
-        DistributedMergeTask task = new DistributedMergeTask(UUID.randomUUID(), transportMergeNodeAction, mergeNode);
+        DistributedMergeTask task = new DistributedMergeTask(UUID.randomUUID(), transportDistributedResultAction, mergeNode);
         task.start();
 
         Iterator<String> iterator = nodes.iterator();
@@ -97,8 +97,8 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
                 new Object[] { 3L, new BytesRef("foobar") },
         }));
 
-        transportMergeNodeAction.mergeRows(firstNode, request1, noopListener);
-        transportMergeNodeAction.mergeRows(firstNode, request2, noopListener);
+        transportDistributedResultAction.mergeRows(firstNode, request1, noopListener);
+        transportDistributedResultAction.mergeRows(firstNode, request2, noopListener);
 
         DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
         request3.rows(new ArrayBucket(new Object[][] {
@@ -112,8 +112,8 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         }));
 
         String secondNode = iterator.next();
-        transportMergeNodeAction.mergeRows(secondNode, request3, noopListener);
-        transportMergeNodeAction.mergeRows(secondNode, request4, noopListener);
+        transportDistributedResultAction.mergeRows(secondNode, request3, noopListener);
+        transportDistributedResultAction.mergeRows(secondNode, request4, noopListener);
 
         assertThat(task.result().size(), is(2)); // 2 reducer nodes
 
