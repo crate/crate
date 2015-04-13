@@ -21,7 +21,36 @@
 
 package io.crate.executor.transport.distributed;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
+import java.io.IOException;
+
 public class DistributedResultResponse extends TransportResponse {
+
+    private boolean needMore = false;
+
+    public DistributedResultResponse() {
+    }
+
+    public DistributedResultResponse(boolean needMore) {
+        this.needMore = needMore;
+    }
+
+    public boolean needMore() {
+        return needMore;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        needMore = in.readBoolean();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeBoolean(needMore);
+    }
 }

@@ -12,6 +12,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
@@ -57,8 +58,8 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
 
         GroupProjection groupProjection = new GroupProjection();
-        groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(1, DataTypes.STRING)));
-        groupProjection.values(Arrays.asList(
+        groupProjection.keys(Collections.<Symbol>singletonList(new InputColumn(1, DataTypes.STRING)));
+        groupProjection.values(Collections.singletonList(
                 new Aggregation(
                         countAggregation.info(),
                         ImmutableList.<Symbol>of(new InputColumn(0)),
@@ -67,7 +68,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
                 )
         ));
         TopNProjection topNProjection = new TopNProjection(
-                10, 0, Arrays.<Symbol>asList(new InputColumn(1)), new boolean[] { false }, new Boolean[] { null });
+                10, 0, Collections.<Symbol>singletonList(new InputColumn(1)), new boolean[] { false }, new Boolean[] { null });
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
@@ -86,11 +87,11 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         Iterator<String> iterator = nodes.iterator();
         String firstNode = iterator.next();
 
-        DistributedResultRequest request1 = new DistributedResultRequest(mergeNode.jobId(), 1, 1, mapperOutputStreamer);
+        DistributedResultRequest request1 = new DistributedResultRequest(mergeNode.jobId(), ExecutionNode.NO_EXECUTION_NODE, 1, mapperOutputStreamer);
         request1.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 1L , new BytesRef("bar") },
         }));
-        DistributedResultRequest request2 = new DistributedResultRequest(mergeNode.jobId(), 1, 1, mapperOutputStreamer);
+        DistributedResultRequest request2 = new DistributedResultRequest(mergeNode.jobId(), ExecutionNode.NO_EXECUTION_NODE, 1, mapperOutputStreamer);
         request2.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 1L, new BytesRef("bar") },
                 new Object[] { 3L, new BytesRef("bar") },
@@ -100,12 +101,12 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         transportDistributedResultAction.pushResult(firstNode, request1, noopListener);
         transportDistributedResultAction.pushResult(firstNode, request2, noopListener);
 
-        DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.jobId(), 1, 1, mapperOutputStreamer);
+        DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.jobId(), ExecutionNode.NO_EXECUTION_NODE, 1, mapperOutputStreamer);
         request3.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 10, new BytesRef("foo") },
                 new Object[] { 20, new BytesRef("foo") },
         }));
-        DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.jobId(), 1, 1, mapperOutputStreamer);
+        DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.jobId(), ExecutionNode.NO_EXECUTION_NODE, 1, mapperOutputStreamer);
         request4.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 10, new BytesRef("foo") },
                 new Object[] { 14, new BytesRef("test") },

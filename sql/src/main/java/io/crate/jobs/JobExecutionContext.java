@@ -25,7 +25,10 @@ import io.crate.operation.collect.JobCollectContext;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.lease.Releasable;
 
+import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JobExecutionContext implements Releasable {
@@ -34,6 +37,8 @@ public class JobExecutionContext implements Releasable {
     private final JobCollectContext collectContext;
     private final long keepAlive;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+
+    private final ConcurrentHashMap<Integer, PageDownstreamContext> pageDownstreamMap = new ConcurrentHashMap<>();
 
     private volatile long lastAccessTime = -1;
 
@@ -69,5 +74,21 @@ public class JobExecutionContext implements Releasable {
 
     public UUID id() {
         return jobId;
+    }
+
+    public void setPageDownstreamContext(int executionNodeId, PageDownstreamContext pageDownstreamContext) {
+        PageDownstreamContext previousEntry = pageDownstreamMap.put(executionNodeId, pageDownstreamContext);
+        if (previousEntry != null) {
+            throw new IllegalStateException(String.format(Locale.ENGLISH, "there is already a pageDownstream set for %d", executionNodeId));
+        }
+    }
+
+    @Nullable
+    public PageDownstreamContext getPageDownstreamContext(int executionNodeId) {
+        return pageDownstreamMap.get(executionNodeId);
+    }
+
+    public void closePageDownstreamContext(int executionNodeId) {
+        pageDownstreamMap.remove(executionNodeId);
     }
 }

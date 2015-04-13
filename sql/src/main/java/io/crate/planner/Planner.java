@@ -83,8 +83,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
         private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
+        private final ClusterService clusterService;
         private int jobSearchContextIdBaseSeq = 0;
         private int executionNodeId = 0;
+
+        public Context(ClusterService clusterService) {
+            this.clusterService = clusterService;
+        }
+
+        public ClusterService clusterService() {
+            return clusterService;
+        }
 
         /**
          * Increase current {@link #jobSearchContextIdBaseSeq} by number of shards affected by given
@@ -157,7 +166,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context());
+        return process(analyzedStatement, new Context(clusterService));
     }
 
     @Override
