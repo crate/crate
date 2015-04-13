@@ -166,6 +166,7 @@ public class DistributingCollectTest extends CrateUnitTest {
             DiscoveryNodes nodes = mock(DiscoveryNodes.class);
             when(nodes.get(TEST_NODE_ID)).thenReturn(testNode);
             when(nodes.get(OTHER_NODE_ID)).thenReturn(otherNode);
+            when(nodes.localNodeId()).thenReturn(TEST_NODE_ID);
             when(nodes.iterator()).thenReturn(nodeMap.valuesIt());
             when(state.nodes()).thenReturn(nodes);
             when(clusterService.state()).thenReturn(state);

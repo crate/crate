@@ -28,6 +28,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -142,8 +143,9 @@ public class BlobTransferTarget extends AbstractComponent {
         logger.trace("Restoring transferContext for PutChunkReplicaRequest with transferId {}",
             request.transferId);
 
-        DiscoveryNode recipientNodeId = clusterService.state().getNodes().get(request.sourceNodeId);
-        String senderNodeId = clusterService.localNode().getId();
+        DiscoveryNodes nodes = clusterService.state().getNodes();
+        DiscoveryNode recipientNodeId = nodes.get(request.sourceNodeId);
+        String senderNodeId = nodes.localNodeId();
 
         BlobTransferInfoResponse transferInfoResponse =
             (BlobTransferInfoResponse)transportService.submitRequest(
