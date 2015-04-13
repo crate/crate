@@ -31,6 +31,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -328,8 +329,8 @@ public class LocalDataCollectTest extends CrateUnitTest {
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
-        CollectContextService collectContextService = mock(CollectContextService.class);
-        when(collectContextService.acquireContext(Mockito.any(UUID.class))).thenAnswer(new Answer<Object>() {
+        JobContextService jobContextService = mock(JobContextService.class);
+        when(jobContextService.acquireContext(Mockito.any(UUID.class))).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 return new JobCollectContext((UUID)invocation.getArguments()[0]);
@@ -348,7 +349,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService))
                 ),
                 null,
-                collectContextService
+                jobContextService
         );
     }
 

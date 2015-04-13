@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import io.crate.jobs.JobContextService;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class CollectOperationModule extends AbstractModule {
@@ -33,6 +34,6 @@ public class CollectOperationModule extends AbstractModule {
         bind(StatsTables.class).asEagerSingleton();
         bind(SystemCollectService.class).asEagerSingleton();
 
-        bind(CollectContextService.class).asEagerSingleton();
+        bind(JobContextService.class).asEagerSingleton();
     }
 }

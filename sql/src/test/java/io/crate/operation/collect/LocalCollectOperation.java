@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.RowDownstream;
@@ -51,10 +52,10 @@ public class LocalCollectOperation extends MapSideDataCollectOperation<RowDownst
                                  ThreadPool threadPool,
                                  CollectServiceResolver collectServiceResolver,
                                  StreamerVisitor streamerVisitor,
-                                 CollectContextService collectContextService) {
+                                 JobContextService jobContextService) {
         super(clusterService, settings, transportActionProvider, functions, referenceResolver,
                 indicesService, threadPool, collectServiceResolver, streamerVisitor,
-                collectContextService);
+                jobContextService);
     }
 
     @Override
