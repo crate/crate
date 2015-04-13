@@ -27,6 +27,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -61,6 +62,12 @@ public class MockedClusterServiceModule extends AbstractModule {
         bind(OsService.class).toInstance(osService);
         Discovery discovery = mock(Discovery.class);
         bind(Discovery.class).toInstance(discovery);
+
+        DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
+        when(discoveryNodes.localNodeId()).thenReturn("node-id-1");
+        when(state.nodes()).thenReturn(discoveryNodes);
+        when(clusterService.state()).thenReturn(state);
+
         DiscoveryNode node = mock(DiscoveryNode.class);
         when(discovery.localNode()).thenReturn(node);
         when(node.getId()).thenReturn("node-id-1");

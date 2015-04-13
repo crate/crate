@@ -59,9 +59,11 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
 import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
@@ -225,6 +227,12 @@ public class LocalDataCollectTest {
             when(discoveryService.localNode()).thenReturn(discoveryNode);
 
             ClusterService clusterService = mock(ClusterService.class);
+            ClusterState state = mock(ClusterState.class);
+            DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
+            when(discoveryNodes.localNodeId()).thenReturn(TEST_NODE_ID);
+            when(state.nodes()).thenReturn(discoveryNodes);
+            when(clusterService.state()).thenReturn(state);
+
             when(clusterService.localNode()).thenReturn(discoveryNode);
             bind(ClusterService.class).toInstance(clusterService);
 

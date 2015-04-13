@@ -118,7 +118,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               Projector downStreamProjector) throws Exception {
         downstream(downStreamProjector);
         SearchShardTarget searchShardTarget = new SearchShardTarget(
-                clusterService.localNode().id(), shardId.getIndex(), shardId.id());
+                clusterService.state().nodes().localNodeId(), shardId.getIndex(), shardId.id());
         this.topLevelInputs = inputs;
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());

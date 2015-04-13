@@ -188,7 +188,7 @@ public class CrateSearchService extends InternalSearchService {
         IndexShard indexShard = indexService.shardSafe(request.shardId());
 
         SearchShardTarget searchShardTarget = new SearchShardTarget(
-                clusterService.localNode().id(),
+                clusterService.state().nodes().localNodeId(),
                 request.index(),
                 request.shardId()
         );

@@ -147,7 +147,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     @Override
     public ListenableFuture<Object[][]> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
-        String localNodeId = clusterService.localNode().id();
+        String localNodeId = clusterService.state().nodes().localNodeId();
         if (collectNode.executionNodes().contains(localNodeId)) {
             if (!collectNode.routing().containsShards(localNodeId)) {
                 // node collect
@@ -211,7 +211,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     ImmutableMap.<String, FileInputFactory>of(),
                     fileUriCollectNode.sharedStorage(),
                     readers.length,
-                    Arrays.binarySearch(readers, clusterService.localNode().id())
+                    Arrays.binarySearch(readers, clusterService.state().nodes().localNodeId())
             );
         } else {
             CollectService service = collectServiceResolver.getService(collectNode.routing());
@@ -236,7 +236,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      */
     protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
 
-        String localNodeId = clusterService.localNode().id();
+        String localNodeId = clusterService.state().nodes().localNodeId();
         final int numShards = collectNode.routing().numShards(localNodeId);
 
         collectNode = collectNode.normalize(nodeNormalizer);
