@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import io.crate.jobs.JobContextService;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -37,72 +38,72 @@ import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 import static org.hamcrest.Matchers.*;
 
-public class CollectContextServiceTest extends CrateUnitTest {
+public class JobContextServiceTest extends CrateUnitTest {
 
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private final Settings settings = ImmutableSettings.EMPTY;
 
-    private final CollectContextService collectContextService = new CollectContextService(settings, testThreadPool);
+    private final JobContextService jobContextService = new JobContextService(settings, testThreadPool);
 
     @After
     public void cleanUp() throws Exception {
-        collectContextService.close();
+        jobContextService.close();
         testThreadPool.shutdown();
     }
 
     @Test
     public void testAcquireContext() throws Exception {
         // create new context
-        JobCollectContext ctx1 = collectContextService.acquireContext(UUID.randomUUID());
+        JobCollectContext ctx1 = jobContextService.acquireContext(UUID.randomUUID());
         assertThat(ctx1, instanceOf(JobCollectContext.class));
         assertThat(ctx1.lastAccessTime(), is(-1L));
 
         // using same UUID must return existing context
-        JobCollectContext ctx2 = collectContextService.acquireContext(ctx1.id());
+        JobCollectContext ctx2 = jobContextService.acquireContext(ctx1.id());
         assertThat(ctx2, is(ctx1));
     }
 
     @Test
     public void testReleaseContext() throws Exception {
-        JobCollectContext ctx1 = collectContextService.acquireContext(UUID.randomUUID());
-        collectContextService.releaseContext(ctx1.id());
+        JobCollectContext ctx1 = jobContextService.acquireContext(UUID.randomUUID());
+        jobContextService.releaseContext(ctx1.id());
         assertThat(ctx1.lastAccessTime(), greaterThan(-1L));
     }
 
     @Test
     public void testCloseContext() throws Exception {
-        JobCollectContext ctx1 = collectContextService.acquireContext(UUID.randomUUID());
-        collectContextService.closeContext(ctx1.id());
+        JobCollectContext ctx1 = jobContextService.acquireContext(UUID.randomUUID());
+        jobContextService.closeContext(ctx1.id());
 
         // context must be closed
         Field closed = JobCollectContext.class.getDeclaredField("closed");
         closed.setAccessible(true);
         assertThat(((AtomicBoolean)closed.get(ctx1)).get(), is(true));
 
-        Field activeContexts = CollectContextService.class.getDeclaredField("activeContexts");
+        Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
         activeContexts.setAccessible(true);
-        assertThat(((Map) activeContexts.get(collectContextService)).size(), is(0));
+        assertThat(((Map) activeContexts.get(jobContextService)).size(), is(0));
     }
 
     @Test
     public void testKeepAliveExpiration() throws Exception {
-        CollectContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMillis(1);
-        CollectContextService.DEFAULT_KEEP_ALIVE = timeValueMillis(0).millis();
-        CollectContextService collectContextService1 = new CollectContextService(settings, testThreadPool);
-        JobCollectContext ctx1 = collectContextService1.acquireContext(UUID.randomUUID());
-        collectContextService1.releaseContext(ctx1.id());
-        Field activeContexts = CollectContextService.class.getDeclaredField("activeContexts");
+        JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMillis(1);
+        JobContextService.DEFAULT_KEEP_ALIVE = timeValueMillis(0).millis();
+        JobContextService jobContextService1 = new JobContextService(settings, testThreadPool);
+        JobCollectContext ctx1 = jobContextService1.acquireContext(UUID.randomUUID());
+        jobContextService1.releaseContext(ctx1.id());
+        Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
         activeContexts.setAccessible(true);
 
         Thread.sleep(300);
 
-        assertThat(((Map) activeContexts.get(collectContextService1)).size(), is(0));
+        assertThat(((Map) activeContexts.get(jobContextService1)).size(), is(0));
 
         // close service, stop reaper thread
-        collectContextService1.close();
+        jobContextService1.close();
 
         // set back original values
-        CollectContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
-        CollectContextService.DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
+        JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
+        JobContextService.DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
     }
 }

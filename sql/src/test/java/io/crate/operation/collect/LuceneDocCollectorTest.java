@@ -27,6 +27,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.CollectingProjector;
@@ -72,7 +73,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     private final static Integer NUMBER_OF_DOCS = 25000;
     private ShardId shardId = new ShardId(INDEX_NAME, 0);
     private OrderBy orderBy;
-    private CollectContextService collectContextService;
+    private JobContextService jobContextService;
     private ShardCollectService shardCollectService;
 
     private CollectingProjector collectingProjector = new CollectingProjector();
@@ -93,7 +94,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
 
         shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
-        collectContextService = indexService.shardInjector(0).getInstance(CollectContextService.class);
+        jobContextService = indexService.shardInjector(0).getInstance(JobContextService.class);
 
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
         Reference ref = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
@@ -145,7 +146,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
+        JobCollectContext jobCollectContext = jobContextService.acquireContext(node.jobId().get());
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         return collector;

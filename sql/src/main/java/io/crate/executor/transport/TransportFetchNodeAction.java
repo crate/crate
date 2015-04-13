@@ -31,7 +31,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.metadata.Functions;
-import io.crate.operation.collect.CollectContextService;
+import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.fetch.NodeFetchOperation;
 import io.crate.planner.symbol.Reference;
@@ -61,7 +61,7 @@ public class TransportFetchNodeAction {
     private final ClusterService clusterService;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
-    private final CollectContextService collectContextService;
+    private final JobContextService jobContextService;
     private final String executorName = ThreadPool.Names.SEARCH;
     private final ThreadPool threadPool;
     private final Functions functions;
@@ -73,12 +73,12 @@ public class TransportFetchNodeAction {
                                     StatsTables statsTables,
                                     Functions functions,
                                     CircuitBreakerService breakerService,
-                                    CollectContextService collectContextService) {
+                                    JobContextService jobContextService) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.statsTables = statsTables;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
-        this.collectContextService = collectContextService;
+        this.jobContextService = jobContextService;
         this.threadPool = threadPool;
         this.functions = functions;
 
@@ -104,7 +104,7 @@ public class TransportFetchNodeAction {
                 request.jobSearchContextDocIds(),
                 request.toFetchReferences(),
                 request.closeContext(),
-                collectContextService,
+                jobContextService,
                 threadPool,
                 functions,
                 ramAccountingContext);

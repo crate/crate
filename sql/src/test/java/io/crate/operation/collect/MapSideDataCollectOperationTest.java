@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.PlanNodeBuilder;
@@ -79,7 +80,7 @@ public class MapSideDataCollectOperationTest {
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
 
-        CollectContextService collectContextService = mock(CollectContextService.class);
+        JobContextService jobContextService = mock(JobContextService.class);
         LocalCollectOperation collectOperation = new LocalCollectOperation(
                 clusterService,
                 ImmutableSettings.EMPTY,
@@ -96,7 +97,7 @@ public class MapSideDataCollectOperationTest {
                         )
                 ),
                 new StreamerVisitor(functions),
-                collectContextService
+                jobContextService
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");

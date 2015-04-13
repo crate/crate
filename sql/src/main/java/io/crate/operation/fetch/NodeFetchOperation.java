@@ -34,7 +34,7 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.ThreadPools;
-import io.crate.operation.collect.CollectContextService;
+import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.LuceneDocCollector;
@@ -60,7 +60,7 @@ public class NodeFetchOperation implements RowUpstream {
     private final boolean closeContext;
     private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap();
 
-    private final CollectContextService collectContextService;
+    private final JobContextService jobContextService;
     private final RamAccountingContext ramAccountingContext;
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final ThreadPoolExecutor executor;
@@ -74,14 +74,14 @@ public class NodeFetchOperation implements RowUpstream {
                               LongArrayList jobSearchContextDocIds,
                               List<Reference> toFetchReferences,
                               boolean closeContext,
-                              CollectContextService collectContextService,
+                              JobContextService jobContextService,
                               ThreadPool threadPool,
                               Functions functions,
                               RamAccountingContext ramAccountingContext) {
         this.jobId = jobId;
         this.toFetchReferences = toFetchReferences;
         this.closeContext = closeContext;
-        this.collectContextService = collectContextService;
+        this.jobContextService = jobContextService;
         this.ramAccountingContext = ramAccountingContext;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getPoolSize();
@@ -114,7 +114,7 @@ public class NodeFetchOperation implements RowUpstream {
     public void fetch(RowDownstream rowDownstream) throws Exception {
         int numShards = shardBuckets.size();
 
-        JobCollectContext jobCollectContext = collectContextService.acquireContext(jobId, false);
+        JobCollectContext jobCollectContext = jobContextService.acquireContext(jobId, false);
         if (jobCollectContext == null) {
             String errorMsg = String.format(Locale.ENGLISH, "No jobCollectContext found for job '%s'", jobId);
             LOGGER.error(errorMsg);
@@ -151,7 +151,7 @@ public class NodeFetchOperation implements RowUpstream {
             rowDownstream.registerUpstream(this).fail(e);
         }
 
-        collectContextService.releaseContext(jobId);
+        jobContextService.releaseContext(jobId);
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("started {} shardFetchers", numShards);

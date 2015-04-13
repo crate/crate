@@ -19,8 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.jobs;
 
+import io.crate.operation.collect.JobCollectContext;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -37,7 +38,7 @@ import java.util.concurrent.ScheduledFuture;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 
 @Singleton
-public class CollectContextService extends AbstractLifecycleComponent<CollectContextService> {
+public class JobContextService extends AbstractLifecycleComponent<JobContextService> {
 
     // TODO: maybe make configurable
     protected static long DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
@@ -49,7 +50,7 @@ public class CollectContextService extends AbstractLifecycleComponent<CollectCon
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     @Inject
-    public CollectContextService(Settings settings, ThreadPool threadPool) {
+    public JobContextService(Settings settings, ThreadPool threadPool) {
         super(settings);
         this.threadPool = threadPool;
         this.keepAliveReaper = threadPool.scheduleWithFixedDelay(
