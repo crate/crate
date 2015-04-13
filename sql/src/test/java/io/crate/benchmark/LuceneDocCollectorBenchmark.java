@@ -75,6 +75,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.search.sort.SortBuilders.fieldSort;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -96,6 +98,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public static final int NUMBER_OF_DOCUMENTS = 100_000;
     public static final int BENCHMARK_ROUNDS = 100;
     public static final int WARMUP_ROUNDS = 10;
+
+    public static final int PAGE_SIZE = 10_000;
 
     public final static ESLogger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
 
@@ -196,9 +200,11 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
+        collector.pageSize(PAGE_SIZE);
         return collector;
     }
 
+    @Override
     protected void doGenerateData() throws Exception {
         if (!dataGenerated) {
 
@@ -246,9 +252,11 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
     public void testLuceneDocCollectorOrderedWithScrollingPerformance() throws Exception{
+        collectingProjector.rows.clear();
         LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols());
         docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
         collectingProjector.finish();
+        assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCUMENTS));
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)

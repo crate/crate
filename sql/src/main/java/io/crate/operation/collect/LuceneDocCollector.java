@@ -27,6 +27,7 @@ import io.crate.action.sql.query.CrateSearchService;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.lucene.QueryBuilderHelper;
 import io.crate.metadata.Functions;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -34,8 +35,11 @@ import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 
@@ -216,7 +220,15 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                 ScoreDoc lastCollected = collectTopFields(topFieldDocs);
                 while ((limit == null || collected < limit) && topFieldDocs.scoreDocs.length >= batchSize && lastCollected != null) {
                     batchSize = limit == null ? pageSize : Math.min(pageSize, limit - collected);
-                    topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, query, batchSize, sort);
+                    Query alreadyCollectedQuery = alreadyCollectedQuery((FieldDoc)lastCollected);
+                    if (alreadyCollectedQuery != null) {
+                        BooleanQuery searchAfterQuery = new BooleanQuery();
+                        searchAfterQuery.add(query, BooleanClause.Occur.MUST);
+                        searchAfterQuery.add(alreadyCollectedQuery, BooleanClause.Occur.MUST_NOT);
+                        topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, searchAfterQuery, batchSize, sort);
+                    } else {
+                        topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, query, batchSize, sort);
+                    }
                     collected += topFieldDocs.scoreDocs.length;
                     lastCollected = collectTopFields(topFieldDocs);
                 }
@@ -262,5 +274,23 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             }
         }
         return lastDoc;
+    }
+
+    private @Nullable Query alreadyCollectedQuery(FieldDoc lastCollected) {
+        if (orderBy.isSorted()) {
+            Symbol order = orderBy.orderBySymbols().get(0);
+            Object value = lastCollected.fields[0];
+            // only filter for null values if nulls last
+            if (order instanceof Reference && (value != null || !orderBy.nullsFirst()[0])) {
+                QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
+                String columnName = ((Reference)order).info().ident().columnIdent().fqn();
+                if (orderBy.reverseFlags()[0]) {
+                    return helper.rangeQuery(columnName, value, null, false, false );
+                } else {
+                    return helper.rangeQuery(columnName, null, value, false, false );
+                }
+            }
+        }
+        return null;
     }
 }
