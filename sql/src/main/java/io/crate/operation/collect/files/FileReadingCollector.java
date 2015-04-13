@@ -92,6 +92,9 @@ public class FileReadingCollector implements CrateCollector {
             if (this.fileUri.getScheme().equals("file") && !this.fileUri.getSchemeSpecificPart().startsWith("///")) {
                 throw new IllegalArgumentException("Invalid fileURI");
             }
+            if (!this.fileUri.getScheme().equals("file") && !this.fileUri.getScheme().equals("s3") ) {
+                throw new IllegalArgumentException("URI scheme is not supported");
+            }
         }
         downstream(downstream);
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
