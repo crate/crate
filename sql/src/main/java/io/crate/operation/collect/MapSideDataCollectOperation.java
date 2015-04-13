@@ -152,6 +152,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         } else {
             return new DistributingDownstream(
                     node.jobId().get(),
+                    node.executionNodeId() + 1,
                     toDiscoveryNodes(node.downstreamNodes()),
                     transportService,
                     getStreamers(node)

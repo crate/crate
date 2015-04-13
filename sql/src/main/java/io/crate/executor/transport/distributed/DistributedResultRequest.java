@@ -33,9 +33,12 @@ import java.util.UUID;
 
 public class DistributedResultRequest extends TransportRequest {
 
+    private int executionNodeId;
+    private int bucketIdx;
+
     private Streamer<?>[] streamers;
     private Bucket rows;
-    private UUID contextId;
+    private UUID jobId;
 
     // TODO: change failure flag to string or enum so that the receiver can recreate the
     // exception and the error handling in the DistributedMergeTask can be simplified.
@@ -44,13 +47,23 @@ public class DistributedResultRequest extends TransportRequest {
     public DistributedResultRequest() {
     }
 
-    public DistributedResultRequest(UUID contextId, Streamer<?>[] streamers) {
-        this.contextId = contextId;
+    public DistributedResultRequest(UUID jobId, int executionNodeId, int bucketIdx, Streamer<?>[] streamers) {
+        this.jobId = jobId;
+        this.executionNodeId = executionNodeId;
+        this.bucketIdx = bucketIdx;
         this.streamers = streamers;
     }
 
     public UUID contextId() {
-        return contextId;
+        return jobId;
+    }
+
+    public int executionNodeId() {
+        return executionNodeId;
+    }
+
+    public int bucketIdx() {
+        return bucketIdx;
     }
 
     public void streamers(Streamer<?>[] streamers) {
@@ -79,7 +92,9 @@ public class DistributedResultRequest extends TransportRequest {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        contextId = new UUID(in.readLong(), in.readLong());
+        jobId = new UUID(in.readLong(), in.readLong());
+        executionNodeId = in.readVInt();
+        bucketIdx = in.readVInt();
         if (in.readBoolean()) {
             failure = true;
             return;
@@ -92,8 +107,10 @@ public class DistributedResultRequest extends TransportRequest {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeLong(contextId.getMostSignificantBits());
-        out.writeLong(contextId.getLeastSignificantBits());
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
+        out.writeVInt(executionNodeId);
+        out.writeVInt(bucketIdx);
         if (failure) {
             out.writeBoolean(true);
             return;

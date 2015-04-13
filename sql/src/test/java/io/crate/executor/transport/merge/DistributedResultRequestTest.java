@@ -134,7 +134,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         };
         UUID uuid = UUID.randomUUID();
 
-        DistributedResultRequest r1 = new DistributedResultRequest(uuid, streamers);
+        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, 1, streamers);
         r1.rows(new ArrayBucket(rows));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -166,7 +166,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         rows[1] = new Object[]{2, new BytesRef("Trillian")};
         rows[2] = new Object[]{3, new BytesRef("Marvin")};
 
-        DistributedResultRequest requestSender = new DistributedResultRequest(contextId, streamers);
+        DistributedResultRequest requestSender = new DistributedResultRequest(contextId, 1, 1, streamers);
         requestSender.rows(new ArrayBucket(rows));
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
@@ -239,7 +239,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         streamers[0] = DataTypes.INTEGER.streamer();
         streamers[1] = DataTypes.STRING.streamer();
 
-        DistributedResultRequest requestSender = new DistributedResultRequest(contextId, streamers);
+        DistributedResultRequest requestSender = new DistributedResultRequest(contextId, 1, 1, streamers);
         requestSender.rows(new ArrayBucket(rows));
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
