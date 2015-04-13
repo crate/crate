@@ -30,7 +30,7 @@ import io.crate.breaker.CircuitBreakerModule;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -318,7 +318,7 @@ public class DistributingCollectTest extends CrateUnitTest {
                 countDown.countDown();
                 return null;
             }
-        }).when(transportService).submitRequest(any(DiscoveryNode.class), Matchers.same(TransportMergeNodeAction.mergeRowsAction),
+        }).when(transportService).submitRequest(any(DiscoveryNode.class), Matchers.same(TransportDistributedResultAction.DISTRIBUTED_RESULT_ACTION),
                 Matchers.<TransportRequest>any(),
                 any(TransportResponseHandler.class));
 
@@ -343,7 +343,7 @@ public class DistributingCollectTest extends CrateUnitTest {
         ArgumentCaptor<DistributedResultRequest> capture = ArgumentCaptor.forClass(DistributedResultRequest.class);
         Mockito.doReturn(null).when(transportService).submitRequest(
                 any(DiscoveryNode.class),
-                Matchers.same(TransportMergeNodeAction.mergeRowsAction),
+                Matchers.same(TransportDistributedResultAction.DISTRIBUTED_RESULT_ACTION),
                 capture.capture(),
                 //Matchers.<DistributedResultRequest>any(),
                 any(TransportResponseHandler.class));
@@ -370,7 +370,7 @@ public class DistributingCollectTest extends CrateUnitTest {
         ArgumentCaptor<DistributedResultRequest> capture = ArgumentCaptor.forClass(DistributedResultRequest.class);
         Mockito.doReturn(null).when(transportService).submitRequest(
                 any(DiscoveryNode.class),
-                Matchers.same(TransportMergeNodeAction.mergeRowsAction),
+                Matchers.same(TransportDistributedResultAction.DISTRIBUTED_RESULT_ACTION),
                 capture.capture(),
                 any(TransportResponseHandler.class));
 

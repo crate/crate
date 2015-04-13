@@ -291,7 +291,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             } else {
                 return singleTask(new DistributedMergeTask(
                         jobId,
-                        transportActionProvider.transportMergeNodeAction(), node));
+                        transportActionProvider.transportDistributedResultAction(), node));
             }
         }
 
