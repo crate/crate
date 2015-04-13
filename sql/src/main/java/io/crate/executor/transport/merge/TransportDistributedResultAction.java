@@ -85,7 +85,7 @@ public class TransportDistributedResultAction {
         new AsyncMergeStartAction(node, request, listener).start();
     }
 
-    public void mergeRows(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
+    public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
         new AsyncMergeRowsAction(node, request, listener).start();
     }
 
@@ -214,6 +214,10 @@ public class TransportDistributedResultAction {
         }
     }
 
+    /**
+     * context creation will be done in TransportJobAction in the future
+     */
+    @Deprecated
     private class StartMergeHandler extends BaseTransportRequestHandler<NodeMergeRequest> {
 
         @Override

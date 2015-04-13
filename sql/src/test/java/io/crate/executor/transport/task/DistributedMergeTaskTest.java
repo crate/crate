@@ -86,34 +86,34 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         Iterator<String> iterator = nodes.iterator();
         String firstNode = iterator.next();
 
-        DistributedResultRequest request1 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
+        DistributedResultRequest request1 = new DistributedResultRequest(mergeNode.jobId(), 1, 1, mapperOutputStreamer);
         request1.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 1L , new BytesRef("bar") },
         }));
-        DistributedResultRequest request2 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
+        DistributedResultRequest request2 = new DistributedResultRequest(mergeNode.jobId(), 1, 1, mapperOutputStreamer);
         request2.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 1L, new BytesRef("bar") },
                 new Object[] { 3L, new BytesRef("bar") },
                 new Object[] { 3L, new BytesRef("foobar") },
         }));
 
-        transportDistributedResultAction.mergeRows(firstNode, request1, noopListener);
-        transportDistributedResultAction.mergeRows(firstNode, request2, noopListener);
+        transportDistributedResultAction.pushResult(firstNode, request1, noopListener);
+        transportDistributedResultAction.pushResult(firstNode, request2, noopListener);
 
-        DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
+        DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.jobId(), 1, 1, mapperOutputStreamer);
         request3.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 10, new BytesRef("foo") },
                 new Object[] { 20, new BytesRef("foo") },
         }));
-        DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.jobId(), mapperOutputStreamer);
+        DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.jobId(), 1, 1, mapperOutputStreamer);
         request4.rows(new ArrayBucket(new Object[][] {
                 new Object[] { 10, new BytesRef("foo") },
                 new Object[] { 14, new BytesRef("test") },
         }));
 
         String secondNode = iterator.next();
-        transportDistributedResultAction.mergeRows(secondNode, request3, noopListener);
-        transportDistributedResultAction.mergeRows(secondNode, request4, noopListener);
+        transportDistributedResultAction.pushResult(secondNode, request3, noopListener);
+        transportDistributedResultAction.pushResult(secondNode, request4, noopListener);
 
         assertThat(task.result().size(), is(2)); // 2 reducer nodes
 
