@@ -34,7 +34,6 @@ import java.util.UUID;
 public class DistributedResultRequest extends TransportRequest {
 
     private Streamer<?>[] streamers;
-    private DistributedRequestContextManager contextManager;
     private Bucket rows;
     private UUID contextId;
 
@@ -42,8 +41,7 @@ public class DistributedResultRequest extends TransportRequest {
     // exception and the error handling in the DistributedMergeTask can be simplified.
     private boolean failure = false;
 
-    public DistributedResultRequest(DistributedRequestContextManager contextManager) {
-        this.contextManager = contextManager;
+    public DistributedResultRequest() {
     }
 
     public DistributedResultRequest(UUID contextId, Streamer<?>[] streamers) {

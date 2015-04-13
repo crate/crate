@@ -31,7 +31,7 @@ import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.merge.NodeMergeRequest;
 import io.crate.executor.transport.merge.NodeMergeResponse;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.Preconditions;
@@ -52,17 +52,17 @@ public class DistributedMergeTask extends JobTask {
     private static final ESLogger logger = Loggers.getLogger(DistributedMergeTask.class);
 
     private final MergeNode mergeNode;
-    private final TransportMergeNodeAction transportMergeNodeAction;
+    private final TransportDistributedResultAction transportDistributedResultAction;
     private final ArrayList<ListenableFuture<TaskResult>> results;
     private List<ListenableFuture<TaskResult>> upstreamResult;
 
     public DistributedMergeTask(UUID jobId,
-                                TransportMergeNodeAction transportMergeNodeAction,
+                                TransportDistributedResultAction transportDistributedResultAction,
                                 MergeNode mergeNode) {
         super(jobId);
         Preconditions.checkNotNull(mergeNode.executionNodes());
 
-        this.transportMergeNodeAction = transportMergeNodeAction;
+        this.transportDistributedResultAction = transportDistributedResultAction;
         this.mergeNode = mergeNode;
 
         results = new ArrayList<>(mergeNode.executionNodes().size());
@@ -113,7 +113,7 @@ public class DistributedMergeTask extends JobTask {
         for (final String node : mergeNode.executionNodes()) {
             logger.trace("prepare executionNode: {} of {}", node, mergeNode.executionNodes().size());
             final int resultIdx = i;
-            transportMergeNodeAction.startMerge(node, request, new ActionListener<NodeMergeResponse>() {
+            transportDistributedResultAction.startMerge(node, request, new ActionListener<NodeMergeResponse>() {
 
                 @Override
                 public void onResponse(NodeMergeResponse nodeMergeResponse) {

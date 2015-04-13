@@ -140,7 +140,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        DistributedResultRequest r2 = new DistributedResultRequest(cm);
+        DistributedResultRequest r2 = new DistributedResultRequest();
         r2.readFrom(in);
         r2.streamers(streamers);
         assertTrue(r2.rowsCanBeRead());
@@ -183,7 +183,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
                         new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA)
                 );
         BytesStreamInput streamInput = new BytesStreamInput(streamOutput.bytes());
-        DistributedResultRequest requestReceiver = new DistributedResultRequest(contextManager);
+        DistributedResultRequest requestReceiver = new DistributedResultRequest();
         requestReceiver.readFrom(streamInput);
 
         assertFalse(requestReceiver.rowsCanBeRead());
@@ -248,7 +248,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         BytesStreamInput streamInput = new BytesStreamInput(streamOutput.bytes());
 
 
-        DistributedResultRequest requestReceiver = new DistributedResultRequest(contextManager);
+        DistributedResultRequest requestReceiver = new DistributedResultRequest();
         requestReceiver.readFrom(streamInput);
         assertThat(requestReceiver.rows().size(), is(3));
 

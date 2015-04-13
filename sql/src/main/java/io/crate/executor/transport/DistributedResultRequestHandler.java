@@ -38,7 +38,7 @@ public class DistributedResultRequestHandler extends BaseTransportRequestHandler
 
     @Override
     public DistributedResultRequest newInstance() {
-        return new DistributedResultRequest(contextManager);
+        return new DistributedResultRequest();
     }
 
     @Override
