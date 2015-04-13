@@ -39,10 +39,8 @@ import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.apache.lucene.util.BytesRef;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.ExpectedException;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -64,6 +62,9 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
     private static File tmpFileGz;
     private static File tmpFileEmptyLine;
     private FileCollectInputSymbolVisitor inputSymbolVisitor;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -162,6 +163,13 @@ public class FileReadingCollectorTest extends AbstractRandomizedTest {
     public void testCollectWithEmptyLine() throws Throwable {
         CollectingProjector projector = getObjects(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
         assertCorrectResult(projector.result().get());
+    }
+
+    @Test
+    public void unsupportedURITest() throws Throwable {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("URI scheme is not supported");
+        getObjects("https://crate.io/docs/en/latest/sql/reference/copy_from.html");
     }
 
     private CollectingProjector getObjects(String fileUri) throws Throwable {
