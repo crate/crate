@@ -92,6 +92,9 @@ public class PageDownstreamContext {
         }
         synchronized (lock) {
             LOGGER.trace("setBucket: {}", bucketIdx);
+            if (allFuturesSet.get(bucketIdx)) {
+                throw new IllegalStateException("May not set the same bucket of a page more than once");
+            }
 
             if (pageEmpty()) {
                 LOGGER.trace("calling nextPage");
