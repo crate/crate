@@ -2,8 +2,7 @@
 Crate Java Client
 =================
 
-The client module exposes a very simple interface to query Crate using
-SQL.
+The client module exposes a very simple interface to query Crate using SQL.
 
 Contents
 ========
@@ -13,4 +12,3 @@ Contents
 
    setup.txt
    client.txt
-
