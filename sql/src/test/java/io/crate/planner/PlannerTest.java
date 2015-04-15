@@ -1,5 +1,6 @@
 package io.crate.planner;
 
+import com.google.common.collect.Iterables;
 import io.crate.Constants;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.BaseAnalyzerTest;
@@ -112,6 +113,7 @@ public class PlannerTest extends CrateUnitTest {
             ImmutableOpenMap<String, DiscoveryNode> dataNodes =
                     ImmutableOpenMap.<String, DiscoveryNode>builder().fPut("foo", node).build();
             when(nodes.dataNodes()).thenReturn(dataNodes);
+            when(nodes.localNodeId()).thenReturn(LOCAL_NODE_ID);
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             bind(ClusterService.class).toInstance(clusterService);
@@ -313,7 +315,8 @@ public class PlannerTest extends CrateUnitTest {
         MergeNode localMerge = distributedGroupBy.localMergeNode();
 
         assertThat(localMerge.numUpstreams(), is(2));
-        assertTrue(localMerge.executionNodes().isEmpty());
+        assertThat(localMerge.executionNodes().size(), is(1));
+        assertThat(Iterables.getOnlyElement(localMerge.executionNodes()), is(LOCAL_NODE_ID));
         assertEquals(mergeNode.outputTypes(), localMerge.inputTypes());
 
         assertThat(localMerge.projections().get(0), instanceOf(TopNProjection.class));
