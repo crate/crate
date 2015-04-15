@@ -25,15 +25,17 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.ResponseForwarder;
+import io.crate.operation.collect.MapSideDataCollectOperation;
+import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
@@ -48,6 +50,7 @@ import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,24 +72,24 @@ public class TransportJobAction {
     private final ClusterService clusterService;
 
     private final CircuitBreaker circuitBreaker;
-    private final StreamerVisitor streamerVisitor;
     private final ExecutionNodesExecutingVisitor executionNodeVisitor;
-    private final MapSideCollectOperationDispatcher collectOperationHandler;
+    private final MapSideDataCollectOperation collectOperationHandler;
+    private final StatsTables statsTables;
 
     @Inject
     public TransportJobAction(TransportService transportService,
                               ClusterService clusterService,
                               ThreadPool threadPool,
                               CrateCircuitBreakerService breakerService,
-                              StreamerVisitor streamerVisitor,
-                              MapSideCollectOperationDispatcher collectOperationHandler) {
+                              StatsTables statsTables,
+                              MapSideDataCollectOperation collectOperationHandler) {
         this.threadPool = threadPool;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.clusterService = clusterService;
+        this.statsTables = statsTables;
         this.collectOperationHandler = collectOperationHandler;
         this.transportService = transportService;
         transportService.registerHandler(ACTION_NAME, new JobInitHandler());
-        this.streamerVisitor = streamerVisitor;
         this.executionNodeVisitor = new ExecutionNodesExecutingVisitor();
 
     }
@@ -121,58 +124,42 @@ public class TransportJobAction {
     }
 
     private void nodeOperation(final JobRequest request, final ActionListener<JobResponse> actionListener) {
-        int i = 0;
-        Streamer<?>[] directResultStreamer = null;
         List<ListenableFuture<Bucket>> executionFutures = new ArrayList<>(request.executionNodes().size());
         for (ExecutionNode executionNode : request.executionNodes()) {
             try {
                 String ramAccountingContextId = String.format("%s: %s", executionNode.name(), request.jobId());
                 final RamAccountingContext ramAccountingContext =
                         new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-
-                if (request.returnResultFromNode() == i) {
-                    LOGGER.trace("handling execution Node #{} and return its result", i);
-                    // execution node whose result shall be returned
-                    StreamerVisitor.Context streamerContext = streamerVisitor.processExecutionNode(executionNode, ramAccountingContext);
-                    directResultStreamer = streamerContext.outputStreamers();
-                    executionFutures.add(executionNodeVisitor.handle(
-                            executionNode,
-                            ramAccountingContext,
-                            request.jobId()
-                    ));
-                } else {
-                    executionFutures.add(executionNodeVisitor.handle(executionNode,
-                            ramAccountingContext,
-                            request.jobId()
-                    ));
-                }
+                executionFutures.add(executionNodeVisitor.handle(
+                        executionNode,
+                        ramAccountingContext,
+                        request.jobId()
+                ));
             } catch (Throwable t) {
                 LOGGER.error("error starting ExecutionNode {}", t, executionNode);
                 actionListener.onFailure(t);
             }
-            i++;
         }
-        final Streamer<?>[] finalDirectResultStreamer = directResultStreamer;
         // wait for all operations to complete
         // if an error occurs, we can inform the handler node
         Futures.addCallback(Futures.allAsList(executionFutures), new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(@Nullable List<Bucket> buckets) {
                 assert buckets != null;
-                if (request.returnResultFromNode() == JobRequest.NO_DIRECT_RETURN) {
+                if (buckets.isEmpty()) {
                     actionListener.onResponse(new JobResponse());
                 } else {
-                    assert finalDirectResultStreamer != null;
-                    Bucket directResultBucket = buckets.get(request.returnResultFromNode());
+                    assert buckets.size() == 1;
+                    Bucket directResultBucket = buckets.get(0);
                     LOGGER.trace("direct result ready: {}", directResultBucket);
                     actionListener.onResponse(
-                            new JobResponse(directResultBucket, finalDirectResultStreamer)
+                            new JobResponse(directResultBucket)
                     );
                 }
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 LOGGER.error("error waiting for ExecutionNode result", t);
                 actionListener.onFailure(t);
             }
@@ -203,7 +190,7 @@ public class TransportJobAction {
         private final SettableFuture<Bucket> directResultFuture;
         private final RamAccountingContext ramAccountingContext;
 
-        private VisitorContext(UUID jobId, RamAccountingContext ramAccountingContext, @Nullable SettableFuture<Bucket> directResultFuture) {
+        private VisitorContext(UUID jobId, RamAccountingContext ramAccountingContext, SettableFuture<Bucket> directResultFuture) {
             this.directResultFuture = directResultFuture;
             this.ramAccountingContext = ramAccountingContext;
             this.jobId = jobId;
@@ -224,11 +211,34 @@ public class TransportJobAction {
             threadPool.executor(COLLECT_EXECUTOR).execute(new Runnable() {
                 @Override
                 public void run() {
-                    collectOperationHandler.executeCollect(
-                            context.jobId,
-                            collectNode,
-                            context.ramAccountingContext,
-                            context.directResultFuture);
+                    final UUID operationId = UUID.randomUUID();
+                    statsTables.operationStarted(operationId, context.jobId, collectNode.name());
+                    ResultProvider downstream = collectOperationHandler.createDownstream(collectNode);
+                    Futures.addCallback(downstream.result(), new FutureCallback<Bucket>() {
+                        @Override
+                        public void onSuccess(@Nullable Bucket result) {
+                            statsTables.operationFinished(operationId, null, context.ramAccountingContext.totalBytes());
+                            context.ramAccountingContext.close();
+                            if (result == null) {
+                                context.directResultFuture.set(Bucket.EMPTY);
+                            } else {
+                                context.directResultFuture.set(result);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(@Nonnull Throwable t) {
+                            statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                                    context.ramAccountingContext.totalBytes());
+                            context.ramAccountingContext.close();
+                            context.directResultFuture.setException(t);
+                        }
+                    });
+                    try {
+                        collectOperationHandler.collect(collectNode, downstream, context.ramAccountingContext);
+                    } catch (Throwable t) {
+                        downstream.fail(t);
+                    }
                 }
             });
             return null;

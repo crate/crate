@@ -204,8 +204,7 @@ public class StreamerVisitor {
         int idx = 0;
         for (DataType outputType : outputTypes) {
             if (outputType == UndefinedType.INSTANCE) {
-                resolveStreamer(streamers, projections, idx, projections.size() - 1, inputTypes,
-                        context.ramAccountingContext);
+                resolveStreamer(streamers, projections, idx, projections.size() - 1, inputTypes);
             } else {
                 streamers[idx] = outputType.streamer();
             }
@@ -227,8 +226,7 @@ public class StreamerVisitor {
                                  List<Projection> projections,
                                  int columnIdx,
                                  int projectionIdx,
-                                 List<DataType> inputTypes,
-                                 RamAccountingContext ramAccountingContext) {
+                                 List<DataType> inputTypes) {
         final Projection projection = projections.get(projectionIdx);
         final Symbol symbol = projection.outputs().get(columnIdx);
 
@@ -241,8 +239,7 @@ public class StreamerVisitor {
             columnIdx = ((InputColumn)symbol).index();
             if (projectionIdx > 0) {
                 projectionIdx--;
-                resolveStreamer(streamers, projections, columnIdx, projectionIdx, inputTypes,
-                        ramAccountingContext);
+                resolveStreamer(streamers, projections, columnIdx, projectionIdx, inputTypes);
             } else {
                 streamers[columnIdx] = inputTypes.get(((InputColumn)symbol).index()).streamer();
             }

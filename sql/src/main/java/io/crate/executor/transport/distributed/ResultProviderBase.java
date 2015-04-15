@@ -32,7 +32,7 @@ import io.crate.operation.projectors.ResultProvider;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class ResultProviderBase implements ResultProvider, RowDownstreamHandle {
+public abstract class ResultProviderBase implements ResultProvider {
 
     private final SettableFuture<Bucket> result = SettableFuture.create();
     protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);

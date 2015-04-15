@@ -117,8 +117,7 @@ public class RemoteCollectTask extends JobTask {
     public void start() {
         final JobRequest jobRequest = new JobRequest(
                 jobId(),
-                ImmutableList.<ExecutionNode>of(collectNode),
-                collectNode.hasDownstreams() ? JobRequest.NO_DIRECT_RETURN : 0
+                ImmutableList.<ExecutionNode>of(collectNode)
         );
         for (int i = 0; i < nodeIds.size(); i++) {
             final int resultIdx = i;

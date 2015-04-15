@@ -41,6 +41,7 @@ import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -97,7 +98,8 @@ public class MapSideDataCollectOperationTest {
                         )
                 ),
                 new StreamerVisitor(functions),
-                jobContextService
+                jobContextService,
+                mock(TransportService.class)
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");

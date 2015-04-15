@@ -79,13 +79,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String PARTITIONED_TABLE_NAME = "parted_table";
 
-    private NonDistributingCollectOperation operation;
+    private MapSideDataCollectOperation operation;
     private Functions functions;
     private DocSchemaInfo docSchemaInfo;
 
     @Before
     public void prepare() {
-        operation = cluster().getInstance(NonDistributingCollectOperation.class);
+        operation = cluster().getInstance(MapSideDataCollectOperation.class);
         functions = cluster().getInstance(Functions.class);
         docSchemaInfo = cluster().getInstance(DocSchemaInfo.class);
 

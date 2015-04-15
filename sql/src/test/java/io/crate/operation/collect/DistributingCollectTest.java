@@ -30,7 +30,6 @@ import io.crate.breaker.CircuitBreakerModule;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
-import io.crate.executor.transport.distributed.DistributingDownstream;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
@@ -39,6 +38,7 @@ import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.reference.sys.shard.ShardIdExpression;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
@@ -116,7 +116,7 @@ import static org.mockito.Mockito.when;
 public class DistributingCollectTest extends CrateUnitTest {
 
     private IndexService indexService = mock(IndexService.class);
-    private DistributingCollectOperation operation;
+    private MapSideDataCollectOperation operation;
     private TransportService transportService;
 
     private final UUID jobId = UUID.randomUUID();
@@ -129,9 +129,9 @@ public class DistributingCollectTest extends CrateUnitTest {
 
 
     private void collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
-        DistributingDownstream downstream = operation.createDownstream(collectNode);
+        ResultProvider downstream = operation.createDownstream(collectNode);
         operation.collect(collectNode, downstream, null);
-        downstream.get();
+        downstream.result().get();
     }
 
 
@@ -263,7 +263,7 @@ public class DistributingCollectTest extends CrateUnitTest {
                 .add(new AllocationDecidersModule(ImmutableSettings.EMPTY))
                 .add(new TestModule())
                 .createInjector();
-        operation = injector.getInstance(DistributingCollectOperation.class);
+        operation = injector.getInstance(MapSideDataCollectOperation.class);
 
         Injector shard0Injector = injector.createChildInjector(
                 new TestShardModule(0)
