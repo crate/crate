@@ -23,11 +23,10 @@ package io.crate.planner.node;
 
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
-import org.elasticsearch.common.Nullable;
 
 public class ExecutionNodeVisitor<C, R> {
 
-    public R process(ExecutionNode node, @Nullable C context) {
+    public R process(ExecutionNode node, C context) {
         return node.accept(this, context);
     }
 

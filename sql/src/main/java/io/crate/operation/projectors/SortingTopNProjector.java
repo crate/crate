@@ -29,7 +29,6 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.distributed.ResultProviderBase;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -37,7 +36,7 @@ import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import java.util.Comparator;
 
-public class SortingTopNProjector extends ResultProviderBase implements Projector, RowUpstream, RowDownstreamHandle {
+public class SortingTopNProjector extends ResultProviderBase {
 
     private final int offset;
     private final int maxSize;
