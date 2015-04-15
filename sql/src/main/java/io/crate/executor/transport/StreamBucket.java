@@ -51,7 +51,7 @@ public class StreamBucket implements Bucket, Streamable {
         private static final int INITIAL_PAGE_SIZE = 1024;
         private int size = 0;
         private final Streamer<?>[] streamers;
-        private final BytesStreamOutput out;
+        private BytesStreamOutput out;
 
         public static final Function<Builder, Bucket> BUILD_FUNCTION =
                 new Function<Builder, Bucket>() {
@@ -69,7 +69,7 @@ public class StreamBucket implements Bucket, Streamable {
 
         public Builder(Streamer<?>[] streamers) {
             this.streamers = streamers;
-            this.out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
+            out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
         }
 
         public void add(Row row) throws IOException {
@@ -77,6 +77,10 @@ public class StreamBucket implements Bucket, Streamable {
             for (int i = 0; i < row.size(); i++) {
                 streamers[i].writeValueTo(out, row.get(i));
             }
+        }
+
+        public int size() {
+            return size;
         }
 
         public void writeToStream(StreamOutput output) throws IOException {
@@ -91,6 +95,11 @@ public class StreamBucket implements Bucket, Streamable {
             sb.size = size;
             sb.bytes = out.bytes();
             return sb;
+        }
+
+        public void reset() {
+            out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
+            size = 0;
         }
     }
 

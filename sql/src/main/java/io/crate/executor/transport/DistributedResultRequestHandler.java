@@ -138,10 +138,13 @@ public class DistributedResultRequestHandler extends BaseTransportRequestHandler
             public void needMore() {
                 try {
                     if (pageDownstreamContext.allExhausted()) {
-                        pageDownstreamContext.finish();
+                        LOGGER.trace("sending needMore response, upstream don't have more!");
                         channel.sendResponse(new DistributedResultResponse(false));
+                        pageDownstreamContext.finish();
                     } else {
-                        channel.sendResponse(new DistributedResultResponse(!pageDownstreamContext.isExhausted(request.bucketIdx())));
+                        boolean needMore = !pageDownstreamContext.isExhausted(request.bucketIdx());
+                        LOGGER.trace("sending needMore response, need more? {}", needMore);
+                        channel.sendResponse(new DistributedResultResponse(needMore));
                     }
                 } catch (IOException e) {
                     LOGGER.error("Could not send DistributedResultResponse", e);
@@ -150,6 +153,7 @@ public class DistributedResultRequestHandler extends BaseTransportRequestHandler
 
             @Override
             public void finish() {
+                LOGGER.trace("sending finish response");
                 try {
                     channel.sendResponse(new DistributedResultResponse(false));
                     pageDownstreamContext.finish();

@@ -44,6 +44,7 @@ public class PageDownstreamContext {
     private final ArrayList<SettableFuture<Bucket>> bucketFutures;
     private final BitSet allFuturesSet;
     private final BitSet exhausted;
+    private final ArrayList<PageConsumeListener> listeners = new ArrayList<>();
 
     private volatile boolean failed = false;
 
@@ -52,9 +53,9 @@ public class PageDownstreamContext {
         this.streamer = streamer;
         this.numBuckets = numBuckets;
         bucketFutures = new ArrayList<>(numBuckets);
-        initBucketFutures();
         allFuturesSet = new BitSet(numBuckets);
         exhausted = new BitSet(numBuckets);
+        initBucketFutures();
     }
 
     private void initBucketFutures() {
@@ -95,10 +96,43 @@ public class PageDownstreamContext {
             if (allFuturesSet.get(bucketIdx)) {
                 throw new IllegalStateException("May not set the same bucket of a page more than once");
             }
+            synchronized (listeners) {
+                listeners.add(pageConsumeListener);
+            }
 
             if (pageEmpty()) {
                 LOGGER.trace("calling nextPage");
-                pageDownstream.nextPage(new BucketPage(bucketFutures), pageConsumeListener);
+                pageDownstream.nextPage(new BucketPage(bucketFutures), new PageConsumeListener() {
+                    @Override
+                    public void needMore() {
+                        synchronized (listeners) {
+                        LOGGER.trace("calling needMore on all listeners({})", listeners.size());
+                            for (PageConsumeListener listener : listeners) {
+                                listener.needMore();
+                            }
+                            listeners.clear();
+                        }
+                    }
+
+                    @Override
+                    public void finish() {
+                        synchronized (listeners) {
+                        LOGGER.trace("calling finish() on all listeners({})", listeners.size());
+                            for (PageConsumeListener listener : listeners) {
+                                listener.finish();
+                            }
+                            listeners.clear();
+                        }
+                    }
+                });
+            }
+
+            // set all exhausted upstream futures
+            for (int i = 0; i < exhausted.size(); i++) {
+                if (exhausted.get(i)) {
+                    bucketFutures.get(i).set(Bucket.EMPTY);
+                    allFuturesSet.set(i);
+                }
             }
 
             if (isLast) {

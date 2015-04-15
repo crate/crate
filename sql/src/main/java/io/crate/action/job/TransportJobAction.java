@@ -146,16 +146,16 @@ public class TransportJobAction {
             @Override
             public void onSuccess(@Nullable List<Bucket> buckets) {
                 assert buckets != null;
-                if (buckets.isEmpty()) {
-                    actionListener.onResponse(new JobResponse());
-                } else {
-                    assert buckets.size() == 1;
-                    Bucket directResultBucket = buckets.get(0);
-                    LOGGER.trace("direct result ready: {}", directResultBucket);
-                    actionListener.onResponse(
-                            new JobResponse(directResultBucket)
-                    );
+                // only one of the buckets is a direct result bucket
+                for (Bucket bucket : buckets) {
+                    if (bucket != null) {
+                        LOGGER.trace("direct result ready: {}", bucket);
+                        actionListener.onResponse(new JobResponse(bucket));
+                        return;
+                    }
                 }
+                // no direct result if all are null
+                actionListener.onResponse(new JobResponse());
             }
 
             @Override
