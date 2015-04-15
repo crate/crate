@@ -88,6 +88,8 @@ public class PlannerTest extends CrateUnitTest {
 
     private ClusterService clusterService;
 
+    private final static String LOCAL_NODE_ID = "foo";
+
 
     class TestModule extends MetaDataModule {
 
@@ -95,7 +97,7 @@ public class PlannerTest extends CrateUnitTest {
         protected void configure() {
             clusterService = mock(ClusterService.class);
             DiscoveryNode localNode = mock(DiscoveryNode.class);
-            when(localNode.id()).thenReturn("foo");
+            when(localNode.id()).thenReturn(LOCAL_NODE_ID);
             when(clusterService.localNode()).thenReturn(localNode);
             ClusterState clusterState = mock(ClusterState.class);
             MetaData metaData = mock(MetaData.class);
@@ -1867,5 +1869,14 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(collectNode1.executionNodeId(), is(0));
         assertThat(collectNode2.executionNodeId(), is(1));
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    @Test
+    public void testLimitThatIsBiggerThanPageSizeCausesQTFPUshPlan() throws Exception {
+        QueryThenFetch plan = (QueryThenFetch) plan("select * from users limit 2147483647 ");
+        assertThat(plan.collectNode().downstreamNodes().size(), is(1));
+        assertThat(plan.collectNode().downstreamNodes().get(0), is(LOCAL_NODE_ID));
+        assertThat(plan.collectNode().hasDistributingDownstreams(), is(true));
     }
 }

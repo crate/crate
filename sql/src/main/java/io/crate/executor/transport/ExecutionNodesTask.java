@@ -155,7 +155,7 @@ public class ExecutionNodesTask extends JobTask {
         });
     }
 
-    private boolean hasDirectResponse(ExecutionNode[] executionNodes) {
+    static boolean hasDirectResponse(ExecutionNode[] executionNodes) {
         for (ExecutionNode executionNode : executionNodes) {
             if (ExecutionNodes.hasDirectResponseDownstream(executionNode.downstreamNodes())) {
                 return true;
@@ -164,7 +164,7 @@ public class ExecutionNodesTask extends JobTask {
         return false;
     }
 
-    private static Map<String, Collection<ExecutionNode>> groupExecutionNodesByServer(ExecutionNode[] executionNodes) {
+    static Map<String, Collection<ExecutionNode>> groupExecutionNodesByServer(ExecutionNode[] executionNodes) {
         ArrayListMultimap<String, ExecutionNode> executionNodesGroupedByServer = ArrayListMultimap.create();
         for (ExecutionNode executionNode : executionNodes) {
             for (String server : executionNode.executionNodes()) {
