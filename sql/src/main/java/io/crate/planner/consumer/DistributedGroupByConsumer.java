@@ -24,6 +24,7 @@ package io.crate.planner.consumer;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
@@ -164,6 +165,7 @@ public class DistributedGroupByConsumer implements Consumer {
             // end: Reducer
 
             MergeNode localMergeNode = null;
+            String localNodeId = context.consumerContext.plannerContext().clusterService().state().nodes().localNodeId();
             if(isRootRelation) {
                 TopNProjection topN = projectionBuilder.topNProjection(
                         table.querySpec().outputs(),
@@ -173,8 +175,17 @@ public class DistributedGroupByConsumer implements Consumer {
                         null);
                 localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN),
                         mergeNode, context.consumerContext.plannerContext());
+                localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
+
+                mergeNode.downstreamNodes(localMergeNode.executionNodes());
+                mergeNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
+            } else {
+                mergeNode.downstreamNodes(Sets.newHashSet(localNodeId));
+                mergeNode.downstreamExecutionNodeId(mergeNode.executionNodeId() + 1);
             }
             context.result = true;
+
+            collectNode.downstreamExecutionNodeId(mergeNode.executionNodeId());
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,

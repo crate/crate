@@ -73,6 +73,8 @@ public class StreamBucket implements Bucket, Streamable {
         }
 
         public void add(Row row) throws IOException {
+            assert streamers.length == row.size() : "number of streamer must match row size";
+
             size++;
             for (int i = 0; i < row.size(); i++) {
                 streamers[i].writeValueTo(out, row.get(i));

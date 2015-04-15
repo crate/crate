@@ -27,7 +27,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.types.DataType;
@@ -68,6 +67,8 @@ public class MergeNode extends AbstractDQLPlanNode {
     private int[] orderByIndices;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
+    private int downstreamExecutionNodeId = NO_EXECUTION_NODE;
+    private List<String> downstreamNodes = ImmutableList.of();
 
     public MergeNode() {
         numUpstreams = 0;
@@ -111,12 +112,16 @@ public class MergeNode extends AbstractDQLPlanNode {
 
     @Override
     public List<String> downstreamNodes() {
-        return ImmutableList.of();
+        return downstreamNodes;
+    }
+
+    public void downstreamNodes(Set<String> nodes) {
+        downstreamNodes = ImmutableList.copyOf(nodes);
     }
 
     @Override
     public int downstreamExecutionNodeId() {
-        return ExecutionNode.NO_EXECUTION_NODE;
+        return downstreamExecutionNodeId;
     }
 
     public void executionNodes(Set<String> executionNodes) {
@@ -193,6 +198,13 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        downstreamExecutionNodeId = in.readVInt();
+
+        int numDownstreamNodes = in.readVInt();
+        downstreamNodes = new ArrayList<>(numDownstreamNodes);
+        for (int i = 0; i < numDownstreamNodes; i++) {
+            downstreamNodes.add(in.readString());
+        }
 
         numUpstreams = in.readVInt();
         jobId = new UUID(in.readLong(), in.readLong());
@@ -245,6 +257,12 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeVInt(downstreamExecutionNodeId);
+
+        out.writeVInt(downstreamNodes.size());
+        for (String downstreamNode : downstreamNodes) {
+            out.writeString(downstreamNode);
+        }
 
         out.writeVInt(numUpstreams);
         out.writeLong(jobId.getMostSignificantBits());
@@ -313,5 +331,9 @@ public class MergeNode extends AbstractDQLPlanNode {
                   .add("nullsFirst", Arrays.toString(nullsFirst));
         }
         return helper.toString();
+    }
+
+    public void downstreamExecutionNodeId(int downstreamExecutionNodeId) {
+        this.downstreamExecutionNodeId = downstreamExecutionNodeId;
     }
 }

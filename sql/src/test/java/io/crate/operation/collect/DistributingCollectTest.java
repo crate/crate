@@ -110,8 +110,7 @@ import java.util.concurrent.CountDownLatch;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class DistributingCollectTest extends CrateUnitTest {
 
@@ -252,7 +251,6 @@ public class DistributingCollectTest extends CrateUnitTest {
             MapBinder<ReferenceIdent, BlobShardReferenceImplementation> blobBinder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, BlobShardReferenceImplementation.class);
             bind(Settings.class).annotatedWith(IndexSettings.class).toInstance(ImmutableSettings.EMPTY);
-
         }
     }
 
@@ -339,7 +337,6 @@ public class DistributingCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectFromNodes() throws Exception {
-
         ArgumentCaptor<DistributedResultRequest> capture = ArgumentCaptor.forClass(DistributedResultRequest.class);
         Mockito.doReturn(null).when(transportService).submitRequest(
                 any(DiscoveryNode.class),

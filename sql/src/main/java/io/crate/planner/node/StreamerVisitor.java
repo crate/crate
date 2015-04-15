@@ -111,6 +111,13 @@ public class StreamerVisitor {
     }
 
     private class ExecutionNodeStreamerVisitor extends ExecutionNodeVisitor<Context, Void> {
+
+        @Override
+        public Void visitMergeNode(MergeNode node, Context context) {
+            extractFromMergeNode(node, context);
+            return null;
+        }
+
         @Override
         public Void visitCollectNode(CollectNode collectNode, Context context) {
             extractFromCollectNode(collectNode, context);

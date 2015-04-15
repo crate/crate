@@ -72,7 +72,7 @@ public class ExecutionNodesTask extends JobTask {
     private final ThreadPool threadPool;
     private final TransportCloseContextNodeAction transportCloseContextNodeAction;
     private final CircuitBreaker circuitBreaker;
-    private final MergeNode mergeNode;
+    private MergeNode mergeNode;
 
     protected ExecutionNodesTask(UUID jobId,
                                  JobContextService jobContextService,
@@ -99,8 +99,14 @@ public class ExecutionNodesTask extends JobTask {
         hasDirectResponse = hasDirectResponse(executionNodes);
     }
 
+    public void mergeNode(MergeNode mergeNode) {
+        assert this.mergeNode == null : "can only overwrite mergeNode if it was null";
+        this.mergeNode = mergeNode;
+    }
+
     @Override
     public void start() {
+        assert mergeNode != null : "mergeNode must not be null";
         RamAccountingContext ramAccountingContext = trackOperation();
 
         RowDownstream rowDownstream = new QueryResultRowDownstream(result, jobId(), mergeNode.executionNodeId(), jobContextService);

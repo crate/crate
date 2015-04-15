@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.breaker.CrateCircuitBreakerService;
@@ -56,7 +57,10 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 public class TransportExecutor implements Executor, TaskExecutor {
 
@@ -212,17 +216,40 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitDistributedGroupBy(DistributedGroupBy plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.reducerMergeNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            plan.collectNode().jobId(job.id());
+            plan.reducerMergeNode().jobId(job.id());
+            MergeNode localMergeNode = plan.localMergeNode();
+            if (localMergeNode != null) {
+                localMergeNode.jobId(job.id());
+            }
+            job.addTask(new ExecutionNodesTask(
+                    job.id(),
+                    jobContextService,
+                    pageDownstreamFactory,
+                    statsTables,
+                    threadPool,
+                    transportActionProvider.transportJobInitAction(),
+                    transportActionProvider.transportCloseContextNodeAction(),
+                    circuitBreaker,
+                    localMergeNode,
+                    plan.collectNode(),
+                    plan.reducerMergeNode()
+            ));
             return null;
         }
 
         @Override
         public Void visitInsertByQuery(InsertFromSubQuery node, Job job) {
             this.process(node.innerPlan(), job);
+
             if(node.handlerMergeNode().isPresent()) {
-                job.addTasks(nodeVisitor.visitMergeNode(node.handlerMergeNode().get(), job.id()));
+                // TODO: remove this hack
+                Task previousTask = Iterables.getLast(job.tasks());
+                if (previousTask instanceof ExecutionNodesTask) {
+                    ((ExecutionNodesTask) previousTask).mergeNode(node.handlerMergeNode().get());
+                } else {
+                    job.addTasks(nodeVisitor.visitMergeNode(node.handlerMergeNode().get(), job.id()));
+                }
             }
             return null;
         }
