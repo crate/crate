@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.distributed;
 
+import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -35,19 +36,22 @@ import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Deque;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DistributingDownstream extends ResultProviderBase {
 
-    private static final ESLogger logger = Loggers.getLogger(DistributingDownstream.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(DistributingDownstream.class);
 
     private final UUID jobId;
     private final MultiBucketBuilder bucketBuilder;
-    private final DistributedResultRequest[] requests;
-    private List<DiscoveryNode> downstreams;
+    private Downstream[] downstreams;
     private final TransportService transportService;
-
+    private final AtomicInteger finishedDownstreams = new AtomicInteger(0);
 
     public DistributingDownstream(UUID jobId,
                                   int targetExecutionNodeId,
@@ -55,20 +59,28 @@ public class DistributingDownstream extends ResultProviderBase {
                                   List<DiscoveryNode> downstreams,
                                   TransportService transportService,
                                   Streamer<?>[] streamers) {
-        this.downstreams = downstreams;
         this.transportService = transportService;
-        this.bucketBuilder = new MultiBucketBuilder(streamers, downstreams.size());
         this.jobId = jobId;
-        this.requests = new DistributedResultRequest[downstreams.size()];
-        for (int i = 0, length = downstreams.size(); i < length; i++) {
-            this.requests[i] = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx, streamers);
+        this.downstreams = new Downstream[downstreams.size()];
+        bucketBuilder = new MultiBucketBuilder(streamers, downstreams.size());
+        for (int i = 0; i < downstreams.size(); i++) {
+            this.downstreams[i] = new Downstream(
+                    downstreams.get(i), jobId, targetExecutionNodeId, bucketIdx, streamers);
         }
     }
 
     @Override
-    public synchronized boolean setNextRow(Row row) {
+    public boolean setNextRow(Row row) {
+        if (allDownstreamsFinished()) {
+            return false;
+        }
         try {
-            bucketBuilder.setNextRow(row);
+            int downstreamIdx = bucketBuilder.getBucket(row);
+            // only collect if downstream want more rows, otherwise just ignore the row
+            if (downstreams[downstreamIdx].wantMore.get()) {
+                bucketBuilder.setNextRow(downstreamIdx, row);
+                sendRequestIfNeeded(downstreamIdx);
+            }
         } catch (IOException e) {
             fail(e);
             return false;
@@ -76,36 +88,57 @@ public class DistributingDownstream extends ResultProviderBase {
         return true;
     }
 
+    protected void sendRequestIfNeeded(int downstreamIdx) {
+        int size = bucketBuilder.size(downstreamIdx);
+        if (size >= Constants.PAGE_SIZE || remainingUpstreams.get() <= 0) {
+            Downstream downstream = downstreams[downstreamIdx];
+            downstream.bucketQueue.add(bucketBuilder.build(downstreamIdx));
+            sendRequest(downstream);
+        }
+    }
+
     protected void onAllUpstreamsFinished() {
-        int i = 0;
-        for (Bucket rows : bucketBuilder.build()) {
-            DistributedResultRequest request = this.requests[i];
-            request.rows(rows);
-            final DiscoveryNode node = downstreams.get(i);
-            if (logger.isTraceEnabled()) {
-                logger.trace("[{}] sending distributing collect request to {} ...",
-                        jobId.toString(),
-                        node.id());
-            }
-            sendRequest(request, node);
-            i++;
+        for (int i = 0; i < downstreams.length; i++) {
+            sendRequestIfNeeded(i);
         }
     }
 
     private void forwardFailures(Throwable throwable) {
-        int idx = 0;
-        for (DistributedResultRequest request : requests) {
-            request.throwable(throwable);
-            sendRequest(request, downstreams.get(idx));
-            idx++;
+        for (Downstream downstream : downstreams) {
+            downstream.request.throwable(throwable);
+            sendRequest(downstream.request, downstream);
         }
     }
 
-    private void sendRequest(final DistributedResultRequest request, final DiscoveryNode node) {
+    private boolean allDownstreamsFinished() {
+        return finishedDownstreams.get() == downstreams.length;
+    }
+
+    private void sendRequest(Downstream downstream) {
+        if (downstream.requestPending.compareAndSet(false, true)) {
+            DistributedResultRequest request = downstream.request;
+            Deque<Bucket> queue = downstream.bucketQueue;
+            int size = queue.size();
+            if (size > 0) {
+                request.rows(queue.poll());
+            } else {
+                request.rows(Bucket.EMPTY);
+            }
+            request.isLast(!(size > 1 || remainingUpstreams.get() > 0));
+            sendRequest(request, downstream);
+        }
+    }
+
+    private void sendRequest(final DistributedResultRequest request, final Downstream downstream) {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("[{}] sending distributing collect request to {}, isLast? {} ...",
+                    jobId.toString(),
+                    downstream.node.id(), downstream.request.isLast());
+        }
         transportService.submitRequest(
-                node,
+                downstream.node,
                 TransportDistributedResultAction.DISTRIBUTED_RESULT_ACTION,
-                request,
+                downstream.request,
                 new BaseTransportResponseHandler<DistributedResultResponse>() {
                     @Override
                     public DistributedResultResponse newInstance() {
@@ -114,11 +147,29 @@ public class DistributingDownstream extends ResultProviderBase {
 
                     @Override
                     public void handleResponse(DistributedResultResponse response) {
-                        // TODO: handle response.needMore()
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("[{}] successfully sent distributing collect request to {}",
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("[{}] successfully sent distributing collect request to {}, needMore? {}",
                                     jobId.toString(),
-                                    node.id());
+                                    downstream.node.id(),
+                                    response.needMore());
+                        }
+                        downstream.wantMore.set(response.needMore());
+                        if (!response.needMore()) {
+                            if (LOGGER.isTraceEnabled()) {
+                                LOGGER.trace("downstream {} don't want more, clearing queue",
+                                        downstream.node.id());
+                            }
+                            finishedDownstreams.incrementAndGet();
+                            // clean-up queue because no more rows are wanted
+                            downstream.bucketQueue.clear();
+                        } else {
+                            if (LOGGER.isTraceEnabled()) {
+                                LOGGER.trace("downstream {} want more",
+                                        downstream.node.id());
+                            }
+                            // send next request or final empty closing one
+                            downstream.requestPending.set(false);
+                            sendRequest(downstream);
                         }
                     }
 
@@ -126,10 +177,10 @@ public class DistributingDownstream extends ResultProviderBase {
                     public void handleException(TransportException exp) {
                         Throwable cause = exp.getCause();
                         if (cause instanceof EsRejectedExecutionException) {
-                            sendFailure(request.jobId(), node);
+                            sendFailure(request.jobId(), downstream.node);
                         } else {
-                            logger.error("[{}] Exception sending distributing collect request to {}",
-                                    exp, jobId, node.id());
+                            LOGGER.error("[{}] Exception sending distributing collect request to {}",
+                                    exp, jobId, downstream.node.id());
                             fail(cause);
                         }
                     }
@@ -159,7 +210,7 @@ public class DistributingDownstream extends ResultProviderBase {
 
                     @Override
                     public void handleException(TransportException exp) {
-                        logger.error("[{}] Exception sending distributing collect failure to {}",
+                        LOGGER.error("[{}] Exception sending distributing collect failure to {}",
                                 exp, jobId, node.id());
                         fail(exp.getCause());
                     }
@@ -182,5 +233,23 @@ public class DistributingDownstream extends ResultProviderBase {
     public Throwable doFail(Throwable t) {
         forwardFailures(t);
         return t;
+    }
+
+    static class Downstream {
+
+        final AtomicBoolean wantMore = new AtomicBoolean(true);
+        final AtomicBoolean requestPending = new AtomicBoolean(false);
+        final Deque<Bucket> bucketQueue = new ConcurrentLinkedDeque<>();
+        final DistributedResultRequest request;
+        final DiscoveryNode node;
+
+        public Downstream(DiscoveryNode node,
+                          UUID jobId,
+                          int targetExecutionNodeId,
+                          int bucketIdx,
+                          Streamer<?>[] streamers) {
+            this.node = node;
+            this.request = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx, streamers);
+        }
     }
 }

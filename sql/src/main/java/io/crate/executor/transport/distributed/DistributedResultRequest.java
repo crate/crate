@@ -43,6 +43,7 @@ public class DistributedResultRequest extends TransportRequest {
     private Streamer<?>[] streamers;
     private Bucket rows;
     private UUID jobId;
+    private boolean isLast = true;
 
     private Throwable throwable = null;
 
@@ -92,7 +93,11 @@ public class DistributedResultRequest extends TransportRequest {
     }
 
     public boolean isLast() {
-        return true; // TODO: make settable
+        return isLast;
+    }
+
+    public void isLast(boolean isLast) {
+        this.isLast = isLast;
     }
 
     public void throwable(Throwable throwable) {
@@ -110,6 +115,7 @@ public class DistributedResultRequest extends TransportRequest {
         jobId = new UUID(in.readLong(), in.readLong());
         executionNodeId = in.readVInt();
         bucketIdx = in.readVInt();
+        isLast = in.readBoolean();
 
         boolean failure = in.readBoolean();
         if (failure) {
@@ -133,6 +139,7 @@ public class DistributedResultRequest extends TransportRequest {
         out.writeLong(jobId.getLeastSignificantBits());
         out.writeVInt(executionNodeId);
         out.writeVInt(bucketIdx);
+        out.writeBoolean(isLast);
 
         boolean failure = throwable != null;
         out.writeBoolean(failure);
