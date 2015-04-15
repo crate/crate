@@ -25,6 +25,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.List;
 
 public class ExecutionNodes {
 
@@ -38,5 +39,15 @@ public class ExecutionNodes {
     public static void toStream(StreamOutput out, ExecutionNode node) throws IOException {
         out.writeVInt(node.type().ordinal());
         node.writeTo(out);
+    }
+
+
+    public static boolean hasDirectResponseDownstream(List<String> downstreamNodes) {
+        for (String nodeId : downstreamNodes) {
+            if (nodeId.equals(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

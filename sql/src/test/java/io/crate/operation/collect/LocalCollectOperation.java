@@ -25,8 +25,8 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -36,12 +36,13 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 
 /**
  * only used for testing
  */
 @Singleton
-public class LocalCollectOperation extends MapSideDataCollectOperation<RowDownstream> {
+public class LocalCollectOperation extends MapSideDataCollectOperation {
 
     @Inject
     public LocalCollectOperation(ClusterService clusterService,
@@ -54,14 +55,15 @@ public class LocalCollectOperation extends MapSideDataCollectOperation<RowDownst
                                  ThreadPool threadPool,
                                  CollectServiceResolver collectServiceResolver,
                                  StreamerVisitor streamerVisitor,
-                                 JobContextService jobContextService) {
+                                 JobContextService jobContextService,
+                                 TransportService transportService) {
         super(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool, functions, referenceResolver,
                 indicesService, threadPool, collectServiceResolver, streamerVisitor,
-                jobContextService);
+                jobContextService, transportService);
     }
 
     @Override
-    public RowDownstream createDownstream(CollectNode node) {
+    public ResultProvider createDownstream(CollectNode node) {
         return new CollectingProjector();
     }
 }

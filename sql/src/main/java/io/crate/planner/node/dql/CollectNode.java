@@ -29,6 +29,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
@@ -84,6 +85,7 @@ public class CollectNode extends AbstractDQLPlanNode {
         this.routing = routing;
         this.toCollect = toCollect;
         this.projections = projections;
+        this.downstreamNodes = ImmutableList.of(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE);
     }
 
     public CollectNode(int executionNodeId, String name, @Nullable UUID jobId) {
@@ -127,11 +129,19 @@ public class CollectNode extends AbstractDQLPlanNode {
     }
 
     /**
-     * This method returns true if downstreams are defined, which means that results of this collect
-     * operation should be sent to other nodes instead of being returned directly.
+     * This method returns true if downstreams other than
+     * {@link ExecutionNode#DIRECT_RETURN_DOWNSTREAM_NODE} are defined, which means that results
+     * of this collect operation should be sent to other nodes instead of being returned directly.
      */
-    public boolean hasDownstreams() {
-        return downstreamNodes != null && downstreamNodes.size() > 0;
+    public boolean hasDistributingDownstreams() {
+        if (downstreamNodes != null && downstreamNodes.size() > 0) {
+            if (downstreamNodes.size() == 1
+                    && downstreamNodes.get(0).equals(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE)) {
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     public void downstreamNodes(List<String> downStreamNodes) {

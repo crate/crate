@@ -30,6 +30,8 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.executor.transport.distributed.DistributingDownstream;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
@@ -42,15 +44,21 @@ import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.ValueSymbolVisitor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -59,6 +67,7 @@ import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -68,7 +77,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
  */
-public abstract class MapSideDataCollectOperation<T extends RowDownstream> implements CollectOperation, RowUpstream {
+@Singleton
+public class MapSideDataCollectOperation implements CollectOperation, RowUpstream {
 
     protected final StreamerVisitor streamerVisitor;
     private final IndicesService indicesService;
@@ -80,9 +90,11 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
     private final CollectServiceResolver collectServiceResolver;
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final ThreadPoolExecutor executor;
+    private final TransportService transportService;
     private final int poolSize;
     private static final ESLogger LOGGER = Loggers.getLogger(MapSideDataCollectOperation.class);
 
+    @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Settings settings,
                                        TransportActionProvider transportActionProvider,
@@ -93,12 +105,14 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver,
                                        StreamerVisitor streamerVisitor,
-                                       JobContextService jobContextService) {
+                                       JobContextService jobContextService,
+                                       TransportService transportService) {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getCorePoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.jobContextService = jobContextService;
+        this.transportService = transportService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.collectServiceResolver = collectServiceResolver;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -119,7 +133,31 @@ public abstract class MapSideDataCollectOperation<T extends RowDownstream> imple
         this.streamerVisitor = streamerVisitor;
     }
 
-    public abstract T createDownstream(CollectNode node);
+    private List<DiscoveryNode> toDiscoveryNodes(List<String> nodeIds) {
+        final DiscoveryNodes discoveryNodes = clusterService.state().nodes();
+        return Lists.transform(nodeIds, new Function<String, DiscoveryNode>() {
+            @Nullable
+            @Override
+            public DiscoveryNode apply(@Nullable String input) {
+                assert input != null;
+                return discoveryNodes.get(input);
+            }
+        });
+    }
+
+    public ResultProvider createDownstream(CollectNode node) {
+        assert node.jobId().isPresent();
+        if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
+            return new SingleBucketBuilder(getStreamers(node));
+        } else {
+            return new DistributingDownstream(
+                    node.jobId().get(),
+                    toDiscoveryNodes(node.downstreamNodes()),
+                    transportService,
+                    getStreamers(node)
+            );
+        }
+    }
 
     /**
      * dispatch by the following criteria:

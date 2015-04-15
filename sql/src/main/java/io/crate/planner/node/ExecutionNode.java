@@ -30,6 +30,8 @@ import java.util.Set;
 
 public interface ExecutionNode extends Streamable {
 
+    public static final String DIRECT_RETURN_DOWNSTREAM_NODE = "_response";
+
     public static interface ExecutionNodeFactory<T extends ExecutionNode> {
         public T create();
     }

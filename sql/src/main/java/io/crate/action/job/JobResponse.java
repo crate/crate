@@ -40,12 +40,8 @@ public class JobResponse extends TransportResponse {
     public JobResponse() {
     }
 
-    public JobResponse(@Nonnull Bucket bucket, @Nonnull Streamer<?>[] streamers) {
+    public JobResponse(@Nonnull Bucket bucket) {
         this.directResponse = Optional.of(bucket);
-        if (bucket instanceof StreamBucket) {
-            ((StreamBucket) bucket).streamers(streamers);
-        }
-        this.streamers = streamers;
     }
 
     public Optional<Bucket> directResponse() {

@@ -21,14 +21,10 @@
 
 package io.crate.executor.transport.distributed;
 
-import com.google.common.util.concurrent.AbstractFuture;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -41,16 +37,10 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class DistributingDownstream extends AbstractFuture<Void>
-        implements RowDownstream, RowDownstreamHandle {
+public class DistributingDownstream extends ResultProviderBase {
 
     private static final ESLogger logger = Loggers.getLogger(DistributingDownstream.class);
-
-    protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private final AtomicReference<Throwable> lastException = new AtomicReference<>();
 
     private final UUID jobId;
     private final MultiBucketBuilder bucketBuilder;
@@ -85,12 +75,6 @@ public class DistributingDownstream extends AbstractFuture<Void>
     }
 
     protected void onAllUpstreamsFinished() {
-        Throwable throwable = lastException.get();
-        if (throwable != null) {
-            forwardFailures();
-            setException(throwable);
-            return;
-        }
         int i = 0;
         for (Bucket rows : bucketBuilder.build()) {
             DistributedResultRequest request = this.requests[i];
@@ -104,7 +88,6 @@ public class DistributingDownstream extends AbstractFuture<Void>
             sendRequest(request, node);
             i++;
         }
-        super.set(null);
     }
 
     private void forwardFailures() {
@@ -144,7 +127,7 @@ public class DistributingDownstream extends AbstractFuture<Void>
                         } else {
                             logger.error("[{}] Exception sending distributing collect request to {}",
                                     exp, jobId, node.id());
-                            setException(cause);
+                            fail(cause);
                         }
                     }
 
@@ -175,7 +158,7 @@ public class DistributingDownstream extends AbstractFuture<Void>
                     public void handleException(TransportException exp) {
                         logger.error("[{}] Exception sending distributing collect failure to {}",
                                 exp, jobId, node.id());
-                        setException(exp.getCause());
+                        fail(exp.getCause());
                     }
 
                     @Override
@@ -187,22 +170,14 @@ public class DistributingDownstream extends AbstractFuture<Void>
     }
 
     @Override
-    public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            onAllUpstreamsFinished();
-        }
+    public Bucket doFinish() {
+        onAllUpstreamsFinished();
+        return null;
     }
 
     @Override
-    public void fail(Throwable throwable) {
-        lastException.set(throwable);
-        finish();
+    public Throwable doFail(Throwable t) {
+        forwardFailures();
+        return t;
     }
-
-    @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
-        return this;
-    }
-
 }
