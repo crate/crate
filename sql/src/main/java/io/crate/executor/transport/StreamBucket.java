@@ -113,6 +113,7 @@ public class StreamBucket implements Bucket, Streamable {
         } else if (bucket instanceof Streamable) {
             ((Streamable) bucket).writeTo(out);
         } else {
+            assert streamers != null : "Need streamers for non-streamable bucket implementation";
             StreamBucket.Builder builder = new StreamBucket.Builder(streamers);
             for (Row row : bucket) {
                 builder.add(row);

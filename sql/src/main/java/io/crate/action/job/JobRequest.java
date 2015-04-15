@@ -35,25 +35,16 @@ import java.util.UUID;
 
 public class JobRequest extends TransportRequest {
 
-    public static final int NO_DIRECT_RETURN = -1;
-
     private UUID jobId;
     private List<ExecutionNode> executionNodes;
-    private int returnResultFromNode = NO_DIRECT_RETURN;
 
     protected JobRequest() {
     }
 
     public JobRequest(UUID jobId, List<ExecutionNode> executionNodes) {
+        // TODO: assert that only 1 DIRECT_RETURN_DOWNSTREAM_NODE on all execution nodes is set
         this.jobId = jobId;
         this.executionNodes = executionNodes;
-    }
-
-    public JobRequest(UUID jobId, List<ExecutionNode> executionNodes, int returnResultFromNode) {
-        assert returnResultFromNode < executionNodes.size() : "invalid returnResultFromNode index";
-        this.jobId = jobId;
-        this.executionNodes = executionNodes;
-        this.returnResultFromNode = returnResultFromNode;
     }
 
     public UUID jobId() {
@@ -62,14 +53,6 @@ public class JobRequest extends TransportRequest {
 
     public Collection<ExecutionNode> executionNodes() {
         return this.executionNodes;
-    }
-
-    /**
-     * @return the index of the executionNode from which the result should be
-     *         directly returned in the {@link JobResponse}.
-     */
-    public int returnResultFromNode() {
-        return returnResultFromNode;
     }
 
     @Override
@@ -84,7 +67,6 @@ public class JobRequest extends TransportRequest {
             ExecutionNode node = ExecutionNodes.fromStream(in);
             executionNodes.add(node);
         }
-        returnResultFromNode = in.readInt();
     }
 
     @Override
@@ -98,6 +80,5 @@ public class JobRequest extends TransportRequest {
         for (ExecutionNode executionNode : executionNodes) {
             ExecutionNodes.toStream(out, executionNode);
         }
-        out.writeInt(returnResultFromNode);
     }
 }

@@ -350,7 +350,8 @@ public class LocalDataCollectTest extends CrateUnitTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService))
                 ),
                 null,
-                jobContextService
+                jobContextService,
+                mock(TransportService.class)
         );
     }
 

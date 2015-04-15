@@ -79,7 +79,7 @@ public class PlanNodeBuilder {
                 collectNode.executionNodes().size());
         node.projections(projections);
 
-        assert collectNode.hasDownstreams();
+        assert collectNode.hasDistributingDownstreams();
         node.executionNodes(ImmutableSet.copyOf(collectNode.downstreamNodes()));
         connectTypes(collectNode, node);
         return node;
