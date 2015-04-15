@@ -5,11 +5,9 @@
 Aggregation
 ===========
 
-There are two ways of doing aggregation, one on the result of a whole query and one
-on the separate groups of a :ref:`sql_dql_group_by` query.
-Aggregation Function will always return one result value for a single group.
-You can imagine the matching rows of a ``SELECT`` statement without ``GROUP BY``
-as one group. One row will always be returned.
+There are two ways to aggregate data. On the result of a whole query and on the separate groups of a :ref:`sql_dql_group_by` query.
+An Aggregation function will always return one result value for a single group. Treat the matching rows of a ``SELECT`` statement without ``GROUP BY``
+as one group, one row will always be returned.
 
 For a short summary of aggregation functions see :ref:`sql_dql_aggregation`.
 
@@ -22,11 +20,11 @@ count
 count(*)
 --------
 
-This aggregation function simply returns the number of rows that match the query.
+This aggregation function returns the number of rows that match the query.
 
-`count(columName)` is also possible, but currently only works on a primary key column.
-The semantics are the same.
-The return value is always of type ``long``.
+Using `count(columName)` is possible, but currently only works on a primary key column.
+
+Either way, the semantics are the same and the return value is always of type ``long``.
 ::
 
     cr> select count(*) from locations;
@@ -52,9 +50,7 @@ The return value is always of type ``long``.
 count(columnName)
 -----------------
 
-In contrast to the :ref:`aggregation-count-star` function
-the ``count`` function used with a column name as parameter will return the
-number of rows with a non-``NULL`` value in that column.
+In contrast to the :ref:`aggregation-count-star` function the ``count`` function used with a column name as a parameter will return the number of rows with a non ``NULL`` value in that column.
 
 Example::
 
@@ -72,9 +68,7 @@ Example::
 count(distinct columnName)
 --------------------------
 
-The `count` aggregation function also supports the `distinct` keyword. This
-keyword changes the behaviour of the function so that it will only count the number
-of distinct values in this column that are not ``NULL``::
+The `count` aggregation function supports the `distinct` keyword. This keyword changes the behavior of the function so that it will only count the number of distinct values in the column that are not ``NULL``::
 
     cr> select count(distinct kind), count(*), date
     ... from locations group by date
@@ -101,8 +95,8 @@ of distinct values in this column that are not ``NULL``::
 min
 ===
 
-The ``min`` aggregation function returns the smallest value in a column that is not ``NULL``.
-Its single argument is a column name and its return value is always of the type of that column.
+The ``min`` aggregation function returns the smallest value in a column that is not ``NULL``. Its single argument is a column name and its return value is always of the type of that column.
+
 Example::
 
     cr> select min(position), kind
@@ -128,10 +122,7 @@ Example::
     +--------------+
     SELECT 1 row in set (... sec)
 
-``min`` returns ``NULL`` if the column does not contain any value but ``NULL``.
-It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``float``, ``double``),
-on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically
-smallest.::
+``min`` returns ``NULL`` if the column does not contain any value except ``NULL``. It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``float``, ``double``), on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically smallest value.::
 
     cr> select min(name), kind from locations
     ... group by kind order by kind asc;
@@ -148,7 +139,8 @@ smallest.::
 max
 ===
 
-It behaves exactly like ``min`` but returns the biggest value in a column that is not ``NULL``.
+Behaves much like ``min`` but returns the largest value in a column that is not ``NULL``.
+
 Some Examples::
 
     cr> select max(position), kind from locations
@@ -189,9 +181,7 @@ Some Examples::
 sum
 ===
 
-The ``sum`` aggregation function returns the sum of all the values in a column that are not ``NULL``
-as a double value. Its single argument is the column name of a numeric column or timestamp column.
-``sum`` can not be used on other column types.
+The ``sum`` function returns the sum of all the values in a column that are not ``NULL`` as a double value. Its single argument is the column name of a numeric column or timestamp column. ``sum`` can not be used on other column types.
 
 ::
 
@@ -224,9 +214,7 @@ as a double value. Its single argument is the column name of a numeric column or
 avg / mean
 ==========
 
-The ``avg`` or ``mean`` aggregation function returns the arithmetic mean, the *average*,
-of all values in a column that are not ``NULL`` as a double value. It accepts all numeric columns
-and timestamp columns as single argument. Using ``avg`` on other column types is not allowed.
+The ``avg`` or ``mean`` functions return the arithmetic mean or the *average* of all values in a column that are not ``NULL`` as a double value. It accepts all numeric columns and timestamp columns as single argument. Using ``avg`` on other column types is not allowed.
 
 Example::
 
@@ -245,18 +233,13 @@ Example::
 geometric_mean
 ==============
 
-The ``geometric_mean`` aggregation function computes the geometric mean,
-a mean for positive numbers. For details see: `Geometric Mean`_.
+The ``geometric_mean`` aggregation function computes the geometric mean, a mean for positive numbers. For details see: `Geometric Mean`_.
 
-``geometric mean`` is defined on all numeric types and on timestamp. It always
-returns double values. If a value is negative, all values were null or we got no
-value at all ``NULL`` is returned. If any of the aggregated values is ``0`` the result will be ``0.0``
-as well.
+``geometric mean`` is defined on all numeric data types and on timestamp. It always returns a double value. If a value is negative, all values were null or we receive no values, ``NULL`` is returned. If any of the aggregated values are ``0`` the result will be ``0.0``.
 
 .. note::
 
-    Due to java double precision arithmetic it is possible that any two executions
-    of the aggregation function on the same data produce slightly differing results.
+    Due to java double precision arithmetic it is possible that any two executions of the aggregation function on the same data produce slightly differing results.
 
 Example::
 
@@ -275,12 +258,9 @@ Example::
 variance
 ========
 
-The ``variance`` aggregation function computes the `Variance`_ of the set of non-null
-values in a column. It is a measure about how far a set of numbers is spread.
-A variance of ``0.0`` indicates that all values are the same.
+The ``variance`` aggregation function computes the `Variance`_ of the set of non-null values in a column. It is a measure of the range of numbers in a set of values. A variance of ``0.0`` indicates that all values are the same.
 
-``variance`` is defined on all numeric types and on timestamp. It returns a
-double value. If all values were null or we got no value at all ``NULL`` is
+``variance`` is defined on all numeric types and on timestamp. It returns a double value. If all values were null or we receive no values, ``NULL`` is
 returned.
 
 Example::
@@ -298,19 +278,14 @@ Example::
 
 .. note::
 
-    Due to java double precision arithmetic it is possible that any two executions
-    of the aggregation function on the same data produce slightly differing results.
+    Due to java double precision arithmetic it is possible that any two executions of the aggregation function on the same data may produce slightly differing results.
 
 stddev
 ======
 
-The ``stddev`` aggregation function computes the `Standard Deviation`_ of the set
-of non-null values in a column. It is a measure of the variation of data values.
-A low standard deviation indicates that the values tend to be near the mean.
+The ``stddev`` aggregation function computes the `Standard Deviation`_ of a set of non-null values in a column. It is a measure of the variation of data values. A low standard deviation indicates that the values tend to be near the mean.
 
-``stddev`` is defined on all numeric types and on timestamp. It always
-returns double values. If all values were null or we got no
-value at all ``NULL`` is returned.
+``stddev`` is defined on all numeric types and on timestamp. It always returns double values. If all values were null or no values are returned, ``NULL`` is returned.
 
 Example::
 
@@ -333,12 +308,7 @@ Example::
 arbitrary
 =========
 
-The ``arbitrary`` aggregation function returns a single value of a column.
-Which value it returns is not defined.
-It accepts references to columns of all primitive types.
-Using ``arbitrary`` on ``Object`` columns is not supported.
-Its return type is the type of its parameter column and can be ``NULL``
-if the column contains ``NULL`` values.
+The ``arbitrary`` aggregation function returns a single value of a column. Which value it returns is not defined. It accepts references to columns of all primitive types. Using ``arbitrary`` on ``Object`` columns is not supported. Its return type is the type of its parameter column and can be ``NULL`` if the column contains ``NULL`` values.
 
 Example::
 
@@ -364,14 +334,7 @@ Example::
     +-...-------------+-------------+
     SELECT 3 rows in set (... sec)
 
-An example use case is to group a table with many rows per user by
-``user_id`` and get the ``username`` for every group, that means every
-user. This works as rows with same ``user_id`` have the same
-``username``.  This method performs better than grouping on
-``username`` as grouping on number types is generally faster than on
-strings.  The advantage is that the ``arbitrary`` function does very little
-to no computation as for example ``max`` aggregation function would
-do.
+An example use case is to group a table with a lot rows per user by ``user_id`` and get the ``username`` for every group, i.e. for every user. This is because rows with same ``user_id`` have the same ``username``.  This method performs better than grouping on ``username`` because grouping on number types is generally faster than on strings. The ``arbitrary`` function does very little computation as opposed to the ``max`` aggregation function.
 
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Mean#Geometric_mean_.28GM.29
 .. _Variance: https://en.wikipedia.org/wiki/Variance
