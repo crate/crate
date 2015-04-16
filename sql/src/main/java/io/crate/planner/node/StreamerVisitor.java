@@ -116,6 +116,11 @@ public class StreamerVisitor {
             extractFromCollectNode(collectNode, context);
             return null;
         }
+
+        @Override
+        protected Void visitExecutionNode(ExecutionNode node, Context context) {
+            throw new UnsupportedOperationException(String.format("Got unsupported ExecutionNode %s", node.getClass().getName()));
+        }
     }
 
 
