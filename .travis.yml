@@ -8,6 +8,7 @@ matrix:
     - jdk: oraclejdk8
 
 sudo: false
+
 env:
   global:
     JAVA7_HOME="/usr/lib/jvm/java-7-oracle"
