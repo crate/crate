@@ -27,6 +27,5 @@ import io.crate.operation.RowDownstreamHandle;
 
 public interface ResultProvider extends Projector, RowDownstreamHandle {
 
-    public ListenableFuture<Bucket> result();
-
+    ListenableFuture<Bucket> result();
 }

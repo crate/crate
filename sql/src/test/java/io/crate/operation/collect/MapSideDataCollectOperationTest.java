@@ -27,6 +27,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.FileUriCollectNode;
@@ -82,7 +83,9 @@ public class MapSideDataCollectOperationTest {
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
 
         JobContextService jobContextService = mock(JobContextService.class);
+        StreamerVisitor streamerVisitor = new StreamerVisitor(functions);
         LocalCollectOperation collectOperation = new LocalCollectOperation(
+
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
@@ -97,9 +100,8 @@ public class MapSideDataCollectOperationTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                         )
                 ),
-                new StreamerVisitor(functions),
-                jobContextService,
-                mock(TransportService.class)
+                new ResultProviderFactory(clusterService, mock(TransportService.class), streamerVisitor),
+                jobContextService
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
