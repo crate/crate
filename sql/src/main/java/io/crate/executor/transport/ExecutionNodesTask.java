@@ -33,9 +33,9 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
+import io.crate.executor.callbacks.OperationFinishedStatsTablesCallback;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
@@ -62,19 +62,22 @@ public class ExecutionNodesTask extends JobTask {
     private static final ESLogger LOGGER = Loggers.getLogger(ExecutionNodesTask.class);
 
     private final TransportJobAction transportJobAction;
+    private final ExecutionNode[] executionNodes;
     private final List<ListenableFuture<TaskResult>> results;
     private final boolean hasDirectResponse;
     private final SettableFuture<TaskResult> result;
-    private final PageDownstreamContext pageDownstreamContext;
-    private final Streamer<?>[] streamers;
+    private final JobContextService jobContextService;
+    private final PageDownstreamFactory pageDownstreamFactory;
     private final StatsTables statsTables;
-    private final UUID mergeOperationId;
-    private final Map<String, Collection<ExecutionNode>> nodesByServer;
+    private final ThreadPool threadPool;
+    private final TransportCloseContextNodeAction transportCloseContextNodeAction;
+    private final CircuitBreaker circuitBreaker;
+    private final MergeNode mergeNode;
 
     protected ExecutionNodesTask(UUID jobId,
                                  JobContextService jobContextService,
                                  PageDownstreamFactory pageDownstreamFactory,
-                                 final StatsTables statsTables,
+                                 StatsTables statsTables,
                                  ThreadPool threadPool,
                                  TransportJobAction transportJobAction,
                                  TransportCloseContextNodeAction transportCloseContextNodeAction,
@@ -82,18 +85,25 @@ public class ExecutionNodesTask extends JobTask {
                                  MergeNode mergeNode,
                                  ExecutionNode... executionNodes) {
         super(jobId);
+        this.jobContextService = jobContextService;
+        this.pageDownstreamFactory = pageDownstreamFactory;
         this.statsTables = statsTables;
-        mergeOperationId = UUID.randomUUID();
+        this.threadPool = threadPool;
+        this.transportCloseContextNodeAction = transportCloseContextNodeAction;
+        this.circuitBreaker = circuitBreaker;
+        this.mergeNode = mergeNode;
         this.transportJobAction = transportJobAction;
-
-        String ramAccountingContextId = String.format("%s: %s", mergeNode.name(), mergeOperationId);
-        final RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-
+        this.executionNodes = executionNodes;
         result = SettableFuture.create();
         results = ImmutableList.<ListenableFuture<TaskResult>>of(result);
         hasDirectResponse = hasDirectResponse(executionNodes);
+    }
 
-        RowDownstream rowDownstream = new QueryResultRowDownstream(result, jobId, mergeNode.executionNodeId(), jobContextService);
+    @Override
+    public void start() {
+        RamAccountingContext ramAccountingContext = trackOperation();
+
+        RowDownstream rowDownstream = new QueryResultRowDownstream(result, jobId(), mergeNode.executionNodeId(), jobContextService);
         PageDownstream finalMergePageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
                 rowDownstream,
@@ -101,23 +111,64 @@ public class ExecutionNodesTask extends JobTask {
                 Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
         );
 
-        streamers = DataTypes.getStreamer(mergeNode.inputTypes());
-        pageDownstreamContext = new PageDownstreamContext(
+        Streamer<?>[] streamers = DataTypes.getStreamer(mergeNode.inputTypes());
+        PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
                 finalMergePageDownstream,
                 streamers,
-                executionNodes[executionNodes.length -1 ].executionNodes().size()
+                executionNodes[executionNodes.length - 1].executionNodes().size()
         );
         if (!hasDirectResponse) {
-            jobContextService.initializeFinalMerge(jobId, mergeNode.executionNodeId(), pageDownstreamContext);
+            jobContextService.initializeFinalMerge(jobId(), mergeNode.executionNodeId(), pageDownstreamContext);
         }
 
-        nodesByServer = groupExecutionNodesByServer(executionNodes);
+        Map<String, Collection<ExecutionNode>> nodesByServer = groupExecutionNodesByServer(executionNodes);
+        if (nodesByServer.size() == 0) {
+            pageDownstreamContext.finish();
+            return;
+        }
 
-        addStatsTablesCallback(statsTables, ramAccountingContext);
-        addCloseContextCallback(transportCloseContextNodeAction, executionNodes);
+        addCloseContextCallback(transportCloseContextNodeAction, executionNodes, nodesByServer.keySet());
+        int idx = 0;
+        for (Map.Entry<String, Collection<ExecutionNode>> entry : nodesByServer.entrySet()) {
+            String serverNodeId = entry.getKey();
+            Collection<ExecutionNode> executionNodes = entry.getValue();
+
+            if (serverNodeId.equals(TableInfo.NULL_NODE_ID)) {
+                serverNodeId = "_local";
+                // TODO: for this to work the TransportJobAction needs to integrate handlerSideDataCollect operation ?
+            }
+
+            JobRequest request = new JobRequest(jobId(), executionNodes);
+            if (hasDirectResponse) {
+                transportJobAction.execute(serverNodeId, request, new DirectResponseListener(idx, streamers, pageDownstreamContext));
+            } else {
+                transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(result));
+            }
+            idx++;
+        }
     }
 
-    private void addCloseContextCallback(TransportCloseContextNodeAction transportCloseContextNodeAction, final ExecutionNode[] executionNodes) {
+    private RamAccountingContext trackOperation() {
+        UUID mergeOperationId = UUID.randomUUID();
+        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, mergeNode, mergeOperationId);
+        statsTables.operationStarted(mergeOperationId, jobId(), "local merge in execution task");
+        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(mergeOperationId, statsTables, ramAccountingContext));
+        return ramAccountingContext;
+    }
+
+    @Override
+    public List<ListenableFuture<TaskResult>> result() {
+        return results;
+    }
+
+    @Override
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+        throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
+    }
+
+    private void addCloseContextCallback(TransportCloseContextNodeAction transportCloseContextNodeAction,
+                                         final ExecutionNode[] executionNodes,
+                                         final Set<String> server) {
         final ContextCloser contextCloser = new ContextCloser(transportCloseContextNodeAction);
         Futures.addCallback(result, new FutureCallback<TaskResult>() {
             @Override
@@ -131,26 +182,12 @@ public class ExecutionNodesTask extends JobTask {
             }
 
             private void closeContext() {
-                if (nodesByServer.isEmpty()) {
+                if (server.isEmpty()) {
                     return;
                 }
                 for (ExecutionNode executionNode : executionNodes) {
-                    contextCloser.process(executionNode, nodesByServer.keySet());
+                    contextCloser.process(executionNode, server);
                 }
-            }
-        });
-    }
-
-    private void addStatsTablesCallback(final StatsTables statsTables, final RamAccountingContext ramAccountingContext) {
-        Futures.addCallback(result, new FutureCallback<TaskResult>() {
-            @Override
-            public void onSuccess(TaskResult result) {
-                statsTables.operationFinished(mergeOperationId, null, ramAccountingContext.totalBytes());
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                statsTables.operationFinished(mergeOperationId, Exceptions.messageOf(t), ramAccountingContext.totalBytes());
             }
         });
     }
@@ -172,45 +209,6 @@ public class ExecutionNodesTask extends JobTask {
             }
         }
         return executionNodesGroupedByServer.asMap();
-    }
-
-    @Override
-    public void start() {
-        statsTables.operationStarted(mergeOperationId, jobId(), "final merge");
-
-        if (nodesByServer.size() == 0) {
-            pageDownstreamContext.finish();
-            return;
-        }
-
-        int idx = 0;
-        for (Map.Entry<String, Collection<ExecutionNode>> entry : nodesByServer.entrySet()) {
-            String serverNodeId = entry.getKey();
-            Collection<ExecutionNode> executionNodes = entry.getValue();
-
-            if (serverNodeId.equals(TableInfo.NULL_NODE_ID)) {
-                serverNodeId = "_local";
-                // TODO: for this to work the TransportJobAction needs to integrate handlerSideDataCollect operation ?
-            }
-
-            JobRequest request = new JobRequest(jobId(), executionNodes);
-            if (hasDirectResponse) {
-                transportJobAction.execute(serverNodeId, request, new DirectResponseListener(idx, streamers, pageDownstreamContext));
-            } else {
-                transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(result));
-            }
-            idx++;
-        }
-    }
-
-    @Override
-    public List<ListenableFuture<TaskResult>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
     }
 
     private static class DirectResponseListener implements ActionListener<JobResponse> {
