@@ -28,7 +28,6 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Rule;
@@ -434,7 +433,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @TestLogging("io.crate.operation:TRACE,io.crate.executor:TRACE,io.crate.jobs:TRACE")
     public void testGroupByAvgDouble() throws Exception {
         execute("select avg(income), mean(income), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());

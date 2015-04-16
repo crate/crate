@@ -330,9 +330,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         statsTables,
                         circuitBreaker, threadPool));
             } else {
-                return singleTask(new DistributedMergeTask(
-                        jobId,
-                        transportActionProvider.transportDistributedResultAction(), node));
+                throw new UnsupportedOperationException("DistributedMergeTask is no longer available");
             }
         }
 

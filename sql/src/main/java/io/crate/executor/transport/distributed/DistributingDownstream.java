@@ -29,7 +29,6 @@ import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportResponseHandler;
 import org.elasticsearch.transport.TransportException;
@@ -176,43 +175,12 @@ public class DistributingDownstream extends ResultProviderBase {
                     @Override
                     public void handleException(TransportException exp) {
                         Throwable cause = exp.getCause();
-                        if (cause instanceof EsRejectedExecutionException) {
-                            sendFailure(request.jobId(), downstream.node);
+                        LOGGER.error("[{}] Exception sending distributing collect request to {}", exp, jobId, downstream.node.id());
+                        if (cause == null) {
+                            fail(exp);
                         } else {
-                            LOGGER.error("[{}] Exception sending distributing collect request to {}",
-                                    exp, jobId, downstream.node.id());
                             fail(cause);
                         }
-                    }
-
-                    @Override
-                    public String executor() {
-                        return ThreadPool.Names.SAME;
-                    }
-                }
-        );
-    }
-
-    private void sendFailure(UUID contextId, final DiscoveryNode node) {
-        transportService.submitRequest(
-                node,
-                TransportDistributedResultAction.failAction,
-                new DistributedFailureRequest(contextId),
-                new BaseTransportResponseHandler<DistributedResultResponse>() {
-                    @Override
-                    public DistributedResultResponse newInstance() {
-                        return new DistributedResultResponse();
-                    }
-
-                    @Override
-                    public void handleResponse(DistributedResultResponse response) {
-                    }
-
-                    @Override
-                    public void handleException(TransportException exp) {
-                        LOGGER.error("[{}] Exception sending distributing collect failure to {}",
-                                exp, jobId, node.id());
-                        fail(exp.getCause());
                     }
 
                     @Override

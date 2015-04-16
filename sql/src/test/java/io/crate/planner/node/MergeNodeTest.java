@@ -54,6 +54,7 @@ public class MergeNodeTest extends CrateUnitTest {
         node.jobId(UUID.randomUUID());
         node.executionNodes(Sets.newHashSet("node1", "node2"));
         node.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
+        node.downstreamNodes(Sets.newHashSet("node3", "node4"));
 
         Reference nameRef = TestingHelpers.createReference("name", DataTypes.STRING);
         GroupProjection groupProjection = new GroupProjection();
@@ -78,6 +79,7 @@ public class MergeNodeTest extends CrateUnitTest {
         MergeNode node2 = new MergeNode();
         node2.readFrom(input);
 
+        assertThat(node.downstreamNodes(), is(node2.downstreamNodes()));
         assertThat(node.numUpstreams(), is(node2.numUpstreams()));
         assertThat(node.executionNodes(), is(node2.executionNodes()));
         assertThat(node.jobId(), is(node2.jobId()));
