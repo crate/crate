@@ -238,6 +238,8 @@ public class TransportJobAction {
         @Override
         public Void visitMergeNode(MergeNode node, final VisitorContext context) {
             JobExecutionContext jobExecutionContext = jobContextService.getOrCreateContext(node.jobId());
+            final UUID operationId = UUID.randomUUID();
+            statsTables.operationStarted(operationId, context.jobId, node.name());
 
             ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
             PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
@@ -251,7 +253,6 @@ public class TransportJobAction {
                     pageDownstream,  streamerContext.inputStreamers(), node.numUpstreams());
             jobExecutionContext.setPageDownstreamContext(node.executionNodeId(), pageDownstreamContext);
 
-            final UUID operationId = UUID.randomUUID();
             Futures.addCallback(downstream.result(),
                     new SetBucketFutureCallback(operationId, context.ramAccountingContext, context.directResultFuture));
             return null;

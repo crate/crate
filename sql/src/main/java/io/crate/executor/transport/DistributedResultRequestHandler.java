@@ -24,7 +24,6 @@ package io.crate.executor.transport;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.jobs.JobContextService;
@@ -47,12 +46,8 @@ public class DistributedResultRequestHandler extends BaseTransportRequestHandler
 
     private final JobContextService jobContextService;
 
-    @Deprecated
-    private final DistributedRequestContextManager contextManager;
-
-    public DistributedResultRequestHandler(JobContextService jobContextService, DistributedRequestContextManager contextManager) {
+    public DistributedResultRequestHandler(JobContextService jobContextService) {
         this.jobContextService = jobContextService;
-        this.contextManager = contextManager;
     }
 
     @Override
@@ -66,22 +61,12 @@ public class DistributedResultRequestHandler extends BaseTransportRequestHandler
                 request.jobId(), request.executionNodeId());
 
         if (request.executionNodeId() == ExecutionNode.NO_EXECUTION_NODE) {
-            fallback(request, channel);
+            channel.sendResponse(new IllegalStateException("request must contain a valid executionNodeId"));
             return;
         }
         JobExecutionContext context = jobContextService.getOrCreateContext(request.jobId());
         ListenableFuture<PageDownstreamContext> pageDownstreamContextFuture = context.getPageDownstreamContext(request.executionNodeId());
         Futures.addCallback(pageDownstreamContextFuture, new PageDownstreamContextFutureCallback(request, channel));
-    }
-
-    @Deprecated
-    private void fallback(DistributedResultRequest request, TransportChannel channel) throws IOException {
-        try {
-            contextManager.addToContext(request);
-            channel.sendResponse(new DistributedResultResponse(false));
-        } catch (Exception ex) {
-            channel.sendResponse(ex);
-        }
     }
 
     @Override
