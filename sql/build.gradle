@@ -42,10 +42,6 @@ test {
     testLogging.exceptionFormat = 'full'
     exclude('io/crate/benchmark/**')
 
-    // allow to set the number of test forks from the CLI
-    if (project.hasProperty('testForks')) {
-        maxParallelForks = project.testForks as int
-    }
     // fix powermock issue - causing VerifyErrors being thrown
     // see: https://issues.jboss.org/browse/JASSIST-228
     jvmArgs '-XX:-UseSplitVerifier'
