@@ -43,8 +43,10 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
@@ -346,22 +348,24 @@ public class LocalDataCollectTest extends CrateUnitTest {
             }
         });
 
+        ClusterService clusterService = injector.getInstance(ClusterService.class);
+        TransportService transportService = mock(TransportService.class);
+        StreamerVisitor streamerVisitor = new StreamerVisitor(functions);
         operation = new LocalCollectOperation(
-                injector.getInstance(ClusterService.class),
+                clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 injector.getInstance(BulkRetryCoordinatorPool.class),
-                functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
-                new CollectServiceResolver(
-                        discoveryService,
+                functions,
+                injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
+                new CollectServiceResolver(discoveryService,
                         new SystemCollectService(
                                 discoveryService,
                                 functions,
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService))
                 ),
-                null,
-                jobContextService,
-                mock(TransportService.class)
+                new ResultProviderFactory(clusterService, transportService, streamerVisitor),
+                new JobContextService(ImmutableSettings.EMPTY, testThreadPool)
         );
     }
 
