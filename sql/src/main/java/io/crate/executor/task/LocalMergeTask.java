@@ -26,36 +26,32 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
-import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
-import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.operation.PageConsumeListener;
-import io.crate.operation.PageDownstream;
+import io.crate.executor.callbacks.OperationFinishedStatsTablesCallback;
+import io.crate.jobs.JobContextService;
+import io.crate.operation.*;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.PageDownstreamFactory;
-import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * merging rows locally on the handler
+ *
  */
 public class LocalMergeTask extends JobTask {
 
@@ -70,21 +66,24 @@ public class LocalMergeTask extends JobTask {
     private final ThreadPool threadPool;
 
     private List<ListenableFuture<TaskResult>> upstreamResults;
+    private JobContextService jobContextService;
 
     public LocalMergeTask(UUID jobId,
                           PageDownstreamFactory pageDownstreamFactory,
+                          JobContextService jobContextService,
                           MergeNode mergeNode,
                           StatsTables statsTables,
                           CircuitBreaker circuitBreaker,
                           ThreadPool threadPool) {
         super(jobId);
         this.pageDownstreamFactory = pageDownstreamFactory;
+        this.jobContextService = jobContextService;
         this.mergeNode = mergeNode;
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
         this.threadPool = threadPool;
         this.result = SettableFuture.create();
-        this.resultList = Arrays.<ListenableFuture<TaskResult>>asList(this.result);
+        this.resultList = Collections.<ListenableFuture<TaskResult>>singletonList(this.result);
     }
 
     /**
@@ -101,52 +100,20 @@ public class LocalMergeTask extends JobTask {
         }
 
         final UUID operationId = UUID.randomUUID();
-        String ramAccountingContextId = String.format("%s: %s", mergeNode.name(), operationId.toString());
-        final RamAccountingContext ramAccountingContext =
-                new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        CollectingProjector collectingProjector = new CollectingProjector();
+        final RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, mergeNode, operationId);
+
+        RowDownstream rowDownstream = new QueryResultRowDownstream(result, jobId(), mergeNode.executionNodeId(), jobContextService);
         final PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
-                collectingProjector,
+                rowDownstream,
                 ramAccountingContext,
                 Optional.of(threadPool.executor(ThreadPool.Names.GENERIC))
         );
-        collectingProjector.startProjection();
+
         statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.name());
+        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(operationId, statsTables, ramAccountingContext));
 
-        // callback for projected result, closing all the stuff
-        Futures.addCallback(collectingProjector.result(), new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(Bucket rows) {
-                ramAccountingContext.close();
-                statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
-                result.set(new QueryResult(rows));
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                ramAccountingContext.close();
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t), ramAccountingContext.totalBytes());
-                result.setException(t);
-            }
-        });
-        // transform taskresults into bucket futures
-        BucketPage page = new BucketPage(Lists.transform(upstreamResults, new Function<ListenableFuture<TaskResult>, ListenableFuture<Bucket>>() {
-            @Nullable
-            @Override
-            public ListenableFuture<Bucket> apply(@Nullable ListenableFuture<TaskResult> future) {
-                assert future != null : "taskresult future is null";
-                return Futures.transform(future, new Function<TaskResult, Bucket>() {
-                    @Nullable
-                    @Override
-                    public Bucket apply(@Nullable TaskResult taskResult) {
-                        assert taskResult != null : "taskresult is null";
-                        traceLogResult(taskResult);
-                        return taskResult.rows();
-                    }
-                });
-            }
-        }));
+        BucketPage page = taskResultToBucketPage();
         pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
             public void needMore() {
@@ -163,9 +130,29 @@ public class LocalMergeTask extends JobTask {
         });
     }
 
+    private BucketPage taskResultToBucketPage() {
+        return new BucketPage(Lists.transform(upstreamResults, new Function<ListenableFuture<TaskResult>, ListenableFuture<Bucket>>() {
+
+            @Nullable
+            @Override
+            public ListenableFuture<Bucket> apply(@Nullable ListenableFuture<TaskResult> future) {
+                assert future != null : "taskresult future is null";
+                return Futures.transform(future, new Function<TaskResult, Bucket>() {
+
+                    @Nullable
+                    @Override
+                    public Bucket apply(TaskResult taskResult) {
+                        traceLogResult(taskResult);
+                        return taskResult.rows();
+                    }
+                });
+            }
+        }));
+    }
+
     private void traceLogResult(TaskResult taskResult) {
         if (LOGGER.isTraceEnabled()) {
-            String result = Joiner.on(", ").join(Collections2.transform(Arrays.asList(taskResult),
+            String result = Joiner.on(", ").join(Collections2.transform(Collections.singletonList(taskResult),
                 new Function<TaskResult, String>() {
                     @Nullable
                     @Override
