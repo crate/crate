@@ -32,6 +32,7 @@ import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.MergeNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -53,6 +54,7 @@ public class MergeOperation implements DownstreamOperation {
                           Settings settings,
                           TransportActionProvider transportActionProvider,
                           ImplementationSymbolVisitor symbolVisitor,
+                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                           MergeNode mergeNode,
                           RamAccountingContext ramAccountingContext) {
         // TODO: used by local and reducer, todo check what resultprovider is
@@ -61,6 +63,7 @@ public class MergeOperation implements DownstreamOperation {
                         clusterService,
                         settings,
                         transportActionProvider,
+                        bulkRetryCoordinatorPool,
                         symbolVisitor),
                 ramAccountingContext
         );

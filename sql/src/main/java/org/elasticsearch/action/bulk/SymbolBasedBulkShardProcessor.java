@@ -26,12 +26,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
@@ -46,14 +45,9 @@ import org.elasticsearch.indices.IndexAlreadyExistsException;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 /**
  * Processor to do Bulk Inserts, similar to {@link org.elasticsearch.action.bulk.BulkProcessor}
@@ -64,41 +58,44 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
  */
 public class SymbolBasedBulkShardProcessor {
 
-    private final ClusterService clusterService;
-    private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
-    private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
     private final int bulkSize;
+
     private final Map<ShardId, SymbolBasedShardUpsertRequest> requestsByShard = new HashMap<>();
-    private final AutoCreateIndex autoCreateIndex;
     private final AtomicInteger globalCounter = new AtomicInteger(0);
-    private final AtomicInteger counter = new AtomicInteger(0);
-    private final SettableFuture<BitSet> result;
+    private final AtomicInteger requestItemCounter = new AtomicInteger(0);
     private final AtomicInteger pending = new AtomicInteger(0);
-    private final AtomicInteger currentDelay = new AtomicInteger(0);
+    private final Semaphore executeLock = new Semaphore(1);
+
+    private final SettableFuture<BitSet> result;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final BitSet responses;
     private final Object responsesLock = new Object();
     private final boolean overwriteDuplicates;
     private volatile boolean closed = false;
+
+    private final ClusterService clusterService;
+    private final TransportCreateIndexAction transportCreateIndexAction;
+    private final AutoCreateIndex autoCreateIndex;
     private final Set<String> indicesCreated = new HashSet<>();
-    private final ReadWriteLock retryLock = new ReadWriteLock();
-    private final Semaphore executeLock = new Semaphore(1);
-    private final ScheduledExecutorService scheduledExecutorService =
-            Executors.newSingleThreadScheduledExecutor(daemonThreadFactory("symbolBasedBulkShardProcessor"));
+
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final TimeValue requestTimeout;
+
     private final boolean continueOnError;
 
     private Reference[] missingAssignmentsColumns;
     private String[] assignmentsColumns;
 
+    private final ResponseListener responseListener = new ResponseListener(false);
+    private final ResponseListener retryResponseListener = new ResponseListener(true);
 
-    private static final ESLogger logger = Loggers.getLogger(SymbolBasedBulkShardProcessor.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(SymbolBasedBulkShardProcessor.class);
 
     public SymbolBasedBulkShardProcessor(ClusterService clusterService,
-                                         Settings settings,
-                                         SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                          TransportCreateIndexAction transportCreateIndexAction,
+                                         Settings settings,
+                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                          boolean autoCreateIndices,
                                          boolean overwriteDuplicates,
                                          int bulkSize,
@@ -106,19 +103,21 @@ public class SymbolBasedBulkShardProcessor {
                                          @Nullable String[] assignmentsColumns,
                                          @Nullable Reference[] missingAssignmentsColumns) {
         assert assignmentsColumns != null | missingAssignmentsColumns != null;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
-        this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
-        this.transportCreateIndexAction = transportCreateIndexAction;
         this.autoCreateIndices = autoCreateIndices;
         this.overwriteDuplicates = overwriteDuplicates;
         this.bulkSize = bulkSize;
         this.continueOnError = continueOnError;
         this.assignmentsColumns = assignmentsColumns;
         this.missingAssignmentsColumns = missingAssignmentsColumns;
+        this.autoCreateIndex = new AutoCreateIndex(settings);
+        this.transportCreateIndexAction = transportCreateIndexAction;
+
+        this.requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
+
         responses = new BitSet();
         result = SettableFuture.create();
-        autoCreateIndex = new AutoCreateIndex(settings);
-        requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
     }
 
     public boolean add(String indexName,
@@ -139,14 +138,17 @@ public class SymbolBasedBulkShardProcessor {
             createIndexIfRequired(indexName);
         }
 
-        // will only block if retries/writer are active
+        ShardId shardId = getShard(indexName, id, routing);
         try {
-            retryLock.readLock();
+            // will only block if retries/writer are active
+            bulkRetryCoordinatorPool.coordinator(shardId).retryLock().acquireReadLock();
         } catch (InterruptedException e) {
             Thread.interrupted();
+        } catch (Throwable e) {
+            setFailure(e);
+            return false;
         }
-
-        partitionRequestByShard(indexName, id, assignments, missingAssignments, routing, version);
+        partitionRequestByShard(shardId, id, assignments, missingAssignments, routing, version);
         executeIfNeeded();
         return true;
     }
@@ -159,21 +161,74 @@ public class SymbolBasedBulkShardProcessor {
         return add(indexName, id, null, missingAssignments, routing, version);
     }
 
-    private void partitionRequestByShard(String indexName,
-                                         String id,
-                                         @Nullable Symbol[] assignments,
-                                         @Nullable Object[] missingAssignments,
-                                         @Nullable String routing,
-                                         @Nullable Long version) {
-        ShardId shardId = clusterService.operationRouting().indexShards(
+    public boolean addForExistingShard(ShardId shardId,
+                                       String id,
+                                       @Nullable Symbol[] assignments,
+                                       @Nullable Object[] missingAssignments,
+                                       @Nullable String routing,
+                                       @Nullable Long version) {
+        assert id != null : "id must not be null";
+        pending.incrementAndGet();
+        Throwable throwable = failure.get();
+        if (throwable != null) {
+            result.setException(throwable);
+            return false;
+        }
+
+        // will only block if retries/writer are active
+        try {
+            bulkRetryCoordinatorPool.coordinator(shardId).retryLock().acquireReadLock();
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        } catch (Throwable e) {
+            setFailure(e);
+            return false;
+        }
+        partitionRequestByShard(shardId, id, assignments, missingAssignments, routing, version);
+        executeIfNeeded();
+        return true;
+    }
+
+    private ShardId getShard(String indexName,
+                             String id,
+                             @Nullable String routing) {
+        return clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 indexName,
                 Constants.DEFAULT_MAPPING_TYPE,
                 id,
                 routing
         ).shardId();
+    }
 
+    private void createIndexIfRequired(final String indexName) {
+        if (!indicesCreated.contains(indexName) || autoCreateIndex.shouldAutoCreate(indexName, clusterService.state())) {
+            try {
+                transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("symbolBasedBulkShardProcessor")).actionGet();
+                indicesCreated.add(indexName);
+            } catch (Throwable e) {
+                e = ExceptionsHelper.unwrapCause(e);
+                if (e instanceof IndexAlreadyExistsException) {
+                    // copy from with multiple readers might attempt to create the index
+                    // multiple times
+                    // can be ignored.
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("copy from index {}", e.getMessage());
+                    }
+                    indicesCreated.add(indexName);
+                } else {
+                    setFailure(e);
+                }
+            }
+        }
+    }
 
+    private void partitionRequestByShard(ShardId shardId,
+                                         String id,
+                                         @Nullable Symbol[] assignments,
+                                         @Nullable Object[] missingAssignments,
+                                         @Nullable String routing,
+                                         @Nullable Long version) {
         try {
             executeLock.acquire();
             SymbolBasedShardUpsertRequest updateRequest = requestsByShard.get(shardId);
@@ -184,14 +239,40 @@ public class SymbolBasedBulkShardProcessor {
                 updateRequest.overwriteDuplicates(overwriteDuplicates);
                 requestsByShard.put(shardId, updateRequest);
             }
-            counter.getAndIncrement();
-            updateRequest.add(globalCounter.getAndIncrement(), id, assignments, missingAssignments, version, routing);
+            requestItemCounter.getAndIncrement();
+            updateRequest.add(
+                    globalCounter.getAndIncrement(),
+                    id,
+                    assignments,
+                    missingAssignments,
+                    version,
+                    routing);
         } catch (InterruptedException e) {
             Thread.interrupted();
         } finally {
             executeLock.release();
         }
     }
+
+    private void executeRequests() {
+        try {
+            executeLock.acquire();
+            for (Iterator<Map.Entry<ShardId, SymbolBasedShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<ShardId, SymbolBasedShardUpsertRequest> entry = it.next();
+                SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest = entry.getValue();
+                bulkRetryCoordinatorPool.coordinator(entry.getKey()).execute(symbolBasedShardUpsertRequest, responseListener);
+                it.remove();
+            }
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        } catch (Throwable e) {
+            setFailure(e);
+        } finally {
+            requestItemCounter.set(0);
+            executeLock.release();
+        }
+    }
+
 
     public ListenableFuture<BitSet> result() {
         return result;
@@ -206,33 +287,17 @@ public class SymbolBasedBulkShardProcessor {
         }
     }
 
-    private void stopExecutor() {
-        scheduledExecutorService.shutdown();
-        try {
-            scheduledExecutorService.awaitTermination(100, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } finally {
-            scheduledExecutorService.shutdownNow();
-        }
-    }
-
     private void setFailure(Throwable e) {
         failure.compareAndSet(null, e);
         result.setException(e);
-        stopExecutor();
     }
 
     private void setResult() {
-        try {
-            Throwable throwable = failure.get();
-            if (throwable == null) {
-                result.set(responses);
-            } else {
-                result.setException(throwable);
-            }
-        } finally {
-            stopExecutor();
+        Throwable throwable = failure.get();
+        if (throwable == null) {
+            result.set(responses);
+        } else {
+            result.setException(throwable);
         }
     }
 
@@ -245,80 +310,8 @@ public class SymbolBasedBulkShardProcessor {
     }
 
     private void executeIfNeeded() {
-        if (closed || counter.get() >= bulkSize) {
+        if (closed || requestItemCounter.get() >= bulkSize) {
             executeRequests();
-        }
-    }
-
-    private void executeRequests() {
-        try {
-            executeLock.acquire();
-            for (Iterator<Map.Entry<ShardId, SymbolBasedShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
-                Map.Entry<ShardId, SymbolBasedShardUpsertRequest> entry = it.next();
-                SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest = entry.getValue();
-                //shardUpdateRequest.timeout(requestTimeout);
-                execute(symbolBasedShardUpsertRequest);
-                it.remove();
-            }
-        } catch (InterruptedException e) {
-            Thread.interrupted();
-        } finally {
-            counter.set(0);
-            executeLock.release();
-        }
-    }
-
-    private void execute(SymbolBasedShardUpsertRequest updateRequest) {
-        trace(String.format("execute shard request %d", updateRequest.shardId()));
-        transportShardUpsertActionDelegate.execute(updateRequest, new ResponseListener(updateRequest));
-    }
-
-    private void doRetry(final SymbolBasedShardUpsertRequest request, final boolean repeatingRetry) {
-        trace("doRetry");
-        if (repeatingRetry) {
-            try {
-                Thread.sleep(currentDelay.incrementAndGet());
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
-            transportShardUpsertActionDelegate.execute(request, new RetryResponseListener(request));
-        } else {
-            // new retries will be spawned in new thread because they can block
-            scheduledExecutorService.schedule(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            // will block if other retries/writer are active
-                            try {
-                                retryLock.writeLock();
-                            } catch (InterruptedException e) {
-                                Thread.interrupted();
-                            }
-                            transportShardUpsertActionDelegate.execute(request, new RetryResponseListener(request));
-                        }
-                    }, currentDelay.getAndIncrement(), TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private void createIndexIfRequired(final String indexName) {
-        if (!indicesCreated.contains(indexName) || autoCreateIndex.shouldAutoCreate(indexName, clusterService.state())) {
-            try {
-                transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("symbolBasedBulkShardProcessor")).actionGet();
-                indicesCreated.add(indexName);
-            } catch (Throwable e) {
-                e = ExceptionsHelper.unwrapCause(e);
-                if (e instanceof IndexAlreadyExistsException) {
-                    // copy from with multiple readers might attempt to create the index
-                    // multiple times
-                    // can be ignored.
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("copy from index {}", e.getMessage());
-                    }
-                    indicesCreated.add(indexName);
-                } else {
-                    setFailure(e);
-                }
-            }
         }
     }
 
@@ -330,130 +323,67 @@ public class SymbolBasedBulkShardProcessor {
                 responses.set(location, shardUpsertResponse.responses().get(i) != null);
             }
         }
-
         setResultIfDone(shardUpsertResponse.locations().size());
     }
 
     private void processFailure(Throwable e, SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest, boolean repeatingRetry) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
+        ShardId shardId = new ShardId(symbolBasedShardUpsertRequest.index(), symbolBasedShardUpsertRequest.shardId());
+        BulkRetryCoordinator coordinator;
+        try {
+            coordinator = bulkRetryCoordinatorPool.coordinator(shardId);
+        } catch (Throwable coordinatorException) {
+            setFailure(coordinatorException);
+            return;
+        }
         if (e instanceof EsRejectedExecutionException) {
-            logger.trace("{}, retrying", e.getMessage());
-            doRetry(symbolBasedShardUpsertRequest, repeatingRetry);
+            LOGGER.trace("{}, retrying", e.getMessage());
+            coordinator.retry(symbolBasedShardUpsertRequest, repeatingRetry, retryResponseListener);
         } else {
             if (repeatingRetry) {
                 // release failed retry
                 try {
-                    retryLock.writeUnlock();
+                    coordinator.retryLock().releaseWriteLock();
                 } catch (InterruptedException ex) {
                     Thread.interrupted();
                 }
             }
-            Iterator<IntCursor> it = symbolBasedShardUpsertRequest.locations().iterator();
-            while (it.hasNext()) {
+            for (IntCursor intCursor : symbolBasedShardUpsertRequest.locations()) {
                 synchronized (responsesLock) {
-                    responses.set(it.next().value, false);
+                    responses.set(intCursor.value, false);
                 }
             }
             setFailure(e);
         }
     }
 
-    class ResponseListener implements ActionListener<ShardUpsertResponse> {
+    class ResponseListener implements BulkRetryCoordinator.RequestActionListener<SymbolBasedShardUpsertRequest, ShardUpsertResponse> {
 
-        protected final SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest;
+        private final boolean retryListener;
 
-        public ResponseListener(SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest) {
-            this.symbolBasedShardUpsertRequest = symbolBasedShardUpsertRequest;
+        private ResponseListener(boolean retryListener) {
+            this.retryListener = retryListener;
         }
 
         @Override
-        public void onResponse(ShardUpsertResponse shardUpsertResponse) {
+        public void onResponse(SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest,
+                               ShardUpsertResponse shardUpsertResponse) {
             processResponse(shardUpsertResponse);
         }
 
         @Override
-        public void onFailure(Throwable e) {
-            processFailure(e, symbolBasedShardUpsertRequest, false);
+        public void onFailure(SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest, Throwable e) {
+            processFailure(e, symbolBasedShardUpsertRequest, retryListener);
         }
     }
 
     private void trace(String message) {
-        if (logger.isTraceEnabled()) {
-            logger.trace("BulkShardProcessor: pending: {}; active retries: {} - {}",
-                    pending.get(), retryLock.activeWriters(), message);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("BulkShardProcessor: pending: {}; {}",
+                    pending.get(), message);
         }
     }
 
-    class RetryResponseListener extends ResponseListener {
-
-        public RetryResponseListener(SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest) {
-            super(symbolBasedShardUpsertRequest);
-        }
-
-        @Override
-        public void onResponse(ShardUpsertResponse shardUpsertResponse) {
-            trace("BulkShardProcessor retry success");
-            currentDelay.set(0);
-            try {
-                retryLock.writeUnlock();
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
-            processResponse(shardUpsertResponse);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            trace("BulkShardProcessor retry failure");
-            processFailure(e, symbolBasedShardUpsertRequest, true);
-        }
-    }
-
-    /**
-     * A {@link Semaphore} based read/write lock allowing multiple readers,
-     * no reader will block others, and only 1 active writer. Writers take
-     * precedence over readers, a writer will block all readers.
-     * Compared to a {@link ReadWriteLock}, no lock is owned by a thread.
-     */
-    class ReadWriteLock {
-        private final Semaphore readLock = new Semaphore(1, true);
-        private final Semaphore writeLock = new Semaphore(1, true);
-        private final AtomicInteger activeWriters = new AtomicInteger(0);
-        private final AtomicInteger waitingReaders = new AtomicInteger(0);
-
-        public ReadWriteLock() {
-        }
-
-        public void writeLock() throws InterruptedException {
-            // check readLock permits to prevent deadlocks
-            if (activeWriters.getAndIncrement() == 0 && readLock.availablePermits() == 1) {
-                // draining read permits, so all reads will block
-                readLock.drainPermits();
-            }
-            writeLock.acquire();
-        }
-
-        public void writeUnlock() throws InterruptedException {
-            if (activeWriters.decrementAndGet() == 0) {
-                // unlock all readers
-                readLock.release(waitingReaders.getAndSet(0)+1);
-            }
-            writeLock.release();
-        }
-
-        public void readLock() throws InterruptedException {
-            // only acquire permit if writers are active
-            if(activeWriters.get() > 0) {
-                waitingReaders.getAndIncrement();
-                readLock.acquire();
-            }
-        }
-
-        public int activeWriters() {
-            return activeWriters.get();
-        }
-
-    }
 
 }

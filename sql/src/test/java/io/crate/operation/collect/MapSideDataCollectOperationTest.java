@@ -32,6 +32,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -60,7 +61,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MapSideDataCollectOperationTest {
-
 
     @Test
     public void testFileUriCollect() throws Exception {
@@ -91,6 +91,7 @@ public class MapSideDataCollectOperationTest {
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+                mock(BulkRetryCoordinatorPool.class),
                 functions,
                 referenceResolver,
                 indicesService,

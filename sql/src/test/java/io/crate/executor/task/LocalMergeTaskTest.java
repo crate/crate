@@ -23,6 +23,7 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
@@ -44,6 +45,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -62,7 +64,9 @@ import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LocalMergeTaskTest extends CrateUnitTest {
 
@@ -95,7 +99,9 @@ public class LocalMergeTaskTest extends CrateUnitTest {
         groupProjection.values(Arrays.asList(
                 new Aggregation(minAggFunction.info(), Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
-        threadPool = new ThreadPool(getClass().getSimpleName());
+
+        threadPool = mock(ThreadPool.class);
+        when(threadPool.executor(anyString())).thenReturn(MoreExecutors.sameThreadExecutor());
     }
 
     @After
@@ -142,6 +148,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                     ImmutableSettings.EMPTY,
                     mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                     symbolVisitor,
+                    mock(BulkRetryCoordinatorPool.class),
                     mergeNode,
                     mock(StatsTables.class),
                     new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));

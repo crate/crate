@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -49,7 +50,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -102,15 +102,25 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         );
         shardingProjector.startProjection();
 
+        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
+        when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkActionDelegate);
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
+                ImmutableSettings.EMPTY,
+                transportActionProvider
+        );
+        BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
+        when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
+
+
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                transportShardBulkActionDelegate,
                 mock(TransportCreateIndexAction.class),
                 shardingProjector,
                 false,
                 false,
                 1,
+                coordinatorPool,
                 false,
                 null,
                 insertAssignments
@@ -125,7 +135,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         } catch (ExecutionException e) {
             throw e.getCause();
         } finally {
-            bulkShardProcessor.close();
+            bulkRetryCoordinator.close();
         }
     }
 
@@ -159,15 +169,24 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         );
         shardingProjector.startProjection();
 
+        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
+        when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
+                ImmutableSettings.EMPTY,
+                transportActionProvider
+        );
+        BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
+        when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
+
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                transportShardUpsertActionDelegate,
                 mock(TransportCreateIndexAction.class),
                 shardingProjector,
                 false,
                 false,
                 1,
+                coordinatorPool,
                 false,
                 null,
                 insertAssignments
@@ -203,16 +222,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
             assertTrue(hadBlocked.get());
         } finally {
             scheduledExecutorService.shutdownNow();
-            forceClose(bulkShardProcessor);
+            bulkRetryCoordinator.close();
         }
-    }
-
-    private void forceClose(BulkShardProcessor bulkShardProcessor) throws Exception {
-        bulkShardProcessor.close();
-        Method stopExecutorMethod = BulkShardProcessor.class.
-                getDeclaredMethod("stopExecutor");
-        stopExecutorMethod.setAccessible(true);
-        stopExecutorMethod.invoke(bulkShardProcessor);
     }
 
     private void mockShard(OperationRouting operationRouting, Integer shardId) {

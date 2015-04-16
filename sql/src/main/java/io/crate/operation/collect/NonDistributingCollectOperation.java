@@ -28,6 +28,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -39,8 +40,19 @@ import org.elasticsearch.threadpool.ThreadPool;
 public class NonDistributingCollectOperation extends MapSideDataCollectOperation<SingleBucketBuilder> {
 
     @Inject
-    public NonDistributingCollectOperation(ClusterService clusterService, Settings settings, TransportActionProvider transportActionProvider, Functions functions, ReferenceResolver referenceResolver, IndicesService indicesService, ThreadPool threadPool, CollectServiceResolver collectServiceResolver, PlanNodeStreamerVisitor streamerVisitor) {
-        super(clusterService, settings, transportActionProvider, functions, referenceResolver, indicesService, threadPool, collectServiceResolver, streamerVisitor);
+    public NonDistributingCollectOperation(ClusterService clusterService,
+                                           Settings settings,
+                                           TransportActionProvider transportActionProvider,
+                                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                                           Functions functions,
+                                           ReferenceResolver referenceResolver,
+                                           IndicesService indicesService,
+                                           ThreadPool threadPool,
+                                           CollectServiceResolver collectServiceResolver,
+                                           PlanNodeStreamerVisitor streamerVisitor) {
+        super(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool,
+                functions, referenceResolver,
+                indicesService, threadPool, collectServiceResolver, streamerVisitor);
     }
 
     protected Optional<SingleBucketBuilder> createResultResultProvider(CollectNode node){

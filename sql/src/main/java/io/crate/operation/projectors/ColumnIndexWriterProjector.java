@@ -29,7 +29,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -42,8 +42,8 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
 
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Settings settings,
-                                         TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                          TransportCreateIndexAction transportCreateIndexAction,
+                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                          TableIdent tableIdent,
                                          @Nullable String partitionIdent,
                                          List<ColumnIdent> primaryKeyIdents,
@@ -57,7 +57,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          Map<Reference, Symbol> updateAssignments,
                                          @Nullable Integer bulkActions,
                                          boolean autoCreateIndices) {
-        super(tableIdent, partitionIdent, primaryKeyIdents, primaryKeySymbols,
+        super(bulkRetryCoordinatorPool, tableIdent, partitionIdent, primaryKeyIdents, primaryKeySymbols,
                 partitionedByInputs, routingSymbol, collectExpressions);
         assert columnReferences.size() == columnSymbols.size();
 
@@ -69,7 +69,6 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
         createBulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 bulkActions,
                 autoCreateIndices,

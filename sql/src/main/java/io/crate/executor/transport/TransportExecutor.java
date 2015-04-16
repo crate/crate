@@ -45,6 +45,7 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -61,15 +62,16 @@ import java.util.UUID;
 public class TransportExecutor implements Executor, TaskExecutor {
 
     private final Functions functions;
-    private final TaskCollectingVisitor planVisitor;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
     private final StatsTables statsTables;
     private final NodeVisitor nodeVisitor;
     private final ThreadPool threadPool;
+    private final TaskCollectingVisitor planVisitor;
 
     private final Settings settings;
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final ImplementationSymbolVisitor globalImplementationSymbolVisitor;
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
@@ -91,7 +93,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
-                             QueryThenFetchOperation queryThenFetchOperation) {
+                             QueryThenFetchOperation queryThenFetchOperation,
+                             BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -101,13 +104,17 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.queryThenFetchOperation = queryThenFetchOperation;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.CLUSTER);
         this.globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
-                clusterService, settings, transportActionProvider,
+                clusterService,
+                settings,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
                 globalImplementationSymbolVisitor);
     }
 
@@ -261,6 +268,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         settings,
                         transportActionProvider,
                         globalImplementationSymbolVisitor,
+                        bulkRetryCoordinatorPool,
                         node,
                         statsTables,
                         circuitBreaker));
@@ -339,6 +347,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    bulkRetryCoordinatorPool,
                     node));
         }
 
@@ -349,6 +358,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.transportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    bulkRetryCoordinatorPool,
                     node));
         }
 

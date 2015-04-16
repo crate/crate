@@ -41,6 +41,7 @@ import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
@@ -78,6 +79,7 @@ public class ShardCollectService {
                                LuceneQueryBuilder luceneQueryBuilder,
                                Settings settings,
                                TransportActionProvider transportActionProvider,
+                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                ShardId shardId,
                                IndexService indexService,
                                ScriptService scriptService,
@@ -122,6 +124,7 @@ public class ShardCollectService {
                 clusterService,
                 settings,
                 transportActionProvider,
+                bulkRetryCoordinatorPool,
                 shardImplementationSymbolVisitor,
                 shardNormalizer,
                 shardId,

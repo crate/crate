@@ -41,6 +41,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -74,6 +75,7 @@ public class TransportMergeNodeAction {
                                     ReferenceResolver referenceResolver,
                                     final Functions functions,
                                     final ThreadPool threadPool,
+                                    final BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                     StatsTables statsTables,
                                     CrateCircuitBreakerService breakerService) {
         this.transportService = transportService;
@@ -94,6 +96,7 @@ public class TransportMergeNodeAction {
                         settings,
                         transportActionProvider,
                         implementationSymbolVisitor,
+                        bulkRetryCoordinatorPool,
                         node,
                         ramAccountingContext
                 );

@@ -195,7 +195,6 @@ public class TransportCollectNodeAction {
                 );
             }
         }
-
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<NodeCollectRequest> {

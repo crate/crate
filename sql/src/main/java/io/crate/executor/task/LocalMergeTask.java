@@ -39,6 +39,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.logging.ESLogger;
@@ -70,6 +71,7 @@ public class LocalMergeTask extends JobTask {
     private final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> resultList;
     private final CircuitBreaker circuitBreaker;
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private List<ListenableFuture<TaskResult>> upstreamResults;
 
@@ -83,6 +85,7 @@ public class LocalMergeTask extends JobTask {
                           Settings settings,
                           TransportActionProvider transportActionProvider,
                           ImplementationSymbolVisitor implementationSymbolVisitor,
+                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                           MergeNode mergeNode,
                           StatsTables statsTables,
                           CircuitBreaker circuitBreaker) {
@@ -97,6 +100,7 @@ public class LocalMergeTask extends JobTask {
         this.circuitBreaker = circuitBreaker;
         this.result = SettableFuture.create();
         this.resultList = Arrays.<ListenableFuture<TaskResult>>asList(this.result);
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
     }
 
     /**
@@ -118,6 +122,7 @@ public class LocalMergeTask extends JobTask {
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         final MergeOperation mergeOperation = new MergeOperation(
                 clusterService, settings, transportActionProvider, symbolVisitor,
+                bulkRetryCoordinatorPool,
                 mergeNode, ramAccountingContext);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());

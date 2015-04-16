@@ -41,6 +41,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -114,6 +115,7 @@ public class MergeOperationTest extends CrateUnitTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
+                mock(BulkRetryCoordinatorPool.class),
                 mergeNode,
                 ramAccountingContext
         );
@@ -146,6 +148,7 @@ public class MergeOperationTest extends CrateUnitTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
+                mock(BulkRetryCoordinatorPool.class),
                 mergeNode,
                 ramAccountingContext
         );
