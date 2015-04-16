@@ -21,11 +21,13 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.operation.collect.JobCollectContext;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.lease.Releasable;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,6 +41,7 @@ public class JobExecutionContext implements Releasable {
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final ConcurrentHashMap<Integer, PageDownstreamContext> pageDownstreamMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, SettableFuture<PageDownstreamContext>>  pageDownstreamFuturesMap = new ConcurrentHashMap<>();
 
     private volatile long lastAccessTime = -1;
 
@@ -81,11 +84,32 @@ public class JobExecutionContext implements Releasable {
         if (previousEntry != null) {
             throw new IllegalStateException(String.format(Locale.ENGLISH, "there is already a pageDownstream set for %d", executionNodeId));
         }
+        synchronized (pageDownstreamFuturesMap) {
+            SettableFuture<PageDownstreamContext> future = pageDownstreamFuturesMap.remove(executionNodeId);
+            if (future != null) {
+                future.set(pageDownstreamContext);
+            }
+        }
     }
 
-    @Nullable
-    public PageDownstreamContext getPageDownstreamContext(int executionNodeId) {
-        return pageDownstreamMap.get(executionNodeId);
+    public ListenableFuture<PageDownstreamContext> getPageDownstreamContext(int executionNodeId) {
+        PageDownstreamContext pageDownstreamContext = pageDownstreamMap.get(executionNodeId);
+        if (pageDownstreamContext == null) {
+            SettableFuture<PageDownstreamContext> futureContext = SettableFuture.create();
+            synchronized (pageDownstreamFuturesMap) {
+                pageDownstreamContext = pageDownstreamMap.get(executionNodeId);
+                if (pageDownstreamContext != null) {
+                    return Futures.immediateFuture(pageDownstreamContext);
+                }
+                SettableFuture<PageDownstreamContext> existingFuture = pageDownstreamFuturesMap.putIfAbsent(executionNodeId, futureContext);
+
+                if (existingFuture == null) {
+                    return futureContext;
+                }
+                return existingFuture;
+            }
+        }
+        return Futures.immediateFuture(pageDownstreamContext);
     }
 
     public void closePageDownstreamContext(int executionNodeId) {
