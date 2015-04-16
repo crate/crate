@@ -31,9 +31,11 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageDownstream;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
@@ -123,8 +125,10 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                         symbolVisitor,
                         new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver)
                 );
-                ResultProvider resultProvider = (ResultProvider)invocation.getArguments()[1];
-                FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(projectionToProjectorVisitor, mock(RamAccountingContext.class), mergeNode.projections(), resultProvider);
+                RowDownstream rowDownstream = (RowDownstream)invocation.getArguments()[1];
+                FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
+                        projectionToProjectorVisitor, mock(RamAccountingContext.class), mergeNode.projections(), rowDownstream);
+
                 nonSortingBucketMerger.downstream(projectorChain.firstProjector());
                 projectorChain.startProjections();
                 return nonSortingBucketMerger;
@@ -169,6 +173,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
             LocalMergeTask localMergeTask = new LocalMergeTask(
                     UUID.randomUUID(),
                     pageDownstreamFactory,
+                    mock(JobContextService.class),
                     mergeNode,
                     mock(StatsTables.class),
                     new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA), threadPool);

@@ -251,24 +251,24 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (node.isRouted()) {
                 return singleTask(
                     new RemoteCollectTask(
-                        jobId,
-                        node,
-                        transportActionProvider.transportJobInitAction(),
-                        transportActionProvider.transportCloseContextNodeAction(),
-                        streamerVisitor,
-                        handlerSideDataCollectOperation,
-                        globalProjectionToProjectionVisitor,
-                        statsTables,
-                        circuitBreaker
+                            jobId,
+                            node,
+                            transportActionProvider.transportJobInitAction(),
+                            transportActionProvider.transportCloseContextNodeAction(),
+                            streamerVisitor,
+                            handlerSideDataCollectOperation,
+                            globalProjectionToProjectionVisitor,
+                            statsTables,
+                            circuitBreaker
                     )
                 );
             } else {
                 return singleTask(
                         new LocalCollectTask(
-                            jobId,
-                            handlerSideDataCollectOperation,
-                            node,
-                            circuitBreaker
+                                jobId,
+                                handlerSideDataCollectOperation,
+                                node,
+                                circuitBreaker
                         )
                 );
             }
@@ -290,6 +290,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 return singleTask(new LocalMergeTask(
                         jobId,
                         pageDownstreamFactory,
+                        jobContextService,
                         node,
                         statsTables,
                         circuitBreaker, threadPool));
