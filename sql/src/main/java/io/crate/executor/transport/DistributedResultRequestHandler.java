@@ -21,6 +21,9 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
@@ -35,7 +38,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 
 public class DistributedResultRequestHandler extends BaseTransportRequestHandler<DistributedResultRequest> {
@@ -59,62 +62,16 @@ public class DistributedResultRequestHandler extends BaseTransportRequestHandler
 
     @Override
     public void messageReceived(final DistributedResultRequest request, final TransportChannel channel) throws Exception {
-        LOGGER.trace("DistributedResultRequestHandler: messageReceived");
+        LOGGER.trace("[{}] DistributedResultRequestHandler: messageReceived for executionNodeId: {}",
+                request.jobId(), request.executionNodeId());
 
         if (request.executionNodeId() == ExecutionNode.NO_EXECUTION_NODE) {
             fallback(request, channel);
             return;
         }
-        final PageDownstreamContext pageDownstreamContext = getPageDownstreamContext(request, channel);
-        if (pageDownstreamContext == null) return;
-
-        Throwable throwable = request.throwable();
-        if (throwable != null) {
-            channel.sendResponse(new DistributedResultResponse(false));
-            pageDownstreamContext.failure(throwable);
-        } else {
-            request.streamers(pageDownstreamContext.streamer());
-            pageDownstreamContext.setBucket(request.bucketIdx(), request.rows(), request.isLast(), new PageConsumeListener() {
-                @Override
-                public void needMore() {
-                    try {
-                        if (pageDownstreamContext.allExhausted()) {
-                            pageDownstreamContext.finish();
-                            channel.sendResponse(new DistributedResultResponse(false));
-                        } else {
-                            channel.sendResponse(new DistributedResultResponse(!pageDownstreamContext.isExhausted(request.bucketIdx())));
-                        }
-                    } catch (IOException e) {
-                        LOGGER.error("Could not send DistributedResultResponse", e);
-                    }
-                }
-
-                @Override
-                public void finish() {
-                    try {
-                        channel.sendResponse(new DistributedResultResponse(false));
-                        pageDownstreamContext.finish();
-                    } catch (IOException e) {
-                        LOGGER.error("Could not send DistributedResultResponse", e);
-                    }
-                }
-            });
-        }
-    }
-
-    @Nullable
-    private PageDownstreamContext getPageDownstreamContext(DistributedResultRequest request, TransportChannel channel) throws IOException {
-        JobExecutionContext context = jobContextService.getContext(request.jobId());
-        if (context == null) {
-            channel.sendResponse(new IllegalStateException("JobContext is missing"));
-            return null;
-        }
-        final PageDownstreamContext pageDownstreamContext = context.getPageDownstreamContext(request.executionNodeId());
-        if (pageDownstreamContext == null) {
-            channel.sendResponse(new IllegalStateException("JobExecutionContext is missing"));
-            return null;
-        }
-        return pageDownstreamContext;
+        JobExecutionContext context = jobContextService.getOrCreateContext(request.jobId());
+        ListenableFuture<PageDownstreamContext> pageDownstreamContextFuture = context.getPageDownstreamContext(request.executionNodeId());
+        Futures.addCallback(pageDownstreamContextFuture, new PageDownstreamContextFutureCallback(request, channel));
     }
 
     @Deprecated
@@ -130,5 +87,76 @@ public class DistributedResultRequestHandler extends BaseTransportRequestHandler
     @Override
     public String executor() {
         return ThreadPool.Names.SEARCH;
+    }
+
+    private static class PageDownstreamContextFutureCallback implements FutureCallback<PageDownstreamContext> {
+        private final DistributedResultRequest request;
+        private final TransportChannel channel;
+
+        public PageDownstreamContextFutureCallback(DistributedResultRequest request, TransportChannel channel) {
+            this.request = request;
+            this.channel = channel;
+        }
+
+        @Override
+        public void onSuccess(final PageDownstreamContext pageDownstreamContext) {
+            Throwable throwable = request.throwable();
+            if (throwable != null) {
+                try {
+                    channel.sendResponse(new DistributedResultResponse(false));
+                } catch (IOException e) {
+                    LOGGER.error("Could not send DistributedResultResponse", e);
+                }
+                pageDownstreamContext.failure(throwable);
+            } else {
+                request.streamers(pageDownstreamContext.streamer());
+                pageDownstreamContext.setBucket(
+                        request.bucketIdx(),
+                        request.rows(),
+                        request.isLast(),
+                        new DownstreamContextPageConsumeListener(pageDownstreamContext));
+            }
+        }
+
+        @Override
+        public void onFailure(@Nonnull Throwable t) {
+            try {
+                channel.sendResponse(t);
+            } catch (IOException e) {
+                LOGGER.error("Could not send DistributedResultResponse", e);
+            }
+        }
+
+        private class DownstreamContextPageConsumeListener implements PageConsumeListener {
+            private final PageDownstreamContext pageDownstreamContext;
+
+            public DownstreamContextPageConsumeListener(PageDownstreamContext pageDownstreamContext) {
+                this.pageDownstreamContext = pageDownstreamContext;
+            }
+
+            @Override
+            public void needMore() {
+                try {
+                    if (pageDownstreamContext.allExhausted()) {
+                        pageDownstreamContext.finish();
+                        channel.sendResponse(new DistributedResultResponse(false));
+                    } else {
+                        channel.sendResponse(new DistributedResultResponse(!pageDownstreamContext.isExhausted(request.bucketIdx())));
+                    }
+                } catch (IOException e) {
+                    LOGGER.error("Could not send DistributedResultResponse", e);
+                }
+            }
+
+            @Override
+            public void finish() {
+                try {
+                    channel.sendResponse(new DistributedResultResponse(false));
+                    pageDownstreamContext.finish();
+                } catch (IOException e) {
+                    LOGGER.error("Could not send DistributedResultResponse", e);
+                }
+            }
+        }
     }
 }
