@@ -28,7 +28,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -48,10 +48,11 @@ import java.util.Map;
 public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     private final BytesRefGenerator generator;
+
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
-                                TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                 TransportCreateIndexAction transportCreateIndexAction,
+                                BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                 TableIdent tableIdent,
                                 @Nullable String partitionIdent,
                                 Reference rawSourceReference,
@@ -67,7 +68,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates) {
-        super(tableIdent, partitionIdent, primaryKeys, idInputs, partitionedByInputs,
+        super(bulkRetryCoordinatorPool, tableIdent, partitionIdent, primaryKeys, idInputs, partitionedByInputs,
                 routingIdent, routingInput,
                 collectExpressions);
 
@@ -81,7 +82,6 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
         createBulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 bulkActions,
                 autoCreateIndices,

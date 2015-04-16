@@ -34,7 +34,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
@@ -81,8 +81,8 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
+                mock(BulkRetryCoordinatorPool.class),
                 new TableIdent(null, "bulk_import"),
                 null,
                 rawSourceReference,
@@ -114,6 +114,7 @@ public class IndexWriterProjectorUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Primary key value must not be NULL");
 
+
         CollectingProjector collectingProjector = new CollectingProjector();
         InputCollectExpression<Object> idInput = new InputCollectExpression<>(0);
         InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
@@ -122,8 +123,8 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
+                mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),
                 new TableIdent(null, "bulk_import"),
                 null,
                 rawSourceReference,

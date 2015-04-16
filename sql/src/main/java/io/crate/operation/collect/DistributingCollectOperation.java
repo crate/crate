@@ -41,6 +41,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -229,6 +230,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     public DistributingCollectOperation(ClusterService clusterService,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
+                                        BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         Functions functions,
                                         ReferenceResolver referenceResolver,
                                         IndicesService indicesService,
@@ -238,6 +240,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                         CollectServiceResolver collectServiceResolver,
                                         CrateCircuitBreakerService breakerService) {
         super(clusterService, settings, transportActionProvider,
+                bulkRetryCoordinatorPool,
                 functions, referenceResolver, indicesService,
                 threadPool, collectServiceResolver);
         this.transportService = transportService;

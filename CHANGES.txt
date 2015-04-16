@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Optimized retry logic in bulk and COPY operations to handle
+   and coordinate retries once per node
+
+ - Fix: Add transparent retry logic to UPDATE execution
+
  - Using unsupported URI schema in COPY FROM statement now results in an error.
 
  - Fix: documented minimum required java version

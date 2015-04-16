@@ -30,6 +30,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -50,13 +51,16 @@ public class MergeOperation implements DownstreamOperation {
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
-                          ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode,
+                          ImplementationSymbolVisitor symbolVisitor,
+                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                          MergeNode mergeNode,
                           RamAccountingContext ramAccountingContext) {
         projectorChain = new FlatProjectorChain(mergeNode.projections(),
                 new ProjectionToProjectorVisitor(
                         clusterService,
                         settings,
                         transportActionProvider,
+                        bulkRetryCoordinatorPool,
                         symbolVisitor),
                 ramAccountingContext
         );

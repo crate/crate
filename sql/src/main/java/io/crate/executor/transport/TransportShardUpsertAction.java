@@ -226,6 +226,7 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
     public IndexRequest prepareUpdate(ShardUpsertRequest request, ShardUpsertRequest.Item item, ShardId shardId) throws ElasticsearchException {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
+
         final GetResult getResult = indexShard.getService().get(request.type(), item.id(),
                 new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
                 true, item.version(), VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);

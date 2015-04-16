@@ -42,6 +42,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -110,6 +111,7 @@ public class ShardProjectorChainTest {
                 new NoopClusterService(),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class),
+                mock(BulkRetryCoordinatorPool.class),
                 implementationSymbolVisitor,
                 null
         );

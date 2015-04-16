@@ -27,7 +27,7 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -40,8 +40,8 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
 
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Settings settings,
-                                         TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                          TransportCreateIndexAction transportCreateIndexAction,
+                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                          TableIdent tableIdent,
                                          @Nullable String partitionIdent,
                                          List<ColumnIdent> primaryKeys,
@@ -54,14 +54,13 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          CollectExpression<?>[] collectExpressions,
                                          @Nullable Integer bulkActions,
                                          boolean autoCreateIndices) {
-        super(tableIdent, partitionIdent, primaryKeys, idInputs,
+        super(bulkRetryCoordinatorPool, tableIdent, partitionIdent, primaryKeys, idInputs,
                 partitionedByInputs, routingIdent, routingInput, collectExpressions);
         assert columnReferences.size() == columnInputs.size();
         this.columnInputs = columnInputs;
         createBulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 bulkActions,
                 autoCreateIndices,

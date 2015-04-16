@@ -42,6 +42,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -133,7 +134,9 @@ public class LocalMergeTaskTest {
                     mock(ClusterService.class),
                     ImmutableSettings.EMPTY,
                     mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                    symbolVisitor, mergeNode,
+                    symbolVisitor,
+                    mock(BulkRetryCoordinatorPool.class),
+                    mergeNode,
                     mock(StatsTables.class),
                     new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
             localMergeTask.upstreamResult(upstreamResults);

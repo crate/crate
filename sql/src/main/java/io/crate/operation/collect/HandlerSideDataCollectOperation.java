@@ -35,6 +35,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -54,6 +55,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     public HandlerSideDataCollectOperation(ClusterService clusterService,
                                            Settings settings,
                                            TransportActionProvider transportActionProvider,
+                                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                            Functions functions,
                                            ReferenceResolver referenceResolver,
                                            InformationSchemaCollectService informationSchemaCollectService,
@@ -63,8 +65,10 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         this.projectorVisitor = new ProjectionToProjectorVisitor(
-                clusterService, settings,
+                clusterService,
+                settings,
                 transportActionProvider,
+                bulkRetryCoordinatorPool,
                 implementationVisitor, clusterNormalizer);
     }
 

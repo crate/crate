@@ -59,6 +59,8 @@ import org.elasticsearch.action.count.CrateCountAction;
 import org.elasticsearch.action.count.CrateTransportCountAction;
 import org.elasticsearch.action.deletebyquery.CrateDeleteByQueryAction;
 import org.elasticsearch.action.deletebyquery.CrateTransportDeleteByQueryAction;
+import org.elasticsearch.action.bulk.BulkModule;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -102,7 +104,10 @@ public class SQLPlugin extends AbstractPlugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> services() {
-        return ImmutableList.<Class<? extends LifecycleComponent>>of(SQLService.class);
+        return ImmutableList.<Class<? extends LifecycleComponent>>of(
+                SQLService.class,
+                BulkRetryCoordinatorPool.class
+        );
     }
 
     @Override
@@ -126,6 +131,7 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(AggregationImplModule.class);
             modules.add(ScalarFunctionModule.class);
             modules.add(PlanModule.class);
+            modules.add(BulkModule.class);
         }
         return modules;
     }

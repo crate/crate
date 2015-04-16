@@ -45,6 +45,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -106,6 +107,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Settings settings,
                                        TransportActionProvider transportActionProvider,
+                                       BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                        Functions functions,
                                        ReferenceResolver referenceResolver,
                                        IndicesService indicesService,
@@ -128,6 +130,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                 clusterService,
                 settings,
                 transportActionProvider,
+                bulkRetryCoordinatorPool,
                 nodeImplementationSymbolVisitor
         );
     }

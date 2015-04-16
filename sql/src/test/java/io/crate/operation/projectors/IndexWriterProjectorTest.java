@@ -26,16 +26,19 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
@@ -61,16 +64,14 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
         CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput };
 
-        ReferenceInfos referenceInfos = cluster().getInstance(ReferenceInfos.class);
-
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 cluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                cluster().getInstance(TransportShardUpsertActionDelegateImpl.class),
                 cluster().getInstance(TransportCreateIndexAction.class),
+                cluster().getInstance(BulkRetryCoordinatorPool.class),
                 new TableIdent(null, "bulk_import"),
                 null,
-                new Reference(referenceInfos.getReferenceInfo(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW))),
+                new Reference(new ReferenceInfo(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING)),
                 Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
                 ImmutableList.<Input<?>>of(),

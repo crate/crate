@@ -42,8 +42,8 @@ import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
@@ -71,12 +71,13 @@ public abstract class AbstractIndexWriterProjector implements Projector {
     private final List<ColumnIdent> primaryKeys;
     private final List<Input<?>> partitionedByInputs;
     private final Function<Input<?>, BytesRef> inputToBytesRef = new Function<Input<?>, BytesRef>() {
-                @Nullable
-                @Override
-                public BytesRef apply(Input<?> input) {
-                    return BytesRefs.toBytesRef(input.value());
-                }
-            };
+        @Nullable
+        @Override
+        public BytesRef apply(Input<?> input) {
+            return BytesRefs.toBytesRef(input.value());
+        }
+    };
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private BulkShardProcessor bulkShardProcessor;
     private Projector downstream;
 
@@ -91,7 +92,8 @@ public abstract class AbstractIndexWriterProjector implements Projector {
      *  <li> writing into a single partition - <code>partitionIdent = "...", partitionedByInputs = []</code>
      *
      */
-    protected AbstractIndexWriterProjector(final TableIdent tableIdent,
+    protected AbstractIndexWriterProjector(BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                                           final TableIdent tableIdent,
                                            @Nullable String partitionIdent,
                                            List<ColumnIdent> primaryKeys,
                                            List<Input<?>> idInputs,
@@ -100,6 +102,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                                            @Nullable Input<?> routingInput,
                                            CollectExpression<?>[] collectExpressions) {
         this.primaryKeys = primaryKeys;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.tableIdent = tableIdent;
         this.partitionIdent = partitionIdent;
         this.partitionedByInputs = partitionedByInputs;
@@ -124,7 +127,6 @@ public abstract class AbstractIndexWriterProjector implements Projector {
 
     protected void createBulkShardProcessor(ClusterService clusterService,
                                             Settings settings,
-                                            TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                             TransportCreateIndexAction transportCreateIndexAction,
                                             @Nullable Integer bulkActions,
                                             boolean autoCreateIndices,
@@ -134,11 +136,11 @@ public abstract class AbstractIndexWriterProjector implements Projector {
         bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 autoCreateIndices,
                 overwriteDuplicates,
                 MoreObjects.firstNonNull(bulkActions, 100),
+                bulkRetryCoordinatorPool,
                 true,
                 assignmentsColumns,
                 missingAssignmentsColumns

@@ -50,6 +50,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -168,7 +169,13 @@ public class NestedLoopOperationTest {
         ReferenceResolver referenceResolver = injector.getInstance(ReferenceResolver.class);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class);
-        projectionVisitor = new ProjectionToProjectorVisitor(mock(ClusterService.class), ImmutableSettings.EMPTY, transportActionProvider, implementationSymbolVisitor);
+        projectionVisitor = new ProjectionToProjectorVisitor(
+                mock(ClusterService.class),
+                ImmutableSettings.EMPTY,
+                transportActionProvider,
+                mock(BulkRetryCoordinatorPool.class),
+                implementationSymbolVisitor
+        );
     }
 
     private void assertNestedLoop(Object[][] left, Object[][] right, int limit, int offset, int expectedRows) throws Exception {

@@ -147,7 +147,6 @@ in the ``CREATE TABLE`` statement::
   ... );
   CREATE OK (... sec)
 
-
 Once the import is finished you can set the refresh interval to
 a reasonable value (time in ms)::
 

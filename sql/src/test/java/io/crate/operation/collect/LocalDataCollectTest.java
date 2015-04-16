@@ -54,6 +54,8 @@ import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.action.bulk.BulkRetryCoordinator;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.client.Client;
@@ -96,6 +98,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -108,6 +112,7 @@ import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertArrayEquals;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -205,6 +210,11 @@ public class LocalDataCollectTest {
             functionBinder.addBinding(TestFunction.ident).toInstance(new TestFunction());
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
+
+            BulkRetryCoordinator bulkRetryCoordinator = mock(BulkRetryCoordinator.class);
+            BulkRetryCoordinatorPool bulkRetryCoordinatorPool = mock(BulkRetryCoordinatorPool.class);
+            when(bulkRetryCoordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
+            bind(BulkRetryCoordinatorPool.class).toInstance(bulkRetryCoordinatorPool);
 
             bind(CircuitBreakerService.class).toInstance(new NoneCircuitBreakerService());
             bind(ActionFilters.class).toInstance(mock(ActionFilters.class));
@@ -340,6 +350,7 @@ public class LocalDataCollectTest {
                 injector.getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+                injector.getInstance(BulkRetryCoordinatorPool.class),
                 functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
                 new CollectServiceResolver(discoveryService,
                     new SystemCollectService(

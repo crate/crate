@@ -25,11 +25,13 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportExecutor;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -90,7 +92,12 @@ public class UpsertTask extends JobTask {
                     if (t == null) {
                         t = new NullPointerException();
                     }
-                    result.setException(t);
+
+                    if (Exceptions.unwrap(t) instanceof VersionConflictEngineException) {
+                        result.set(TaskResult.ZERO);
+                    } else {
+                        result.setException(t);
+                    }
                 }
             });
 

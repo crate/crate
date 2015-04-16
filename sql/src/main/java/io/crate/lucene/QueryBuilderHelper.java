@@ -88,7 +88,7 @@ public abstract class QueryBuilderHelper {
             if (value == null) {
                 return Queries.newMatchNoDocsQuery();
             }
-            return new TermQuery(new Term(columnName, value == true ? "T" : "F"));
+            return new TermQuery(new Term(columnName, (boolean) value ? "T" : "F"));
         }
     }
 

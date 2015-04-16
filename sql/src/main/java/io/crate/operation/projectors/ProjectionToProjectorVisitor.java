@@ -32,6 +32,7 @@ import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
@@ -47,6 +48,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     private final ClusterService clusterService;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
     private final ShardId shardId;
@@ -56,6 +58,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
+                                        BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer,
                                         @Nullable ShardId shardId,
@@ -63,6 +66,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         this.clusterService = clusterService;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.symbolVisitor = symbolVisitor;
         this.normalizer = normalizer;
         this.shardId = shardId;
@@ -72,16 +76,18 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
+                                        BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer) {
-        this(clusterService, settings, transportActionProvider, symbolVisitor, normalizer, null, null);
+        this(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null, null);
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
+                                        BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor) {
-        this(clusterService, settings, transportActionProvider, symbolVisitor,
+        this(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor,
                 new EvaluatingNormalizer(
                         symbolVisitor.functions(),
                         symbolVisitor.rowGranularity(),
@@ -234,8 +240,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new IndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportShardUpsertActionDelegate(),
                 transportActionProvider.transportCreateIndexAction(),
+                bulkRetryCoordinatorPool,
                 projection.tableIdent(),
                 projection.partitionIdent(),
                 projection.rawSourceReference(),
@@ -276,8 +282,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new ColumnIndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportShardUpsertActionDelegate(),
                 transportActionProvider.transportCreateIndexAction(),
+                bulkRetryCoordinatorPool,
                 projection.tableIdent(),
                 projection.partitionIdent(),
                 projection.primaryKeys(),
@@ -320,8 +326,11 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         assert ctx.collectExpressions().size() == 1;
 
         return new UpdateProjector(
+                clusterService,
+                settings,
                 shardId,
-                transportActionProvider.transportShardUpsertAction(),
+                transportActionProvider.transportCreateIndexAction(),
+                bulkRetryCoordinatorPool,
                 ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()])[0],
                 projection.assignmentsColumns(),
                 projection.assignments(),

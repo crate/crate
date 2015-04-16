@@ -48,6 +48,7 @@ import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
@@ -65,16 +66,16 @@ import java.util.UUID;
 public class TransportExecutor implements Executor, TaskExecutor {
 
     private final Functions functions;
-    private final Provider<SearchPhaseController> searchPhaseControllerProvider;
     private final TaskCollectingVisitor planVisitor;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
     private final StatsTables statsTables;
-    private final NodeVisitor nodeVisitor;
     private final ThreadPool threadPool;
+    private final NodeVisitor nodeVisitor;
 
     private final Settings settings;
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final ImplementationSymbolVisitor globalImplementationSymbolVisitor;
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
@@ -82,10 +83,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
-
-    private final CrateResultSorter crateResultSorter;
-
-    private final BigArrays bigArrays;
 
     private final QueryThenFetchOperation queryThenFetchOperation;
 
@@ -96,34 +93,33 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
-                             Provider<SearchPhaseController> searchPhaseControllerProvider,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
-                             CrateResultSorter crateResultSorter,
-                             BigArrays bigArrays,
-                             QueryThenFetchOperation queryThenFetchOperation) {
+                             QueryThenFetchOperation queryThenFetchOperation,
+                             BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
         this.functions = functions;
-        this.searchPhaseControllerProvider = searchPhaseControllerProvider;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
-        this.crateResultSorter = crateResultSorter;
-        this.bigArrays = bigArrays;
         this.queryThenFetchOperation = queryThenFetchOperation;
-        this.nodeVisitor = new NodeVisitor();
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.CLUSTER);
         this.globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
-                clusterService, settings, transportActionProvider,
+                clusterService,
+                settings,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
                 globalImplementationSymbolVisitor);
+        this.nodeVisitor = new NodeVisitor();
     }
 
     @Override
@@ -264,6 +260,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                         settings,
                         transportActionProvider,
                         globalImplementationSymbolVisitor,
+                        bulkRetryCoordinatorPool,
                         node,
                         statsTables,
                         circuitBreaker));
@@ -360,6 +357,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.transportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    bulkRetryCoordinatorPool,
                     node));
         }
 
