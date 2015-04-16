@@ -27,7 +27,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.ResultProvider;
-import io.crate.planner.node.StreamerVisitor;
+import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -35,7 +35,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
 
 /**
  * only used for testing
@@ -52,12 +51,10 @@ public class LocalCollectOperation extends MapSideDataCollectOperation {
                                  IndicesService indicesService,
                                  ThreadPool threadPool,
                                  CollectServiceResolver collectServiceResolver,
-                                 StreamerVisitor streamerVisitor,
-                                 JobContextService jobContextService,
-                                 TransportService transportService) {
-        super(clusterService, settings, transportActionProvider, functions, referenceResolver,
-                indicesService, threadPool, collectServiceResolver, streamerVisitor,
-                jobContextService, transportService);
+                                 ResultProviderFactory resultProviderFactory,
+                                 JobContextService jobContextService) {
+        super(clusterService, settings, transportActionProvider, functions, referenceResolver, indicesService, threadPool,
+                collectServiceResolver, resultProviderFactory, jobContextService);
     }
 
     @Override
