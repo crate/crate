@@ -277,20 +277,25 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     private @Nullable Query alreadyCollectedQuery(FieldDoc lastCollected) {
-        if (orderBy.isSorted()) {
-            Symbol order = orderBy.orderBySymbols().get(0);
-            Object value = lastCollected.fields[0];
+       BooleanQuery query = new BooleanQuery();
+       for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
+            Symbol order = orderBy.orderBySymbols().get(i);
+            Object value = lastCollected.fields[i];
             // only filter for null values if nulls last
-            if (order instanceof Reference && (value != null || !orderBy.nullsFirst()[0])) {
+            if (order instanceof Reference && (value != null || !orderBy.nullsFirst()[i])) {
                 QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
                 String columnName = ((Reference)order).info().ident().columnIdent().fqn();
-                if (orderBy.reverseFlags()[0]) {
-                    return helper.rangeQuery(columnName, value, null, false, false );
+                if (orderBy.reverseFlags()[i]) {
+                    query.add(helper.rangeQuery(columnName, value, null, false, false ), BooleanClause.Occur.MUST);
                 } else {
-                    return helper.rangeQuery(columnName, null, value, false, false );
+                    query.add(helper.rangeQuery(columnName, null, value, false, false ), BooleanClause.Occur.MUST);
                 }
             }
         }
-        return null;
+        if (query.clauses().size() > 0) {
+            return query;
+        } else {
+            return null;
+        }
     }
 }

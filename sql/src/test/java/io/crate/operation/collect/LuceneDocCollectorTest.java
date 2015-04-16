@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SQLBulkRequest;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
@@ -38,6 +39,7 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -290,6 +292,88 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(((Integer)collectingProjector.rows.get(NUMBER_OF_DOCS - 2)[0]), is(1) );
         assertThat(((Integer)collectingProjector.rows.get(NUMBER_OF_DOCS - 1)[0]), is(0) );
+    }
+
+    @Test
+    public void testMultiOrdering() throws Exception {
+        execute("create table test (x integer, y integer) clustered into 1 shards with (number_of_replicas=0)");
+        waitNoPendingTasksOnAll();
+        SQLBulkRequest request = new SQLBulkRequest("insert into test values (?, ?)",
+                new Object[][]{
+                    new Object[]{2, 3},
+                    new Object[]{2, 1},
+                    new Object[]{2, null},
+                    new Object[]{1, null},
+                    new Object[]{1, 2},
+                    new Object[]{1, 1},
+                    new Object[]{1, 0},
+                    new Object[]{1, null}
+                }
+        );
+        sqlExecutor.exec(request);
+        execute("refresh table test");
+        collectingProjector.rows.clear();
+
+        IndicesService instanceFromNode = cluster().getInstanceFromFirstNode(IndicesService.class);
+        IndexService indexService = instanceFromNode.indexServiceSafe("test");
+
+        ShardCollectService shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
+        CollectContextService collectContextService = indexService.shardInjector(0).getInstance(CollectContextService.class);
+
+        ReferenceIdent xIdent = new ReferenceIdent(new TableIdent("doc", "test"), "x");
+        Reference x = new Reference(new ReferenceInfo(xIdent, RowGranularity.DOC, DataTypes.INTEGER));
+
+        ReferenceIdent yIdent = new ReferenceIdent(new TableIdent("doc", "test"), "y");
+        Reference y = new Reference(new ReferenceInfo(yIdent, RowGranularity.DOC, DataTypes.INTEGER));
+
+        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, false});
+
+        CollectNode node = new CollectNode();
+        node.whereClause(WhereClause.MATCH_ALL);
+        node.orderBy(orderBy);
+        node.jobId(UUID.randomUUID());
+        node.toCollect(orderBy.orderBySymbols());
+        node.maxRowGranularity(RowGranularity.DOC);
+
+        ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
+        when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
+
+        int jobSearchContextId = 0;
+        JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
+        ShardId shardId = new ShardId("test", 0);
+        jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
+        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
+        collector.pageSize(1);
+        collector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        assertThat(collectingProjector.rows.size(), is(8));
+
+        String expected = "1| 0\n" +
+                "1| 1\n" +
+                "1| 2\n" +
+                "1| NULL\n" +
+                "1| NULL\n" +
+                "2| 1\n" +
+                "2| 3\n" +
+                "2| NULL\n";
+        assertEquals(expected, TestingHelpers.printedTable(collectingProjector.doFinish()));
+
+        // Nulls first
+        collectingProjector.rows.clear();
+        orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, true});
+        node.orderBy(orderBy);
+        collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
+        collector.pageSize(1);
+        collector.doCollect(RAM_ACCOUNTING_CONTEXT);
+
+        expected = "1| NULL\n" +
+                   "1| NULL\n" +
+                   "1| 0\n" +
+                   "1| 1\n" +
+                   "1| 2\n" +
+                   "2| NULL\n" +
+                   "2| 1\n" +
+                   "2| 3\n";
+        assertEquals(expected, TestingHelpers.printedTable(collectingProjector.doFinish()));
     }
 
     @Test
