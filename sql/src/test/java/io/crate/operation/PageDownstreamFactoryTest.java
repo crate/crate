@@ -45,6 +45,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -125,6 +126,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+                mock(BulkRetryCoordinatorPool.class),
                 referenceResolver,
                 functions
         );
@@ -162,6 +164,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+                mock(BulkRetryCoordinatorPool.class),
                 referenceResolver,
                 functions
         );

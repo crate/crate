@@ -38,7 +38,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
@@ -73,8 +73,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
+                mock(BulkRetryCoordinatorPool.class),
                 new TableIdent(null, "bulk_import"),
                 null,
                 rawSourceReference,
@@ -106,6 +106,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A primary key value must not be NULL");
 
+
         CollectingProjector collectingProjector = new CollectingProjector();
         InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(0);
         InputColumn sourceInputColumn = new InputColumn(0);
@@ -113,8 +114,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardUpsertActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
+                mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),
                 new TableIdent(null, "bulk_import"),
                 null,
                 rawSourceReference,

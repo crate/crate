@@ -28,6 +28,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -42,6 +43,7 @@ public class NonDistributingCollectOperation extends MapSideDataCollectOperation
     public NonDistributingCollectOperation(ClusterService clusterService,
                                            Settings settings,
                                            TransportActionProvider transportActionProvider,
+                                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                            Functions functions,
                                            ReferenceResolver referenceResolver,
                                            IndicesService indicesService,
@@ -49,7 +51,8 @@ public class NonDistributingCollectOperation extends MapSideDataCollectOperation
                                            CollectServiceResolver collectServiceResolver,
                                            PlanNodeStreamerVisitor streamerVisitor,
                                            CollectContextService collectContextService) {
-        super(clusterService, settings, transportActionProvider, functions, referenceResolver,
+        super(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool,
+                functions, referenceResolver,
                 indicesService, threadPool, collectServiceResolver, streamerVisitor,
                 collectContextService);
     }

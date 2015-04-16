@@ -34,11 +34,11 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageDownstream;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.merge.NonSortingBucketMerger;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -54,6 +54,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -120,6 +121,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                         mock(ClusterService.class),
                         ImmutableSettings.EMPTY,
                         mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+                        mock(BulkRetryCoordinatorPool.class),
                         symbolVisitor,
                         new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver)
                 );

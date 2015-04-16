@@ -37,6 +37,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
@@ -64,6 +65,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     private final SymbolBasedUpsertByIdNode node;
     private final List<ListenableFuture<TaskResult>> resultList;
     private final AutoCreateIndex autoCreateIndex;
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     @Nullable
     private SymbolBasedBulkShardProcessor bulkShardProcessor;
 
@@ -74,12 +76,14 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                                      Settings settings,
                                      SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                      TransportCreateIndexAction transportCreateIndexAction,
+                                     BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                      SymbolBasedUpsertByIdNode node) {
         super(jobId);
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.clusterService = clusterService;
         this.node = node;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         autoCreateIndex = new AutoCreateIndex(settings);
 
         if (node.items().size() == 1) {
@@ -171,9 +175,9 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
         bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
-                settings,
-                transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
+                settings,
+                bulkRetryCoordinatorPool,
                 node.isPartitionedTable(),
                 false, // overwrite Duplicates
                 node.items().size(),

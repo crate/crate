@@ -23,61 +23,72 @@ package io.crate.operation.projectors;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
-import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class UpdateProjector implements Projector, RowDownstreamHandle {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(UpdateProjector.class);
+    public static final int DEFAULT_BULK_SIZE = 1024;
+
     private RowDownstreamHandle downstream;
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
-    private final List<SettableFuture<Long>> updateResults = new ArrayList<>();
 
     private final ShardId shardId;
-    private final SymbolBasedTransportShardUpsertActionDelegate transportUpdateActionDelegate;
     private final CollectExpression<?> collectUidExpression;
-    // The key of this map is expected to be a FQN columnIdent.
-    private final String[] assignmentsColumns;
     private final Symbol[] assignments;
     @Nullable
     private final Long requiredVersion;
     private final Object lock = new Object();
 
-    private static final ESLogger logger = Loggers.getLogger(UpdateProjector.class);
+    private final SymbolBasedBulkShardProcessor bulkShardProcessor;
 
-    public UpdateProjector(ShardId shardId,
-                           SymbolBasedTransportShardUpsertActionDelegate transportUpdateActionDelegate,
+    public UpdateProjector(ClusterService clusterService,
+                           Settings settings,
+                           ShardId shardId,
+                           TransportCreateIndexAction transportCreateIndexAction,
+                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                            CollectExpression<?> collectUidExpression,
                            String[] assignmentsColumns,
                            Symbol[] assignments,
                            @Nullable Long requiredVersion) {
         this.shardId = shardId;
-        this.transportUpdateActionDelegate = transportUpdateActionDelegate;
         this.collectUidExpression = collectUidExpression;
-        this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
+        this.bulkShardProcessor = new SymbolBasedBulkShardProcessor(
+                clusterService,
+                transportCreateIndexAction,
+                settings,
+                bulkRetryCoordinatorPool,
+                false,
+                false,
+                DEFAULT_BULK_SIZE,
+                false,
+                assignmentsColumns,
+                null
+            );
     }
 
     @Override
@@ -95,39 +106,8 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
             collectUidExpression.setNextRow(row);
             uid = Uid.createUid(((BytesRef)collectUidExpression.value()).utf8ToString());
         }
-
-        final SettableFuture<Long> future = SettableFuture.create();
-        updateResults.add(future);
-
-        SymbolBasedShardUpsertRequest updateRequest = new SymbolBasedShardUpsertRequest(shardId, assignmentsColumns, null);
-        updateRequest.add(0, uid.id(), assignments, requiredVersion, null);
-
-        transportUpdateActionDelegate.execute(updateRequest, new ActionListener<ShardUpsertResponse>() {
-            @Override
-            public void onResponse(ShardUpsertResponse updateResponse) {
-                int location = updateResponse.locations().get(0);
-                if (updateResponse.responses().get(location) != null) {
-                    future.set(1L);
-                } else {
-                    ShardUpsertResponse.Failure failure = updateResponse.failures().get(location);
-                    if (logger.isDebugEnabled()) {
-                        if (failure.versionConflict()) {
-                            logger.debug("Updating document with id {} failed because of a version conflict", failure.id());
-                        } else {
-                            logger.debug("Updating document with id {} failed {}", failure.id(), failure.message());
-                        }
-                    }
-                    future.set(0L);
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                logger.error("Updating document with id {} failed {}", e, uid.id());
-                future.set(0L);
-            }
-        });
-
+        // routing is already resolved
+        bulkShardProcessor.addForExistingShard(shardId, uid.id(), assignments, null, null, requiredVersion);
         return true;
     }
 
@@ -143,6 +123,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
             return;
         }
 
+        bulkShardProcessor.close();
         if (downstream != null) {
             collectUpdateResultsAndPassOverRowCount();
         }
@@ -154,6 +135,8 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
         if (remainingUpstreams.decrementAndGet() > 0) {
             return;
         }
+
+        bulkShardProcessor.close();
         if (downstream != null) {
             collectUpdateResultsAndPassOverRowCount();
         }
@@ -165,14 +148,11 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     }
 
     private void collectUpdateResultsAndPassOverRowCount() {
-        Futures.addCallback(Futures.allAsList(updateResults), new FutureCallback<List<Long>>() {
+        Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
             @Override
-            public void onSuccess(@Nullable List<Long> result) {
-                long rowCount = 0;
-                for (Long val : result) {
-                    rowCount += val;
-                }
-                downstream.setNextRow(new Row1(rowCount));
+            public void onSuccess(@Nullable BitSet result) {
+                assert result != null : "BulkShardProcessor result is null";
+                downstream.setNextRow(new Row1(result.cardinality()));
                 Throwable throwable = upstreamFailure.get();
                 if (throwable == null) {
                     downstream.finish();

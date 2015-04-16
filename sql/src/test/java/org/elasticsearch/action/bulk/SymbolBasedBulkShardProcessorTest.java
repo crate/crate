@@ -23,6 +23,7 @@ package org.elasticsearch.action.bulk;
 
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -42,7 +43,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.lang.reflect.Method;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -78,11 +78,21 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
             }
         };
 
+        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
+        when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardBulkActionDelegate);
+
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
+                ImmutableSettings.EMPTY,
+                transportActionProvider
+        );
+        BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
+        when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
+
         final SymbolBasedBulkShardProcessor bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
-                ImmutableSettings.EMPTY,
-                transportShardBulkActionDelegate,
                 mock(TransportCreateIndexAction.class),
+                ImmutableSettings.EMPTY,
+                coordinatorPool,
                 false,
                 false,
                 1,
@@ -124,11 +134,21 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
             }
         };
 
+        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
+        when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);
+
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
+                ImmutableSettings.EMPTY,
+                transportActionProvider
+        );
+        BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
+        when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
+
         final SymbolBasedBulkShardProcessor bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
-                ImmutableSettings.EMPTY,
-                transportShardUpsertActionDelegate,
                 mock(TransportCreateIndexAction.class),
+                ImmutableSettings.EMPTY,
+                coordinatorPool,
                 false,
                 false,
                 1,
@@ -167,16 +187,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
             assertTrue(hadBlocked.get());
         } finally {
             scheduledExecutorService.shutdownNow();
-            forceClose(bulkShardProcessor);
+            bulkRetryCoordinator.close();
         }
-    }
-
-    private void forceClose(SymbolBasedBulkShardProcessor bulkShardProcessor) throws Exception {
-        bulkShardProcessor.close();
-        Method stopExecutorMethod = SymbolBasedBulkShardProcessor.class.
-                getDeclaredMethod("stopExecutor");
-        stopExecutorMethod.setAccessible(true);
-        stopExecutorMethod.invoke(bulkShardProcessor);
     }
 
     private void mockShard(OperationRouting operationRouting, Integer shardId) {

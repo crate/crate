@@ -33,7 +33,6 @@ import io.crate.operation.collect.ShardingProjector;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
@@ -48,14 +47,9 @@ import org.elasticsearch.indices.IndexAlreadyExistsException;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 /**
  * Processor to do Bulk Inserts, similar to {@link BulkProcessor}
@@ -66,70 +60,78 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
  */
 public class BulkShardProcessor {
 
-    private static final AssignmentVisitor assignmentVisitor = new AssignmentVisitor();
+    private static final AssignmentVisitor ASSIGNMENT_VISITOR = new AssignmentVisitor();
+    private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
 
-    private final ClusterService clusterService;
-    private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
-    private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
     private final int bulkSize;
+
     private final Map<ShardId, ShardUpsertRequest> requestsByShard = new HashMap<>();
-    private final AutoCreateIndex autoCreateIndex;
     private final AtomicInteger globalCounter = new AtomicInteger(0);
     private final AtomicInteger counter = new AtomicInteger(0);
-    private final SettableFuture<BitSet> result;
     private final AtomicInteger pending = new AtomicInteger(0);
-    private final AtomicInteger currentDelay = new AtomicInteger(0);
+    private final Semaphore executeLock = new Semaphore(1);
+
+    private final SettableFuture<BitSet> result;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final BitSet responses;
     private final Object responsesLock = new Object();
     private final boolean overwriteDuplicates;
     private volatile boolean closed = false;
+
+    private final ClusterService clusterService;
+    private final TransportCreateIndexAction transportCreateIndexAction;
+    private final AutoCreateIndex autoCreateIndex;
     private final Set<String> indicesCreated = new HashSet<>();
-    private final ReadWriteLock retryLock = new ReadWriteLock();
-    private final Semaphore executeLock = new Semaphore(1);
-    private final ScheduledExecutorService scheduledExecutorService =
-            Executors.newSingleThreadScheduledExecutor(daemonThreadFactory("bulkShardProcessor"));
+
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final TimeValue requestTimeout;
+
     private final boolean continueOnErrors;
     private final ShardingProjector shardingProjector;
     private final AssignmentVisitorContext assignmentVisitorContext;
+
 
     @Nullable
     private Map<Reference, Symbol> updateAssignments;
     @Nullable
     private Map<Reference, Symbol> insertAssignments;
 
+    private final ResponseListener responseListener = new ResponseListener(false);
+    private final ResponseListener retryResponseListener = new ResponseListener(true);
 
-    private static final ESLogger logger = Loggers.getLogger(BulkShardProcessor.class);
 
     public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,
-                              TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                               TransportCreateIndexAction transportCreateIndexAction,
                               ShardingProjector shardingProjector,
                               boolean autoCreateIndices,
                               boolean overwriteDuplicates,
                               int bulkSize,
+                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               boolean continueOnErrors,
                               @Nullable Map<Reference, Symbol> updateAssignments,
                               @Nullable Map<Reference, Symbol> insertAssignments) {
         assert updateAssignments != null | insertAssignments != null;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
-        this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
-        this.transportCreateIndexAction = transportCreateIndexAction;
-        this.shardingProjector = shardingProjector;
         this.autoCreateIndices = autoCreateIndices;
+        this.overwriteDuplicates = overwriteDuplicates;
         this.bulkSize = bulkSize;
         this.continueOnErrors = continueOnErrors;
-        this.overwriteDuplicates = overwriteDuplicates;
+
+        this.autoCreateIndex = new AutoCreateIndex(settings);
+        this.transportCreateIndexAction = transportCreateIndexAction;
+        this.shardingProjector = shardingProjector;
+
         this.updateAssignments = updateAssignments;
         this.insertAssignments = insertAssignments;
-        responses = new BitSet();
-        result = SettableFuture.create();
-        autoCreateIndex = new AutoCreateIndex(settings);
+
         requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
         assignmentVisitorContext = processAssignments(updateAssignments, insertAssignments);
+
+        responses = new BitSet();
+        result = SettableFuture.create();
     }
 
     public boolean add(String indexName,
@@ -146,34 +148,37 @@ public class BulkShardProcessor {
             createIndexIfRequired(indexName);
         }
 
-        // will only block if retries/writer are active
+        shardingProjector.setNextRow(row);
+        ShardId shardId = shardId(indexName, shardingProjector.id(), shardingProjector.routing());
         try {
-            retryLock.readLock();
+            bulkRetryCoordinatorPool.coordinator(shardId).retryLock().acquireReadLock();
         } catch (InterruptedException e) {
             Thread.interrupted();
+        } catch (Throwable e) {
+            setFailure(e);
+            return false;
         }
 
-        shardingProjector.setNextRow(row);
-
-        partitionRequestByShard(indexName, shardingProjector.id(), row, shardingProjector.routing(), version);
+        partitionRequestByShard(shardId, shardingProjector.id(), row, shardingProjector.routing(), version);
         executeIfNeeded();
         return true;
     }
 
-    private void partitionRequestByShard(String indexName,
-                                         String id,
-                                         Row row,
-                                         @Nullable String routing,
-                                         @Nullable Long version) {
-        ShardId shardId = clusterService.operationRouting().indexShards(
+    private ShardId shardId(String indexName, String id, @Nullable String routing) {
+        return clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 indexName,
                 Constants.DEFAULT_MAPPING_TYPE,
                 id,
                 routing
         ).shardId();
+    }
 
-
+    private void partitionRequestByShard(ShardId shardId,
+                                         String id,
+                                         Row row,
+                                         @Nullable String routing,
+                                         @Nullable Long version) {
         try {
             executeLock.acquire();
             ShardUpsertRequest updateRequest = requestsByShard.get(shardId);
@@ -211,34 +216,18 @@ public class BulkShardProcessor {
         }
     }
 
-    private void stopExecutor() {
-        scheduledExecutorService.shutdown();
-        try {
-            scheduledExecutorService.awaitTermination(100, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            // ignore
-        } finally {
-            scheduledExecutorService.shutdownNow();
-        }
-    }
-
     private void setFailure(Throwable e) {
         failure.compareAndSet(null, e);
         result.setException(e);
-        stopExecutor();
     }
 
     private void setResult() {
-        try {
-            Throwable throwable = failure.get();
+        Throwable throwable = failure.get();
 
-            if (throwable == null) {
-                result.set(responses);
-            } else {
-                result.setException(throwable);
-            }
-        } finally {
-            stopExecutor();
+        if (throwable == null) {
+            result.set(responses);
+        } else {
+            result.setException(throwable);
         }
     }
 
@@ -262,47 +251,17 @@ public class BulkShardProcessor {
             for (Iterator<Map.Entry<ShardId, ShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
                 Map.Entry<ShardId, ShardUpsertRequest> entry = it.next();
                 ShardUpsertRequest shardUpsertRequest = entry.getValue();
-                //shardUpdateRequest.timeout(requestTimeout);
-                execute(shardUpsertRequest);
+                BulkRetryCoordinator coordinator = bulkRetryCoordinatorPool.coordinator(entry.getKey());
+                coordinator.execute(shardUpsertRequest, responseListener);
                 it.remove();
             }
         } catch (InterruptedException e) {
             Thread.interrupted();
+        } catch (Throwable t) {
+            setFailure(t);
         } finally {
             counter.set(0);
             executeLock.release();
-        }
-    }
-
-    private void execute(ShardUpsertRequest updateRequest) {
-        trace(String.format(Locale.ENGLISH, "execute shard request %d", updateRequest.shardId()));
-        transportShardUpsertActionDelegate.execute(updateRequest, new ResponseListener(updateRequest));
-    }
-
-    private void doRetry(final ShardUpsertRequest request, final boolean repeatingRetry) {
-        trace("doRetry");
-        if (repeatingRetry) {
-            try {
-                Thread.sleep(currentDelay.incrementAndGet());
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
-            transportShardUpsertActionDelegate.execute(request, new RetryResponseListener(request));
-        } else {
-            // new retries will be spawned in new thread because they can block
-            scheduledExecutorService.schedule(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            // will block if other retries/writer are active
-                            try {
-                                retryLock.writeLock();
-                            } catch (InterruptedException e) {
-                                Thread.interrupted();
-                            }
-                            transportShardUpsertActionDelegate.execute(request, new RetryResponseListener(request));
-                        }
-                    }, currentDelay.getAndIncrement(), TimeUnit.MILLISECONDS);
         }
     }
 
@@ -317,8 +276,8 @@ public class BulkShardProcessor {
                     // copy from with multiple readers might attempt to create the index
                     // multiple times
                     // can be ignored.
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("copy from index {}", e.getMessage());
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("copy from index {}", e.getMessage());
                     }
                     indicesCreated.add(indexName);
                 } else {
@@ -336,21 +295,29 @@ public class BulkShardProcessor {
                 responses.set(location, shardUpsertResponse.responses().get(i) != null);
             }
         }
-
         setResultIfDone(shardUpsertResponse.locations().size());
     }
 
     private void processFailure(Throwable e, ShardUpsertRequest shardUpsertRequest, boolean repeatingRetry) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
+        ShardId shardId = new ShardId(shardUpsertRequest.index(), shardUpsertRequest.shardId());
+
+        BulkRetryCoordinator coordinator;
+        try {
+            coordinator = bulkRetryCoordinatorPool.coordinator(shardId);
+        } catch (Throwable t) {
+            setFailure(t);
+            return;
+        }
         if (e instanceof EsRejectedExecutionException) {
-            logger.trace("{}, retrying", e.getMessage());
-            doRetry(shardUpsertRequest, repeatingRetry);
+            LOGGER.trace("{}, retrying", e.getMessage());
+            coordinator.retry(shardUpsertRequest, repeatingRetry, retryResponseListener);
         } else {
             if (repeatingRetry) {
                 // release failed retry
                 try {
-                    retryLock.writeUnlock();
+                    coordinator.retryLock().releaseWriteLock();
                 } catch (InterruptedException ex) {
                     Thread.interrupted();
                 }
@@ -373,12 +340,12 @@ public class BulkShardProcessor {
         AssignmentVisitorContext context = new AssignmentVisitorContext();
         if (updateAssignments != null) {
             for (Symbol symbol : updateAssignments.values()) {
-                assignmentVisitor.process(symbol, context);
+                ASSIGNMENT_VISITOR.process(symbol, context);
             }
         }
         if (insertAssignments != null) {
             for (Symbol symbol : insertAssignments.values()) {
-                assignmentVisitor.process(symbol, context);
+                ASSIGNMENT_VISITOR.process(symbol, context);
             }
         }
 
@@ -397,101 +364,31 @@ public class BulkShardProcessor {
         return context;
     }
 
-    class ResponseListener implements ActionListener<ShardUpsertResponse> {
-
-        protected final ShardUpsertRequest shardUpsertRequest;
-
-        public ResponseListener(ShardUpsertRequest shardUpsertRequest) {
-            this.shardUpsertRequest = shardUpsertRequest;
-        }
-
-        @Override
-        public void onResponse(ShardUpsertResponse shardUpsertResponse) {
-            processResponse(shardUpsertResponse);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            processFailure(e, shardUpsertRequest, false);
-        }
-    }
-
     private void trace(String message) {
-        if (logger.isTraceEnabled()) {
-            logger.trace("BulkShardProcessor: pending: {}; active retries: {} - {}",
-                    pending.get(), retryLock.activeWriters(), message);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("BulkShardProcessor: pending: {}; {}",
+                    pending.get(), message);
         }
     }
 
-    class RetryResponseListener extends ResponseListener {
+    class ResponseListener implements BulkRetryCoordinator.RequestActionListener<ShardUpsertRequest, ShardUpsertResponse> {
 
-        public RetryResponseListener(ShardUpsertRequest shardUpsertRequest) {
-            super(shardUpsertRequest);
+        private final boolean retryListener;
+
+        private ResponseListener(boolean retryListener) {
+            this.retryListener = retryListener;
         }
 
         @Override
-        public void onResponse(ShardUpsertResponse shardUpsertResponse) {
-            trace("BulkShardProcessor retry success");
-            currentDelay.set(0);
-            try {
-                retryLock.writeUnlock();
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
+        public void onResponse(ShardUpsertRequest shardUpsertRequest,
+                               ShardUpsertResponse shardUpsertResponse) {
             processResponse(shardUpsertResponse);
         }
 
         @Override
-        public void onFailure(Throwable e) {
-            trace("BulkShardProcessor retry failure");
-            processFailure(e, shardUpsertRequest, true);
+        public void onFailure(ShardUpsertRequest shardUpsertRequest, Throwable e) {
+            processFailure(e, shardUpsertRequest, retryListener);
         }
-    }
-
-    /**
-     * A {@link java.util.concurrent.Semaphore} based read/write lock allowing multiple readers,
-     * no reader will block others, and only 1 active writer. Writers take
-     * precedence over readers, a writer will block all readers.
-     * Compared to a {@link ReadWriteLock}, no lock is owned by a thread.
-     */
-    class ReadWriteLock {
-        private final Semaphore readLock = new Semaphore(1, true);
-        private final Semaphore writeLock = new Semaphore(1, true);
-        private final AtomicInteger activeWriters = new AtomicInteger(0);
-        private final AtomicInteger waitingReaders = new AtomicInteger(0);
-
-        public ReadWriteLock() {
-        }
-
-        public void writeLock() throws InterruptedException {
-            // check readLock permits to prevent deadlocks
-            if (activeWriters.getAndIncrement() == 0 && readLock.availablePermits() == 1) {
-                // draining read permits, so all reads will block
-                readLock.drainPermits();
-            }
-            writeLock.acquire();
-        }
-
-        public void writeUnlock() throws InterruptedException {
-            if (activeWriters.decrementAndGet() == 0) {
-                // unlock all readers
-                readLock.release(waitingReaders.getAndSet(0)+1);
-            }
-            writeLock.release();
-        }
-
-        public void readLock() throws InterruptedException {
-            // only acquire permit if writers are active
-            if(activeWriters.get() > 0) {
-                waitingReaders.getAndIncrement();
-                readLock.acquire();
-            }
-        }
-
-        public int activeWriters() {
-            return activeWriters.get();
-        }
-
     }
 
     public static class AssignmentVisitorContext {

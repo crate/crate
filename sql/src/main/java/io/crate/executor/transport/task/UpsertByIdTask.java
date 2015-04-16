@@ -38,6 +38,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
@@ -62,6 +63,7 @@ public class UpsertByIdTask extends JobTask {
     private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final ClusterService clusterService;
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final UpsertByIdNode node;
     private final List<ListenableFuture<TaskResult>> resultList;
     private final AutoCreateIndex autoCreateIndex;
@@ -76,11 +78,13 @@ public class UpsertByIdTask extends JobTask {
                           Settings settings,
                           TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                           TransportCreateIndexAction transportCreateIndexAction,
+                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                           UpsertByIdNode node) {
         super(jobId);
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.clusterService = clusterService;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.node = node;
         autoCreateIndex = new AutoCreateIndex(settings);
         shardingProjector = new ShardingProjector(
@@ -126,7 +130,7 @@ public class UpsertByIdTask extends JobTask {
         }
     }
 
-    private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture futureResult) {
+    private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture<TaskResult> futureResult) {
         shardingProjector.setNextRow(item);
 
         ShardId shardId = clusterService.operationRouting().indexShards(
@@ -187,12 +191,12 @@ public class UpsertByIdTask extends JobTask {
         bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 shardingProjector,
                 node.isPartitionedTable(),
                 false, // overwrite Duplicates
                 node.items().size(),
+                bulkRetryCoordinatorPool,
                 node.isBulkRequest() || node.updateAssignments() != null, // continue on error on bulk and/or update
                 node.updateAssignments(),
                 node.insertAssignments());

@@ -57,6 +57,8 @@ import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
+import org.elasticsearch.action.bulk.BulkModule;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -102,7 +104,9 @@ public class SQLPlugin extends AbstractPlugin {
     public Collection<Class<? extends LifecycleComponent>> services() {
         return ImmutableList.<Class<? extends LifecycleComponent>>of(
                 SQLService.class,
-                CollectContextService.class);
+                CollectContextService.class,
+                BulkRetryCoordinatorPool.class
+        );
     }
 
     @Override
@@ -127,6 +131,7 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(AggregationImplModule.class);
             modules.add(ScalarFunctionModule.class);
             modules.add(PlanModule.class);
+            modules.add(BulkModule.class);
         }
         return modules;
     }

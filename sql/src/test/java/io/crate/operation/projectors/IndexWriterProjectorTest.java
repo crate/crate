@@ -24,7 +24,10 @@ package io.crate.operation.projectors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.RowN;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -38,7 +41,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
@@ -66,13 +69,11 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         InputColumn sourceInputColumn = new InputColumn(1, StringType.INSTANCE);
         CollectExpression[] collectExpressions = new CollectExpression[]{sourceInput};
 
-        ReferenceInfos referenceInfos = cluster().getInstance(ReferenceInfos.class);
-
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 cluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                cluster().getInstance(TransportShardUpsertActionDelegateImpl.class),
                 cluster().getInstance(TransportCreateIndexAction.class),
+                cluster().getInstance(BulkRetryCoordinatorPool.class),
                 new TableIdent(null, "bulk_import"),
                 null,
                 new Reference(new ReferenceInfo(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING)),

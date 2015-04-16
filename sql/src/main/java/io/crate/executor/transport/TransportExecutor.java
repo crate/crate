@@ -35,9 +35,9 @@ import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
 import io.crate.planner.node.PlanNode;
@@ -45,6 +45,8 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import org.elasticsearch.action.bulk.BulkRetryCoordinator;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -70,6 +72,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final Settings settings;
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final ImplementationSymbolVisitor globalImplementationSymbolVisitor;
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
@@ -91,7 +94,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
-                             CrateCircuitBreakerService breakerService) {
+                             CrateCircuitBreakerService breakerService,
+                             BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -101,13 +105,17 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.CLUSTER);
         this.globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
-                clusterService, settings, transportActionProvider,
+                clusterService,
+                settings,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
                 globalImplementationSymbolVisitor);
     }
 
@@ -333,6 +341,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    bulkRetryCoordinatorPool,
                     node));
         }
 
@@ -343,6 +352,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.transportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    bulkRetryCoordinatorPool,
                     node));
         }
 

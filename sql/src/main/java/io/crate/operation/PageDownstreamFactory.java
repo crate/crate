@@ -34,6 +34,7 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -50,6 +51,7 @@ public class PageDownstreamFactory {
     public PageDownstreamFactory(ClusterService clusterService,
                                  Settings settings,
                                  TransportActionProvider transportActionProvider,
+                                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                  ReferenceResolver referenceResolver,
                                  Functions functions) {
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -61,6 +63,7 @@ public class PageDownstreamFactory {
                 clusterService,
                 settings,
                 transportActionProvider,
+                bulkRetryCoordinatorPool,
                 implementationSymbolVisitor
         );
     }

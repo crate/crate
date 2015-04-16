@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,20 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.plugin;
+package org.elasticsearch.action.bulk;
 
-import io.crate.action.sql.DDLStatementDispatcher;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.service.SQLService;
 import org.elasticsearch.common.inject.AbstractModule;
 
-
-public class SQLModule extends AbstractModule {
-
+public class BulkModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(SQLService.class).asEagerSingleton();
-        bind(DDLStatementDispatcher.class).asEagerSingleton();
-        bind(FulltextAnalyzerResolver.class).asEagerSingleton();
+        bind(BulkRetryCoordinatorPool.class).asEagerSingleton();
     }
 }

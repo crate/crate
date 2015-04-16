@@ -51,6 +51,7 @@ import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.ValueSymbolVisitor;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
@@ -124,6 +125,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Settings settings,
                                        TransportActionProvider transportActionProvider,
+                                       BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                        Functions functions,
                                        ReferenceResolver referenceResolver,
                                        IndicesService indicesService,
@@ -149,6 +151,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                 clusterService,
                 settings,
                 transportActionProvider,
+                bulkRetryCoordinatorPool,
                 nodeImplementationSymbolVisitor
         );
         this.streamerVisitor = streamerVisitor;

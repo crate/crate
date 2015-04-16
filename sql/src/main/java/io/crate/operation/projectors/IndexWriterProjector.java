@@ -32,7 +32,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -83,13 +83,13 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
         public Object[] materialize() {
             return Buckets.materialize(this);
         }
-    };
+    }
 
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
-                                TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                 TransportCreateIndexAction transportCreateIndexAction,
+                                BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                 TableIdent tableIdent,
                                 @Nullable String partitionIdent,
                                 Reference rawSourceReference,
@@ -105,7 +105,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates) {
-        super(tableIdent, partitionIdent, primaryKeyIdents, primaryKeySymbols, partitionedByInputs,
+        super(bulkRetryCoordinatorPool, tableIdent, partitionIdent, primaryKeyIdents, primaryKeySymbols, partitionedByInputs,
                 routingSymbol, collectExpressions);
 
         if (includes == null && excludes == null) {
@@ -123,7 +123,6 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
         createBulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardUpsertActionDelegate,
                 transportCreateIndexAction,
                 bulkActions,
                 autoCreateIndices,

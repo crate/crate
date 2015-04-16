@@ -152,7 +152,8 @@ public class SymbolBasedTransportShardUpsertAction extends TransportShardReplica
             try {
                 IndexResponse indexResponse = indexItem(
                         request,
-                        item, shardRequest.shardId,
+                        item,
+                        shardRequest.shardId,
                         item.insertValues() != null, // try insert first
                         0);
                 shardUpsertResponse.add(location,
