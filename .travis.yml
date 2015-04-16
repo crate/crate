@@ -23,7 +23,7 @@ notifications:
 before_install:
   - ulimit -u 65535
 
-script: ./gradlew --parallel -PtestForks=2 test itest -s
+script: ./gradlew -PtestForks=2 test itest -s
 
 after_success:
   - ./gradlew jacocoReport coveralls
