@@ -58,6 +58,7 @@ import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.BooleanFilter;
+import org.apache.lucene.queries.TermsFilter;
 import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
@@ -204,7 +205,7 @@ public class LuceneQueryBuilder {
         interface FunctionToQuery {
 
             @Nullable
-            public Query apply (Function input, Context context) throws IOException;
+            Query apply (Function input, Context context) throws IOException;
         }
 
         static abstract class CmpQuery implements FunctionToQuery {
@@ -277,16 +278,24 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 String columnName = reference.ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
 
-                BooleanFilter filter = new BooleanFilter();
-                for (Object value : toIterable(arrayLiteral.value())) {
-                    filter.add(builder.eqFilter(columnName, value), BooleanClause.Occur.SHOULD);
+                if (reference.valueType().equals(DataTypes.STRING)) {
+                    Object values = arrayLiteral.value();
+                    TermsFilter termsFilter;
+                    if (values instanceof Collection) {
+                        termsFilter = new TermsFilter(columnName, getBytesRefs((Collection) arrayLiteral.value()));
+                    } else {
+                        termsFilter = new TermsFilter(columnName, getBytesRefs((Object[]) arrayLiteral.value()));
+                    }
+                    return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter);
+                } else {
+                    QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
+                    BooleanFilter filter = new BooleanFilter();
+                    for (Object value : toIterable(arrayLiteral.value())) {
+                        filter.add(builder.eqFilter(columnName, value), BooleanClause.Occur.SHOULD);
+                    }
+                    return new FilteredQuery(Queries.newMatchAllQuery(), filter);
                 }
-                return new FilteredQuery(
-                        Queries.newMatchAllQuery(),
-                        filter
-                );
             }
         }
 
@@ -408,13 +417,21 @@ public class LuceneQueryBuilder {
                 String field = tuple.v1().info().ident().columnIdent().fqn();
                 Literal literal = tuple.v2();
                 CollectionType dataType = ((CollectionType) literal.valueType());
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(dataType.innerType());
-                BooleanQuery booleanQuery = new BooleanQuery();
+
                 Set values = (Set) literal.value();
-                for (Object value : values) {
-                    booleanQuery.add(builder.eq(field, value), BooleanClause.Occur.SHOULD);
+                DataType innerType = dataType.innerType();
+                if (innerType.equals(DataTypes.STRING)) {
+                    BytesRef[] terms = getBytesRefs(values);
+                    TermsFilter termsFilter = new TermsFilter(field, terms);
+                    return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter);
+                } else {
+                    QueryBuilderHelper builder = QueryBuilderHelper.forType(innerType);
+                    BooleanQuery booleanQuery = new BooleanQuery();
+                    for (Object value : values) {
+                        booleanQuery.add(builder.eq(field, value), BooleanClause.Occur.SHOULD);
+                    }
+                    return booleanQuery;
                 }
-                return booleanQuery;
             }
         }
 
@@ -745,7 +762,7 @@ public class LuceneQueryBuilder {
              * returns a query for the given functions or null if it can't build a query.
              */
             @Nullable
-            public Query apply(Function parent, Function inner, Context context) throws IOException;
+            Query apply(Function parent, Function inner, Context context) throws IOException;
         }
 
         /**
@@ -1235,5 +1252,25 @@ public class LuceneQueryBuilder {
         public Input input() {
             return input;
         }
+    }
+
+    private static BytesRef[] getBytesRefs(Object[] values) {
+        BytesRef[] terms = new BytesRef[values.length];
+        int i = 0;
+        for (Object value : values) {
+            terms[i] = (BytesRef) value;
+            i++;
+        }
+        return terms;
+    }
+
+    private static BytesRef[] getBytesRefs(Collection values) {
+        BytesRef[] terms = new BytesRef[values.size()];
+        int i = 0;
+        for (Object value : values) {
+            terms[i] = (BytesRef) value;
+            i++;
+        }
+        return terms;
     }
 }

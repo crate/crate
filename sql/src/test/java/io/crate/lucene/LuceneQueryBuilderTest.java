@@ -38,6 +38,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.queries.BooleanFilter;
+import org.apache.lucene.queries.TermsFilter;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
@@ -148,6 +149,21 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Test
     public void testWhereRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
+        DataType dataType = new SetType(DataTypes.INTEGER);
+        Reference foo = createReference("foo", DataTypes.INTEGER);
+        WhereClause whereClause = new WhereClause(
+                createFunction(InOperator.NAME, DataTypes.BOOLEAN,
+                        foo,
+                        Literal.newLiteral(dataType, Sets.newHashSet(1, 3))));
+        Query query = convert(whereClause);
+        assertThat(query, instanceOf(BooleanQuery.class));
+        for (BooleanClause booleanClause : (BooleanQuery) query) {
+            assertThat(booleanClause.getQuery(), instanceOf(NumericRangeQuery.class));
+        }
+    }
+
+    @Test
+    public void testWhereStringRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
         DataType dataType = new SetType(DataTypes.STRING);
         Reference foo = createReference("foo", DataTypes.STRING);
         WhereClause whereClause = new WhereClause(
@@ -156,10 +172,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                         Literal.newLiteral(dataType, Sets.newHashSet(new BytesRef("foo"), new BytesRef("bar")))
                 ));
         Query query = convert(whereClause);
-        assertThat(query, instanceOf(BooleanQuery.class));
-        for (BooleanClause booleanClause : (BooleanQuery) query) {
-            assertThat(booleanClause.getQuery(), instanceOf(TermQuery.class));
-        }
+        assertThat(query, instanceOf(FilteredQuery.class));
+        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
     }
 
     /**
