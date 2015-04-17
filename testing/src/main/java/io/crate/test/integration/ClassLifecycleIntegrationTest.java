@@ -54,7 +54,6 @@ public class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
         Loggers.getLogger("org.elasticsearch.http").setLevel("INFO");
     }
 
-
     public static CrateTestCluster GLOBAL_CLUSTER;
     private static Random random;
 

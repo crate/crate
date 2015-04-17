@@ -29,11 +29,15 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-partitioned-bulk-insert-history")
@@ -91,7 +95,12 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
     @Test
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     public void testBulkInsertWithBulkArgs() throws Exception {
-        getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest()).actionGet();
+        SQLBulkResponse bulkResponse = getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest()).actionGet();
+        long rowCount = 0;
+        for (SQLBulkResponse.Result result : bulkResponse.results()) {
+            rowCount += result.rowCount();
+        }
+        assertThat(rowCount, is(5000L));
     }
 
 }

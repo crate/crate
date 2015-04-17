@@ -123,7 +123,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
     private static final Map<Class<?>, CrateTestCluster> clusters = new IdentityHashMap<Class<?>, CrateTestCluster>();
 
     @Before
-    public void before() throws IOException {
+    public synchronized void before() throws IOException {
         final Scope currentClusterScope = getCurrentClusterScope();
         switch (currentClusterScope) {
             case GLOBAL:
@@ -168,14 +168,14 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
     }
 
     @After
-    public void after() throws IOException {
+    public synchronized void after() throws IOException {
         try {
             logger.info("[{}#{}]: cleaning up after test", getTestClass().getSimpleName(), getTestName());
             Scope currentClusterScope = getCurrentClusterScope();
             if (currentClusterScope == Scope.TEST) {
                 clearClusters(); // it is ok to leave persistent / transient cluster state behind if scope is TEST
-            } else {
-                MetaData metaData = client().admin().cluster().prepareState().execute().actionGet().getState().getMetaData();
+            } else if (cluster() != null) {
+                MetaData metaData = cluster().client().admin().cluster().prepareState().execute().actionGet().getState().getMetaData();
                 // TODO: enable assert
                 // assertThat("test leaves persistent cluster metadata behind: " + metaData.persistentSettings().getAsMap(), metaData
                 //     .persistentSettings().getAsMap().size(), equalTo(0));
@@ -189,8 +189,10 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
             wipeRepositories();
             logger.info("[{}#{}]: cleaned up after test", getTestClass().getSimpleName(), getTestName());
         } finally {
-            currentCluster.afterTest();
-            currentCluster = null;
+            if (currentCluster != null) {
+                currentCluster.afterTest();
+                currentCluster = null;
+            }
         }
     }
 
@@ -225,9 +227,9 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
      */
     public static void wipeIndices(String... indices) {
         assert indices != null && indices.length > 0;
-        if (cluster().size() > 0) {
+        if (cluster() != null && cluster().size() > 0) {
             try {
-                assertAcked(client().admin().indices().prepareDelete(indices));
+                assertAcked(cluster().client().admin().indices().prepareDelete(indices));
             } catch (IndexMissingException e) {
                 // ignore
             } catch (ElasticsearchIllegalArgumentException e) {
@@ -252,7 +254,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
      * If no template name is passed to this method all templates are removed.
      */
     public static void wipeTemplates(String... templates) {
-        if (cluster().size() > 0) {
+        if (cluster() != null && cluster().size() > 0) {
             // if nothing is provided, delete all
             if (templates.length == 0) {
                 templates = new String[]{"*"};
@@ -271,7 +273,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
      * Deletes repositories, supports wildcard notation.
      */
     public static void wipeRepositories(String... repositories) {
-        if (cluster().size() > 0) {
+        if (cluster() != null && cluster().size() > 0) {
             // if nothing is provided, delete all
             if (repositories.length == 0) {
                 repositories = new String[]{"*"};
