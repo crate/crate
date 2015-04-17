@@ -36,6 +36,7 @@ import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -43,8 +44,6 @@ import org.junit.rules.TestRule;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.Assert.assertTrue;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-delete-history", labelWith = LabelType.CUSTOM_KEY)
@@ -124,7 +123,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     public void testDeleteApiById() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             DeleteResponse response = getClient(false).execute(DeleteAction.INSTANCE, getDeleteApiByIdRequest()).actionGet();
-            assertTrue(response.isFound());
+            Assert.assertTrue(response.isFound());
         }
     }
 

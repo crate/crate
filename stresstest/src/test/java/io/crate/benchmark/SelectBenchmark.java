@@ -27,16 +27,16 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.*;
+import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLRequestBuilder;
+import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.search.SearchAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -44,9 +44,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-select-history", labelWith = LabelType.CUSTOM_KEY)
@@ -179,7 +176,7 @@ public class SelectBenchmark extends BenchmarkBase {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             GetRequest request = getApiGetRequest(false);
             GetResponse response = getClient(false).execute(GetAction.INSTANCE, request).actionGet();
-            assertTrue(String.format(Locale.ENGLISH, "Queried row '%s' does not exist (API). Round: %d", request.id(), apiGetRound), response.isExists());
+            Assert.assertTrue(String.format(Locale.ENGLISH, "Queried row '%s' does not exist (API). Round: %d", request.id(), apiGetRound), response.isExists());
             apiGetRound++;
         }
     }
@@ -190,7 +187,7 @@ public class SelectBenchmark extends BenchmarkBase {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLRequest request = getSqlGetRequest(false);
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();
-            assertEquals(
+            Assert.assertEquals(
                     String.format(Locale.ENGLISH, "Queried row '%s' does not exist (SQL). Round: %d", request.args()[0], sqlGetRound),
                     1,
                     response.rows().length
@@ -204,7 +201,7 @@ public class SelectBenchmark extends BenchmarkBase {
     public void testGetMultipleResultsApi() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiSearchRequest()).actionGet();
-            assertEquals(
+            Assert.assertEquals(
                     "Did not find the two wanted rows (API).",
                     2L,
                     response.getHits().getTotalHits()
@@ -217,7 +214,7 @@ public class SelectBenchmark extends BenchmarkBase {
     public void testGetMultipleResultsSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest()).actionGet();
-            assertEquals(
+            Assert.assertEquals(
                     "Did not find the three wanted rows (SQL).",
                     3,
                     response.rows().length
@@ -230,7 +227,7 @@ public class SelectBenchmark extends BenchmarkBase {
     public void testGetMultiGetApi() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             MultiGetResponse response = getClient(false).execute(MultiGetAction.INSTANCE, getMultiGetApiRequest()).actionGet();
-            assertEquals(
+            Assert.assertEquals(
                     "Did not find the three wanted rows (API, MultiGet)",
                     3,
                     response.getResponses().length
@@ -243,7 +240,7 @@ public class SelectBenchmark extends BenchmarkBase {
     public void testGetMultiGetSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getMultiGetSqlRequest(false)).actionGet();
-            assertEquals(
+            Assert.assertEquals(
                     "Did not find the three wanted rows (SQL, MultiGet)",
                     3,
                     response.rowCount()

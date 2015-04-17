@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.test.integration.NodeSettingsSource;
+import io.crate.test.integration.PathAccessor;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
@@ -39,10 +40,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -54,9 +52,6 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import static io.crate.test.integration.PathAccessor.bytesFromPath;
-import static org.junit.Assert.assertFalse;
 
 
 @RunWith(JUnit4.class)
@@ -80,7 +75,7 @@ public class BenchmarkBase {
         );
 
     public static final String INDEX_NAME = "countries";
-    public static final String DATA = "/essetup/data/bench.json";
+    public static final String DATA = "/setup/data/bench.json";
 
     private Random random = new Random(System.nanoTime());
 
@@ -177,7 +172,7 @@ public class BenchmarkBase {
                                 bulkRequest.add(indexRequest);
                             }
                             BulkResponse response = client.bulk(bulkRequest).actionGet();
-                            assertFalse(response.hasFailures());
+                            Assert.assertFalse(response.hasFailures());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -273,7 +268,7 @@ public class BenchmarkBase {
 
     public void loadBulk(boolean queryPlannerEnabled) throws Exception {
         String path = dataPath();
-        byte[] bulkPayload = bytesFromPath(path, this.getClass());
+        byte[] bulkPayload = PathAccessor.bytesFromPath(path, this.getClass());
         BulkResponse bulk = getClient(queryPlannerEnabled).prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
         for (BulkItemResponse item : bulk.getItems()) {
             assert !item.isFailed() : String.format("unable to index data %s", item);

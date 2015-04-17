@@ -21,75 +21,14 @@
 
 package io.crate.operation.scalar;
 
-import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import org.apache.lucene.util.BytesRef;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
-
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Random;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 
 public class SubstrFunctionBytesRefTest {
-
-    static CharsetEncoder utf8Encoder = StandardCharsets.UTF_8.newEncoder();
-
-    private static final Random RANDOM = new Random();
-
-    static final String[] strings = getStrings(10_000, 100);
-    static final BytesRef[] bytesRefs = toBytesRefs(strings);
-
-    // helpers
-
-    public static String getTestString(int length) {
-
-        StringBuilder buffer = new StringBuilder();
-        for (int i = 0; i < length; i++) {
-            char c = (char) (RANDOM.nextInt(Character.MAX_VALUE));
-            while (!utf8Encoder.canEncode(c)) {
-                c = (char) (RANDOM.nextInt(Character.MAX_VALUE));
-            }
-            buffer.append(c);
-        }
-        return buffer.toString();
-    }
-
-    static String[] getStrings(int size, int stringSize) {
-        String[] res = new String[size];
-        for (int i = 0; i < res.length; i++) {
-            res[i] = getTestString(stringSize);
-        }
-        return res;
-    }
-
-    private static BytesRef[] toBytesRefs(String[] strings) {
-        BytesRef[] res = new BytesRef[strings.length];
-        for (int i = 0; i < res.length; i++) {
-            res[i] = new BytesRef(strings[i]);
-        }
-        return res;
-    }
-
-    // end of helpers
-
-    @Rule
-    public TestRule benchmarkRun = new BenchmarkRule();
-
-    @BenchmarkOptions(benchmarkRounds = 1, warmupRounds = 0)
-    @Test
-    public void testPos() throws Exception {
-        for (int i = 0; i < strings.length; i++) {
-            assertEquals(strings[i], bytesRefs[i].utf8ToString());
-            assertEquals(strings[i].substring(10, 80), SubstrFunction.substring(bytesRefs[i], 10, 80).utf8ToString());
-        }
-    }
 
     @Test
     public void testNoCopy() throws Exception {

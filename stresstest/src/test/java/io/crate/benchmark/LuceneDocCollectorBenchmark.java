@@ -60,11 +60,16 @@ import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.List;
@@ -74,13 +79,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.search.sort.SortBuilders.fieldSort;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @BenchmarkHistoryChart(filePrefix="benchmark-lucenedoccollector-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
@@ -193,8 +192,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         node.toCollect(input);
         node.maxRowGranularity(RowGranularity.DOC);
 
-        ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
-        when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
+        ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
+        Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
         int jobSearchContextId = 0;
         JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
@@ -256,7 +255,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols());
         docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
         collectingProjector.finish();
-        assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCUMENTS));
+        MatcherAssert.assertThat(collectingProjector.rows.size(), CoreMatchers.is(NUMBER_OF_DOCUMENTS));
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -303,7 +302,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         int totalHits = 0;
         SearchResponse response = getClient(true).prepareSearch(INDEX_NAME).setTypes("default")
                                     .addField("continent")
-                                    .addSort(fieldSort("continent").missing("_last"))
+                                    .addSort(SortBuilders.fieldSort("continent").missing("_last"))
                                     .setScroll("1m")
                                     .setSize(Constants.PAGE_SIZE)
                                     .execute().actionGet();
@@ -319,7 +318,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public void testElasticsearchOrderedWithoutScrollingPerformance() throws Exception{
         getClient(true).prepareSearch(INDEX_NAME).setTypes("default")
                 .addField("continent")
-                .addSort(fieldSort("continent").missing("_last"))
+                .addSort(SortBuilders.fieldSort("continent").missing("_last"))
                 .setSize(NUMBER_OF_DOCUMENTS)
                 .execute().actionGet();
     }
