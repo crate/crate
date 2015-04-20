@@ -149,6 +149,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                threadPool,
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,

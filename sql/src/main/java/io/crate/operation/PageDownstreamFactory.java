@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.concurrent.Executor;
 
@@ -49,6 +50,7 @@ public class PageDownstreamFactory {
 
     @Inject
     public PageDownstreamFactory(ClusterService clusterService,
+                                 ThreadPool threadPool,
                                  Settings settings,
                                  TransportActionProvider transportActionProvider,
                                  BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -61,6 +63,7 @@ public class PageDownstreamFactory {
         );
         this.projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                threadPool,
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,

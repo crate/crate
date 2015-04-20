@@ -113,6 +113,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 referenceResolver, functions, RowGranularity.CLUSTER);
         this.globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                threadPool,
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,

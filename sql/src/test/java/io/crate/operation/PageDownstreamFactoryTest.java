@@ -54,7 +54,9 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.collection.IsIterableContainingInOrder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -63,6 +65,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -76,6 +79,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     private GroupProjection groupProjection;
     private Functions functions;
     private ReferenceResolver referenceResolver;
+    private ThreadPool threadPool;
 
     @Before
     @SuppressWarnings("unchecked")
@@ -89,6 +93,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                     }
                 })
                 .createInjector();
+        threadPool = new ThreadPool("testing");
         functions = injector.getInstance(Functions.class);
         referenceResolver = new GlobalReferenceResolver(
                 Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
@@ -102,6 +107,14 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 new Aggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)),
                         Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
+    }
+
+    @Override
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     @Test
@@ -124,6 +137,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         BucketPage page = new BucketPage(Futures.immediateFuture(rows));
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
+                threadPool,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
@@ -162,6 +176,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         ));
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
+                threadPool,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),

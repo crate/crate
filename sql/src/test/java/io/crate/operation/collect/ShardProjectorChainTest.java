@@ -58,10 +58,13 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.highlight.HighlightModule;
 import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -74,6 +77,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private ProjectionToProjectorVisitor projectionToProjectorVisitor;
+    private ThreadPool threadPool;
 
     private class TestModule extends AbstractModule {
 
@@ -102,6 +106,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 new TestModule(),
                 new MetaDataModule());
         Injector injector = builder.createInjector();
+        threadPool = new ThreadPool("testing");
 
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
                 injector.getInstance(ReferenceResolver.class),
@@ -109,12 +114,19 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 RowGranularity.CLUSTER);
         projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 new NoopClusterService(),
+                threadPool,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class),
                 mock(BulkRetryCoordinatorPool.class),
                 implementationSymbolVisitor,
                 null
         );
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     private Aggregation countAggregation() {

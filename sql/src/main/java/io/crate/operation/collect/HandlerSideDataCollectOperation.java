@@ -40,6 +40,7 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
 import java.util.Set;
@@ -54,6 +55,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation {
 
     @Inject
     public HandlerSideDataCollectOperation(ClusterService clusterService,
+                                           ThreadPool threadPool,
                                            Settings settings,
                                            TransportActionProvider transportActionProvider,
                                            BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -67,6 +69,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation {
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                threadPool,
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,

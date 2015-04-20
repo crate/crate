@@ -63,7 +63,9 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -71,6 +73,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -111,6 +114,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
         groupProjection.values(Arrays.asList(
                 new Aggregation(minAggFunction.info(), Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
+        threadPool = new ThreadPool("testing");
         pageDownstreamFactory = mock(PageDownstreamFactory.class);
         when(pageDownstreamFactory.createMergeNodePageDownstream(any(MergeNode.class), any(ResultProvider.class), any(RamAccountingContext.class), any(Optional.class))).thenAnswer(new Answer<PageDownstream>() {
             @Override
@@ -119,6 +123,7 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                 MergeNode mergeNode = (MergeNode) invocation.getArguments()[0];
                 ProjectionToProjectorVisitor projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                         mock(ClusterService.class),
+                        threadPool,
                         ImmutableSettings.EMPTY,
                         mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                         mock(BulkRetryCoordinatorPool.class),
@@ -132,8 +137,12 @@ public class LocalMergeTaskTest extends CrateUnitTest {
                 return nonSortingBucketMerger;
             }
         });
-        threadPool = mock(ThreadPool.class);
-        when(threadPool.executor(anyString())).thenReturn(MoreExecutors.sameThreadExecutor());
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     private ListenableFuture<TaskResult> getUpstreamResult(int numRows) {

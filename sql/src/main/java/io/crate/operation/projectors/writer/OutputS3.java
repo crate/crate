@@ -39,8 +39,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.zip.GZIPOutputStream;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
@@ -48,18 +47,20 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 @NotThreadSafe
 public class OutputS3 extends Output {
 
+    private final ExecutorService executorService;
     private final URI uri;
     private final boolean compression;
     private OutputStream outputStream;
 
-    public OutputS3(URI uri, Settings settings) {
+    public OutputS3(ExecutorService executorService, URI uri, Settings settings) {
+        this.executorService = executorService;
         this.uri = uri;
         compression = parseCompression(settings);
     }
 
     @Override
     public void open() throws IOException {
-        outputStream = new S3OutputStream(uri, new S3ClientHelper());
+        outputStream = new S3OutputStream(executorService, uri, new S3ClientHelper());
         if (compression) {
             outputStream = new GZIPOutputStream(outputStream);
         }
@@ -96,13 +97,12 @@ public class OutputS3 extends Output {
         long bytesWritten = 0;
         int partNumber = 1;
 
-        private S3OutputStream(URI uri, S3ClientHelper s3ClientHelper) throws IOException {
+        private S3OutputStream(ExecutorService executor, URI uri, S3ClientHelper s3ClientHelper) throws IOException {
             bucketName = uri.getHost();
             key = uri.getPath().substring(1);
             outputStream = new ByteArrayOutputStream();
             client = s3ClientHelper.client(uri);
-            executorService = MoreExecutors.listeningDecorator(
-                Executors.newCachedThreadPool(daemonThreadFactory("OutputS3")));
+            executorService = MoreExecutors.listeningDecorator(executor);
             multipartUpload = client.initiateMultipartUpload(
                     new InitiateMultipartUploadRequest(bucketName, key));
         }

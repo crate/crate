@@ -42,12 +42,17 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 
 public class WriterProjectorTest extends CrateUnitTest {
+
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -59,6 +64,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         String uri = Paths.get(fileAbsolutePath).toUri().toString();
         Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
+                executorService,
                 uri,
                 settings,
                 null,
@@ -106,6 +112,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         String uri = Paths.get(folder.newFolder().toURI()).toUri().toString();
         Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
+                executorService,
                 uri,
                 settings,
                 null,
@@ -128,6 +135,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
         Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
+                executorService,
                 uri,
                 settings,
                 null,

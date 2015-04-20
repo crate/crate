@@ -38,13 +38,16 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> {
 
     private final ClusterService clusterService;
+    private ThreadPool threadPool;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
@@ -55,6 +58,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     @Nullable
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -62,6 +66,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                                         EvaluatingNormalizer normalizer,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
+        this.threadPool = threadPool;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
@@ -71,20 +76,22 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer) {
-        this(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
+        this(clusterService, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor) {
-        this(clusterService, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor,
+        this(clusterService, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor,
                 new EvaluatingNormalizer(
                         symbolVisitor.functions(),
                         symbolVisitor.rowGranularity(),
@@ -224,6 +231,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
             uri = sb.toString();
         }
         return new WriterProjector(
+                ((ThreadPoolExecutor) threadPool.generic()),
                 uri,
                 projection.settings(),
                 inputs,

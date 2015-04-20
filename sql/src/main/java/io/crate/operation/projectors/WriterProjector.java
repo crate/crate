@@ -47,6 +47,8 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -76,7 +78,8 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
      *
      *               If inputs is not null the inputs are consumed to write a JSON array to the output.
      */
-    public WriterProjector(String uri,
+    public WriterProjector(ExecutorService executorService,
+                           String uri,
                            Settings settings,
                            @Nullable List<Input<?>> inputs,
                            Set<CollectExpression<?>> collectExpressions,
@@ -92,7 +95,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         if (this.uri.getScheme() == null || this.uri.getScheme().equals("file")) {
             this.output = new OutputFile(this.uri, settings);
         } else if (this.uri.getScheme().equalsIgnoreCase("s3")) {
-            this.output = new OutputS3(this.uri, settings);
+            this.output = new OutputS3(executorService, this.uri, settings);
         } else {
             throw new UnsupportedFeatureException(String.format("Unknown scheme '%s'", this.uri.getScheme()));
         }

@@ -51,6 +51,8 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -59,6 +61,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -78,6 +81,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     private Functions functions;
 
     private final RowN spare = new RowN(new Object[]{});
+    private ThreadPool threadPool;
 
     private Row spare(Object... cells) {
         spare.cells(cells);
@@ -103,10 +107,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 .add(new OperatorModule())
                 .createInjector();
         functions = injector.getInstance(Functions.class);
+        threadPool = new ThreadPool("testing");
         ImplementationSymbolVisitor symbolvisitor =
                 new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
         visitor = new ProjectionToProjectorVisitor(
                 mock(ClusterService.class),
+                threadPool,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
@@ -114,6 +120,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
         countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);
         avgInfo = new FunctionInfo(new FunctionIdent(AverageAggregation.NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.DOUBLE);
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     @Test
