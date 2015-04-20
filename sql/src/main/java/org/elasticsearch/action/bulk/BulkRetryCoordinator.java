@@ -47,6 +47,7 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 public class BulkRetryCoordinator {
 
     private static final ESLogger LOGGER = Loggers.getLogger(SymbolBasedBulkShardProcessor.class);
+    private static final int DELAY_INCREMENT = 1;
 
     private final ReadWriteLock retryLock;
     private final AtomicInteger currentDelay;
@@ -85,7 +86,7 @@ public class BulkRetryCoordinator {
         final RetryBulkActionListener<ShardUpsertRequest, ShardUpsertResponse> retryBulkActionListener = new RetryBulkActionListener<>(retryListener, request);
         if (repeatingRetry) {
             try {
-                Thread.sleep(currentDelay.getAndAdd(10));
+                Thread.sleep(currentDelay.getAndAdd(DELAY_INCREMENT));
             } catch (InterruptedException e) {
                 Thread.interrupted();
             }
@@ -106,7 +107,7 @@ public class BulkRetryCoordinator {
                             LOGGER.trace("retry thread [{}] executing", Thread.currentThread().getName());
                             delegate.execute(request, retryBulkActionListener);
                         }
-                    }, currentDelay.getAndAdd(10), TimeUnit.MILLISECONDS);
+                    }, currentDelay.getAndAdd(DELAY_INCREMENT), TimeUnit.MILLISECONDS);
         }
     }
 
