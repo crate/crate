@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -33,6 +34,7 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.executor.callbacks.OperationFinishedStatsTablesCallback;
@@ -40,7 +42,11 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
+import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.ExecutionNodes;
@@ -66,30 +72,36 @@ public class ExecutionNodesTask extends JobTask {
     private final List<ListenableFuture<TaskResult>> results;
     private final boolean hasDirectResponse;
     private final SettableFuture<TaskResult> result;
+    private final ProjectionToProjectorVisitor projectionToProjectorVisitor;
     private final JobContextService jobContextService;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final StatsTables statsTables;
     private final ThreadPool threadPool;
     private final TransportCloseContextNodeAction transportCloseContextNodeAction;
+    private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
     private MergeNode mergeNode;
 
     protected ExecutionNodesTask(UUID jobId,
+                                 ProjectionToProjectorVisitor projectionToProjectorVisitor,
                                  JobContextService jobContextService,
                                  PageDownstreamFactory pageDownstreamFactory,
                                  StatsTables statsTables,
                                  ThreadPool threadPool,
                                  TransportJobAction transportJobAction,
                                  TransportCloseContextNodeAction transportCloseContextNodeAction,
+                                 HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                                  CircuitBreaker circuitBreaker,
                                  MergeNode mergeNode,
                                  ExecutionNode... executionNodes) {
         super(jobId);
+        this.projectionToProjectorVisitor = projectionToProjectorVisitor;
         this.jobContextService = jobContextService;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.statsTables = statsTables;
         this.threadPool = threadPool;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
+        this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.circuitBreaker = circuitBreaker;
         this.mergeNode = mergeNode;
         this.transportJobAction = transportJobAction;
@@ -107,7 +119,7 @@ public class ExecutionNodesTask extends JobTask {
     @Override
     public void start() {
         assert mergeNode != null : "mergeNode must not be null";
-        RamAccountingContext ramAccountingContext = trackOperation();
+        RamAccountingContext ramAccountingContext = trackOperation(mergeNode, "localMerge");
 
         RowDownstream rowDownstream = new QueryResultRowDownstream(result, jobId(), mergeNode.executionNodeId(), jobContextService);
         PageDownstream finalMergePageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
@@ -140,25 +152,73 @@ public class ExecutionNodesTask extends JobTask {
             Collection<ExecutionNode> executionNodes = entry.getValue();
 
             if (serverNodeId.equals(TableInfo.NULL_NODE_ID)) {
-                serverNodeId = "_local";
-                // TODO: for this to work the TransportJobAction needs to integrate handlerSideDataCollect operation ?
-            }
-
-            JobRequest request = new JobRequest(jobId(), executionNodes);
-            if (hasDirectResponse) {
-                transportJobAction.execute(serverNodeId, request, new DirectResponseListener(idx, streamers, pageDownstreamContext));
+                handlerSideCollect(executionNodes, pageDownstreamContext);
             } else {
-                transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(result));
+                JobRequest request = new JobRequest(jobId(), executionNodes);
+                if (hasDirectResponse) {
+                    transportJobAction.execute(serverNodeId, request, new DirectResponseListener(idx, streamers, pageDownstreamContext));
+                } else {
+                    transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(result));
+                }
             }
             idx++;
         }
     }
 
-    private RamAccountingContext trackOperation() {
-        UUID mergeOperationId = UUID.randomUUID();
-        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, mergeNode, mergeOperationId);
-        statsTables.operationStarted(mergeOperationId, jobId(), "local merge in execution task");
-        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(mergeOperationId, statsTables, ramAccountingContext));
+    private void handlerSideCollect(Collection<ExecutionNode> executionNodes,
+                                    final PageDownstreamContext pageDownstreamContext) {
+        assert executionNodes.size() == 1 : "handlerSideCollect is only possible with 1 collectNode";
+        ExecutionNode onlyElement = Iterables.getOnlyElement(executionNodes);
+        assert onlyElement instanceof CollectNode : "handlerSideCollect is only possible with 1 collectNode";
+
+        CollectNode collectNode = ((CollectNode) onlyElement);
+        RamAccountingContext ramAccountingContext = trackOperation(collectNode, "handlerSide collect");
+        CollectingProjector collectingProjector = new CollectingProjector();
+        Futures.addCallback(collectingProjector.result(), new FutureCallback<Bucket>() {
+            @Override
+            public void onSuccess(Bucket result) {
+                // TODO: change bucketIdx once the logic for bucketIdxs has been changed
+                pageDownstreamContext.setBucket(0, result, true, new PageConsumeListener() {
+                    @Override
+                    public void needMore() {
+                        finish();
+                    }
+
+                    @Override
+                    public void finish() {
+                        pageDownstreamContext.finish();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                pageDownstreamContext.failure(t);
+            }
+        });
+
+        RowDownstream rowDownstream = collectingProjector;
+        if (!collectNode.projections().isEmpty()) {
+            FlatProjectorChain flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
+                    projectionToProjectorVisitor,
+                    ramAccountingContext,
+                    collectNode.projections(),
+                    collectingProjector);
+            flatProjectorChain.startProjections();
+            rowDownstream = flatProjectorChain.firstProjector();
+        }
+        if (hasDirectResponse) {
+            handlerSideDataCollectOperation.collect(collectNode, rowDownstream, ramAccountingContext);
+        } else {
+            throw new UnsupportedOperationException("handler side collect doesn't support push based collect");
+        }
+    }
+
+    private RamAccountingContext trackOperation(ExecutionNode executionNode, String operationName) {
+        UUID operationId = UUID.randomUUID();
+        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionNode, operationId);
+        statsTables.operationStarted(operationId, jobId(), operationName);
+        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(operationId, statsTables, ramAccountingContext));
         return ramAccountingContext;
     }
 
