@@ -27,6 +27,7 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
+import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLBulkResponse;
@@ -38,6 +39,7 @@ import org.junit.rules.TestRule;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-partitioned-bulk-insert-history")
@@ -55,6 +57,9 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
     public static final int BENCHMARK_ROUNDS = 3;
     public static final int ROWS = 5000;
 
+    private static final String[] partitions = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    private int partitionIndex = 0;
+    private static final long TS = TimestampFormat.parseTimestampString("2015-01-01");
     public static final String SINGLE_INSERT_SQL_STMT = "insert into motiondata (d, device_id, ts, ax) values (?,?,?,?)";
 
     @Override
@@ -86,21 +91,29 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
 
     private Object[] getRandomObject() {
         return new Object[]{
+                    partitions[(partitionIndex++) % partitions.length],
                     RandomStringUtils.randomAlphabetic(1),
-                    RandomStringUtils.randomAlphabetic(1),
-                    "2015-01-01",
+                    TS + partitionIndex,
                     5.0};
     }
 
     @Test
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     public void testBulkInsertWithBulkArgs() throws Exception {
+        long inserted = 0;
+        long errors = 0;
+
         SQLBulkResponse bulkResponse = getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest()).actionGet();
-        long rowCount = 0;
         for (SQLBulkResponse.Result result : bulkResponse.results()) {
-            rowCount += result.rowCount();
+            assertThat(result.errorMessage(), is(nullValue()));
+            if (result.rowCount() < 0) {
+                errors++;
+            } else {
+                inserted += result.rowCount();
+            }
         }
-        assertThat(rowCount, is(5000L));
+        assertThat(errors, is(0L));
+        assertThat(inserted, is(5000L));
     }
 
 }
