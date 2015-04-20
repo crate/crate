@@ -179,8 +179,24 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitQueryAndFetch(QueryAndFetch plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            plan.collectNode().jobId(job.id());
+            if (plan.localMergeNode() != null) {
+                plan.localMergeNode().jobId(job.id());
+            }
+            job.addTask(new ExecutionNodesTask(
+                    job.id(),
+                    globalProjectionToProjectionVisitor,
+                    jobContextService,
+                    pageDownstreamFactory,
+                    statsTables,
+                    threadPool,
+                    transportActionProvider.transportJobInitAction(),
+                    transportActionProvider.transportCloseContextNodeAction(),
+                    handlerSideDataCollectOperation,
+                    circuitBreaker,
+                    plan.localMergeNode(),
+                    plan.collectNode()
+            ));
             return null;
         }
 
@@ -216,12 +232,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
             }
             job.addTask(new ExecutionNodesTask(
                     job.id(),
+                    globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,
                     statsTables,
                     threadPool,
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportCloseContextNodeAction(),
+                    handlerSideDataCollectOperation,
                     circuitBreaker,
                     localMergeNode,
                     plan.collectNode(),
@@ -252,12 +270,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
             plan.mergeNode().jobId(job.id());
             job.addTask(new ExecutionNodesTask(
                     job.id(),
+                    globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,
                     statsTables,
                     threadPool,
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportCloseContextNodeAction(),
+                    handlerSideDataCollectOperation,
                     circuitBreaker,
                     plan.mergeNode(),
                     plan.collectNode()
