@@ -86,7 +86,7 @@ public class UDCPlugin extends AbstractPlugin {
 
     @Override
     public String description() {
-        return "crate plugin for Usage Data Collection (UDC)";
+        return "Crate plugin for Usage Data Collection (UDC)";
     }
 
     /*

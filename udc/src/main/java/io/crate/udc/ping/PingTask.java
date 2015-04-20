@@ -33,6 +33,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.node.service.NodeService;
 import org.hyperic.sigar.OperatingSystem;
 
 import java.io.BufferedReader;
@@ -53,7 +54,7 @@ public class PingTask extends TimerTask {
 
     private final ClusterService clusterService;
     private final ClusterIdService clusterIdService;
-    private final HttpServerTransport httpServerTransport;
+    private final NodeService nodeService;
     private final String pingUrl;
 
     private AtomicLong successCounter = new AtomicLong(0);
@@ -61,11 +62,11 @@ public class PingTask extends TimerTask {
 
     public PingTask(ClusterService clusterService,
                     ClusterIdService clusterIdService,
-                    HttpServerTransport httpServerTransport,
+                    NodeService nodeService,
                     String pingUrl) {
         this.clusterService = clusterService;
         this.clusterIdService = clusterIdService;
-        this.httpServerTransport = httpServerTransport;
+        this.nodeService = nodeService;
         this.pingUrl = pingUrl;
     }
 
@@ -98,36 +99,8 @@ public class PingTask extends TimerTask {
     }
 
     public String getHardwareAddress() {
-        TransportAddress transportAddress = httpServerTransport.boundAddress().publishAddress();
-        if (!(transportAddress instanceof InetSocketTransportAddress)) {
-            return null;
-        }
-
-        String hardwareAddress = null;
-        InetAddress inetAddress = ((InetSocketTransportAddress) transportAddress).address().getAddress();
-        try {
-            NetworkInterface networkInterface = NetworkInterface.getByInetAddress(inetAddress);
-            if (networkInterface != null) {
-                if (networkInterface.getName().equals("lo")) {
-                    hardwareAddress = "loopback device";
-                } else {
-                    byte[] hardwareAddressBytes = networkInterface.getHardwareAddress();
-                    StringBuilder sb = new StringBuilder(18);
-                    for (byte b : hardwareAddressBytes) {
-                        if (sb.length() > 0)
-                            sb.append(':');
-                        sb.append(String.format("%02x", b));
-                    }
-                    hardwareAddress = sb.toString();
-                }
-            }
-
-        } catch (SocketException e) {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Error getting network interface", e);
-            }
-        }
-        return hardwareAddress;
+        final String macAddr = nodeService.info().getNetwork().getPrimaryInterface().getMacAddress();
+        return (macAddr != null && macAddr.equals("")) ? null : macAddr;
     }
 
     public String getCrateVersion() {
