@@ -7,7 +7,7 @@ repositories {
 dependencies {
     compile project(':testing')
     compile project(':sql')
-    testCompile files(project(':sql').sourceSets.test.output.classesDir)
+    testCompile project(':sql').sourceSets.test.output
     testCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
     testCompile 'com.h2database:h2:1.3.173'
     testCompile group: 'junit', name: 'junit', version: '4.12'
