@@ -31,7 +31,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.node.service.NodeService;
 
 import java.util.Timer;
 
@@ -41,17 +41,16 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
 
     private final ClusterService clusterService;
     private final Provider<ClusterIdService> clusterIdServiceProvider;
-    private final HttpServerTransport httpServerTransport;
+    private final NodeService nodeService;
 
     @Inject
     public UDCService(Settings settings,
-                      ClusterService clusterService,
-                      Provider<ClusterIdService> clusterIdServiceProvider,
-                      HttpServerTransport httpServerTransport) {
+                      NodeService nodeService, ClusterService clusterService,
+                      Provider<ClusterIdService> clusterIdServiceProvider) {
         super(settings);
+        this.nodeService = nodeService;
         this.clusterService = clusterService;
         this.clusterIdServiceProvider = clusterIdServiceProvider;
-        this.httpServerTransport = httpServerTransport;
         this.timer = new Timer("crate-udc");
     }
 
@@ -64,8 +63,7 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
         if (logger.isDebugEnabled()) {
             logger.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
         }
-
-        PingTask pingTask = new PingTask(clusterService, clusterIdServiceProvider.get(), httpServerTransport, url);
+        PingTask pingTask = new PingTask(clusterService, clusterIdServiceProvider.get(), nodeService, url);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 
