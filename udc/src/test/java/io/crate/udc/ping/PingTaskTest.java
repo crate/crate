@@ -28,17 +28,21 @@ import io.crate.http.HttpTestServer;
 import io.crate.test.integration.CrateUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.monitor.network.NetworkInfo;
+import org.elasticsearch.node.service.NodeService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -52,10 +56,30 @@ import static org.mockito.Mockito.when;
 public class PingTaskTest extends CrateUnitTest {
 
     private ClusterService clusterService;
-    private HttpServerTransport httpServerTransport;
+    private NodeService nodeService;
     private ClusterIdService clusterIdService;
 
     private HttpTestServer testServer;
+
+    private String macAddr() {
+        InetAddress ip;
+        try {
+            ip = InetAddress.getLocalHost();
+            NetworkInterface networkInterface = NetworkInterface.getByInetAddress(ip);
+            if (networkInterface.getName().equals("lo"))
+                return "loopback";
+            byte[] mac = networkInterface.getHardwareAddress();
+            StringBuilder sb = new StringBuilder(18);
+            for (byte b : mac) {
+                if (sb.length() > 0)
+                    sb.append(':');
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     @After
     public void cleanUp() {
@@ -68,19 +92,21 @@ public class PingTaskTest extends CrateUnitTest {
     public void prepare() throws Exception {
         clusterService = mock(ClusterService.class);
         clusterIdService = mock(ClusterIdService.class);
-        httpServerTransport = mock(HttpServerTransport.class);
+        nodeService = mock(NodeService.class);
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
-        BoundTransportAddress boundAddress = mock(BoundTransportAddress.class);
-        TransportAddress transportAddress = new InetSocketTransportAddress(
-                InetAddress.getLocalHost().getHostName(), 4200);
 
         SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
         clusterIdFuture.set(new ClusterId(UUID.randomUUID()));
         when(clusterIdService.clusterId()).thenReturn(clusterIdFuture);
         when(clusterService.localNode()).thenReturn(discoveryNode);
         when(discoveryNode.isMasterNode()).thenReturn(true);
-        when(httpServerTransport.boundAddress()).thenReturn(boundAddress);
-        when(boundAddress.publishAddress()).thenReturn(transportAddress);
+        NodeInfo nodeInfo = mock(NodeInfo.class);
+        NetworkInfo networkInfo = mock(NetworkInfo.class);
+        NetworkInfo.Interface iface = mock(NetworkInfo.Interface.class);
+        when(iface.getMacAddress()).thenReturn(macAddr());
+        when(networkInfo.getPrimaryInterface()).thenReturn(iface);
+        when(nodeInfo.getNetwork()).thenReturn(networkInfo);
+        when(nodeService.info()).thenReturn(nodeInfo);
     }
 
     @Test
@@ -89,7 +115,7 @@ public class PingTaskTest extends CrateUnitTest {
         testServer.run();
 
         PingTask task = new PingTask(
-                clusterService, clusterIdService, httpServerTransport, "http://localhost:18080/");
+                clusterService, clusterIdService, nodeService, "http://localhost:18080/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
@@ -136,7 +162,7 @@ public class PingTaskTest extends CrateUnitTest {
         testServer = new HttpTestServer(18081, true);
         testServer.run();
         PingTask task = new PingTask(
-                clusterService, clusterIdService, httpServerTransport, "http://localhost:18081/");
+                clusterService, clusterIdService, nodeService, "http://localhost:18081/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
