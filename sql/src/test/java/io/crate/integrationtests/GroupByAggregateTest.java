@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -666,6 +667,18 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownWhere() throws Exception {
         this.setup.groupBySetup();
         execute("select max(birthdate), race from characters where details_ignored['lol']='funky' group by race");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testNonDistributedGroupByNoMatch() throws Exception {
+        execute("create table characters (" +
+                " details_ignored object(ignored)," +
+                " race string" +
+                ") clustered into 1 shards");
+        ensureYellow();
+        SQLRequest request = new SQLRequest("select race from characters where details_ignored['lol']='funky' group by race");
+        SQLResponse response = sqlExecutor.execute(request).actionGet(1000);
         assertEquals(0, response.rowCount());
     }
 
