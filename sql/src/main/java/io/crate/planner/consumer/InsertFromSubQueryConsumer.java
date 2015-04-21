@@ -154,7 +154,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
             TableInfo tableInfo = tableRelation.tableInfo();
             if (tableInfo.schemaInfo().systemSchema() || !GroupByConsumer.requiresDistribution(tableInfo, tableInfo.getRouting(table.querySpec().where(), null))) {
                 return NonDistributedGroupByConsumer.nonDistributedGroupBy(table, whereClauseContext, indexWriterProjection);
-            } else if (groupedByClusteredColumnOrPrimaryKeys(table, tableRelation)) {
+            } else if (groupedByClusteredColumnOrPrimaryKeys(table, whereClauseContext.whereClause(), tableRelation)) {
                 return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, tableRelation, whereClauseContext, indexWriterProjection);
             } else if (indexWriterProjection != null) {
                 return distributedWriterGroupBy(table, tableRelation, whereClauseContext, indexWriterProjection, functions);
@@ -164,9 +164,11 @@ public class InsertFromSubQueryConsumer implements Consumer {
             return null;
         }
 
-        private static boolean groupedByClusteredColumnOrPrimaryKeys(QueriedTable analysis, TableRelation tableRelation) {
+        private static boolean groupedByClusteredColumnOrPrimaryKeys(QueriedTable analysis,
+                                                                     WhereClause whereClause,
+                                                                     TableRelation tableRelation) {
             assert analysis.querySpec().groupBy() != null;
-            return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, analysis.querySpec().groupBy());
+            return GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, whereClause, analysis.querySpec().groupBy());
         }
 
         /**

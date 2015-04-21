@@ -86,36 +86,26 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             if (context.consumerContext.rootRelation() != table) {
                 return table;
             }
-            if (table.querySpec().groupBy() == null) {
+            QuerySpec querySpec = table.querySpec();
+            if (querySpec.groupBy() == null) {
                 return table;
             }
 
-            if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(table.tableRelation(), table.querySpec().groupBy())) {
-                return table;
-            }
-
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, table.tableRelation());
-            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(table.querySpec().where());
+            TableRelation tableRelation = table.tableRelation();
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(querySpec.where());
             if (whereClauseContext.whereClause().version().isPresent()) {
                 context.consumerContext.validationException(new VersionInvalidException());
                 return table;
             }
-            // no row authority on shards for partitioned tables when grouping by routing column
-            // could span multiple partitions (clustered by is not part of primary key)
-            // but when only one partition is hit, or we have primary keys we can use optimized grouping
-            if (!clusteredByIsPartOfPrimaryKey(table.tableRelation().tableInfo())
-                    && table.tableRelation().tableInfo().isPartitioned()
-                    && (whereClauseContext.whereClause().partitions().size() != 1)) {
+
+            if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, whereClauseContext.whereClause(), querySpec.groupBy())) {
                 return table;
             }
 
             context.result = true;
-            return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, table.tableRelation(),
+            return ReduceOnCollectorGroupByConsumer.optimizedReduceOnCollectorGroupBy(table, tableRelation,
                     whereClauseContext, null);
-        }
-
-        private boolean clusteredByIsPartOfPrimaryKey(TableInfo tableInfo) {
-            return tableInfo.primaryKey().contains(tableInfo.clusteredBy());
         }
 
         @Override
@@ -139,7 +129,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
      * LocalMergeNode ( [TopN], IndexWriterProjection )
      */
     public static AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, WhereClauseContext whereClauseContext, ColumnIndexWriterProjection indexWriterProjection) {
-        assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
+        assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, whereClauseContext.whereClause(), table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
         TableInfo tableInfo = tableRelation.tableInfo();
         GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
         List<Symbol> groupBy = tableRelation.resolve(table.querySpec().groupBy());
