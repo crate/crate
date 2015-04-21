@@ -5,28 +5,33 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed an issue with GROUP BY queries on partitioned tables which could lead
-   to wrong results
-
  - Optimized queries that use ``IN`` or ``ANY`` on fields of type ``string``
 
  - Fix: Option http.enabled=false caused UDC module to crash on startup
+
+ - Increased speed and reduced amount of used memory on sorted queries
+
+ - Ordering by `_score` must be defined explictly now even when using a
+   `match` predicate.
+   Note: This is a backward incompatibility change.
+
+2015/04/21 0.47.9
+=================
+
+ - Fixed an issue with GROUP BY queries on partitioned tables which could lead
+   to wrong results
 
  - Optimized retry logic in bulk and COPY operations to handle
    and coordinate retries once per node
 
  - Fix: Add transparent retry logic to UPDATE execution
 
- - Increased speed and reduced amount of used memory on sorted queries
-
  - Using unsupported URI schema in COPY FROM statement now results in an error.
 
  - Fixed an issue with the LIKE predicate if used on a system table where it
    wouldn't match if the content contains newline characters
 
- - Ordering by `_score` must be defined explictly now even when using a
-   `match` predicate.
-   Note: This is a backward incompatibility change.
+ - Fix: documented minimum required java version
 
 2015/04/09 0.48.1
 =================
