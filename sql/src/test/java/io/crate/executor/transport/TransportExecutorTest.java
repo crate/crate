@@ -215,6 +215,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
@@ -267,6 +268,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
@@ -322,6 +324,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
@@ -401,6 +404,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         topN.outputs(Collections.<Symbol>singletonList(new InputColumn(0)));
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols,
                 Arrays.asList(id_ref, function),
                 searchf.partitionedByColumns(),
@@ -443,6 +447,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 parted.partitionedByColumns(),
                 collectNode.executionNodes(),

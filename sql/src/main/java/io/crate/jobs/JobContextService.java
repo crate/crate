@@ -141,7 +141,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     public void initializeFinalMerge(UUID jobId, int executionNodeId, PageDownstreamContext pageDownstreamContext) {
         JobExecutionContext jobExecutionContext = getOrCreateContext(jobId);
-        jobExecutionContext.setPageDownstreamContext(executionNodeId, pageDownstreamContext);
+        jobExecutionContext.pageDownstreamContext(executionNodeId, pageDownstreamContext);
     }
 
     class Reaper implements Runnable {

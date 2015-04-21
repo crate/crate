@@ -50,8 +50,8 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
         JobExecutionContext context = new JobExecutionContext(UUID.randomUUID(), JobContextService.DEFAULT_KEEP_ALIVE);
         PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
-        context.setPageDownstreamContext(1, pageDownstreamContext);
-        context.setPageDownstreamContext(1, pageDownstreamContext);
+        context.pageDownstreamContext(1, pageDownstreamContext);
+        context.pageDownstreamContext(1, pageDownstreamContext);
     }
 
     @Test
@@ -69,7 +69,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
             Thread thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    ListenableFuture<PageDownstreamContext> pageDownstreamContext = context.getPageDownstreamContext(1);
+                    ListenableFuture<PageDownstreamContext> pageDownstreamContext = context.pageDownstreamContext(1);
                     pageDownstreamContext.addListener(new Runnable() {
                         @Override
                         public void run() {
@@ -85,7 +85,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                context.setPageDownstreamContext(1, new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 2));
+                context.pageDownstreamContext(1, new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 2));
             }
         });
         t.setDaemon(true);

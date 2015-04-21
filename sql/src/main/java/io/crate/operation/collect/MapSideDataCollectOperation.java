@@ -239,7 +239,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         assert collectNode.jobId().isPresent() : "jobId must be set on CollectNode";
-        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(collectNode.jobId().get()).collectContext();
+        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(collectNode.jobId().get())
+                .collectContext(collectNode.executionNodeId());
         ShardProjectorChain projectorChain = new ShardProjectorChain(
                 numShards,
                 collectNode.projections(),

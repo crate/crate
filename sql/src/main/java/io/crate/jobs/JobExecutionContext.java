@@ -21,6 +21,8 @@
 
 package io.crate.jobs;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -31,17 +33,18 @@ import org.elasticsearch.common.lease.Releasable;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JobExecutionContext implements Releasable {
 
     private final UUID jobId;
-    private final JobCollectContext collectContext;
     private final long keepAlive;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
+    private final ConcurrentMap<Integer, JobCollectContext> collectContextMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, PageDownstreamContext> pageDownstreamMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Integer, SettableFuture<PageDownstreamContext>>  pageDownstreamFuturesMap = new ConcurrentHashMap<>();
+    private final IntObjectOpenHashMap<SettableFuture<PageDownstreamContext>> pageDownstreamFuturesMap = new IntObjectOpenHashMap<>();
 
     private volatile long lastAccessTime = -1;
 
@@ -49,11 +52,19 @@ public class JobExecutionContext implements Releasable {
     public JobExecutionContext(UUID jobId, long keepAlive) {
         this.jobId = jobId;
         this.keepAlive = keepAlive;
-        this.collectContext = new JobCollectContext(jobId);
     }
 
-    public JobCollectContext collectContext() {
-        return collectContext;
+    public JobCollectContext collectContext(int executionNodeId) {
+        if (closed.get()) {
+            throw new IllegalStateException("Context already closed");
+        }
+        JobCollectContext collectContext = collectContextMap.get(executionNodeId);
+        if (collectContext != null) {
+            return collectContext;
+        }
+        collectContext = new JobCollectContext(jobId);
+        JobCollectContext existingContext = collectContextMap.putIfAbsent(executionNodeId, collectContext);
+        return MoreObjects.firstNonNull(existingContext, collectContext);
     }
 
     public void accessed(long accessTime) {
@@ -71,7 +82,9 @@ public class JobExecutionContext implements Releasable {
     @Override
     public void close() throws ElasticsearchException {
         if (closed.compareAndSet(false, true)) { // prevent double release
-            collectContext.close();
+            for (JobCollectContext collectContext : collectContextMap.values()) {
+                collectContext.close();
+            }
         }
     }
 
@@ -79,10 +92,12 @@ public class JobExecutionContext implements Releasable {
         return jobId;
     }
 
-    public void setPageDownstreamContext(int executionNodeId, PageDownstreamContext pageDownstreamContext) {
+    public void pageDownstreamContext(int executionNodeId,
+                                      PageDownstreamContext pageDownstreamContext) {
         PageDownstreamContext previousEntry = pageDownstreamMap.put(executionNodeId, pageDownstreamContext);
         if (previousEntry != null) {
-            throw new IllegalStateException(String.format(Locale.ENGLISH, "there is already a pageDownstream set for %d", executionNodeId));
+            throw new IllegalStateException(String.format(Locale.ENGLISH,
+                    "there is already a pageDownstream set for %d", executionNodeId));
         }
         synchronized (pageDownstreamFuturesMap) {
             SettableFuture<PageDownstreamContext> future = pageDownstreamFuturesMap.remove(executionNodeId);
@@ -92,7 +107,7 @@ public class JobExecutionContext implements Releasable {
         }
     }
 
-    public ListenableFuture<PageDownstreamContext> getPageDownstreamContext(int executionNodeId) {
+    public ListenableFuture<PageDownstreamContext> pageDownstreamContext(int executionNodeId) {
         PageDownstreamContext pageDownstreamContext = pageDownstreamMap.get(executionNodeId);
         if (pageDownstreamContext == null) {
             SettableFuture<PageDownstreamContext> futureContext = SettableFuture.create();
@@ -101,18 +116,15 @@ public class JobExecutionContext implements Releasable {
                 if (pageDownstreamContext != null) {
                     return Futures.immediateFuture(pageDownstreamContext);
                 }
-                SettableFuture<PageDownstreamContext> existingFuture = pageDownstreamFuturesMap.putIfAbsent(executionNodeId, futureContext);
+                SettableFuture<PageDownstreamContext> existingFuture =
+                        pageDownstreamFuturesMap.getOrDefault(executionNodeId, futureContext);
 
-                if (existingFuture == null) {
-                    return futureContext;
+                if (existingFuture == futureContext) {
+                    pageDownstreamFuturesMap.put(executionNodeId, futureContext);
                 }
                 return existingFuture;
             }
         }
         return Futures.immediateFuture(pageDownstreamContext);
-    }
-
-    public void closePageDownstreamContext(int executionNodeId) {
-        pageDownstreamMap.remove(executionNodeId);
     }
 }

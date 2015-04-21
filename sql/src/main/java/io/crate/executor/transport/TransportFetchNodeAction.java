@@ -101,6 +101,7 @@ public class TransportFetchNodeAction {
 
         NodeFetchOperation fetchOperation = new NodeFetchOperation(
                 request.jobId(),
+                request.executionNodeId(),
                 request.jobSearchContextDocIds(),
                 request.toFetchReferences(),
                 request.closeContext(),

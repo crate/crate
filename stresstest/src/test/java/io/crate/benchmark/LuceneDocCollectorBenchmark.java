@@ -197,7 +197,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(node.jobId().get()).collectContext();
+        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(node.jobId().get()).collectContext(node.executionNodeId());
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(PAGE_SIZE);

@@ -68,6 +68,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
+                1,
                 new LongArrayList(),
                 ImmutableList.<Reference>of(),
                 true,
@@ -88,6 +89,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
+                1,
                 LongArrayList.from(0L),
                 ImmutableList.<Reference>of(),
                 true,
