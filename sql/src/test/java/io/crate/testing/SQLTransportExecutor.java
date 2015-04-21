@@ -33,6 +33,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.hamcrest.Matchers;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -95,7 +96,7 @@ public class SQLTransportExecutor {
         return ensureState(ClusterHealthStatus.GREEN);
     }
 
-    public ClusterHealthStatus ensureYellow() {
+    public ClusterHealthStatus ensureYellowOrGreen() {
         return ensureState(ClusterHealthStatus.YELLOW);
     }
 
@@ -110,7 +111,11 @@ public class SQLTransportExecutor {
             logger.info("ensure state timed out, cluster state:\n{}\n{}", client().admin().cluster().prepareState().get().getState().prettyPrint(), client().admin().cluster().preparePendingClusterTasks().get().prettyPrint());
             assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));
         }
-        assertThat(actionGet.getStatus(), equalTo(state));
+        if (state == ClusterHealthStatus.YELLOW) {
+            assertThat(actionGet.getStatus(), Matchers.anyOf(equalTo(state), equalTo(ClusterHealthStatus.GREEN)));
+        } else {
+            assertThat(actionGet.getStatus(), equalTo(state));
+        }
         return actionGet.getStatus();
     }
 

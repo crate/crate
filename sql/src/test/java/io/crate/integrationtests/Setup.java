@@ -147,7 +147,7 @@ public class Setup {
             " details object," +
             " details_ignored object(ignored)" +
             ")", numericType));
-        transportExecutor.ensureYellow();
+        transportExecutor.ensureYellowOrGreen();
 
         Map<String, String> details = newHashMap();
         details.put("job", "Sandwitch Maker");

@@ -101,7 +101,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testGroupByWithLimitUnassignedShards() throws Exception {
         try {
             transportExecutor.exec("create table t (id int, name string) with (number_of_replicas=2)");
-            transportExecutor.ensureYellow();
+            transportExecutor.ensureYellowOrGreen();
 
             SQLResponse response = transportExecutor.exec("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
             assertThat(response.rowCount(), is(4L));
@@ -310,7 +310,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         try {
             transportExecutor.exec(
                     "create table users (id integer primary key, name string) with (number_of_replicas=2)");
-            transportExecutor.ensureYellow();
+            transportExecutor.ensureYellowOrGreen();
             SQLResponse response = transportExecutor.exec(
                     "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name'] nulls last"
             );
