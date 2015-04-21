@@ -15,6 +15,7 @@ Unreleased
    `match` predicate.
    Note: This is a backward incompatibility change.
 
+2015/04/21 0.48.2
 2015/04/21 0.47.9
 =================
 
@@ -30,6 +31,9 @@ Unreleased
 
  - Fixed an issue with the LIKE predicate if used on a system table where it
    wouldn't match if the content contains newline characters
+
+2015/04/21 0.47.9
+=================
 
  - Fix: documented minimum required java version
 
