@@ -35,7 +35,7 @@ public class Version {
 
 
     public static final boolean SNAPSHOT = false;
-    public static final Version CURRENT = new Version(480199, SNAPSHOT, org.elasticsearch.Version.V_1_4_4);
+    public static final Version CURRENT = new Version(480299, SNAPSHOT, org.elasticsearch.Version.V_1_4_4);
 
     static {
         // safe-guard that we don't release a version with DEBUG_MODE set to true

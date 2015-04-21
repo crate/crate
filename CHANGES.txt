@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/04/21 0.48.2
+=================
+
  - Fixed an issue with GROUP BY queries on partitioned tables which could lead
    to wrong results
 
