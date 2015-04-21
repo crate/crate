@@ -80,7 +80,6 @@ public class QueryResultRowDownstream implements RowDownstream {
             private void closeContext() {
                 JobExecutionContext context = jobContextService.getContext(jobId);
                 if (context != null) {
-                    context.closePageDownstreamContext(executionNodeId);
                     jobContextService.closeContext(jobId);
                 }
             }

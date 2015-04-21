@@ -345,6 +345,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 transportActionProvider.transportCloseContextNodeAction(),
                 symbolVisitor.functions(),
                 context.jobId.get(),
+                projection.executionNodeId(),
                 ctxDocId.collectExpressions().iterator().next(),
                 projection.inputSymbols(),
                 projection.outputSymbols(),

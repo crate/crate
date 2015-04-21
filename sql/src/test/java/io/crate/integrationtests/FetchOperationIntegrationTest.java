@@ -106,7 +106,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         sqlExecutor.refresh("characters");
     }
 
-    private Job createCollectJob(Planner.Context plannerContext, boolean keepContextForFetcher) {
+    private CollectNode createCollectNode(Planner.Context plannerContext, boolean keepContextForFetcher) {
         TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
 
         ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
@@ -129,15 +129,17 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         collectNode.jobId(UUID.randomUUID());
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
-        Plan plan = new IterablePlan(collectNode);
-        return executor.newJob(plan);
+        return collectNode;
     }
 
     @Test
     public void testCollectDocId() throws Exception {
         setUpCharacters();
         Planner.Context plannerContext = new Planner.Context(clusterService());
-        Job job = createCollectJob(plannerContext, false);
+        CollectNode collectNode = createCollectNode(plannerContext, false);
+        Plan plan = new IterablePlan(collectNode);
+        Job job =  executor.newJob(plan);
+
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
 
         assertThat(result.size(), is(2));
@@ -168,7 +170,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     public void testFetchAction() throws Exception {
         setUpCharacters();
         Planner.Context plannerContext = new Planner.Context(clusterService());
-        Job job = createCollectJob(plannerContext, true);
+        CollectNode collectNode = createCollectNode(plannerContext, true);
+        Plan plan = new IterablePlan(collectNode);
+        Job job =  executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TransportFetchNodeAction transportFetchNodeAction = cluster().getInstance(TransportFetchNodeAction.class);
 
@@ -206,6 +210,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         for (Map.Entry<String, LongArrayList> nodeEntry : jobSearchContextDocIds.entrySet()) {
             NodeFetchRequest nodeFetchRequest = new NodeFetchRequest();
             nodeFetchRequest.jobId(job.id());
+            nodeFetchRequest.executionNodeId(collectNode.executionNodeId());
             nodeFetchRequest.toFetchReferences(toFetchReferences);
             nodeFetchRequest.closeContext(true);
             nodeFetchRequest.jobSearchContextDocIds(nodeEntry.getValue());
@@ -297,6 +302,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         collectNode.projections(ImmutableList.<Projection>of(mergeProjection));
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
                 collectNode.executionNodes());
 
@@ -392,6 +398,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 docIdSymbol, inputSymbols, outputSymbols, ImmutableList.<ReferenceInfo>of(),
                 collectNode.executionNodes(), bulkSize, querySpec.isLimited());
 

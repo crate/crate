@@ -177,6 +177,7 @@ public class QueryThenFetchConsumer implements Consumer {
                     bulkSize = Constants.DEFAULT_SELECT_LIMIT;
                 }
                 FetchProjection fetchProjection = new FetchProjection(
+                        collectNode.executionNodeId(),
                         DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
                         tableInfo.partitionedByColumns(),
                         collectNode.executionNodes(),

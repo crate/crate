@@ -223,7 +223,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             StreamerVisitor.Context streamerContext = streamerVisitor.processPlanNode(node, context.ramAccountingContext);
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
                     pageDownstream,  streamerContext.inputStreamers(), node.numUpstreams());
-            jobExecutionContext.setPageDownstreamContext(node.executionNodeId(), pageDownstreamContext);
+            jobExecutionContext.pageDownstreamContext(node.executionNodeId(), pageDownstreamContext);
 
             Futures.addCallback(downstream.result(),
                     new SetBucketFutureCallback(operationId, context.ramAccountingContext, context.directResultFuture));

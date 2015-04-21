@@ -97,7 +97,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             return;
         }
         JobExecutionContext context = jobContextService.getOrCreateContext(request.jobId());
-        ListenableFuture<PageDownstreamContext> pageDownstreamContextFuture = context.getPageDownstreamContext(request.executionNodeId());
+        ListenableFuture<PageDownstreamContext> pageDownstreamContextFuture = context.pageDownstreamContext(request.executionNodeId());
         Futures.addCallback(pageDownstreamContextFuture, new PageDownstreamContextFutureCallback(request, listener));
     }
 

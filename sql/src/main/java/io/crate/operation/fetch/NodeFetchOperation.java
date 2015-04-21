@@ -57,6 +57,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class NodeFetchOperation implements RowUpstream {
 
     private final UUID jobId;
+    private final int executionNodeId;
     private final List<Reference> toFetchReferences;
     private final boolean closeContext;
     private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap<>();
@@ -72,6 +73,7 @@ public class NodeFetchOperation implements RowUpstream {
     private static final ESLogger LOGGER = Loggers.getLogger(NodeFetchOperation.class);
 
     public NodeFetchOperation(UUID jobId,
+                              int executionNodeId,
                               LongArrayList jobSearchContextDocIds,
                               List<Reference> toFetchReferences,
                               boolean closeContext,
@@ -80,6 +82,7 @@ public class NodeFetchOperation implements RowUpstream {
                               Functions functions,
                               RamAccountingContext ramAccountingContext) {
         this.jobId = jobId;
+        this.executionNodeId = executionNodeId;
         this.toFetchReferences = toFetchReferences;
         this.closeContext = closeContext;
         this.jobContextService = jobContextService;
@@ -121,7 +124,7 @@ public class NodeFetchOperation implements RowUpstream {
             LOGGER.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
-        JobCollectContext jobCollectContext = jobExecutionContext.collectContext();
+        JobCollectContext jobCollectContext = jobExecutionContext.collectContext(executionNodeId);
 
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(rowDownstream, toFetchReferences.size());
 
