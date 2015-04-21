@@ -659,29 +659,15 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testNonDistributedGroupByAggregationsWrappedInScalar() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+        DistributedGroupBy planNode = (DistributedGroupBy) plan(
                 "select (count(*) + 1), id from empty_parted group by id");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
-        assertThat(collectNode.projections().size(), is(2));
-        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
-        TopNProjection topNProjection = (TopNProjection)collectNode.projections().get(1);
-        assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
-        assertThat(topNProjection.offset(), is(0));
-
-        MergeNode mergeNode = planNode.localMergeNode();
-        assertThat(mergeNode.projections().size(), is(1));
-        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
-    }
-
-    @Test
-    public void testNonDistributedGroupBy() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
-                "select count(*), id from empty_parted group by id");
-        CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+
+        TopNProjection topNProjection = (TopNProjection) planNode.reducerMergeNode().projections().get(1);
+        assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topNProjection.offset(), is(0));
 
         MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
