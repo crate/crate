@@ -26,13 +26,10 @@ import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.merge.TransportDistributedResultAction;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportResponseHandler;
-import org.elasticsearch.transport.TransportException;
-import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 import java.util.Deque;
@@ -47,19 +44,19 @@ public class DistributingDownstream extends ResultProviderBase {
     private static final ESLogger LOGGER = Loggers.getLogger(DistributingDownstream.class);
 
     private final UUID jobId;
+    private final TransportDistributedResultAction transportDistributedResultAction;
     private final MultiBucketBuilder bucketBuilder;
     private Downstream[] downstreams;
-    private final TransportService transportService;
     private final AtomicInteger finishedDownstreams = new AtomicInteger(0);
 
     public DistributingDownstream(UUID jobId,
                                   int targetExecutionNodeId,
                                   int bucketIdx,
                                   List<DiscoveryNode> downstreams,
-                                  TransportService transportService,
+                                  TransportDistributedResultAction transportDistributedResultAction,
                                   Streamer<?>[] streamers) {
-        this.transportService = transportService;
         this.jobId = jobId;
+        this.transportDistributedResultAction = transportDistributedResultAction;
         this.downstreams = new Downstream[downstreams.size()];
         bucketBuilder = new MultiBucketBuilder(streamers, downstreams.size());
         for (int i = 0; i < downstreams.size(); i++) {
@@ -132,20 +129,14 @@ public class DistributingDownstream extends ResultProviderBase {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}] sending distributing collect request to {}, isLast? {} ...",
                     jobId.toString(),
-                    downstream.node.id(), downstream.request.isLast());
+                    downstream.node.id(), request.isLast());
         }
-        transportService.submitRequest(
+        transportDistributedResultAction.pushResult(
                 downstream.node,
-                TransportDistributedResultAction.DISTRIBUTED_RESULT_ACTION,
-                downstream.request,
-                new BaseTransportResponseHandler<DistributedResultResponse>() {
+                request,
+                new ActionListener<DistributedResultResponse>() {
                     @Override
-                    public DistributedResultResponse newInstance() {
-                        return new DistributedResultResponse();
-                    }
-
-                    @Override
-                    public void handleResponse(DistributedResultResponse response) {
+                    public void onResponse(DistributedResultResponse response) {
                         if (LOGGER.isTraceEnabled()) {
                             LOGGER.trace("[{}] successfully sent distributing collect request to {}, needMore? {}",
                                     jobId.toString(),
@@ -173,7 +164,7 @@ public class DistributingDownstream extends ResultProviderBase {
                     }
 
                     @Override
-                    public void handleException(TransportException exp) {
+                    public void onFailure(Throwable exp) {
                         Throwable cause = exp.getCause();
                         LOGGER.error("[{}] Exception sending distributing collect request to {}", exp, jobId, downstream.node.id());
                         if (cause == null) {
@@ -181,11 +172,6 @@ public class DistributingDownstream extends ResultProviderBase {
                         } else {
                             fail(cause);
                         }
-                    }
-
-                    @Override
-                    public String executor() {
-                        return ThreadPool.Names.SAME;
                     }
                 }
         );

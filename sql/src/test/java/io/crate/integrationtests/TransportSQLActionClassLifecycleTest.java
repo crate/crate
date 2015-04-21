@@ -563,7 +563,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(names, Matchers.anyOf(
                 Matchers.hasItems("distributing collect", "distributing collect"),
                 Matchers.hasItems("collect", "localMerge"),
-                Matchers.hasItems("distributed merge", "local merge in execution task")));
+                Matchers.hasItems("distributed merge", "localMerge")));
 
         executor.exec("reset global stats.enabled, stats.operations_log_size");
         waitNoPendingTasksOnAll();

@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributingDownstream;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.StreamerVisitor;
@@ -37,7 +38,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -49,15 +49,15 @@ import java.util.UUID;
 public class ResultProviderFactory {
 
     private final ClusterService clusterService;
-    private final TransportService transportService;
+    private final TransportDistributedResultAction transportDistributedResultAction;
     private final StreamerVisitor streamerVisitor;
 
     @Inject
     public ResultProviderFactory(ClusterService clusterService,
-                                 TransportService transportService,
+                                 TransportDistributedResultAction transportDistributedResultAction,
                                  StreamerVisitor streamerVisitor) {
         this.clusterService = clusterService;
-        this.transportService = transportService;
+        this.transportDistributedResultAction = transportDistributedResultAction;
         this.streamerVisitor = streamerVisitor;
     }
 
@@ -80,7 +80,7 @@ public class ResultProviderFactory {
                     node.downstreamExecutionNodeId(),
                     bucketIdx,
                     toDiscoveryNodes(node.downstreamNodes()),
-                    transportService,
+                    transportDistributedResultAction,
                     streamers
             );
         }

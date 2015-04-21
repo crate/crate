@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.operation.projectors.CollectingProjector;
@@ -44,7 +45,6 @@ import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -106,7 +106,7 @@ public class MapSideDataCollectOperationTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                         )
                 ),
-                new ResultProviderFactory(clusterService, mock(TransportService.class), streamerVisitor),
+                new ResultProviderFactory(clusterService, mock(TransportDistributedResultAction.class), streamerVisitor),
                 jobContextService
         );
 
