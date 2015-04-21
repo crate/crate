@@ -78,13 +78,13 @@ currently applied cluster settings.
     | settings['discovery']                                                             | object    |
     | settings['discovery']['zen']                                                      | object    |
     | settings['discovery']['zen']['minimum_master_nodes']                              | integer   |
-    | settings['discovery']['zen']['ping_timeout']                                      | long      |
-    | settings['discovery']['zen']['publish_timeout']                                   | long      |
+    | settings['discovery']['zen']['ping_timeout']                                      | string    |
+    | settings['discovery']['zen']['publish_timeout']                                   | string    |
     | settings['cluster']                                                               | object    |
     | settings['cluster']['graceful_stop']                                              | object    |
     | settings['cluster']['graceful_stop']['min_availability']                          | string    |
     | settings['cluster']['graceful_stop']['reallocate']                                | boolean   |
-    | settings['cluster']['graceful_stop']['timeout']                                   | long      |
+    | settings['cluster']['graceful_stop']['timeout']                                   | string    |
     | settings['cluster']['graceful_stop']['force']                                     | boolean   |
     | settings['cluster']['routing']                                                    | object    |
     | settings['cluster']['routing']['allocation']                                      | object    |
@@ -136,7 +136,7 @@ currently applied cluster settings.
     | settings['indices']['fielddata']['breaker']['overhead']                           | double    |
     | settings['cluster']['info']                                                       | object    |
     | settings['cluster']['info']['update']                                             | object    |
-    | settings['cluster']['info']['update']['interval']                                 | long      |
+    | settings['cluster']['info']['update']['interval']                                 | string    |
     +-----------------------------------------------------------------------------------+-----------+
     SELECT 67 rows in set (... sec)
 

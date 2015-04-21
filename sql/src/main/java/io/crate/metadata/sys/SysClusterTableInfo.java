@@ -69,10 +69,10 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.DISCOVERY.name(),
                 CrateSettings.DISCOVERY_ZEN.name(),
                 CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.name()));
-        register("settings", DataTypes.LONG, ImmutableList.of(CrateSettings.DISCOVERY.name(),
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.DISCOVERY.name(),
                 CrateSettings.DISCOVERY_ZEN.name(),
                 CrateSettings.DISCOVERY_ZEN_PING_TIMEOUT.name()));
-        register("settings", DataTypes.LONG, ImmutableList.of(CrateSettings.DISCOVERY.name(),
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.DISCOVERY.name(),
                 CrateSettings.DISCOVERY_ZEN.name(),
                 CrateSettings.DISCOVERY_ZEN_PUBLISH_TIMEOUT.name()));
 
@@ -86,7 +86,7 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_REALLOCATE.name()));
-        register("settings", DataTypes.LONG, ImmutableList.of(CrateSettings.CLUSTER.name(),
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_TIMEOUT.name()));
         register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.CLUSTER.name(),
@@ -298,7 +298,7 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.CLUSTER_INFO.name(),
                 CrateSettings.CLUSTER_INFO_UPDATE.name()));
-        register("settings", DataTypes.LONG, ImmutableList.of(CrateSettings.CLUSTER.name(),
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.CLUSTER_INFO.name(),
                 CrateSettings.CLUSTER_INFO_UPDATE.name(),
                 CrateSettings.CLUSTER_INFO_UPDATE_INTERVAL.name()));
