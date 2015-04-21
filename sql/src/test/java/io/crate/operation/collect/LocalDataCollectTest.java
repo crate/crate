@@ -31,6 +31,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
@@ -349,7 +350,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         });
 
         ClusterService clusterService = injector.getInstance(ClusterService.class);
-        TransportService transportService = mock(TransportService.class);
+        TransportDistributedResultAction transportDistributedResultAction = mock(TransportDistributedResultAction.class);
         StreamerVisitor streamerVisitor = new StreamerVisitor(functions);
         operation = new LocalCollectOperation(
                 clusterService,
@@ -364,7 +365,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
                                 functions,
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService))
                 ),
-                new ResultProviderFactory(clusterService, transportService, streamerVisitor),
+                new ResultProviderFactory(clusterService, transportDistributedResultAction, streamerVisitor),
                 new JobContextService(ImmutableSettings.EMPTY, testThreadPool)
         );
     }

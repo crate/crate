@@ -31,7 +31,9 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
-import io.crate.executor.transport.ResponseForwarder;
+import io.crate.executor.transport.NodeAction;
+import io.crate.executor.transport.NodeActionRequestHandler;
+import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
@@ -47,16 +49,12 @@ import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
-import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
@@ -65,10 +63,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
 
 @Singleton
-public class TransportJobAction {
+public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     private static final ESLogger LOGGER = Loggers.getLogger(TransportJobAction.class);
 
@@ -77,9 +74,8 @@ public class TransportJobAction {
     private static final String COLLECT_EXECUTOR = ThreadPool.Names.SEARCH;
 
 
+    private final Transports transports;
     private final ThreadPool threadPool;
-    private final TransportService transportService;
-    private final ClusterService clusterService;
 
     private final CircuitBreaker circuitBreaker;
     private final ExecutionNodesExecutingVisitor executionNodeVisitor;
@@ -88,57 +84,42 @@ public class TransportJobAction {
 
     @Inject
     public TransportJobAction(TransportService transportService,
+                              Transports transports,
                               JobContextService jobContextService,
                               ResultProviderFactory resultProviderFactory,
                               PageDownstreamFactory pageDownstreamFactory,
-                              ClusterService clusterService,
                               StreamerVisitor streamerVisitor,
                               ThreadPool threadPool,
                               CrateCircuitBreakerService breakerService,
                               StatsTables statsTables,
                               MapSideDataCollectOperation collectOperationHandler) {
+        this.transports = transports;
         this.threadPool = threadPool;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
-        this.clusterService = clusterService;
         this.statsTables = statsTables;
         this.collectOperationHandler = collectOperationHandler;
-        this.transportService = transportService;
-        transportService.registerHandler(ACTION_NAME, new JobInitHandler());
+        transportService.registerHandler(ACTION_NAME, new NodeActionRequestHandler<JobRequest, JobResponse>(this) {
+            @Override
+            public JobRequest newInstance() {
+                return new JobRequest();
+            }
+        });
         this.executionNodeVisitor = new ExecutionNodesExecutingVisitor(
                 jobContextService, pageDownstreamFactory, resultProviderFactory, streamerVisitor);
-
     }
 
     public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {
-        ClusterState clusterState = clusterService.state();
-        if (node.equals("_local") || node.equals(clusterState.nodes().localNodeId())) {
-            try {
-                threadPool.executor(EXECUTOR).execute(new Runnable() {
+        transports.executeLocalOrWithTransport(this, node, request, listener,
+                new DefaultTransportResponseHandler<JobResponse>(listener, EXECUTOR) {
                     @Override
-                    public void run() {
-                        nodeOperation(request, listener);
+                    public JobResponse newInstance() {
+                        return new JobResponse();
                     }
                 });
-            } catch (RejectedExecutionException e) {
-                LOGGER.error("error executing jobinit locally on node [{}]", e, node);
-                listener.onFailure(e);
-            }
-        } else {
-            transportService.sendRequest(
-                    clusterState.nodes().get(node),
-                    ACTION_NAME,
-                    request,
-                    new DefaultTransportResponseHandler<JobResponse>(listener, EXECUTOR) {
-                        @Override
-                        public JobResponse newInstance() {
-                            return new JobResponse();
-                        }
-                    }
-            );
-        }
     }
 
-    private void nodeOperation(final JobRequest request, final ActionListener<JobResponse> actionListener) {
+    @Override
+    public void nodeOperation(final JobRequest request, final ActionListener<JobResponse> actionListener) {
         List<ListenableFuture<Bucket>> executionFutures = new ArrayList<>(request.executionNodes().size());
         for (ExecutionNode executionNode : request.executionNodes()) {
             try {
@@ -181,23 +162,14 @@ public class TransportJobAction {
         });
     }
 
-    private class JobInitHandler extends BaseTransportRequestHandler<JobRequest> {
+    @Override
+    public String actionName() {
+        return ACTION_NAME;
+    }
 
-        @Override
-        public JobRequest newInstance() {
-            return new JobRequest();
-        }
-
-        @Override
-        public void messageReceived(JobRequest request, TransportChannel channel) throws Exception {
-            ActionListener<JobResponse> actionListener = ResponseForwarder.forwardTo(channel);
-            nodeOperation(request, actionListener);
-        }
-
-        @Override
-        public String executor() {
-            return EXECUTOR;
-        }
+    @Override
+    public String executorName() {
+        return EXECUTOR;
     }
 
     private static class VisitorContext {
