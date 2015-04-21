@@ -28,6 +28,6 @@ import java.io.IOException;
 
 public interface Streamer<T> {
 
-    public T readValueFrom(StreamInput in) throws IOException;
-    public void writeValueTo(StreamOutput out, Object v) throws IOException;
+    T readValueFrom(StreamInput in) throws IOException;
+    void writeValueTo(StreamOutput out, Object v) throws IOException;
 }

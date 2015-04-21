@@ -21,8 +21,10 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
@@ -53,21 +55,8 @@ public class StreamBucket implements Bucket, Streamable {
         private final Streamer<?>[] streamers;
         private BytesStreamOutput out;
 
-        public static final Function<Builder, Bucket> BUILD_FUNCTION =
-                new Function<Builder, Bucket>() {
-                    @Nullable
-                    @Override
-                    public Bucket apply(StreamBucket.Builder input) {
-                        try {
-                            return input.build();
-                        } catch (IOException e) {
-                            Throwables.propagate(e);
-                        }
-                        return null;
-                    }
-                };
-
         public Builder(Streamer<?>[] streamers) {
+            assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
             this.streamers = streamers;
             out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
         }
@@ -106,6 +95,7 @@ public class StreamBucket implements Bucket, Streamable {
     }
 
     public StreamBucket(@Nullable Streamer<?>[] streamers) {
+        assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
         this.streamers = streamers;
     }
 
@@ -115,7 +105,15 @@ public class StreamBucket implements Bucket, Streamable {
     }
 
     public void streamers(Streamer<?>[] streamers) {
+        assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
         this.streamers = streamers;
+    }
+
+    private static boolean validStreamers(Streamer<?>[] streamers) {
+        if (streamers == null || streamers.length == 0) {
+            return true;
+        }
+        return !Iterables.all(FluentIterable.of(streamers), Predicates.isNull());
     }
 
     public static void writeBucket(StreamOutput out, @Nullable Streamer<?>[] streamers, @Nullable Bucket bucket) throws IOException {

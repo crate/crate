@@ -194,7 +194,7 @@ public class StreamerVisitor {
     private void extractFromMergeNode(MergeNode node, Context context) {
         if (node.projections().isEmpty()) {
             for (DataType dataType : node.inputTypes()) {
-                if (dataType != null && dataType != UndefinedType.INSTANCE) {
+                if (dataType != null) {
                     context.inputStreamers.add(dataType.streamer());
                 } else {
                     throw new IllegalStateException("Can't resolve Streamer from null dataType");
@@ -217,6 +217,9 @@ public class StreamerVisitor {
         for (DataType outputType : outputTypes) {
             if (outputType == UndefinedType.INSTANCE) {
                 resolveStreamer(streamers, projections, idx, projections.size() - 1, inputTypes);
+                if (streamers[idx] == null) {
+                    streamers[idx] = outputType.streamer();
+                }
             } else {
                 streamers[idx] = outputType.streamer();
             }
@@ -262,6 +265,7 @@ public class StreamerVisitor {
         List<Aggregation> aggregations;
         switch (projection.projectionType()) {
             case TOPN:
+            case FETCH:
                 aggregations = ImmutableList.of();
                 break;
             case GROUP:
