@@ -50,9 +50,9 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.ExecutionNodes;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.logging.ESLogger;
@@ -60,6 +60,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -79,9 +80,15 @@ public class ExecutionNodesTask extends JobTask {
     private final ThreadPool threadPool;
     private final TransportCloseContextNodeAction transportCloseContextNodeAction;
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
+    private final StreamerVisitor streamerVisitor;
     private final CircuitBreaker circuitBreaker;
     private MergeNode mergeNode;
 
+    /**
+     * @param mergeNode the mergeNode for the final merge operation on the handler.
+     *                  This may be null in the CTOR but then it must be set using the
+     *                  {@link #mergeNode(MergeNode)} setter before {@link #start()} is called.
+     */
     protected ExecutionNodesTask(UUID jobId,
                                  ProjectionToProjectorVisitor projectionToProjectorVisitor,
                                  JobContextService jobContextService,
@@ -91,8 +98,9 @@ public class ExecutionNodesTask extends JobTask {
                                  TransportJobAction transportJobAction,
                                  TransportCloseContextNodeAction transportCloseContextNodeAction,
                                  HandlerSideDataCollectOperation handlerSideDataCollectOperation,
+                                 StreamerVisitor streamerVisitor,
                                  CircuitBreaker circuitBreaker,
-                                 MergeNode mergeNode,
+                                 @Nullable MergeNode mergeNode,
                                  ExecutionNode... executionNodes) {
         super(jobId);
         this.projectionToProjectorVisitor = projectionToProjectorVisitor;
@@ -102,6 +110,7 @@ public class ExecutionNodesTask extends JobTask {
         this.threadPool = threadPool;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
+        this.streamerVisitor = streamerVisitor;
         this.circuitBreaker = circuitBreaker;
         this.mergeNode = mergeNode;
         this.transportJobAction = transportJobAction;
@@ -129,7 +138,7 @@ public class ExecutionNodesTask extends JobTask {
                 Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
         );
 
-        Streamer<?>[] streamers = DataTypes.getStreamer(mergeNode.inputTypes());
+        Streamer<?>[] streamers = streamerVisitor.processExecutionNode(mergeNode, ramAccountingContext).inputStreamers();
         PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
                 finalMergePageDownstream,
                 streamers,

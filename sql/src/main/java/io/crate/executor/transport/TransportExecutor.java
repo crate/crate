@@ -172,16 +172,20 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitGlobalAggregate(GlobalAggregate plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.mergeNode(), job.id()));
+            createExecutableNodesTask(job, plan.collectNode(), plan.mergeNode());
             return null;
         }
 
         @Override
         public Void visitQueryAndFetch(QueryAndFetch plan, Job job) {
-            plan.collectNode().jobId(job.id());
-            if (plan.localMergeNode() != null) {
-                plan.localMergeNode().jobId(job.id());
+            createExecutableNodesTask(job, plan.collectNode(), plan.localMergeNode());
+            return null;
+        }
+
+        private void createExecutableNodesTask(Job job, CollectNode collectNode, @Nullable MergeNode localMergeNode) {
+            collectNode.jobId(job.id());
+            if (localMergeNode != null) {
+                localMergeNode.jobId(job.id());
             }
             job.addTask(new ExecutionNodesTask(
                     job.id(),
@@ -193,17 +197,16 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportCloseContextNodeAction(),
                     handlerSideDataCollectOperation,
+                    streamerVisitor,
                     circuitBreaker,
-                    plan.localMergeNode(),
-                    plan.collectNode()
+                    localMergeNode,
+                    collectNode
             ));
-            return null;
         }
 
         @Override
         public Void visitNonDistributedGroupBy(NonDistributedGroupBy plan, Job job) {
-            job.addTasks(nodeVisitor.visitCollectNode(plan.collectNode(), job.id()));
-            job.addTasks(nodeVisitor.visitMergeNode(plan.localMergeNode(), job.id()));
+            createExecutableNodesTask(job, plan.collectNode(), plan.localMergeNode());
             return null;
         }
 
@@ -240,6 +243,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportCloseContextNodeAction(),
                     handlerSideDataCollectOperation,
+                    streamerVisitor,
                     circuitBreaker,
                     localMergeNode,
                     plan.collectNode(),
@@ -266,22 +270,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitQueryThenFetch(QueryThenFetch plan, Job job) {
-            plan.collectNode().jobId(job.id());
-            plan.mergeNode().jobId(job.id());
-            job.addTask(new ExecutionNodesTask(
-                    job.id(),
-                    globalProjectionToProjectionVisitor,
-                    jobContextService,
-                    pageDownstreamFactory,
-                    statsTables,
-                    threadPool,
-                    transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportCloseContextNodeAction(),
-                    handlerSideDataCollectOperation,
-                    circuitBreaker,
-                    plan.mergeNode(),
-                    plan.collectNode()
-            ));
+            createExecutableNodesTask(job, plan.collectNode(), plan.mergeNode());
             return null;
         }
     }
