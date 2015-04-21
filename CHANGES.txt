@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue with GROUP BY queries on partitioned tables which could lead
+   to wrong results
+
  - Optimized queries that use ``IN`` or ``ANY`` on fields of type ``string``
 
  - Fix: Option http.enabled=false caused UDC module to crash on startup

@@ -70,6 +70,49 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals(34, response.rows()[1][0]);
     }
 
+
+    @Test
+    public void testGroupByOnClusteredByColumnPartOfPrimaryKey() throws Exception {
+        execute("CREATE TABLE tickets ( " +
+        " pk1 long, " +
+        " pk2 integer, " +
+        " pk3 timestamp," +
+        " value string," +
+        " primary key(pk1, pk2, pk3)) " +
+        "CLUSTERED BY (pk2) INTO 3 SHARDS " +
+        "PARTITIONED BY (pk3) " +
+        "WITH (column_policy = 'strict', number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into tickets (pk1, pk2, pk3, value) values (?, ?, ?, ?)",
+        new Object[][]{
+                         {1L, 42, 1425168000000L, "foo"},
+                                {2L, 43, 0L, "bar"},
+                                {3L, 44, 1425168000000L, "baz"},
+                                {4L, 45, 499651200000L, null},
+                                {5L, 42, 0L, "foo"}
+                        });
+        ensureYellow();
+        refresh();
+        execute("select pk2, count(pk2) from tickets group by pk2 order by pk2 limit 100");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "42| 2\n" + // assert that different partitions have been merged
+                "43| 1\n" +
+                "44| 1\n" +
+                "45| 1\n"));
+
+        execute("create table tickets_export (c2 int, c long) with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into tickets_export (c2, c) (select pk2, count(pk2) from tickets group by pk2)");
+        execute("refresh table tickets_export");
+
+        execute("select c2, c from tickets_export order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "42| 2\n" + // assert that different partitions have been merged
+                        "43| 1\n" +
+                        "44| 1\n" +
+                        "45| 1\n"));
+    }
+
     @Test
     public void selectGroupByAggregateMinFloat() throws Exception {
         this.setup.groupBySetup("float");

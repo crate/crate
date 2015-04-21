@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dql;
 
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -43,9 +44,18 @@ public class GroupByConsumer {
         return (locations != null && locations.size() > 1);
     }
 
-    public static boolean groupedByClusteredColumnOrPrimaryKeys(TableRelation tableRelation, List<Symbol> groupBySymbols) {
+    public static boolean groupedByClusteredColumnOrPrimaryKeys(TableRelation tableRelation, WhereClause whereClause, List<Symbol> groupBySymbols) {
         if (groupBySymbols.size() > 1) {
             return groupedByPrimaryKeys(tableRelation, groupBySymbols);
+        }
+
+        /**
+         * if the table has more than one partition there are multiple shards which might even be on different nodes
+         * so one shard doesn't contain all "clustered by" values
+         * -> need to use a distributed group by.
+         */
+        if (tableRelation.tableInfo().isPartitioned() && whereClause.partitions().size() != 1) {
+            return false;
         }
 
         // this also handles the case if there is only one primary key.

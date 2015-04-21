@@ -81,19 +81,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 return table;
             }
 
-            if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(table.tableRelation(), table.querySpec().groupBy())) {
+            if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
+                    table.tableRelation(), table.querySpec().where(), table.querySpec().groupBy())) {
                 return table;
             }
-
-            // no row authority on shards for partitioned tables when grouping by routing column
-            // could span multiple partitions (clustered by is not part of primary key)
-            // but when only one partition is hit, or we have primary keys we can use optimized grouping
-            if (!clusteredByIsPartOfPrimaryKey(table.tableRelation().tableInfo())
-                    && table.tableRelation().tableInfo().isPartitioned()
-                    && (table.querySpec().where().partitions().size() != 1)) {
-                return table;
-            }
-
 
             if (table.querySpec().where().hasVersions()) {
                 context.consumerContext.validationException(new VersionInvalidException());
@@ -101,10 +92,6 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             }
             context.result = true;
             return optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), context.consumerContext);
-        }
-
-        private boolean clusteredByIsPartOfPrimaryKey(TableInfo tableInfo) {
-            return tableInfo.primaryKey().contains(tableInfo.clusteredBy());
         }
 
         @Override
@@ -129,7 +116,8 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
          * LocalMergeNode ( TopN )
          */
         private AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ConsumerContext context) {
-            assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableRelation, table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
+            assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
+                    tableRelation, table.querySpec().where(), table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
             TableInfo tableInfo = tableRelation.tableInfo();
             GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
             List<Symbol> groupBy = table.querySpec().groupBy();
