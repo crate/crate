@@ -23,12 +23,12 @@ package io.crate.operation.collect.blobs;
 
 import io.crate.blob.BlobContainer;
 import io.crate.blob.v2.BlobShard;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.JobCollectContext;
 
 import java.io.File;
 import java.util.List;
@@ -56,7 +56,7 @@ public class BlobDocCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
+    public void doCollect(JobCollectContext jobCollectContext) {
         BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor();
         try {
             blobShard.blobContainer().walkFiles(null, fileVisitor);

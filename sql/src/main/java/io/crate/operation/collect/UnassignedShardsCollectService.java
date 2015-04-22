@@ -25,7 +25,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
@@ -156,7 +155,7 @@ public class UnassignedShardsCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) {
+        public void doCollect(JobCollectContext jobCollectContext) {
             for (UnassignedShard row : rows) {
                 for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);

@@ -49,7 +49,6 @@ import static org.hamcrest.core.Is.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
-
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -375,7 +374,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select \"id\" from test order by id limit 1 offset 1");
         assertEquals(1, response.rowCount());
-        assertThat((String)response.rows()[0][0], is("id2"));
+        assertThat((String) response.rows()[0][0], is("id2"));
     }
 
 

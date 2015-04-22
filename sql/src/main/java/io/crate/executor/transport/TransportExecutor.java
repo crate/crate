@@ -77,7 +77,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
-    private final ImplementationSymbolVisitor globalImplementationSymbolVisitor;
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
 
     // operation for handler side collecting
@@ -118,7 +117,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
-        this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
+        ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.CLUSTER);
         this.globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
@@ -197,6 +196,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             }
             job.addTask(new ExecutionNodesTask(
                     job.id(),
+                    clusterService,
                     globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,
@@ -243,6 +243,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             }
             job.addTask(new ExecutionNodesTask(
                     job.id(),
+                    clusterService,
                     globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,

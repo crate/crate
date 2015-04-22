@@ -53,6 +53,7 @@ import java.util.List;
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
 
+
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
         final HashSet<String> requiredFields;
@@ -86,11 +87,11 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     private CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
 
+    private final RamAccountingContext ramAccountingContext;
     private final RowDownstreamHandle downstream;
     private final CollectorFieldsVisitor fieldsVisitor;
     private final InputRow inputRow;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
-    private final JobCollectContext jobCollectContext;
     private final CrateSearchContext searchContext;
     private final int jobSearchContextId;
     private final boolean keepContextForFetcher;
@@ -100,7 +101,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
-    private RamAccountingContext ramAccountingContext;
     private boolean producedRows = false;
     private Scorer scorer;
     private int rowCount = 0;
@@ -127,11 +127,11 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
         this.jobSearchContextId = jobSearchContextId;
-        this.jobCollectContext = jobCollectContext;
         this.searchContext = searchContext;
         this.keepContextForFetcher = keepContextForFetcher;
         inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
         this.pageSize = Constants.PAGE_SIZE;
+        this.ramAccountingContext = jobCollectContext.ramAccountingContext();
     }
 
     @Override
@@ -192,8 +192,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
-        this.ramAccountingContext = ramAccountingContext;
+    public void doCollect(JobCollectContext jobCollectContext) {
         // start collect
         CollectorContext collectorContext = new CollectorContext()
                 .searchContext(searchContext)

@@ -31,26 +31,29 @@ import java.util.UUID;
 public class NodeCloseContextRequest extends TransportRequest {
 
     private UUID jobId;
+    private int executionNodeId;
 
     public NodeCloseContextRequest() {
     }
 
-    public NodeCloseContextRequest(UUID jobId) {
+    public NodeCloseContextRequest(UUID jobId, int executionNodeId) {
         this.jobId = jobId;
-    }
-
-    public void jobId(UUID jobId) {
-        this.jobId = jobId;
+        this.executionNodeId = executionNodeId;
     }
 
     public UUID jobId() {
         return jobId;
     }
 
+    public int executionNodeId() {
+        return executionNodeId;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         jobId = new UUID(in.readLong(), in.readLong());
+        executionNodeId = in.readVInt();
     }
 
     @Override
@@ -58,5 +61,6 @@ public class NodeCloseContextRequest extends TransportRequest {
         super.writeTo(out);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
+        out.writeVInt(executionNodeId);
     }
 }

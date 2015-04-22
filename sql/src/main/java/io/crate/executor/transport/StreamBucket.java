@@ -187,7 +187,7 @@ public class StreamBucket implements Bucket, Streamable {
         if (size < 1) {
             return Collections.emptyIterator();
         }
-        assert streamers != null;
+        assert streamers != null : "streamer must be present in order to be able to use a StreamBucket";
         return new RowIterator();
     }
 

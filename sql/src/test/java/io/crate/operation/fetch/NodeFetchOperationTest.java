@@ -85,7 +85,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
     @Test
     public void testFetchOperationNoLuceneDocCollector() throws Exception {
         UUID jobId = UUID.randomUUID();
-        jobContextService.getOrCreateContext(jobId);
+        //jobContextService.createContext(jobId);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,

@@ -26,12 +26,12 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.JobCollectContext;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -147,7 +147,7 @@ public class FileReadingCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
+    public void doCollect(JobCollectContext jobCollectContext) {
         FileInput fileInput = null;
         try {
             fileInput = getFileInput();

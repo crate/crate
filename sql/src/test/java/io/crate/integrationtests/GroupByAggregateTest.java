@@ -764,7 +764,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         execute("select count(*), country from foo group by country having country = 'Austria'");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Long)response.rows()[0][0], is(3L));
+        assertThat((Long) response.rows()[0][0], is(3L));
         assertThat((String) response.rows()[0][1], is("Austria"));
 
         execute("select country, min(id) from foo group by country having min(id) < 5 ");
@@ -838,9 +838,9 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select count(*), name from foo group by id, name order by name desc");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "1| Trillian\n" +
-                "1| Slartibardfast\n" +
-                "1| Marvin\n" +
-                "1| Arthur\n"));
+                        "1| Slartibardfast\n" +
+                        "1| Marvin\n" +
+                        "1| Arthur\n"));
     }
 
     @Test
@@ -1103,9 +1103,9 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select count(*), tenant_id from tickets group by 2 order by tenant_id limit 100");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "2| 42\n" + // assert that different partitions have been merged
-                "1| 43\n" +
-                "1| 44\n" +
-                "1| 45\n"));
+                        "1| 43\n" +
+                        "1| 44\n" +
+                        "1| 45\n"));
     }
 
     @Test
@@ -1126,5 +1126,4 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "and _score >= 0.99 group by name order by name");
         assertEquals(2L, response.rowCount());
     }
-
 }

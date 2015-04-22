@@ -23,14 +23,14 @@ package io.crate.executor.transport;
 
 import io.crate.exceptions.Exceptions;
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.UUID;
 
 /**
  * Transport handler for closing a context(lucene) for a complete job.
@@ -70,11 +70,11 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
             ActionListener<NodeCloseContextResponse> listener) {
         transports.executeLocalOrWithTransport(this, targetNode, request, listener,
                 new DefaultTransportResponseHandler<NodeCloseContextResponse>(listener, executorName()) {
-            @Override
-            public NodeCloseContextResponse newInstance() {
-                return new NodeCloseContextResponse();
-            }
-        });
+                    @Override
+                    public NodeCloseContextResponse newInstance() {
+                        return new NodeCloseContextResponse();
+                    }
+                });
     }
 
     @Override
@@ -90,16 +90,20 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
     @Override
     public void nodeOperation(final NodeCloseContextRequest request,
                               final ActionListener<NodeCloseContextResponse> response) {
-        final UUID operationId = UUID.randomUUID();
-        statsTables.operationStarted(operationId, request.jobId(), "closeContext");
-
+        statsTables.operationStarted(request.executionNodeId(), request.jobId(), "closeContext");
         try {
-            jobContextService.closeContext(request.jobId());
-            statsTables.operationFinished(operationId, null, 0);
+            JobExecutionContext jobExecutionContext = jobContextService.getContextOrNull(request.jobId());
+            if (jobExecutionContext != null) {
+                JobCollectContext collectContext = jobExecutionContext.getCollectContext(request.executionNodeId());
+                if (collectContext != null) {
+                    collectContext.close();
+                }
+            }
+            statsTables.operationFinished(request.executionNodeId(), null, 0L);
             response.onResponse(new NodeCloseContextResponse());
-        } catch (Exception e) {
-            statsTables.operationFinished(operationId, Exceptions.messageOf(e), 0);
-            response.onFailure(e);
+        } catch (Throwable t) {
+            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t), 0L);
+            response.onFailure(t);
         }
     }
 }

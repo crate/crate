@@ -149,7 +149,7 @@ public class ShardCollectService {
      *
      * @param collectNode describes the collectOperation
      * @param projectorChain the shard projector chain to get the downstream from
-     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect(io.crate.breaker.RamAccountingContext)} to start
+     * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect(JobCollectContext)} to start
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode,
@@ -160,17 +160,20 @@ public class ShardCollectService {
         RowDownstream downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
+            jobCollectContext.closeContext(jobSearchContextId);
             return new NoopCrateCollector(downstream);
         } else {
             RowGranularity granularity = normalizedCollectNode.maxRowGranularity();
             if (granularity == RowGranularity.DOC) {
                 if (isBlobShard) {
+                    jobCollectContext.closeContext(jobSearchContextId);
                     return getBlobIndexCollector(normalizedCollectNode, downstream);
                 } else {
                     return getLuceneIndexCollector(normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId);
                 }
             } else if (granularity == RowGranularity.SHARD) {
                 ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedCollectNode);
+                jobCollectContext.closeContext(jobSearchContextId);
                 return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downstream);
             }
             throw new UnhandledServerException(String.format("Granularity %s not supported", granularity.name()));

@@ -99,10 +99,9 @@ public class LocalMergeTask extends JobTask {
             return;
         }
 
-        final UUID operationId = UUID.randomUUID();
-        final RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, mergeNode, operationId);
+        final RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, mergeNode);
 
-        RowDownstream rowDownstream = new QueryResultRowDownstream(result, jobId(), mergeNode.executionNodeId(), jobContextService);
+        RowDownstream rowDownstream = new QueryResultRowDownstream(result);
         final PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
                 rowDownstream,
@@ -110,8 +109,8 @@ public class LocalMergeTask extends JobTask {
                 Optional.of(threadPool.executor(ThreadPool.Names.GENERIC))
         );
 
-        statsTables.operationStarted(operationId, mergeNode.jobId(), mergeNode.name());
-        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(operationId, statsTables, ramAccountingContext));
+        statsTables.operationStarted(mergeNode.executionNodeId(), mergeNode.jobId(), mergeNode.name());
+        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(mergeNode.executionNodeId(), statsTables, ramAccountingContext));
 
         BucketPage page = taskResultToBucketPage();
         pageDownstream.nextPage(page, new PageConsumeListener() {

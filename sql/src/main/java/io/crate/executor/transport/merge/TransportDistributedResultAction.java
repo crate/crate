@@ -44,6 +44,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
+import java.util.Locale;
 
 
 public class TransportDistributedResultAction implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
@@ -63,11 +64,11 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
         this.transports = transports;
         this.jobContextService = jobContextService;
         transportService.registerHandler(DISTRIBUTED_RESULT_ACTION, new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) {
-                    @Override
-                    public DistributedResultRequest newInstance() {
-                        return new DistributedResultRequest();
-                    }
-                });
+            @Override
+            public DistributedResultRequest newInstance() {
+                return new DistributedResultRequest();
+            }
+        });
     }
 
     public void pushResult(DiscoveryNode node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
@@ -91,56 +92,61 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
     }
 
     @Override
-    public void nodeOperation(DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
+    public void nodeOperation(final DistributedResultRequest request, final ActionListener<DistributedResultResponse> listener) {
         if (request.executionNodeId() == ExecutionNode.NO_EXECUTION_NODE) {
             listener.onFailure(new IllegalStateException("request must contain a valid executionNodeId"));
             return;
         }
-        JobExecutionContext context = jobContextService.getOrCreateContext(request.jobId());
-        ListenableFuture<PageDownstreamContext> pageDownstreamContextFuture = context.pageDownstreamContext(request.executionNodeId());
-        Futures.addCallback(pageDownstreamContextFuture, new PageDownstreamContextFutureCallback(request, listener));
+        ListenableFuture<JobExecutionContext> context = jobContextService.getContext(request.jobId());
+        Futures.addCallback(context, new FutureCallback<JobExecutionContext>() {
+            @Override
+            public void onSuccess(JobExecutionContext result) {
+                PageDownstreamContext pageDownstreamContext = result.getPageDownstreamContext(request.executionNodeId());
+                if (pageDownstreamContext == null) {
+                    listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                            "Couldn't find pageDownstreamContext for %d", request.executionNodeId())));
+                    return;
+                }
+
+                Throwable throwable = request.throwable();
+                if (throwable == null) {
+                    request.streamers(pageDownstreamContext.streamer());
+                    pageDownstreamContext.setBucket(
+                            request.bucketIdx(),
+                            request.rows(),
+                            request.isLast(),
+                            new SendResponsePageResultListener(listener, request));
+                } else {
+                    pageDownstreamContext.failure(request.bucketIdx(), throwable);
+                    listener.onResponse(new DistributedResultResponse(false));
+                }
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                listener.onFailure(t);
+            }
+        });
     }
 
-    private static class PageDownstreamContextFutureCallback implements FutureCallback<PageDownstreamContext> {
-        private final DistributedResultRequest request;
+    private static class SendResponsePageResultListener implements PageResultListener {
         private final ActionListener<DistributedResultResponse> listener;
+        private final DistributedResultRequest request;
 
-        public PageDownstreamContextFutureCallback(DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
-            this.request = request;
+        public SendResponsePageResultListener(ActionListener<DistributedResultResponse> listener, DistributedResultRequest request) {
             this.listener = listener;
+            this.request = request;
         }
 
         @Override
-        public void onSuccess(final PageDownstreamContext pageDownstreamContext) {
-            Throwable throwable = request.throwable();
-            if (throwable != null) {
-                listener.onResponse(new DistributedResultResponse(false));
-                pageDownstreamContext.failure(throwable);
-            } else {
-                request.streamers(pageDownstreamContext.streamer());
-                pageDownstreamContext.setBucket(
-                        request.bucketIdx(),
-                        request.rows(),
-                        request.isLast(),
-                        new PageResultListener() {
-                            @Override
-                            public void needMore(boolean needMore) {
-                                LOGGER.trace("sending needMore response, need more? {}", needMore);
-                                listener.onResponse(new DistributedResultResponse(needMore));
-                            }
-
-                            @Override
-                            public int buckedIdx() {
-                                return request.bucketIdx();
-                            }
-                        }
-                );
-            }
+        public void needMore(boolean needMore) {
+            LOGGER.trace("sending needMore response, need more? {}", needMore);
+            listener.onResponse(new DistributedResultResponse(needMore));
         }
 
         @Override
-        public void onFailure(@Nonnull Throwable t) {
-            listener.onFailure(t);
+        public int buckedIdx() {
+            return request.bucketIdx();
         }
     }
 }

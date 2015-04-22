@@ -37,7 +37,7 @@ public class OperationContextLog {
         this.ended = System.currentTimeMillis();
     }
 
-    public UUID id() {
+    public int id() {
         return operationContext.id;
     }
 
