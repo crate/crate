@@ -190,7 +190,6 @@ public class LocalMergeTaskTest extends CrateUnitTest {
 
             ListenableFuture<List<TaskResult>> allAsList = Futures.allAsList(localMergeTask.result());
             Bucket result = allAsList.get().get(0).rows();
-
             assertThat(result, contains(
                     isRow(3.0, 3.0),
                     isRow(2.0, 2.0),
