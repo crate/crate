@@ -32,7 +32,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -90,7 +90,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
 
         final SymbolBasedBulkShardProcessor bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
-                mock(TransportCreateIndexAction.class),
+                mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
                 coordinatorPool,
                 false,
@@ -146,7 +146,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
 
         final SymbolBasedBulkShardProcessor bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
-                mock(TransportCreateIndexAction.class),
+                mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
                 coordinatorPool,
                 false,

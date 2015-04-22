@@ -36,6 +36,7 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
@@ -61,6 +62,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
     private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
     private final SymbolBasedUpsertByIdNode node;
     private final List<ListenableFuture<TaskResult>> resultList;
@@ -76,11 +78,13 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                                      Settings settings,
                                      SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                                      TransportCreateIndexAction transportCreateIndexAction,
+                                     TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                                      BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                      SymbolBasedUpsertByIdNode node) {
         super(jobId);
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
+        this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
         this.clusterService = clusterService;
         this.node = node;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
@@ -175,7 +179,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
         bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
-                transportCreateIndexAction,
+                transportBulkCreateIndicesAction,
                 settings,
                 bulkRetryCoordinatorPool,
                 node.isPartitionedTable(),

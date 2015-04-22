@@ -45,7 +45,6 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
-import org.elasticsearch.action.bulk.BulkRetryCoordinator;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -342,6 +341,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    transportActionProvider.transportBulkCreateIndicesAction(),
                     bulkRetryCoordinatorPool,
                     node));
         }
@@ -353,6 +353,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.transportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    transportActionProvider.transportBulkCreateIndicesAction(),
                     bulkRetryCoordinatorPool,
                     node));
         }

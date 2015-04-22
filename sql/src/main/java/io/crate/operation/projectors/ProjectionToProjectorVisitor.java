@@ -262,7 +262,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new IndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportCreateIndexAction(),
+                transportActionProvider.transportBulkCreateIndicesAction(),
                 bulkRetryCoordinatorPool,
                 projection.tableIdent(),
                 projection.partitionIdent(),
@@ -292,7 +292,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         return new ColumnIndexWriterProjector(
                 clusterService,
                 settings,
-                transportActionProvider.transportCreateIndexAction(),
+                transportActionProvider.transportBulkCreateIndicesAction(),
                 bulkRetryCoordinatorPool,
                 projection.tableIdent(),
                 projection.partitionIdent(),
@@ -339,7 +339,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 clusterService,
                 settings,
                 shardId,
-                transportActionProvider.transportCreateIndexAction(),
+                transportActionProvider.transportBulkCreateIndicesAction(),
                 bulkRetryCoordinatorPool,
                 ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()])[0],
                 projection.assignmentsColumns(),

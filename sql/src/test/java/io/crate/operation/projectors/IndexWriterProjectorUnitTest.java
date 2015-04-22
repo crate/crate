@@ -37,7 +37,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -73,7 +73,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportCreateIndexAction.class),
+                mock(TransportBulkCreateIndicesAction.class),
                 mock(BulkRetryCoordinatorPool.class),
                 new TableIdent(null, "bulk_import"),
                 null,
@@ -114,7 +114,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportCreateIndexAction.class),
+                mock(TransportBulkCreateIndicesAction.class),
                 mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),
                 new TableIdent(null, "bulk_import"),
                 null,
