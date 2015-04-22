@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: In some cases too few threads where started which could slow
+   down queries
+
  - Increased speed and reduced amount of used memory on sorted queries
 
  - Using unsupported URI schema in COPY FROM statement now results in an error.

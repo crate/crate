@@ -98,7 +98,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                        JobContextService jobContextService) {
         this.resultProviderFactory = resultProviderFactory;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        poolSize = executor.getPoolSize();
+        poolSize = executor.getCorePoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.jobContextService = jobContextService;
