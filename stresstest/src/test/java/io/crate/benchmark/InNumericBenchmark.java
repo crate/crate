@@ -101,6 +101,10 @@ public class InNumericBenchmark extends BenchmarkBase {
                 .bytes().toBytes();
     }
 
+    protected boolean generateNewRowForEveryDocument() {
+        return true;
+    }
+
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testSelectIn500() throws Exception {
