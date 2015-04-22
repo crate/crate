@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - Optimized queries that use ``IN`` or ``ANY`` on fields of type ``string``
+ - Optimized queries that use ``IN`` or ``ANY``
 
  - Fix: Prevent COPY FROM or INSERT into a partitioned table to run into timeouts
    when creating many partitions at once

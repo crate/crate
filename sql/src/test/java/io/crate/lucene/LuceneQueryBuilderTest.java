@@ -156,10 +156,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                         foo,
                         Literal.newLiteral(dataType, Sets.newHashSet(1, 3))));
         Query query = convert(whereClause);
-        assertThat(query, instanceOf(BooleanQuery.class));
-        for (BooleanClause booleanClause : (BooleanQuery) query) {
-            assertThat(booleanClause.getQuery(), instanceOf(NumericRangeQuery.class));
-        }
+        assertThat(query, instanceOf(FilteredQuery.class));
+        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
     }
 
     @Test
@@ -206,7 +204,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Literal doubleArrayLiteral = Literal.newLiteral(new Object[]{-1.5d, 0.0d, 1.5d}, new ArrayType(DataTypes.DOUBLE));
         Query query = convert(whereClause(AnyEqOperator.NAME, ref, doubleArrayLiteral));
         assertThat(query, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)query).getFilter(), instanceOf(BooleanFilter.class));
+        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
     }
 
     @Test
