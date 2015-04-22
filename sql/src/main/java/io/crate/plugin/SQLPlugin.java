@@ -55,6 +55,8 @@ import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
+import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesAction;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
@@ -186,5 +188,6 @@ public class SQLPlugin extends AbstractPlugin {
     public void onModule(ActionModule actionModule) {
         actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
         actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
+        actionModule.registerAction(BulkCreateIndicesAction.INSTANCE, TransportBulkCreateIndicesAction.class);
     }
 }

@@ -347,6 +347,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    transportActionProvider.transportBulkCreateIndicesAction(),
                     bulkRetryCoordinatorPool,
                     node));
         }
@@ -358,6 +359,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     settings,
                     transportActionProvider.transportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
+                    transportActionProvider.transportBulkCreateIndicesAction(),
                     bulkRetryCoordinatorPool,
                     node));
         }

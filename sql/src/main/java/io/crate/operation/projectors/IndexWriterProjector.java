@@ -30,7 +30,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
@@ -82,7 +82,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
-                                TransportCreateIndexAction transportCreateIndexAction,
+                                TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                 TableIdent tableIdent,
                                 @Nullable String partitionIdent,
@@ -117,7 +117,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
         createBulkShardProcessor(
                 clusterService,
                 settings,
-                transportCreateIndexAction,
+                transportBulkCreateIndicesAction,
                 bulkActions,
                 autoCreateIndices,
                 overwriteDuplicates,

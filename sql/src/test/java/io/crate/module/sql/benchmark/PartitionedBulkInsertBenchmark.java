@@ -99,19 +99,21 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
         return getClient(false).admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
     }
 
-    private SQLBulkRequest getBulkArgsRequest() {
-        Object[][] bulkArgs = new Object[ROWS][];
-        for (int i = 0; i < ROWS; i++) {
-            bulkArgs[i] = getRandomObject();
+    private SQLBulkRequest getBulkArgsRequest(boolean uniquePartitions, int numRows) {
+        Object[][] bulkArgs = new Object[numRows][];
+        for (int i = 0; i < numRows; i++) {
+            bulkArgs[i] = getRandomObject(uniquePartitions);
         }
         return new SQLBulkRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
     }
 
-    private Object[] getRandomObject() {
+    private Object[] getRandomObject(boolean uniquePartitions) {
+        int partitionIdx = partitionIndex++;
+        String partitionValue = uniquePartitions ? String.valueOf(partitionIdx) : partitions[(partitionIdx) % partitions.length];
         return new Object[]{
-                    partitions[(partitionIndex++) % partitions.length],
+                    partitionValue,
                     RandomStringUtils.randomAlphabetic(1),
-                    TS + partitionIndex,
+                    TS + partitionIdx,
                     5.0};
     }
 
@@ -121,7 +123,7 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
         long inserted = 0;
         long errors = 0;
 
-        SQLBulkResponse bulkResponse = getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest()).actionGet();
+        SQLBulkResponse bulkResponse = getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest(false, ROWS)).actionGet();
         for (SQLBulkResponse.Result result : bulkResponse.results()) {
             assertThat(result.errorMessage(), is(nullValue()));
             if (result.rowCount() < 0) {
@@ -134,4 +136,23 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
         assertThat(inserted, is(5000L));
     }
 
+    @Test
+    @BenchmarkOptions(benchmarkRounds = 2, warmupRounds = 1)
+    public void testBulkInsertWithUniquePartitions() throws Exception {
+        long inserted = 0;
+        long errors = 0;
+
+        SQLBulkResponse bulkResponse = getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest(true, 100)).actionGet();
+        for (SQLBulkResponse.Result result : bulkResponse.results()) {
+            assertThat(result.errorMessage(), is(nullValue()));
+            if (result.rowCount() < 0) {
+                errors++;
+            } else {
+                inserted += result.rowCount();
+            }
+        }
+        assertThat(errors, is(0L));
+        assertThat(inserted, is(100L));
+
+    }
 }

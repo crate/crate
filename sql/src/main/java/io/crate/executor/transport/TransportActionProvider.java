@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
@@ -65,6 +66,7 @@ public class TransportActionProvider {
     private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
+    private final Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider;
 
     @Inject
     public TransportActionProvider(Provider<TransportCollectNodeAction> transportCollectNodeActionProvider,
@@ -84,7 +86,8 @@ public class TransportActionProvider {
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
                                    Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
-                                   Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider) {
+                                   Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
+                                   Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
@@ -103,11 +106,15 @@ public class TransportActionProvider {
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
+        this.transportBulkCreateIndicesActionProvider = transportBulkCreateIndicesActionProvider;
     }
-
 
     public TransportCreateIndexAction transportCreateIndexAction() {
         return transportCreateIndexActionProvider.get();
+    }
+
+    public TransportBulkCreateIndicesAction transportBulkCreateIndicesAction() {
+        return transportBulkCreateIndicesActionProvider.get();
     }
 
     public TransportDeleteIndexAction transportDeleteIndexAction() {
