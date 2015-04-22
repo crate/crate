@@ -21,9 +21,6 @@
 
 package io.crate.executor.transport.merge;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
@@ -36,14 +33,15 @@ import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.PageResultListener;
 import io.crate.planner.node.ExecutionNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
+import java.util.Locale;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class TransportDistributedResultAction implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
@@ -55,23 +53,26 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
 
     private final Transports transports;
     private final JobContextService jobContextService;
+    private final ScheduledExecutorService scheduler;
 
     @Inject
     public TransportDistributedResultAction(Transports transports,
                                             JobContextService jobContextService,
+                                            ThreadPool threadPool,
                                             TransportService transportService) {
         this.transports = transports;
         this.jobContextService = jobContextService;
+        scheduler = threadPool.scheduler();
         transportService.registerHandler(DISTRIBUTED_RESULT_ACTION, new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) {
-                    @Override
-                    public DistributedResultRequest newInstance() {
-                        return new DistributedResultRequest();
-                    }
-                });
+            @Override
+            public DistributedResultRequest newInstance() {
+                return new DistributedResultRequest();
+            }
+        });
     }
 
-    public void pushResult(DiscoveryNode node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
-        transports.executeLocalOrWithTransport(this, node.id(), request, listener,
+    public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
+        transports.executeLocalOrWithTransport(this, node, request, listener,
                 new DefaultTransportResponseHandler<DistributedResultResponse>(listener, EXECUTOR_NAME) {
                     @Override
                     public DistributedResultResponse newInstance() {
@@ -91,56 +92,92 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
     }
 
     @Override
-    public void nodeOperation(DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
+    public void nodeOperation(DistributedResultRequest request,
+                              ActionListener<DistributedResultResponse> listener) {
+        nodeOperation(request, listener, 0);
+    }
+
+    private void nodeOperation(final DistributedResultRequest request,
+                               final ActionListener<DistributedResultResponse> listener,
+                               final int retry) {
         if (request.executionNodeId() == ExecutionNode.NO_EXECUTION_NODE) {
             listener.onFailure(new IllegalStateException("request must contain a valid executionNodeId"));
             return;
         }
-        JobExecutionContext context = jobContextService.getOrCreateContext(request.jobId());
-        ListenableFuture<PageDownstreamContext> pageDownstreamContextFuture = context.pageDownstreamContext(request.executionNodeId());
-        Futures.addCallback(pageDownstreamContextFuture, new PageDownstreamContextFutureCallback(request, listener));
+        JobExecutionContext context = jobContextService.getContext(request.jobId());
+        if (context == null) {
+            retryOrFailureResponse(request, listener, retry);
+            return;
+        }
+
+        PageDownstreamContext pageDownstreamContext = context.getPageDownstreamContext(request.executionNodeId());
+        if (pageDownstreamContext == null) {
+            // this is currently sometimes the case when upstreams send failures more than once
+            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Couldn't find pageDownstreamContext for %d", request.executionNodeId())));
+            return;
+        }
+
+        Throwable throwable = request.throwable();
+        if (throwable == null) {
+            request.streamers(pageDownstreamContext.streamer());
+            pageDownstreamContext.setBucket(
+                    request.bucketIdx(),
+                    request.rows(),
+                    request.isLast(),
+                    new SendResponsePageResultListener(listener, request));
+        } else {
+            pageDownstreamContext.failure(request.bucketIdx(), throwable);
+            listener.onResponse(new DistributedResultResponse(false));
+        }
     }
 
-    private static class PageDownstreamContextFutureCallback implements FutureCallback<PageDownstreamContext> {
+    private void retryOrFailureResponse(DistributedResultRequest request,
+                                        ActionListener<DistributedResultResponse> listener,
+                                        int retry) {
+        if (retry > 20) {
+            listener.onFailure(new IllegalStateException(
+                    String.format("Couldn't find JobExecutionContext for %s", request.jobId())));
+        } else {
+            scheduler.schedule(new NodeOperationRunnable(request, listener, retry), (retry + 1) * 2, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private static class SendResponsePageResultListener implements PageResultListener {
+        private final ActionListener<DistributedResultResponse> listener;
+        private final DistributedResultRequest request;
+
+        public SendResponsePageResultListener(ActionListener<DistributedResultResponse> listener, DistributedResultRequest request) {
+            this.listener = listener;
+            this.request = request;
+        }
+
+        @Override
+        public void needMore(boolean needMore) {
+            LOGGER.trace("sending needMore response, need more? {}", needMore);
+            listener.onResponse(new DistributedResultResponse(needMore));
+        }
+
+        @Override
+        public int buckedIdx() {
+            return request.bucketIdx();
+        }
+    }
+
+    private class NodeOperationRunnable implements Runnable {
         private final DistributedResultRequest request;
         private final ActionListener<DistributedResultResponse> listener;
+        private final int retry;
 
-        public PageDownstreamContextFutureCallback(DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
+        public NodeOperationRunnable(DistributedResultRequest request, ActionListener<DistributedResultResponse> listener, int retry) {
             this.request = request;
             this.listener = listener;
+            this.retry = retry;
         }
 
         @Override
-        public void onSuccess(final PageDownstreamContext pageDownstreamContext) {
-            Throwable throwable = request.throwable();
-            if (throwable != null) {
-                listener.onResponse(new DistributedResultResponse(false));
-                pageDownstreamContext.failure(throwable);
-            } else {
-                request.streamers(pageDownstreamContext.streamer());
-                pageDownstreamContext.setBucket(
-                        request.bucketIdx(),
-                        request.rows(),
-                        request.isLast(),
-                        new PageResultListener() {
-                            @Override
-                            public void needMore(boolean needMore) {
-                                LOGGER.trace("sending needMore response, need more? {}", needMore);
-                                listener.onResponse(new DistributedResultResponse(needMore));
-                            }
-
-                            @Override
-                            public int buckedIdx() {
-                                return request.bucketIdx();
-                            }
-                        }
-                );
-            }
-        }
-
-        @Override
-        public void onFailure(@Nonnull Throwable t) {
-            listener.onFailure(t);
+        public void run() {
+            nodeOperation(request, listener, retry + 1);
         }
     }
 }

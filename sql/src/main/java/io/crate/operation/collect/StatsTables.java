@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class StatsTables {
 
     protected final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
-    protected final Map<UUID, OperationContext> operationsTable = new ConcurrentHashMap<>();
+    protected final Map<Integer, OperationContext> operationsTable = new ConcurrentHashMap<>();
     protected final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>();
     protected final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>();
     private final static NoopQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
@@ -83,7 +83,7 @@ public class StatsTables {
     }
 
     public interface IterableGetter {
-        public Iterable<?> getIterable();
+        Iterable<?> getIterable();
     }
 
     @Inject
@@ -149,7 +149,7 @@ public class StatsTables {
         jobContextLogs.offer(new JobContextLog(jobContext, errorMessage));
     }
 
-    public void operationStarted(UUID operationId, UUID jobId, String name) {
+    public void operationStarted(int operationId, UUID jobId, String name) {
         if (isEnabled()) {
             operationsTable.put(
                     operationId,
@@ -157,7 +157,7 @@ public class StatsTables {
         }
     }
 
-    public void operationFinished(@Nullable UUID operationId, @Nullable String errorMessage, long usedBytes) {
+    public void operationFinished(@Nullable Integer operationId, @Nullable String errorMessage, long usedBytes) {
         if (operationId == null || !isEnabled()) {
             return;
         }

@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.job.ContextPreparer;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -42,12 +43,15 @@ import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportFetchNodeAction;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
+import io.crate.operation.collect.StatsTables;
 import io.crate.operation.fetch.RowInputSymbolVisitor;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.Plan;
@@ -164,12 +168,16 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         setUpCharacters();
         Planner.Context plannerContext = new Planner.Context(clusterService());
         CollectNode collectNode = createCollectNode(plannerContext, false);
+        UUID jobId = UUID.randomUUID();
+        StatsTables statsTables = cluster().getInstance(StatsTables.class);
 
         List<Bucket> results = new ArrayList<>();
         Iterable<MapSideDataCollectOperation> collectOperations = cluster().getInstances(MapSideDataCollectOperation.class);
         for (MapSideDataCollectOperation collectOperation : collectOperations) {
             CollectingProjector downstream = new CollectingProjector();
-            collectOperation.collect(collectNode, downstream, ramAccountingContext);
+            JobCollectContext jobCollectContext =
+                    new JobCollectContext(collectOperation, jobId, collectNode, downstream, ramAccountingContext, statsTables);
+            collectOperation.collect(collectNode, downstream, jobCollectContext);
             results.add(downstream.result().get());
         }
 
@@ -206,14 +214,22 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext);
 
         QueryThenFetch plan = ((QueryThenFetch) ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan());
-        plan.collectNode().jobId(UUID.randomUUID());
-        Iterable<MapSideDataCollectOperation> collectOperations = cluster().getInstances(MapSideDataCollectOperation.class);
+        UUID jobId = UUID.randomUUID();
+        plan.collectNode().jobId(jobId);
 
+        JobExecutionContext.Builder builder = new JobExecutionContext.Builder(jobId);
+        ContextPreparer contextPreparer = cluster().getInstance(ContextPreparer.class);
+        contextPreparer.prepare(jobId, plan.collectNode(), builder);
+
+        Iterable<MapSideDataCollectOperation> collectOperations = cluster().getInstances(MapSideDataCollectOperation.class);
         List<Bucket> results = new ArrayList<>();
+        StatsTables statsTables = cluster().getInstance(StatsTables.class);
         for (MapSideDataCollectOperation collectOperation : collectOperations) {
-            CollectingProjector collectingProjector = new CollectingProjector();
-            collectOperation.collect(plan.collectNode(), collectingProjector, ramAccountingContext);
-            results.add(collectingProjector.result().get());
+            CollectingProjector downstream = new CollectingProjector();
+            JobCollectContext jobCollectContext =
+                    new JobCollectContext(collectOperation, jobId, plan.collectNode(), downstream, ramAccountingContext, statsTables);
+            collectOperation.collect(plan.collectNode(), downstream, jobCollectContext);
+            results.add(downstream.result().get());
         }
 
         TransportFetchNodeAction transportFetchNodeAction = cluster().getInstance(TransportFetchNodeAction.class);

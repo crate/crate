@@ -21,10 +21,10 @@
 
 package io.crate.operation.collect;
 
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowDownstream;
 import io.crate.planner.node.dql.CollectNode;
 
 public interface CollectOperation {
-    public void collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext);
+
+    void collect(CollectNode collectNode, RowDownstream downstream, JobCollectContext jobCollectContext);
 }

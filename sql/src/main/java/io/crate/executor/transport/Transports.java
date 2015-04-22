@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
@@ -59,9 +60,22 @@ public class Transports {
             final TRequest request,
             final ActionListener<TResponse> listener,
             TransportResponseHandler<TResponse> transportResponseHandler) {
+        DiscoveryNode discoveryNode = clusterService.state().nodes().get(node);
+        if (discoveryNode == null) {
+            throw new IllegalArgumentException(String.format("node \"%s\" not found in cluster state!", node));
+        }
+        executeLocalOrWithTransport(nodeAction, discoveryNode, request, listener, transportResponseHandler);
+    }
+
+    public <TRequest extends TransportRequest, TResponse extends TransportResponse> void executeLocalOrWithTransport(
+            final NodeAction<TRequest, TResponse> nodeAction,
+            DiscoveryNode node,
+            final TRequest request,
+            final ActionListener<TResponse> listener,
+            TransportResponseHandler<TResponse> transportResponseHandler) {
 
         ClusterState clusterState = clusterService.state();
-        if (node.equals("_local") || node.equals(clusterState.nodes().localNodeId())) {
+        if (node.id().equals("_local") || node.equals(clusterState.nodes().localNode())) {
             try {
                 threadPool.executor(nodeAction.executorName()).execute(new Runnable() {
                     @Override
@@ -75,7 +89,7 @@ public class Transports {
             }
         } else {
             transportService.sendRequest(
-                    clusterState.nodes().get(node), nodeAction.actionName(), request, transportResponseHandler);
+                    node, nodeAction.actionName(), request, transportResponseHandler);
         }
     }
 }

@@ -23,6 +23,11 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import io.crate.action.sql.query.CrateSearchContext;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ContextCallback;
+import io.crate.jobs.ExecutionSubContext;
+import io.crate.operation.RowDownstream;
+import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -37,9 +42,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class JobCollectContext implements Releasable {
+public class JobCollectContext implements ExecutionSubContext, Releasable {
 
-    private final UUID id;
     private final Map<Integer, LuceneDocCollector> activeCollectors = new HashMap<>();
     private final ConcurrentMap<ShardId, List<Integer>> shardsMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, ShardId> jobContextIdMap = new ConcurrentHashMap<>();
@@ -49,13 +53,35 @@ public class JobCollectContext implements Releasable {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
+    private final CollectOperation collectOperation;
+    private final UUID jobId;
+    private final CollectNode node;
+    private final RowDownstream downstream;
+    private final RamAccountingContext ramAccountingContext;
+    private final StatsTables statsTables;
+    private ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
 
-    public JobCollectContext(UUID id) {
-        this.id = id;
+    public JobCollectContext(CollectOperation collectOperation,
+                             UUID jobId,
+                             CollectNode node,
+                             RowDownstream downstream,
+                             RamAccountingContext ramAccountingContext,
+                             StatsTables statsTables) {
+        this.collectOperation = collectOperation;
+        this.jobId = jobId;
+        this.node = node;
+        this.downstream = downstream;
+        this.ramAccountingContext = ramAccountingContext;
+        this.statsTables = statsTables;
     }
 
-    public UUID id() {
-        return id;
+    public void start() {
+        statsTables.operationStarted(node.executionNodeId(), jobId, node.name());
+        collectOperation.collect(node, downstream, this);
+    }
+
+    public RamAccountingContext ramAccountingContext() {
+        return ramAccountingContext;
     }
 
     public void registerJobContextId(ShardId shardId, int jobContextId) {
@@ -78,9 +104,10 @@ public class JobCollectContext implements Releasable {
         }
     }
 
-    public LuceneDocCollector createCollectorAndContext(IndexShard indexShard,
-                                            int jobSearchContextId,
-                                            Function<Engine.Searcher, LuceneDocCollector> createCollectorFunction) throws Exception {
+    public LuceneDocCollector createCollectorAndContext(
+            IndexShard indexShard,
+            int jobSearchContextId,
+            Function<Engine.Searcher, LuceneDocCollector> createCollectorFunction) throws Exception {
         assert shardsMap.containsKey(indexShard.shardId()) : "all jobSearchContextId's must be registered first using registerJobContextId(..)";
         LuceneDocCollector docCollector;
         synchronized (lock) {
@@ -99,7 +126,7 @@ public class JobCollectContext implements Releasable {
                 activeCollectors.put(jobSearchContextId, docCollector);
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Created doc collector with context {} on shard {} for job {}",
-                            jobSearchContextId, indexShard.shardId(), id);
+                            jobSearchContextId, indexShard.shardId(), jobId);
                 }
             }
         }
@@ -110,14 +137,15 @@ public class JobCollectContext implements Releasable {
     public LuceneDocCollector findCollector(int jobSearchContextId) {
         return activeCollectors.get(jobSearchContextId);
     }
+
     public void closeContext(int jobSearchContextId) {
         closeContext(jobSearchContextId, true);
     }
 
-    public void closeContext(int jobSearchContextId, boolean removeFromActive) {
+    private void closeContext(int jobSearchContextId, boolean removeFromActive) {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Closing context {} on shard {} for job {}",
-                    jobSearchContextId, jobContextIdMap.get(jobSearchContextId), id);
+                    jobSearchContextId, jobContextIdMap.get(jobSearchContextId), jobId);
         }
         synchronized (lock) {
             LuceneDocCollector docCollector = activeCollectors.get(jobSearchContextId);
@@ -141,6 +169,11 @@ public class JobCollectContext implements Releasable {
                     activeCollectors.remove(jobSearchContextId);
                 }
                 docCollector.searchContext().close();
+            }
+            if (removeFromActive && activeCollectors.isEmpty()) {
+                for (ContextCallback callback : callbacks) {
+                    callback.onClose();
+                }
             }
         }
     }
@@ -202,6 +235,9 @@ public class JobCollectContext implements Releasable {
                     closeContext(jobSearchContextId, false);
                     it.remove();
                 }
+                for (ContextCallback callback : callbacks) {
+                    callback.onClose();
+                }
             }
         }
     }
@@ -213,4 +249,7 @@ public class JobCollectContext implements Releasable {
         return EngineSearcher.getSearcherWithRetry(indexShard, null);
     }
 
+    public void addCallback(ContextCallback contextCallback) {
+        callbacks.add(contextCallback);
+    }
 }

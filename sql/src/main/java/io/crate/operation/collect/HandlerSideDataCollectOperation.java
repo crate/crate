@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -55,7 +54,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation, RowUps
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
     }
 
-    private void handleCluster(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    private void handleCluster(CollectNode collectNode, RowDownstream downstream, JobCollectContext jobCollectContext) {
         collectNode = collectNode.normalize(clusterNormalizer);
         if (collectNode.whereClause().noMatch()) {
             downstream.registerUpstream(this).finish();
@@ -69,32 +68,33 @@ public class HandlerSideDataCollectOperation implements CollectOperation, RowUps
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
         SimpleOneRowCollector collector = new SimpleOneRowCollector(
                 inputs, collectExpressions, downstream);
-        collector.doCollect(ramAccountingContext);
+        collector.doCollect(jobCollectContext);
     }
 
     private void handleWithService(CollectService collectService,
                                    CollectNode node,
                                    RowDownstream rowDownstream,
-                                   RamAccountingContext ramAccountingContext) {
+                                   JobCollectContext jobCollectContext) {
         CrateCollector collector = collectService.getCollector(node, rowDownstream); // calls projector.registerUpstream()
-        collector.doCollect(ramAccountingContext);
+        collector.doCollect(jobCollectContext);
     }
 
     @Override
-    public void collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    public void collect(CollectNode collectNode, RowDownstream downstream, JobCollectContext jobCollectContext) {
         if (collectNode.isPartitioned()) {
             // edge case: partitioned table without actual indices
             // no results
             downstream.registerUpstream(this).finish();
         } else if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
-            handleWithService(informationSchemaCollectService, collectNode, downstream, ramAccountingContext);
+            handleWithService(informationSchemaCollectService, collectNode, downstream, jobCollectContext);
         } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
-            handleCluster(collectNode, downstream, ramAccountingContext);
+            handleCluster(collectNode, downstream, jobCollectContext);
         } else if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
-            handleWithService(unassignedShardsCollectService, collectNode, downstream, ramAccountingContext);
+            handleWithService(unassignedShardsCollectService, collectNode, downstream, jobCollectContext);
         } else {
             downstream.registerUpstream(this).fail(new IllegalStateException("unsupported routing"));
         }
+        jobCollectContext.close();
     }
 }

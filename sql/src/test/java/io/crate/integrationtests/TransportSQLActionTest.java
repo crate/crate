@@ -49,7 +49,6 @@ import static org.hamcrest.core.Is.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
-
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -375,7 +374,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select \"id\" from test order by id limit 1 offset 1");
         assertEquals(1, response.rowCount());
-        assertThat((String)response.rows()[0][0], is("id2"));
+        assertThat((String) response.rows()[0][0], is("id2"));
     }
 
 
@@ -395,9 +394,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSqlRequestWithNotEqual() throws Exception {
         execute("create table test (id string primary key) with (number_of_replicas = 0)");
         ensureYellow();
-        execute("insert into test (id) values (?)", new Object[][] {
-                new Object[] { "id1" },
-                new Object[] { "id2" }
+        execute("insert into test (id) values (?)", new Object[][]{
+                new Object[]{"id1"},
+                new Object[]{"id2"}
         });
         refresh();
         execute("select id from test where id != 'id1'");

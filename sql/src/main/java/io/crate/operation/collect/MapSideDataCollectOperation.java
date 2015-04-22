@@ -25,11 +25,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -74,7 +72,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     protected final EvaluatingNormalizer nodeNormalizer;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
-    private final JobContextService jobContextService;
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
     private final CollectServiceResolver collectServiceResolver;
     private final ProjectionToProjectorVisitor projectorVisitor;
@@ -93,14 +90,12 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver,
-                                       ResultProviderFactory resultProviderFactory,
-                                       JobContextService jobContextService) {
+                                       ResultProviderFactory resultProviderFactory) {
         this.resultProviderFactory = resultProviderFactory;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getCorePoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
-        this.jobContextService = jobContextService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.collectServiceResolver = collectServiceResolver;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -139,21 +134,22 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     @Override
     public void collect(CollectNode collectNode,
                         RowDownstream downstream,
-                        RamAccountingContext ramAccountingContext) {
+                        JobCollectContext jobCollectContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
         assert collectNode.jobId().isPresent() : "no jobId present for collect operation";
         String localNodeId = clusterService.state().nodes().localNodeId();
         if (collectNode.executionNodes().contains(localNodeId)) {
             if (!collectNode.routing().containsShards(localNodeId)) {
                 // node collect
-                handleNodeCollect(collectNode, downstream, ramAccountingContext);
+                handleNodeCollect(collectNode, downstream, jobCollectContext);
                 return;
             } else {
                 // shard or doc level
-                handleShardCollect(collectNode, downstream, ramAccountingContext);
+                handleShardCollect(collectNode, downstream, jobCollectContext);
                 return;
             }
         }
+        jobCollectContext.close();
         throw new UnhandledServerException("unsupported routing");
     }
 
@@ -163,7 +159,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      * @param collectNode {@link CollectNode} instance containing routing information and symbols to collect
      * @param downstream  the receiver of the rows generated
      */
-    protected void handleNodeCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    protected void handleNodeCollect(CollectNode collectNode, RowDownstream downstream, JobCollectContext jobCollectContext) {
         collectNode = collectNode.normalize(nodeNormalizer);
         if (collectNode.whereClause().noMatch()) {
             downstream.registerUpstream(this).finish();
@@ -172,7 +168,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         if (!collectNode.projections().isEmpty()) {
             FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
                     projectorVisitor,
-                    ramAccountingContext,
+                    jobCollectContext.ramAccountingContext(),
                     collectNode.projections(),
                     downstream
             );
@@ -180,7 +176,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             downstream = projectorChain.firstProjector();
         }
         CrateCollector collector = getCollector(collectNode, downstream);
-        collector.doCollect(ramAccountingContext);
+        collector.doCollect(jobCollectContext);
     }
 
     private CrateCollector getCollector(CollectNode collectNode,
@@ -224,7 +220,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      *
      * @param collectNode {@link CollectNode} containing routing information and symbols to collect
      */
-    protected void handleShardCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    protected void handleShardCollect(CollectNode collectNode, RowDownstream downstream, JobCollectContext jobCollectContext) {
         String localNodeId = clusterService.state().nodes().localNodeId();
         final int numShards = collectNode.routing().numShards(localNodeId);
 
@@ -236,14 +232,12 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         assert collectNode.jobId().isPresent() : "jobId must be set on CollectNode";
-        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(collectNode.jobId().get())
-                .collectContext(collectNode.executionNodeId());
         ShardProjectorChain projectorChain = new ShardProjectorChain(
                 numShards,
                 collectNode.projections(),
                 downstream,
                 projectorVisitor,
-                ramAccountingContext
+                jobCollectContext.ramAccountingContext()
         );
         int jobSearchContextId = collectNode.routing().jobSearchContextIdBase();
         // get shardCollectors from single shards
@@ -296,7 +290,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         // start the projection
         projectorChain.startProjections();
         try {
-            runCollectThreaded(collectNode, shardCollectors, ramAccountingContext);
+            runCollectThreaded(collectNode, shardCollectors, jobCollectContext);
         } catch (RejectedExecutionException e) {
             // on distributing collects the merge nodes need to be informed about the failure
             // so they can clean up their context
@@ -305,17 +299,12 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             return;
         }
 
-        // release the job collect context
-        jobContextService.releaseContext(collectNode.jobId().get());
-
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("started {} shardCollectors", numShards);
-        }
+        LOGGER.trace("started {} shardCollectors", numShards);
     }
 
     private void runCollectThreaded(CollectNode collectNode,
                                     final List<CrateCollector> shardCollectors,
-                                    final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
+                                    final JobCollectContext jobCollectContext) throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
@@ -323,7 +312,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 @Override
                 public void run() {
                     for (CrateCollector shardCollector : shardCollectors) {
-                        doCollect(shardCollector, ramAccountingContext);
+                        doCollect(shardCollector, jobCollectContext);
                     }
                 }
             });
@@ -339,7 +328,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                             return new Runnable() {
                                 @Override
                                 public void run() {
-                                    doCollect(input, ramAccountingContext);
+                                    doCollect(input, jobCollectContext);
                                 }
                             };
                         }
@@ -348,8 +337,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
     }
 
-    private void doCollect(CrateCollector shardCollector,
-                           RamAccountingContext ramAccountingContext) {
-        shardCollector.doCollect(ramAccountingContext);
+    private void doCollect(CrateCollector shardCollector, JobCollectContext jobCollectContext) {
+        shardCollector.doCollect(jobCollectContext);
     }
 }
