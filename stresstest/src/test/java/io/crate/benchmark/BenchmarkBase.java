@@ -165,8 +165,14 @@ public class BenchmarkBase {
                     for (int i=0; i < numDocsToCreate; i+=1000) {
                         bulkRequest.requests().clear();
                         try {
-                            byte[] source = generateRowSource();
+                            byte[] source = null;
+                            if (!generateNewRowForEveryDocument()) {
+                                source = generateRowSource();
+                            }
                             for (int j=0; j<1000;j++) {
+                                if (generateNewRowForEveryDocument()) {
+                                    source = generateRowSource();
+                                }
                                 IndexRequest indexRequest = new IndexRequest(tableName, "default", String.valueOf(i+j) + String.valueOf(Thread.currentThread().getId()));
                                 indexRequest.source(source);
                                 bulkRequest.add(indexRequest);
@@ -191,6 +197,10 @@ public class BenchmarkBase {
 
     protected byte[] generateRowSource() throws IOException {
         return new byte[0];
+    }
+
+    protected boolean generateNewRowForEveryDocument() {
+        return false;
     }
 
     protected Random getRandom() {
