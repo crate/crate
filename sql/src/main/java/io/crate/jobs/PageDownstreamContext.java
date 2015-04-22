@@ -27,6 +27,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
+import io.crate.operation.PageResultListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -44,7 +45,7 @@ public class PageDownstreamContext {
     private final ArrayList<SettableFuture<Bucket>> bucketFutures;
     private final BitSet allFuturesSet;
     private final BitSet exhausted;
-    private final ArrayList<PageConsumeListener> listeners = new ArrayList<>();
+    private final ArrayList<PageResultListener> listeners = new ArrayList<>();
 
     private volatile boolean failed = false;
 
@@ -69,25 +70,21 @@ public class PageDownstreamContext {
         return allFuturesSet.cardinality() == 0;
     }
 
-    public boolean allExhausted() {
+    private boolean allExhausted() {
         if (failed) {
             return true;
         }
-        synchronized (lock) {
-            return exhausted.cardinality() == numBuckets;
-        }
+        return exhausted.cardinality() == numBuckets;
     }
 
-    public boolean isExhausted(int bucketIdx) {
+    private boolean isExhausted(int bucketIdx) {
         if (failed) {
             return true;
         }
-        synchronized (lock) {
-            return exhausted.get(bucketIdx);
-        }
+        return exhausted.get(bucketIdx);
     }
 
-    public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageConsumeListener pageConsumeListener) {
+    public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
         if (failed) {
             return;
         }
@@ -97,7 +94,7 @@ public class PageDownstreamContext {
                 throw new IllegalStateException("May not set the same bucket of a page more than once");
             }
             synchronized (listeners) {
-                listeners.add(pageConsumeListener);
+                listeners.add(pageResultListener);
             }
 
             if (pageEmpty()) {
@@ -105,12 +102,20 @@ public class PageDownstreamContext {
                 pageDownstream.nextPage(new BucketPage(bucketFutures), new PageConsumeListener() {
                     @Override
                     public void needMore() {
+                        boolean allExhausted = allExhausted();
                         synchronized (listeners) {
                         LOGGER.trace("calling needMore on all listeners({})", listeners.size());
-                            for (PageConsumeListener listener : listeners) {
-                                listener.needMore();
+                            for (PageResultListener listener : listeners) {
+                                if (allExhausted) {
+                                    listener.needMore(false);
+                                } else {
+                                    listener.needMore(!isExhausted(listener.buckedIdx()));
+                                }
                             }
                             listeners.clear();
+                        }
+                        if (allExhausted) {
+                            PageDownstreamContext.this.finish();
                         }
                     }
 
@@ -118,10 +123,11 @@ public class PageDownstreamContext {
                     public void finish() {
                         synchronized (listeners) {
                         LOGGER.trace("calling finish() on all listeners({})", listeners.size());
-                            for (PageConsumeListener listener : listeners) {
-                                listener.finish();
+                            for (PageResultListener listener : listeners) {
+                                listener.needMore(false);
                             }
                             listeners.clear();
+                            PageDownstreamContext.this.finish();
                         }
                     }
                 });
