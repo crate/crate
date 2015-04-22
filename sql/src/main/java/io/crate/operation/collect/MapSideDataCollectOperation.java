@@ -134,7 +134,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                                        PlanNodeStreamerVisitor streamerVisitor,
                                        CollectContextService collectContextService) {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        poolSize = executor.getPoolSize();
+        poolSize = executor.getCorePoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.collectContextService = collectContextService;

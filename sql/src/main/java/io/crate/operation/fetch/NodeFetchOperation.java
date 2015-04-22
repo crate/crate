@@ -85,7 +85,7 @@ public class NodeFetchOperation {
         this.collectContextService = collectContextService;
         this.ramAccountingContext = ramAccountingContext;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        poolSize = executor.getPoolSize();
+        poolSize = executor.getCorePoolSize();
 
         DocLevelReferenceResolver<? extends Input<?>> resolver = new LuceneDocLevelReferenceResolver(null);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: In some cases too few threads where started which could slow
+   down queries
+
  - Optimized queries that use ``IN`` or ``ANY``
 
  - Fix: Option http.enabled=false caused UDC module to crash on startup
