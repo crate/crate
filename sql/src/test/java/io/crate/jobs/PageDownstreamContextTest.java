@@ -24,8 +24,8 @@ package io.crate.jobs;
 import io.crate.Streamer;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
-import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
+import io.crate.operation.PageResultListener;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,8 +43,8 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         expectedException.expect(IllegalStateException.class);
         PageDownstreamContext ctx = new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 3);
 
-        PageConsumeListener consumeListener = mock(PageConsumeListener.class);
-        ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, consumeListener);
-        ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, consumeListener);
+        PageResultListener pageResultListener = mock(PageResultListener.class);
+        ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
+        ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
     }
 }

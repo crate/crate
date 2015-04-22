@@ -187,15 +187,15 @@ public class ExecutionNodesTask extends JobTask {
             @Override
             public void onSuccess(Bucket result) {
                 // TODO: change bucketIdx once the logic for bucketIdxs has been changed
-                pageDownstreamContext.setBucket(0, result, true, new PageConsumeListener() {
+                pageDownstreamContext.setBucket(0, result, true, new PageResultListener() {
                     @Override
-                    public void needMore() {
-                        finish();
+                    public void needMore(boolean needMore) {
+                        // can't page
                     }
 
                     @Override
-                    public void finish() {
-                        pageDownstreamContext.finish();
+                    public int buckedIdx() {
+                        return 0;
                     }
                 });
             }
@@ -302,16 +302,15 @@ public class ExecutionNodesTask extends JobTask {
         public void onResponse(JobResponse jobResponse) {
             jobResponse.streamers(streamer);
             if (jobResponse.directResponse().isPresent()) {
-                pageDownstreamContext.setBucket(bucketIdx, jobResponse.directResponse().get(), true, new PageConsumeListener() {
+                pageDownstreamContext.setBucket(bucketIdx, jobResponse.directResponse().get(), true, new PageResultListener() {
                     @Override
-                    public void needMore() {
+                    public void needMore(boolean needMore) {
                         // can't page with directResult
-                        finish();
                     }
 
                     @Override
-                    public void finish() {
-                        pageDownstreamContext.finish();
+                    public int buckedIdx() {
+                        return bucketIdx;
                     }
                 });
             } else {

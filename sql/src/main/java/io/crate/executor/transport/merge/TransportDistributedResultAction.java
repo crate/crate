@@ -33,7 +33,7 @@ import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
-import io.crate.operation.PageConsumeListener;
+import io.crate.operation.PageResultListener;
 import io.crate.planner.node.ExecutionNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -122,41 +122,25 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
                         request.bucketIdx(),
                         request.rows(),
                         request.isLast(),
-                        new DownstreamContextPageConsumeListener(pageDownstreamContext));
+                        new PageResultListener() {
+                            @Override
+                            public void needMore(boolean needMore) {
+                                LOGGER.trace("sending needMore response, need more? {}", needMore);
+                                listener.onResponse(new DistributedResultResponse(needMore));
+                            }
+
+                            @Override
+                            public int buckedIdx() {
+                                return request.bucketIdx();
+                            }
+                        }
+                );
             }
         }
 
         @Override
         public void onFailure(@Nonnull Throwable t) {
             listener.onFailure(t);
-        }
-
-        private class DownstreamContextPageConsumeListener implements PageConsumeListener {
-            private final PageDownstreamContext pageDownstreamContext;
-
-            public DownstreamContextPageConsumeListener(PageDownstreamContext pageDownstreamContext) {
-                this.pageDownstreamContext = pageDownstreamContext;
-            }
-
-            @Override
-            public void needMore() {
-                if (pageDownstreamContext.allExhausted()) {
-                    LOGGER.trace("sending needMore response, upstream don't have more!");
-                    listener.onResponse(new DistributedResultResponse(false));
-                    pageDownstreamContext.finish();
-                } else {
-                    boolean needMore = !pageDownstreamContext.isExhausted(request.bucketIdx());
-                    LOGGER.trace("sending needMore response, need more? {}", needMore);
-                    listener.onResponse(new DistributedResultResponse(needMore));
-                }
-            }
-
-            @Override
-            public void finish() {
-                LOGGER.trace("sending finish response");
-                listener.onResponse(new DistributedResultResponse(false));
-                pageDownstreamContext.finish();
-            }
         }
     }
 }
