@@ -279,23 +279,20 @@ public class LuceneQueryBuilder {
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 String columnName = reference.ident().columnIdent().fqn();
 
-                if (reference.valueType().equals(DataTypes.STRING)) {
-                    Object values = arrayLiteral.value();
-                    TermsFilter termsFilter;
-                    if (values instanceof Collection) {
-                        termsFilter = new TermsFilter(columnName, getBytesRefs((Collection) arrayLiteral.value()));
-                    } else {
-                        termsFilter = new TermsFilter(columnName, getBytesRefs((Object[]) arrayLiteral.value()));
-                    }
-                    return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter);
-                } else {
-                    QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
-                    BooleanFilter filter = new BooleanFilter();
-                    for (Object value : toIterable(arrayLiteral.value())) {
-                        filter.add(builder.eqFilter(columnName, value), BooleanClause.Occur.SHOULD);
-                    }
-                    return new FilteredQuery(Queries.newMatchAllQuery(), filter);
+                Object values = arrayLiteral.value();
+                TermsFilter termsFilter;
+                if (values instanceof Collection) {
+                    termsFilter = new TermsFilter(
+                            columnName,
+                            getBytesRefs((Collection) arrayLiteral.value(),
+                                    TermBuilder.forType(arrayLiteral.valueType())));
+                } else  {
+                    termsFilter = new TermsFilter(
+                            columnName,
+                            getBytesRefs((Object[]) arrayLiteral.value(),
+                                    TermBuilder.forType(arrayLiteral.valueType())));
                 }
+                return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter);
             }
         }
 
@@ -420,18 +417,9 @@ public class LuceneQueryBuilder {
 
                 Set values = (Set) literal.value();
                 DataType innerType = dataType.innerType();
-                if (innerType.equals(DataTypes.STRING)) {
-                    BytesRef[] terms = getBytesRefs(values);
-                    TermsFilter termsFilter = new TermsFilter(field, terms);
-                    return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter);
-                } else {
-                    QueryBuilderHelper builder = QueryBuilderHelper.forType(innerType);
-                    BooleanQuery booleanQuery = new BooleanQuery();
-                    for (Object value : values) {
-                        booleanQuery.add(builder.eq(field, value), BooleanClause.Occur.SHOULD);
-                    }
-                    return booleanQuery;
-                }
+                BytesRef[] terms = getBytesRefs(values, TermBuilder.forType(innerType));
+                TermsFilter termsFilter = new TermsFilter(field, terms);
+                return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter);
             }
         }
 
@@ -1254,21 +1242,23 @@ public class LuceneQueryBuilder {
         }
     }
 
-    private static BytesRef[] getBytesRefs(Object[] values) {
+    @SuppressWarnings("unchecked")
+    private static BytesRef[] getBytesRefs(Object[] values, TermBuilder termBuilder) {
         BytesRef[] terms = new BytesRef[values.length];
         int i = 0;
         for (Object value : values) {
-            terms[i] = (BytesRef) value;
+            terms[i] = termBuilder.term(value);
             i++;
         }
         return terms;
     }
 
-    private static BytesRef[] getBytesRefs(Collection values) {
+    @SuppressWarnings("unchecked")
+    private static BytesRef[] getBytesRefs(Collection values, TermBuilder termBuilder) {
         BytesRef[] terms = new BytesRef[values.size()];
         int i = 0;
         for (Object value : values) {
-            terms[i] = (BytesRef) value;
+            terms[i] = termBuilder.term(value);
             i++;
         }
         return terms;

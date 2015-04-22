@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - Optimized queries that use ``IN`` or ``ANY`` on fields of type ``string``
+ - Optimized queries that use ``IN`` or ``ANY``
 
  - Fix: Option http.enabled=false caused UDC module to crash on startup
 
