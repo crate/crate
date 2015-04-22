@@ -77,7 +77,7 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query eq(String columnName, Object value) {
-            return new TermQuery(new Term(columnName, value == true ? "T" : "F"));
+            return new TermQuery(new Term(columnName, (boolean)value == true ? "T" : "F"));
         }
     }
 

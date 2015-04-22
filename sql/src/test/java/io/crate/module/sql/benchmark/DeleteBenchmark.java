@@ -65,14 +65,14 @@ public class DeleteBenchmark extends BenchmarkBase {
     private List<String> countryCodes = new ArrayList<>(250);
 
     @Override
-    public boolean loadData() {
+    public boolean importData() {
         return true;
     }
 
     @Before
     public void prepare() throws Exception {
         if (ids.isEmpty() || countryCodes.isEmpty()) {
-            doLoadData();
+            doImportData();
             // setupOnce non-static
             SQLRequest request = new SQLRequest("SELECT \"_id\", \"countryCode\" FROM countries");
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();
@@ -98,7 +98,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     }
 
     public DeleteRequest getDeleteApiByIdRequest() throws Exception {
-        return new DeleteRequest(INDEX_NAME, "default", getDeleteId());
+        return new DeleteRequest(tableName(), "default", getDeleteId());
     }
 
     public SQLRequest getDeleteSqlByIdRequest() throws Exception {
@@ -111,7 +111,7 @@ public class DeleteBenchmark extends BenchmarkBase {
 
     public DeleteByQueryRequest getDeleteApiByQueryRequest() throws Exception {
 
-        return new DeleteByQueryRequest(INDEX_NAME).source(
+        return new DeleteByQueryRequest(tableName()).source(
                 XContentFactory.jsonBuilder()
                         .startObject()
                         .startObject("term")

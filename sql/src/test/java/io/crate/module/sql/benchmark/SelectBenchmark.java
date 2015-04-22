@@ -69,7 +69,7 @@ public class SelectBenchmark extends BenchmarkBase {
     private static byte[] searchSource;
 
     @Override
-    public boolean loadData() {
+    public boolean importData() {
         return true;
     }
 

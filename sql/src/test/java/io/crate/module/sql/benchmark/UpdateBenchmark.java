@@ -67,7 +67,7 @@ public class UpdateBenchmark extends BenchmarkBase {
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
-    public boolean loadData() {
+    public boolean importData() {
         return true;
     }
 

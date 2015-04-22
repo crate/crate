@@ -37,7 +37,6 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -68,10 +67,6 @@ public class GroupByBenchmark extends BenchmarkBase {
     public static SQLRequest countDistinctRequest = new SQLRequest(String.format("select count(distinct \"countryName\") from %s group by continent", INDEX_NAME));
     public static SQLRequest arbitraryRequest = new SQLRequest(String.format("select arbitrary(\"countryName\") from %s group by continent", INDEX_NAME));
 
-    public static boolean dataGenerated = false;
-
-
-
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -80,11 +75,11 @@ public class GroupByBenchmark extends BenchmarkBase {
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
-    public boolean loadData() {
-        return false;
+    protected boolean generateData() {
+        return true;
     }
 
-    private byte[] generateRowSource() throws IOException {
+    protected byte[] generateRowSource() throws IOException {
         Random random = getRandom();
         byte[] buffer = new byte[32];
         random.nextBytes(buffer);
@@ -99,48 +94,43 @@ public class GroupByBenchmark extends BenchmarkBase {
                 .bytes().toBytes();
     }
 
-    @Before
-    public void generateData() throws Exception {
-        if (!dataGenerated) {
+    protected void doGenerateData() throws Exception {
+        logger.info("generating {} documents...", NUMBER_OF_DOCUMENTS);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        for (int i=0; i<4; i++) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    int numDocsToCreate = NUMBER_OF_DOCUMENTS/4;
+                    logger.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
+                    Client client = getClient(false);
+                    BulkRequest bulkRequest = new BulkRequest();
 
-            logger.info("generating {} documents...", NUMBER_OF_DOCUMENTS);
-            ExecutorService executor = Executors.newFixedThreadPool(4);
-            for (int i=0; i<4; i++) {
-                executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        int numDocsToCreate = NUMBER_OF_DOCUMENTS/4;
-                        logger.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
-                        Client client = getClient(false);
-                        BulkRequest bulkRequest = new BulkRequest();
-
-                        for (int i=0; i < numDocsToCreate; i+=1000) {
-                            bulkRequest.requests().clear();
-                            try {
-                                byte[] source = generateRowSource();
-                                for (int j=0; j<1000;j++) {
-                                    IndexRequest indexRequest = new IndexRequest(INDEX_NAME, "default", String.valueOf(i+j) + String.valueOf(Thread.currentThread().getId()));
-                                    indexRequest.source(source);
-                                    bulkRequest.add(indexRequest);
-                                }
-                                BulkResponse response = client.bulk(bulkRequest).actionGet();
-                                assertFalse(response.hasFailures());
-                            } catch (IOException e) {
-                                e.printStackTrace();
+                    for (int i=0; i < numDocsToCreate; i+=1000) {
+                        bulkRequest.requests().clear();
+                        try {
+                            byte[] source = generateRowSource();
+                            for (int j=0; j<1000;j++) {
+                                IndexRequest indexRequest = new IndexRequest(INDEX_NAME, "default", String.valueOf(i+j) + String.valueOf(Thread.currentThread().getId()));
+                                indexRequest.source(source);
+                                bulkRequest.add(indexRequest);
                             }
+                            BulkResponse response = client.bulk(bulkRequest).actionGet();
+                            assertFalse(response.hasFailures());
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
-                });
-            }
-            executor.shutdown();
-            executor.awaitTermination(2L, TimeUnit.MINUTES);
-            executor.shutdownNow();
-            getClient(true).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
-            getClient(false).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
-            refresh(client());
-            dataGenerated = true;
-            logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);
+                }
+            });
         }
+        executor.shutdown();
+        executor.awaitTermination(2L, TimeUnit.MINUTES);
+        executor.shutdownNow();
+        getClient(true).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
+        getClient(false).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
+        refresh(client());
+        logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);
     }
 
 

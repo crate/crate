@@ -30,15 +30,16 @@ import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -47,17 +48,21 @@ import org.junit.runners.JUnit4;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.test.integration.PathAccessor.bytesFromPath;
 
 
 @RunWith(JUnit4.class)
-@Ignore
-public class BenchmarkBase {
+public abstract class BenchmarkBase {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    private static final ESLogger LOGGER = Loggers.getLogger(BenchmarkBase.class);
 
     protected static String NODE1;
     protected static String NODE2;
@@ -72,12 +77,21 @@ public class BenchmarkBase {
         );
 
     public static final String INDEX_NAME = "countries";
+    public static final int NUMBER_OF_DOCUMENTS = 1000;
     public static final String DATA = "/essetup/data/bench.json";
 
     private Random random = new Random(System.nanoTime());
 
     @Rule
     public TestRule ruleChain = RuleChain.emptyRuleChain();
+
+    public SQLResponse execute(String stmt) {
+        return execute(stmt, SQLRequest.EMPTY_ARGS);
+    }
+
+    public SQLResponse execute(String stmt, Object[] args) {
+        return getClient(true).execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+    }
 
     public SQLResponse execute(String stmt, Object[] args, boolean queryPlannerEnabled) {
         return getClient(queryPlannerEnabled).execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
@@ -93,30 +107,12 @@ public class BenchmarkBase {
         }
 
         if (!indexExists()) {
-            execute("create table \"" + INDEX_NAME + "\" (" +
-                    " \"areaInSqKm\" float," +
-                    " capital string," +
-                    " continent string," +
-                    " \"continentName\" string," +
-                    " \"countryCode\" string," +
-                    " \"countryName\" string," +
-                    " north float," +
-                    " east float," +
-                    " south float," +
-                    " west float," +
-                    " \"fipsCode\" string," +
-                    " \"currencyCode\" string," +
-                    " languages string," +
-                    " \"isoAlpha3\" string," +
-                    " \"isoNumeric\" string," +
-                    " population integer" +
-                    ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
-            client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
-            refresh(client());
-            if (loadData()) {
-                doLoadData();
+            createTable();
+            if (importData()) {
+                doImportData();
+            } else if (generateData()) {
+                doGenerateData();
             }
-
         }
     }
 
@@ -128,6 +124,44 @@ public class BenchmarkBase {
             // fine
         }
         cluster.afterTest();
+    }
+
+    protected void createTable() {
+        execute("create table \"" + INDEX_NAME + "\" (" +
+                " \"areaInSqKm\" float," +
+                " capital string," +
+                " continent string," +
+                " \"continentName\" string," +
+                " \"countryCode\" string," +
+                " \"countryName\" string," +
+                " north float," +
+                " east float," +
+                " south float," +
+                " west float," +
+                " \"fipsCode\" string," +
+                " \"currencyCode\" string," +
+                " languages string," +
+                " \"isoAlpha3\" string," +
+                " \"isoNumeric\" string," +
+                " population integer" +
+                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+        client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
+    }
+
+    protected int numberOfDocuments() {
+        return NUMBER_OF_DOCUMENTS;
+    }
+
+    protected String tableName() {
+        return INDEX_NAME;
+    }
+
+    protected byte[] generateRowSource() throws IOException {
+        return new byte[0];
+    }
+
+    protected boolean generateNewRowForEveryDocument() {
+        return false;
     }
 
     protected Random getRandom() {
@@ -147,17 +181,68 @@ public class BenchmarkBase {
     }
 
     public boolean indexExists() {
-        return getClient(false).admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
+        return getClient(false).admin().indices().exists(new IndicesExistsRequest(tableName())).actionGet().isExists();
     }
 
-    public boolean loadData() {
+    public boolean importData() {
         return false;
     }
 
-    public void doLoadData() throws Exception {
+    protected boolean generateData() {
+        return false;
+    }
+
+    public void doImportData() throws Exception {
         loadBulk(DATA, false);
         refresh(getClient(true));
         refresh(getClient(false));
+    }
+
+    protected void doGenerateData() throws Exception {
+        final String tableName = tableName();
+        final int numberOfDocuments = numberOfDocuments();
+        LOGGER.info("generating {} documents...", numberOfDocuments);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        for (int i=0; i<4; i++) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    int numDocsToCreate = numberOfDocuments/4;
+                    LOGGER.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
+                    Client client = getClient(false);
+                    BulkRequest bulkRequest = new BulkRequest();
+
+                    for (int i=0; i < numDocsToCreate; i+=1000) {
+                        bulkRequest.requests().clear();
+                        try {
+                            byte[] source = null;
+                            if (!generateNewRowForEveryDocument()) {
+                                source = generateRowSource();
+                            }
+                            for (int j=0; j<1000;j++) {
+                                if (generateNewRowForEveryDocument()) {
+                                    source = generateRowSource();
+                                }
+                                IndexRequest indexRequest = new IndexRequest(tableName, "default", String.valueOf(i+j) + String.valueOf(Thread.currentThread().getId()));
+                                indexRequest.source(source);
+                                bulkRequest.add(indexRequest);
+                            }
+                            BulkResponse response = client.bulk(bulkRequest).actionGet();
+                            Assert.assertFalse(response.hasFailures());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            });
+        }
+        executor.shutdown();
+        executor.awaitTermination(2L, TimeUnit.MINUTES);
+        executor.shutdownNow();
+        getClient(true).admin().indices().prepareFlush(tableName).setFull(true).execute().actionGet();
+        getClient(false).admin().indices().prepareFlush(tableName).setFull(true).execute().actionGet();
+        refresh(client());
+        LOGGER.info("{} documents generated.", numberOfDocuments);
     }
 
     /**
