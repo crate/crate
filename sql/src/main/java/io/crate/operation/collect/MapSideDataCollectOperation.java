@@ -121,7 +121,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                                        CollectServiceResolver collectServiceResolver,
                                        PlanNodeStreamerVisitor streamerVisitor) {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        poolSize = executor.getPoolSize();
+        poolSize = executor.getCorePoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);

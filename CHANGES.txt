@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: In some cases too few threads where started which could slow
+   down queries
+
 2015/04/21 0.48.2
 =================
 
