@@ -25,7 +25,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.*;
 import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.table.SchemaInfo;
@@ -42,6 +41,7 @@ import org.elasticsearch.common.inject.Inject;
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class InformationSchemaCollectService implements CollectService {
 
@@ -168,11 +168,10 @@ public class InformationSchemaCollectService implements CollectService {
             this.collectorExpressions = collectorExpressions;
             this.rows = rows;
             this.condition = condition;
-            assert downstream != null;
         }
 
         @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) {
+        public void doCollect(JobCollectContext jobCollectContext) {
             for (R row : rows) {
                 for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
@@ -198,9 +197,11 @@ public class InformationSchemaCollectService implements CollectService {
             return new NoopCrateCollector(downstream);
         }
         Routing routing =  collectNode.routing();
-        assert routing.locations().containsKey(TableInfo.NULL_NODE_ID);
-        assert routing.locations().get(TableInfo.NULL_NODE_ID).size() == 1;
-        String fqTableName = routing.locations().get(TableInfo.NULL_NODE_ID).keySet().iterator().next();
+        Map<String, Map<String, List<Integer>>> locations = routing.locations();
+        assert locations != null;
+        assert locations.containsKey(TableInfo.NULL_NODE_ID);
+        assert locations.get(TableInfo.NULL_NODE_ID).size() == 1;
+        String fqTableName = locations.get(TableInfo.NULL_NODE_ID).keySet().iterator().next();
         Iterable<?> iterator = iterables.get(fqTableName);
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
 

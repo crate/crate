@@ -25,6 +25,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -41,9 +43,14 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.junit.After;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.UUID;
+
+import static org.hamcrest.Matchers.is;
 
 public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
 
@@ -62,6 +69,30 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
 
     protected long responseDuration;
     protected SQLResponse response;
+
+    @After
+    public void verifyJobContextAreCleanedUp() throws Throwable {
+        Field activeContexts= JobContextService.class.getDeclaredField("activeContexts");
+        activeContexts.setAccessible(true);
+        for (JobContextService jobContextService : cluster().getInstances(JobContextService.class)) {
+            @SuppressWarnings("unchecked")
+            Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+            int retry = 0;
+
+            while (!contexts.isEmpty() && retry < 50) {
+                retry++;
+                Thread.sleep(retry * 10);
+            }
+            try {
+                assertThat("active job contexts are not empty", contexts.isEmpty(), is(true));
+            } catch (AssertionError e) {
+                System.out.println(System.identityHashCode(contexts) + " has " + contexts.size() + " items");
+                throw e;
+            } finally {
+                contexts.clear(); // clear so that other tests don't fail too..
+            }
+        }
+    }
 
     @Override
     public Settings indexSettings() {

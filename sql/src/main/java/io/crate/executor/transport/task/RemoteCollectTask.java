@@ -37,10 +37,13 @@ import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.*;
+import io.crate.executor.transport.NodeCloseContextRequest;
+import io.crate.executor.transport.NodeCloseContextResponse;
+import io.crate.executor.transport.TransportCloseContextNodeAction;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -155,12 +158,9 @@ public class RemoteCollectTask extends JobTask {
     }
 
     private void handlerSideCollect(final int resultIdx) {
-        final UUID operationId;
-        operationId = UUID.randomUUID();
-        statsTables.operationStarted(operationId, jobId(), collectNode.name());
-        String ramAccountingContextId = String.format("%s: %s", collectNode.name(), operationId);
+        statsTables.operationStarted(collectNode.executionNodeId(), jobId(), collectNode.name());
         final RamAccountingContext ramAccountingContext =
-                new RamAccountingContext(ramAccountingContextId, circuitBreaker);
+                RamAccountingContext.forExecutionNode(circuitBreaker, collectNode);
 
         FlatProjectorChain projectorChain = FlatProjectorChain.withResultProvider(
                 clusterProjectorVisitor,
@@ -171,21 +171,30 @@ public class RemoteCollectTask extends JobTask {
         ResultProvider resultProvider = projectorChain.resultProvider();
         assert resultProvider != null;
         projectorChain.startProjections();
-        handlerSideDataCollectOperation.collect(collectNode, rowDownstream, ramAccountingContext);
+
+
+        JobCollectContext jobCollectContext = new JobCollectContext(
+                handlerSideDataCollectOperation,
+                jobId(),
+                collectNode,
+                rowDownstream,
+                ramAccountingContext
+        );
+        jobCollectContext.start();
 
         Futures.addCallback(resultProvider.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket rows) {
                 ramAccountingContext.close();
                 ((SettableFuture<TaskResult>) result.get(resultIdx)).set(new QueryResult(rows));
-                statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
+                statsTables.operationFinished(collectNode.executionNodeId(), null, ramAccountingContext.totalBytes());
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 ramAccountingContext.close();
                 ((SettableFuture<TaskResult>) result.get(resultIdx)).setException(t);
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                statsTables.operationFinished(collectNode.executionNodeId(), Exceptions.messageOf(t),
                         ramAccountingContext.totalBytes());
             }
         });
@@ -205,7 +214,8 @@ public class RemoteCollectTask extends JobTask {
         if (collectNode.keepContextForFetcher()) {
             LOGGER.trace("closing job context {} on {} nodes", collectNode.jobId().get(), nodeIds.size());
             for (final String nodeId : nodeIds) {
-                transportCloseContextNodeAction.execute(nodeId, new NodeCloseContextRequest(collectNode.jobId().get()), new ActionListener<NodeCloseContextResponse>() {
+                transportCloseContextNodeAction.execute(nodeId,
+                        new NodeCloseContextRequest(collectNode.jobId().get(), collectNode.executionNodeId()), new ActionListener<NodeCloseContextResponse>() {
                     @Override
                     public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
                     }

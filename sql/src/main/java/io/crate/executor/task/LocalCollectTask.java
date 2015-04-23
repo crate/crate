@@ -21,23 +21,19 @@
 
 package io.crate.executor.task;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
-import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.operation.QueryResultRowDownstream;
 import io.crate.operation.collect.CollectOperation;
-import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,44 +43,33 @@ import java.util.UUID;
  */
 public class LocalCollectTask extends JobTask {
 
-    private final CollectNode collectNode;
-    private final CollectOperation collectOperation;
     private final List<ListenableFuture<TaskResult>> resultList;
-    private final SettableFuture<TaskResult> result;
-    private final RamAccountingContext ramAccountingContext;
+    private final JobCollectContext jobCollectContext;
 
     public LocalCollectTask(UUID jobId,
                             CollectOperation collectOperation,
                             CollectNode collectNode,
                             CircuitBreaker circuitBreaker) {
         super(jobId);
-        this.collectNode = collectNode;
-        this.collectOperation = collectOperation;
-        this.resultList = new ArrayList<>(1);
-        this.result = SettableFuture.create();
-        resultList.add(result);
-        ramAccountingContext = new RamAccountingContext(
-                String.format("%s: %s", collectNode.name(), jobId),
-                circuitBreaker);
+        SettableFuture<TaskResult> result = SettableFuture.create();
+        resultList = Collections.singletonList((ListenableFuture<TaskResult>) result);
+        result.addListener(new Runnable() {
+            @Override
+            public void run() {
+                jobCollectContext.close();
+            }
+        }, MoreExecutors.directExecutor());
+        jobCollectContext = new JobCollectContext(
+                collectOperation,
+                jobId,
+                collectNode,
+                new QueryResultRowDownstream(result),
+                RamAccountingContext.forExecutionNode(circuitBreaker, collectNode));
     }
 
     @Override
     public void start() {
-        CollectingProjector downstream = new CollectingProjector();
-        downstream.startProjection();
-
-        Futures.addCallback(downstream.result(), new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(@Nullable Bucket rows) {
-                result.set(new QueryResult(rows));
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                result.setException(t);
-            }
-        });
-        collectOperation.collect(collectNode, downstream, ramAccountingContext);
+        jobCollectContext.start();
     }
 
     @Override

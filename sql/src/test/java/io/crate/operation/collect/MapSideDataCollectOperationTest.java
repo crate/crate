@@ -90,8 +90,6 @@ public class MapSideDataCollectOperationTest {
         };
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
-
-        JobContextService jobContextService = mock(JobContextService.class);
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
 
                 clusterService,
@@ -114,8 +112,7 @@ public class MapSideDataCollectOperationTest {
                     public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
                         return new CollectingProjector();
                     }
-                },
-                jobContextService
+                }
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");

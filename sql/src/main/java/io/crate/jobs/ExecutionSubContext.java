@@ -19,21 +19,8 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.jobs;
 
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-
-public class NoopCrateCollector implements CrateCollector {
-
-    private RowDownstreamHandle downstream;
-
-    public NoopCrateCollector(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
-    }
-
-    @Override
-    public void doCollect(JobCollectContext jobCollectContext) {
-        downstream.finish();
-    }
+public interface ExecutionSubContext {
+    void addCallback(ContextCallback contextCallback);
 }

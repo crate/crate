@@ -34,7 +34,7 @@ public abstract class SysOperationLogExpression<T> extends RowContextCollectorEx
             .add(new SysOperationLogExpression<BytesRef>(SysOperationsLogTableInfo.ColumnNames.ID) {
                 @Override
                 public BytesRef value() {
-                    return new BytesRef(row.id().toString());
+                    return new BytesRef(Integer.toString(row.id()));
                 }
             })
             .add(new SysOperationLogExpression<BytesRef>(SysOperationsLogTableInfo.ColumnNames.JOB_ID) {
@@ -73,10 +73,11 @@ public abstract class SysOperationLogExpression<T> extends RowContextCollectorEx
             .add(new SysOperationLogExpression<BytesRef>(SysOperationsLogTableInfo.ColumnNames.ERROR) {
                 @Override
                 public BytesRef value() {
-                    if (row.errorMessage() == null) {
+                    String errorMessage = row.errorMessage();
+                    if (errorMessage == null) {
                         return null;
                     }
-                    return new BytesRef(row.errorMessage());
+                    return new BytesRef(errorMessage);
                 }
             }).build();
 

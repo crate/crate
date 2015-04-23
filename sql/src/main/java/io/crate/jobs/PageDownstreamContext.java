@@ -34,7 +34,7 @@ import org.elasticsearch.common.logging.Loggers;
 import java.util.ArrayList;
 import java.util.BitSet;
 
-public class PageDownstreamContext {
+public class PageDownstreamContext implements ExecutionSubContext {
 
     private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
@@ -46,10 +46,12 @@ public class PageDownstreamContext {
     private final BitSet allFuturesSet;
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
+    private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
 
-    private volatile boolean failed = false;
 
-    public PageDownstreamContext(PageDownstream pageDownstream, Streamer<?>[] streamer, int numBuckets) {
+    public PageDownstreamContext(PageDownstream pageDownstream,
+                                 Streamer<?>[] streamer,
+                                 int numBuckets) {
         this.pageDownstream = pageDownstream;
         this.streamer = streamer;
         this.numBuckets = numBuckets;
@@ -71,75 +73,28 @@ public class PageDownstreamContext {
     }
 
     private boolean allExhausted() {
-        if (failed) {
-            return true;
-        }
         return exhausted.cardinality() == numBuckets;
     }
 
     private boolean isExhausted(int bucketIdx) {
-        if (failed) {
-            return true;
-        }
         return exhausted.get(bucketIdx);
     }
 
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
-        if (failed) {
-            return;
+        synchronized (listeners) {
+            listeners.add(pageResultListener);
         }
         synchronized (lock) {
             LOGGER.trace("setBucket: {}", bucketIdx);
             if (allFuturesSet.get(bucketIdx)) {
                 throw new IllegalStateException("May not set the same bucket of a page more than once");
             }
-            synchronized (listeners) {
-                listeners.add(pageResultListener);
-            }
 
             if (pageEmpty()) {
                 LOGGER.trace("calling nextPage");
-                pageDownstream.nextPage(new BucketPage(bucketFutures), new PageConsumeListener() {
-                    @Override
-                    public void needMore() {
-                        boolean allExhausted = allExhausted();
-                        synchronized (listeners) {
-                        LOGGER.trace("calling needMore on all listeners({})", listeners.size());
-                            for (PageResultListener listener : listeners) {
-                                if (allExhausted) {
-                                    listener.needMore(false);
-                                } else {
-                                    listener.needMore(!isExhausted(listener.buckedIdx()));
-                                }
-                            }
-                            listeners.clear();
-                        }
-                        if (allExhausted) {
-                            PageDownstreamContext.this.finish();
-                        }
-                    }
-
-                    @Override
-                    public void finish() {
-                        synchronized (listeners) {
-                        LOGGER.trace("calling finish() on all listeners({})", listeners.size());
-                            for (PageResultListener listener : listeners) {
-                                listener.needMore(false);
-                            }
-                            listeners.clear();
-                            PageDownstreamContext.this.finish();
-                        }
-                    }
-                });
+                pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
             }
-
-            // set all exhausted upstream futures
-            for (int i = 0; i < exhausted.size(); i++) {
-                if (exhausted.get(i)) {
-                    bucketFutures.get(i).set(Bucket.EMPTY);
-                    allFuturesSet.set(i);
-                }
-            }
+            setExhaustedUpstreams();
 
             if (isLast) {
                 exhausted.set(bucketIdx);
@@ -147,9 +102,43 @@ public class PageDownstreamContext {
             bucketFutures.get(bucketIdx).set(rows);
             allFuturesSet.set(bucketIdx);
 
-            if (allFuturesSet.cardinality() == numBuckets) {
-                allFuturesSet.clear();
-                initBucketFutures();
+            clearPageIfFull();
+        }
+    }
+
+    public synchronized void failure(int bucketIdx, Throwable throwable) {
+        // can't trigger failure on pageDownstream immediately as it would remove the context which the other
+        // upstreams still require
+        synchronized (lock) {
+            if (pageEmpty()) {
+                LOGGER.trace("calling nextPage");
+                pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
+            }
+            setExhaustedUpstreams();
+
+            LOGGER.trace("failure: {}", bucketIdx);
+            exhausted.set(bucketIdx);
+            bucketFutures.get(bucketIdx).setException(throwable);
+            allFuturesSet.set(bucketIdx);
+            clearPageIfFull();
+        }
+    }
+
+    private void clearPageIfFull() {
+        if (allFuturesSet.cardinality() == numBuckets) {
+            allFuturesSet.clear();
+            initBucketFutures();
+        }
+    }
+
+    /**
+     * need to set the futures of all upstreams that are exhausted as there won't come any more buckets from those upstreams
+     */
+    private void setExhaustedUpstreams() {
+        for (int i = 0; i < exhausted.size(); i++) {
+            if (exhausted.get(i)) {
+                bucketFutures.get(i).set(Bucket.EMPTY);
+                allFuturesSet.set(i);
             }
         }
     }
@@ -159,13 +148,49 @@ public class PageDownstreamContext {
     }
 
     public void finish() {
-        if (!failed) {
-            pageDownstream.finish();
+        LOGGER.trace("calling finish on pageDownstream {}", pageDownstream);
+        for (ContextCallback contextCallback : callbacks) {
+            contextCallback.onClose();
         }
+        pageDownstream.finish();
     }
 
-    public void failure(Throwable throwable) {
-        failed = true;
-        pageDownstream.fail(throwable);
+    public void addCallback(ContextCallback contextCallback) {
+        callbacks.add(contextCallback);
+    }
+
+    private class ResultListenerBridgingConsumeListener implements PageConsumeListener {
+
+        @Override
+        public void needMore() {
+            boolean allExhausted = allExhausted();
+            LOGGER.trace("allExhausted: {}", allExhausted);
+            synchronized (listeners) {
+                LOGGER.trace("calling needMore on all listeners({})", listeners.size());
+                for (PageResultListener listener : listeners) {
+                    if (allExhausted) {
+                        listener.needMore(false);
+                    } else {
+                        listener.needMore(!isExhausted(listener.buckedIdx()));
+                    }
+                }
+                listeners.clear();
+            }
+            if (allExhausted) {
+                PageDownstreamContext.this.finish();
+            }
+        }
+
+        @Override
+        public void finish() {
+            synchronized (listeners) {
+                LOGGER.trace("calling finish() on all listeners({})", listeners.size());
+                for (PageResultListener listener : listeners) {
+                    listener.needMore(false);
+                }
+                listeners.clear();
+                PageDownstreamContext.this.finish();
+            }
+        }
     }
 }

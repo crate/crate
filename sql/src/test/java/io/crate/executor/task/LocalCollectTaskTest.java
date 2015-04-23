@@ -21,33 +21,11 @@
 
 package io.crate.executor.task;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.RowN;
-import io.crate.executor.TaskResult;
-import io.crate.metadata.Routing;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
-import io.crate.operation.collect.CollectOperation;
-import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.UUID;
-
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 public class LocalCollectTaskTest extends CrateUnitTest {
+
+    /*
 
     public final static Routing CLUSTER_ROUTING = new Routing();
     private UUID testJobId = UUID.randomUUID();
@@ -79,4 +57,6 @@ public class LocalCollectTaskTest extends CrateUnitTest {
         ListenableFuture<TaskResult> result = results.get(0);
         assertThat(result.get().rows(), contains(isRow(1)));
     }
+
+    */
 }

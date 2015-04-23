@@ -75,16 +75,16 @@ public class NonSortingBucketMerger implements BucketMerger {
             public void onSuccess(@Nullable Bucket result) {
                 LOGGER.trace("received bucket");
                 if (result != null && wantMore.get() && !listenerNotified.get()) {
-                    for (Row row : result) {
-                        try {
+                    try {
+                        for (Row row : result) {
                             if (!emitRow(row)) {
                                 wantMore.set(false);
                                 notifyListener();
                                 break;
                             }
-                        } catch (Throwable t) {
-                            onFailure(t);
                         }
+                    } catch(Throwable t) {
+                        onFailure(t);
                     }
                 }
                 if (bucketsPending.decrementAndGet() == 0) {
@@ -120,6 +120,8 @@ public class NonSortingBucketMerger implements BucketMerger {
         if (!alreadyFinished.getAndSet(true)) {
             LOGGER.trace("{} finished.", hashCode());
             downstream.finish();
+        } else {
+            LOGGER.trace("{} finished called but had already finished", hashCode());
         }
     }
 
