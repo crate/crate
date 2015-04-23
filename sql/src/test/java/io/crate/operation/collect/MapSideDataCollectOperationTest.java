@@ -28,8 +28,11 @@ import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.InternalResultProviderFactory;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.planner.PlanNodeBuilder;
+import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
@@ -89,8 +92,7 @@ public class MapSideDataCollectOperationTest {
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
 
         JobContextService jobContextService = mock(JobContextService.class);
-        StreamerVisitor streamerVisitor = new StreamerVisitor(functions);
-        LocalCollectOperation collectOperation = new LocalCollectOperation(
+        MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
 
                 clusterService,
                 ImmutableSettings.EMPTY,
@@ -107,7 +109,12 @@ public class MapSideDataCollectOperationTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                         )
                 ),
-                new ResultProviderFactory(clusterService, mock(TransportDistributedResultAction.class), streamerVisitor),
+                new ResultProviderFactory() {
+                    @Override
+                    public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
+                        return new CollectingProjector();
+                    }
+                },
                 jobContextService
         );
 

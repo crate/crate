@@ -44,9 +44,12 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.InternalResultProviderFactory;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
@@ -185,7 +188,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
     private DiscoveryService discoveryService;
     private Functions functions;
     private IndexService indexService = mock(IndexService.class);
-    private LocalCollectOperation operation;
+    private MapSideDataCollectOperation operation;
     private Routing testRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
         .put(TEST_NODE_ID, new TreeMap<String, List<Integer>>()).map()
     );
@@ -350,9 +353,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         });
 
         ClusterService clusterService = injector.getInstance(ClusterService.class);
-        TransportDistributedResultAction transportDistributedResultAction = mock(TransportDistributedResultAction.class);
-        StreamerVisitor streamerVisitor = new StreamerVisitor(functions);
-        operation = new LocalCollectOperation(
+        operation = new MapSideDataCollectOperation(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
@@ -365,8 +366,13 @@ public class LocalDataCollectTest extends CrateUnitTest {
                                 functions,
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService))
                 ),
-                new ResultProviderFactory(clusterService, transportDistributedResultAction, streamerVisitor),
-                new JobContextService(ImmutableSettings.EMPTY, testThreadPool)
+                new ResultProviderFactory() {
+                    @Override
+                    public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
+                        return new CollectingProjector();
+                    }
+                },
+            new JobContextService(ImmutableSettings.EMPTY, testThreadPool)
         );
     }
 
