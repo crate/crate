@@ -49,6 +49,7 @@ public class SysNodeExpressionModule extends AbstractModule {
 
         bindExpr(NodeFsExpression.NAME, NodeFsExpression.class);
         bindExpr(NodeHostnameExpression.NAME, NodeHostnameExpression.class);
+        bindExpr(NodeRestUrlExpression.NAME, NodeRestUrlExpression.class);
         bindExpr(NodeIdExpression.NAME, NodeIdExpression.class);
         bindExpr(NodeLoadExpression.NAME, NodeLoadExpression.class);
         bindExpr(NodeMemoryExpression.NAME, NodeMemoryExpression.class);
