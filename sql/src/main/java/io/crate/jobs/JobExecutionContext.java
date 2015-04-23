@@ -107,10 +107,6 @@ public class JobExecutionContext {
         LOGGER.trace("added subContext {}, now there are {} subContexts", subContextId, numActive);
     }
 
-    public void addPageDownstreamContext(final int executionNodeId, PageDownstreamContext pageDownstreamContext) {
-        addContext(executionNodeId, pageDownstreamContext, pageDownstreamContextMap);
-    }
-
     public UUID jobId() {
         return jobId;
     }

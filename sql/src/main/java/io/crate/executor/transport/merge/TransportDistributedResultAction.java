@@ -40,11 +40,14 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
 import java.util.Locale;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class TransportDistributedResultAction implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
@@ -56,13 +59,16 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
 
     private final Transports transports;
     private final JobContextService jobContextService;
+    private final ScheduledExecutorService scheduler;
 
     @Inject
     public TransportDistributedResultAction(Transports transports,
                                             JobContextService jobContextService,
+                                            ThreadPool threadPool,
                                             TransportService transportService) {
         this.transports = transports;
         this.jobContextService = jobContextService;
+        scheduler = threadPool.scheduler();
         transportService.registerHandler(DISTRIBUTED_RESULT_ACTION, new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) {
             @Override
             public DistributedResultRequest newInstance() {
@@ -71,8 +77,8 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
         });
     }
 
-    public void pushResult(DiscoveryNode node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
-        transports.executeLocalOrWithTransport(this, node.id(), request, listener,
+    public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
+        transports.executeLocalOrWithTransport(this, node, request, listener,
                 new DefaultTransportResponseHandler<DistributedResultResponse>(listener, EXECUTOR_NAME) {
                     @Override
                     public DistributedResultResponse newInstance() {
@@ -92,41 +98,44 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
     }
 
     @Override
-    public void nodeOperation(final DistributedResultRequest request, final ActionListener<DistributedResultResponse> listener) {
+    public void nodeOperation(final DistributedResultRequest request,
+                              final ActionListener<DistributedResultResponse> listener) {
         if (request.executionNodeId() == ExecutionNode.NO_EXECUTION_NODE) {
             listener.onFailure(new IllegalStateException("request must contain a valid executionNodeId"));
             return;
         }
-        ListenableFuture<JobExecutionContext> context = jobContextService.getContext(request.jobId());
-        Futures.addCallback(context, new FutureCallback<JobExecutionContext>() {
-            @Override
-            public void onSuccess(JobExecutionContext result) {
-                PageDownstreamContext pageDownstreamContext = result.getPageDownstreamContext(request.executionNodeId());
-                if (pageDownstreamContext == null) {
-                    listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                            "Couldn't find pageDownstreamContext for %d", request.executionNodeId())));
-                    return;
-                }
+        JobExecutionContext context = jobContextService.getContext(request.jobId());
+        if (context == null) {
+            // TODO: stop retry at some point and quit
+            scheduler.schedule(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            nodeOperation(request, listener);
+                        }
+                    }, 5, TimeUnit.MILLISECONDS);
+            return;
+        }
 
-                Throwable throwable = request.throwable();
-                if (throwable == null) {
-                    request.streamers(pageDownstreamContext.streamer());
-                    pageDownstreamContext.setBucket(
-                            request.bucketIdx(),
-                            request.rows(),
-                            request.isLast(),
-                            new SendResponsePageResultListener(listener, request));
-                } else {
-                    pageDownstreamContext.failure(request.bucketIdx(), throwable);
-                    listener.onResponse(new DistributedResultResponse(false));
-                }
-            }
+        PageDownstreamContext pageDownstreamContext = context.getPageDownstreamContext(request.executionNodeId());
+        if (pageDownstreamContext == null) {
+            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Couldn't find pageDownstreamContext for %d", request.executionNodeId())));
+            return;
+        }
 
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                listener.onFailure(t);
-            }
-        });
+        Throwable throwable = request.throwable();
+        if (throwable == null) {
+            request.streamers(pageDownstreamContext.streamer());
+            pageDownstreamContext.setBucket(
+                    request.bucketIdx(),
+                    request.rows(),
+                    request.isLast(),
+                    new SendResponsePageResultListener(listener, request));
+        } else {
+            pageDownstreamContext.failure(request.bucketIdx(), throwable);
+            listener.onResponse(new DistributedResultResponse(false));
+        }
     }
 
     private static class SendResponsePageResultListener implements PageResultListener {

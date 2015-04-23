@@ -79,7 +79,7 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
             Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
             int retry = 0;
 
-            while (!contexts.isEmpty() && retry < 10) {
+            while (!contexts.isEmpty() && retry < 50) {
                 retry++;
                 Thread.sleep(retry * 10);
             }

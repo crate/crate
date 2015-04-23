@@ -92,7 +92,7 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
                               final ActionListener<NodeCloseContextResponse> response) {
         statsTables.operationStarted(request.executionNodeId(), request.jobId(), "closeContext");
         try {
-            JobExecutionContext jobExecutionContext = jobContextService.getContextOrNull(request.jobId());
+            JobExecutionContext jobExecutionContext = jobContextService.getContext(request.jobId());
             if (jobExecutionContext != null) {
                 JobCollectContext collectContext = jobExecutionContext.getCollectContext(request.executionNodeId());
                 if (collectContext != null) {

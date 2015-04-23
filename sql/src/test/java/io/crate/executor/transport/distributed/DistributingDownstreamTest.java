@@ -50,22 +50,17 @@ public class DistributingDownstreamTest extends CrateUnitTest {
 
     private TransportDistributedResultAction distributedResultAction;
     private DistributingDownstream downstream;
-    private DiscoveryNode n1;
-    private DiscoveryNode n2;
 
     @Before
     public void before() throws Exception {
-        n1 = new DiscoveryNode("n1", DummyTransportAddress.INSTANCE, Version.CURRENT);
-        n2 = new DiscoveryNode("n2", DummyTransportAddress.INSTANCE, Version.CURRENT);
 
-        List<DiscoveryNode> downstreamNodes = Arrays.asList(n1, n2);
         distributedResultAction = mock(TransportDistributedResultAction.class);
         Streamer<?>[] streamers = {DataTypes.STRING.streamer()};
         downstream = new DistributingDownstream(
                 UUID.randomUUID(),
                 1,
                 0,
-                downstreamNodes,
+                Arrays.asList("n1", "n2"),
                 distributedResultAction,
                 streamers
         );
@@ -75,10 +70,10 @@ public class DistributingDownstreamTest extends CrateUnitTest {
     @Test
     public void testBucketing() throws Exception {
         ArgumentCaptor<DistributedResultRequest> r1Captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(eq(n1), r1Captor.capture(), any(ActionListener.class));
+        doNothing().when(distributedResultAction).pushResult(eq("n1"), r1Captor.capture(), any(ActionListener.class));
 
         ArgumentCaptor<DistributedResultRequest> r2Captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(eq(n2), r2Captor.capture(), any(ActionListener.class));
+        doNothing().when(distributedResultAction).pushResult(eq("n2"), r2Captor.capture(), any(ActionListener.class));
 
 
         downstream.setNextRow(new Row1(new BytesRef("Trillian")));
@@ -95,7 +90,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
     @Test
     public void testRequestsAreSentWithoutRows() throws Exception {
         ArgumentCaptor<DistributedResultRequest> captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(any(DiscoveryNode.class), captor.capture(), any(ActionListener.class));
+        doNothing().when(distributedResultAction).pushResult(any(String.class), captor.capture(), any(ActionListener.class));
 
         downstream.finish();
         assertThat(captor.getAllValues().size(), is(2));

@@ -80,7 +80,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                     jobId,
                     node.downstreamExecutionNodeId(),
                     bucketIdx,
-                    toDiscoveryNodes(node.downstreamNodes()),
+                    node.downstreamNodes(),
                     transportDistributedResultAction,
                     streamers
             );
@@ -89,18 +89,5 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
 
     protected Streamer<?>[] getStreamers(ExecutionNode node) {
         return streamerVisitor.processExecutionNode(node, null).outputStreamers();
-    }
-
-    private List<DiscoveryNode> toDiscoveryNodes(List<String> nodeIds) {
-        final DiscoveryNodes discoveryNodes = clusterService.state().nodes();
-        return Lists.transform(nodeIds, new Function<String, DiscoveryNode>() {
-
-            @Nullable
-            @Override
-            public DiscoveryNode apply(@Nullable String input) {
-                assert input != null;
-                return discoveryNodes.get(input);
-            }
-        });
     }
 }

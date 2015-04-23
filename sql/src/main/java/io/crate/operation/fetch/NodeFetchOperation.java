@@ -118,7 +118,7 @@ public class NodeFetchOperation implements RowUpstream {
     public void fetch(RowDownstream rowDownstream) throws Exception {
         int numShards = shardBuckets.size();
 
-        JobExecutionContext jobExecutionContext = jobContextService.getContextOrNull(jobId);
+        JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
         if (jobExecutionContext == null) {
             String errorMsg = String.format(Locale.ENGLISH, "No jobExecutionContext found for job '%s'", jobId);
             LOGGER.error(errorMsg);

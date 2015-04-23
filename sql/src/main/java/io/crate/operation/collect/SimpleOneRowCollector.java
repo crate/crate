@@ -71,5 +71,6 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
     @Override
     public void doCollect(JobCollectContext jobCollectContext) {
         collect(jobCollectContext.ramAccountingContext());
+        jobCollectContext.close();
     }
 }

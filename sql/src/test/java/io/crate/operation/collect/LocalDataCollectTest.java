@@ -344,13 +344,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
-        JobContextService jobContextService = mock(JobContextService.class);
-        when(jobContextService.getOrCreateContext(Mockito.any(UUID.class))).thenAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                return new JobExecutionContext((UUID) invocation.getArguments()[0], JobContextService.DEFAULT_KEEP_ALIVE);
-            }
-        });
 
         ClusterService clusterService = injector.getInstance(ClusterService.class);
         operation = new MapSideDataCollectOperation(
@@ -371,8 +364,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
                     public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
                         return new CollectingProjector();
                     }
-                },
-            new JobContextService(ImmutableSettings.EMPTY, testThreadPool)
+                }
         );
     }
 

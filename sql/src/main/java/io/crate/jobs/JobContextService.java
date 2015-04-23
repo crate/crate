@@ -52,7 +52,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     private final ThreadPool threadPool;
     private final ScheduledFuture<?> keepAliveReaper;
-    private final ConcurrentMap<UUID, SettableFuture<JobExecutionContext>> activeContexts =
+    private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     @Inject
@@ -69,11 +69,9 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     @Override
     protected void doStop() throws ElasticsearchException {
-        /*
         for (JobExecutionContext context : activeContexts.values()) {
             context.close();
         }
-        */
     }
 
     @Override
@@ -81,30 +79,9 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         keepAliveReaper.cancel(false);
     }
 
-    public ListenableFuture<JobExecutionContext> getContext(UUID jobId) {
-        return getSettableContext(jobId);
-    }
-
     @Nullable
-    public JobExecutionContext getContextOrNull(UUID jobId) {
-        try {
-            return activeContexts.get(jobId).get(0, TimeUnit.MICROSECONDS);
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
-            return null;
-        }
-    }
-
-    private SettableFuture<JobExecutionContext> getSettableContext(UUID jobId) {
-        SettableFuture<JobExecutionContext> jobExecutionContext = activeContexts.get(jobId);
-        if (jobExecutionContext == null) {
-            jobExecutionContext = SettableFuture.create();
-            SettableFuture<JobExecutionContext> existingFuture = activeContexts.putIfAbsent(jobId, jobExecutionContext);
-            if (existingFuture != null) {
-                return existingFuture;
-            }
-            LOGGER.trace("[{}] created new context future for {}", System.identityHashCode(activeContexts), jobId);
-        }
-        return jobExecutionContext;
+    public JobExecutionContext getContext(UUID jobId) {
+        return activeContexts.get(jobId);
     }
 
     public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) {
@@ -120,9 +97,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                         System.identityHashCode(activeContexts), activeContexts.size());
             }
         });
-        SettableFuture<JobExecutionContext> settableContext = getSettableContext(executionContext.jobId());
         LOGGER.trace("[{}] set created context for {}", System.identityHashCode(activeContexts), jobId);
-        settableContext.set(executionContext);
+        JobExecutionContext existing = activeContexts.putIfAbsent(jobId, executionContext);
+        if (existing != null) {
+            throw new IllegalArgumentException("It is not allowed to create the same context twice");
+        }
         return executionContext;
     }
 

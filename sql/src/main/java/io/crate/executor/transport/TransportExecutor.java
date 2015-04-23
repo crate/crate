@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
@@ -74,6 +75,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final Settings settings;
     private final ClusterService clusterService;
     private final JobContextService jobContextService;
+    private ContextPreparer contextPreparer;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
@@ -90,6 +92,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     @Inject
     public TransportExecutor(Settings settings,
                              JobContextService jobContextService,
+                             ContextPreparer contextPreparer,
                              TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
                              Functions functions,
@@ -104,6 +107,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              StreamerVisitor streamerVisitor) {
         this.settings = settings;
         this.jobContextService = jobContextService;
+        this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.pageDownstreamFactory = pageDownstreamFactory;
@@ -197,6 +201,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             job.addTask(new ExecutionNodesTask(
                     job.id(),
                     clusterService,
+                    contextPreparer,
                     globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,
@@ -244,6 +249,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             job.addTask(new ExecutionNodesTask(
                     job.id(),
                     clusterService,
+                    contextPreparer,
                     globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,
