@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - update crate-admin to 0.12.0 which contains the following changes:
+
+    - display ``rest_url`` from sys.nodes table on node detail view
+
  - Expose REST URL of node in ``sys.nodes`` table
 
  - Fix: In some cases too few threads where started which could slow
