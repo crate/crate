@@ -38,8 +38,8 @@ Retrieving the returned columns using the ``cols()`` method::
 
 will print::
 
-    ["id", "name", "hostname", "port", "load", "mem", "heap", "fs", "version",
-    "thread_pools"]
+    ["id", "name", "hostname", "rest_url", "port", "load", "mem", "heap",
+    "fs", "version", "thread_pools"]
 
 Retrieving the returned rows using the ``rows()`` method::
 

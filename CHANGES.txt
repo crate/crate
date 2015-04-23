@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Expose REST URL of node in ``sys.nodes`` table
+
  - Fix: In some cases too few threads where started which could slow
    down queries
 
