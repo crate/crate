@@ -274,7 +274,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testAnyOnArrayLiteral() throws Exception {
         Reference ref = createReference("d", DataTypes.STRING);
-        Literal stringArrayLiteral = Literal.newLiteral(new Object[]{"a", "b", "c"}, new ArrayType(DataTypes.STRING));
+        Literal stringArrayLiteral = Literal.newLiteral(new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}, new ArrayType(DataTypes.STRING));
 
         // col != ANY (1,2,3)
         Query neqQuery = convert(whereClause(AnyNeqOperator.NAME, ref, stringArrayLiteral));

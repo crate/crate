@@ -43,18 +43,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-any-history", labelWith = LabelType.CUSTOM_KEY)
-@BenchmarkMethodChart(filePrefix = "benchmark-any")
-public class AnyBenchmark extends BenchmarkBase  {
+@BenchmarkHistoryChart(filePrefix="benchmark-in-string-history", labelWith = LabelType.CUSTOM_KEY)
+@BenchmarkMethodChart(filePrefix = "benchmark-in-string")
+public class InStringBenchmark extends BenchmarkBase {
 
     static final int BENCHMARK_ROUNDS = 200;
     static final int NUMBER_OF_DOCUMENTS = 100_000;
     static AtomicInteger VALUE = new AtomicInteger(0);
     static Vector<String> VALUES = new Vector<>();
 
-    static final String SELECT_ANY_PARAM = "select * from "+ INDEX_NAME + " where value = ANY (?)";
+    static final String SELECT_ANY_PARAM = "select * from "+ INDEX_NAME + " where value = ANY ([?])";
 
-    static final String SELECT_NOT_ANY_PARAM = "select * from "+ INDEX_NAME + " where value != ANY (?)";
+    static final String SELECT_NOT_ANY_PARAM = "select * from "+ INDEX_NAME + " where value != ANY ([?])";
 
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
@@ -98,70 +98,51 @@ public class AnyBenchmark extends BenchmarkBase  {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testSelectAny5() throws Exception {
-        String statement = "select * from "+ INDEX_NAME + " where value = ANY (['" +
-                Joiner.on("','").join(VALUES.subList(0, 5)) + "'])";
+    public void testSelectWhereInWith5Items() throws Exception {
+        // uses lucene query builder
+        String statement = "select * from " + INDEX_NAME + " where value in ('" +
+                Joiner.on("','").join(VALUES.subList(0, 5)) + "')";
         SQLResponse response = execute(statement);
         assertThat(response.rowCount(), is(5L));
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testSelectAny500() throws Exception {
-        String statement = "select * from "+ INDEX_NAME + " where value = ANY (['" +
-                Joiner.on("','").join(VALUES.subList(0, 500)) + "'])";
+    public void testSelectWhereInWith500Items() throws Exception {
+        // uses lucene query builder
+        String statement = "select * from " + INDEX_NAME + " where value in ('" +
+                Joiner.on("','").join(VALUES.subList(0, 500)) + "')";
         SQLResponse response = execute(statement);
         assertThat(response.rowCount(), is(500L));
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testSelectAny2K() throws Exception {
-        String statement = "select * from "+ INDEX_NAME + " where value = ANY (['" +
-                Joiner.on("','").join(VALUES.subList(0, 2000)) + "'])";
+    public void testCountWhereInWith5Items() throws Exception {
+        // uses ES query builder
+        String statement = "select count(*) from " + INDEX_NAME + " where value in ('" +
+                Joiner.on("','").join(VALUES.subList(0, 5)) + "')";
         SQLResponse response = execute(statement);
-        assertThat(response.rowCount(), is(2000L));
+        assertThat((Long)response.rows()[0][0], is(5L));
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testSelectAny5Param() throws Exception {
-        SQLResponse response = execute(SELECT_ANY_PARAM, new Object[]{ VALUES.subList(0, 5).toArray() });
-        assertThat(response.rowCount(), is(5L));
+    public void testCountWhereInWith500Items() throws Exception {
+        // uses ES query builder
+        String statement = "select count(*) from " + INDEX_NAME + " where value in ('" +
+                Joiner.on("','").join(VALUES.subList(0, 500)) + "')";
+        SQLResponse response = execute(statement);
+        assertThat((Long)response.rows()[0][0], is(500L));
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testSelectAny500Param() throws Exception {
-        SQLResponse response = execute(SELECT_ANY_PARAM, new Object[]{ VALUES.subList(0, 500).toArray() });
-        assertThat(response.rowCount(), is(500L));
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testSelectAny2KParam() throws Exception {
-        SQLResponse response = execute(SELECT_ANY_PARAM, new Object[]{ VALUES.subList(0, 2000).toArray() });
-        assertThat(response.rowCount(), is(2000L));
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testSelectNotAny5Param() throws Exception {
-        SQLResponse response = execute(SELECT_NOT_ANY_PARAM, new Object[]{ VALUES.subList(0, 5).toArray() });
-        assertThat(response.rowCount(), is(10000L));
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testSelectNotAny500Param() throws Exception {
-        SQLResponse response =  execute(SELECT_NOT_ANY_PARAM, new Object[]{ VALUES.subList(0, 500).toArray() });
-        assertThat(response.rowCount(), is(10000L));
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testSelectNotAny2KParam() throws Exception {
-        SQLResponse response = execute(SELECT_NOT_ANY_PARAM, new Object[]{ VALUES.subList(0, 2000).toArray() });
-        assertThat(response.rowCount(), is(10000L));
+    public void testCountWhereInWith2000Items() throws Exception {
+        // uses ES query builder
+        String statement = "select count(*) from " + INDEX_NAME + " where value in ('" +
+                Joiner.on("','").join(VALUES.subList(0, 2000)) + "')";
+        SQLResponse response = execute(statement);
+        assertThat((Long)response.rows()[0][0], is(2000L));
     }
 }

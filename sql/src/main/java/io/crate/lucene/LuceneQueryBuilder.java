@@ -269,6 +269,23 @@ public class LuceneQueryBuilder {
 
         static class AnyEqQuery extends AbstractAnyQuery {
 
+            private TermsFilter termsFilter(String columnName, Literal arrayLiteral) {
+                TermsFilter termsFilter;
+                Object values = arrayLiteral.value();
+                if (values instanceof Collection) {
+                    termsFilter = new TermsFilter(
+                            columnName,
+                            getBytesRefs((Collection)values,
+                                    TermBuilder.forType(arrayLiteral.valueType())));
+                } else  {
+                    termsFilter = new TermsFilter(
+                            columnName,
+                            getBytesRefs((Object[])values,
+                                    TermBuilder.forType(arrayLiteral.valueType())));
+                }
+                return termsFilter;
+            }
+
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(((CollectionType)arrayReference.valueType()).innerType());
@@ -278,21 +295,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 String columnName = reference.ident().columnIdent().fqn();
-
-                Object values = arrayLiteral.value();
-                TermsFilter termsFilter;
-                if (values instanceof Collection) {
-                    termsFilter = new TermsFilter(
-                            columnName,
-                            getBytesRefs((Collection) arrayLiteral.value(),
-                                    TermBuilder.forType(arrayLiteral.valueType())));
-                } else  {
-                    termsFilter = new TermsFilter(
-                            columnName,
-                            getBytesRefs((Object[]) arrayLiteral.value(),
-                                    TermBuilder.forType(arrayLiteral.valueType())));
-                }
-                return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter);
+                return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter(columnName, arrayLiteral));
             }
         }
 
