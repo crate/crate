@@ -26,6 +26,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
@@ -52,6 +53,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -305,7 +307,11 @@ public class SymbolBasedBulkShardProcessor {
         final Set<String> indices;
 
         synchronized (requestsForNewIndices) {
-            indices = ImmutableSet.copyOf(Sets.difference(requestsForNewIndices.keySet(), indicesCreated));
+            indices = ImmutableSet.copyOf(
+                    Iterables.filter(
+                            Sets.difference(requestsForNewIndices.keySet(), indicesCreated),
+                            shouldAutocreateIndexPredicate)
+            );
             for (Map.Entry<String, List<PendingRequest>> entry : requestsForNewIndices.entrySet()) {
                 pendings.addAll(entry.getValue());
             }
@@ -313,17 +319,20 @@ public class SymbolBasedBulkShardProcessor {
             pendingNewIndexRequests.set(0);
         }
 
-        if (indices.size() > 0 && Iterables.any(indices, shouldAutocreateIndexPredicate)) {
+
+        if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices in bulk...", indices.size());
 
-            final String[] indicesNames = indices.toArray(new String[indices.size()]);
-            transportBulkCreateIndicesAction.execute(new BulkCreateIndicesRequest(indicesNames).ignoreExisting(true), new ActionListener<BulkCreateIndicesResponse>() {
-                @Override
-                public void onResponse(BulkCreateIndicesResponse response) {
-                    trace("%d of %d indices already created", response.alreadyExisted().size(), indicesNames.length);
-                    indicesCreated.addAll(indices);
+            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
+                    .ignoreExisting(true)
+                    .timeout(new TimeValue(indices.size() * 10L, TimeUnit.SECONDS)); // wait up to 10 seconds for every create index request
 
-                    for (PendingRequest pendingRequest : pendings) {
+            // initialize callback for when all indices are created
+            IndicesCreatedObserver.waitForIndicesCreated(clusterService, LOGGER, indices, new FutureCallback<Void>() {
+                @Override
+                public void onSuccess(@Nullable Void result) {
+                    trace("applying pending requests for created indices...");
+                    for (final PendingRequest pendingRequest : pendings) {
                         // add pending requests for created indices
                         ShardId shardId = shardId(pendingRequest.indexName, pendingRequest.id, pendingRequest.routing);
                         partitionRequestByShard(shardId, pendingRequest.id,
@@ -331,17 +340,34 @@ public class SymbolBasedBulkShardProcessor {
                                 pendingRequest.missingAssignments,
                                 pendingRequest.routing, pendingRequest.version);
                     }
-                    trace("added %d requests, lets see if we can execute them", pendings.size());
+                    trace("added %d pending requests, lets see if we can execute them", pendings.size());
                     executeRequestsIfNeeded();
                 }
 
                 @Override
                 public void onFailure(Throwable t) {
-                    LOGGER.error("error when creating pending indices in bulk", t);
-                    setFailure(ExceptionsHelper.unwrapCause(t));
+                    setFailure(t);
                 }
             });
+
+            if (indices.size() > 0) {
+                // initiate the request
+                transportBulkCreateIndicesAction.execute(bulkCreateIndicesRequest, new ActionListener<BulkCreateIndicesResponse>() {
+                    @Override
+                    public void onResponse(BulkCreateIndicesResponse response) {
+                        trace("%d of %d indices already created", response.alreadyExisted().size(), indices.size());
+                        indicesCreated.addAll(indices);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        LOGGER.error("error when creating pending indices in bulk", t);
+                        setFailure(ExceptionsHelper.unwrapCause(t));
+                    }
+                });
+            }
         }
+
     }
 
 

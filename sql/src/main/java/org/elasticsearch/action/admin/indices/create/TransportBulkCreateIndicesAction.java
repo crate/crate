@@ -21,10 +21,12 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
+import io.crate.core.collections.UniqueBlockingQueue;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainListenableActionFuture;
 import org.elasticsearch.action.support.master.TransportMasterNodeOperationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -33,16 +35,29 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.MetaDataCreateIndexService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * create indices in bulk on the master node with just one request sent
+ *
+ * this action enqueues requests
+ */
+@Singleton
 public class TransportBulkCreateIndicesAction extends TransportMasterNodeOperationAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse> {
 
+    public static final int QUEUE_SIZE = 100;
+    public static final String NAME = "indices:admin/bulk_create";
+
+    private final UniqueBlockingQueue<RequestItem> requestQueue;
+    private final QueuedRequestExecutor queuedRequestExecutor;
     private final MetaDataCreateIndexService createIndexService;
 
     @Inject
@@ -52,8 +67,13 @@ public class TransportBulkCreateIndicesAction extends TransportMasterNodeOperati
                                                ThreadPool threadPool,
                                                MetaDataCreateIndexService createIndexService,
                                                ActionFilters actionFilters) {
-        super(settings, BulkCreateIndicesAction.NAME, transportService, clusterService, threadPool, actionFilters);
+        super(settings, NAME, transportService, clusterService, threadPool, actionFilters);
+        this.requestQueue = new UniqueBlockingQueue<>(QUEUE_SIZE);
         this.createIndexService = createIndexService;
+
+        this.queuedRequestExecutor = new QueuedRequestExecutor();
+        // start queued Request executor
+        this.threadPool.executor(executor()).execute(queuedRequestExecutor);
     }
 
     @Override
@@ -76,37 +96,135 @@ public class TransportBulkCreateIndicesAction extends TransportMasterNodeOperati
         final List<CreateIndexResponse> responses = new ArrayList<>(request.requests().size());
         final BulkCreateIndicesResponse finalResponse = new BulkCreateIndicesResponse(responses);
 
-        // create single indices synchronously
-        for (CreateIndexRequest createIndexRequest : request.requests()) {
-            final String index =  createIndexRequest.indices()[0];
-            final CreateIndexClusterStateUpdateRequest updateRequest = new CreateIndexClusterStateUpdateRequest(createIndexRequest, "bulk", index)
-                    .ackTimeout(createIndexRequest.timeout()).masterNodeTimeout(request.masterNodeTimeout())
-                    .settings(createIndexRequest.settings()).mappings(createIndexRequest.mappings())
-                    .aliases(createIndexRequest.aliases()).customs(createIndexRequest.customs());
+        // shortcut
+        if (request.requests().isEmpty()) {
+            listener.onResponse(finalResponse);
+            return;
+        }
 
-            PlainActionFuture<ClusterStateUpdateResponse> actionFuture = new PlainActionFuture<>();
-            createIndexService.createIndex(updateRequest, actionFuture);
+        final AtomicInteger pending = new AtomicInteger(0);
+        final AtomicReference<Throwable> exception = new AtomicReference<>();
+        List<ListenableActionFuture<ClusterStateUpdateResponse>> futures = new ArrayList<>(request.requests().size());
+        for (CreateIndexRequest createIndexRequest : request.requests()) {
             try {
-                ClusterStateUpdateResponse response = actionFuture.actionGet();
-                responses.add(new CreateIndexResponse(response.isAcknowledged()));
-            } catch (Throwable t) {
-                if (t instanceof IndexAlreadyExistsException && request.ignoreExisting()) {
-                    finalResponse.addAlreadyExisted(index);
-                    logger.trace("[{}] failed to create", t, index);
+                RequestItem item = new RequestItem(createIndexRequest, threadPool);
+                if (requestQueue.put(item)) {
+                    futures.add(item.future);
+                    pending.incrementAndGet();
                 } else {
-                    logger.debug("[{}] failed to create, abort", t, index);
-                    listener.onFailure(t);
-                    return;
+                    String index = item.request.index();
+                    finalResponse.addAlreadyExisted(index);
+                    logger.trace("index [{}] already in the queue", index);
                 }
+            } catch (InterruptedException e) {
+                logger.debug("got interrupted while adding create index request to the queue");
+                Thread.interrupted();
+                listener.onFailure(e);
+                return;
             }
         }
-        listener.onResponse(finalResponse);
+        ActionListener<ClusterStateUpdateResponse> actionListener = new ActionListener<ClusterStateUpdateResponse>() {
+            @Override
+            public void onResponse(ClusterStateUpdateResponse response) {
+                responses.add(new CreateIndexResponse(response.isAcknowledged()));
+                countDownAndFinish();
+            }
+
+            private void countDownAndFinish() {
+                if (pending.decrementAndGet() == 0) {
+                    Throwable e = exception.get();
+                    logger.trace("sending response");
+                    if (e == null) {
+                        listener.onResponse(finalResponse);
+                    } else {
+                        listener.onFailure(e);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                if (t instanceof IndexAlreadyExistsException && request.ignoreExisting()) {
+                    String index = ((IndexAlreadyExistsException) t).index().getName();
+                    finalResponse.addAlreadyExisted(index);
+                    logger.trace("[{}] index already exists", t, index);
+                } else {
+                    logger.debug("failed to create index in bulk, abort", t);
+                    exception.compareAndSet(null, t);
+                }
+                countDownAndFinish();
+            }
+        };
+
+        for (ListenableActionFuture<ClusterStateUpdateResponse> actionFuture : futures) {
+            actionFuture.addListener(actionListener);
+        }
     }
-
-
 
     @Override
     protected ClusterBlockException checkBlock(BulkCreateIndicesRequest request, ClusterState state) {
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA, request.indices());
+    }
+
+    private static class RequestItem {
+        private final CreateIndexRequest request;
+        private final PlainListenableActionFuture<ClusterStateUpdateResponse> future;
+
+        private RequestItem(CreateIndexRequest request, ThreadPool threadPool) {
+            this.request = request;
+            // REALLY REALLY important to run this threaded, or else we will hog
+            // management threads
+            this.future = new PlainListenableActionFuture<>(true, threadPool);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RequestItem that = (RequestItem) o;
+
+            return request.index().equals(that.request.index());
+        }
+
+        @Override
+        public int hashCode() {
+            return request.index().hashCode();
+        }
+    }
+
+    private class QueuedRequestExecutor implements Runnable, ActionListener<ClusterStateUpdateResponse> {
+        @Override
+        public void run() {
+            processARequest();
+        }
+
+        private void processARequest() {
+            try {
+                RequestItem item = requestQueue.take();
+                logger.trace("dequeued create request for index {}", item.request.index());
+                final CreateIndexClusterStateUpdateRequest updateRequest
+                        = new CreateIndexClusterStateUpdateRequest(item.request, "bulk", item.request.index())
+                        .ackTimeout(item.request.timeout()).masterNodeTimeout(item.request.masterNodeTimeout())
+                        .settings(item.request.settings()).mappings(item.request.mappings())
+                        .aliases(item.request.aliases()).customs(item.request.customs());
+                item.future.addListener(this);
+                createIndexService.createIndex(updateRequest, item.future);
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+            } catch (Throwable e) {
+                logger.trace("error on starting to create index", e);
+            }
+        }
+
+        @Override
+        public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
+            logger.trace("successfully executed create index request");
+            processARequest(); // take next request
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            processARequest(); // take next request
+        }
     }
 }

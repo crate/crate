@@ -45,8 +45,8 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     /**
      * Constructs a new request to create indices with the specified names.
      */
-    public BulkCreateIndicesRequest(String... indices) {
-        this.createIndexRequests = new ArrayList<>(indices.length);
+    public BulkCreateIndicesRequest(Collection<String> indices) {
+        this.createIndexRequests = new ArrayList<>(indices.size());
         for (String index : indices) {
             this.createIndexRequests.add(new CreateIndexRequest(index));
         }
@@ -55,7 +55,7 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     /**
      * Constructs a new request to create indices in bulk.
      */
-    public BulkCreateIndicesRequest() {
+    BulkCreateIndicesRequest() {
     }
 
     public boolean ignoreExisting() {

@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -64,24 +63,20 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
         this.clusterService = clusterService;
     }
 
-    public BulkRetryCoordinator coordinator(@Nullable ShardId shardId) throws IndexMissingException, IndexShardMissingException {
+    public BulkRetryCoordinator coordinator(ShardId shardId) throws IndexMissingException, IndexShardMissingException {
         synchronized (coordinatorsByShardId) {
             BulkRetryCoordinator coordinator = coordinatorsByShardId.get(shardId);
             if (coordinator == null) {
-                String nodeId = null;
-                if (shardId != null) {
-                    IndexRoutingTable indexRoutingTable = clusterService.state().routingTable()
-                            .index(shardId.getIndex());
-                    if (indexRoutingTable == null) {
-                        throw new IndexMissingException(shardId.index());
-                    }
-                    IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.id());
-                    if (shardRoutingTable == null) {
-                        throw new IndexShardMissingException(shardId);
-                    }
-                    nodeId = shardRoutingTable.primaryShard().currentNodeId();
+                IndexRoutingTable indexRoutingTable = clusterService.state().routingTable()
+                        .index(shardId.getIndex());
+                if (indexRoutingTable == null) {
+                    throw new IndexMissingException(shardId.index());
                 }
-
+                IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.id());
+                if (shardRoutingTable == null) {
+                    throw new IndexShardMissingException(shardId);
+                }
+                String nodeId = shardRoutingTable.primaryShard().currentNodeId();
                 // for currently unassigned shards the nodeId will be null
                 // so we at some point we will always keep one coordinator around
                 // for all the orphaned unassigned shards that might end up here
