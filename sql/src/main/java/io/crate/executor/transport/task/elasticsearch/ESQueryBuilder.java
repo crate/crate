@@ -690,13 +690,17 @@ public class ESQueryBuilder {
 
             @Override
             public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
-                String refName = reference.info().ident().columnIdent().fqn();
-                context.builder.startObject("terms").field(refName);
+                String columnName = reference.info().ident().columnIdent().fqn();
+                context.builder.startObject(Fields.FILTERED);
+                context.builder.startObject(Fields.QUERY)
+                        .startObject(Fields.MATCH_ALL).endObject()
+                        .endObject();
+                context.builder.startObject(Fields.FILTER).startObject("terms").field(columnName);
                 context.builder.startArray();
                 for (Object value: toIterable(arrayLiteral.value())){
                     context.builder.value(value);
                 }
-                context.builder.endArray().endObject();
+                context.builder.endArray().endObject().endObject().endObject();
                 return true;
             }
         }
@@ -736,16 +740,23 @@ public class ESQueryBuilder {
             public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 // col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
                 String columnName = reference.info().ident().columnIdent().fqn();
-                context.builder.startObject("bool").startObject("must_not")
-                        .startObject("bool").startArray("must");
+                context.builder.startObject(Fields.FILTERED)
+                        .startObject(Fields.QUERY)
+                            .startObject(Fields.MATCH_ALL).endObject()
+                        .endObject()
+                        .startObject(Fields.FILTER)
+                            .startObject("bool").startObject("must_not")
+                                .startObject("bool")
+                                    .startArray("must");
                 for (Object value: toIterable(arrayLiteral.value())) {
                     context.builder.startObject()
                             .startObject("term").field(columnName, value).endObject()
                             .endObject();
                 }
-                context.builder.endArray().endObject();
-
-                context.builder.endObject().endObject();
+                context.builder.endArray()
+                                .endObject()
+                            .endObject().endObject()
+                        .endObject().endObject();
                 return true;
             }
         }
