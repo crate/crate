@@ -32,6 +32,8 @@ import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLBulkResponse;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.common.logging.Loggers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -48,6 +50,7 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+        Loggers.getLogger(TransportBulkCreateIndicesAction.class).setLevel("TRACE");
     }
 
     @Rule
@@ -56,6 +59,7 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
     public static final String INDEX_NAME = "motiondata";
     public static final int BENCHMARK_ROUNDS = 3;
     public static final int ROWS = 5000;
+    public static final int UNIQUE_PARTITIONS = 200;
 
     private static final String[] partitions = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
     private int partitionIndex = 0;
@@ -119,12 +123,14 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
     }
 
     @Test
-    @BenchmarkOptions(benchmarkRounds = 2, warmupRounds = 1)
+    @BenchmarkOptions(benchmarkRounds = 1, warmupRounds = 1)
     public void testBulkInsertWithUniquePartitions() throws Exception {
         long inserted = 0;
         long errors = 0;
 
-        SQLBulkResponse bulkResponse = getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest(true, 100)).actionGet();
+        SQLBulkResponse bulkResponse = getClient(false)
+                .execute(SQLBulkAction.INSTANCE, getBulkArgsRequest(true, UNIQUE_PARTITIONS))
+                .actionGet();
         for (SQLBulkResponse.Result result : bulkResponse.results()) {
             assertThat(result.errorMessage(), is(nullValue()));
             if (result.rowCount() < 0) {
@@ -134,7 +140,7 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
             }
         }
         assertThat(errors, is(0L));
-        assertThat(inserted, is(100L));
+        assertThat(inserted, is((long)UNIQUE_PARTITIONS));
 
     }
 }

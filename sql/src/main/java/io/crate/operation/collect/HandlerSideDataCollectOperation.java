@@ -73,7 +73,8 @@ public class HandlerSideDataCollectOperation implements CollectOperation {
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
-                implementationVisitor, clusterNormalizer);
+                implementationVisitor,
+                clusterNormalizer);
     }
 
     @Override

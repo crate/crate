@@ -25,17 +25,17 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.emptyArray;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 
 public class BulkCreateIndicesRequestTest {
 
     @Test
     public void testSerialization() throws Exception {
-        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest("a", "b", "c");
+        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"));
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
@@ -45,7 +45,7 @@ public class BulkCreateIndicesRequestTest {
         assertThat(requestDeserialized.ignoreExisting(), is(false));
         assertThat(requestDeserialized.indices(), is(arrayContainingInAnyOrder("a", "b", "c")));
 
-        request = new BulkCreateIndicesRequest("a", "b", "c").ignoreExisting(true);
+        request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c")).ignoreExisting(true);
         out = new BytesStreamOutput();
         request.writeTo(out);
         in = new BytesStreamInput(out.bytes());
