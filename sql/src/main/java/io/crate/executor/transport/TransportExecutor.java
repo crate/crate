@@ -29,7 +29,6 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.LocalCollectTask;
-import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
@@ -132,7 +131,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
     @Override
     public Job newJob(Plan plan) {
         final Job job = new Job();
-        planVisitor.process(plan, job);
+        List<Task> tasks = planVisitor.process(plan, job);
+        job.addTasks(tasks);
         return job;
     }
 
@@ -151,6 +151,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     @Override
     public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
         Task lastTask = null;
+        assert tasks.size() > 0 : "need at least one task to execute";
         for (Task task : tasks) {
             // chaining tasks
             if (lastTask != null) {
@@ -159,43 +160,47 @@ public class TransportExecutor implements Executor, TaskExecutor {
             task.start();
             lastTask = task;
         }
+        assert lastTask != null;
         return lastTask.result();
     }
 
-    class TaskCollectingVisitor extends PlanVisitor<Job, Void> {
+    class TaskCollectingVisitor extends PlanVisitor<Job, List<Task>> {
 
         @Override
-        public Void visitIterablePlan(IterablePlan plan, Job job) {
+        public List<Task> visitIterablePlan(IterablePlan plan, Job job) {
+            List<Task> tasks = new ArrayList<>();
             for (PlanNode planNode : plan) {
-                job.addTasks(planNode.accept(nodeVisitor, job.id()));
+                tasks.addAll(planNode.accept(nodeVisitor, job.id()));
             }
-            return null;
+            return tasks;
         }
 
         @Override
-        public Void visitNoopPlan(NoopPlan plan, Job job) {
-            job.addTask(NoopTask.INSTANCE);
-            return null;
+        public List<Task> visitNoopPlan(NoopPlan plan, Job job) {
+            return ImmutableList.<Task>of(NoopTask.INSTANCE);
         }
 
         @Override
-        public Void visitGlobalAggregate(GlobalAggregate plan, Job job) {
-            createExecutableNodesTask(job, plan.collectNode(), plan.mergeNode());
-            return null;
+        public List<Task> visitGlobalAggregate(GlobalAggregate plan, Job job) {
+            return ImmutableList.of(createExecutableNodesTask(job, plan.collectNode(), plan.mergeNode()));
         }
 
         @Override
-        public Void visitQueryAndFetch(QueryAndFetch plan, Job job) {
-            createExecutableNodesTask(job, plan.collectNode(), plan.localMergeNode());
-            return null;
+        public List<Task> visitCollectAndMerge(CollectAndMerge plan, Job job) {
+            return ImmutableList.of(createExecutableNodesTask(job, plan.collectNode(), plan.localMergeNode()));
         }
 
-        private void createExecutableNodesTask(Job job, CollectNode collectNode, @Nullable MergeNode localMergeNode) {
+        @Override
+        public List<Task> visitQueryAndFetch(QueryAndFetch plan, Job job) {
+            return ImmutableList.of(createExecutableNodesTask(job, plan.collectNode(), plan.localMergeNode()));
+        }
+
+        private Task createExecutableNodesTask(Job job, CollectNode collectNode, @Nullable MergeNode localMergeNode) {
             collectNode.jobId(job.id());
             if (localMergeNode != null) {
                 localMergeNode.jobId(job.id());
             }
-            job.addTask(new ExecutionNodesTask(
+            return new ExecutionNodesTask(
                     job.id(),
                     globalProjectionToProjectionVisitor,
                     jobContextService,
@@ -209,39 +214,36 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     circuitBreaker,
                     localMergeNode,
                     collectNode
-            ));
+            );
         }
 
         @Override
-        public Void visitNonDistributedGroupBy(NonDistributedGroupBy plan, Job job) {
-            createExecutableNodesTask(job, plan.collectNode(), plan.localMergeNode());
-            return null;
+        public List<Task> visitNonDistributedGroupBy(NonDistributedGroupBy plan, Job job) {
+            return ImmutableList.of(createExecutableNodesTask(job, plan.collectNode(), plan.localMergeNode()));
         }
 
         @Override
-        public Void visitUpsert(Upsert plan, Job job) {
+        public List<Task> visitUpsert(Upsert plan, Job job) {
             ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
-            for (List<DQLPlanNode> childNodes : plan.nodes()) {
-                List<Task> subTasks = new ArrayList<>(childNodes.size());
-                for (DQLPlanNode childNode : childNodes) {
-                    subTasks.addAll(childNode.accept(nodeVisitor, job.id()));
-                }
+
+            for (Plan subPlan : plan.nodes()) {
+                List<Task> subTasks = planVisitor.process(subPlan, job);
                 UpsertTask upsertTask = new UpsertTask(TransportExecutor.this, job.id(), subTasks);
                 taskBuilder.add(upsertTask);
             }
-            job.addTasks(taskBuilder.build());
-            return null;
+
+            return taskBuilder.build();
         }
 
         @Override
-        public Void visitDistributedGroupBy(DistributedGroupBy plan, Job job) {
+        public List<Task> visitDistributedGroupBy(DistributedGroupBy plan, Job job) {
             plan.collectNode().jobId(job.id());
             plan.reducerMergeNode().jobId(job.id());
             MergeNode localMergeNode = plan.localMergeNode();
             if (localMergeNode != null) {
                 localMergeNode.jobId(job.id());
             }
-            job.addTask(new ExecutionNodesTask(
+            return ImmutableList.<Task>of(new ExecutionNodesTask(
                     job.id(),
                     globalProjectionToProjectionVisitor,
                     jobContextService,
@@ -257,29 +259,28 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     plan.collectNode(),
                     plan.reducerMergeNode()
             ));
-            return null;
         }
 
         @Override
-        public Void visitInsertByQuery(InsertFromSubQuery node, Job job) {
-            this.process(node.innerPlan(), job);
-
+        public List<Task> visitInsertByQuery(InsertFromSubQuery node, Job job) {
+            List<Task> tasks = process(node.innerPlan(), job);
             if(node.handlerMergeNode().isPresent()) {
                 // TODO: remove this hack
-                Task previousTask = Iterables.getLast(job.tasks());
+                Task previousTask = Iterables.getLast(tasks);
                 if (previousTask instanceof ExecutionNodesTask) {
                     ((ExecutionNodesTask) previousTask).mergeNode(node.handlerMergeNode().get());
                 } else {
-                    job.addTasks(nodeVisitor.visitMergeNode(node.handlerMergeNode().get(), job.id()));
+                    ArrayList<Task> tasks2 = new ArrayList<>(tasks);
+                    tasks2.addAll(nodeVisitor.visitMergeNode(node.handlerMergeNode().get(), job.id()));
+                    return tasks2;
                 }
             }
-            return null;
+            return tasks;
         }
 
         @Override
-        public Void visitQueryThenFetch(QueryThenFetch plan, Job job) {
-            createExecutableNodesTask(job, plan.collectNode(), plan.mergeNode());
-            return null;
+        public List<Task> visitQueryThenFetch(QueryThenFetch plan, Job job) {
+            return ImmutableList.of(createExecutableNodesTask(job, plan.collectNode(), plan.mergeNode()));
         }
     }
 
@@ -293,19 +294,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public ImmutableList<Task> visitCollectNode(CollectNode node, UUID jobId) {
             node.jobId(jobId); // add jobId to collectNode
             if (node.isRouted()) {
-                return singleTask(
-                    new RemoteCollectTask(
-                            jobId,
-                            node,
-                            transportActionProvider.transportJobInitAction(),
-                            transportActionProvider.transportCloseContextNodeAction(),
-                            streamerVisitor,
-                            handlerSideDataCollectOperation,
-                            globalProjectionToProjectionVisitor,
-                            statsTables,
-                            circuitBreaker
-                    )
-                );
+                throw new UnsupportedOperationException("RemoteCollectTask doesn't exist anymore. Use ExecutionNodesTask instead");
             } else {
                 return singleTask(
                         new LocalCollectTask(
@@ -329,15 +318,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (node == null) {
                return ImmutableList.of();
             }
-            node.jobId(jobId);
             if (node.executionNodes().isEmpty()) {
-                return singleTask(new LocalMergeTask(
-                        jobId,
-                        pageDownstreamFactory,
-                        jobContextService,
-                        node,
-                        statsTables,
-                        circuitBreaker, threadPool));
+                throw new UnsupportedOperationException("LocalMergeTask is no longer supported. Use ExecutionNodesTask instead");
             } else {
                 throw new UnsupportedOperationException("DistributedMergeTask is no longer available");
             }

@@ -658,11 +658,10 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(plan.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = plan.nodes().get(0);
-        assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
+        PlanNode next = ((IterablePlan) plan.nodes().get(0)).iterator().next();
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)next;
 
         assertThat(updateNode.insertColumns().length, is(2));
         Reference idRef = updateNode.insertColumns()[0];
@@ -687,11 +686,10 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(plan.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = plan.nodes().get(0);
-        assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
+        PlanNode next = ((IterablePlan) plan.nodes().get(0)).iterator().next();
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)next;
 
         assertThat(updateNode.insertColumns().length, is(2));
         Reference idRef = updateNode.insertColumns()[0];
@@ -927,18 +925,9 @@ public class PlannerTest extends CrateUnitTest {
         Upsert plan = (Upsert) plan("update users set name='Vogon lyric fan'");
         assertThat(plan.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = plan.nodes().get(0);
+        CollectAndMerge planNode = (CollectAndMerge) plan.nodes().get(0);
 
-        PlanNode planNode= childNodes.get(0);
-
-        assertThat(planNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.LONG, planNode.outputTypes().get(0));
-
-        assertThat(childNodes.size(), is(2));
-        assertThat(childNodes.get(0), instanceOf(CollectNode.class));
-        assertThat(childNodes.get(1), instanceOf(MergeNode.class));
-
-        CollectNode collectNode = (CollectNode)childNodes.get(0);
+        CollectNode collectNode = planNode.collectNode();
         assertThat(collectNode.routing(), is(shardRouting));
         assertFalse(collectNode.whereClause().noMatch());
         assertFalse(collectNode.whereClause().hasQuery());
@@ -955,9 +944,11 @@ public class PlannerTest extends CrateUnitTest {
         Symbol symbol = updateProjection.assignments()[0];
         assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
 
-        MergeNode mergeNode = (MergeNode)childNodes.get(1);
+        MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+
+        assertThat(mergeNode.outputTypes().size(), is(1));
     }
 
     @Test
@@ -965,11 +956,10 @@ public class PlannerTest extends CrateUnitTest {
         Upsert planNode = (Upsert) plan("update users set name='Vogon lyric fan' where id=1");
         assertThat(planNode.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = planNode.nodes().get(0);
-        assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
+        PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode) next;
         assertThat(updateNode.items().size(), is(1));
 
         assertThat(updateNode.updateColumns()[0], is("name"));
@@ -987,11 +977,10 @@ public class PlannerTest extends CrateUnitTest {
         Upsert planNode =  (Upsert) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");;
         assertThat(planNode.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = planNode.nodes().get(0);
-        assertThat(childNodes.size(), is(1));
+        PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
 
-        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode) next;
 
         List<String> ids = new ArrayList<>(3);
         for (SymbolBasedUpsertByIdNode.Item item : updateNode.items()) {
@@ -1005,50 +994,43 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCopyFromPlan() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.extension'");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(FileUriCollectNode.class));
+        CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.extension'");
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
 
-        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        FileUriCollectNode collectNode = (FileUriCollectNode)plan.collectNode();
         assertThat((BytesRef) ((Literal) collectNode.targetUri()).value(),
                 is(new BytesRef("/path/to/file.extension")));
     }
 
     @Test
     public void testCopyFromNumReadersSetting() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.extension' with (num_readers=1)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(FileUriCollectNode.class));
-        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.extension' with (num_readers=1)");
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
+        FileUriCollectNode collectNode = (FileUriCollectNode) plan.collectNode();
         assertThat(collectNode.executionNodes().size(), is(1));
     }
 
     @Test
     public void testCopyFromPlanWithParameters() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(FileUriCollectNode.class));
-        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
+        FileUriCollectNode collectNode = (FileUriCollectNode)plan.collectNode();
         SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectNode.projections().get(0);
         assertThat(indexWriterProjection.bulkActions(), is(30));
         assertThat(collectNode.compression(), is("gzip"));
         assertThat(collectNode.sharedStorage(), is(true));
 
         // verify defaults:
-        plan = (IterablePlan) plan("copy users from '/path/to/file.ext'");
-        iterator = plan.iterator();
-        collectNode = (FileUriCollectNode)iterator.next();
+        plan = (CollectAndMerge) plan("copy users from '/path/to/file.ext'");
+        collectNode = (FileUriCollectNode)plan.collectNode();
         assertNull(collectNode.compression());
         assertNull(collectNode.sharedStorage());
     }
 
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy users (name) to '/file.ext'");
-        CollectNode node = (CollectNode)plan.iterator().next();
+        CollectAndMerge plan = (CollectAndMerge) plan("copy users (name) to '/file.ext'");
+        CollectNode node = plan.collectNode();
         Reference nameRef = (Reference)node.toCollect().get(0);
 
         assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
@@ -1057,9 +1039,8 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCopyToWithNonExistentPartitionClause() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy parted partition (date=0) to '/foo.txt' ");
-        CollectNode collectNode = (CollectNode) plan.iterator().next();
-        assertFalse(collectNode.routing().hasLocations());
+        CollectAndMerge plan = (CollectAndMerge) plan("copy parted partition (date=0) to '/foo.txt' ");
+        assertFalse(plan.collectNode().routing().hasLocations());
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -1749,10 +1730,9 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
         Upsert plan = (Upsert) plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
-        assertThat(plan.nodes().size(), is(1));
-        assertThat(plan.nodes().get(0).size(), is(1));
-        assertThat(plan.nodes().get(0).get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
-        SymbolBasedUpsertByIdNode node = (SymbolBasedUpsertByIdNode) plan.nodes().get(0).get(0);
+        PlanNode planNode = ((IterablePlan) plan.nodes().get(0)).iterator().next();
+        assertThat(planNode, instanceOf(SymbolBasedUpsertByIdNode.class));
+        SymbolBasedUpsertByIdNode node = (SymbolBasedUpsertByIdNode) planNode;
 
         assertThat(node.updateColumns(), is(new String[]{ "name" }));
 

@@ -22,7 +22,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
@@ -38,7 +37,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
@@ -57,9 +55,7 @@ import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.search.SearchHits;
 import org.junit.After;
 import org.junit.Before;
@@ -71,7 +67,6 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.number.OrderingComparison.greaterThan;
 
 public class TransportExecutorTest extends BaseTransportExecutorTest {
 
@@ -101,37 +96,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys) {
         return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys);
-    }
-
-    @Test
-    public void testRemoteCollectTask() throws Exception {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-
-        for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
-            locations.put(discoveryNode.id(), new TreeMap<String, List<Integer>>());
-        }
-
-        Routing routing = new Routing(locations);
-        ReferenceInfo load1 = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
-        Symbol reference = new Reference(load1);
-
-        CollectNode collectNode = new CollectNode(0, "collect", routing);
-        collectNode.toCollect(Collections.singletonList(reference));
-        collectNode.outputTypes(Collections.singletonList(load1.type()));
-        collectNode.maxRowGranularity(RowGranularity.NODE);
-
-        Plan plan = new IterablePlan(collectNode);
-        Job job = executor.newJob(plan);
-
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-
-        assertThat(result.size(), is(2));
-        for (ListenableFuture<TaskResult> nodeResult : result) {
-            assertEquals(1, nodeResult.get().rows().size());
-            if (!OsUtils.WINDOWS) {
-                assertThat((Double) Iterables.getOnlyElement(nodeResult.get().rows()).get(0), is(greaterThan(0.0)));
-            }
-        }
     }
 
     @Test
