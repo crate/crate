@@ -114,7 +114,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             Throwable throwable = request.throwable();
             if (throwable != null) {
                 listener.onResponse(new DistributedResultResponse(false));
-                pageDownstreamContext.failure(throwable);
+                pageDownstreamContext.failure(request.bucketIdx(), throwable);
             } else {
                 request.streamers(pageDownstreamContext.streamer());
                 pageDownstreamContext.setBucket(

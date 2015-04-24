@@ -202,7 +202,7 @@ public class ExecutionNodesTask extends JobTask {
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                pageDownstreamContext.failure(t);
+                pageDownstreamContext.failure(0, t);
             }
         });
 
@@ -314,13 +314,13 @@ public class ExecutionNodesTask extends JobTask {
                     }
                 });
             } else {
-                pageDownstreamContext.failure(new IllegalStateException("expected directResponse but didn't get one"));
+                pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
             }
         }
 
         @Override
         public void onFailure(Throwable e) {
-            pageDownstreamContext.failure(e);
+            pageDownstreamContext.failure(bucketIdx, e);
         }
     }
 
