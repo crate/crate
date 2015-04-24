@@ -51,11 +51,6 @@ import static org.hamcrest.Matchers.nullValue;
 @BenchmarkMethodChart(filePrefix = "benchmark-partitioned-bulk-insert")
 public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-        Loggers.getLogger(TransportBulkCreateIndicesAction.class).setLevel("TRACE");
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

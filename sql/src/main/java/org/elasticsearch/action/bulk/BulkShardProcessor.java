@@ -338,12 +338,11 @@ public class BulkShardProcessor {
 
         if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices...", indices.size());
+            TimeValue timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
             BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
                     .ignoreExisting(true)
-                    .timeout(new TimeValue(indices.size() * 10L, TimeUnit.SECONDS)); // wait up to 10 seconds for every create index request
-
-            // initialize callback for when all indices are created
-            IndicesCreatedObserver.waitForIndicesCreated(clusterService, LOGGER, indices, new FutureCallback<Void>() {
+                    .timeout(timeout); // wait up to 10 seconds for every create index request
+            FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override
                 public void onSuccess(@Nullable Void result) {
                     RowN row = null;
@@ -367,8 +366,14 @@ public class BulkShardProcessor {
                 public void onFailure(Throwable t) {
                     setFailure(t);
                 }
-            });
-            if (indices.size() > 0) {
+            };
+
+            if (indices.isEmpty()) {
+                // shortcut
+                indicesCreatedCallback.onSuccess(null);
+            } else {
+                // initialize callback for when all indices are created
+                IndicesCreatedObserver.waitForIndicesCreated(clusterService, LOGGER, indices, indicesCreatedCallback, timeout);
                 transportBulkCreateIndicesAction.execute(bulkCreateIndicesRequest, new ActionListener<BulkCreateIndicesResponse>() {
                     @Override
                     public void onResponse(BulkCreateIndicesResponse bulkCreateIndicesResponse) {
