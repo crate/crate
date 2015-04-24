@@ -23,7 +23,11 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import io.crate.action.sql.query.CrateSearchContext;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -37,6 +41,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import javax.annotation.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +62,9 @@ import static org.powermock.api.mockito.PowerMockito.*;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(CrateSearchContext.class)
 public class JobCollectContextTest extends CrateUnitTest {
+
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     static final Function<Engine.Searcher, LuceneDocCollector> CONTEXT_FUNCTION =
             new Function<Engine.Searcher, LuceneDocCollector>() {
@@ -82,7 +90,7 @@ public class JobCollectContextTest extends CrateUnitTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        jobCollectContext = spy(new JobCollectContext(UUID.randomUUID()));
+        jobCollectContext = spy(new JobCollectContext(UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
         indexShard = mock(IndexShard.class);
         shardId = new ShardId("dummy", 1);
         when(indexShard.shardId()).thenReturn(shardId);

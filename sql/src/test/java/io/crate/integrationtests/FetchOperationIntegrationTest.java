@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.job.ContextPreparer;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -42,6 +43,8 @@ import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportFetchNodeAction;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
@@ -168,9 +171,15 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         List<Bucket> results = new ArrayList<>();
         Iterable<MapSideDataCollectOperation> collectOperations = cluster().getInstances(MapSideDataCollectOperation.class);
         for (MapSideDataCollectOperation collectOperation : collectOperations) {
+            List<JobExecutionContext> executionContexts = createJobContext(collectNode);
+
             CollectingProjector downstream = new CollectingProjector();
             collectOperation.collect(collectNode, downstream, ramAccountingContext);
             results.add(downstream.result().get());
+
+            for (JobExecutionContext executionContext : executionContexts) {
+                executionContext.close();
+            }
         }
 
         assertThat(results.size(), is(2));
@@ -206,11 +215,15 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext);
 
         QueryThenFetch plan = ((QueryThenFetch) ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan());
-        plan.collectNode().jobId(UUID.randomUUID());
+        UUID jobId = UUID.randomUUID();
+        plan.collectNode().jobId(jobId);
         Iterable<MapSideDataCollectOperation> collectOperations = cluster().getInstances(MapSideDataCollectOperation.class);
+
+        createJobContext(plan.collectNode());
 
         List<Bucket> results = new ArrayList<>();
         for (MapSideDataCollectOperation collectOperation : collectOperations) {
+
             CollectingProjector collectingProjector = new CollectingProjector();
             collectOperation.collect(plan.collectNode(), collectingProjector, ramAccountingContext);
             results.add(collectingProjector.result().get());
@@ -272,6 +285,18 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             assertThat((Integer) row.get(0), anyOf(is(1), is(2)));
             assertThat((BytesRef) row.get(1), anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
         }
+    }
+
+    private List<JobExecutionContext> createJobContext(CollectNode collectNode) {
+        ContextPreparer contextPreparer = cluster().getInstance(ContextPreparer.class);
+
+        List<JobExecutionContext> executionContexts = new ArrayList<>(2);
+        for (JobContextService jobContextService : cluster().getInstances(JobContextService.class)) {
+            JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId().get());
+            contextPreparer.prepare(collectNode.jobId().get(), collectNode, builder);
+            executionContexts.add(jobContextService.createOrMergeContext(builder));
+        }
+        return executionContexts;
     }
 
     @Test

@@ -30,6 +30,7 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -236,8 +237,15 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         assert collectNode.jobId().isPresent() : "jobId must be set on CollectNode";
-        JobCollectContext jobCollectContext = jobContextService.getOrCreateContext(collectNode.jobId().get())
-                .collectContext(collectNode.executionNodeId());
+        JobExecutionContext context;
+        context = jobContextService.getContext(collectNode.jobId().get());
+        JobCollectContext jobCollectContext;
+        try {
+            jobCollectContext = context.getCollectContext(collectNode.executionNodeId());
+        } catch (IllegalArgumentException e) {
+            downstream.registerUpstream(this).finish();
+            return;
+        }
         ShardProjectorChain projectorChain = new ShardProjectorChain(
                 numShards,
                 collectNode.projections(),
@@ -304,9 +312,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             downstream.registerUpstream(this).fail(e);
             return;
         }
-
-        // release the job collect context
-        jobContextService.releaseContext(collectNode.jobId().get());
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("started {} shardCollectors", numShards);

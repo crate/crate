@@ -23,14 +23,16 @@ package io.crate.executor.transport;
 
 import io.crate.exceptions.Exceptions;
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.UUID;
 
 /**
  * Transport handler for closing a context(lucene) for a complete job.
@@ -42,6 +44,8 @@ import java.util.UUID;
  */
 @Singleton
 public class TransportCloseContextNodeAction implements NodeAction<NodeCloseContextRequest, NodeCloseContextResponse> {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(TransportCloseContextNodeAction.class);
 
     private final String transportAction = "crate/sql/node/context/close";
     private final Transports transports;
@@ -70,11 +74,11 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
             ActionListener<NodeCloseContextResponse> listener) {
         transports.executeLocalOrWithTransport(this, targetNode, request, listener,
                 new DefaultTransportResponseHandler<NodeCloseContextResponse>(listener, executorName()) {
-            @Override
-            public NodeCloseContextResponse newInstance() {
-                return new NodeCloseContextResponse();
-            }
-        });
+                    @Override
+                    public NodeCloseContextResponse newInstance() {
+                        return new NodeCloseContextResponse();
+                    }
+                });
     }
 
     @Override
@@ -91,15 +95,25 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
     public void nodeOperation(final NodeCloseContextRequest request,
                               final ActionListener<NodeCloseContextResponse> response) {
         statsTables.operationStarted(request.executionNodeId(), request.jobId(), "closeContext");
-
-        // TODO: don't close the whole context but just the given executionNodeId
         try {
-            jobContextService.closeContext(request.jobId());
-            statsTables.operationFinished(request.executionNodeId(), null, 0);
+            JobExecutionContext jobExecutionContext = jobContextService.getContextOrNull(request.jobId());
+            if (jobExecutionContext != null) {
+                JobCollectContext collectContext = jobExecutionContext.getCollectContextOrNull(request.executionNodeId());
+                if (collectContext != null) {
+                    LOGGER.trace("Received CloseContextRequest, closing JobCollectContext {}/{}",
+                            request.jobId(), request.executionNodeId());
+                    collectContext.close();
+                } else {
+                    //noinspection AssertWithSideEffects lastAccessTime is updated but that is okay
+                    assert jobExecutionContext.getPageDownstreamContext(request.executionNodeId()) == null :
+                            "closing PageDownstreamContext is not supported";
+                }
+            }
+            statsTables.operationFinished(request.executionNodeId(), null, 0L);
             response.onResponse(new NodeCloseContextResponse());
-        } catch (Exception e) {
-            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(e), 0);
-            response.onFailure(e);
+        } catch (Throwable t) {
+            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t), 0L);
+            response.onFailure(t);
         }
     }
 }

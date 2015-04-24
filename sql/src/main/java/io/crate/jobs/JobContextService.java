@@ -21,17 +21,19 @@
 
 package io.crate.jobs;
 
-import io.crate.operation.collect.JobCollectContext;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
@@ -40,6 +42,8 @@ import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 
 @Singleton
 public class JobContextService extends AbstractLifecycleComponent<JobContextService> {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(JobContextService.class);
 
     // TODO: maybe make configurable
     public static long DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
@@ -56,9 +60,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                              ThreadPool threadPool) {
         super(settings);
         this.threadPool = threadPool;
-        this.keepAliveReaper = threadPool.scheduleWithFixedDelay(
-                new Reaper(),
-                DEFAULT_KEEP_ALIVE_INTERVAL);
+        this.keepAliveReaper = threadPool.scheduleWithFixedDelay(new Reaper(), DEFAULT_KEEP_ALIVE_INTERVAL);
     }
 
     @Override
@@ -70,7 +72,6 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         for (JobExecutionContext context : activeContexts.values()) {
             context.close();
         }
-        activeContexts.clear();
     }
 
     @Override
@@ -78,90 +79,89 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         keepAliveReaper.cancel(false);
     }
 
-    /**
-     * @return a {@link JobCollectContext} for given <code>jobId</code>, null if context doesn't exist.
-     */
-    @Nullable
     public JobExecutionContext getContext(UUID jobId) {
-        JobExecutionContext jobExecutionContext = activeContexts.get(jobId);
-        if (jobExecutionContext == null) {
-            return null;
+        JobExecutionContext context = activeContexts.get(jobId);
+        if (context == null) {
+            throw new IllegalArgumentException(String.format("JobExecutionContext for job %s not found", jobId));
         }
-        contextProcessing(jobExecutionContext);
-        return jobExecutionContext;
+        return context;
     }
 
-    /**
-     * @return a {@link JobCollectContext} for given <code>jobId</code>, create new one if not found.
-     */
-    public JobExecutionContext getOrCreateContext(UUID jobId) {
-        JobExecutionContext jobExecutionContext = activeContexts.get(jobId);
-        if (jobExecutionContext != null) {
-            return jobExecutionContext;
-        }
-
-        jobExecutionContext = new JobExecutionContext(jobId, DEFAULT_KEEP_ALIVE);
-        JobExecutionContext existingContext = activeContexts.putIfAbsent(jobId, jobExecutionContext);
-        if (existingContext != null) {
-            jobExecutionContext = existingContext;
-        }
-        contextProcessing(jobExecutionContext);
-        return jobExecutionContext;
+    @Nullable
+    public JobExecutionContext getContextOrNull(UUID jobId) {
+        return activeContexts.get(jobId);
     }
 
-    /**
-     * Release a {@link JobCollectContext}, just settings its last accessed time.
-     */
-    public void releaseContext(UUID jobId) {
-        JobExecutionContext jobExecutionContext = activeContexts.get(jobId);
-        if (jobExecutionContext != null) {
-            contextProcessedSuccessfully(jobExecutionContext);
-        }
+    public JobExecutionContext.Builder newBuilder(UUID jobId) {
+        return new JobExecutionContext.Builder(jobId, threadPool);
     }
 
-    /**
-     * Close {@link JobCollectContext} for given <code>jobId</code> and remove if from active map.
-     */
-    public void closeContext(UUID jobId) {
-        JobExecutionContext jobExecutionContext = activeContexts.get(jobId);
-        if (jobExecutionContext != null) {
-            activeContexts.remove(jobId, jobExecutionContext);
-            jobExecutionContext.close();
-        }
-    }
+    public JobExecutionContext createOrMergeContext(JobExecutionContext.Builder contextBuilder) {
+        final UUID jobId = contextBuilder.jobId();
+        JobExecutionContext newContext = contextBuilder.build();
 
-    protected void contextProcessing(JobExecutionContext context) {
-        // disable timeout while executing a job
-        context.accessed(-1);
-    }
-
-    protected void contextProcessedSuccessfully(JobExecutionContext context) {
-        context.accessed(threadPool.estimatedTimeInMillis());
-    }
-
-    public void initializeFinalMerge(UUID jobId, int executionNodeId, PageDownstreamContext pageDownstreamContext) {
-        JobExecutionContext jobExecutionContext = getOrCreateContext(jobId);
-        jobExecutionContext.pageDownstreamContext(executionNodeId, pageDownstreamContext);
-    }
-
-    class Reaper implements Runnable {
-        @Override
-        public void run() {
-            final long time = threadPool.estimatedTimeInMillis();
-            for (JobExecutionContext context : activeContexts.values()) {
-                // Use the same value for both checks since lastAccessTime can
-                // be modified by another thread between checks!
-                final long lastAccessTime = context.lastAccessTime();
-                if (lastAccessTime == -1l) { // its being processed or timeout is disabled
-                    continue;
+        while (true) {
+            JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
+            if (existing == null) {
+                newContext.contextCallback(new RemoveContextCallback(jobId));
+                return newContext;
+            } else {
+                LOGGER.trace("context for job {} already existed. Merging them ", jobId);
+                ContextCallback callback = existing.contextCallback;
+                synchronized (existing.mergeLock) {
+                    existing.contextCallback = null;
+                    existing.merge(newContext);
                 }
-                if ((time - lastAccessTime > context.keepAlive())) {
-                    logger.debug("closing job collect context [{}], time [{}], " +
-                                    "lastAccessTime [{}], keepAlive [{}]",
-                            context.id(), time, lastAccessTime, context.keepAlive());
-                    closeContext(context.id());
+                JobExecutionContext context = activeContexts.putIfAbsent(jobId, existing);
+                if (context == null || existing == context) {
+                    synchronized (existing.mergeLock) {
+                        existing.contextCallback = callback;
+                    }
+                    return existing;
                 }
             }
         }
     }
+
+    private class RemoveContextCallback implements ContextCallback {
+        private final UUID jobId;
+
+        public RemoveContextCallback(UUID jobId) {
+            this.jobId = jobId;
+        }
+
+        @Override
+        public void onClose() {
+            activeContexts.remove(jobId);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("[{}]: JobExecutionContext called onClose for job {} removing it -" +
+                                " {} executionContexts remaining",
+                        System.identityHashCode(activeContexts), jobId, activeContexts.size());
+            }
+        }
+    }
+
+    class Reaper implements Runnable {
+
+        @Override
+        public void run() {
+            final long time = threadPool.estimatedTimeInMillis();
+            for (Map.Entry<UUID, JobExecutionContext> entry : activeContexts.entrySet()) {
+                JobExecutionContext context = entry.getValue();
+                // Use the same value for both checks since lastAccessTime can
+                // be modified by another thread between checks!
+                final long lastAccessTime = context.lastAccessTime();
+                if (lastAccessTime == -1L) { // its being processed or timeout is disabled
+                    continue;
+                }
+                if ((time - lastAccessTime > context.keepAlive())) {
+                    UUID id = entry.getKey();
+                    logger.debug("closing job collect context [{}], time [{}], lastAccessTime [{}], keepAlive [{}]",
+                            id, time, lastAccessTime, context.keepAlive());
+                    context.close();
+                }
+            }
+        }
+    }
+
 }

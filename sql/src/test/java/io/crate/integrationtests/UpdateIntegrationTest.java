@@ -604,5 +604,4 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
             assertThat(result.rowCount(), is(1L));
         }
     }
-
 }

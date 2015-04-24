@@ -119,12 +119,7 @@ public class NodeFetchOperation implements RowUpstream {
         int numShards = shardBuckets.size();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        if (jobExecutionContext == null) {
-            String errorMsg = String.format(Locale.ENGLISH, "No jobExecutionContext found for job '%s'", jobId);
-            LOGGER.error(errorMsg);
-            throw new IllegalArgumentException(errorMsg);
-        }
-        JobCollectContext jobCollectContext = jobExecutionContext.collectContext(executionNodeId);
+        JobCollectContext jobCollectContext = jobExecutionContext.getCollectContext(executionNodeId);
 
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(rowDownstream, toFetchReferences.size());
 
@@ -155,8 +150,6 @@ public class NodeFetchOperation implements RowUpstream {
         } catch (RejectedExecutionException e) {
             rowDownstream.registerUpstream(this).fail(e);
         }
-
-        jobContextService.releaseContext(jobId);
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("started {} shardFetchers", numShards);

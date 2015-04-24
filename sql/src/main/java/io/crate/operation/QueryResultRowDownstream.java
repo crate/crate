@@ -25,12 +25,9 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * RowDownstream that will set a TaskResultFuture once the result is ready.
@@ -39,18 +36,9 @@ import java.util.UUID;
 public class QueryResultRowDownstream implements RowDownstream {
 
     private final SettableFuture<TaskResult> result;
-    private final UUID jobId;
-    private final int executionNodeId;
-    private final JobContextService jobContextService;
 
-    public QueryResultRowDownstream(SettableFuture<TaskResult> result,
-                                    UUID jobId,
-                                    int executionNodeId,
-                                    JobContextService jobContextService) {
+    public QueryResultRowDownstream(SettableFuture<TaskResult> result) {
         this.result = result;
-        this.jobId = jobId;
-        this.executionNodeId = executionNodeId;
-        this.jobContextService = jobContextService;
     }
 
     @Override
@@ -68,20 +56,11 @@ public class QueryResultRowDownstream implements RowDownstream {
             @Override
             public void finish() {
                 result.set(new QueryResult(rows.toArray(new Object[rows.size()][])));
-                closeContext();
             }
 
             @Override
             public void fail(Throwable throwable) {
                 result.setException(throwable);
-                closeContext();
-            }
-
-            private void closeContext() {
-                JobExecutionContext context = jobContextService.getContext(jobId);
-                if (context != null) {
-                    jobContextService.closeContext(jobId);
-                }
             }
         };
     }

@@ -23,7 +23,10 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import io.crate.action.sql.query.CrateSearchContext;
-import org.elasticsearch.common.lease.Releasable;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ContextCallback;
+import io.crate.jobs.ExecutionSubContext;
+import io.crate.operation.RowDownstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
@@ -37,25 +40,43 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class JobCollectContext implements Releasable {
+public class JobCollectContext implements ExecutionSubContext {
 
     private final UUID id;
+    private final RamAccountingContext ramAccountingContext;
+    private final RowDownstream downstream;
     private final Map<Integer, LuceneDocCollector> activeCollectors = new HashMap<>();
     private final ConcurrentMap<ShardId, List<Integer>> shardsMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, ShardId> jobContextIdMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<ShardId, Integer> engineSearchersRefCount = new ConcurrentHashMap<>();
     private final Object lock = new Object();
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final ArrayList<ContextCallback> contextCallbacks = new ArrayList<>(1);
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
-
-    public JobCollectContext(UUID id) {
-        this.id = id;
+    public JobCollectContext(UUID jobId, RamAccountingContext ramAccountingContext, RowDownstream downstream) {
+        id = jobId;
+        this.ramAccountingContext = ramAccountingContext;
+        this.downstream = downstream;
     }
 
     public UUID id() {
         return id;
+    }
+
+    public RamAccountingContext ramAccountingContext() {
+        return ramAccountingContext;
+    }
+
+    public RowDownstream rowDownstream() {
+        return downstream;
+    }
+
+    @Override
+    public void addCallback(ContextCallback contextCallback) {
+        assert !closed.get() : "may not add a callback on a closed context";
+        contextCallbacks.add(contextCallback);
     }
 
     public void registerJobContextId(ShardId shardId, int jobContextId) {
@@ -192,9 +213,9 @@ public class JobCollectContext implements Releasable {
         SearchContext.removeCurrent();
     }
 
-    @Override
     public void close() {
         if (closed.compareAndSet(false, true)) { // prevent double release
+            LOGGER.trace("closing JobCollectContext {}", id);
             synchronized (lock) {
                 Iterator<Integer> it = activeCollectors.keySet().iterator();
                 while (it.hasNext()) {
@@ -202,7 +223,12 @@ public class JobCollectContext implements Releasable {
                     closeContext(jobSearchContextId, false);
                     it.remove();
                 }
+                for (ContextCallback contextCallback : contextCallbacks) {
+                    contextCallback.onClose();
+                }
             }
+        } else {
+            LOGGER.warn("close called on an already closed JobCollectContext: {}", id);
         }
     }
 
@@ -212,5 +238,4 @@ public class JobCollectContext implements Releasable {
     protected Engine.Searcher acquireNewSearcher(IndexShard indexShard) {
         return EngineSearcher.getSearcherWithRetry(indexShard, null);
     }
-
 }

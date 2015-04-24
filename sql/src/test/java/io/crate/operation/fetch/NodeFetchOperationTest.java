@@ -26,9 +26,14 @@ import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
+import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
@@ -47,6 +52,9 @@ public class NodeFetchOperationTest extends CrateUnitTest {
 
     static ThreadPool threadPool;
     static JobContextService jobContextService;
+
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     @BeforeClass
     public static void beforeClass() {
@@ -78,14 +86,16 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "No jobExecutionContext found for job '%s'", jobId));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "JobExecutionContext for job %s not found", jobId));
         nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
     }
 
     @Test
     public void testFetchOperationNoLuceneDocCollector() throws Exception {
         UUID jobId = UUID.randomUUID();
-        jobContextService.getOrCreateContext(jobId);
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
+        builder.addCollectContext(1, new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
+        jobContextService.createOrMergeContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,

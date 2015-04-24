@@ -33,6 +33,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PageDownstreamContext implements ExecutionSubContext {
 
@@ -47,6 +48,7 @@ public class PageDownstreamContext implements ExecutionSubContext {
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
 
     public PageDownstreamContext(PageDownstream pageDownstream,
@@ -110,6 +112,10 @@ public class PageDownstreamContext implements ExecutionSubContext {
         // can't trigger failure on pageDownstream immediately as it would remove the context which the other
         // upstreams still require
         synchronized (lock) {
+            LOGGER.trace("failure: bucket: {} {}", bucketIdx, throwable);
+            if (allFuturesSet.get(bucketIdx)) {
+                throw new IllegalStateException("May not set the same bucket of a page more than once");
+            }
             if (pageEmpty()) {
                 LOGGER.trace("calling nextPage");
                 pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
@@ -149,13 +155,18 @@ public class PageDownstreamContext implements ExecutionSubContext {
 
     public void finish() {
         LOGGER.trace("calling finish on pageDownstream {}", pageDownstream);
-        for (ContextCallback contextCallback : callbacks) {
-            contextCallback.onClose();
+        if (!closed.getAndSet(true)) {
+            for (ContextCallback contextCallback : callbacks) {
+                contextCallback.onClose();
+            }
+            pageDownstream.finish();
+        } else {
+            LOGGER.warn("called finish on an already closed PageDownstreamContext");
         }
-        pageDownstream.finish();
     }
 
     public void addCallback(ContextCallback contextCallback) {
+        assert !closed.get() : "may not add a callback on a closed context";
         callbacks.add(contextCallback);
     }
 

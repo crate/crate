@@ -24,6 +24,8 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.job.ContextPreparer;
+import io.crate.action.job.ExecutionNodeOperationStarter;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
@@ -73,6 +75,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final Settings settings;
     private final ClusterService clusterService;
     private final JobContextService jobContextService;
+    private final ContextPreparer contextPreparer;
+    private final ExecutionNodeOperationStarter executionNodeOperationStarter;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
@@ -90,6 +94,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
     @Inject
     public TransportExecutor(Settings settings,
                              JobContextService jobContextService,
+                             ContextPreparer contextPreparer,
+                             ExecutionNodeOperationStarter executionNodeOperationStarter,
                              TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
                              Functions functions,
@@ -104,6 +110,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              StreamerVisitor streamerVisitor) {
         this.settings = settings;
         this.jobContextService = jobContextService;
+        this.contextPreparer = contextPreparer;
+        this.executionNodeOperationStarter = executionNodeOperationStarter;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.pageDownstreamFactory = pageDownstreamFactory;
@@ -202,6 +210,10 @@ public class TransportExecutor implements Executor, TaskExecutor {
             }
             return new ExecutionNodesTask(
                     job.id(),
+                    clusterService,
+                    contextPreparer,
+                    executionNodeOperationStarter,
+                    handlerSideDataCollectOperation,
                     globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,
@@ -209,7 +221,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     threadPool,
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportCloseContextNodeAction(),
-                    handlerSideDataCollectOperation,
                     streamerVisitor,
                     circuitBreaker,
                     localMergeNode,
@@ -243,22 +254,26 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (localMergeNode != null) {
                 localMergeNode.jobId(job.id());
             }
-            return ImmutableList.<Task>of(new ExecutionNodesTask(
-                    job.id(),
-                    globalProjectionToProjectionVisitor,
-                    jobContextService,
-                    pageDownstreamFactory,
-                    statsTables,
-                    threadPool,
-                    transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportCloseContextNodeAction(),
-                    handlerSideDataCollectOperation,
-                    streamerVisitor,
-                    circuitBreaker,
-                    localMergeNode,
-                    plan.collectNode(),
-                    plan.reducerMergeNode()
-            ));
+            return ImmutableList.<Task>of(
+                    new ExecutionNodesTask(
+                            job.id(),
+                            clusterService,
+                            contextPreparer,
+                            executionNodeOperationStarter,
+                            handlerSideDataCollectOperation,
+                            globalProjectionToProjectionVisitor,
+                            jobContextService,
+                            pageDownstreamFactory,
+                            statsTables,
+                            threadPool,
+                            transportActionProvider.transportJobInitAction(),
+                            transportActionProvider.transportCloseContextNodeAction(),
+                            streamerVisitor,
+                            circuitBreaker,
+                            localMergeNode,
+                            plan.collectNode(),
+                            plan.reducerMergeNode()
+                    ));
         }
 
         @Override

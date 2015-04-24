@@ -22,10 +22,14 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.job.ContextPreparer;
 import io.crate.analyze.WhereClause;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.operator.EqOperator;
@@ -41,6 +45,8 @@ import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +60,10 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
 public class DocLevelCollectTest extends SQLTransportIntegrationTest {
+
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+
     private static final String TEST_TABLE_NAME = "test_table";
     private static final Reference testDocLevelReference = new Reference(
             new ReferenceInfo(
@@ -205,7 +215,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
         CollectingProjector cd = new CollectingProjector();
-        operation.collect(collectNode, cd, null);
+        ContextPreparer contextPreparer = cluster().getInstance(ContextPreparer.class);
+        JobContextService contextService = cluster().getInstance(JobContextService.class);
+        JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId().get());
+        contextPreparer.prepare(collectNode.jobId().get(), collectNode, builder);
+        contextService.createOrMergeContext(builder);
+        operation.collect(collectNode, cd, RAM_ACCOUNTING_CONTEXT);
         return cd.result().get();
     }
 }

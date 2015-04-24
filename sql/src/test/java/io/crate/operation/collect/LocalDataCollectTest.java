@@ -27,11 +27,11 @@ import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.breaker.CircuitBreakerModule;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
@@ -44,13 +44,11 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.projectors.CollectingProjector;
-import io.crate.operation.projectors.InternalResultProviderFactory;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
@@ -81,6 +79,8 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -107,23 +107,18 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class LocalDataCollectTest extends CrateUnitTest {
+
 
     static class TestExpression implements ReferenceImplementation, Input<Integer> {
         public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("default", "collect"), "truth");
@@ -193,6 +188,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         .put(TEST_NODE_ID, new TreeMap<String, List<Integer>>()).map()
     );
 
+    private JobContextService jobContextService;
 
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private final static String TEST_NODE_ID = "test_node";
@@ -200,6 +196,9 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     private static Reference testNodeReference = new Reference(TestExpression.info);
     private static Reference testShardIdReference = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
+
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     class TestModule extends AbstractModule {
         protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
@@ -344,13 +343,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
-        JobContextService jobContextService = mock(JobContextService.class);
-        when(jobContextService.getOrCreateContext(Mockito.any(UUID.class))).thenAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                return new JobExecutionContext((UUID) invocation.getArguments()[0], JobContextService.DEFAULT_KEEP_ALIVE);
-            }
-        });
+        jobContextService = new JobContextService(ImmutableSettings.EMPTY, testThreadPool);
 
         ClusterService clusterService = injector.getInstance(ClusterService.class);
         operation = new MapSideDataCollectOperation(
@@ -372,7 +365,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
                         return new CollectingProjector();
                     }
                 },
-            new JobContextService(ImmutableSettings.EMPTY, testThreadPool)
+                jobContextService
         );
     }
 
@@ -546,6 +539,11 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     private Bucket getBucket(CollectNode collectNode) throws InterruptedException, ExecutionException {
         CollectingProjector cd = new CollectingProjector();
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId().get());
+        builder.addCollectContext(
+                collectNode.executionNodeId(),
+                new JobCollectContext(collectNode.jobId().get(), RAM_ACCOUNTING_CONTEXT, cd));
+        jobContextService.createOrMergeContext(builder);
         cd.startProjection();
         operation.collect(collectNode, cd, null);
         return cd.result().get();
@@ -557,6 +555,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         collectNode.jobId(UUID.randomUUID());
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
+
         Bucket result = getBucket(collectNode);
         assertThat(result.size(), is(2));
         assertThat(result, containsInAnyOrder(isRow(0), isRow(1)));

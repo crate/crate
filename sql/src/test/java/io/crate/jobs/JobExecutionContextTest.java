@@ -21,78 +21,61 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Streamer;
-import io.crate.operation.PageDownstream;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class JobExecutionContextTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+    private ThreadPool threadPool;
 
-    @Test
-    public void testInitializingFinalMergeForTheSameExecutionNodeThrowsAnError() throws Exception {
-        expectedException.expect(IllegalStateException.class);
 
-        JobExecutionContext context = new JobExecutionContext(UUID.randomUUID(), JobContextService.DEFAULT_KEEP_ALIVE);
-        PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
-        context.pageDownstreamContext(1, pageDownstreamContext);
-        context.pageDownstreamContext(1, pageDownstreamContext);
+    @Before
+    public void before() throws Exception {
+        threadPool = new org.elasticsearch.threadpool.ThreadPool("dummy");
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
-    public void testAccessContextThatDoesNotYetExist() throws Exception {
-        final JobExecutionContext context = new JobExecutionContext(UUID.randomUUID(), JobContextService.DEFAULT_KEEP_ALIVE);
+    public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("PageDownstreamContext for 1 already added");
 
-        int numThreads = 10;
-        final List<SettableFuture<Boolean>> callbackFiredList = new ArrayList<>(numThreads);
-        for (int i = 0; i < numThreads; i++) {
-            callbackFiredList.add(SettableFuture.<Boolean>create());
-        }
+        JobExecutionContext.Builder builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
 
-        for (int i = 0; i < numThreads; i++) {
-            final int idx = i;
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    ListenableFuture<PageDownstreamContext> pageDownstreamContext = context.pageDownstreamContext(1);
-                    pageDownstreamContext.addListener(new Runnable() {
-                        @Override
-                        public void run() {
-                            callbackFiredList.get(idx).set(true);
-                        }
-                    }, MoreExecutors.directExecutor());
-                }
-            });
-            thread.setDaemon(true);
-            thread.start();
-        }
+        builder.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
+        builder.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
+    }
 
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                context.pageDownstreamContext(1, new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 2));
-            }
-        });
-        t.setDaemon(true);
-        t.start();
+    @Test
+    public void testMergeWithSameSubContextThrowsAnError() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("subContext 1 is already present");
 
-        for (SettableFuture<Boolean> booleanSettableFuture : callbackFiredList) {
-            assertThat(booleanSettableFuture.get(1, TimeUnit.SECONDS), is(true));
-        }
+        JobExecutionContext.Builder builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
+        builder.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
+
+        JobExecutionContext firstContext = builder.build();
+
+        builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
+        builder.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
+
+        firstContext.merge(builder.build());
     }
 }
