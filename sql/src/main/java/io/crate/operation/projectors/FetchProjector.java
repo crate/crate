@@ -308,7 +308,9 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         if (closeContexts || bulkSize > NO_BULK_REQUESTS) {
             LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
             for (final String nodeId : executionNodes) {
-                transportCloseContextNodeAction.execute(nodeId, new NodeCloseContextRequest(jobId), new ActionListener<NodeCloseContextResponse>() {
+                transportCloseContextNodeAction.execute(nodeId,
+                        new NodeCloseContextRequest(jobId, executionNodeId),
+                        new ActionListener<NodeCloseContextResponse>() {
                     @Override
                     public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
                     }

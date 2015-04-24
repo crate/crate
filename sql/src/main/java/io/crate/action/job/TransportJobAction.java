@@ -210,8 +210,6 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         @Override
         public Void visitMergeNode(MergeNode node, final VisitorContext context) {
             JobExecutionContext jobExecutionContext = jobContextService.getOrCreateContext(node.jobId());
-            final UUID operationId = UUID.randomUUID();
-            statsTables.operationStarted(operationId, context.jobId, node.name());
 
             ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
             PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
@@ -225,8 +223,9 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
                     pageDownstream,  streamerContext.inputStreamers(), node.numUpstreams());
             jobExecutionContext.pageDownstreamContext(node.executionNodeId(), pageDownstreamContext);
 
+            statsTables.operationStarted(node.executionNodeId(), context.jobId, node.name());
             Futures.addCallback(downstream.result(),
-                    new SetBucketFutureCallback(operationId, context.ramAccountingContext, context.directResultFuture));
+                    new SetBucketFutureCallback(node.executionNodeId(), context.ramAccountingContext, context.directResultFuture));
             return null;
         }
 
@@ -236,11 +235,10 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             threadPool.executor(COLLECT_EXECUTOR).execute(new Runnable() {
                 @Override
                 public void run() {
-                    final UUID operationId = UUID.randomUUID();
-                    statsTables.operationStarted(operationId, context.jobId, collectNode.name());
+                    statsTables.operationStarted(collectNode.executionNodeId(), context.jobId, collectNode.name());
                     ResultProvider downstream = collectOperationHandler.createDownstream(collectNode);
                     Futures.addCallback(downstream.result(),
-                            new SetBucketFutureCallback(operationId, context.ramAccountingContext, context.directResultFuture));
+                            new SetBucketFutureCallback(collectNode.executionNodeId(), context.ramAccountingContext, context.directResultFuture));
                     try {
                         collectOperationHandler.collect(collectNode, downstream, context.ramAccountingContext);
                     } catch (Throwable t) {
@@ -255,11 +253,11 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     private class SetBucketFutureCallback implements FutureCallback<Bucket> {
 
-        private final UUID operationId;
+        private final int operationId;
         private final RamAccountingContext ramAccountingContext;
         private final SettableFuture<Bucket> bucketFuture;
 
-        public SetBucketFutureCallback(UUID operationId,
+        public SetBucketFutureCallback(int operationId,
                                        RamAccountingContext ramAccountingContext,
                                        SettableFuture<Bucket> bucketFuture) {
             this.operationId = operationId;

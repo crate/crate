@@ -224,10 +224,10 @@ public class ExecutionNodesTask extends JobTask {
     }
 
     private RamAccountingContext trackOperation(ExecutionNode executionNode, String operationName) {
-        UUID operationId = UUID.randomUUID();
-        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionNode, operationId);
-        statsTables.operationStarted(operationId, jobId(), operationName);
-        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(operationId, statsTables, ramAccountingContext));
+        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionNode);
+        statsTables.operationStarted(executionNode.executionNodeId(), jobId(), operationName);
+        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(
+                executionNode.executionNodeId(), statsTables, ramAccountingContext));
         return ramAccountingContext;
     }
 
@@ -358,7 +358,9 @@ public class ExecutionNodesTask extends JobTask {
             if (node.keepContextForFetcher()) {
                 LOGGER.trace("closing job context {} on {} nodes", node.jobId().get(), nodeIds.size());
                 for (final String nodeId : nodeIds) {
-                    transportCloseContextNodeAction.execute(nodeId, new NodeCloseContextRequest(node.jobId().get()), new ActionListener<NodeCloseContextResponse>() {
+                    transportCloseContextNodeAction.execute(nodeId,
+                            new NodeCloseContextRequest(node.jobId().get(), node.executionNodeId()),
+                            new ActionListener<NodeCloseContextResponse>() {
                         @Override
                         public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
                         }

@@ -30,8 +30,8 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
-import io.crate.metadata.Functions;
 import io.crate.jobs.JobContextService;
+import io.crate.metadata.Functions;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.fetch.NodeFetchOperation;
 import io.crate.planner.symbol.Reference;
@@ -51,7 +51,7 @@ import org.elasticsearch.transport.TransportService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.UUID;
+import java.util.Locale;
 
 @Singleton
 public class TransportFetchNodeAction {
@@ -94,9 +94,8 @@ public class TransportFetchNodeAction {
 
     private void nodeOperation(final NodeFetchRequest request,
                                final ActionListener<NodeFetchResponse> fetchResponse) {
-        final UUID operationId = UUID.randomUUID();
-        statsTables.operationStarted(operationId, request.jobId(), "fetch");
-        String ramAccountingContextId = String.format("%s: %s", request.jobId(), operationId);
+        statsTables.operationStarted(request.executionNodeId(), request.jobId(), "fetch");
+        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d", request.jobId(), request.executionNodeId());
         final RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
         NodeFetchOperation fetchOperation = new NodeFetchOperation(
@@ -120,14 +119,14 @@ public class TransportFetchNodeAction {
                 response.rows(result);
 
                 fetchResponse.onResponse(response);
-                statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
+                statsTables.operationFinished(request.executionNodeId(), null, ramAccountingContext.totalBytes());
                 ramAccountingContext.close();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 fetchResponse.onFailure(t);
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t),
                         ramAccountingContext.totalBytes());
                 ramAccountingContext.close();
             }
@@ -137,11 +136,9 @@ public class TransportFetchNodeAction {
             fetchOperation.fetch(bucketBuilder);
         } catch (Throwable t) {
             fetchResponse.onFailure(t);
-            statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t),
                     ramAccountingContext.totalBytes());
             ramAccountingContext.close();
-            return;
-
         }
     }
 

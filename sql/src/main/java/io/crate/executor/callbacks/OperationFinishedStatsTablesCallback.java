@@ -32,11 +32,11 @@ import java.util.UUID;
 
 public class OperationFinishedStatsTablesCallback<T> implements FutureCallback<T> {
 
-    private final UUID operationId;
+    private final int operationId;
     private final StatsTables statsTables;
     private final RamAccountingContext ramAccountingContext;
 
-    public OperationFinishedStatsTablesCallback(UUID operationId,
+    public OperationFinishedStatsTablesCallback(int operationId,
                                                 StatsTables statsTables,
                                                 RamAccountingContext ramAccountingContext) {
         this.operationId = operationId;

@@ -90,15 +90,15 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
     @Override
     public void nodeOperation(final NodeCloseContextRequest request,
                               final ActionListener<NodeCloseContextResponse> response) {
-        final UUID operationId = UUID.randomUUID();
-        statsTables.operationStarted(operationId, request.jobId(), "closeContext");
+        statsTables.operationStarted(request.executionNodeId(), request.jobId(), "closeContext");
 
+        // TODO: don't close the whole context but just the given executionNodeId
         try {
             jobContextService.closeContext(request.jobId());
-            statsTables.operationFinished(operationId, null, 0);
+            statsTables.operationFinished(request.executionNodeId(), null, 0);
             response.onResponse(new NodeCloseContextResponse());
         } catch (Exception e) {
-            statsTables.operationFinished(operationId, Exceptions.messageOf(e), 0);
+            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(e), 0);
             response.onFailure(e);
         }
     }
