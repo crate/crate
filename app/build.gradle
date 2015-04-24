@@ -11,11 +11,18 @@ buildscript {
 apply plugin: 'distribution'
 apply plugin: 'java'
 apply plugin: 'eu.appsatori.fatjar'
+apply plugin: 'signing'
+apply plugin: 'maven'
 
 archivesBaseName = 'crate-app'
+group = "io.crate"
+
 
 configurations {
     all*.exclude group: 'org.elasticsearch'
+    compileNotTransitive {
+        transitive = false
+    }
 }
 
 
@@ -72,8 +79,105 @@ task dist {
     dependsOn ':docs:itest', distTar, distZip
 }
 
-task install {
-    dependsOn installDist
+install.dependsOn([jar, getVersion])
+install {
+    repositories {
+        mavenInstaller {
+            pom.whenConfigured {
+                pom -> pom.dependencies.clear()
+                project.parent.subprojects.findAll{ it.name != 'app'}.each {
+                    if (it.hasProperty('install')) {
+                        pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
+                    }
+                }
+            }
+            pom.project {
+                artifactId 'crate'
+                name 'crate'
+                description 'Crate.IO'
+                url 'https://crate.io'
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/license/LICENSE-2.0.txt'
+                        distribution 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'crate'
+                        name 'Crate Developers'
+                        email 'office@crate.io'
+                    }
+                }
+            }
+        }
+    }
+}
+
+artifacts {
+    archives jar
+}
+
+task signJars (type : Sign, dependsOn: [jar]) {
+    sign configurations.archives
+}
+
+
+project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
+project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
+
+uploadArchives.dependsOn([jar, getVersion, signJars])
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment {
+                MavenDeployment deployment -> signing.signPom(deployment)
+                if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
+                    throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
+                }
+            }
+            pom.whenConfigured {
+                pom -> pom.dependencies.clear()
+                project.parent.subprojects.findAll{ it.name != 'app'}.each {
+                    if (it.hasProperty('install')) {
+                        pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
+                    }
+                }
+            }
+            pom.project {
+                artifactId 'crate'
+                name 'crate'
+                description 'Crate.IO'
+                url 'https://crate.io'
+                scm {
+                    url 'https://github.com/crate/crate'
+                    connection 'scm:git:git://github.com/crate/crate.git'
+                    developerConnection 'scm:git:ssh:git@github.com:crate/crate.git'
+                }
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/license/LICENSE-2.0.txt'
+                        distribution 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'crate'
+                        name 'Crate Developers'
+                        email 'office@crate.io'
+                    }
+                }
+            }
+            pom {
+                artifactId = 'crate'
+            }
+            repository(id: 'crate', url: 'https://api.bintray.com/maven/crate/crate/crate') {
+                authentication(userName: project.ext.bintrayUsername, password: project.ext.bintrayPassword)
+            }
+        }
+    }
 }
 
 distTar {
@@ -114,7 +218,17 @@ dependencies {
         exclude group: 'junit', module: 'junit'
     }
     testCompile 'junit:junit:4.11'
+
+
+    compileNotTransitive project(':core')
+    compileNotTransitive project(':es')
+    compileNotTransitive project(':sql')
+    compileNotTransitive project(':sql-parser')
+    compileNotTransitive project(':admin-ui')
+    compileNotTransitive project(':blob')
+    compileNotTransitive project(':udc')
 }
+
 
 def rootDir = project.parent.projectDir
 
@@ -133,6 +247,12 @@ distributions {
                 from project.configurations.runtime
                 // sigar gets included from the checked in runtime dependency in :es:
                 exclude 'sigar-*.jar'
+
+                exclude 'crate-blob.jar'
+                exclude 'crate-core.jar'
+                exclude 'crate-sql-parser.jar'
+                exclude 'crate-sql.jar'
+                exclude 'crate-udc.jar'
             }
             into("lib") {
                 from jar
@@ -149,6 +269,31 @@ distributions {
     }
 }
 
+jar {
+    dependsOn getVersion
+
+    doFirst {
+        manifest.attributes 'Implementation-Version': getVersion.version
+        project.version = getVersion.version
+        def serviceDir = file("$buildDir/META-INF/services")
+        serviceDir.deleteDir()
+        serviceDir.mkdirs()
+
+        // copy all service files from deps to buildDir
+        for(file in configurations.compileNotTransitive) {
+            zipTree(file).matching{ include 'META-INF/services/*' }.each { f ->
+                new File(serviceDir, f.name) << f.getText("UTF-8") << "\n"
+            }
+        }
+    }
+
+    from(configurations.compileNotTransitive.collect { it.isDirectory() ? it : zipTree(it) }){
+        exclude 'META-INF/**' // Don't let Gradle merge service files
+    }
+
+    // include service files from the buildDir
+    from fileTree(buildDir).matching{ include 'META-INF/services/*' }
+}
 
 def download (String url, String name){
     downloadDir.mkdirs()
