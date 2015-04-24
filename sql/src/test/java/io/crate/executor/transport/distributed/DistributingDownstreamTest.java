@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.distributed;
 
+import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.core.collections.Row1;
 import io.crate.executor.transport.merge.TransportDistributedResultAction;
@@ -28,13 +29,13 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.transport.DummyTransportAddress;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.List;
@@ -50,15 +51,17 @@ public class DistributingDownstreamTest extends CrateUnitTest {
 
     private TransportDistributedResultAction distributedResultAction;
     private DistributingDownstream downstream;
-    private DiscoveryNode n1;
-    private DiscoveryNode n2;
+
+    @Captor
+    public ArgumentCaptor<ActionListener<DistributedResultResponse>> listenerArgumentCaptor;
+    private int originalPageSize;
 
     @Before
     public void before() throws Exception {
-        n1 = new DiscoveryNode("n1", DummyTransportAddress.INSTANCE, Version.CURRENT);
-        n2 = new DiscoveryNode("n2", DummyTransportAddress.INSTANCE, Version.CURRENT);
+        originalPageSize = Constants.PAGE_SIZE;
+        MockitoAnnotations.initMocks(this);
 
-        List<DiscoveryNode> downstreamNodes = Arrays.asList(n1, n2);
+        List<String> downstreamNodes = Arrays.asList("n1", "n2");
         distributedResultAction = mock(TransportDistributedResultAction.class);
         Streamer<?>[] streamers = {DataTypes.STRING.streamer()};
         downstream = new DistributingDownstream(
@@ -72,13 +75,18 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         downstream.registerUpstream(null);
     }
 
+    @After
+    public void after() throws Exception {
+        Constants.PAGE_SIZE = originalPageSize;
+    }
+
     @Test
     public void testBucketing() throws Exception {
         ArgumentCaptor<DistributedResultRequest> r1Captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(eq(n1), r1Captor.capture(), any(ActionListener.class));
+        doNothing().when(distributedResultAction).pushResult(eq("n1"), r1Captor.capture(), any(ActionListener.class));
 
         ArgumentCaptor<DistributedResultRequest> r2Captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(eq(n2), r2Captor.capture(), any(ActionListener.class));
+        doNothing().when(distributedResultAction).pushResult(eq("n2"), r2Captor.capture(), any(ActionListener.class));
 
 
         downstream.setNextRow(new Row1(new BytesRef("Trillian")));
@@ -93,9 +101,33 @@ public class DistributingDownstreamTest extends CrateUnitTest {
     }
 
     @Test
+    public void testOperationIsStoppedOnFailureResponse() throws Exception {
+        Constants.PAGE_SIZE = 2;
+
+        ArgumentCaptor<DistributedResultRequest> captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
+        doNothing().when(distributedResultAction).pushResult(any(String.class), captor.capture(), listenerArgumentCaptor.capture());
+
+        int iterations = 0;
+        int expected = -1;
+        while (true) {
+            if (!downstream.setNextRow(new Row1(new BytesRef("Trillian")))) {
+                break;
+            }
+            List<ActionListener<DistributedResultResponse>> allValues = listenerArgumentCaptor.getAllValues();
+            if (allValues.size() == 1) {
+                ActionListener<DistributedResultResponse> distributedResultResponseActionListener = allValues.get(0);
+                distributedResultResponseActionListener.onFailure(new IllegalStateException("epic fail"));
+                expected = iterations + 1;
+            }
+            iterations++;
+        }
+        assertThat(iterations, is(expected));
+    }
+
+    @Test
     public void testRequestsAreSentWithoutRows() throws Exception {
         ArgumentCaptor<DistributedResultRequest> captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(any(DiscoveryNode.class), captor.capture(), any(ActionListener.class));
+        doNothing().when(distributedResultAction).pushResult(any(String.class), captor.capture(), any(ActionListener.class));
 
         downstream.finish();
         assertThat(captor.getAllValues().size(), is(2));

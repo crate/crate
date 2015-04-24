@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -34,16 +33,11 @@ import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nullable;
-import javax.xml.transform.Result;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
 @Singleton
@@ -80,7 +74,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                     jobId,
                     node.downstreamExecutionNodeId(),
                     bucketIdx,
-                    toDiscoveryNodes(node.downstreamNodes()),
+                    node.downstreamNodes(),
                     transportDistributedResultAction,
                     streamers
             );
@@ -89,18 +83,5 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
 
     protected Streamer<?>[] getStreamers(ExecutionNode node) {
         return streamerVisitor.processExecutionNode(node, null).outputStreamers();
-    }
-
-    private List<DiscoveryNode> toDiscoveryNodes(List<String> nodeIds) {
-        final DiscoveryNodes discoveryNodes = clusterService.state().nodes();
-        return Lists.transform(nodeIds, new Function<String, DiscoveryNode>() {
-
-            @Nullable
-            @Override
-            public DiscoveryNode apply(@Nullable String input) {
-                assert input != null;
-                return discoveryNodes.get(input);
-            }
-        });
     }
 }

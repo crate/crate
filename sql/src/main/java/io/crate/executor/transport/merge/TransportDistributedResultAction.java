@@ -36,7 +36,6 @@ import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.PageResultListener;
 import io.crate.planner.node.ExecutionNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -70,8 +69,8 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
                 });
     }
 
-    public void pushResult(DiscoveryNode node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
-        transports.executeLocalOrWithTransport(this, node.id(), request, listener,
+    public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
+        transports.executeLocalOrWithTransport(this, node, request, listener,
                 new DefaultTransportResponseHandler<DistributedResultResponse>(listener, EXECUTOR_NAME) {
                     @Override
                     public DistributedResultResponse newInstance() {
