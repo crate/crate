@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added possibility to create a single jar which contains all crate packages
+   without dependencies
+
  - Include java client in crate distributions
 
  - Fix: Prevent COPY FROM or INSERT into a partitioned table to run into timeouts

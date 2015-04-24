@@ -1,4 +1,5 @@
 apply plugin: 'java'
+apply plugin: 'maven'
 
 archivesBaseName = 'crate-sql-parser'
 
