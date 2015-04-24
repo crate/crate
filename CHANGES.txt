@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Prevent COPY FROM or INSERT into a partitioned table to run into timeouts
+   when creating many partitions at once
+
  - update crate-admin to 0.12.0 which contains the following changes:
 
     - display ``rest_url`` from sys.nodes table on node detail view
