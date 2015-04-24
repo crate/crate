@@ -32,8 +32,6 @@ import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLBulkResponse;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -47,11 +45,6 @@ import static org.hamcrest.Matchers.nullValue;
 @BenchmarkHistoryChart(filePrefix="benchmark-partitioned-bulk-insert-history")
 @BenchmarkMethodChart(filePrefix = "benchmark-partitioned-bulk-insert")
 public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-        Loggers.getLogger(TransportBulkCreateIndicesAction.class).setLevel("TRACE");
-    }
 
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);

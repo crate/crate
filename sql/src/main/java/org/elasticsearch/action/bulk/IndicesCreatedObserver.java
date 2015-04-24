@@ -42,7 +42,14 @@ class IndicesCreatedObserver {
     public static void waitForIndicesCreated(ClusterService clusterService,
                                              ESLogger logger,
                                              Collection<String> indicesToWaitFor,
-                                             final FutureCallback<Void> callback) {
+                                             final FutureCallback<Void> callback,
+                                             TimeValue timeout) {
+        // check if all indices exist yet
+        if (clusterService.state().routingTable().indicesRouting().keySet().containsAll(indicesToWaitFor)) {
+            callback.onSuccess(null);
+            return;
+        }
+
         final ClusterStateObserver observer = new ClusterStateObserver(clusterService, logger);
         observer.waitForNextChange(new ClusterStateObserver.Listener() {
             @Override
@@ -57,9 +64,9 @@ class IndicesCreatedObserver {
 
             @Override
             public void onTimeout(TimeValue timeout) {
-                callback.onFailure(new TimeoutException("indices not created timed out after " + timeout.toString()));
+                callback.onFailure(new TimeoutException("waiting for indices to be created timed out after " + timeout.toString()));
             }
-        }, new IndicesCreatedPredicate(indicesToWaitFor));
+        }, new IndicesCreatedPredicate(indicesToWaitFor), timeout);
     }
 
     /**
