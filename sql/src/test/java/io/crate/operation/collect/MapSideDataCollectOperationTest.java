@@ -22,12 +22,18 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.core.collections.Bucket;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
+import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.InternalResultProviderFactory;
+import io.crate.operation.projectors.ResultProvider;
+import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
+import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
@@ -85,8 +91,9 @@ public class MapSideDataCollectOperationTest {
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
 
-        CollectContextService collectContextService = mock(CollectContextService.class);
-        LocalCollectOperation collectOperation = new LocalCollectOperation(
+        JobContextService jobContextService = mock(JobContextService.class);
+        MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
+
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
@@ -102,8 +109,13 @@ public class MapSideDataCollectOperationTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                         )
                 ),
-                new PlanNodeStreamerVisitor(functions),
-                collectContextService
+                new ResultProviderFactory() {
+                    @Override
+                    public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
+                        return new CollectingProjector();
+                    }
+                },
+                jobContextService
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
@@ -118,6 +130,7 @@ public class MapSideDataCollectOperationTest {
                 .map()
         );
         FileUriCollectNode collectNode = new FileUriCollectNode(
+                0,
                 "test",
                 routing,
                 Literal.newLiteral(Paths.get(tmpFile.toURI()).toUri().toString()),
@@ -131,8 +144,10 @@ public class MapSideDataCollectOperationTest {
         );
         collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
-        Bucket objects = collectOperation.collect(collectNode, null).get();
-        assertThat(objects, contains(
+        CollectingProjector cd = new CollectingProjector();
+        cd.startProjection();
+        collectOperation.collect(collectNode, cd, null);
+        assertThat(cd.result().get(), contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)
         ));

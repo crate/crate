@@ -171,7 +171,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                 querySpec
                 );
         SelectAnalyzedStatement statement = new SelectAnalyzedStatement(queriedTable);
-        return planner.process(statement, new Planner.Context());
+        return planner.process(statement, new Planner.Context(clusterService));
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<Long> result) {

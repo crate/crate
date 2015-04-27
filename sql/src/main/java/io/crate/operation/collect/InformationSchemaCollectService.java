@@ -115,13 +115,13 @@ public class InformationSchemaCollectService implements CollectService {
         ColumnsIterator(TableInfo ti) {
             context.ordinal = 0;
             columns = FluentIterable.from(ti).filter(new Predicate<ReferenceInfo>() {
-                    @Override
-                    public boolean apply(@Nullable ReferenceInfo input) {
-                        return input != null
-                                && !input.ident().columnIdent().isSystemColumn()
-                                && input.type() != DataTypes.NOT_SUPPORTED;
-                    }
-                }).iterator();
+                @Override
+                public boolean apply(@Nullable ReferenceInfo input) {
+                    return input != null
+                            && !input.ident().columnIdent().isSystemColumn()
+                            && input.type() != DataTypes.NOT_SUPPORTED;
+                }
+            }).iterator();
         }
 
         @Override
@@ -172,7 +172,7 @@ public class InformationSchemaCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+        public void doCollect(RamAccountingContext ramAccountingContext) {
             for (R row : rows) {
                 for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
@@ -181,12 +181,10 @@ public class InformationSchemaCollectService implements CollectService {
                 if (match == null || !match) {
                     // no match
                     continue;
-               }
-
+                }
                 if (!downstream.setNextRow(this.row)) {
                     // no more rows required, we can stop here
-                    downstream.finish();
-                    throw new CollectionAbortedException();
+                    break;
                 }
             }
             downstream.finish();

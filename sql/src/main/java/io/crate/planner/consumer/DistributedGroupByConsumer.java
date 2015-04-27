@@ -24,8 +24,12 @@ package io.crate.planner.consumer;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.VersionInvalidException;
@@ -123,14 +127,13 @@ public class DistributedGroupByConsumer implements Consumer {
                     table.querySpec().groupBy(),
                     splitPoints.aggregates(),
                     Aggregation.Step.PARTIAL,
-                    Aggregation.Step.FINAL));
-
+                    Aggregation.Step.FINAL)
+            );
 
             OrderBy orderBy = table.querySpec().orderBy();
             if (orderBy != null) {
                 table.tableRelation().validateOrderBy(orderBy);
             }
-
 
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
@@ -156,10 +159,13 @@ public class DistributedGroupByConsumer implements Consumer {
             }
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
                     collectNode,
-                    reducerProjections);
+                    context.consumerContext.plannerContext(),
+                    reducerProjections
+            );
             // end: Reducer
 
             MergeNode localMergeNode = null;
+            String localNodeId = context.consumerContext.plannerContext().clusterService().state().nodes().localNodeId();
             if(isRootRelation) {
                 TopNProjection topN = projectionBuilder.topNProjection(
                         table.querySpec().outputs(),
@@ -169,8 +175,17 @@ public class DistributedGroupByConsumer implements Consumer {
                         null);
                 localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN),
                         mergeNode, context.consumerContext.plannerContext());
+                localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
+
+                mergeNode.downstreamNodes(localMergeNode.executionNodes());
+                mergeNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
+            } else {
+                mergeNode.downstreamNodes(Sets.newHashSet(localNodeId));
+                mergeNode.downstreamExecutionNodeId(mergeNode.executionNodeId() + 1);
             }
             context.result = true;
+
+            collectNode.downstreamExecutionNodeId(mergeNode.executionNodeId());
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,

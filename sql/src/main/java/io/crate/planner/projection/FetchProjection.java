@@ -42,6 +42,7 @@ public class FetchProjection extends Projection {
         }
     };
 
+    private int executionNodeId;
     private Symbol docIdSymbol;
     private List<Symbol> inputSymbols;
     private List<Symbol> outputSymbols;
@@ -53,32 +54,36 @@ public class FetchProjection extends Projection {
     private FetchProjection() {
     }
 
-    public FetchProjection(Symbol docIdSymbol,
+    public FetchProjection(int executionNodeId,
+                           Symbol docIdSymbol,
                            List<Symbol> inputSymbols,
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes) {
-        this(docIdSymbol, inputSymbols, outputSymbols, partitionBy, executionNodes,
-                FetchProjector.NO_BULK_REQUESTS, false);
+        this(executionNodeId, docIdSymbol, inputSymbols, outputSymbols, partitionBy,
+                executionNodes, FetchProjector.NO_BULK_REQUESTS, false);
     }
 
-    public FetchProjection(Symbol docIdSymbol,
+    public FetchProjection(int executionNodeId,
+                           Symbol docIdSymbol,
                            List<Symbol> inputSymbols,
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes,
                            int bulkSize) {
-        this(docIdSymbol, inputSymbols, outputSymbols, partitionBy, executionNodes,
-                bulkSize, false);
+        this(executionNodeId, docIdSymbol, inputSymbols, outputSymbols, partitionBy,
+                executionNodes, bulkSize, false);
     }
 
-    public FetchProjection(Symbol docIdSymbol,
+    public FetchProjection(int executionNodeId,
+                           Symbol docIdSymbol,
                            List<Symbol> inputSymbols,
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes,
                            int bulkSize,
                            boolean closeContexts) {
+        this.executionNodeId = executionNodeId;
         this.docIdSymbol = docIdSymbol;
         this.inputSymbols = inputSymbols;
         this.outputSymbols = outputSymbols;
@@ -86,6 +91,10 @@ public class FetchProjection extends Projection {
         this.executionNodes = executionNodes;
         this.bulkSize = bulkSize;
         this.closeContexts = closeContexts;
+    }
+
+    public int executionNodeId() {
+        return executionNodeId;
     }
 
     public Symbol docIdSymbol() {
@@ -138,6 +147,7 @@ public class FetchProjection extends Projection {
 
         FetchProjection that = (FetchProjection) o;
 
+        if (executionNodeId != that.executionNodeId) return false;
         if (closeContexts != that.closeContexts) return false;
         if (bulkSize != that.bulkSize) return false;
         if (executionNodes != that.executionNodes) return false;
@@ -151,6 +161,7 @@ public class FetchProjection extends Projection {
     @Override
     public int hashCode() {
         int result = super.hashCode();
+        result = 31 * result + executionNodeId;
         result = 31 * result + docIdSymbol.hashCode();
         result = 31 * result + inputSymbols.hashCode();
         result = 31 * result + outputSymbols.hashCode();
@@ -163,6 +174,7 @@ public class FetchProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        executionNodeId = in.readVInt();
         docIdSymbol = Symbol.fromStream(in);
         int inputSymbolsSize = in.readVInt();
         inputSymbols = new ArrayList<>(inputSymbolsSize);
@@ -192,6 +204,7 @@ public class FetchProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeVInt(executionNodeId);
         Symbol.toStream(docIdSymbol, out);
         out.writeVInt(inputSymbols.size());
         for (Symbol symbol : inputSymbols) {

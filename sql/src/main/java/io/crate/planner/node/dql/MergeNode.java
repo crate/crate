@@ -22,10 +22,12 @@
 package io.crate.planner.node.dql;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -41,6 +43,13 @@ import java.util.*;
  * A plan node which merges results from upstreams
  */
 public class MergeNode extends AbstractDQLPlanNode {
+
+    public static final ExecutionNodeFactory<MergeNode> FACTORY = new ExecutionNodeFactory<MergeNode>() {
+        @Override
+        public MergeNode create() {
+            return new MergeNode();
+        }
+    };
 
     private List<DataType> inputTypes;
     private int numUpstreams;
@@ -58,29 +67,38 @@ public class MergeNode extends AbstractDQLPlanNode {
     private int[] orderByIndices;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
+    private int downstreamExecutionNodeId = NO_EXECUTION_NODE;
+    private List<String> downstreamNodes = ImmutableList.of();
 
     public MergeNode() {
         numUpstreams = 0;
     }
 
-    public MergeNode(String id, int numUpstreams) {
-        super(id);
+    public MergeNode(int executionNodeId, String name, int numUpstreams) {
+        super(executionNodeId, name);
         this.numUpstreams = numUpstreams;
     }
 
-    public static MergeNode sortedMergeNode(String id, int numUpstreams,
-                     int[] orderByIndices,
-                     boolean[] reverseFlags,
-                     Boolean[] nullsFirst) {
+    public static MergeNode sortedMergeNode(int executionNodeId,
+                                            String name,
+                                            int numUpstreams,
+                                            int[] orderByIndices,
+                                            boolean[] reverseFlags,
+                                            Boolean[] nullsFirst) {
         Preconditions.checkArgument(
                 orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
                 "ordering parameters must be of the same length");
-        MergeNode mergeNode = new MergeNode(id, numUpstreams);
+        MergeNode mergeNode = new MergeNode(executionNodeId, name, numUpstreams);
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
         mergeNode.reverseFlags = reverseFlags;
         mergeNode.nullsFirst = nullsFirst;
         return mergeNode;
+    }
+
+    @Override
+    public Type type() {
+        return Type.MERGE;
     }
 
     @Override
@@ -90,6 +108,20 @@ public class MergeNode extends AbstractDQLPlanNode {
         } else {
             return executionNodes;
         }
+    }
+
+    @Override
+    public List<String> downstreamNodes() {
+        return downstreamNodes;
+    }
+
+    public void downstreamNodes(Set<String> nodes) {
+        downstreamNodes = ImmutableList.copyOf(nodes);
+    }
+
+    @Override
+    public int downstreamExecutionNodeId() {
+        return downstreamExecutionNodeId;
     }
 
     public void executionNodes(Set<String> executionNodes) {
@@ -159,8 +191,20 @@ public class MergeNode extends AbstractDQLPlanNode {
     }
 
     @Override
+    public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context) {
+        return visitor.visitMergeNode(this, context);
+    }
+
+    @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        downstreamExecutionNodeId = in.readVInt();
+
+        int numDownstreamNodes = in.readVInt();
+        downstreamNodes = new ArrayList<>(numDownstreamNodes);
+        for (int i = 0; i < numDownstreamNodes; i++) {
+            downstreamNodes.add(in.readString());
+        }
 
         numUpstreams = in.readVInt();
         jobId = new UUID(in.readLong(), in.readLong());
@@ -213,6 +257,12 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeVInt(downstreamExecutionNodeId);
+
+        out.writeVInt(downstreamNodes.size());
+        for (String downstreamNode : downstreamNodes) {
+            out.writeString(downstreamNode);
+        }
 
         out.writeVInt(numUpstreams);
         out.writeLong(jobId.getMostSignificantBits());
@@ -266,7 +316,8 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-                .add("id", id())
+                .add("executionNodeId", executionNodeId())
+                .add("name", name())
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
                 .add("jobId", jobId)
@@ -280,5 +331,9 @@ public class MergeNode extends AbstractDQLPlanNode {
                   .add("nullsFirst", Arrays.toString(nullsFirst));
         }
         return helper.toString();
+    }
+
+    public void downstreamExecutionNodeId(int downstreamExecutionNodeId) {
+        this.downstreamExecutionNodeId = downstreamExecutionNodeId;
     }
 }

@@ -23,12 +23,13 @@ package io.crate.executor.task;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.ArrayBucket;
-import io.crate.core.collections.Bucket;
+import io.crate.core.collections.RowN;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.Routing;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
@@ -51,25 +52,26 @@ public class LocalCollectTaskTest extends CrateUnitTest {
     public final static Routing CLUSTER_ROUTING = new Routing();
     private UUID testJobId = UUID.randomUUID();
 
+    static class TestCollectOperation implements CollectOperation, RowUpstream {
+
+        @Override
+        public void collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+            RowDownstreamHandle handle = downstream.registerUpstream(this);
+            handle.setNextRow(new RowN(new Object[]{1}));
+            handle.finish();
+        }
+    }
+
     @Test
     public void testCollectTask() throws Exception {
 
-        final CollectNode collectNode = new CollectNode("ei-die", CLUSTER_ROUTING);
+        final CollectNode collectNode = new CollectNode(0, "ei-die", CLUSTER_ROUTING);
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
         collectNode.jobId(testJobId);
         collectNode.toCollect(ImmutableList.<Symbol>of(Literal.newLiteral(4)));
 
-
-        CollectOperation collectOperation = new CollectOperation() {
-            @Override
-            public ListenableFuture<Bucket> collect(CollectNode cn, RamAccountingContext ramAccountingContext) {
-                assertEquals(cn, collectNode);
-                SettableFuture<Bucket> result = SettableFuture.create();
-                result.set(new ArrayBucket(new Object[][]{{1}}));
-                return result;
-            }
-        };
-        LocalCollectTask collectTask = new LocalCollectTask(UUID.randomUUID(), collectOperation, collectNode, new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+        LocalCollectTask collectTask = new LocalCollectTask(UUID.randomUUID(), new TestCollectOperation(),
+                collectNode, new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
         collectTask.start();
         List<ListenableFuture<TaskResult>> results = collectTask.result();
         assertThat(results.size(), is(1));

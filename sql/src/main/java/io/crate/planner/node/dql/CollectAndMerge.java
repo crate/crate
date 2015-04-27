@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,50 +19,42 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.planner.node.dql;
 
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.FileUriCollectNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
+import io.crate.planner.node.PlanNode;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
 
-public class NodeCollectRequest extends TransportRequest {
+public class CollectAndMerge implements Iterable<PlanNode>, Plan {
 
-    private CollectNode collectNode;
+    private final CollectNode collectNode;
+    private final MergeNode localMergeNode;
+    private Iterable<PlanNode> nodes;
 
-    public NodeCollectRequest() {
-    }
-
-    public NodeCollectRequest(CollectNode collectNode) {
+    public CollectAndMerge(CollectNode collectNode, MergeNode localMergeNode) {
         this.collectNode = collectNode;
+        this.localMergeNode = localMergeNode;
+        nodes = Arrays.<PlanNode>asList(collectNode, localMergeNode);
     }
 
     public CollectNode collectNode() {
         return collectNode;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        if (in.readBoolean()) {
-            collectNode = new FileUriCollectNode();
-        } else {
-            collectNode = new CollectNode();
-        }
-        collectNode.readFrom(in);
+    public MergeNode localMergeNode() {
+        return localMergeNode;
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        if (collectNode instanceof FileUriCollectNode) {
-            out.writeBoolean(true);
-        } else {
-            out.writeBoolean(false);
-        }
-        collectNode.writeTo(out);
+    public Iterator<PlanNode> iterator() {
+        return nodes.iterator();
+    }
+
+    @Override
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitCollectAndMerge(this, context);
     }
 }

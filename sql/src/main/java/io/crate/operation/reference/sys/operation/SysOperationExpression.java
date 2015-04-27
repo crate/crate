@@ -34,7 +34,7 @@ public abstract class SysOperationExpression<T> extends RowContextCollectorExpre
             .add(new SysOperationExpression<BytesRef>(SysOperationsTableInfo.ColumnNames.ID) {
                 @Override
                 public BytesRef value() {
-                    return new BytesRef(row.id.toString());
+                    return new BytesRef(Integer.toString(row.id));
                 }
             })
             .add(new SysOperationExpression<BytesRef>(SysOperationsTableInfo.ColumnNames.JOB_ID) {

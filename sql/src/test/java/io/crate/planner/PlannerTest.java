@@ -1,5 +1,6 @@
 package io.crate.planner;
 
+import com.google.common.collect.Iterables;
 import io.crate.Constants;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.BaseAnalyzerTest;
@@ -86,12 +87,19 @@ public class PlannerTest extends CrateUnitTest {
             .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g",  Arrays.asList(3)).map())
             .map());
 
+    private ClusterService clusterService;
+
+    private final static String LOCAL_NODE_ID = "foo";
+
 
     class TestModule extends MetaDataModule {
 
         @Override
         protected void configure() {
-            ClusterService clusterService = mock(ClusterService.class);
+            clusterService = mock(ClusterService.class);
+            DiscoveryNode localNode = mock(DiscoveryNode.class);
+            when(localNode.id()).thenReturn(LOCAL_NODE_ID);
+            when(clusterService.localNode()).thenReturn(localNode);
             ClusterState clusterState = mock(ClusterState.class);
             MetaData metaData = mock(MetaData.class);
             when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
@@ -105,6 +113,7 @@ public class PlannerTest extends CrateUnitTest {
             ImmutableOpenMap<String, DiscoveryNode> dataNodes =
                     ImmutableOpenMap.<String, DiscoveryNode>builder().fPut("foo", node).build();
             when(nodes.dataNodes()).thenReturn(dataNodes);
+            when(nodes.localNodeId()).thenReturn(LOCAL_NODE_ID);
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             bind(ClusterService.class).toInstance(clusterService);
@@ -275,7 +284,8 @@ public class PlannerTest extends CrateUnitTest {
 
         // distributed collect
         CollectNode collectNode = distributedGroupBy.collectNode();
-        assertThat(collectNode.downStreamNodes().size(), is(2));
+        assertThat(collectNode.hasDistributingDownstreams(), is(true));
+        assertThat(collectNode.downstreamNodes().size(), is(2));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectNode.executionNodes().size(), is(2));
         assertThat(collectNode.toCollect().size(), is(1));
@@ -305,7 +315,8 @@ public class PlannerTest extends CrateUnitTest {
         MergeNode localMerge = distributedGroupBy.localMergeNode();
 
         assertThat(localMerge.numUpstreams(), is(2));
-        assertTrue(localMerge.executionNodes().isEmpty());
+        assertThat(localMerge.executionNodes().size(), is(1));
+        assertThat(Iterables.getOnlyElement(localMerge.executionNodes()), is(LOCAL_NODE_ID));
         assertEquals(mergeNode.outputTypes(), localMerge.inputTypes());
 
         assertThat(localMerge.projections().get(0), instanceOf(TopNProjection.class));
@@ -435,7 +446,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), name from sys.nodes group by name");
         CollectNode collectNode = planNode.collectNode();
-        assertFalse(collectNode.hasDownstreams());
+        assertFalse(collectNode.hasDistributingDownstreams());
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
         assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
 
@@ -647,11 +658,10 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(plan.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = plan.nodes().get(0);
-        assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
+        PlanNode next = ((IterablePlan) plan.nodes().get(0)).iterator().next();
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)next;
 
         assertThat(updateNode.insertColumns().length, is(2));
         Reference idRef = updateNode.insertColumns()[0];
@@ -676,11 +686,10 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(plan.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = plan.nodes().get(0);
-        assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
+        PlanNode next = ((IterablePlan) plan.nodes().get(0)).iterator().next();
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)next;
 
         assertThat(updateNode.insertColumns().length, is(2));
         Reference idRef = updateNode.insertColumns()[0];
@@ -738,7 +747,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from users group by id limit 20");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
@@ -751,7 +760,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from users group by id order by 1 desc nulls last limit 20");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
@@ -773,7 +782,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
@@ -795,7 +804,7 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id, date from empty_parted group by id, date limit 20");
         CollectNode collectNode = planNode.collectNode();
-        assertNull(collectNode.downStreamNodes());
+        assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
@@ -916,18 +925,9 @@ public class PlannerTest extends CrateUnitTest {
         Upsert plan = (Upsert) plan("update users set name='Vogon lyric fan'");
         assertThat(plan.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = plan.nodes().get(0);
+        CollectAndMerge planNode = (CollectAndMerge) plan.nodes().get(0);
 
-        PlanNode planNode= childNodes.get(0);
-
-        assertThat(planNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.LONG, planNode.outputTypes().get(0));
-
-        assertThat(childNodes.size(), is(2));
-        assertThat(childNodes.get(0), instanceOf(CollectNode.class));
-        assertThat(childNodes.get(1), instanceOf(MergeNode.class));
-
-        CollectNode collectNode = (CollectNode)childNodes.get(0);
+        CollectNode collectNode = planNode.collectNode();
         assertThat(collectNode.routing(), is(shardRouting));
         assertFalse(collectNode.whereClause().noMatch());
         assertFalse(collectNode.whereClause().hasQuery());
@@ -944,9 +944,11 @@ public class PlannerTest extends CrateUnitTest {
         Symbol symbol = updateProjection.assignments()[0];
         assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
 
-        MergeNode mergeNode = (MergeNode)childNodes.get(1);
+        MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+
+        assertThat(mergeNode.outputTypes().size(), is(1));
     }
 
     @Test
@@ -954,11 +956,10 @@ public class PlannerTest extends CrateUnitTest {
         Upsert planNode = (Upsert) plan("update users set name='Vogon lyric fan' where id=1");
         assertThat(planNode.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = planNode.nodes().get(0);
-        assertThat(childNodes.size(), is(1));
-        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
+        PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode) next;
         assertThat(updateNode.items().size(), is(1));
 
         assertThat(updateNode.updateColumns()[0], is("name"));
@@ -976,11 +977,10 @@ public class PlannerTest extends CrateUnitTest {
         Upsert planNode =  (Upsert) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");;
         assertThat(planNode.nodes().size(), is(1));
 
-        List<DQLPlanNode> childNodes = planNode.nodes().get(0);
-        assertThat(childNodes.size(), is(1));
+        PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
 
-        assertThat(childNodes.get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)childNodes.get(0);
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode) next;
 
         List<String> ids = new ArrayList<>(3);
         for (SymbolBasedUpsertByIdNode.Item item : updateNode.items()) {
@@ -994,50 +994,43 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCopyFromPlan() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.extension'");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(FileUriCollectNode.class));
+        CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.extension'");
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
 
-        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        FileUriCollectNode collectNode = (FileUriCollectNode)plan.collectNode();
         assertThat((BytesRef) ((Literal) collectNode.targetUri()).value(),
                 is(new BytesRef("/path/to/file.extension")));
     }
 
     @Test
     public void testCopyFromNumReadersSetting() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.extension' with (num_readers=1)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(FileUriCollectNode.class));
-        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.extension' with (num_readers=1)");
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
+        FileUriCollectNode collectNode = (FileUriCollectNode) plan.collectNode();
         assertThat(collectNode.executionNodes().size(), is(1));
     }
 
     @Test
     public void testCopyFromPlanWithParameters() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(FileUriCollectNode.class));
-        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
+        FileUriCollectNode collectNode = (FileUriCollectNode)plan.collectNode();
         SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectNode.projections().get(0);
         assertThat(indexWriterProjection.bulkActions(), is(30));
         assertThat(collectNode.compression(), is("gzip"));
         assertThat(collectNode.sharedStorage(), is(true));
 
         // verify defaults:
-        plan = (IterablePlan) plan("copy users from '/path/to/file.ext'");
-        iterator = plan.iterator();
-        collectNode = (FileUriCollectNode)iterator.next();
+        plan = (CollectAndMerge) plan("copy users from '/path/to/file.ext'");
+        collectNode = (FileUriCollectNode)plan.collectNode();
         assertNull(collectNode.compression());
         assertNull(collectNode.sharedStorage());
     }
 
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy users (name) to '/file.ext'");
-        CollectNode node = (CollectNode)plan.iterator().next();
+        CollectAndMerge plan = (CollectAndMerge) plan("copy users (name) to '/file.ext'");
+        CollectNode node = plan.collectNode();
         Reference nameRef = (Reference)node.toCollect().get(0);
 
         assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
@@ -1046,9 +1039,8 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCopyToWithNonExistentPartitionClause() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("copy parted partition (date=0) to '/foo.txt' ");
-        CollectNode collectNode = (CollectNode) plan.iterator().next();
-        assertFalse(collectNode.routing().hasLocations());
+        CollectAndMerge plan = (CollectAndMerge) plan("copy parted partition (date=0) to '/foo.txt' ");
+        assertFalse(plan.collectNode().routing().hasLocations());
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -1738,10 +1730,9 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
         Upsert plan = (Upsert) plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
-        assertThat(plan.nodes().size(), is(1));
-        assertThat(plan.nodes().get(0).size(), is(1));
-        assertThat(plan.nodes().get(0).get(0), instanceOf(SymbolBasedUpsertByIdNode.class));
-        SymbolBasedUpsertByIdNode node = (SymbolBasedUpsertByIdNode) plan.nodes().get(0).get(0);
+        PlanNode planNode = ((IterablePlan) plan.nodes().get(0)).iterator().next();
+        assertThat(planNode, instanceOf(SymbolBasedUpsertByIdNode.class));
+        SymbolBasedUpsertByIdNode node = (SymbolBasedUpsertByIdNode) planNode;
 
         assertThat(node.updateColumns(), is(new String[]{ "name" }));
 
@@ -1804,10 +1795,11 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testAllocatedJobSearchContextIds() throws Exception {
-        CollectNode collectNode = new CollectNode("collect", shardRouting);
+        Planner.Context plannerContext = new Planner.Context(clusterService);
+        CollectNode collectNode = new CollectNode(
+                plannerContext.nextExecutionNodeId(), "collect", shardRouting);
         int shardNum = collectNode.routing().numShards();
 
-        Planner.Context plannerContext = new Planner.Context();
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         java.lang.reflect.Field f = plannerContext.getClass().getDeclaredField("jobSearchContextIdBaseSeq");
@@ -1833,5 +1825,26 @@ public class PlannerTest extends CrateUnitTest {
         int jobSearchContextIdBase = collectNode.routing().jobSearchContextIdBase();
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
         assertThat(collectNode.routing().jobSearchContextIdBase(), is(jobSearchContextIdBase));
+    }
+
+    @Test
+    public void testExecutionNodeIdSequence() throws Exception {
+        Planner.Context plannerContext = new Planner.Context(clusterService);
+        CollectNode collectNode1 = new CollectNode(
+                plannerContext.nextExecutionNodeId(), "collect1", shardRouting);
+        CollectNode collectNode2 = new CollectNode(
+                plannerContext.nextExecutionNodeId(), "collect2", shardRouting);
+
+        assertThat(collectNode1.executionNodeId(), is(0));
+        assertThat(collectNode2.executionNodeId(), is(1));
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    @Test
+    public void testLimitThatIsBiggerThanPageSizeCausesQTFPUshPlan() throws Exception {
+        QueryThenFetch plan = (QueryThenFetch) plan("select * from users limit 2147483647 ");
+        assertThat(plan.collectNode().downstreamNodes().size(), is(1));
+        assertThat(plan.collectNode().downstreamNodes().get(0), is(LOCAL_NODE_ID));
+        assertThat(plan.collectNode().hasDistributingDownstreams(), is(true));
     }
 }

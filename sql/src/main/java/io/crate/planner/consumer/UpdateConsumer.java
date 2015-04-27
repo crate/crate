@@ -36,14 +36,12 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.SumAggregation;
-import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.Planner;
-import io.crate.planner.RowGranularity;
+import io.crate.planner.*;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
@@ -64,11 +62,11 @@ public class UpdateConsumer implements Consumer {
     public UpdateConsumer(AnalysisMetaData analysisMetaData) {
         visitor = new Visitor();
         localMergeProjection = new AggregationProjection(
-                Arrays.asList(new Aggregation(
+                Collections.singletonList(new Aggregation(
                                 analysisMetaData.functions().getSafe(
-                                        new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
+                                        new FunctionIdent(SumAggregation.NAME, Collections.<DataType>singletonList(LongType.INSTANCE))
                                 ).info(),
-                                Arrays.<Symbol>asList(new InputColumn(0, DataTypes.LONG)),
+                                Collections.<Symbol>singletonList(new InputColumn(0, DataTypes.LONG)),
                                 Aggregation.Step.ITER,
                                 Aggregation.Step.FINAL
                         )
@@ -98,7 +96,7 @@ public class UpdateConsumer implements Consumer {
                 return null;
             }
 
-            List<List<DQLPlanNode>> childNodes = new ArrayList<>(statement.nestedStatements().size());
+            List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
             SymbolBasedUpsertByIdNode upsertByIdNode = null;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClause whereClause = nestedAnalysis.whereClause();
@@ -109,24 +107,27 @@ public class UpdateConsumer implements Consumer {
                     if (upsertByIdNode == null) {
                         Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
                         upsertByIdNode = new SymbolBasedUpsertByIdNode(false, statement.nestedStatements().size() > 1, assignments.v1(), null);
-                        childNodes.add(ImmutableList.<DQLPlanNode>of(upsertByIdNode));
+                        childNodes.add(new IterablePlan(upsertByIdNode));
                     }
                     upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);
                 } else {
-                    childNodes.add(upsertByQuery(nestedAnalysis, context, tableInfo, whereClause));
+                    Plan plan = upsertByQuery(nestedAnalysis, context, tableInfo, whereClause);
+                    if (plan != null) {
+                        childNodes.add(plan);
+                    }
                 }
             }
-            if (childNodes.size()>0){
+            if (childNodes.size() > 0){
                 return new Upsert(childNodes);
             } else {
                 return new NoopPlannedAnalyzedRelation(statement);
             }
         }
 
-        private List<DQLPlanNode> upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
-                                                ConsumerContext consumerContext,
-                                                TableInfo tableInfo,
-                                                WhereClause whereClause) {
+        private Plan upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
+                                   ConsumerContext consumerContext,
+                                   TableInfo tableInfo,
+                                   WhereClause whereClause) {
 
             Symbol versionSymbol = null;
             if(whereClause.hasVersions()){
@@ -167,9 +168,9 @@ public class UpdateConsumer implements Consumer {
                 MergeNode mergeNode = PlanNodeBuilder.localMerge(
                         ImmutableList.<Projection>of(localMergeProjection), collectNode,
                         consumerContext.plannerContext());
-                return ImmutableList.<DQLPlanNode>of(collectNode, mergeNode);
+                return new CollectAndMerge(collectNode, mergeNode);
             } else {
-                return ImmutableList.of();
+                return null;
             }
         }
 

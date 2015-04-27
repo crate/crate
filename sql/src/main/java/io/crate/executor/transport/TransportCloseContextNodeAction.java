@@ -21,22 +21,18 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Preconditions;
 import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.CollectContextService;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
-import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.UUID;
 
 /**
  * Transport handler for closing a context(lucene) for a complete job.
@@ -44,117 +40,80 @@ import java.util.UUID;
  * and should NOT be re-used somewhere else.
  * We will refactor this architecture later on, so a fetch projection will only close related
  * operation contexts and NOT a whole job context.
- * (This requires a refactoring of the {@link CollectContextService} architecture)
+ * (This requires a refactoring of the {@link JobContextService} architecture)
  */
 @Singleton
-public class TransportCloseContextNodeAction {
+public class TransportCloseContextNodeAction implements NodeAction<NodeCloseContextRequest, NodeCloseContextResponse> {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(TransportCloseContextNodeAction.class);
 
     private final String transportAction = "crate/sql/node/context/close";
-    private final TransportService transportService;
-    private final ClusterService clusterService;
+    private final Transports transports;
     private final StatsTables statsTables;
-    private final CollectContextService collectContextService;
-    private final String executorName = ThreadPool.Names.SEARCH;
-    private final ThreadPool threadPool;
+    private final JobContextService jobContextService;
 
     @Inject
     public TransportCloseContextNodeAction(TransportService transportService,
-                                    ThreadPool threadPool,
-                                    ClusterService clusterService,
-                                    StatsTables statsTables,
-                                    CollectContextService collectContextService) {
-        this.transportService = transportService;
-        this.clusterService = clusterService;
+                                           Transports transports,
+                                           StatsTables statsTables,
+                                           JobContextService jobContextService) {
+        this.transports = transports;
         this.statsTables = statsTables;
-        this.collectContextService = collectContextService;
-        this.threadPool = threadPool;
-
-        transportService.registerHandler(transportAction, new TransportHandler());
+        this.jobContextService = jobContextService;
+        transportService.registerHandler(transportAction, new NodeActionRequestHandler<NodeCloseContextRequest, NodeCloseContextResponse>(this) {
+            @Override
+            public NodeCloseContextRequest newInstance() {
+                return new NodeCloseContextRequest();
+            }
+        });
     }
 
     public void execute(
             String targetNode,
             NodeCloseContextRequest request,
             ActionListener<NodeCloseContextResponse> listener) {
-        new AsyncAction(targetNode, request, listener).start();
-    }
-
-    private void nodeOperation(final NodeCloseContextRequest request,
-                               final ActionListener<NodeCloseContextResponse> response) {
-        final UUID operationId = UUID.randomUUID();
-        statsTables.operationStarted(operationId, request.jobId(), "closeContext");
-
-        try {
-            collectContextService.closeContext(request.jobId());
-            statsTables.operationFinished(operationId, null, 0);
-            response.onResponse(new NodeCloseContextResponse());
-        } catch (Exception e) {
-            statsTables.operationFinished(operationId, Exceptions.messageOf(e), 0);
-            response.onFailure(e);
-        }
-    }
-
-    private class AsyncAction {
-
-        private final NodeCloseContextRequest request;
-        private final ActionListener<NodeCloseContextResponse> listener;
-        private final DiscoveryNode node;
-        private final String nodeId;
-        private final ClusterState clusterState;
-
-        private AsyncAction(String nodeId, NodeCloseContextRequest request, ActionListener<NodeCloseContextResponse> listener) {
-            Preconditions.checkNotNull(nodeId, "nodeId is null");
-            clusterState = clusterService.state();
-            node = clusterState.nodes().get(nodeId);
-            Preconditions.checkNotNull(node, "DiscoveryNode for id '%s' not found in cluster state", nodeId);
-
-            this.nodeId = nodeId;
-            this.request = request;
-            this.listener = listener;
-        }
-
-        private void start() {
-            if (nodeId.equals("_local") || nodeId.equals(clusterState.nodes().localNodeId())) {
-                threadPool.executor(executorName).execute(new Runnable() {
+        transports.executeLocalOrWithTransport(this, targetNode, request, listener,
+                new DefaultTransportResponseHandler<NodeCloseContextResponse>(listener, executorName()) {
                     @Override
-                    public void run() {
-                        nodeOperation(request, listener);
+                    public NodeCloseContextResponse newInstance() {
+                        return new NodeCloseContextResponse();
                     }
                 });
-            } else {
-                transportService.sendRequest(
-                        node,
-                        transportAction,
-                        request,
-                        new DefaultTransportResponseHandler<NodeCloseContextResponse>(listener, executorName) {
-                            @Override
-                            public NodeCloseContextResponse newInstance() {
-                                return new NodeCloseContextResponse();
-                            }
-                        }
-                );
+    }
+
+    @Override
+    public String actionName() {
+        return transportAction;
+    }
+
+    @Override
+    public String executorName() {
+        return ThreadPool.Names.SEARCH;
+    }
+
+    @Override
+    public void nodeOperation(final NodeCloseContextRequest request,
+                              final ActionListener<NodeCloseContextResponse> response) {
+        statsTables.operationStarted(request.executionNodeId(), request.jobId(), "closeContext");
+        try {
+            JobExecutionContext jobExecutionContext = jobContextService.getContextOrNull(request.jobId());
+            if (jobExecutionContext != null) {
+                JobCollectContext collectContext = jobExecutionContext.getCollectContextOrNull(request.executionNodeId());
+                if (collectContext != null) {
+                    LOGGER.trace("Received CloseContextRequest, closing JobCollectContext {}/{}",
+                            request.jobId(), request.executionNodeId());
+                    collectContext.close();
+                } else {
+                    //noinspection AssertWithSideEffects lastAccessTime is updated but that is okay
+                    assert jobExecutionContext.getPageDownstreamContext(request.executionNodeId()) == null :
+                            "closing PageDownstreamContext is not supported";
+                }
             }
-        }
-
-    }
-
-    private class TransportHandler extends BaseTransportRequestHandler<NodeCloseContextRequest> {
-
-        @Override
-        public NodeCloseContextRequest newInstance() {
-            return new NodeCloseContextRequest();
-        }
-
-        @Override
-        public void messageReceived(final NodeCloseContextRequest request, final TransportChannel channel) throws Exception {
-            ActionListener<NodeCloseContextResponse> actionListener = ResponseForwarder.forwardTo(channel);
-            nodeOperation(request, actionListener);
-        }
-
-        @Override
-        public String executor() {
-            return executorName;
+            statsTables.operationFinished(request.executionNodeId(), null, 0L);
+            response.onResponse(new NodeCloseContextResponse());
+        } catch (Throwable t) {
+            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t), 0L);
+            response.onFailure(t);
         }
     }
-
 }

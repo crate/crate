@@ -21,10 +21,12 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.core.Is;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,8 +36,15 @@ import static org.hamcrest.Matchers.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
+    private static final int ORIGINAL_PAGE_SIZE = Constants.PAGE_SIZE;
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    @After
+    public void cleanUp() throws Exception {
+        Constants.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
+    }
 
     @Test
     public void testCrateSearchServiceSupportsOrderByOnFunctionWithBooleanReturnType() throws Exception {
@@ -76,6 +85,49 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         execute("select extract(day from ts) from t order by 1");
         assertThat((Integer) response.rows()[0][0], is(1));
         assertThat((Integer) response.rows()[1][0], is(17));
+    }
+
+    @Test
+    public void testPushBasedQTF() throws Exception {
+        // use high limit to trigger push based qtf
+
+        execute("create table t (x string) with (number_of_replicas = 0)");
+        execute("insert into t (x) values ('a')");
+        execute("refresh table t");
+
+        execute("select * from t limit ?", new Object[]{Constants.PAGE_SIZE + 10000});
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testPushBasedQTFWithPaging() throws Exception {
+        Constants.PAGE_SIZE = 10;
+        // insert more docs than PAGE_SIZE and query at least 2 times of it to trigger push of
+        // at least 2 pages
+        int docCount = (Constants.PAGE_SIZE * 2) + 2;
+
+        Object[][] bulkArgs = new Object[docCount][1];
+        for (int i = 0; i < docCount; i++) {
+            bulkArgs[i][0] = i;
+        }
+
+        execute("create table t (x int) with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (x) values (?)", bulkArgs);
+        execute("refresh table t");
+
+        Long limit = new Long(docCount-1);
+        execute("select * from t limit ?", new Object[]{limit});
+        assertThat(response.rowCount(), is(limit));
+
+        // test if all is fine if we limit more than we have
+        limit += 10;
+        execute("select * from t limit ?", new Object[]{limit});
+        assertThat(response.rowCount(), is(new Long(docCount)));
+
+        // test with sorting
+        execute("select * from t order by x limit ?", new Object[]{limit});
+        assertThat(response.rowCount(), is(new Long(docCount)));
     }
 
     @Test

@@ -31,6 +31,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.operation.collect.CollectOperation;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
@@ -53,7 +54,8 @@ public class LocalCollectTask extends JobTask {
     private final RamAccountingContext ramAccountingContext;
 
     public LocalCollectTask(UUID jobId,
-                            CollectOperation collectOperation, CollectNode collectNode,
+                            CollectOperation collectOperation,
+                            CollectNode collectNode,
                             CircuitBreaker circuitBreaker) {
         super(jobId);
         this.collectNode = collectNode;
@@ -61,14 +63,15 @@ public class LocalCollectTask extends JobTask {
         this.resultList = new ArrayList<>(1);
         this.result = SettableFuture.create();
         resultList.add(result);
-        ramAccountingContext = new RamAccountingContext(
-                String.format("%s: %s", collectNode.id(), collectNode.jobId()),
-                circuitBreaker);
+        ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, collectNode);
     }
 
     @Override
     public void start() {
-        Futures.addCallback(collectOperation.collect(collectNode, ramAccountingContext), new FutureCallback<Bucket>() {
+        CollectingProjector downstream = new CollectingProjector();
+        downstream.startProjection();
+
+        Futures.addCallback(downstream.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(@Nullable Bucket rows) {
                 result.set(new QueryResult(rows));
@@ -79,6 +82,7 @@ public class LocalCollectTask extends JobTask {
                 result.setException(t);
             }
         });
+        collectOperation.collect(collectNode, downstream, ramAccountingContext);
     }
 
     @Override

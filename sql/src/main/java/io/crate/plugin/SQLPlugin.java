@@ -40,7 +40,7 @@ import io.crate.metadata.settings.Setting;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.collect.CollectContextService;
+import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.CollectShardModule;
 import io.crate.operation.merge.MergeOperationModule;
@@ -104,9 +104,8 @@ public class SQLPlugin extends AbstractPlugin {
     public Collection<Class<? extends LifecycleComponent>> services() {
         return ImmutableList.<Class<? extends LifecycleComponent>>of(
                 SQLService.class,
-                CollectContextService.class,
-                BulkRetryCoordinatorPool.class
-        );
+                BulkRetryCoordinatorPool.class,
+                JobContextService.class);
     }
 
     @Override

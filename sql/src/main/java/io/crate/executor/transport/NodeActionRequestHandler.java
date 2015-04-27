@@ -19,36 +19,36 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport.merge;
+package io.crate.executor.transport;
 
-import io.crate.executor.transport.distributed.DistributedFailureRequest;
-import io.crate.executor.transport.distributed.DistributedRequestContextManager;
-import io.crate.executor.transport.distributed.DistributedResultResponse;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportRequestHandler;
+import org.elasticsearch.transport.TransportResponse;
 
-public class FailureHandler extends BaseTransportRequestHandler<DistributedFailureRequest> {
+public abstract class NodeActionRequestHandler<TRequest extends TransportRequest, TResponse extends TransportResponse>
+        implements TransportRequestHandler<TRequest> {
 
-    private final DistributedRequestContextManager contextManager;
+    private final NodeAction<TRequest, TResponse> nodeAction;
 
-    public FailureHandler(DistributedRequestContextManager contextManager) {
-        this.contextManager = contextManager;
+    public NodeActionRequestHandler(NodeAction<TRequest, TResponse> nodeAction) {
+        this.nodeAction = nodeAction;
     }
 
     @Override
-    public DistributedFailureRequest newInstance() {
-        return new DistributedFailureRequest();
-    }
-
-    @Override
-    public void messageReceived(DistributedFailureRequest request, TransportChannel channel) throws Exception {
-        contextManager.setFailure(request.contextId());
-        channel.sendResponse(new DistributedResultResponse());
+    public void messageReceived(TRequest request, TransportChannel channel) throws Exception {
+        ActionListener<TResponse> actionListener = ResponseForwarder.forwardTo(channel);
+        nodeAction.nodeOperation(request, actionListener);
     }
 
     @Override
     public String executor() {
-        return ThreadPool.Names.GENERIC;
+        return nodeAction.executorName();
+    }
+
+    @Override
+    public boolean isForceExecution() {
+        return false;
     }
 }

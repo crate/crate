@@ -437,7 +437,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select avg(income), mean(income), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
 
-
         assertEquals(500000000.245d, response.rows()[0][0]);
         assertEquals(500000000.245d, response.rows()[0][1]);
         assertEquals("HR", response.rows()[0][2]);

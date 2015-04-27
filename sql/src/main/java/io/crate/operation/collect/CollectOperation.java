@@ -21,11 +21,10 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
+import io.crate.operation.RowDownstream;
 import io.crate.planner.node.dql.CollectNode;
 
 public interface CollectOperation {
-    public ListenableFuture<Bucket> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext);
+    public void collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext);
 }

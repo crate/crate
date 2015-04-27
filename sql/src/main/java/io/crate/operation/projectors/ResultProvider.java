@@ -23,9 +23,9 @@ package io.crate.operation.projectors;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Bucket;
+import io.crate.operation.RowDownstreamHandle;
 
-public interface ResultProvider extends Projector {
+public interface ResultProvider extends Projector, RowDownstreamHandle {
 
-    public ListenableFuture<Bucket> result();
-
+    ListenableFuture<Bucket> result();
 }

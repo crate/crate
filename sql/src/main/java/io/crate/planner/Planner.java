@@ -40,10 +40,7 @@ import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.DQLPlanNode;
-import io.crate.planner.node.dql.FileUriCollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
@@ -83,7 +80,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
         private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
+        private final ClusterService clusterService;
         private int jobSearchContextIdBaseSeq = 0;
+        private int executionNodeId = 0;
+
+        public Context(ClusterService clusterService) {
+            this.clusterService = clusterService;
+        }
+
+        public ClusterService clusterService() {
+            return clusterService;
+        }
 
         /**
          * Increase current {@link #jobSearchContextIdBaseSeq} by number of shards affected by given
@@ -135,6 +142,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
             return jobSearchContextIdToNode;
         }
+
+        public int nextExecutionNodeId() {
+            return executionNodeId++;
+        }
     }
 
     @Inject
@@ -152,7 +163,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context());
+        return process(analyzedStatement, new Context(clusterService));
     }
 
     @Override
@@ -203,17 +214,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitCopyStatement(final CopyAnalyzedStatement analysis, Context context) {
-        IterablePlan plan = new IterablePlan();
-        if (analysis.mode() == CopyAnalyzedStatement.Mode.FROM) {
-            copyFromPlan(analysis, plan, context);
-        } else if (analysis.mode() == CopyAnalyzedStatement.Mode.TO) {
-            copyToPlan(analysis, plan, context);
+        switch (analysis.mode()) {
+            case FROM:
+                return copyFromPlan(analysis, context);
+            case TO:
+                return copyToPlan(analysis, context);
+            default:
+                throw new UnsupportedOperationException("mode not supported: " + analysis.mode());
         }
-
-        return plan;
     }
 
-    private void copyToPlan(CopyAnalyzedStatement analysis, IterablePlan plan, Context context) {
+    private Plan copyToPlan(CopyAnalyzedStatement analysis, Context context) {
         TableInfo tableInfo = analysis.table();
         WriterProjection projection = new WriterProjection();
         projection.uri(analysis.uri());
@@ -252,13 +263,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 ImmutableList.<Projection>of(projection),
                 analysis.partitionIdent()
         );
-        plan.add(collectNode);
+
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
                 ImmutableList.<Projection>of(localMergeProjection()), collectNode, context);
-        plan.add(mergeNode);
+        return new CollectAndMerge(collectNode, mergeNode);
     }
 
-    private void copyFromPlan(CopyAnalyzedStatement analysis, IterablePlan plan, Context context) {
+    private Plan copyFromPlan(CopyAnalyzedStatement analysis, Context context) {
         /**
          * copy from has two "modes":
          *
@@ -341,6 +352,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectNode collectNode = new FileUriCollectNode(
+                context.nextExecutionNodeId(),
                 "copyFrom",
                 generateRouting(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
                 analysis.uri(),
@@ -350,8 +362,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.settings().getAsBoolean("shared", null)
         );
         PlanNodeBuilder.setOutputTypes(collectNode);
-        plan.add(collectNode);
-        plan.add(PlanNodeBuilder.localMerge(
+
+        return new CollectAndMerge(collectNode, PlanNodeBuilder.localMerge(
                 ImmutableList.<Projection>of(localMergeProjection()), collectNode, context));
     }
 
@@ -509,9 +521,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         }
 
-        return new Upsert(
-                ImmutableList.<List<DQLPlanNode>>of(
-                        ImmutableList.<DQLPlanNode>of(upsertByIdNode)));
+        return new Upsert(ImmutableList.<Plan>of(new IterablePlan(upsertByIdNode)));
     }
 
     static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {

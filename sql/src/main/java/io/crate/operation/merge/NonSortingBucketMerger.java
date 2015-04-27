@@ -73,12 +73,17 @@ public class NonSortingBucketMerger implements BucketMerger {
         FutureCallback<Bucket> callback = new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(@Nullable Bucket result) {
+                LOGGER.trace("received bucket");
                 if (result != null && wantMore.get() && !listenerNotified.get()) {
                     for (Row row : result) {
-                        if (!emitRow(row)) {
-                            wantMore.set(false);
-                            notifyListener();
-                            break;
+                        try {
+                            if (!emitRow(row)) {
+                                wantMore.set(false);
+                                notifyListener();
+                                break;
+                            }
+                        } catch (Throwable t) {
+                            onFailure(t);
                         }
                     }
                 }

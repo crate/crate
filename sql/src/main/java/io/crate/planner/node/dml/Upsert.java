@@ -36,13 +36,13 @@ import java.util.List;
 
 public class Upsert implements PlannedAnalyzedRelation, Plan {
 
-    private final List<List<DQLPlanNode>> nodes;
+    private final List<Plan> nodes;
 
-    public Upsert(List<List<DQLPlanNode>> nodes) {
+    public Upsert(List<Plan> nodes) {
         this.nodes = nodes;
     }
 
-    public List<List<DQLPlanNode>> nodes() {
+    public List<Plan> nodes() {
         return nodes;
     }
 

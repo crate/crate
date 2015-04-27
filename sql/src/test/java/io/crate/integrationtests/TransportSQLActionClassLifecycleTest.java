@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -555,14 +554,16 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         executor.exec(
                 "select count(*), race from characters group by race order by count(*) desc limit 2");
-        resp = executor.exec("select * from sys.operations_log");
+        resp = executor.exec("select * from sys.operations_log order by ended limit 3");
 
         List<String> names = new ArrayList<>();
         for (Object[] objects : resp.rows()) {
             names.add((String) objects[2]);
         }
-        assertTrue((names.contains("distributing collect") && names.contains("distributed merge")) || names.contains("collect"));
-        assertTrue(names.contains("localMerge"));
+        assertThat(names, Matchers.anyOf(
+                Matchers.hasItems("distributing collect", "distributing collect"),
+                Matchers.hasItems("collect", "localMerge"),
+                Matchers.hasItems("distributed merge", "localMerge")));
 
         executor.exec("reset global stats.enabled, stats.operations_log_size");
         waitNoPendingTasksOnAll();
@@ -658,8 +659,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response = executor.exec("select * from sys.cluster where current_timestamp = current_timestamp");
         assertThat(response.rowCount(), is(1L));
 
-        response = executor.exec("select * from sys.cluster where current_timestamp > current_timestamp");
-        assertThat(response.rowCount(), is(0L));
+        SQLResponse newResponse = executor.exec("select * from sys.cluster where current_timestamp > current_timestamp");
+        assertThat(newResponse.rowCount(), is(0L));
     }
 
 }

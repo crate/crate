@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,56 +19,60 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.action.job;
 
+import com.google.common.base.Optional;
 import io.crate.Streamer;
-import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.executor.transport.StreamBucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 
-public class NodeCollectResponse extends TransportResponse {
+public class JobResponse extends TransportResponse {
 
-    private Bucket rows;
-    private final Streamer<?>[] streamers;
+    private Optional<Bucket> directResponse = Optional.absent();
+    private Streamer<?>[] streamers = null;
 
-    public NodeCollectResponse(Streamer<?>[] streamers) {
+    public JobResponse() {
+    }
+
+    public JobResponse(@Nonnull Bucket bucket) {
+        this.directResponse = Optional.of(bucket);
+    }
+
+    public Optional<Bucket> directResponse() {
+        return directResponse;
+    }
+
+    public void streamers(Streamer<?>[] streamers) {
+        Bucket directResponse = directResponse().orNull();
+        if (directResponse != null && directResponse instanceof StreamBucket) {
+            assert streamers != null;
+            ((StreamBucket) directResponse).streamers(streamers);
+        }
         this.streamers = streamers;
-    }
-
-    public void rows(Bucket rows) {
-        this.rows = rows;
-    }
-
-    public Bucket rows() {
-        return rows;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        Object[][] rows = new Object[in.readVInt()][];
-        for (int r = 0; r < rows.length; r++) {
-            rows[r] = new Object[streamers.length];
-            for (int c = 0; c < rows[r].length; c++) {
-                rows[r][c] = streamers[c].readValueFrom(in);
-            }
+        if (in.readBoolean()) {
+            StreamBucket bucket = new StreamBucket(streamers);
+            bucket.readFrom(in);
+            directResponse = Optional.<Bucket>of(bucket);
         }
-        this.rows = new ArrayBucket(rows);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(rows.size());
-        for (Row row : rows) {
-            for (int c = 0; c < streamers.length; c++) {
-                streamers[c].writeValueTo(out, row.get(c));
-            }
+        out.writeBoolean(directResponse.isPresent());
+        if (directResponse.isPresent()) {
+            StreamBucket.writeBucket(out, streamers, directResponse.get());
         }
     }
 }

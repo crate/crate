@@ -27,6 +27,8 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.CollectingProjector;
@@ -75,7 +77,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     private final static Integer NUMBER_OF_DOCS = 25;
     private ShardId shardId = new ShardId(INDEX_NAME, 0);
     private OrderBy orderBy;
-    private CollectContextService collectContextService;
+    private JobContextService jobContextService;
     private ShardCollectService shardCollectService;
 
     private CollectingProjector collectingProjector = new CollectingProjector();
@@ -96,7 +98,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
 
         shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
-        collectContextService = indexService.shardInjector(0).getInstance(CollectContextService.class);
+        jobContextService = indexService.shardInjector(0).getInstance(JobContextService.class);
 
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
         Reference ref = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
@@ -138,11 +140,12 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize) throws Exception{
-        CollectNode node = new CollectNode();
+        CollectNode node = new CollectNode(0, "collect");
         node.whereClause(whereClause);
         node.orderBy(orderBy);
         node.limit(limit);
-        node.jobId(UUID.randomUUID());
+        UUID jobId = UUID.randomUUID();
+        node.jobId(jobId);
         node.toCollect(toCollect);
         node.maxRowGranularity(RowGranularity.DOC);
 
@@ -150,9 +153,12 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
-        jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
+        JobCollectContext collectContext = new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, collectingProjector);
+        builder.addCollectContext(node.executionNodeId(), collectContext);
+        jobContextService.createOrMergeContext(builder);
+        collectContext.registerJobContextId(shardId, jobSearchContextId);
+        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, collectContext, 0);
         collector.pageSize(pageSize);
         return collector;
     }
@@ -283,7 +289,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 new FunctionInfo(
                         new FunctionIdent(MultiplyFunction.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
                         DataTypes.LONG),
-                Arrays.<Symbol>asList(population, Literal.newLiteral(-1))
+                Arrays.asList(population, Literal.newLiteral(-1))
         );
 
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)scalarFunction), new boolean[]{false}, new Boolean[]{false});
@@ -318,7 +324,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         IndexService indexService = instanceFromNode.indexServiceSafe("test");
 
         ShardCollectService shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
-        CollectContextService collectContextService = indexService.shardInjector(0).getInstance(CollectContextService.class);
+        JobContextService jobContextService = indexService.shardInjector(0).getInstance(JobContextService.class);
 
         ReferenceIdent xIdent = new ReferenceIdent(new TableIdent("doc", "test"), "x");
         Reference x = new Reference(new ReferenceInfo(xIdent, RowGranularity.DOC, DataTypes.INTEGER));
@@ -328,18 +334,23 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, false});
 
-        CollectNode node = new CollectNode();
+        CollectNode node = new CollectNode(0, "collect");
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
         node.jobId(UUID.randomUUID());
         node.toCollect(orderBy.orderBySymbols());
         node.maxRowGranularity(RowGranularity.DOC);
 
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId().get());
+        builder.addCollectContext(node.executionNodeId(),
+                new JobCollectContext(node.jobId().get(), RAM_ACCOUNTING_CONTEXT, collectingProjector));
+        jobContextService.createOrMergeContext(builder);
+
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = collectContextService.acquireContext(node.jobId().get());
+        JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId().get()).getCollectContext(node.executionNodeId());
         ShardId shardId = new ShardId("test", 0);
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
@@ -386,7 +397,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         Function function = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
                 DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(1.1))
+                Arrays.asList(minScore_ref, Literal.newLiteral(1.1))
         );
         WhereClause whereClause = new WhereClause(function);
         LuceneDocCollector docCollector = createDocCollector(null, null, orderBy.orderBySymbols(), whereClause, PAGE_SIZE);
@@ -398,7 +409,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         function = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
                 DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(1.0))
+                Arrays.asList(minScore_ref, Literal.newLiteral(1.0))
         );
         whereClause = new WhereClause(function);
         docCollector = createDocCollector(null, null, orderBy.orderBySymbols(), whereClause, PAGE_SIZE);

@@ -81,9 +81,8 @@ public class RowInputSymbolVisitor extends AbstractImplementationSymbolVisitor<R
                 return new RowInput(partitionByRow, idx);
             }
             throw new AssertionError(String.format(Locale.ENGLISH,
-                    "Partition reference info {} not known", referenceInfo));
+                    "Partition reference info %s not known", referenceInfo));
         }
-
     }
 
     static class RowInput implements Input<Object> {

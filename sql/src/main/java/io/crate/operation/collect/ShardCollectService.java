@@ -30,6 +30,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.JobContextService;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -39,7 +40,6 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
@@ -157,7 +157,7 @@ public class ShardCollectService {
                                        JobCollectContext jobCollectContext,
                                        int jobSearchContextId) throws Exception {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
-        Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
+        RowDownstream downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
@@ -228,7 +228,7 @@ public class ShardCollectService {
                                     bigArrays,
                                     threadPool.estimatedTimeInMillisCounter(),
                                     Optional.<Scroll>absent(),
-                                    CollectContextService.DEFAULT_KEEP_ALIVE
+                                    JobContextService.DEFAULT_KEEP_ALIVE
                             );
                             LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(
                                     collectNode.whereClause(), localContext, indexService.cache());

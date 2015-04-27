@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
@@ -37,22 +37,29 @@ import java.util.List;
 
 public class FileUriCollectNode extends CollectNode {
 
+    public static final ExecutionNodeFactory<FileUriCollectNode> FACTORY = new ExecutionNodeFactory<FileUriCollectNode>() {
+        @Override
+        public FileUriCollectNode create() {
+            return new FileUriCollectNode();
+        }
+    };
     private Symbol targetUri;
     private String compression;
     private Boolean sharedStorage;
 
-    public FileUriCollectNode() {
-
+    private FileUriCollectNode() {
+        super();
     }
 
-    public FileUriCollectNode(String id,
+    public FileUriCollectNode(int executionNodeId,
+                              String name,
                               Routing routing,
                               Symbol targetUri,
                               List<Symbol> toCollect,
                               List<Projection> projections,
                               String compression,
                               Boolean sharedStorage) {
-        super(id, routing, toCollect, projections);
+        super(executionNodeId, name, routing, toCollect, projections);
         this.targetUri = targetUri;
         this.compression = compression;
         this.sharedStorage = sharedStorage;
@@ -64,6 +71,11 @@ public class FileUriCollectNode extends CollectNode {
 
     public FileReadingCollector.FileFormat fileFormat() {
         return FileReadingCollector.FileFormat.JSON;
+    }
+
+    @Override
+    public Type type() {
+        return Type.FILE_URI_COLLECT;
     }
 
     @Override
@@ -79,19 +91,19 @@ public class FileUriCollectNode extends CollectNode {
             return this;
         }
         FileUriCollectNode result = new FileUriCollectNode(
-                id(),
+                executionNodeId(),
+                name(),
                 routing(),
                 normalizedTargetUri,
                 normalizedToCollect,
                 projections(),
                 compression(),
                 sharedStorage());
-        result.downStreamNodes(downStreamNodes());
+        result.downstreamNodes(downstreamNodes());
         result.maxRowGranularity(maxRowGranularity());
+        result.jobId(jobId().orNull());
+        result.isPartitioned(isPartitioned());
         result.whereClause(normalizedWhereClause);
-        if (jobId().isPresent()) {
-            result.jobId(jobId().get());
-        }
         return result;
     }
 
@@ -118,8 +130,8 @@ public class FileUriCollectNode extends CollectNode {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("id", id())
+        return MoreObjects.toStringHelper(this)
+                .add("name", name())
                 .add("targetUri", targetUri)
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)

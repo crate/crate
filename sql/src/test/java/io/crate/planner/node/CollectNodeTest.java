@@ -32,41 +32,41 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.UUID;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 public class CollectNodeTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-
-        CollectNode cn = new CollectNode("cn");
+        CollectNode cn = new CollectNode(0, "cn");
         cn.maxRowGranularity(RowGranularity.DOC);
 
-        cn.downStreamNodes(ImmutableList.of("n1", "n2"));
+        cn.downstreamNodes(Arrays.asList("n1", "n2"));
         cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
-
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode();
+        CollectNode cn2 = new CollectNode(1, "collect");
         cn2.readFrom(in);
-        assertEquals(cn, cn2);
+        assertThat(cn, equalTo(cn2));
 
-        assertEquals(cn.toCollect(), cn2.toCollect());
-        assertEquals(cn.downStreamNodes(), cn2.downStreamNodes());
-        assertEquals(cn.maxRowGranularity(), cn.maxRowGranularity());
+        assertThat(cn.toCollect(), is(cn2.toCollect()));
+        assertThat(cn.downstreamNodes(), is(cn2.downstreamNodes()));
+        assertThat(cn.maxRowGranularity(), is(cn.maxRowGranularity()));
 
     }
 
     @Test
     public void testStreamingWithJobId() throws Exception {
-
-        CollectNode cn = new CollectNode("cn");
+        CollectNode cn = new CollectNode(0, "cn");
         cn.maxRowGranularity(RowGranularity.DOC);
-
-        cn.downStreamNodes(ImmutableList.of("n1", "n2"));
+        cn.downstreamNodes(Arrays.asList("n1", "n2"));
         cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
         cn.jobId(UUID.randomUUID());
 
@@ -74,12 +74,15 @@ public class CollectNodeTest extends CrateUnitTest {
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode();
+        CollectNode cn2 = new CollectNode(1, "collect");
         cn2.readFrom(in);
-        assertEquals(cn, cn2);
+        assertThat(cn, equalTo(cn2));
 
-        assertEquals(cn.toCollect(), cn2.toCollect());
-        assertEquals(cn.downStreamNodes(), cn2.downStreamNodes());
-        assertEquals(cn.maxRowGranularity(), cn2.maxRowGranularity());
+        assertThat(cn.toCollect(), is(cn2.toCollect()));
+        assertThat(cn.downstreamNodes(), is(cn2.downstreamNodes()));
+        assertThat(cn.executionNodes(), is(cn2.executionNodes()));
+        assertThat(cn.jobId(), is(cn2.jobId()));
+        assertThat(cn.executionNodeId(), is(cn2.executionNodeId()));
+        assertThat(cn.maxRowGranularity(), is(cn2.maxRowGranularity()));
     }
 }

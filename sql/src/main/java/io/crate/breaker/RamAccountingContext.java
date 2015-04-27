@@ -21,9 +21,11 @@
 
 package io.crate.breaker;
 
+import io.crate.planner.node.ExecutionNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RamAccountingContext {
@@ -38,6 +40,12 @@ public class RamAccountingContext {
     private final AtomicLong flushBuffer = new AtomicLong(0);
     private volatile boolean closed = false;
     private volatile boolean tripped = false;
+
+    public static RamAccountingContext forExecutionNode(CircuitBreaker breaker, ExecutionNode executionNode) {
+        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",
+                executionNode.name(), executionNode.executionNodeId());
+        return new RamAccountingContext(ramAccountingContextId, breaker);
+    }
 
     public RamAccountingContext(String contextId, CircuitBreaker breaker) {
         this.contextId = contextId;

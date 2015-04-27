@@ -22,7 +22,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
@@ -38,7 +37,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
@@ -57,9 +55,7 @@ import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.search.SearchHits;
 import org.junit.After;
 import org.junit.Before;
@@ -71,7 +67,6 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.number.OrderingComparison.greaterThan;
 
 public class TransportExecutorTest extends BaseTransportExecutorTest {
 
@@ -96,7 +91,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey) {
-        return newGetNode(tableName, outputs, Arrays.asList(singleStringKey));
+        return newGetNode(tableName, outputs, Collections.singletonList(singleStringKey));
     }
 
     protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys) {
@@ -104,44 +99,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testRemoteCollectTask() throws Exception {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-
-        for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
-            locations.put(discoveryNode.id(), new TreeMap<String, List<Integer>>());
-        }
-
-        Routing routing = new Routing(locations);
-        ReferenceInfo load1 = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
-        Symbol reference = new Reference(load1);
-
-        CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.toCollect(Arrays.asList(reference));
-        collectNode.outputTypes(asList(load1.type()));
-        collectNode.maxRowGranularity(RowGranularity.NODE);
-
-        Plan plan = new IterablePlan(collectNode);
-        Job job = executor.newJob(plan);
-
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
-
-        assertThat(result.size(), is(2));
-        for (ListenableFuture<TaskResult> nodeResult : result) {
-            assertEquals(1, nodeResult.get().rows().size());
-            if (!OsUtils.WINDOWS) {
-                assertThat((Double) Iterables.getOnlyElement(nodeResult.get().rows()).get(0), is(greaterThan(0.0)));
-            }
-        }
-    }
-
-    @Test
     public void testMapSideCollectTask() throws Exception {
         ReferenceInfo clusterNameInfo = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
         Symbol reference = new Reference(clusterNameInfo);
 
-        CollectNode collectNode = new CollectNode("lcollect", new Routing());
+        CollectNode collectNode = new CollectNode(0, "lcollect", new Routing());
         collectNode.toCollect(asList(reference, Literal.newLiteral(2.3f)));
-        collectNode.outputTypes(asList(clusterNameInfo.type()));
+        collectNode.outputTypes(Collections.singletonList(clusterNameInfo.type()));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
 
         Plan plan = new IterablePlan(collectNode);
@@ -201,7 +165,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
         List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
 
-        Planner.Context ctx = new Planner.Context();
+        Planner.Context ctx = new Planner.Context(clusterService());
 
         CollectNode collectNode = PlanNodeBuilder.collect(
                 characters,
@@ -215,6 +179,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
@@ -228,7 +193,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new QueryThenFetch(collectNode, localMergeNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(2));
+        assertThat(job.tasks().size(), is(1));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, containsInAnyOrder(
@@ -253,7 +218,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
 
-        Planner.Context ctx = new Planner.Context();
+        Planner.Context ctx = new Planner.Context(clusterService());
 
         CollectNode collectNode = PlanNodeBuilder.collect(
                 characters,
@@ -267,6 +232,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
@@ -280,7 +246,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new QueryThenFetch(collectNode, localMergeNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(2));
+        assertThat(job.tasks().size(), is(1));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(isRow(2, "Ford")));
@@ -307,7 +273,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
         );
-        Planner.Context ctx = new Planner.Context();
+        Planner.Context ctx = new Planner.Context(clusterService());
 
         CollectNode collectNode = PlanNodeBuilder.collect(
                 characters,
@@ -322,6 +288,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
@@ -338,7 +305,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new QueryThenFetch(collectNode, localMergeNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(2));
+        assertThat(job.tasks().size(), is(1));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(
@@ -374,17 +341,17 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Function function = new Function(new FunctionInfo(
                 new FunctionIdent(DateTruncFunction.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.TIMESTAMP)),
                 DataTypes.TIMESTAMP
-        ), Arrays.<Symbol>asList(Literal.newLiteral("month"), date_ref));
+        ), Arrays.asList(Literal.newLiteral("month"), date_ref));
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
                 DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(id_ref, Literal.newLiteral(2))
+                Arrays.asList(id_ref, Literal.newLiteral(2))
         );
 
         DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
         ReferenceInfo docIdRefInfo = searchf.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
 
-        Planner.Context ctx = new Planner.Context();
+        Planner.Context ctx = new Planner.Context(clusterService());
         List<Symbol> collectSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo));
         CollectNode collectNode = PlanNodeBuilder.collect(
                 searchf,
@@ -398,23 +365,24 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
-        topN.outputs(Arrays.<Symbol>asList(new InputColumn(0)));
+        topN.outputs(Collections.<Symbol>singletonList(new InputColumn(0)));
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols,
-                Arrays.<Symbol>asList(id_ref, function),
+                Arrays.asList(id_ref, function),
                 searchf.partitionedByColumns(),
                 collectNode.executionNodes(),
                 5);
 
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(topN, fetchProjection),
+                ImmutableList.of(topN, fetchProjection),
                 collectNode,
                 ctx);
         Plan plan = new QueryThenFetch(collectNode, mergeNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(2));
+        assertThat(job.tasks().size(), is(1));
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
@@ -425,7 +393,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testQTFTaskPartitioned() throws Exception {
         setup.setUpPartitionedTableWithName();
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        Planner.Context ctx = new Planner.Context();
+        Planner.Context ctx = new Planner.Context(clusterService());
 
         ReferenceInfo docIdRefInfo = parted.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
@@ -443,6 +411,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = new FetchProjection(
+                collectNode.executionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 parted.partitionedByColumns(),
                 collectNode.executionNodes(),
@@ -456,7 +425,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new QueryThenFetch(collectNode, localMergeNode);
         Job job = executor.newJob(plan);
 
-        assertThat(job.tasks().size(), is(2));
+        assertThat(job.tasks().size(), is(1));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, containsInAnyOrder(

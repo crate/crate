@@ -21,11 +21,12 @@
 
 package io.crate.executor.transport;
 
+import io.crate.action.job.TransportJobAction;
 import io.crate.action.sql.query.CrateResultSorter;
 import io.crate.action.sql.query.CrateSearchService;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.executor.Executor;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.search.SearchService;
 
@@ -35,8 +36,9 @@ public class TransportExecutorModule extends AbstractModule {
     protected void configure() {
         bind(TransportActionProvider.class).asEagerSingleton();
         bind(Executor.class).to(TransportExecutor.class).asEagerSingleton();
-        bind(TransportCollectNodeAction.class).asEagerSingleton();
-        bind(TransportMergeNodeAction.class).asEagerSingleton();
+
+        bind(TransportJobAction.class).asEagerSingleton();
+        bind(TransportDistributedResultAction.class).asEagerSingleton();
         bind(TransportQueryShardAction.class).asEagerSingleton();
         bind(SymbolBasedTransportShardUpsertAction.class).asEagerSingleton();
         bind(TransportShardUpsertAction.class).asEagerSingleton();

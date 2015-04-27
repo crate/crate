@@ -29,6 +29,8 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
@@ -47,57 +49,63 @@ import java.util.UUID;
  */
 public class CollectNode extends AbstractDQLPlanNode {
 
+    public static final ExecutionNodeFactory<CollectNode> FACTORY = new ExecutionNodeFactory<CollectNode>() {
+        @Override
+        public CollectNode create() {
+            return new CollectNode();
+        }
+    };
     private Optional<UUID> jobId = Optional.absent();
     private Routing routing;
     private List<Symbol> toCollect;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
     private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
-    private List<String> downStreamNodes;
+
+    @Nullable
+    private List<String> downstreamNodes;
+
+    private int downstreamExecutionNodeId = ExecutionNode.NO_EXECUTION_NODE;
+
     private boolean isPartitioned = false;
     private boolean keepContextForFetcher = false;
 
     private @Nullable Integer limit = null;
     private @Nullable OrderBy orderBy = null;
 
-    public CollectNode(String id) {
-        super(id);
-    }
-
-    public CollectNode() {
+    protected CollectNode() {
         super();
     }
 
-    public CollectNode(String id, Routing routing) {
-        this(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    public CollectNode(int executionNodeId, String name) {
+        super(executionNodeId, name);
     }
 
-    public CollectNode(String id, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
-        super(id);
+    public CollectNode(int executionNodeId, String name, Routing routing) {
+        this(executionNodeId, name, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    }
+
+    public CollectNode(int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+        super(executionNodeId, name);
         this.routing = routing;
         this.toCollect = toCollect;
         this.projections = projections;
+        this.downstreamNodes = ImmutableList.of(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE);
     }
 
-    /**
-     * This method returns true if downstreams are defined, which means that results of this collect
-     * operation should be sent to other nodes instead of being returned directly.
-     */
-    public boolean hasDownstreams() {
-        return downStreamNodes != null && downStreamNodes.size() > 0;
+    public CollectNode(int executionNodeId, String name, @Nullable UUID jobId) {
+        super(executionNodeId, name);
+        this.jobId = Optional.fromNullable(jobId);
     }
 
-    public List<String> downStreamNodes() {
-        return downStreamNodes;
-    }
-
-    public void downStreamNodes(List<String> downStreamNodes) {
-        this.downStreamNodes = downStreamNodes;
+    @Override
+    public Type type() {
+        return Type.COLLECT;
     }
 
     @Override
     public Set<String> executionNodes() {
-        if (routing != null && routing.hasLocations()) {
-            return routing.locations().keySet();
+        if (routing != null) {
+            return routing.nodes();
         } else {
             return ImmutableSet.of();
         }
@@ -117,6 +125,39 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     public void orderBy(@Nullable OrderBy orderBy) {
         this.orderBy = orderBy;
+    }
+
+    @Nullable
+    public List<String> downstreamNodes() {
+        return downstreamNodes;
+    }
+
+    /**
+     * This method returns true if downstreams other than
+     * {@link ExecutionNode#DIRECT_RETURN_DOWNSTREAM_NODE} are defined, which means that results
+     * of this collect operation should be sent to other nodes instead of being returned directly.
+     */
+    public boolean hasDistributingDownstreams() {
+        if (downstreamNodes != null && downstreamNodes.size() > 0) {
+            if (downstreamNodes.size() == 1
+                    && downstreamNodes.get(0).equals(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE)) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public void downstreamNodes(List<String> downStreamNodes) {
+        this.downstreamNodes = downStreamNodes;
+    }
+
+    public void downstreamExecutionNodeId(int executionNodeId) {
+        this.downstreamExecutionNodeId = executionNodeId;
+    }
+
+    public int downstreamExecutionNodeId() {
+        return downstreamExecutionNodeId;
     }
 
     public WhereClause whereClause() {
@@ -150,7 +191,6 @@ public class CollectNode extends AbstractDQLPlanNode {
      * Only used on {@link io.crate.operation.collect.HandlerSideDataCollectOperation},
      * so no serialization is needed.
      *
-     * @return
      */
     public boolean isPartitioned() {
         return isPartitioned;
@@ -184,8 +224,14 @@ public class CollectNode extends AbstractDQLPlanNode {
     }
 
     @Override
+    public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context) {
+        return visitor.visitCollectNode(this, context);
+    }
+
+    @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        downstreamExecutionNodeId = in.readVInt();
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -207,9 +253,9 @@ public class CollectNode extends AbstractDQLPlanNode {
         whereClause = new WhereClause(in);
 
         int numDownStreams = in.readVInt();
-        downStreamNodes = new ArrayList<>(numDownStreams);
+        downstreamNodes = new ArrayList<>(numDownStreams);
         for (int i = 0; i < numDownStreams; i++) {
-            downStreamNodes.add(in.readString());
+            downstreamNodes.add(in.readString());
         }
         if (in.readBoolean()) {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
@@ -223,11 +269,13 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (in.readBoolean()) {
             orderBy = OrderBy.fromStream(in);
         }
+        isPartitioned = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeVInt(downstreamExecutionNodeId);
 
         int numCols = toCollect.size();
         out.writeVInt(numCols);
@@ -245,10 +293,10 @@ public class CollectNode extends AbstractDQLPlanNode {
         }
         whereClause.writeTo(out);
 
-        if (hasDownstreams()) {
-            out.writeVInt(downStreamNodes.size());
-            for (String node : downStreamNodes) {
-                out.writeString(node);
+        if (downstreamNodes != null) {
+            out.writeVInt(downstreamNodes.size());
+            for (String downstreamNode : downstreamNodes) {
+                out.writeString(downstreamNode);
             }
         } else {
             out.writeVInt(0);
@@ -271,6 +319,7 @@ public class CollectNode extends AbstractDQLPlanNode {
         } else {
             out.writeBoolean(false);
         }
+        out.writeBoolean(isPartitioned);
     }
 
     /**
@@ -288,11 +337,12 @@ public class CollectNode extends AbstractDQLPlanNode {
             changed = changed || newWhereClause != whereClause();
         }
         if (changed) {
-            result = new CollectNode(id(), routing, newToCollect, projections);
-            result.downStreamNodes = downStreamNodes;
+            result = new CollectNode(executionNodeId(), name(), routing, newToCollect, projections);
+            result.downstreamNodes = downstreamNodes;
             result.maxRowGranularity = maxRowGranularity;
             result.jobId = jobId;
             result.keepContextForFetcher = keepContextForFetcher;
+            result.isPartitioned(isPartitioned);
             result.whereClause(newWhereClause);
         }
         return result;

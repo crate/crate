@@ -24,14 +24,14 @@ package io.crate.executor.transport;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
+import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
-import io.crate.operation.collect.CollectContextService;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.fetch.NodeFetchOperation;
 import io.crate.planner.symbol.Reference;
@@ -51,7 +51,7 @@ import org.elasticsearch.transport.TransportService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.UUID;
+import java.util.Locale;
 
 @Singleton
 public class TransportFetchNodeAction {
@@ -61,7 +61,7 @@ public class TransportFetchNodeAction {
     private final ClusterService clusterService;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
-    private final CollectContextService collectContextService;
+    private final JobContextService jobContextService;
     private final String executorName = ThreadPool.Names.SEARCH;
     private final ThreadPool threadPool;
     private final Functions functions;
@@ -73,12 +73,12 @@ public class TransportFetchNodeAction {
                                     StatsTables statsTables,
                                     Functions functions,
                                     CircuitBreakerService breakerService,
-                                    CollectContextService collectContextService) {
+                                    JobContextService jobContextService) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.statsTables = statsTables;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
-        this.collectContextService = collectContextService;
+        this.jobContextService = jobContextService;
         this.threadPool = threadPool;
         this.functions = functions;
 
@@ -94,54 +94,52 @@ public class TransportFetchNodeAction {
 
     private void nodeOperation(final NodeFetchRequest request,
                                final ActionListener<NodeFetchResponse> fetchResponse) {
-        final UUID operationId = UUID.randomUUID();
-        statsTables.operationStarted(operationId, request.jobId(), "fetch");
-        String ramAccountingContextId = String.format("%s: %s", request.jobId(), operationId);
+        statsTables.operationStarted(request.executionNodeId(), request.jobId(), "fetch");
+        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d", request.jobId(), request.executionNodeId());
         final RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
         NodeFetchOperation fetchOperation = new NodeFetchOperation(
                 request.jobId(),
+                request.executionNodeId(),
                 request.jobSearchContextDocIds(),
                 request.toFetchReferences(),
                 request.closeContext(),
-                collectContextService,
+                jobContextService,
                 threadPool,
                 functions,
                 ramAccountingContext);
 
-        ListenableFuture<Bucket> result;
-        try {
-            result = fetchOperation.fetch();
-        } catch (Throwable t) {
-            fetchResponse.onFailure(t);
-            statsTables.operationFinished(operationId, Exceptions.messageOf(t),
-                    ramAccountingContext.totalBytes());
-            ramAccountingContext.close();
-            return;
+        SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(outputStreamers(request.toFetchReferences()));
 
-        }
-
-        Futures.addCallback(result, new FutureCallback<Bucket>() {
+        final NodeFetchResponse response = new NodeFetchResponse(outputStreamers(request.toFetchReferences()));
+        Futures.addCallback(bucketBuilder.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(@Nullable Bucket result) {
                 assert result != null;
-                NodeFetchResponse response = new NodeFetchResponse(outputStreamers(request.toFetchReferences()));
                 response.rows(result);
 
                 fetchResponse.onResponse(response);
-                statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
+                statsTables.operationFinished(request.executionNodeId(), null, ramAccountingContext.totalBytes());
                 ramAccountingContext.close();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 fetchResponse.onFailure(t);
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t),
                         ramAccountingContext.totalBytes());
                 ramAccountingContext.close();
             }
         });
 
+        try {
+            fetchOperation.fetch(bucketBuilder);
+        } catch (Throwable t) {
+            fetchResponse.onFailure(t);
+            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t),
+                    ramAccountingContext.totalBytes());
+            ramAccountingContext.close();
+        }
     }
 
     private static Streamer<?>[] outputStreamers(List<Reference> toFetchReferences) {

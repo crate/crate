@@ -24,10 +24,16 @@ package io.crate.operation.fetch;
 import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
-import io.crate.operation.collect.CollectContextService;
+import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
@@ -45,7 +51,10 @@ import static org.mockito.Mockito.when;
 public class NodeFetchOperationTest extends CrateUnitTest {
 
     static ThreadPool threadPool;
-    static CollectContextService collectContextService;
+    static JobContextService jobContextService;
+
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     @BeforeClass
     public static void beforeClass() {
@@ -53,13 +62,13 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         when(threadPoolExecutor.getPoolSize()).thenReturn(2);
         threadPool = mock(ThreadPool.class);
         when(threadPool.executor(any(String.class))).thenReturn(threadPoolExecutor);
-        collectContextService = new CollectContextService(ImmutableSettings.EMPTY, threadPool);
+        jobContextService = new JobContextService(ImmutableSettings.EMPTY, threadPool);
     }
 
     @AfterClass
     public static void afterClass() {
         threadPool = null;
-        collectContextService = null;
+        jobContextService = null;
     }
 
     @Test
@@ -67,36 +76,40 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
+                1,
                 new LongArrayList(),
                 ImmutableList.<Reference>of(),
                 true,
-                collectContextService,
+                jobContextService,
                 threadPool,
                 mock(Functions.class),
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "No jobCollectContext found for job '%s'", jobId));
-        nodeFetchOperation.fetch();
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "JobExecutionContext for job %s not found", jobId));
+        nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
     }
 
     @Test
     public void testFetchOperationNoLuceneDocCollector() throws Exception {
         UUID jobId = UUID.randomUUID();
-        collectContextService.acquireContext(jobId);
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
+        builder.addCollectContext(1, new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
+        jobContextService.createOrMergeContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
+                1,
                 LongArrayList.from(0L),
                 ImmutableList.<Reference>of(),
                 true,
-                collectContextService,
+                jobContextService,
                 threadPool,
                 mock(Functions.class),
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", 0));
-        nodeFetchOperation.fetch();
+        nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
     }
 }

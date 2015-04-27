@@ -39,7 +39,6 @@ import io.crate.planner.symbol.SymbolFormatter;
 import io.crate.planner.symbol.SymbolVisitor;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static java.lang.String.format;
 
@@ -291,10 +290,8 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     public Void visitUpsert(Upsert node, PrintContext context) {
         context.print("Upsert: ");
         context.indent();
-        for (List<DQLPlanNode> nodes : node.nodes()) {
-            for (DQLPlanNode planNode : nodes) {
-                planNodePrinter.process(planNode, context);
-            }
+        for (Plan plan : node.nodes()) {
+            process(plan, context);
         }
         context.dedent();
         return null;
