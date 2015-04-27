@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.Streamer;
@@ -36,16 +35,11 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.operation.fetch.NodeFetchOperation;
 import io.crate.planner.symbol.Reference;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
-import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
@@ -54,45 +48,67 @@ import java.util.List;
 import java.util.Locale;
 
 @Singleton
-public class TransportFetchNodeAction {
+public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, NodeFetchResponse> {
 
-    private final String transportAction = "crate/sql/node/fetch";
-    private final TransportService transportService;
-    private final ClusterService clusterService;
+    private static final String TRANSPORT_ACTION = "crate/sql/node/fetch";
+    private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
+
+    private Transports transports;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
     private final JobContextService jobContextService;
-    private final String executorName = ThreadPool.Names.SEARCH;
     private final ThreadPool threadPool;
     private final Functions functions;
 
     @Inject
     public TransportFetchNodeAction(TransportService transportService,
+                                    Transports transports,
                                     ThreadPool threadPool,
-                                    ClusterService clusterService,
                                     StatsTables statsTables,
                                     Functions functions,
                                     CircuitBreakerService breakerService,
                                     JobContextService jobContextService) {
-        this.transportService = transportService;
-        this.clusterService = clusterService;
+        this.transports = transports;
         this.statsTables = statsTables;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.jobContextService = jobContextService;
         this.threadPool = threadPool;
         this.functions = functions;
 
-        transportService.registerHandler(transportAction, new TransportHandler());
+        transportService.registerHandler(TRANSPORT_ACTION,
+                new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {
+            @Override
+            public NodeFetchRequest newInstance() {
+                return new NodeFetchRequest();
+            }
+        });
     }
 
     public void execute(
             String targetNode,
-            NodeFetchRequest request,
+            final NodeFetchRequest request,
             ActionListener<NodeFetchResponse> listener) {
-        new AsyncAction(targetNode, request, listener).start();
+        transports.executeLocalOrWithTransport(this, targetNode, request, listener,
+                new DefaultTransportResponseHandler<NodeFetchResponse>(listener, executorName()) {
+            @Override
+            public NodeFetchResponse newInstance() {
+                return new NodeFetchResponse(outputStreamers(request.toFetchReferences()));
+            }
+        });
     }
 
-    private void nodeOperation(final NodeFetchRequest request,
+    @Override
+    public String actionName() {
+        return TRANSPORT_ACTION;
+    }
+
+    @Override
+    public String executorName() {
+        return EXECUTOR_NAME;
+    }
+
+    @Override
+    public void nodeOperation(final NodeFetchRequest request,
                                final ActionListener<NodeFetchResponse> fetchResponse) {
         statsTables.operationStarted(request.executionNodeId(), request.jobId(), "fetch");
         String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d", request.jobId(), request.executionNodeId());
@@ -149,71 +165,4 @@ public class TransportFetchNodeAction {
         }
         return streamers;
     }
-
-
-    private class AsyncAction {
-
-        private final NodeFetchRequest request;
-        private final ActionListener<NodeFetchResponse> listener;
-        private final Streamer<?>[] streamers;
-        private final DiscoveryNode node;
-        private final String nodeId;
-        private final ClusterState clusterState;
-
-        private AsyncAction(String nodeId, NodeFetchRequest request, ActionListener<NodeFetchResponse> listener) {
-            Preconditions.checkNotNull(nodeId, "nodeId is null");
-            clusterState = clusterService.state();
-            node = clusterState.nodes().get(nodeId);
-            Preconditions.checkNotNull(node, "DiscoveryNode for id '%s' not found in cluster state", nodeId);
-
-            this.nodeId = nodeId;
-            this.request = request;
-            this.listener = listener;
-            this.streamers = outputStreamers(request.toFetchReferences());
-        }
-
-        private void start() {
-            if (nodeId.equals("_local") || nodeId.equals(clusterState.nodes().localNodeId())) {
-                threadPool.executor(executorName).execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        nodeOperation(request, listener);
-                    }
-                });
-            } else {
-                transportService.sendRequest(
-                        node,
-                        transportAction,
-                        request,
-                        new DefaultTransportResponseHandler<NodeFetchResponse>(listener, executorName) {
-                            @Override
-                            public NodeFetchResponse newInstance() {
-                                return new NodeFetchResponse(streamers);
-                            }
-                        }
-                );
-            }
-        }
-
-    }
-
-    private class TransportHandler extends BaseTransportRequestHandler<NodeFetchRequest> {
-
-        @Override
-        public NodeFetchRequest newInstance() {
-            return new NodeFetchRequest();
-        }
-
-        @Override
-        public void messageReceived(final NodeFetchRequest request, final TransportChannel channel) throws Exception {
-            ActionListener<NodeFetchResponse> actionListener = ResponseForwarder.forwardTo(channel);
-            nodeOperation(request, actionListener);
-        }
-
-        @Override
-        public String executor() {
-            return executorName;
-        }
-    }
-
 }
