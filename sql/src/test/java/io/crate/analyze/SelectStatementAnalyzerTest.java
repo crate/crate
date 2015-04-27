@@ -272,8 +272,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         List<String> outputNames = outputNames(analysis.relation());
         assertThat(outputNames.get(0), is("id"));
         assertThat(outputNames.get(1), is("id"));
-        assertThat(outputNames.size(), is(14));
-        assertThat(analysis.relation().querySpec().outputs().size(), is(14));
+        assertThat(outputNames.size(), is(15));
+        assertThat(analysis.relation().querySpec().outputs().size(), is(15));
     }
 
     @Test

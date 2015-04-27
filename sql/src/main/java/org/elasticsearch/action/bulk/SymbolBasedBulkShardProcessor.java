@@ -22,6 +22,11 @@
 package org.elasticsearch.action.bulk;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
@@ -31,8 +36,10 @@ import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
+import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
@@ -41,11 +48,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -58,8 +66,13 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class SymbolBasedBulkShardProcessor {
 
+    public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
+
     private final boolean autoCreateIndices;
+    private final Predicate<String> shouldAutocreateIndexPredicate;
+
     private final int bulkSize;
+    private final int createIndicesBulkSize;
 
     private final Map<ShardId, SymbolBasedShardUpsertRequest> requestsByShard = new HashMap<>();
     private final AtomicInteger globalCounter = new AtomicInteger(0);
@@ -75,8 +88,11 @@ public class SymbolBasedBulkShardProcessor {
     private volatile boolean closed = false;
 
     private final ClusterService clusterService;
-    private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final AutoCreateIndex autoCreateIndex;
+
+    private final AtomicInteger pendingNewIndexRequests = new AtomicInteger(0);
+    private final Map<String, List<PendingRequest>> requestsForNewIndices = new HashMap<>();
     private final Set<String> indicesCreated = new HashSet<>();
 
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
@@ -93,7 +109,7 @@ public class SymbolBasedBulkShardProcessor {
     private static final ESLogger LOGGER = Loggers.getLogger(SymbolBasedBulkShardProcessor.class);
 
     public SymbolBasedBulkShardProcessor(ClusterService clusterService,
-                                         TransportCreateIndexAction transportCreateIndexAction,
+                                         TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                                          Settings settings,
                                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                          boolean autoCreateIndices,
@@ -108,11 +124,19 @@ public class SymbolBasedBulkShardProcessor {
         this.autoCreateIndices = autoCreateIndices;
         this.overwriteDuplicates = overwriteDuplicates;
         this.bulkSize = bulkSize;
+        this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
         this.continueOnError = continueOnError;
         this.assignmentsColumns = assignmentsColumns;
         this.missingAssignmentsColumns = missingAssignmentsColumns;
         this.autoCreateIndex = new AutoCreateIndex(settings);
-        this.transportCreateIndexAction = transportCreateIndexAction;
+        this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
+        this.shouldAutocreateIndexPredicate = new Predicate<String>() {
+            @Override
+            public boolean apply(@Nullable String input) {
+                assert input != null;
+                return autoCreateIndex.shouldAutoCreate(input, SymbolBasedBulkShardProcessor.this.clusterService.state());
+            }
+        };
 
         this.requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
 
@@ -134,21 +158,21 @@ public class SymbolBasedBulkShardProcessor {
             return false;
         }
 
-        if (autoCreateIndices) {
-            createIndexIfRequired(indexName);
+        ShardId shardId = shardId(indexName, id, routing);
+        if (shardId == null) {
+            addRequestForNewIndex(indexName, id, assignments, missingAssignments, routing, version);
+        } else {
+            try {
+                // will only block if retries/writer are active
+                bulkRetryCoordinatorPool.coordinator(shardId).retryLock().acquireReadLock();
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+            } catch (Throwable e) {
+                setFailure(e);
+                return false;
+            }
+            partitionRequestByShard(shardId, id, assignments, missingAssignments, routing, version);
         }
-
-        ShardId shardId = getShard(indexName, id, routing);
-        try {
-            // will only block if retries/writer are active
-            bulkRetryCoordinatorPool.coordinator(shardId).retryLock().acquireReadLock();
-        } catch (InterruptedException e) {
-            Thread.interrupted();
-        } catch (Throwable e) {
-            setFailure(e);
-            return false;
-        }
-        partitionRequestByShard(shardId, id, assignments, missingAssignments, routing, version);
         executeIfNeeded();
         return true;
     }
@@ -189,37 +213,42 @@ public class SymbolBasedBulkShardProcessor {
         return true;
     }
 
-    private ShardId getShard(String indexName,
-                             String id,
-                             @Nullable String routing) {
-        return clusterService.operationRouting().indexShards(
-                clusterService.state(),
-                indexName,
-                Constants.DEFAULT_MAPPING_TYPE,
-                id,
-                routing
-        ).shardId();
+    @Nullable
+    private ShardId shardId(String indexName,
+                            String id,
+                            @Nullable String routing) {
+        ShardId shardId = null;
+        try {
+            shardId = clusterService.operationRouting().indexShards(
+                    clusterService.state(),
+                    indexName,
+                    Constants.DEFAULT_MAPPING_TYPE,
+                    id,
+                    routing
+            ).shardId();
+        } catch (IndexMissingException e) {
+            if (!autoCreateIndices) {
+                throw e;
+            }
+        }
+        return shardId;
     }
 
-    private void createIndexIfRequired(final String indexName) {
-        if (!indicesCreated.contains(indexName) || autoCreateIndex.shouldAutoCreate(indexName, clusterService.state())) {
-            try {
-                transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("symbolBasedBulkShardProcessor")).actionGet();
-                indicesCreated.add(indexName);
-            } catch (Throwable e) {
-                e = ExceptionsHelper.unwrapCause(e);
-                if (e instanceof IndexAlreadyExistsException) {
-                    // copy from with multiple readers might attempt to create the index
-                    // multiple times
-                    // can be ignored.
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("copy from index {}", e.getMessage());
-                    }
-                    indicesCreated.add(indexName);
-                } else {
-                    setFailure(e);
-                }
+    private void addRequestForNewIndex(String indexName,
+                                       String id,
+                                       @Nullable Symbol[] assignments,
+                                       @Nullable Object[] missingAssignments,
+                                       @Nullable String routing,
+                                       @Nullable Long version) {
+        synchronized (requestsForNewIndices) {
+            List<PendingRequest> pendingRequestList = requestsForNewIndices.get(indexName);
+            if (pendingRequestList == null) {
+                pendingRequestList = new ArrayList<>();
+                requestsForNewIndices.put(indexName, pendingRequestList);
             }
+            pendingRequestList.add(new PendingRequest(indexName, id, assignments,
+                    missingAssignments, routing, version));
+            pendingNewIndexRequests.incrementAndGet();
         }
     }
 
@@ -273,6 +302,77 @@ public class SymbolBasedBulkShardProcessor {
         }
     }
 
+    private void createPendingIndices() {
+        final List<PendingRequest> pendings = new ArrayList<>();
+        final Set<String> indices;
+
+        synchronized (requestsForNewIndices) {
+            indices = ImmutableSet.copyOf(
+                    Iterables.filter(
+                            Sets.difference(requestsForNewIndices.keySet(), indicesCreated),
+                            shouldAutocreateIndexPredicate)
+            );
+            for (Map.Entry<String, List<PendingRequest>> entry : requestsForNewIndices.entrySet()) {
+                pendings.addAll(entry.getValue());
+            }
+            requestsForNewIndices.clear();
+            pendingNewIndexRequests.set(0);
+        }
+
+
+        if (pendings.size() > 0 || indices.size() > 0) {
+            LOGGER.debug("create {} pending indices in bulk...", indices.size());
+            TimeValue timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
+            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
+                    .ignoreExisting(true)
+                    .timeout(timeout); // wait up to 10 seconds for every create index request
+
+            FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
+                @Override
+                public void onSuccess(@Nullable Void result) {
+                    trace("applying pending requests for created indices...");
+                    for (final PendingRequest pendingRequest : pendings) {
+                        // add pending requests for created indices
+                        ShardId shardId = shardId(pendingRequest.indexName, pendingRequest.id, pendingRequest.routing);
+                        partitionRequestByShard(shardId, pendingRequest.id,
+                                pendingRequest.assignments,
+                                pendingRequest.missingAssignments,
+                                pendingRequest.routing, pendingRequest.version);
+                    }
+                    trace("added %d pending requests, lets see if we can execute them", pendings.size());
+                    executeRequestsIfNeeded();
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    setFailure(t);
+                }
+            };
+
+            if (indices.isEmpty()) {
+                indicesCreatedCallback.onSuccess(null);
+            } else {
+                // initialize callback for when all indices are created
+                IndicesCreatedObserver.waitForIndicesCreated(clusterService, LOGGER, indices, indicesCreatedCallback, timeout);
+                // initiate the request
+                transportBulkCreateIndicesAction.execute(bulkCreateIndicesRequest, new ActionListener<BulkCreateIndicesResponse>() {
+                    @Override
+                    public void onResponse(BulkCreateIndicesResponse response) {
+                        trace("%d of %d indices already created", response.alreadyExisted().size(), indices.size());
+                        indicesCreated.addAll(indices);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        LOGGER.error("error when creating pending indices in bulk", t);
+                        setFailure(ExceptionsHelper.unwrapCause(t));
+                    }
+                });
+            }
+        }
+
+    }
+
 
     public ListenableFuture<BitSet> result() {
         return result;
@@ -281,6 +381,7 @@ public class SymbolBasedBulkShardProcessor {
     public void close() {
         trace("close");
         closed = true;
+        createPendingIndices();
         executeRequests();
         if (pending.get() == 0) {
             setResult();
@@ -302,21 +403,28 @@ public class SymbolBasedBulkShardProcessor {
     }
 
     private void setResultIfDone(int successes) {
-        for (int i = 0; i < successes; i++) {
-            if (pending.decrementAndGet() == 0 && closed) {
-                setResult();
-            }
+        if (pending.addAndGet(-successes) == 0 && closed) {
+            setResult();
         }
     }
 
     private void executeIfNeeded() {
+        if (closed
+                || requestsForNewIndices.size() >= createIndicesBulkSize
+                || pendingNewIndexRequests.get() >= bulkSize) {
+            createPendingIndices();
+        }
+        executeRequestsIfNeeded();
+    }
+
+    private void executeRequestsIfNeeded() {
         if (closed || requestItemCounter.get() >= bulkSize) {
             executeRequests();
         }
     }
 
     private void processResponse(ShardUpsertResponse shardUpsertResponse) {
-        trace("execute response");
+        trace("executing response...");
         for (int i = 0; i < shardUpsertResponse.locations().size(); i++) {
             int location = shardUpsertResponse.locations().get(i);
             synchronized (responsesLock) {
@@ -324,6 +432,7 @@ public class SymbolBasedBulkShardProcessor {
             }
         }
         setResultIfDone(shardUpsertResponse.locations().size());
+        trace("response executed.");
     }
 
     private void processFailure(Throwable e, SymbolBasedShardUpsertRequest symbolBasedShardUpsertRequest, boolean repeatingRetry) {
@@ -378,10 +487,39 @@ public class SymbolBasedBulkShardProcessor {
         }
     }
 
-    private void trace(String message) {
+    private void trace(String message, Object ... args) {
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("BulkShardProcessor: pending: {}; {}",
-                    pending.get(), message);
+            LOGGER.trace("SymbolBasedBulkShardProcessor: pending: {}; {}",
+                    pending.get(),
+                    String.format(Locale.ENGLISH, message, args));
+        }
+    }
+
+    static class PendingRequest {
+        private final String indexName;
+        private final String id;
+        @Nullable
+        private final Symbol[] assignments;
+        @Nullable
+        private final Object[] missingAssignments;
+        @Nullable
+        private final String routing;
+        @Nullable
+        private final Long version;
+
+
+        PendingRequest(String indexName,
+                       String id,
+                       @Nullable Symbol[] assignments,
+                       @Nullable Object[] missingAssignments,
+                       @Nullable String routing,
+                       @Nullable Long version) {
+            this.indexName = indexName;
+            this.id = id;
+            this.assignments = assignments;
+            this.missingAssignments = missingAssignments;
+            this.routing = routing;
+            this.version = version;
         }
     }
 

@@ -37,6 +37,7 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
@@ -62,6 +63,7 @@ public class UpsertByIdTask extends JobTask {
 
     private final TransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final UpsertByIdNode node;
@@ -78,12 +80,14 @@ public class UpsertByIdTask extends JobTask {
                           Settings settings,
                           TransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
                           TransportCreateIndexAction transportCreateIndexAction,
+                          TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                           UpsertByIdNode node) {
         super(jobId);
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.clusterService = clusterService;
+        this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.node = node;
         autoCreateIndex = new AutoCreateIndex(settings);
@@ -191,7 +195,7 @@ public class UpsertByIdTask extends JobTask {
         bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 settings,
-                transportCreateIndexAction,
+                transportBulkCreateIndicesAction,
                 shardingProjector,
                 node.isPartitionedTable(),
                 false, // overwrite Duplicates

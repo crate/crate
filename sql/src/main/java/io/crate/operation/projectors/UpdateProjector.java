@@ -31,7 +31,7 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
@@ -67,7 +67,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     public UpdateProjector(ClusterService clusterService,
                            Settings settings,
                            ShardId shardId,
-                           TransportCreateIndexAction transportCreateIndexAction,
+                           TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                            BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                            CollectExpression<?> collectUidExpression,
                            String[] assignmentsColumns,
@@ -79,7 +79,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
         this.requiredVersion = requiredVersion;
         this.bulkShardProcessor = new SymbolBasedBulkShardProcessor(
                 clusterService,
-                transportCreateIndexAction,
+                transportBulkCreateIndicesAction,
                 settings,
                 bulkRetryCoordinatorPool,
                 false,

@@ -21,6 +21,7 @@
 package io.crate.operation.reference.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.metadata.GlobalReferenceResolver;
@@ -150,6 +151,7 @@ public class TestSysNodesExpressions extends CrateUnitTest {
 
             DiscoveryNode node = mock(DiscoveryNode.class);
             when(nodeStats.getNode()).thenReturn(node);
+            when(clusterService.localNode()).thenReturn(node);
 
             when(nodeStats.getOs()).thenReturn(osStats);
             when(osStats.uptime()).thenReturn(new TimeValue(3600000));
@@ -178,6 +180,9 @@ public class TestSysNodesExpressions extends CrateUnitTest {
             when(node.getName()).thenReturn("node 1");
             TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
             when(node.address()).thenReturn(transportAddress);
+            when(node.attributes()).thenReturn(
+                    ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
+            );
 
             NetworkStats.Tcp tcp = mock(NetworkStats.Tcp.class, new Answer<Long>() {
                 @Override
@@ -350,6 +355,13 @@ public class TestSysNodesExpressions extends CrateUnitTest {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "hostname");
         SysExpression<BytesRef> hostname = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("localhost"), hostname.value());
+    }
+
+    @Test
+    public void testRestUrl() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "rest_url");
+        SysExpression<BytesRef> http_addr = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("http://localhost:44200"), http_addr.value());
     }
 
     @Test

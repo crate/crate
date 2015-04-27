@@ -19,24 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.stress;
+package io.crate.operation.reference.sys.node;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.action.sql.SQLResponse;
-import io.crate.concurrent.Threaded;
-import io.crate.test.integration.CrateIntegrationTest;
-import org.junit.Test;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.inject.Inject;
 
-import static org.hamcrest.Matchers.is;
+public class NodeRestUrlExpression extends SysNodeExpression<BytesRef> {
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
-public class SysClusterStressTest extends AbstractIntegrationStressTest {
+    public static final String NAME = "rest_url";
 
-    @Test
-    @Repeat(iterations = 10)
-    @Threaded(count = 2)
-    public void testSelectStarFromSysCluster() throws Exception {
-        SQLResponse sqlResponse = execute("select * from sys.cluster");
-        assertThat(sqlResponse.rowCount(), is(1L));
+    private final ClusterService clusterService;
+
+    @Inject
+    public NodeRestUrlExpression(ClusterService clusterService) {
+        this.clusterService = clusterService;
     }
+
+    @Override
+    public BytesRef value() {
+        String val = clusterService.localNode() != null ? clusterService.localNode().attributes().get("http_address") : null;
+        if (val != null) {
+            return new BytesRef(val);
+        }
+        return new BytesRef();
+    }
+
 }
+

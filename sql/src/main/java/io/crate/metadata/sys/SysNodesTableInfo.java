@@ -57,6 +57,7 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("id", DataTypes.STRING, null);
         register("name", DataTypes.STRING, null);
         register("hostname", DataTypes.STRING, null);
+        register("rest_url", DataTypes.STRING, null);
         register("port", DataTypes.OBJECT, null);
         register("port", DataTypes.INTEGER, ImmutableList.of("http"));
         register("port", DataTypes.INTEGER, ImmutableList.of("transport"));

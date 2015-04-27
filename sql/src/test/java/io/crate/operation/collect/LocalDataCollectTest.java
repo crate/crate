@@ -70,6 +70,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.MetaDataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
 import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -220,6 +221,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
             bind(SearchService.class).toInstance(mock(InternalSearchService.class));
             bind(AllocationService.class).toInstance(mock(AllocationService.class));
+            bind(MetaDataCreateIndexService.class).toInstance(mock(MetaDataCreateIndexService.class));
             bind(DynamicSettings.class).annotatedWith(ClusterDynamicSettings.class).toInstance(mock(DynamicSettings.class));
             bind(MetaDataDeleteIndexService.class).toInstance(mock(MetaDataDeleteIndexService.class));
             bind(ClusterInfoService.class).toInstance(mock(ClusterInfoService.class));

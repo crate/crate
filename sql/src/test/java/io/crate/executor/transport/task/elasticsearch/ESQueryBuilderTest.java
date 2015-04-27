@@ -514,7 +514,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
 
         Function whereClause = new Function(anyEqImpl.info(),
                 Arrays.asList(doubleRef, doubleArrayLiteral));
-        xcontentAssert(whereClause, "{\"query\":{\"terms\":{\"d\":[-1.5,0.0,1.5]}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"terms\":{\"d\":[-1.5,0.0,1.5]}}}}}");
     }
 
     @Test
@@ -528,15 +528,16 @@ public class ESQueryBuilderTest extends CrateUnitTest {
 
         Function whereClause = new Function(anyNeqImpl.info(),
                 Arrays.asList(doubleRef, doubleArrayLiteral));
-        xcontentAssert(whereClause, "{\"query\":" +
-                "{\"bool\":{\"must_not\":" +
-                    "{\"bool\":{\"must\":[" +
-                        "{\"term\":{\"d\":-1.5}}," +
-                        "{\"term\":{\"d\":0.0}}," +
-                        "{\"term\":{\"d\":1.5}}" +
-                    "]}}" +
-                "}}" +
-            "}");
+        xcontentAssert(whereClause, "{\"query\":{" +
+                "\"filtered\":{" +
+                    "\"query\":{\"match_all\":{}}," +
+                    "\"filter\":{" +
+                        "\"bool\":{\"must_not\":{" +
+                            "\"bool\":{\"must\":[" +
+                                "{\"term\":{\"d\":-1.5}}," +
+                                "{\"term\":{\"d\":0.0}}," +
+                                "{\"term\":{\"d\":1.5}}]" +
+                            "}}}}}}}");
     }
 
     @Test

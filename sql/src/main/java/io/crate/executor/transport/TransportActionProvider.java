@@ -22,8 +22,8 @@
 package io.crate.executor.transport;
 
 import io.crate.action.job.TransportJobAction;
-import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
@@ -46,7 +46,6 @@ import org.elasticsearch.common.inject.Provider;
 
 public class TransportActionProvider {
 
-    private final Provider<TransportDistributedResultAction> transportDistributedResultActionProvider;
     private final Provider<TransportFetchNodeAction> transportFetchNodeActionProvider;
     private final Provider<TransportCloseContextNodeAction> transportCloseContextNodeActionProvider;
 
@@ -67,12 +66,12 @@ public class TransportActionProvider {
     private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
+    private final Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider;
 
     private final Provider<TransportJobAction> transportJobInitActionProvider;
 
     @Inject
-    public TransportActionProvider(Provider<TransportDistributedResultAction> transportDistributedResultActionProvider,
-                                   Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
+    public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
                                    Provider<TransportCloseContextNodeAction> transportCloseContextNodeActionProvider,
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
                                    Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
@@ -89,7 +88,9 @@ public class TransportActionProvider {
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
                                    Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
-                                   Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider, Provider<TransportJobAction> transportJobInitActionProvider) {
+                                   Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
+                                   Provider<TransportJobAction> transportJobInitActionProvider,
+                                   Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
@@ -103,18 +104,21 @@ public class TransportActionProvider {
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.symbolBasedTransportShardUpsertActionProvider = symbolBasedTransportShardUpsertActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
-        this.transportDistributedResultActionProvider = transportDistributedResultActionProvider;
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
         this.transportCloseContextNodeActionProvider = transportCloseContextNodeActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
         this.transportJobInitActionProvider = transportJobInitActionProvider;
+        this.transportBulkCreateIndicesActionProvider = transportBulkCreateIndicesActionProvider;
     }
-
 
     public TransportCreateIndexAction transportCreateIndexAction() {
         return transportCreateIndexActionProvider.get();
+    }
+
+    public TransportBulkCreateIndicesAction transportBulkCreateIndicesAction() {
+        return transportBulkCreateIndicesActionProvider.get();
     }
 
     public TransportDeleteIndexAction transportDeleteIndexAction() {
@@ -167,10 +171,6 @@ public class TransportActionProvider {
 
     public TransportJobAction transportJobInitAction() {
         return transportJobInitActionProvider.get();
-    }
-
-    public TransportDistributedResultAction transportDistributedResultAction() {
-        return transportDistributedResultActionProvider.get();
     }
 
     public TransportFetchNodeAction transportFetchNodeAction() {
