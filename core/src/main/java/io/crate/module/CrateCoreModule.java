@@ -24,7 +24,8 @@ package io.crate.module;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterIdService;
 import io.crate.Version;
-import io.crate.core.CrateLoader;
+import io.crate.core.CrateComponentLoader;
+import io.crate.plugin.PluginLoader;
 import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
@@ -45,13 +46,16 @@ import static org.elasticsearch.common.inject.Modules.createModule;
 
 public class CrateCoreModule extends AbstractModule implements SpawnModules, PreProcessModule {
 
-    private static final ESLogger logger = Loggers.getLogger(CrateCoreModule.class);
-    private final CrateLoader crateLoader;
+    private final ESLogger logger;
+    private final CrateComponentLoader crateComponentLoader;
+    private final PluginLoader pluginLoader;
     private final Settings settings;
 
     public CrateCoreModule(Settings settings) {
+        logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         this.settings = settings;
-        crateLoader = CrateLoader.getInstance(settings);
+        crateComponentLoader = CrateComponentLoader.getInstance(settings);
+        pluginLoader = PluginLoader.getInstance(settings);
     }
 
     @Override
@@ -59,7 +63,8 @@ public class CrateCoreModule extends AbstractModule implements SpawnModules, Pre
         Version version = Version.CURRENT;
         logger.info("configuring crate. version: {}", version);
 
-        bind(CrateLoader.class).toInstance(crateLoader);
+        bind(CrateComponentLoader.class).toInstance(crateComponentLoader);
+        bind(PluginLoader.class).toInstance(pluginLoader);
 
         /**
          * This is a rather hacky method to overwrite the handler for "/"
@@ -88,17 +93,20 @@ public class CrateCoreModule extends AbstractModule implements SpawnModules, Pre
 
     @Override
     public void processModule(Module module) {
-        crateLoader.processModule(module);
+        crateComponentLoader.processModule(module);
+        pluginLoader.processModule(module);
     }
 
     @Override
     public Iterable<? extends Module> spawnModules() {
         List<Module> modules = new ArrayList<>();
-        Collection<Class<? extends Module>> moduleClasses = crateLoader.modules();
+        Collection<Class<? extends Module>> moduleClasses = crateComponentLoader.modules();
+        moduleClasses.addAll(pluginLoader.modules());
         for (Class<? extends Module> moduleClass : moduleClasses) {
             modules.add(createModule(moduleClass, settings));
         }
-        modules.addAll(crateLoader.modules(settings));
+        modules.addAll(crateComponentLoader.modules(settings));
+        modules.addAll(pluginLoader.modules(settings));
         return modules;
     }
 

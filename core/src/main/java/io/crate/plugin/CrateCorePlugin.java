@@ -21,12 +21,14 @@
 
 package io.crate.plugin;
 
-import io.crate.core.CrateLoader;
+import com.google.common.collect.Lists;
+import io.crate.core.CrateComponentLoader;
 import io.crate.module.CrateCoreModule;
 import io.crate.module.CrateCoreShardModule;
 import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
@@ -37,11 +39,13 @@ import java.util.Collection;
 public class CrateCorePlugin extends AbstractPlugin {
 
     private final Settings settings;
-    private final CrateLoader crateLoader;
+    private final CrateComponentLoader crateComponentLoader;
+    private final PluginLoader pluginLoader;
 
     public CrateCorePlugin(Settings settings) {
         this.settings = settings;
-        this.crateLoader = CrateLoader.getInstance(settings);
+        crateComponentLoader = CrateComponentLoader.getInstance(settings);
+        pluginLoader = PluginLoader.getInstance(settings);
     }
 
     @Override
@@ -56,17 +60,26 @@ public class CrateCorePlugin extends AbstractPlugin {
 
     @Override
     public Settings additionalSettings() {
-        return crateLoader.additionalSettings();
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        builder.put(crateComponentLoader.additionalSettings());
+        builder.put(pluginLoader.additionalSettings());
+        return builder.build();
     }
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> services() {
-        return crateLoader.services();
+        Collection<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
+        services.addAll(crateComponentLoader.services());
+        services.addAll(pluginLoader.services());
+        return services;
     }
 
     @Override
     public Collection<Class<? extends Module>> indexModules() {
-        return crateLoader.indexModules();
+        Collection<Class<? extends Module>> indexModules = Lists.newArrayList();
+        indexModules.addAll(crateComponentLoader.indexModules());
+        indexModules.addAll(pluginLoader.indexModules());
+        return indexModules;
     }
 
     @Override
