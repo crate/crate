@@ -34,12 +34,12 @@ task stress(type: Test) {
     }
 }
 
-task bench(type: Test, dependsOn: [':app:getVersion']) {
+task bench(type: Test, dependsOn: [':core:getVersion']) {
     description = 'Run the Crate JUnit Benchmarks'
     group = 'crate'
 
     doFirst {
-        def version = project(':app').getVersion.version
+        def version = project(':core').getVersion.version
         systemProperty 'jub.customkey', version
     }
 
