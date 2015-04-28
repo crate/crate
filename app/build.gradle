@@ -31,6 +31,7 @@ evaluationDependsOn(':sql')
 evaluationDependsOn(':sql-parser')
 evaluationDependsOn(':blob')
 evaluationDependsOn(':udc')
+evaluationDependsOn(':client')
 
 dependencies {
     compile project(':core')
@@ -54,6 +55,7 @@ dependencies {
     compileNotTransitive project(':admin-ui')
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
+    compileNotTransitive project(':client')
 }
 
 task release(dependsOn: 'distTar') << {
@@ -85,7 +87,7 @@ task dist {
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
-    source = sourceSets.main.allJava + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava
+    source = sourceSets.main.allJava + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava + project(':client').sourceSets.main.allJava
 }
 
 task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
@@ -104,7 +106,7 @@ task buildJavadocJar (dependsOn: [':core:getVersion', myJavadocs] ) << {
 
 task sourceJar (type : Jar) {
     classifier = 'sources'
-    from sourceSets.main.allSource + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava
+    from sourceSets.main.allSource + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava + project(':client').sourceSets.main.allJava
     manifest {
         attributes("Implementation-Title": "Crate.IO")
     }
@@ -265,6 +267,7 @@ distributions {
                 exclude 'crate-sql-parser.jar'
                 exclude 'crate-sql.jar'
                 exclude 'crate-udc.jar'
+                exclude 'crate-client.jar'
             }
             into("lib") {
                 from jar
