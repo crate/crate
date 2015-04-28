@@ -45,7 +45,7 @@ task getVersion (dependsOn: 'classes') << {
         def date = new Date().format('yyyyMMddHHmm')
         def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
         ext.version = version.replace('-SNAPSHOT','') + "-" + date + "-" + shortHash
-    } else if (!gradle.taskGraph.hasTask(':client:uploadArchives')) {
+    } else if (!gradle.taskGraph.hasTask(':client:uploadArchives') && !gradle.taskGraph.hasTask(':app:uploadArchives')) {
         def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
         ext.version = version + "-" + shortHash
     }
