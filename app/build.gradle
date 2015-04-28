@@ -188,6 +188,7 @@ dependencies {
     compile project(':admin-ui')
     compile project(':blob')
     compile project(':udc')
+    compile project(':client')
 
     testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.10') {
         exclude group: 'junit', module: 'junit'
