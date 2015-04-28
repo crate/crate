@@ -44,7 +44,7 @@ Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 
 .. note::
 
-    Maximum string length is restricted to 32766 bytes, when encoded with UTF-8 unless the string is analyzed using full text or the indexing is off.
+    Maximum indexed string length is restricted to 32766 bytes, when encoded with UTF-8 unless the string is analyzed using full text.
 
 numeric types
 =============
