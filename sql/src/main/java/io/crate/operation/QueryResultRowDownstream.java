@@ -22,6 +22,7 @@
 package io.crate.operation;
 
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
@@ -55,7 +56,7 @@ public class QueryResultRowDownstream implements RowDownstream {
 
             @Override
             public void finish() {
-                result.set(new QueryResult(rows.toArray(new Object[rows.size()][])));
+                result.set(new QueryResult(new CollectionBucket(rows)));
             }
 
             @Override
