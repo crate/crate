@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/04/28 0.48.3
+=================
+
  - Added possibility to create a single jar which contains all crate packages
    without dependencies
 
