@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Add plugin support
+
  - Removed the limitation that the WHERE clause couldn't contain certain
    expressions in `select count(*)` queries.
 
