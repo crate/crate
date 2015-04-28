@@ -36,7 +36,6 @@ import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
@@ -44,7 +43,10 @@ import io.crate.planner.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
@@ -53,11 +55,8 @@ import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.search.SearchHits;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,20 +73,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
-    private ClusterService clusterService;
-    private ClusterName clusterName;
-
     @Before
     public void setup() {
         CrateTestCluster cluster = cluster();
-        clusterService = cluster.getInstance(ClusterService.class);
-        clusterName = cluster.getInstance(ClusterName.class);
-    }
-
-    @After
-    public void teardown() {
-        clusterService = null;
-        clusterName = null;
     }
 
     protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey) {
@@ -96,24 +84,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys) {
         return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys);
-    }
-
-    @Test
-    public void testMapSideCollectTask() throws Exception {
-        ReferenceInfo clusterNameInfo = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
-        Symbol reference = new Reference(clusterNameInfo);
-
-        CollectNode collectNode = new CollectNode(0, "lcollect", new Routing());
-        collectNode.toCollect(asList(reference, Literal.newLiteral(2.3f)));
-        collectNode.outputTypes(Collections.singletonList(clusterNameInfo.type()));
-        collectNode.maxRowGranularity(RowGranularity.CLUSTER);
-
-        Plan plan = new IterablePlan(collectNode);
-        Job job = executor.newJob(plan);
-
-        List<ListenableFuture<TaskResult>> results = executor.execute(job);
-        Bucket result = results.get(0).get().rows();
-        assertThat(result, contains(isRow(clusterName.value(), 2.3f)));
     }
 
     @Test

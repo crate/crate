@@ -30,7 +30,6 @@ import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
-import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
@@ -328,38 +327,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitCollectNode(CollectNode node, UUID jobId) {
-            node.jobId(jobId); // add jobId to collectNode
-            if (node.isRouted()) {
-                throw new UnsupportedOperationException("RemoteCollectTask doesn't exist anymore. Use ExecutionNodesTask instead");
-            } else {
-                return singleTask(
-                        new LocalCollectTask(
-                                jobId,
-                                handlerSideDataCollectOperation,
-                                node,
-                                circuitBreaker
-                        )
-                );
-            }
-
-        }
-
-        @Override
         public ImmutableList<Task> visitGenericDDLNode(GenericDDLNode node, UUID jobId) {
             return singleTask(new DDLTask(jobId, ddlAnalysisDispatcherProvider.get(), node));
-        }
-
-        @Override
-        public ImmutableList<Task> visitMergeNode(@Nullable MergeNode node, UUID jobId) {
-            if (node == null) {
-               return ImmutableList.of();
-            }
-            if (node.executionNodes().isEmpty()) {
-                throw new UnsupportedOperationException("LocalMergeTask is no longer supported. Use ExecutionNodesTask instead");
-            } else {
-                throw new UnsupportedOperationException("DistributedMergeTask is no longer available");
-            }
         }
 
         @Override
