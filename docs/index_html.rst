@@ -22,6 +22,7 @@ Contents
    hello
    sql/index
    blob
+   plugins
    udc
    storage_consistency
    best_practice/index
