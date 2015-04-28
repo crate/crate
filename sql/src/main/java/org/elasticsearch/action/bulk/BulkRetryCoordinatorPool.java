@@ -21,7 +21,6 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.TransportActionProvider;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
@@ -50,14 +49,11 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
     private final Map<String, BulkRetryCoordinator> coordinatorsByNodeId;
     private final Map<ShardId, BulkRetryCoordinator> coordinatorsByShardId;
     private final ClusterService clusterService;
-    private final TransportActionProvider transportActionProvider;
 
     @Inject
     public BulkRetryCoordinatorPool(Settings settings,
-                                    ClusterService clusterService,
-                                    TransportActionProvider transportActionProvider) {
+                                    ClusterService clusterService) {
         super(settings);
-        this.transportActionProvider = transportActionProvider;
         this.coordinatorsByShardId = new HashMap<>();
         this.coordinatorsByNodeId = new HashMap<>();
         this.clusterService = clusterService;
@@ -87,7 +83,7 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
                     coordinator = coordinatorsByNodeId.get(nodeId);
                     if (coordinator == null) {
                         LOGGER.trace("create new coordinator for node {} and shard {}", nodeId, shardId);
-                        coordinator = new BulkRetryCoordinator(settings, transportActionProvider);
+                        coordinator = new BulkRetryCoordinator(settings);
                         coordinatorsByNodeId.put(nodeId, coordinator);
                     }
                 }

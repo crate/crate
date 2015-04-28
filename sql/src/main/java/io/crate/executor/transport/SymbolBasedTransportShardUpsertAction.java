@@ -146,8 +146,8 @@ public class SymbolBasedTransportShardUpsertAction extends TransportShardReplica
     protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse(shardRequest.shardId.getIndex());
         SymbolBasedShardUpsertRequest request = shardRequest.request;
-        for (int i = 0; i < request.locations().size(); i++) {
-            int location = request.locations().get(i);
+        for (int i = 0; i < request.itemIndices().size(); i++) {
+            int location = request.itemIndices().get(i);
             SymbolBasedShardUpsertRequest.Item item = request.items().get(i);
             try {
                 IndexResponse indexResponse = indexItem(

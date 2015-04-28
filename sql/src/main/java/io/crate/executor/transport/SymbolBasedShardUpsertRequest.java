@@ -27,12 +27,15 @@ import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.action.bulk.BulkProcessorRequest;
+import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
@@ -40,7 +43,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequest<SymbolBasedShardUpsertRequest> implements Iterable<SymbolBasedShardUpsertRequest.Item> {
+public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequest<SymbolBasedShardUpsertRequest> implements Iterable<SymbolBasedShardUpsertRequest.Item>, BulkProcessorRequest {
 
     /**
      * A single update item.
@@ -222,7 +225,7 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         return items;
     }
 
-    public IntArrayList locations() {
+    public IntArrayList itemIndices() {
         return locations;
     }
 
@@ -267,16 +270,18 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         return overwriteDuplicates;
     }
 
-    public void overwriteDuplicates(boolean overwriteDuplicates) {
+    public SymbolBasedShardUpsertRequest overwriteDuplicates(boolean overwriteDuplicates) {
         this.overwriteDuplicates = overwriteDuplicates;
+        return this;
     }
 
     public boolean continueOnError() {
         return continueOnError;
     }
 
-    public void continueOnError(boolean continueOnError) {
+    public SymbolBasedShardUpsertRequest continueOnError(boolean continueOnError) {
         this.continueOnError = continueOnError;
+        return this;
     }
 
     @Override
@@ -345,4 +350,43 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         out.writeBoolean(overwriteDuplicates);
     }
 
+    public static class Builder implements SymbolBasedBulkShardProcessor.BulkRequestBuilder<SymbolBasedShardUpsertRequest> {
+        private final TimeValue timeout;
+        private final boolean overwriteDuplicates;
+        private final boolean continueOnError;
+        @Nullable
+        private final String[] assignmentsColumns;
+        @Nullable
+        private final Reference[] missingAssignmentsColumns;
+
+        public Builder(TimeValue timeout,
+                       boolean overwriteDuplicates,
+                       boolean continueOnError,
+                       @Nullable String[] assignmentsColumns,
+                       @Nullable Reference[] missingAssignmentsColumns) {
+            this.timeout = timeout;
+            this.overwriteDuplicates = overwriteDuplicates;
+            this.continueOnError = continueOnError;
+            this.assignmentsColumns = assignmentsColumns;
+            this.missingAssignmentsColumns = missingAssignmentsColumns;
+        }
+
+        @Override
+        public SymbolBasedShardUpsertRequest newRequest(ShardId shardId) {
+            return new SymbolBasedShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns)
+                    .timeout(timeout).continueOnError(continueOnError).overwriteDuplicates(overwriteDuplicates);
+        }
+
+        @Override
+        public void addItem(SymbolBasedShardUpsertRequest existingRequest,
+                            ShardId shardId,
+                            int location,
+                            String id,
+                            @Nullable Symbol[] assignments,
+                            @Nullable Object[] missingAssignments,
+                            @Nullable String routing,
+                            @Nullable Long version) {
+            existingRequest.add(location, id, assignments, missingAssignments, version, routing);
+        }
+    }
 }

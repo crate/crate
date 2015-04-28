@@ -21,7 +21,6 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.TransportActionProvider;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -83,7 +82,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
                 return state;
             }
         });
-        pool = new BulkRetryCoordinatorPool(ImmutableSettings.EMPTY, clusterService, mock(TransportActionProvider.class));
+        pool = new BulkRetryCoordinatorPool(ImmutableSettings.EMPTY, clusterService);
         pool.start();
     }
 

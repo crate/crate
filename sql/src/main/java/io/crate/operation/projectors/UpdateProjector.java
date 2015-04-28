@@ -25,14 +25,17 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
+import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
@@ -62,12 +65,12 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     private final Long requiredVersion;
     private final Object lock = new Object();
 
-    private final SymbolBasedBulkShardProcessor bulkShardProcessor;
+    private final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
 
     public UpdateProjector(ClusterService clusterService,
                            Settings settings,
                            ShardId shardId,
-                           TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                           TransportActionProvider transportActionProvider,
                            BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                            CollectExpression<?> collectUidExpression,
                            String[] assignmentsColumns,
@@ -77,18 +80,23 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
         this.collectUidExpression = collectUidExpression;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
-        this.bulkShardProcessor = new SymbolBasedBulkShardProcessor(
-                clusterService,
-                transportBulkCreateIndicesAction,
-                settings,
-                bulkRetryCoordinatorPool,
+        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+                settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT),
                 false,
-                false,
-                DEFAULT_BULK_SIZE,
                 false,
                 assignmentsColumns,
                 null
-            );
+        );
+        this.bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+                clusterService,
+                transportActionProvider.transportBulkCreateIndicesAction(),
+                settings,
+                bulkRetryCoordinatorPool,
+                false,
+                DEFAULT_BULK_SIZE,
+                builder,
+                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()
+        );
     }
 
     @Override

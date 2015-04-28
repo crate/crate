@@ -32,17 +32,20 @@ import io.crate.core.collections.Rows;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
+import org.elasticsearch.action.bulk.BulkProcessorRequest;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.*;
 
-public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
+public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item>, BulkProcessorRequest {
 
     private final Item item = new Item();
 
@@ -105,7 +108,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return routing;
     }
 
-    public IntArrayList locations() {
+    @Override
+    public IntArrayList itemIndices() {
         return locations;
     }
 
@@ -150,16 +154,18 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return overwriteDuplicates;
     }
 
-    public void overwriteDuplicates(boolean overwriteDuplicates) {
+    public ShardUpsertRequest overwriteDuplicates(boolean overwriteDuplicates) {
         this.overwriteDuplicates = overwriteDuplicates;
+        return this;
     }
 
     public boolean continueOnError() {
         return continueOnError;
     }
 
-    public void continueOnError(boolean continueOnError) {
+    public ShardUpsertRequest continueOnError(boolean continueOnError) {
         this.continueOnError = continueOnError;
+        return this;
     }
 
     @Override
@@ -290,6 +296,55 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
         public int retryOnConflict() {
             return version == Versions.MATCH_ANY ? Constants.UPDATE_RETRY_ON_CONFLICT : 0;
+        }
+    }
+
+    public static class Builder implements BulkShardProcessor.BulkRequestBuilder<ShardUpsertRequest> {
+
+        private final DataType[] dataTypes;
+        private final List<Integer> columnIndicesToStream;
+        private final @Nullable Map<Reference, Symbol> updateAssignments;
+        private final @Nullable Map<Reference, Symbol> insertAssignments;
+        private final @Nullable String routing;
+        private final TimeValue timeout;
+        private final boolean continueOnErrors;
+        private final boolean overWriteDuplicates;
+
+        public Builder(DataType[] dataTypes,
+                       List<Integer> columnIndicesToStream,
+                       TimeValue timeout,
+                       boolean continueOnErrors,
+                       boolean overWriteDuplicates,
+                       @Nullable Map<Reference, Symbol> updateAssignments,
+                       @Nullable Map<Reference, Symbol> insertAssignments,
+                       @Nullable String routing) {
+            this.dataTypes = dataTypes;
+            this.columnIndicesToStream = columnIndicesToStream;
+            this.updateAssignments = updateAssignments;
+            this.insertAssignments = insertAssignments;
+            this.routing = routing;
+
+            this.timeout = timeout;
+            this.continueOnErrors = continueOnErrors;
+            this.overWriteDuplicates = overWriteDuplicates;
+        }
+
+        @Override
+        public ShardUpsertRequest newRequest(ShardId shardId) {
+            return new ShardUpsertRequest(shardId, dataTypes,
+                    columnIndicesToStream,
+                    updateAssignments,
+                    insertAssignments,
+                    routing)
+                        .timeout(timeout)
+                        .overwriteDuplicates(overWriteDuplicates)
+                        .continueOnError(continueOnErrors);
+
+        }
+
+        @Override
+        public void addItem(ShardUpsertRequest existingRequest, ShardId shardId, int location, String id, Row row, @javax.annotation.Nullable String routing, @javax.annotation.Nullable Long version) {
+            existingRequest.add(location, id, row, version, routing);
         }
     }
 

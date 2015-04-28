@@ -28,7 +28,7 @@ import org.elasticsearch.action.ActionListener;
  * Delegates the execution to the BulkShardProcessor.
  * This is mainly used for better testability of the BulkShardProcessor.
  */
-public interface TransportShardUpsertActionDelegate {
+public interface TransportShardUpsertActionDelegate extends BulkRequestExecutor<ShardUpsertRequest,ShardUpsertResponse> {
 
     void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener);
 

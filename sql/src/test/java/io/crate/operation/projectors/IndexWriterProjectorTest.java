@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.RowN;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
@@ -40,7 +41,6 @@ import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -72,7 +72,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 cluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                cluster().getInstance(TransportBulkCreateIndicesAction.class),
+                cluster().getInstance(TransportActionProvider.class),
                 cluster().getInstance(BulkRetryCoordinatorPool.class),
                 new TableIdent(null, "bulk_import"),
                 null,

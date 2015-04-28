@@ -21,13 +21,7 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
-import io.crate.executor.transport.TransportActionProvider;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -51,15 +45,12 @@ public class BulkRetryCoordinator {
 
     private final ReadWriteLock retryLock;
     private final AtomicInteger currentDelay;
-    private final TransportActionProvider transportActionProvider;
 
     private final ScheduledExecutorService retryExecutorService;
 
-    public BulkRetryCoordinator(Settings settings,
-                                TransportActionProvider transportActionProvider) {
+    public BulkRetryCoordinator(Settings settings) {
         this.retryExecutorService = Executors.newSingleThreadScheduledExecutor(
                 daemonThreadFactory(settings, getClass().getSimpleName()));
-        this.transportActionProvider = transportActionProvider;
         this.retryLock = new ReadWriteLock();
         this.currentDelay = new AtomicInteger(0);
     }
@@ -68,29 +59,20 @@ public class BulkRetryCoordinator {
         return retryLock;
     }
 
-    protected void execute(final SymbolBasedShardUpsertRequest updateRequest, final RequestActionListener<SymbolBasedShardUpsertRequest, ShardUpsertResponse> listener) {
-        trace("execute symbol based shard request %d", updateRequest.shardId());
-        transportActionProvider.symbolBasedTransportShardUpsertActionDelegate().execute(updateRequest, new BulkActionListener<>(listener, updateRequest));
-    }
-
-    protected void execute(final ShardUpsertRequest updateRequest, final RequestActionListener<ShardUpsertRequest, ShardUpsertResponse> listener) {
-        trace("execute shard request %d", updateRequest.shardId());
-        transportActionProvider.transportShardUpsertActionDelegate().execute(updateRequest, new BulkActionListener<>(listener, updateRequest));
-    }
-
-    public void retry(final ShardUpsertRequest request,
-                      boolean repeatingRetry,
-                      final RequestActionListener<ShardUpsertRequest, ShardUpsertResponse> retryListener) {
+    public <Request extends BulkProcessorRequest, Response extends BulkProcessorResponse<?>> void retry(
+                                                            final Request request,
+                                                            final BulkRequestExecutor<Request, Response> executor,
+                                                            boolean repeatingRetry,
+                                                            ActionListener<Response> listener) {
         trace("doRetry");
-        final TransportShardUpsertActionDelegate delegate = transportActionProvider.transportShardUpsertActionDelegate();
-        final RetryBulkActionListener<ShardUpsertRequest, ShardUpsertResponse> retryBulkActionListener = new RetryBulkActionListener<>(retryListener, request);
+        final RetryBulkActionListener<Response> retryBulkActionListener = new RetryBulkActionListener<>(listener);
         if (repeatingRetry) {
             try {
                 Thread.sleep(currentDelay.getAndAdd(DELAY_INCREMENT));
             } catch (InterruptedException e) {
                 Thread.interrupted();
             }
-            delegate.execute(request, retryBulkActionListener);
+            executor.execute(request, retryBulkActionListener);
         } else {
             // new retries will be spawned in new thread because they can block
             retryExecutorService.schedule(
@@ -105,42 +87,9 @@ public class BulkRetryCoordinator {
                                 Thread.interrupted();
                             }
                             LOGGER.trace("retry thread [{}] executing", Thread.currentThread().getName());
-                            delegate.execute(request, retryBulkActionListener);
+                            executor.execute(request, retryBulkActionListener);
                         }
                     }, currentDelay.getAndAdd(DELAY_INCREMENT), TimeUnit.MILLISECONDS);
-        }
-    }
-
-    public void retry(final SymbolBasedShardUpsertRequest request,
-                      boolean repeatingRetry,
-                      final RequestActionListener<SymbolBasedShardUpsertRequest, ShardUpsertResponse> retryListener) {
-        trace("doRetry symbol based");
-        final SymbolBasedTransportShardUpsertActionDelegate delegate = transportActionProvider.symbolBasedTransportShardUpsertActionDelegate();
-        final RetryBulkActionListener<SymbolBasedShardUpsertRequest, ShardUpsertResponse> retryBulkActionListener = new RetryBulkActionListener<>(retryListener, request);
-        if (repeatingRetry) {
-            try {
-                Thread.sleep(currentDelay.incrementAndGet());
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
-            delegate.execute(request, retryBulkActionListener);
-        } else {
-            // new retries will be spawned in new thread because they can block
-            retryExecutorService.schedule(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            LOGGER.trace("retry thread [{}] started", Thread.currentThread().getName());
-                            // will block if other retries/writer are active
-                            try {
-                                retryLock.acquireWriteLock();
-                            } catch (InterruptedException e) {
-                                Thread.interrupted();
-                            }
-                            LOGGER.trace("retry thread [{}] executing", Thread.currentThread().getName());
-                            delegate.execute(request, retryBulkActionListener);
-                        }
-                    }, currentDelay.getAndAdd(10), TimeUnit.MILLISECONDS);
         }
     }
 
@@ -171,42 +120,19 @@ public class BulkRetryCoordinator {
     /**
      * keeping a reference to the request around
      */
-    public static interface RequestActionListener<Request extends ActionRequest, Response extends ActionResponse> {
+    public interface RequestActionListener<Request, Response> {
 
-        public void onResponse(Request request, Response response);
+        void onResponse(Request request, Response response);
 
-        public void onFailure(Request request, Throwable e);
+        void onFailure(Request request, Throwable e);
     }
 
-    /**
-     * ActionListener that keeps a reference to the request
-     * and forwards its callbacks to a {@linkplain RequestActionListener}
-     */
-    private static class BulkActionListener<Request extends ActionRequest, Response extends ActionResponse> implements ActionListener<Response> {
+    private class RetryBulkActionListener<Response> implements ActionListener<Response> {
 
-        private final RequestActionListener<Request, Response> listener;
-        private final Request request;
+        private final ActionListener<Response> listener;
 
-        private BulkActionListener(RequestActionListener<Request, Response> listener, Request request) {
+        private RetryBulkActionListener(ActionListener<Response> listener) {
             this.listener = listener;
-            this.request = request;
-        }
-
-        @Override
-        public void onResponse(Response response) {
-            listener.onResponse(request, response);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            listener.onFailure(request, e);
-        }
-    }
-
-    private class RetryBulkActionListener<Request extends ActionRequest, Response extends ActionResponse> extends BulkActionListener<Request, Response> {
-
-        private RetryBulkActionListener(RequestActionListener<Request, Response> listener, Request request) {
-            super(listener, request);
         }
 
         @Override
@@ -217,7 +143,12 @@ public class BulkRetryCoordinator {
             } catch (InterruptedException e) {
                 Thread.interrupted();
             }
-            super.onResponse(response);
+            listener.onResponse(response);
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            listener.onFailure(e);
         }
     }
 

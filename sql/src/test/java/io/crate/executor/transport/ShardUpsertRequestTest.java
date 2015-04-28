@@ -90,8 +90,8 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         assertNull(request2.updateAssignments());
         assertThat(request2.insertAssignments(), is(insertAssignments));
 
-        assertThat(request2.locations().size(), is(1));
-        assertThat(request2.locations().get(0), is(123));
+        assertThat(request2.itemIndices().size(), is(1));
+        assertThat(request2.itemIndices().get(0), is(123));
 
         Iterator<ShardUpsertRequest.Item> it = request2.iterator();
         while (it.hasNext()) {
@@ -139,8 +139,8 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         assertThat(request2.updateAssignments(), is(updateAssignments));
         assertNull(request2.insertAssignments());
 
-        assertThat(request2.locations().size(), is(1));
-        assertThat(request2.locations().get(0), is(123));
+        assertThat(request2.itemIndices().size(), is(1));
+        assertThat(request2.itemIndices().get(0), is(123));
 
         Iterator<ShardUpsertRequest.Item> it = request2.iterator();
         while (it.hasNext()) {
@@ -193,8 +193,8 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         assertThat(request2.updateAssignments(), is(updateAssignments));
         assertThat(request2.insertAssignments(), is(insertAssignments));
 
-        assertThat(request2.locations().size(), is(1));
-        assertThat(request2.locations().get(0), is(123));
+        assertThat(request2.itemIndices().size(), is(1));
+        assertThat(request2.itemIndices().get(0), is(123));
 
         Iterator<ShardUpsertRequest.Item> it = request2.iterator();
         while (it.hasNext()) {

@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.RowN;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -37,7 +38,6 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -73,7 +73,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportBulkCreateIndicesAction.class),
+                mock(TransportActionProvider.class),
                 mock(BulkRetryCoordinatorPool.class),
                 new TableIdent(null, "bulk_import"),
                 null,
@@ -114,7 +114,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportBulkCreateIndicesAction.class),
+                mock(TransportActionProvider.class),
                 mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),
                 new TableIdent(null, "bulk_import"),
                 null,

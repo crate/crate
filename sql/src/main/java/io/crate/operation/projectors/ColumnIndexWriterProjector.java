@@ -22,13 +22,13 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -42,7 +42,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
 
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Settings settings,
-                                         TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                                         TransportActionProvider transportActionProvider,
                                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                          TableIdent tableIdent,
                                          @Nullable String partitionIdent,
@@ -57,8 +57,16 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          Map<Reference, Symbol> updateAssignments,
                                          @Nullable Integer bulkActions,
                                          boolean autoCreateIndices) {
-        super(bulkRetryCoordinatorPool, tableIdent, partitionIdent, primaryKeyIdents, primaryKeySymbols,
-                partitionedByInputs, routingSymbol, collectExpressions);
+        super(bulkRetryCoordinatorPool,
+                transportActionProvider,
+                partitionIdent,
+                primaryKeyIdents,
+                primaryKeySymbols,
+                partitionedByInputs,
+                routingSymbol,
+                collectExpressions,
+                tableIdent
+        );
         assert columnReferences.size() == columnSymbols.size();
 
         Map<Reference, Symbol> insertAssignments = new HashMap<>(columnReferences.size());
@@ -69,7 +77,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
         createBulkShardProcessor(
                 clusterService,
                 settings,
-                transportBulkCreateIndicesAction,
+                transportActionProvider.transportBulkCreateIndicesAction(),
                 bulkActions,
                 autoCreateIndices,
                 false, // overwriteDuplicates

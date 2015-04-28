@@ -39,6 +39,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
@@ -69,7 +70,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     private final AutoCreateIndex autoCreateIndex;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     @Nullable
-    private SymbolBasedBulkShardProcessor bulkShardProcessor;
+    private SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
 
     private static final ESLogger logger = Loggers.getLogger(SymbolBasedUpsertByIdTask.class);
 
@@ -145,7 +146,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
         transportShardUpsertActionDelegate.execute(upsertRequest, new ActionListener<ShardUpsertResponse>() {
             @Override
             public void onResponse(ShardUpsertResponse updateResponse) {
-                int location = updateResponse.locations().get(0);
+                int location = updateResponse.itemIndices().get(0);
                 if (updateResponse.responses().get(location) != null) {
                     futureResult.set(TaskResult.ONE_ROW);
                 } else {
@@ -177,17 +178,24 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     }
 
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
-        bulkShardProcessor = new SymbolBasedBulkShardProcessor(
+
+        assert node.updateColumns() != null | node.insertColumns() != null;
+        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+                settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT),
+                false, // do not overwrite duplicates
+                node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
+                node.updateColumns(),
+                node.insertColumns()
+        );
+        bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
                 transportBulkCreateIndicesAction,
                 settings,
                 bulkRetryCoordinatorPool,
                 node.isPartitionedTable(),
-                false, // overwrite Duplicates
                 node.items().size(),
-                node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
-                node.updateColumns(),
-                node.insertColumns());
+                builder,
+                transportShardUpsertActionDelegate);
 
         if (!node.isBulkRequest()) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();

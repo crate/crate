@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntArrayList;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.bulk.BulkProcessorResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -31,7 +32,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardUpsertResponse extends ActionResponse {
+public class ShardUpsertResponse extends ActionResponse implements BulkProcessorResponse<ShardUpsertResponse.Response> {
 
     /**
      * Represents a failure.
@@ -168,10 +169,12 @@ public class ShardUpsertResponse extends ActionResponse {
         failures.add(failure);
     }
 
-    public IntArrayList locations() {
+    @Override
+    public IntArrayList itemIndices() {
         return locations;
     }
 
+    @Override
     public List<Response> responses() {
         return responses;
     }

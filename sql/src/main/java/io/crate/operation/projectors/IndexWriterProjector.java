@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
@@ -31,7 +32,6 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
@@ -88,7 +88,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
-                                TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                                TransportActionProvider transportActionProvider,
                                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                 TableIdent tableIdent,
                                 @Nullable String partitionIdent,
@@ -105,8 +105,8 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates) {
-        super(bulkRetryCoordinatorPool, tableIdent, partitionIdent, primaryKeyIdents, primaryKeySymbols, partitionedByInputs,
-                routingSymbol, collectExpressions);
+        super(bulkRetryCoordinatorPool, transportActionProvider, partitionIdent, primaryKeyIdents, primaryKeySymbols, partitionedByInputs, routingSymbol, collectExpressions, tableIdent
+        );
 
         if (includes == null && excludes == null) {
             //noinspection unchecked
@@ -123,7 +123,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
         createBulkShardProcessor(
                 clusterService,
                 settings,
-                transportBulkCreateIndicesAction,
+                transportActionProvider.transportBulkCreateIndicesAction(),
                 bulkActions,
                 autoCreateIndices,
                 overwriteDuplicates,

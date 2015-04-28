@@ -39,9 +39,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.*;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
@@ -71,7 +69,7 @@ public class UpsertByIdTask extends JobTask {
     private final AutoCreateIndex autoCreateIndex;
     private final ShardingProjector shardingProjector;
     @Nullable
-    private BulkShardProcessor bulkShardProcessor;
+    private BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
 
     private static final ESLogger logger = Loggers.getLogger(UpsertByIdTask.class);
 
@@ -145,8 +143,10 @@ public class UpsertByIdTask extends JobTask {
                 shardingProjector.routing()
         ).shardId();
 
-        BulkShardProcessor.AssignmentVisitorContext visitorContext =
-                BulkShardProcessor.processAssignments(node.updateAssignments(), node.insertAssignments());
+        AssignmentVisitor.AssignmentVisitorContext visitorContext = AssignmentVisitor.processAssignments(
+                node.updateAssignments(),
+                node.insertAssignments()
+        );
 
         ShardUpsertRequest upsertRequest = new ShardUpsertRequest(
                 shardId,
@@ -160,7 +160,7 @@ public class UpsertByIdTask extends JobTask {
         transportShardUpsertActionDelegate.execute(upsertRequest, new ActionListener<ShardUpsertResponse>() {
             @Override
             public void onResponse(ShardUpsertResponse updateResponse) {
-                int location = updateResponse.locations().get(0);
+                int location = updateResponse.itemIndices().get(0);
                 if (updateResponse.responses().get(location) != null) {
                     futureResult.set(TaskResult.ONE_ROW);
                 } else {
@@ -192,18 +192,32 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
-        bulkShardProcessor = new BulkShardProcessor(
+
+        AssignmentVisitor.AssignmentVisitorContext visitorContext = AssignmentVisitor.processAssignments(
+                node.updateAssignments(),
+                node.insertAssignments()
+        );
+        assert node.updateAssignments() != null | node.insertAssignments() != null;
+        BulkShardProcessor.BulkRequestBuilder<ShardUpsertRequest> bulkRequestBuilder = new ShardUpsertRequest.Builder(
+                visitorContext.dataTypes(),
+                visitorContext.columnIndicesToStream(),
+                settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT),
+                node.isBulkRequest() || node.updateAssignments() != null,
+                false,
+                node.updateAssignments(),
+                node.insertAssignments(),
+                null
+        );
+        bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 settings,
                 transportBulkCreateIndicesAction,
                 shardingProjector,
                 node.isPartitionedTable(),
-                false, // overwrite Duplicates
                 node.items().size(),
                 bulkRetryCoordinatorPool,
-                node.isBulkRequest() || node.updateAssignments() != null, // continue on error on bulk and/or update
-                node.updateAssignments(),
-                node.insertAssignments());
+                bulkRequestBuilder,
+                transportShardUpsertActionDelegate);
 
         if (!node.isBulkRequest()) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();

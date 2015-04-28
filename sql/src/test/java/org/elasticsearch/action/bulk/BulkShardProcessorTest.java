@@ -35,6 +35,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.StringType;
@@ -45,11 +46,13 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.OperationRouting;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -102,28 +105,33 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         );
         shardingProjector.startProjection();
 
-        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
-        when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkActionDelegate);
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY,
-                transportActionProvider
+                ImmutableSettings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
+        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
+                new DataType[0],
+                Collections.<Integer>emptyList(),
+                TimeValue.timeValueMillis(10),
+                false,
+                false,
+                null,
+                insertAssignments,
+                null
+        );
 
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        final BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
                 shardingProjector,
                 false,
-                false,
                 1,
                 coordinatorPool,
-                false,
-                null,
-                insertAssignments
+                builder,
+                transportShardBulkActionDelegate
         );
         try {
             bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);
@@ -172,24 +180,32 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY,
-                transportActionProvider
+                ImmutableSettings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
+                new DataType[0],
+                Collections.<Integer>emptyList(),
+                TimeValue.timeValueMillis(10),
+                false,
+                false,
+                null,
+                insertAssignments,
+                null
+        );
+
+        final BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
                 shardingProjector,
                 false,
-                false,
                 1,
                 coordinatorPool,
-                false,
-                null,
-                insertAssignments
+                builder,
+                transportShardUpsertActionDelegate
         );
 
         bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);

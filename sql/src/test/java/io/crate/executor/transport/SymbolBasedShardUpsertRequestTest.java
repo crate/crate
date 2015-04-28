@@ -81,9 +81,9 @@ public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
         assertThat(request2.updateColumns(), is(assignmentColumns));
         assertThat(request2.insertColumns(), is(missingAssignmentColumns));
 
-        assertThat(request2.locations().size(), is(2));
-        assertThat(request2.locations().get(0), is(123));
-        assertThat(request2.locations().get(1), is(5));
+        assertThat(request2.itemIndices().size(), is(2));
+        assertThat(request2.itemIndices().get(0), is(123));
+        assertThat(request2.itemIndices().get(1), is(5));
 
         assertThat(request2.items().size(), is(2));
 

@@ -33,11 +33,7 @@ import io.crate.Constants;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
-import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.operation.collect.ShardingProjector;
-import io.crate.planner.symbol.*;
-import io.crate.types.DataType;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
@@ -67,9 +63,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
-public class BulkShardProcessor {
+public class BulkShardProcessor<Request extends BulkProcessorRequest, Response extends BulkProcessorResponse<?>> {
 
-    private static final AssignmentVisitor ASSIGNMENT_VISITOR = new AssignmentVisitor();
     private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
 
@@ -79,7 +74,7 @@ public class BulkShardProcessor {
     private final int bulkSize;
     private final int createIndicesBulkSize;
 
-    private final Map<ShardId, ShardUpsertRequest> requestsByShard = new HashMap<>();
+    private final Map<ShardId, Request> requestsByShard = new HashMap<>();
     private final AtomicInteger globalCounter = new AtomicInteger(0);
     private final AtomicInteger counter = new AtomicInteger(0);
     private final AtomicInteger pending = new AtomicInteger(0);
@@ -89,7 +84,6 @@ public class BulkShardProcessor {
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final BitSet responses;
     private final Object responsesLock = new Object();
-    private final boolean overwriteDuplicates;
     private volatile boolean closed = false;
 
     private final ClusterService clusterService;
@@ -101,41 +95,29 @@ public class BulkShardProcessor {
     private final Set<String> indicesCreated = new HashSet<>();
 
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
-    private final TimeValue requestTimeout;
-
-    private final boolean continueOnErrors;
     private final ShardingProjector shardingProjector;
-    private final AssignmentVisitorContext assignmentVisitorContext;
 
 
-    @Nullable
-    private Map<Reference, Symbol> updateAssignments;
-    @Nullable
-    private Map<Reference, Symbol> insertAssignments;
-
-    private final ResponseListener responseListener = new ResponseListener(false);
-    private final ResponseListener retryResponseListener = new ResponseListener(true);
-
+    private final BulkRequestBuilder<Request> bulkRequestBuilder;
+    private final BulkRequestExecutor<Request, Response> bulkRequestExecutor;
 
     public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                               ShardingProjector shardingProjector,
                               boolean autoCreateIndices,
-                              boolean overwriteDuplicates,
                               int bulkSize,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                              boolean continueOnErrors,
-                              @Nullable Map<Reference, Symbol> updateAssignments,
-                              @Nullable Map<Reference, Symbol> insertAssignments) {
-        assert updateAssignments != null | insertAssignments != null;
+                              BulkRequestBuilder<Request> bulkRequestBuilder,
+                              BulkRequestExecutor<Request, Response> bulkRequestExecutor) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
+
+        this.bulkRequestBuilder = bulkRequestBuilder;
+        this.bulkRequestExecutor = bulkRequestExecutor;
         this.autoCreateIndices = autoCreateIndices;
-        this.overwriteDuplicates = overwriteDuplicates;
         this.bulkSize = bulkSize;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
-        this.continueOnErrors = continueOnErrors;
 
         this.autoCreateIndex = new AutoCreateIndex(settings);
         this.shouldAutocreateIndexPredicate = new Predicate<String>() {
@@ -147,12 +129,6 @@ public class BulkShardProcessor {
         };
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
         this.shardingProjector = shardingProjector;
-
-        this.updateAssignments = updateAssignments;
-        this.insertAssignments = insertAssignments;
-
-        requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
-        assignmentVisitorContext = processAssignments(updateAssignments, insertAssignments);
 
         responses = new BitSet();
         result = SettableFuture.create();
@@ -225,21 +201,21 @@ public class BulkShardProcessor {
                                          @Nullable Long version) {
         try {
             executeLock.acquire();
-            ShardUpsertRequest updateRequest = requestsByShard.get(shardId);
-            if (updateRequest == null) {
-                updateRequest = new ShardUpsertRequest(
-                        shardId,
-                        assignmentVisitorContext.dataTypes(),
-                        assignmentVisitorContext.columnIndicesToStream(),
-                        updateAssignments,
-                        insertAssignments);
-                updateRequest.timeout(requestTimeout);
-                updateRequest.continueOnError(continueOnErrors);
-                updateRequest.overwriteDuplicates(overwriteDuplicates);
-                requestsByShard.put(shardId, updateRequest);
+            Request request = requestsByShard.get(shardId);
+            if (request == null) {
+                request = bulkRequestBuilder.newRequest(shardId);
+                requestsByShard.put(shardId, request);
             }
-            counter.getAndIncrement();
-            updateRequest.add(globalCounter.getAndIncrement(), id, row, version, routing);
+            counter.incrementAndGet();
+            bulkRequestBuilder.addItem(
+                    request,
+                    shardId,
+                    globalCounter.getAndIncrement(),
+                    id,
+                    row,
+                    routing,
+                    version);
+
         } catch (InterruptedException e) {
             Thread.interrupted();
         } finally {
@@ -301,11 +277,21 @@ public class BulkShardProcessor {
         try {
             executeLock.acquire();
 
-            for (Iterator<Map.Entry<ShardId, ShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
-                Map.Entry<ShardId, ShardUpsertRequest> entry = it.next();
-                ShardUpsertRequest shardUpsertRequest = entry.getValue();
-                BulkRetryCoordinator coordinator = bulkRetryCoordinatorPool.coordinator(entry.getKey());
-                coordinator.execute(shardUpsertRequest, responseListener);
+            for (Iterator<Map.Entry<ShardId, Request>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<ShardId, Request> entry = it.next();
+                final Request shardRequest = entry.getValue();
+                final ShardId shardId = entry.getKey();
+                bulkRequestExecutor.execute(shardRequest, new ActionListener<Response>() {
+                    @Override
+                    public void onResponse(Response response) {
+                        processResponse(response);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        processFailure(e, shardId, shardRequest, false);
+                    }
+                });
                 it.remove();
             }
         } catch (InterruptedException e) {
@@ -390,22 +376,21 @@ public class BulkShardProcessor {
 
     }
 
-    private void processResponse(ShardUpsertResponse shardUpsertResponse) {
+    private void processResponse(Response response) {
         trace("execute response");
-        for (int i = 0; i < shardUpsertResponse.locations().size(); i++) {
-            int location = shardUpsertResponse.locations().get(i);
+
+        for (int i = 0; i < response.itemIndices().size(); i++) {
+            int location = response.itemIndices().get(i);
             synchronized (responsesLock) {
-                responses.set(location, shardUpsertResponse.responses().get(i) != null);
+                responses.set(location, response.responses().get(i) != null);
             }
         }
-        setResultIfDone(shardUpsertResponse.locations().size());
+        setResultIfDone(response.itemIndices().size());
     }
 
-    private void processFailure(Throwable e, ShardUpsertRequest shardUpsertRequest, boolean repeatingRetry) {
+    private void processFailure(Throwable e, final ShardId shardId, final Request request, boolean repeatingRetry) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
-        ShardId shardId = new ShardId(shardUpsertRequest.index(), shardUpsertRequest.shardId());
-
         BulkRetryCoordinator coordinator;
         try {
             coordinator = bulkRetryCoordinatorPool.coordinator(shardId);
@@ -415,7 +400,18 @@ public class BulkShardProcessor {
         }
         if (e instanceof EsRejectedExecutionException) {
             LOGGER.trace("{}, retrying", e.getMessage());
-            coordinator.retry(shardUpsertRequest, repeatingRetry, retryResponseListener);
+            coordinator.retry(request, bulkRequestExecutor, repeatingRetry, new ActionListener<Response>() {
+
+                @Override
+                public void onFailure(Throwable e) {
+                    processFailure(e, shardId, request, true);
+                }
+
+                @Override
+                public void onResponse(Response response) {
+                    processResponse(response);
+                }
+            });
         } else {
             if (repeatingRetry) {
                 // release failed retry
@@ -425,7 +421,7 @@ public class BulkShardProcessor {
                     Thread.interrupted();
                 }
             }
-            for (IntCursor intCursor : shardUpsertRequest.locations()) {
+            for (IntCursor intCursor : request.itemIndices()) {
                 synchronized (responsesLock) {
                     responses.set(intCursor.value, false);
                 }
@@ -434,103 +430,10 @@ public class BulkShardProcessor {
         }
     }
 
-    /**
-     * Process update and insert assignments to extract data types and define which row values
-     * must be streamed.
-     */
-    public static AssignmentVisitorContext processAssignments(@Nullable Map<Reference, Symbol> updateAssignments,
-                                                              @Nullable Map<Reference, Symbol> insertAssignments) {
-        AssignmentVisitorContext context = new AssignmentVisitorContext();
-        if (updateAssignments != null) {
-            for (Symbol symbol : updateAssignments.values()) {
-                ASSIGNMENT_VISITOR.process(symbol, context);
-            }
-        }
-        if (insertAssignments != null) {
-            for (Symbol symbol : insertAssignments.values()) {
-                ASSIGNMENT_VISITOR.process(symbol, context);
-            }
-        }
-
-        Collections.sort(context.inputColumns, new Comparator<InputColumn>() {
-            @Override
-            public int compare(InputColumn o1, InputColumn o2) {
-                return Integer.compare(o1.index(), o2.index());
-            }
-        });
-
-        context.dataTypes = new DataType[context.inputColumns.size()];
-        for (int i = 0; i < context.inputColumns.size(); i++) {
-            context.dataTypes[i] = context.inputColumns.get(i).valueType();
-        }
-
-        return context;
-    }
-
     private void trace(String message, Object ... args) {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("BulkShardProcessor: pending: {}; {}",
                     pending.get(), String.format(Locale.ENGLISH, message, args));
-        }
-    }
-
-    class ResponseListener implements BulkRetryCoordinator.RequestActionListener<ShardUpsertRequest, ShardUpsertResponse> {
-
-        private final boolean retryListener;
-
-        private ResponseListener(boolean retryListener) {
-            this.retryListener = retryListener;
-        }
-
-        @Override
-        public void onResponse(ShardUpsertRequest shardUpsertRequest,
-                               ShardUpsertResponse shardUpsertResponse) {
-            processResponse(shardUpsertResponse);
-        }
-
-        @Override
-        public void onFailure(ShardUpsertRequest shardUpsertRequest, Throwable e) {
-            processFailure(e, shardUpsertRequest, retryListener);
-        }
-    }
-
-    public static class AssignmentVisitorContext {
-
-        private List<InputColumn> inputColumns = new ArrayList<>();
-        private List<Integer> indices = new ArrayList<>();
-        private DataType[] dataTypes;
-
-        public List<Integer> columnIndicesToStream() {
-            return indices;
-        }
-
-        public DataType[] dataTypes() {
-            return dataTypes;
-        }
-    }
-
-    static class AssignmentVisitor extends SymbolVisitor<AssignmentVisitorContext, Symbol> {
-
-        @Override
-        public Symbol visitInputColumn(InputColumn inputColumn, AssignmentVisitorContext context) {
-            if (!context.inputColumns.contains(inputColumn)) {
-                context.inputColumns.add(inputColumn);
-                context.indices.add(inputColumn.index());
-            }
-            return inputColumn;
-        }
-
-        @Override
-        public Symbol visitFunction(Function symbol, AssignmentVisitorContext context) {
-            for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
-            }
-            return symbol;
-        }
-
-        @Override
-        protected Symbol visitSymbol(Symbol symbol, AssignmentVisitorContext context) {
-            return symbol;
         }
     }
 
@@ -552,4 +455,15 @@ public class BulkShardProcessor {
         }
     }
 
+    public interface BulkRequestBuilder<Request extends BulkProcessorRequest> {
+        Request newRequest(ShardId shardId);
+
+        void addItem(Request existingRequest,
+                     ShardId shardId,
+                     int location,
+                     String id,
+                     Row row,
+                     @Nullable String routing,
+                     @Nullable Long version);
+    }
 }

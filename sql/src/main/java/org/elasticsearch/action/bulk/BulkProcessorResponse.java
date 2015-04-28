@@ -21,17 +21,12 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
-import org.elasticsearch.action.ActionListener;
+import com.carrotsearch.hppc.IntArrayList;
 
+import java.util.List;
 
-/**
- * Delegates the execution to the BulkShardProcessor.
- * This is mainly used for better testability of the BulkShardProcessor.
- */
-public interface SymbolBasedTransportShardUpsertActionDelegate extends BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> {
+public interface BulkProcessorResponse<T> {
+    IntArrayList itemIndices();
 
-    void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener);
-
+    List<T> responses();
 }

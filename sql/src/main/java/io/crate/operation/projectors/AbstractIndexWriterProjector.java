@@ -31,6 +31,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
+import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -45,8 +48,10 @@ import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.bulk.AssignmentVisitor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
@@ -78,7 +83,8 @@ public abstract class AbstractIndexWriterProjector implements
     };
     private final ShardingProjector shardingProjector;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
-    private BulkShardProcessor bulkShardProcessor;
+    private final TransportActionProvider transportActionProvider;
+    private BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
     private RowDownstreamHandle downstream;
 
     private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
@@ -92,14 +98,16 @@ public abstract class AbstractIndexWriterProjector implements
      * <li> writing into a single partition - <code>partitionIdent = "...", partitionedByInputs = []</code>
      */
     protected AbstractIndexWriterProjector(BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                           final TableIdent tableIdent,
+                                           TransportActionProvider transportActionProvider,
                                            @Nullable String partitionIdent,
                                            List<ColumnIdent> primaryKeyIdents,
                                            List<Symbol> primaryKeySymbols,
                                            List<Input<?>> partitionedByInputs,
                                            @Nullable Symbol routingSymbol,
-                                           CollectExpression<?>[] collectExpressions) {
+                                           CollectExpression<?>[] collectExpressions,
+                                           final TableIdent tableIdent) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
+        this.transportActionProvider = transportActionProvider;
         this.tableIdent = tableIdent;
         this.partitionIdent = partitionIdent;
         this.partitionedByInputs = partitionedByInputs;
@@ -128,18 +136,31 @@ public abstract class AbstractIndexWriterProjector implements
                                             boolean overwriteDuplicates,
                                             @Nullable Map<Reference, Symbol> updateAssignments,
                                             @Nullable Map<Reference, Symbol> insertAssignments) {
-        bulkShardProcessor = new BulkShardProcessor(
+
+        AssignmentVisitor.AssignmentVisitorContext visitorContext = AssignmentVisitor.processAssignments(
+                updateAssignments,
+                insertAssignments
+        );
+        ShardUpsertRequest.Builder requestBuilder = new ShardUpsertRequest.Builder(
+                visitorContext.dataTypes(),
+                visitorContext.columnIndicesToStream(),
+                settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT),
+                true,
+                overwriteDuplicates,
+                updateAssignments,
+                insertAssignments,
+                null
+        );
+        bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 settings,
                 transportBulkCreateIndicesAction,
                 shardingProjector,
                 autoCreateIndices,
-                overwriteDuplicates,
                 MoreObjects.firstNonNull(bulkActions, 100),
                 bulkRetryCoordinatorPool,
-                true,
-                updateAssignments,
-                insertAssignments);
+                requestBuilder,
+                transportActionProvider.transportShardUpsertActionDelegate());
     }
 
     @Override

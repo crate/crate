@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.OperationRouting;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
@@ -78,27 +79,28 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
             }
         };
 
-        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
-        when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardBulkActionDelegate);
-
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY,
-                transportActionProvider
+                ImmutableSettings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
-        final SymbolBasedBulkShardProcessor bulkShardProcessor = new SymbolBasedBulkShardProcessor(
+        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+                TimeValue.timeValueMillis(10),
+                false,
+                false,
+                null,
+                new Reference[]{fooRef}
+        );
+        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
                 coordinatorPool,
                 false,
-                false,
                 1,
-                false,
-                null,
-                new Reference[]{fooRef}
+                builder,
+                transportShardBulkActionDelegate
         );
         bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
 
@@ -138,23 +140,28 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
         when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY,
-                transportActionProvider
+                ImmutableSettings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
-        final SymbolBasedBulkShardProcessor bulkShardProcessor = new SymbolBasedBulkShardProcessor(
+        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+                TimeValue.timeValueMillis(10),
+                false,
+                false,
+                null,
+                new Reference[]{fooRef}
+        );
+
+        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
                 coordinatorPool,
                 false,
-                false,
                 1,
-                false,
-                null,
-                new Reference[]{ fooRef }
+                builder,
+                transportShardUpsertActionDelegate
         );
 
         bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);

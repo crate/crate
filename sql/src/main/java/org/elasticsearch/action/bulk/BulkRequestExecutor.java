@@ -21,17 +21,8 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import org.elasticsearch.action.ActionListener;
 
-
-/**
- * Delegates the execution to the BulkShardProcessor.
- * This is mainly used for better testability of the BulkShardProcessor.
- */
-public interface SymbolBasedTransportShardUpsertActionDelegate extends BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> {
-
-    void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener);
-
+public interface BulkRequestExecutor<Request extends BulkProcessorRequest, Response extends BulkProcessorResponse<?>> {
+    void execute(Request request, ActionListener<Response> listener);
 }
