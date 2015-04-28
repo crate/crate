@@ -27,31 +27,35 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.aggregation.impl.SumAggregation;
+import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
+import io.crate.planner.consumer.UpdateConsumer;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.FileUriCollectNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
-import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.LongType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -73,7 +77,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
-    private Functions functions;
+    private UpdateConsumer updateConsumer;
     private AggregationProjection localMergeProjection;
 
     public static class Context {
@@ -149,9 +153,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Inject
-    public Planner(ClusterService clusterService, AnalysisMetaData analysisMetaData, ConsumingPlanner consumingPlanner) {
+    public Planner(ClusterService clusterService, ConsumingPlanner consumingPlanner, UpdateConsumer updateConsumer) {
         this.clusterService = clusterService;
-        this.functions = analysisMetaData.functions();
+        this.updateConsumer = updateConsumer;
         this.consumingPlanner = consumingPlanner;
     }
 
@@ -189,7 +193,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
-        return consumingPlanner.plan(statement, context);
+        ConsumerContext consumerContext = new ConsumerContext(statement, context);
+        if (updateConsumer.consume(statement, consumerContext)) {
+            return ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan();
+        }
+        throw new IllegalArgumentException("Couldn't plan Update statement");
     }
 
     @Override
@@ -265,7 +273,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         );
 
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection()), collectNode, context);
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context);
         return new CollectAndMerge(collectNode, mergeNode);
     }
 
@@ -364,7 +372,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         PlanNodeBuilder.setOutputTypes(collectNode);
 
         return new CollectAndMerge(collectNode, PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection()), collectNode, context));
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context));
     }
 
     private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {
@@ -586,23 +594,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             indices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
         }
         return indices;
-    }
-
-    private AggregationProjection localMergeProjection() {
-        if (localMergeProjection == null) {
-            localMergeProjection = new AggregationProjection(
-                    Arrays.asList(new Aggregation(
-                                    functions.getSafe(
-                                            new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
-                                    ).info(),
-                                    Arrays.<Symbol>asList(new InputColumn(0, DataTypes.LONG)),
-                                    Aggregation.Step.ITER,
-                                    Aggregation.Step.FINAL
-                            )
-                    )
-            );
-        }
-        return localMergeProjection;
     }
 }
 

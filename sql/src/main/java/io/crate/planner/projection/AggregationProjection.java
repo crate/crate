@@ -45,7 +45,6 @@ public class AggregationProjection extends Projection {
         }
     };
 
-
     public AggregationProjection() {
     }
 

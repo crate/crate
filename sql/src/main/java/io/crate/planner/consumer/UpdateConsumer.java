@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
@@ -31,11 +30,10 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.DocKeys;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.aggregation.impl.SumAggregation;
+import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.*;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
@@ -43,35 +41,26 @@ import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.UpdateProjection;
-import io.crate.planner.symbol.*;
-import io.crate.types.DataType;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbolVisitor;
 import io.crate.types.DataTypes;
-import io.crate.types.LongType;
 import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.collect.Tuple;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class UpdateConsumer implements Consumer {
     private final Visitor visitor;
-    protected final AggregationProjection localMergeProjection;
 
-    public UpdateConsumer(AnalysisMetaData analysisMetaData) {
+    public UpdateConsumer() {
         visitor = new Visitor();
-        localMergeProjection = new AggregationProjection(
-                Collections.singletonList(new Aggregation(
-                                analysisMetaData.functions().getSafe(
-                                        new FunctionIdent(SumAggregation.NAME, Collections.<DataType>singletonList(LongType.INSTANCE))
-                                ).info(),
-                                Collections.<Symbol>singletonList(new InputColumn(0, DataTypes.LONG)),
-                                Aggregation.Step.ITER,
-                                Aggregation.Step.FINAL
-                        )
-                )
-        );
     }
 
     @Override
@@ -166,7 +155,7 @@ public class UpdateConsumer implements Consumer {
                         Preference.PRIMARY.type()
                 );
                 MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                        ImmutableList.<Projection>of(localMergeProjection), collectNode,
+                        ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode,
                         consumerContext.plannerContext());
                 return new CollectAndMerge(collectNode, mergeNode);
             } else {

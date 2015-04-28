@@ -29,12 +29,12 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.Collections;
 import java.util.List;
 
 public class CountAggregation extends AggregationFunction<Long, Long> {
@@ -45,6 +45,14 @@ public class CountAggregation extends AggregationFunction<Long, Long> {
 
     public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
             ImmutableList.<DataType>of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
+
+    public static final AggregationProjection PARTIAL_COUNT_AGGREGATION_PROJECTION =
+            new AggregationProjection(Collections.singletonList(new Aggregation(
+                    CountAggregation.COUNT_STAR_FUNCTION,
+                    Collections.<Symbol>singletonList(new InputColumn(0, DataTypes.LONG)),
+                    Aggregation.Step.PARTIAL,
+                    Aggregation.Step.FINAL
+            )));
 
     public static void register(AggregationImplModule mod) {
         mod.register(NAME, new CountAggregationFunctionResolver());
