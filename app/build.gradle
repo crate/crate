@@ -25,7 +25,36 @@ configurations {
     }
 }
 
+evaluationDependsOn(':core')
+evaluationDependsOn(':es')
+evaluationDependsOn(':sql')
+evaluationDependsOn(':sql-parser')
+evaluationDependsOn(':blob')
+evaluationDependsOn(':udc')
 
+dependencies {
+    compile project(':core')
+    compile project(':es')
+    compile project(':sql')
+    compile project(':admin-ui')
+    compile project(':blob')
+    compile project(':udc')
+    compile project(':client')
+
+    testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.10') {
+        exclude group: 'junit', module: 'junit'
+    }
+    testCompile 'junit:junit:4.11'
+
+
+    compileNotTransitive project(':core')
+    compileNotTransitive project(':es')
+    compileNotTransitive project(':sql')
+    compileNotTransitive project(':sql-parser')
+    compileNotTransitive project(':admin-ui')
+    compileNotTransitive project(':blob')
+    compileNotTransitive project(':udc')
+}
 
 task release(dependsOn: 'distTar') << {
     logger.info("released version: " + project(':core').getVersion.version);
@@ -54,7 +83,50 @@ task dist {
     dependsOn ':docs:itest', distTar, distZip
 }
 
-install.dependsOn([jar, ':core:getVersion'])
+task myJavadocs(type: Javadoc, dependsOn: processResources) {
+    classpath = configurations.compile
+    source = sourceSets.main.allJava + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava
+}
+
+task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+    classifier = 'javadoc'
+    from myJavadocs.destinationDir
+    manifest {
+        attributes("Implementation-Title": "Crate.IO")
+    }
+}
+
+task buildJavadocJar (dependsOn: [':core:getVersion', myJavadocs] ) << {
+    ext.version = project(':core').getVersion.version
+    project.version = ext.version
+    tasks.javadocJar.execute()
+}
+
+task sourceJar (type : Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava
+    manifest {
+        attributes("Implementation-Title": "Crate.IO")
+    }
+}
+
+task buildSourceJar (dependsOn: [':core:getVersion'] ) << {
+    ext.version = project(':core').getVersion.version
+    project.version = ext.version
+    tasks.sourceJar.execute()
+}
+
+artifacts {
+    archives jar
+    archives sourceJar
+    archives javadocJar
+}
+
+task signJars (type : Sign, dependsOn: [jar, buildSourceJar, buildJavadocJar]) {
+    sign configurations.archives
+}
+
+install.dependsOn([jar, ':core:getVersion', buildSourceJar, buildJavadocJar])
 install {
     repositories {
         mavenInstaller {
@@ -90,19 +162,10 @@ install {
     }
 }
 
-artifacts {
-    archives jar
-}
-
-task signJars (type : Sign, dependsOn: [jar]) {
-    sign configurations.archives
-}
-
-
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
-uploadArchives.dependsOn([jar, ':core:getVersion', signJars])
+uploadArchives.dependsOn([jar, ':core:getVersion', buildSourceJar, buildJavadocJar, signJars])
 uploadArchives {
     repositories {
         mavenDeployer {
@@ -178,33 +241,6 @@ ext {
     plugin_crateadmin_version = '0.11.5'
     crash_version = '0.11.5'
 }
-
-evaluationDependsOn(':es')
-
-dependencies {
-    compile project(':core')
-    compile project(':es')
-    compile project(':sql')
-    compile project(':admin-ui')
-    compile project(':blob')
-    compile project(':udc')
-    compile project(':client')
-
-    testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.10') {
-        exclude group: 'junit', module: 'junit'
-    }
-    testCompile 'junit:junit:4.11'
-
-
-    compileNotTransitive project(':core')
-    compileNotTransitive project(':es')
-    compileNotTransitive project(':sql')
-    compileNotTransitive project(':sql-parser')
-    compileNotTransitive project(':admin-ui')
-    compileNotTransitive project(':blob')
-    compileNotTransitive project(':udc')
-}
-
 
 def rootDir = project.parent.projectDir
 
