@@ -28,24 +28,26 @@ import io.crate.operation.aggregation.AggregationFunction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class AggregationImplModule extends AbstractModule {
 
+    private Map<FunctionIdent, FunctionImplementation> functions = new HashMap<>();
+    private Map<String, DynamicFunctionResolver> resolver = new HashMap<>();
     private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
     private MapBinder<String, DynamicFunctionResolver> resolverBinder;
 
     public void register(AggregationFunction impl) {
-        functionBinder.addBinding(impl.info().ident()).toInstance(impl);
+        functions.put(impl.info().ident(), impl);
     }
 
     public void register(String name, DynamicFunctionResolver dynamicFunctionResolver) {
-        resolverBinder.addBinding(name).toInstance(dynamicFunctionResolver);
+        resolver.put(name, dynamicFunctionResolver);
     }
 
     @Override
     protected void configure() {
-        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        resolverBinder = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
-
         AverageAggregation.register(this);
         MinimumAggregation.register(this);
         MaximumAggregation.register(this);
@@ -57,5 +59,22 @@ public class AggregationImplModule extends AbstractModule {
         VarianceAggregation.register(this);
         GeometricMeanAggregation.register(this);
         StandardDeviationAggregation.register(this);
+
+        // bind all registered functions and resolver
+        // by doing it here instead of the register functions, plugins can also use the
+        // register functions in their onModule(...) hooks
+        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+        resolverBinder = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
+        for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functions.entrySet()) {
+            functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
+
+        }
+        for (Map.Entry<String, DynamicFunctionResolver> entry : resolver.entrySet()) {
+            resolverBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
+        }
+
+        // clear registration maps
+        functions = null;
+        resolver = null;
     }
 }
