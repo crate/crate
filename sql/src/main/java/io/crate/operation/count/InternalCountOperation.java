@@ -21,8 +21,12 @@
 
 package io.crate.operation.count;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.operation.ThreadPools;
+import io.crate.operation.collect.EngineSearcher;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
@@ -42,8 +46,14 @@ import org.elasticsearch.search.internal.ShardSearchLocalRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Singleton
 public class InternalCountOperation implements CountOperation {
@@ -54,8 +64,10 @@ public class InternalCountOperation implements CountOperation {
     private final PageCacheRecycler pageCacheRecycler;
     private final LuceneQueryBuilder queryBuilder;
     private final BigArrays bigArrays;
-    private final ThreadPool threadPool;
     private final IndicesService indicesService;
+    private final ThreadPoolExecutor executor;
+    private final int corePoolSize;
+    private final ThreadPool threadPool;
 
     @Inject
     public InternalCountOperation(ClusterService clusterService,
@@ -73,19 +85,57 @@ public class InternalCountOperation implements CountOperation {
         this.queryBuilder = queryBuilder;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
+        executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
+        corePoolSize = executor.getCorePoolSize();
         this.indicesService = indicesService;
     }
 
     @Override
-    public long count(Map<String, ? extends Collection<Integer>> indexShardMap, WhereClause whereClause) throws IOException {
-        long count = 0L;
+    public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap, final WhereClause whereClause)
+            throws IOException, InterruptedException {
+
+        int numShards = countShards(indexShardMap);
+        final AtomicInteger numRemaining = new AtomicInteger(numShards);
+        final AtomicLong count = new AtomicLong(0L);
+        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
+
+        List<Runnable> runnableList = new ArrayList<>();
+        final SettableFuture<Long> result = SettableFuture.create();
+
         for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
-            String index = entry.getKey();
-            for (Integer shardId : entry.getValue()) {
-                count += count(index, shardId, whereClause);
+            final String index = entry.getKey();
+            for (final Integer shardId : entry.getValue()) {
+                runnableList.add(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            count.addAndGet(count(index, shardId, whereClause));
+                        } catch (IOException e) {
+                            lastThrowable.set(e);
+                        } finally {
+                            if (numRemaining.decrementAndGet() == 0) {
+                                Throwable throwable = lastThrowable.get();
+                                if (throwable == null) {
+                                    result.set(count.get());
+                                } else {
+                                    result.setException(throwable);
+                                }
+                            }
+                        }
+                    }
+                });
             }
         }
-        return count;
+        ThreadPools.runWithAvailableThreads(executor, corePoolSize, runnableList);
+        return result;
+    }
+
+    private int countShards(Map<String, ? extends Collection<Integer>> indexShardMap) {
+        int numShards = 0;
+        for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
+            numShards += entry.getValue().size();
+        }
+        return numShards;
     }
 
     @Override
@@ -101,7 +151,7 @@ public class InternalCountOperation implements CountOperation {
                         null
                 ),
                 shardTarget,
-                indexShard.acquireSearcher("count-operation"),
+                EngineSearcher.getSearcherWithRetry(indexShard, "count-operation", null),
                 indexService,
                 indexShard,
                 scriptService,

@@ -236,6 +236,6 @@ public class JobCollectContext implements ExecutionSubContext {
      * Acquire a new searcher, wrapper method needed for simplified testing
      */
     protected Engine.Searcher acquireNewSearcher(IndexShard indexShard) {
-        return EngineSearcher.getSearcherWithRetry(indexShard, null);
+        return EngineSearcher.getSearcherWithRetry(indexShard, "search", null);
     }
 }

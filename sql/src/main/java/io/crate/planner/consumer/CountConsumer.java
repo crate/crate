@@ -88,10 +88,7 @@ public class CountConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(table);
             }
 
-            // TODO: filterRouting
             Routing routing = tableInfo.getRouting(querySpec.where(), null);
-
-
             Planner.Context plannerContext = context.plannerContext();
             CountNode countNode = new CountNode(plannerContext.nextExecutionNodeId(), routing, querySpec.where());
             MergeNode mergeNode = new MergeNode(

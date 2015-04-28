@@ -21,6 +21,7 @@
 
 package io.crate.action.job;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
@@ -143,12 +144,17 @@ public class ContextPreparer {
                 throw new IllegalArgumentException("The routing of the countNode doesn't contain the current nodeId");
             }
             try {
-                long c = countOperation.count(indexShardMap, countNode.whereClause());
-                SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.LONG});
-                context.directResultFuture = singleBucketBuilder.result();
-                singleBucketBuilder.setNextRow(new Row1(c));
-                singleBucketBuilder.finish();
-            } catch (IOException e) {
+                final SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.LONG});
+                context.directResultFuture = Futures.transform(countOperation.count(indexShardMap, countNode.whereClause()),
+                        new Function<Long, Bucket>() {
+                            @Nullable
+                            @Override
+                            public Bucket apply(@Nullable Long input) {
+                                singleBucketBuilder.setNextRow(new Row1(input));
+                                return singleBucketBuilder.doFinish();
+                            }
+                        });
+            } catch (InterruptedException | IOException e) {
                 throw Throwables.propagate(e);
             }
             return null;
