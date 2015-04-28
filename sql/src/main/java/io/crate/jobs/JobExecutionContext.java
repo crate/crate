@@ -82,6 +82,10 @@ public class JobExecutionContext {
             }
         }
 
+        boolean isEmpty() {
+            return collectContextMap.isEmpty() && pageDownstreamContextMap.isEmpty();
+        }
+
         public UUID jobId() {
             return jobId;
         }
@@ -95,6 +99,7 @@ public class JobExecutionContext {
                     pageDownstreamContextMap
             );
         }
+
     }
 
     private JobExecutionContext(UUID jobId,

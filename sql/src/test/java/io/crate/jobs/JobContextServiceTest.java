@@ -78,6 +78,12 @@ public class JobContextServiceTest extends CrateUnitTest {
     }
 
     @Test
+    public void testCreateCallWithEmptyBuilderReturnsNull() throws Exception {
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
+        assertThat(jobContextService.createOrMergeContext(builder), nullValue());
+    }
+
+    @Test
     public void testAccessContext() throws Exception {
         JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
         assertThat(ctx1.lastAccessTime(), is(-1L));

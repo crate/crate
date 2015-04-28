@@ -96,7 +96,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return new JobExecutionContext.Builder(jobId, threadPool);
     }
 
+    @Nullable
     public JobExecutionContext createOrMergeContext(JobExecutionContext.Builder contextBuilder) {
+        if (contextBuilder.isEmpty()) {
+            return null;
+        }
         final UUID jobId = contextBuilder.jobId();
         JobExecutionContext newContext = contextBuilder.build();
 
