@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Include java client in crate distributions
+
  - Fix: Prevent COPY FROM or INSERT into a partitioned table to run into timeouts
    when creating many partitions at once
 
