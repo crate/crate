@@ -75,4 +75,8 @@ public class PlanVisitor<C, R> {
     public R visitCollectAndMerge(CollectAndMerge plan, C context) {
         return visitPlan(plan, context);
     }
+
+    public R visitCountPlan(CountPlan countPlan, C context) {
+        return visitPlan(countPlan, context);
+    }
 }

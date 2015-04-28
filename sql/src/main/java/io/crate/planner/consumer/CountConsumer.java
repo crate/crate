@@ -22,23 +22,34 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.ESCountNode;
+import io.crate.planner.node.dql.CountNode;
+import io.crate.planner.node.dql.CountPlan;
+import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
+import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-public class ESCountConsumer implements Consumer {
+public class CountConsumer implements Consumer {
 
     private static final Visitor VISITOR = new Visitor();
 
@@ -56,29 +67,46 @@ public class ESCountConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            if (!table.querySpec().hasAggregates() || table.querySpec().groupBy()!=null) {
+            QuerySpec querySpec = table.querySpec();
+            if (!querySpec.hasAggregates() || querySpec.groupBy()!=null) {
                 return null;
             }
             TableInfo tableInfo = table.tableRelation().tableInfo();
             if (tableInfo.schemaInfo().systemSchema()) {
                 return null;
             }
-            if (!hasOnlyGlobalCount(table.querySpec().outputs())) {
+            if (!hasOnlyGlobalCount(querySpec.outputs())) {
                 return null;
             }
-            if(table.querySpec().where().hasVersions()){
+            if(querySpec.where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
 
-            if (firstNonNull(table.querySpec().limit(), 1) < 1 ||
-                    table.querySpec().offset() > 0){
+            if (firstNonNull(querySpec.limit(), 1) < 1 ||
+                    querySpec.offset() > 0){
                 return new NoopPlannedAnalyzedRelation(table);
             }
 
+            // TODO: filterRouting
+            Routing routing = tableInfo.getRouting(querySpec.where(), null);
 
-            return new ESCountNode(Planner.indices(tableInfo, table.querySpec().where()),
-                    table.querySpec().where());
+
+            Planner.Context plannerContext = context.plannerContext();
+            CountNode countNode = new CountNode(plannerContext.nextExecutionNodeId(), routing, querySpec.where());
+            MergeNode mergeNode = new MergeNode(
+                    plannerContext.nextExecutionNodeId(),
+                    "count-merge",
+                    countNode.executionNodes().size());
+            mergeNode.inputTypes(Collections.<DataType>singletonList(DataTypes.LONG));
+            AggregationProjection countAggregation = new AggregationProjection(Collections.singletonList(
+                    new Aggregation(CountAggregation.COUNT_STAR_FUNCTION,
+                            Collections.<Symbol>singletonList(new InputColumn(0, DataTypes.LONG)),
+                            Aggregation.Step.PARTIAL,
+                            Aggregation.Step.FINAL)
+            ));
+            mergeNode.projections(Collections.<Projection>singletonList(countAggregation));
+            return new CountPlan(countNode, mergeNode);
         }
 
         @Override

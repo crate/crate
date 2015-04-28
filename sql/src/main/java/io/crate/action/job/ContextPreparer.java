@@ -22,13 +22,17 @@
 package io.crate.action.job;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row1;
 import io.crate.executor.callbacks.OperationFinishedStatsTablesCallback;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.PageDownstream;
@@ -36,6 +40,7 @@ import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.planner.node.ExecutionNode;
@@ -43,7 +48,10 @@ import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CountNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -52,6 +60,9 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Singleton
@@ -60,6 +71,8 @@ public class ContextPreparer {
     private static final ESLogger LOGGER = Loggers.getLogger(ContextPreparer.class);
 
     private final MapSideDataCollectOperation collectOperationHandler;
+    private ClusterService clusterService;
+    private CountOperation countOperation;
     private final CircuitBreaker circuitBreaker;
     private final StatsTables statsTables;
     private final ThreadPool threadPool;
@@ -70,13 +83,17 @@ public class ContextPreparer {
 
     @Inject
     public ContextPreparer(MapSideDataCollectOperation collectOperationHandler,
+                           ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
                            StatsTables statsTables,
                            ThreadPool threadPool,
+                           CountOperation countOperation,
                            PageDownstreamFactory pageDownstreamFactory,
                            ResultProviderFactory resultProviderFactory,
                            StreamerVisitor streamerVisitor) {
         this.collectOperationHandler = collectOperationHandler;
+        this.clusterService = clusterService;
+        this.countOperation = countOperation;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.statsTables = statsTables;
         this.threadPool = threadPool;
@@ -113,6 +130,29 @@ public class ContextPreparer {
     }
 
     private class InnerPreparer extends ExecutionNodeVisitor<PreparerContext, Void> {
+
+        @Override
+        public Void visitCountNode(CountNode countNode, PreparerContext context) {
+            Map<String, Map<String, List<Integer>>> locations = countNode.routing().locations();
+            if (locations == null) {
+                throw new IllegalArgumentException("locations are empty. Can't start count operation");
+            }
+            String localNodeId = clusterService.localNode().id();
+            Map<String, List<Integer>> indexShardMap = locations.get(localNodeId);
+            if (indexShardMap == null) {
+                throw new IllegalArgumentException("The routing of the countNode doesn't contain the current nodeId");
+            }
+            try {
+                long c = countOperation.count(indexShardMap, countNode.whereClause());
+                SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.LONG});
+                context.directResultFuture = singleBucketBuilder.result();
+                singleBucketBuilder.setNextRow(new Row1(c));
+                singleBucketBuilder.finish();
+            } catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+            return null;
+        }
 
         @Override
         public Void visitMergeNode(final MergeNode node, final PreparerContext context) {

@@ -43,7 +43,7 @@ public class ConsumingPlanner {
         consumers.add(new NonDistributedGroupByConsumer());
         consumers.add(new ReduceOnCollectorGroupByConsumer());
         consumers.add(new DistributedGroupByConsumer());
-        consumers.add(new ESCountConsumer());
+        consumers.add(new CountConsumer());
         consumers.add(new GlobalAggregateConsumer());
         consumers.add(new ESGetConsumer());
         consumers.add(new QueryThenFetchConsumer());

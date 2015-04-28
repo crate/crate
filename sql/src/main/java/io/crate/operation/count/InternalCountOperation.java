@@ -42,8 +42,8 @@ import org.elasticsearch.search.internal.ShardSearchLocalRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 @Singleton
 public class InternalCountOperation implements CountOperation {
@@ -77,9 +77,9 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public long count(Map<String, Set<Integer>> indexShardMap, WhereClause whereClause) throws IOException {
+    public long count(Map<String, ? extends Collection<Integer>> indexShardMap, WhereClause whereClause) throws IOException {
         long count = 0L;
-        for (Map.Entry<String, Set<Integer>> entry : indexShardMap.entrySet()) {
+        for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
             String index = entry.getKey();
             for (Integer shardId : entry.getValue()) {
                 count += count(index, shardId, whereClause);

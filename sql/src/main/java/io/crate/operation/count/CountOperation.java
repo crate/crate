@@ -25,12 +25,12 @@ import io.crate.analyze.WhereClause;
 import org.elasticsearch.common.inject.ImplementedBy;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 @ImplementedBy(InternalCountOperation.class)
 public interface CountOperation {
 
-    long count(Map<String, Set<Integer>> indexShardMap, WhereClause whereClause) throws IOException;
+    long count(Map<String, ? extends Collection<Integer>> indexShardMap, WhereClause whereClause) throws IOException;
     long count(String index, int shardId, WhereClause whereClause) throws IOException;
 }

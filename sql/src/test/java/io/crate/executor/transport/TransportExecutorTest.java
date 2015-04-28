@@ -565,16 +565,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testESCountTask() throws Exception {
-        setup.setUpCharacters();
-        WhereClause whereClause = new WhereClause(null, false);
-        Plan plan = new IterablePlan(new ESCountNode(new String[]{"characters"}, whereClause));
-        List<ListenableFuture<TaskResult>> result = executor.execute(executor.newJob(plan));
-        Bucket rows = result.get(0).get().rows();
-        assertThat(rows, contains(isRow(4L)));
-    }
-
-    @Test
     public void testInsertMultiValuesWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
         ensureGreen();

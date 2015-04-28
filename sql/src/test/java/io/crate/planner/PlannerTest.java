@@ -1118,15 +1118,13 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testGlobalCountPlan() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("select count(*) from users");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(PlannedAnalyzedRelation.class));
-        assertThat(planNode, instanceOf(ESCountNode.class));
+        CountPlan plan = (CountPlan) plan("select count(*) from users");
+        assertThat(plan, instanceOf(PlannedAnalyzedRelation.class));
 
-        ESCountNode node = (ESCountNode) planNode;
-        assertThat(node.indices().length, is(1));
-        assertThat(node.indices()[0], is("users"));
+        assertThat(plan.countNode().whereClause(), equalTo(WhereClause.MATCH_ALL));
+
+        assertThat(plan.mergeNode().projections().size(), is(1));
+        assertThat(plan.mergeNode().projections().get(0), instanceOf(AggregationProjection.class));
     }
 
     @Test
@@ -1467,15 +1465,9 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCountOnPartitionedTable() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("select count(*) from parted");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(PlannedAnalyzedRelation.class));
-        assertThat(planNode, instanceOf(ESCountNode.class));
-        ESCountNode esCountNode = (ESCountNode) planNode;
-
-        assertThat(esCountNode.indices(), arrayContainingInAnyOrder(
-                ".partitioned.parted.0400", ".partitioned.parted.04130", ".partitioned.parted.04232chj"));
+        CountPlan plan = (CountPlan) plan("select count(*) from parted where date = 123");
+        assertThat(plan, instanceOf(PlannedAnalyzedRelation.class));
+        assertThat(plan.countNode().whereClause().partitions(), containsInAnyOrder(".partitioned.parted.04232chj"));
     }
 
     @Test(expected = UnsupportedOperationException.class)

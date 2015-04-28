@@ -22,6 +22,7 @@
 package io.crate.planner.node;
 
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CountNode;
 import io.crate.planner.node.dql.MergeNode;
 
 public class ExecutionNodeVisitor<C, R> {
@@ -40,5 +41,9 @@ public class ExecutionNodeVisitor<C, R> {
 
     public R visitMergeNode(MergeNode node, C context) {
         return visitExecutionNode(node, context);
+    }
+
+    public R visitCountNode(CountNode countNode, C context) {
+        return visitExecutionNode(countNode, context);
     }
 }
