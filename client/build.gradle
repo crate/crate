@@ -9,7 +9,6 @@ archivesBaseName = "crate-client"
 
 evaluationDependsOn(':core')
 evaluationDependsOn(':sql')
-evaluationDependsOn(':app')
 
 configurations {
     all*.exclude group: 'org.elasticsearch'
@@ -89,9 +88,9 @@ shadowJar {
     }
 }
 
-task buildJar(dependsOn: [':app:getVersion', ':core:compileSharedJava', ':sql:compileSharedJava', 'classes']) {
+task buildJar(dependsOn: [':core:getVersion', ':core:compileSharedJava', ':sql:compileSharedJava', 'classes']) {
     doLast {
-        ext.version = project(':app').getVersion.version
+        ext.version = project(':core').getVersion.version
         project.version = ext.version
         tasks.shadowJar.execute()
     }
@@ -110,8 +109,8 @@ task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
-task buildJavadocJar (dependsOn: [':app:getVersion', myJavadocs] ) << {
-    ext.version = project(':app').getVersion.version
+task buildJavadocJar (dependsOn: [':core:getVersion', myJavadocs] ) << {
+    ext.version = project(':core').getVersion.version
     project.version = ext.version
     tasks.javadocJar.execute()
 }
@@ -124,8 +123,8 @@ task sourceJar (type : Jar) {
     }
 }
 
-task buildSourceJar (dependsOn: [':app:getVersion'] ) << {
-    ext.version = project(':app').getVersion.version
+task buildSourceJar (dependsOn: [':core:getVersion'] ) << {
+    ext.version = project(':core').getVersion.version
     project.version = ext.version
     tasks.sourceJar.execute()
 }

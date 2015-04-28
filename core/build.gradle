@@ -29,6 +29,32 @@ test {
 
 }
 
+task getVersion (dependsOn: 'classes') << {
+    def stdout = new ByteArrayOutputStream()
+    javaexec {
+        classpath = sourceSets.main.runtimeClasspath
+        main = 'io.crate.Version'
+        standardOutput = stdout
+    }
+    ext.gitTag = "git describe".execute().in.text.trim()
+    ext.version = stdout.toString().trim().split(" ")[1].replace(',','').trim()
+
+    if (gradle.taskGraph.hasTask(':app:release')) {
+        assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
+    } else if (gradle.taskGraph.hasTask(':app:nightly')) {
+        def date = new Date().format('yyyyMMddHHmm')
+        def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
+        ext.version = version.replace('-SNAPSHOT','') + "-" + date + "-" + shortHash
+    } else if (!gradle.taskGraph.hasTask(':client:uploadArchives')) {
+        def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
+        ext.version = version + "-" + shortHash
+    }
+
+    logger.quiet("gitTag: " + gitTag)
+    logger.quiet("version: " + version)
+}
+
+
 sourceSets {
     test {
         resources {

@@ -27,43 +27,18 @@ configurations {
 
 
 task release(dependsOn: 'distTar') << {
-    logger.info("released version: " + getVersion.version);
+    logger.info("released version: " + project(':core').getVersion.version);
 }
 
 task nightly(dependsOn: 'distTar') << {
-    logger.info("nightly version: " + getVersion.version);
+    logger.info("nightly version: " + project(':core').getVersion.version);
 }
 
-
-task getVersion (dependsOn: 'classes') << {
-    def stdout = new ByteArrayOutputStream()
-    javaexec {
-        classpath = sourceSets.main.runtimeClasspath
-        main = 'io.crate.Version'
-        standardOutput = stdout
-    }
-    ext.gitTag = "git describe".execute().in.text.trim()
-    ext.version = stdout.toString().trim().split(" ")[1].replace(',','').trim()
-
-    if (gradle.taskGraph.hasTask(release)) {
-        assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
-    } else if (gradle.taskGraph.hasTask(nightly)) {
-        def date = new Date().format('yyyyMMddHHmm')
-        def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
-        ext.version = version.replace('-SNAPSHOT','') + "-" + date + "-" + shortHash
-    } else if (!gradle.taskGraph.hasTask(':client:uploadArchives')) {
-        def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
-        ext.version = version + "-" + shortHash
-    }
-
-    logger.quiet("gitTag: " + gitTag)
-    logger.quiet("version: " + version)
-}
 
 fatJar {
-    dependsOn getVersion
+    dependsOn ':core:getVersion'
     doFirst {
-        manifest.attributes 'Implementation-Version': getVersion.version
+        manifest.attributes 'Implementation-Version': project(':core').getVersion.version
     }
     manifest {
         attributes 'Main-Class': 'io.crate.bootstrap.CrateF',
@@ -78,7 +53,7 @@ task dist {
     dependsOn ':docs:itest', distTar, distZip
 }
 
-install.dependsOn([jar, getVersion])
+install.dependsOn([jar, ':core:getVersion'])
 install {
     repositories {
         mavenInstaller {
@@ -126,7 +101,7 @@ task signJars (type : Sign, dependsOn: [jar]) {
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
-uploadArchives.dependsOn([jar, getVersion, signJars])
+uploadArchives.dependsOn([jar, ':core:getVersion', signJars])
 uploadArchives {
     repositories {
         mavenDeployer {
@@ -180,20 +155,20 @@ uploadArchives {
 }
 
 distTar {
-    dependsOn getVersion
+    dependsOn ':core:getVersion'
     compression = Compression.GZIP
     baseName = 'crate'
     extension = 'tar.gz'
     doFirst {
-        version = getVersion.version
+        version = project(':core').getVersion.version
     }
 }
 
 distZip {
-    dependsOn getVersion
+    dependsOn ':core:getVersion'
     baseName = 'crate'
     doFirst {
-        version = getVersion.version
+        version = project(':core').getVersion.version
     }
 }
 
@@ -270,11 +245,11 @@ distributions {
 }
 
 jar {
-    dependsOn getVersion
+    dependsOn ':core:getVersion'
 
     doFirst {
-        manifest.attributes 'Implementation-Version': getVersion.version
-        project.version = getVersion.version
+        manifest.attributes 'Implementation-Version': project(':core').getVersion.version
+        project.version = project(':core').getVersion.version
         def serviceDir = file("$buildDir/META-INF/services")
         serviceDir.deleteDir()
         serviceDir.mkdirs()
