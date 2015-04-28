@@ -22,7 +22,7 @@
 package io.crate.module;
 
 import com.google.common.collect.Lists;
-import io.crate.core.CrateLoader;
+import io.crate.core.CrateComponentLoader;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.PreProcessModule;
@@ -37,27 +37,27 @@ import static org.elasticsearch.common.inject.Modules.createModule;
 public class CrateCoreShardModule extends AbstractModule implements SpawnModules, PreProcessModule {
 
     private final Settings settings;
-    private final CrateLoader crateLoader;
+    private final CrateComponentLoader crateComponentLoader;
 
     public CrateCoreShardModule(Settings settings) {
         this.settings = settings;
-        crateLoader = CrateLoader.getInstance(settings);
+        crateComponentLoader = CrateComponentLoader.getInstance(settings);
     }
 
     @Override
     public Iterable<? extends Module> spawnModules() {
         List<Module> modules = Lists.newArrayList();
-        Collection<Class<? extends Module>> modulesClasses = crateLoader.shardModules();
+        Collection<Class<? extends Module>> modulesClasses = crateComponentLoader.shardModules();
         for (Class<? extends Module> moduleClass : modulesClasses) {
             modules.add(createModule(moduleClass, settings));
         }
-        modules.addAll(crateLoader.shardModules(settings));
+        modules.addAll(crateComponentLoader.shardModules(settings));
         return modules;
     }
 
     @Override
     public void processModule(Module module) {
-        crateLoader.processModule(module);
+        crateComponentLoader.processModule(module);
     }
 
     @Override

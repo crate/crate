@@ -39,22 +39,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ServiceLoader;
 
-public class CrateLoader {
+public class CrateComponentLoader {
 
-    private static CrateLoader INSTANCE;
+    private static CrateComponentLoader INSTANCE;
 
     private final ArrayList<Plugin> plugins;
-    private static final ESLogger logger = Loggers.getLogger(CrateLoader.class);
+    private static final ESLogger logger = Loggers.getLogger(CrateComponentLoader.class);
     private final ImmutableMap<Plugin, List<OnModuleReference>> onModuleReferences;
 
-    public static synchronized CrateLoader getInstance(Settings settings) {
+    public static synchronized CrateComponentLoader getInstance(Settings settings) {
         if (INSTANCE == null) {
-            INSTANCE = new CrateLoader(settings);
+            INSTANCE = new CrateComponentLoader(settings);
         }
         return INSTANCE;
     }
 
-    private CrateLoader(Settings settings) {
+    private CrateComponentLoader(Settings settings) {
         ServiceLoader<CrateComponent> crateComponents = ServiceLoader.load(CrateComponent.class);
         plugins = new ArrayList<>();
         MapBuilder<Plugin, List<OnModuleReference>> onModuleReferences = MapBuilder.newMapBuilder();
@@ -161,11 +161,11 @@ public class CrateLoader {
         return builder.build();
     }
 
-    static class OnModuleReference {
+    public static class OnModuleReference {
         public final Class<? extends Module> moduleClass;
         public final Method onModuleMethod;
 
-        OnModuleReference(Class<? extends Module> moduleClass, Method onModuleMethod) {
+        public OnModuleReference(Class<? extends Module> moduleClass, Method onModuleMethod) {
             this.moduleClass = moduleClass;
             this.onModuleMethod = onModuleMethod;
         }
