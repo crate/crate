@@ -5,6 +5,16 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to version 0.12.0 which contains the following changes:
+
+    - added ``--version`` to cli interface to show crash version and exit
+
+    - Fixed broken 'mixed' output style due to overriding import
+
+    - Improved readability of sql syntax highlighting
+
+    - Attempting to use unknown command now results in an error
+
  - Fix: In some cases a ``DROP TABLE`` statment does not delete all
    partitions. Now it's possible to repeat the statement in order
    to delete the orphaned partitions.
