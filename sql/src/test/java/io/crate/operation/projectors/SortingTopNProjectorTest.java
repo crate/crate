@@ -37,7 +37,6 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 
-@SuppressWarnings({"unchecked", "NullArgumentToVariableArgMethod"})
 public class SortingTopNProjectorTest extends CrateUnitTest {
 
     private static final Input<Integer> INPUT = new InputCollectExpression<>(0);
@@ -229,7 +228,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         projector.registerUpstream(null);
         projector.startProjection();
         projector.setNextRow(spare(1));
-        projector.setNextRow(spare(null));
+        projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
 
         Bucket rows = projector.result().get();
@@ -250,7 +249,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         projector.registerUpstream(null);
         projector.startProjection();
         projector.setNextRow(spare(1));
-        projector.setNextRow(spare(null));
+        projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
 
         Bucket rows = projector.result().get();
@@ -271,7 +270,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         projector.registerUpstream(null);
         projector.startProjection();
         projector.setNextRow(spare(1));
-        projector.setNextRow(spare(null));
+        projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
 
         Bucket rows = projector.result().get();
@@ -292,7 +291,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         projector.registerUpstream(null);
         projector.startProjection();
         projector.setNextRow(spare(1));
-        projector.setNextRow(spare(null));
+        projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
 
         Bucket rows = projector.result().get();

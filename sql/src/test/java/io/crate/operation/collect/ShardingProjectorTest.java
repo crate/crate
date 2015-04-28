@@ -34,7 +34,6 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-@SuppressWarnings("NullArgumentToVariableArgMethod")
 public class ShardingProjectorTest extends CrateUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("_id");
@@ -134,7 +133,7 @@ public class ShardingProjectorTest extends CrateUnitTest {
         ShardingProjector shardingProjector =
                 new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, null);
         shardingProjector.startProjection();
-        shardingProjector.setNextRow(row(null));
+        shardingProjector.setNextRow(row(new Object[] { null }));
     }
 
     @Test
