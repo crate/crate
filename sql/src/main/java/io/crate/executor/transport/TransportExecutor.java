@@ -203,6 +203,28 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return ImmutableList.of(createExecutableNodesTask(job, plan.collectNode(), plan.localMergeNode()));
         }
 
+        @Override
+        public List<Task> visitCountPlan(CountPlan countPlan, Job job) {
+            return ImmutableList.<Task>of(new ExecutionNodesTask(
+                    job.id(),
+                    clusterService,
+                    contextPreparer,
+                    executionNodeOperationStarter,
+                    handlerSideDataCollectOperation,
+                    globalProjectionToProjectionVisitor,
+                    jobContextService,
+                    pageDownstreamFactory,
+                    statsTables,
+                    threadPool,
+                    transportActionProvider.transportJobInitAction(),
+                    transportActionProvider.transportCloseContextNodeAction(),
+                    streamerVisitor,
+                    circuitBreaker,
+                    countPlan.mergeNode(),
+                    countPlan.countNode()
+            ));
+        }
+
         private Task createExecutableNodesTask(Job job, CollectNode collectNode, @Nullable MergeNode localMergeNode) {
             collectNode.jobId(job.id());
             if (localMergeNode != null) {
@@ -384,12 +406,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return singleTask(new ESCreateTemplateTask(jobId,
                     node,
                     transportActionProvider.transportPutIndexTemplateAction()));
-        }
-
-        @Override
-        public ImmutableList<Task> visitESCountNode(ESCountNode node, UUID jobId) {
-            return singleTask(new ESCountTask(jobId, node,
-                    transportActionProvider.transportCountAction()));
         }
 
         @Override

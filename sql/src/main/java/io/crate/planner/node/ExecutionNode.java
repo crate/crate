@@ -22,6 +22,7 @@
 package io.crate.planner.node;
 
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CountNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -41,6 +42,7 @@ public interface ExecutionNode extends Streamable {
 
     enum Type {
         COLLECT(CollectNode.FACTORY),
+        COUNT(CountNode.FACTORY),
         FILE_URI_COLLECT(FileUriCollectNode.FACTORY),
         MERGE(MergeNode.FACTORY);
 

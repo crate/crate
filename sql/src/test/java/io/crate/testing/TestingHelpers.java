@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.*;
 import io.crate.metadata.*;
@@ -502,6 +503,13 @@ public class TestingHelpers {
             column[i] = rows[i][index];
         }
         return column;
+    }
+
+    public static WhereClause whereClause(String opname, Symbol left, Symbol right) {
+        return new WhereClause(new Function(new FunctionInfo(
+                new FunctionIdent(opname, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
+                Arrays.asList(left, right)
+        ));
     }
 
     private static class CauseMatcher extends TypeSafeMatcher<Throwable> {

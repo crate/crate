@@ -19,31 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.operation.count;
 
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.CountNode;
-import io.crate.planner.node.dql.MergeNode;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.analyze.WhereClause;
+import org.elasticsearch.common.inject.ImplementedBy;
 
-public class ExecutionNodeVisitor<C, R> {
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
 
-    public R process(ExecutionNode node, C context) {
-        return node.accept(this, context);
-    }
+@ImplementedBy(InternalCountOperation.class)
+public interface CountOperation {
 
-    protected R visitExecutionNode(ExecutionNode node, C context) {
-        return null;
-    }
-
-    public R visitCollectNode(CollectNode node, C context) {
-        return visitExecutionNode(node, context);
-    }
-
-    public R visitMergeNode(MergeNode node, C context) {
-        return visitExecutionNode(node, context);
-    }
-
-    public R visitCountNode(CountNode countNode, C context) {
-        return visitExecutionNode(countNode, context);
-    }
+    ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+                                 WhereClause whereClause) throws IOException, InterruptedException;
+    long count(String index, int shardId, WhereClause whereClause) throws IOException;
 }

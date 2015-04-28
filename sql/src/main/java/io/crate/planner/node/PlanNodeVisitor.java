@@ -76,10 +76,6 @@ public class PlanNodeVisitor<C, R> {
         return visitDDLPlanNode(node, context);
     }
 
-    public R visitESCountNode(ESCountNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
     public R visitESCreateTemplateNode(ESCreateTemplateNode node, C context) {
         return visitPlanNode(node, context);
     }

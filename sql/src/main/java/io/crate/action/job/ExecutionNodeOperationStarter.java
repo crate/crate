@@ -30,6 +30,8 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CountNode;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -67,6 +69,23 @@ public class ExecutionNodeOperationStarter implements RowUpstream {
     }
 
     private class InnerStarter extends ExecutionNodeVisitor<JobExecutionContext, Void> {
+
+        @Override
+        protected Void visitExecutionNode(ExecutionNode node, JobExecutionContext context) {
+            throw new UnsupportedOperationException("Can't handle " + node);
+        }
+
+        @Override
+        public Void visitMergeNode(MergeNode node, JobExecutionContext context) {
+            // nothing to do; merge is done by creating a context and then rows/pages are pushed into that context
+            return null;
+        }
+
+        @Override
+        public Void visitCountNode(CountNode countNode, JobExecutionContext context) {
+            // nothing to do; count doesn't use a context (yet) and is started directly in the ContextPreparer
+            return null;
+        }
 
         @Override
         public Void visitCollectNode(final CollectNode collectNode, final JobExecutionContext context) {

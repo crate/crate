@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed the limitation that the WHERE clause couldn't contain certain
+   expressions in `select count(*)` queries.
+
  - Added possibility to create a single jar which contains all crate packages
    without dependencies
 

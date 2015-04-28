@@ -187,22 +187,15 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     /**
-     * Same as above, but running through different code path for COUNT(*) expressions.
+     * Same as above except that the code path is different as a countOperation is used for count(*) queries
      *
-     * Making this possible requires patching ES => postponed.
-     *
-     * @see {@link io.crate.executor.transport.task.elasticsearch.ESQueryBuilder}
      * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
      * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
      */
     @Test
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForCount() throws Exception {
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Using ~ with PCRE regular expressions currently not supported for this type of query");
-
         this.setup.setUpLocations();
-        ensureGreen();
+        ensureYellow();
         refresh();
 
         execute("select count(*) from locations where name ~ '(?i).*centauri.*'");

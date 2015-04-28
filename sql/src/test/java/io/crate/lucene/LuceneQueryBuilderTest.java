@@ -23,15 +23,11 @@ package io.crate.lucene;
 
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
-import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -53,8 +49,7 @@ import org.mockito.Answers;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.createFunction;
-import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -309,12 +304,4 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     private Query convert(WhereClause clause) {
         return builder.convert(clause, searchContext, indexCache).query;
     }
-
-    private WhereClause whereClause(String opname, Symbol left, Symbol right) {
-        return new WhereClause(new Function(new FunctionInfo(
-                new FunctionIdent(opname, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(left, right)
-        ));
-    }
-
 }
