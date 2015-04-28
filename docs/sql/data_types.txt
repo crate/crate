@@ -33,7 +33,7 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
 string
 ======
 
-A text-based basic type containing one or more characters. Example::
+A text-based basic type containing one or more characters. All unicode characters are allowed. Example::
 
     cr> create table my_table2 (
     ...   first_column string
@@ -41,6 +41,10 @@ A text-based basic type containing one or more characters. Example::
     CREATE OK (... sec)
 
 Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
+
+.. note::
+
+    Maximum indexed string length is restricted to 32766 bytes, when encoded with UTF-8 unless the string is analyzed using full text.
 
 numeric types
 =============
