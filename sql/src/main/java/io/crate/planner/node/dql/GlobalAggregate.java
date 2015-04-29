@@ -21,19 +21,11 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.Path;
-import io.crate.planner.Plan;
+import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Field;
 
-import javax.annotation.Nullable;
-import java.util.List;
-
-public class GlobalAggregate implements PlannedAnalyzedRelation, Plan {
+public class GlobalAggregate extends PlanAndPlannedAnalyzedRelation {
 
     private final CollectNode collectNode;
     private MergeNode mergeNode;
@@ -57,32 +49,6 @@ public class GlobalAggregate implements PlannedAnalyzedRelation, Plan {
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitPlanedAnalyzedRelation(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField not supported on GlobalAggregateNode");
-    }
-
-    @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField not supported on GlobalAggregateNode");
-    }
-
-    @Override
-    public List<Field> fields() {
-        throw new UnsupportedOperationException("fields not supported on GlobalAggregateNode");
-    }
-
-    @Override
-    public Plan plan() {
-        return this;
-    }
-
-    @Override
     public void addProjection(Projection projection) {
         mergeNode.projections().add(projection);
     }
@@ -96,5 +62,4 @@ public class GlobalAggregate implements PlannedAnalyzedRelation, Plan {
     public DQLPlanNode resultNode() {
         return mergeNode == null ? collectNode : mergeNode;
     }
-
 }

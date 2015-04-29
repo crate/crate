@@ -23,21 +23,16 @@ package io.crate.planner.node.dml;
 
 
 import com.google.common.base.Optional;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.Path;
 import io.crate.planner.Plan;
+import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
-public class InsertFromSubQuery implements PlannedAnalyzedRelation, Plan {
+public class InsertFromSubQuery extends PlanAndPlannedAnalyzedRelation {
 
 
     private final Optional<MergeNode> handlerMergeNode;
@@ -54,38 +49,12 @@ public class InsertFromSubQuery implements PlannedAnalyzedRelation, Plan {
         return visitor.visitInsertByQuery(this, context);
     }
 
-    @Nullable
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField is not supported");
-    }
-
-    @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField is not supported");
-    }
-
-    @Override
-    public List<Field> fields() {
-        throw new UnsupportedOperationException("fields is not supported");
-    }
-
     public Plan innerPlan() {
         return innerPlan;
     }
 
     public Optional<MergeNode> handlerMergeNode() {
         return handlerMergeNode;
-    }
-
-    @Override
-    public Plan plan() {
-        return this;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitPlanedAnalyzedRelation(this, context);
     }
 
     @Override
@@ -102,5 +71,4 @@ public class InsertFromSubQuery implements PlannedAnalyzedRelation, Plan {
     public DQLPlanNode resultNode() {
         throw new UnsupportedOperationException("resultNode is not supported");
     }
-
 }

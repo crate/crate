@@ -23,6 +23,5 @@ package io.crate.planner;
 
 public interface Plan {
 
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context);
-
+    <C, R> R accept(PlanVisitor<C, R> visitor, C context);
 }
