@@ -24,16 +24,13 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.operation.projectors.CollectingProjector;
-import io.crate.operation.projectors.InternalResultProviderFactory;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
@@ -49,7 +46,9 @@ import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
 
 import java.io.File;
@@ -65,6 +64,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MapSideDataCollectOperationTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
     public void testFileUriCollect() throws Exception {
@@ -118,7 +120,7 @@ public class MapSideDataCollectOperationTest {
                 jobContextService
         );
 
-        File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
+        File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (FileWriter writer = new FileWriter(tmpFile)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
