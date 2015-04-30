@@ -145,9 +145,9 @@ public class TestSysNodesExpressions extends CrateUnitTest {
             NodeService nodeService = mock(NodeService.class);
             NodeStats nodeStats = mock(NodeStats.class);
             when(nodeService.stats()).thenReturn(nodeStats);
-            when(nodeStats.getHostname()).thenReturn("localhost");
 
             DiscoveryNode node = mock(DiscoveryNode.class);
+            when(node.getHostName()).thenReturn("localhost");
             when(nodeStats.getNode()).thenReturn(node);
 
             when(nodeStats.getOs()).thenReturn(osStats);

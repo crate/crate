@@ -22,23 +22,28 @@
 package io.crate.operation.reference.sys.node;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.node.service.NodeService;
 
 public class NodeHostnameExpression extends SysNodeExpression<BytesRef> {
 
     public static final String NAME = "hostname";
 
-    private final NodeService nodeService;
+    private final ClusterService clusterService;
 
     @Inject
-    public NodeHostnameExpression(NodeService nodeService) {
-        this.nodeService = nodeService;
+    public NodeHostnameExpression(ClusterService clusterService) {
+        this.clusterService = clusterService;
     }
 
     @Override
     public BytesRef value() {
-        return new BytesRef(nodeService.stats().getHostname());
+        DiscoveryNode localNode = clusterService.localNode();
+        if (localNode != null) {
+            return new BytesRef(localNode.getHostName());
+        }
+        return null;
     }
 
 }

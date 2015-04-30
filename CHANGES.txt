@@ -7,6 +7,8 @@ Unreleased
 
 NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 
+ - Increased performance of ``hostname`` and ``id`` expression for ``sys.nodes`` table
+
 2015/04/28 0.48.3
 =================
 
