@@ -56,6 +56,8 @@ dependencies {
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
     compileNotTransitive project(':client')
+
+    compileNotTransitive fileTree(dir: '../es/upstream/lib/sigar/', include: '*.jar')
 }
 
 task release(dependsOn: 'distTar') << {
