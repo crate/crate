@@ -23,6 +23,7 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row1;
 import io.crate.operation.RowDownstream;
@@ -59,7 +60,8 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     public void start() {
         try {
-            Futures.addCallback(countOperation.count(indexShardMap, whereClause), new FutureCallback<Long>() {
+            ListenableFuture<Long> countFuture = countOperation.count(indexShardMap, whereClause);
+            Futures.addCallback(countFuture, new FutureCallback<Long>() {
                 @Override
                 public void onSuccess(@Nullable Long result) {
                     rowDownstreamHandle.setNextRow(new Row1(result));

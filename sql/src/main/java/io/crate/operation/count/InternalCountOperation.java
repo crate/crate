@@ -21,8 +21,9 @@
 
 package io.crate.operation.count;
 
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.operation.ThreadPools;
@@ -45,15 +46,14 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchLocalRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Singleton
 public class InternalCountOperation implements CountOperation {
@@ -94,52 +94,26 @@ public class InternalCountOperation implements CountOperation {
     public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap, final WhereClause whereClause)
             throws IOException, InterruptedException {
 
-        int numShards = countShards(indexShardMap);
-        final AtomicInteger numRemaining = new AtomicInteger(numShards);
-        final AtomicLong count = new AtomicLong(0L);
-        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
-
-        List<Runnable> runnableList = new ArrayList<>();
-        final SettableFuture<Long> result = SettableFuture.create();
-
+        List<Callable<Long>> callableList = new ArrayList<>();
         for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
             final String index = entry.getKey();
             for (final Integer shardId : entry.getValue()) {
-                runnableList.add(new Runnable() {
+                callableList.add(new Callable<Long>() {
                     @Override
-                    public void run() {
-                        try {
-                            count.addAndGet(count(index, shardId, whereClause));
-                        } catch (IOException e) {
-                            lastThrowable.set(e);
-                        } finally {
-                            if (numRemaining.decrementAndGet() == 0) {
-                                Throwable throwable = lastThrowable.get();
-                                if (throwable == null) {
-                                    result.set(count.get());
-                                } else {
-                                    result.setException(throwable);
-                                }
-                            }
-                        }
+                    public Long call() throws Exception {
+                        return count(index, shardId, whereClause);
                     }
                 });
             }
         }
-        ThreadPools.runWithAvailableThreads(executor, corePoolSize, runnableList);
-        return result;
-    }
+        ListenableFuture<List<Long>> listListenableFuture = ThreadPools.runWithAvailableThreads(
+                executor, corePoolSize, callableList, new MergePartialCountFunction());
 
-    private int countShards(Map<String, ? extends Collection<Integer>> indexShardMap) {
-        int numShards = 0;
-        for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
-            numShards += entry.getValue().size();
-        }
-        return numShards;
+        return Futures.transform(listListenableFuture, new MergePartialCountFunction());
     }
 
     @Override
-    public long count(String index, int shardId, WhereClause whereClause) throws IOException {
+    public long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
         IndexService indexService = indicesService.indexServiceSafe(index);
         IndexShard indexShard = indexService.shardSafe(shardId);
 
@@ -164,10 +138,25 @@ public class InternalCountOperation implements CountOperation {
 
         try {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(whereClause, context, indexService.cache());
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
+            }
             return Lucene.count(context.searcher(), queryCtx.query());
         } finally {
             context.close();
             SearchContext.removeCurrent();
+        }
+    }
+
+    private static class MergePartialCountFunction implements Function<List<Long>, Long> {
+        @Nullable
+        @Override
+        public Long apply(List<Long> partialResults) {
+            long result = 0L;
+            for (Long partialResult : partialResults) {
+                result += partialResult;
+            }
+            return result;
         }
     }
 }
