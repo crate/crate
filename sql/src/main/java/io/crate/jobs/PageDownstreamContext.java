@@ -170,6 +170,11 @@ public class PageDownstreamContext implements ExecutionSubContext {
         callbacks.add(contextCallback);
     }
 
+    @Override
+    public void close() {
+        finish();
+    }
+
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {
 
         @Override

@@ -241,7 +241,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         context = jobContextService.getContext(collectNode.jobId().get());
         JobCollectContext jobCollectContext;
         try {
-            jobCollectContext = context.getCollectContext(collectNode.executionNodeId());
+            jobCollectContext = context.getSubContext(collectNode.executionNodeId());
         } catch (IllegalArgumentException e) {
             downstream.registerUpstream(this).finish();
             return;

@@ -178,7 +178,7 @@ public class ContextPreparer {
             Futures.addCallback(downstream.result(), new OperationFinishedStatsTablesCallback<Bucket>(
                     node.executionNodeId(), statsTables, context.ramAccountingContext));
 
-            context.contextBuilder.addPageDownstreamContext(node.executionNodeId(), pageDownstreamContext);
+            context.contextBuilder.addSubContext(node.executionNodeId(), pageDownstreamContext);
             return null;
         }
 
@@ -196,7 +196,7 @@ public class ContextPreparer {
                     context.ramAccountingContext,
                     downstream
             );
-            context.contextBuilder.addCollectContext(node.executionNodeId(), jobCollectContext);
+            context.contextBuilder.addSubContext(node.executionNodeId(), jobCollectContext);
             if (!node.keepContextForFetcher()) {
                 downstream.result().addListener(new Runnable() {
                     @Override

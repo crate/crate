@@ -201,7 +201,7 @@ public class ExecutionNodesTask extends JobTask {
         Collection<ExecutionNode> localExecutionNodes = nodesByServer.remove(localNodeId);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        builder.addPageDownstreamContext(mergeNode.executionNodeId(), finalLocalMerge);
+        builder.addSubContext(mergeNode.executionNodeId(), finalLocalMerge);
 
         if (localExecutionNodes == null || localExecutionNodes.isEmpty()) {
             // only the local merge happens locally so it is enough to just create that context.

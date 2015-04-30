@@ -22,9 +22,9 @@
 package io.crate.executor.transport;
 
 import io.crate.exceptions.Exceptions;
+import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
@@ -98,15 +98,11 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
         try {
             JobExecutionContext jobExecutionContext = jobContextService.getContextOrNull(request.jobId());
             if (jobExecutionContext != null) {
-                JobCollectContext collectContext = jobExecutionContext.getCollectContextOrNull(request.executionNodeId());
-                if (collectContext != null) {
-                    LOGGER.trace("Received CloseContextRequest, closing JobCollectContext {}/{}",
+                ExecutionSubContext subContext = jobExecutionContext.getSubContextOrNull(request.executionNodeId());
+                if (subContext != null) {
+                    LOGGER.trace("Received CloseContextRequest, closing ExecutionSubContext {}/{}",
                             request.jobId(), request.executionNodeId());
-                    collectContext.close();
-                } else {
-                    //noinspection AssertWithSideEffects lastAccessTime is updated but that is okay
-                    assert jobExecutionContext.getPageDownstreamContext(request.executionNodeId()) == null :
-                            "closing PageDownstreamContext is not supported";
+                    subContext.close();
                 }
             }
             statsTables.operationFinished(request.executionNodeId(), null, 0L);

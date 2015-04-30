@@ -55,12 +55,12 @@ public class JobExecutionContextTest extends CrateUnitTest {
     @Test
     public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("PageDownstreamContext for 1 already added");
+        expectedException.expectMessage("ExecutionSubContext for 1 already added");
 
         JobExecutionContext.Builder builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
 
-        builder.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
-        builder.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
+        builder.addSubContext(1, mock(PageDownstreamContext.class));
+        builder.addSubContext(1, mock(PageDownstreamContext.class));
     }
 
     @Test
@@ -69,12 +69,12 @@ public class JobExecutionContextTest extends CrateUnitTest {
         expectedException.expectMessage("subContext 1 is already present");
 
         JobExecutionContext.Builder builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
-        builder.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
+        builder.addSubContext(1, mock(PageDownstreamContext.class));
 
         JobExecutionContext firstContext = builder.build();
 
         builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
-        builder.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
+        builder.addSubContext(1, mock(PageDownstreamContext.class));
 
         firstContext.merge(builder.build());
     }

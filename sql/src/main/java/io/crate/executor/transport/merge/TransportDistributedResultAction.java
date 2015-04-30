@@ -110,7 +110,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             return;
         }
 
-        PageDownstreamContext pageDownstreamContext = context.getPageDownstreamContext(request.executionNodeId());
+        PageDownstreamContext pageDownstreamContext = context.getSubContextOrNull(request.executionNodeId());
         if (pageDownstreamContext == null) {
             // this is currently sometimes the case when upstreams send failures more than once
             listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,

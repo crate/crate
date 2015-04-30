@@ -23,7 +23,6 @@ package io.crate.jobs;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import io.crate.operation.collect.JobCollectContext;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -42,8 +41,7 @@ public class JobExecutionContext {
 
     private final UUID jobId;
     private final long keepAlive;
-    private final ConcurrentMap<Integer, JobCollectContext> collectContextMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Integer, PageDownstreamContext> pageDownstreamContextMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
     private ThreadPool threadPool;
 
     volatile ContextCallback contextCallback;
@@ -58,32 +56,23 @@ public class JobExecutionContext {
         private final UUID jobId;
         private ThreadPool threadPool;
         private final long keepAlive = JobContextService.DEFAULT_KEEP_ALIVE;
-        private final IntObjectOpenHashMap<JobCollectContext> collectContextMap = new IntObjectOpenHashMap<>();
-        private final IntObjectOpenHashMap<PageDownstreamContext> pageDownstreamContextMap = new IntObjectOpenHashMap<>();
+        private final IntObjectOpenHashMap<ExecutionSubContext> subContexts = new IntObjectOpenHashMap<>();
 
         Builder(UUID jobId, ThreadPool threadPool) {
             this.jobId = jobId;
             this.threadPool = threadPool;
         }
 
-        public void addCollectContext(int executionNodeId, JobCollectContext jobCollectContext) {
-            JobCollectContext collectContext = collectContextMap.put(executionNodeId, jobCollectContext);
+        public void addSubContext(int executionNodeId, ExecutionSubContext subContext) {
+            ExecutionSubContext collectContext = subContexts.put(executionNodeId, subContext);
             if (collectContext != null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "JobCollectContext for %d already added", executionNodeId));
-            }
-        }
-
-        public void addPageDownstreamContext(int executionNodeId, PageDownstreamContext pageDownstreamContext) {
-            PageDownstreamContext downstreamContext = pageDownstreamContextMap.put(executionNodeId, pageDownstreamContext);
-            if (downstreamContext != null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "PageDownstreamContext for %d already added", executionNodeId));
+                        "ExecutionSubContext for %d already added", executionNodeId));
             }
         }
 
         boolean isEmpty() {
-            return collectContextMap.isEmpty() && pageDownstreamContextMap.isEmpty();
+            return subContexts.isEmpty();
         }
 
         public UUID jobId() {
@@ -91,31 +80,21 @@ public class JobExecutionContext {
         }
 
         public JobExecutionContext build() {
-            return new JobExecutionContext(
-                    jobId,
-                    keepAlive,
-                    threadPool,
-                    collectContextMap,
-                    pageDownstreamContextMap
-            );
+            return new JobExecutionContext(jobId, keepAlive, threadPool, subContexts);
         }
-
     }
+
 
     private JobExecutionContext(UUID jobId,
                                 long keepAlive,
                                 ThreadPool threadPool,
-                                IntObjectOpenHashMap<JobCollectContext> collectContextMap,
-                                IntObjectOpenHashMap<PageDownstreamContext> pageDownstreamContextMap) {
+                                IntObjectOpenHashMap<ExecutionSubContext> subContexts) {
         this.jobId = jobId;
         this.keepAlive = keepAlive;
         this.threadPool = threadPool;
 
-        for (IntObjectCursor<JobCollectContext> cursor : collectContextMap) {
-            addContext(cursor.key, cursor.value, this.collectContextMap);
-        }
-        for (IntObjectCursor<PageDownstreamContext> cursor : pageDownstreamContextMap) {
-            addContext(cursor.key, cursor.value, this.pageDownstreamContextMap);
+        for (IntObjectCursor<ExecutionSubContext> cursor : subContexts) {
+            addContext(cursor.key, cursor.value);
         }
     }
 
@@ -124,19 +103,16 @@ public class JobExecutionContext {
     }
 
     void merge(JobExecutionContext executionContext) {
-        for (Map.Entry<Integer, JobCollectContext> entry : executionContext.collectContextMap.entrySet()) {
-            addContext(entry.getKey(), entry.getValue(), collectContextMap);
-        }
-        for (Map.Entry<Integer, PageDownstreamContext> entry : executionContext.pageDownstreamContextMap.entrySet()) {
-            addContext(entry.getKey(), entry.getValue(), pageDownstreamContextMap);
+        for (Map.Entry<Integer, ExecutionSubContext> entry : executionContext.subContexts.entrySet()) {
+            addContext(entry.getKey(), entry.getValue());
         }
     }
 
-    private <T extends ExecutionSubContext> void addContext(int subContextId, T subContext, ConcurrentMap<Integer, T> contextMap) {
+    private void addContext(int subContextId, ExecutionSubContext subContext) {
         int numActive = activeSubContexts.incrementAndGet();
-        T existing = contextMap.putIfAbsent(subContextId, subContext);
+        ExecutionSubContext existing = subContexts.putIfAbsent(subContextId, subContext);
         if (existing == null) {
-            subContext.addCallback(new RemoveContextCallback(subContextId, contextMap));
+            subContext.addCallback(new RemoveContextCallback(subContextId));
             LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, numActive);
             return;
         }
@@ -150,25 +126,21 @@ public class JobExecutionContext {
     }
 
     @Nullable
-    public PageDownstreamContext getPageDownstreamContext(final int executionNodeId) {
+    public <T extends ExecutionSubContext> T getSubContextOrNull(int executionNodeId) {
         lastAccessTime = threadPool.estimatedTimeInMillis();
-        return pageDownstreamContextMap.get(executionNodeId);
+        //noinspection unchecked
+        return (T) subContexts.get(executionNodeId);
     }
 
-    public JobCollectContext getCollectContext(int executionNodeId) {
+    public <T extends ExecutionSubContext> T getSubContext(int executionNodeId) {
         lastAccessTime = threadPool.estimatedTimeInMillis();
-        JobCollectContext jobCollectContext = collectContextMap.get(executionNodeId);
-        if (jobCollectContext == null) {
+        ExecutionSubContext subContext = subContexts.get(executionNodeId);
+        if (subContext == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "JobCollectContext for %s/%d doesn't exist", jobId(), executionNodeId));
+                    "ExecutionSubContext for %s/%d doesn't exist", jobId(), executionNodeId));
         }
-        return jobCollectContext;
-    }
-
-    @Nullable
-    public JobCollectContext getCollectContextOrNull(int executionNodeId) {
-        lastAccessTime = threadPool.estimatedTimeInMillis();
-        return collectContextMap.get(executionNodeId);
+        //noinspection unchecked
+        return (T)subContext;
     }
 
     public long lastAccessTime() {
@@ -184,11 +156,8 @@ public class JobExecutionContext {
         if (activeSubContexts.get() == 0) {
             callContextCallback();
         } else {
-            for (JobCollectContext jobCollectContext : collectContextMap.values()) {
-                jobCollectContext.close();
-            }
-            for (PageDownstreamContext pageDownstreamContext : pageDownstreamContextMap.values()) {
-                pageDownstreamContext.finish();
+            for (ExecutionSubContext executionSubContext : subContexts.values()) {
+                executionSubContext.close();
             }
         }
     }
@@ -207,22 +176,19 @@ public class JobExecutionContext {
     private class RemoveContextCallback implements ContextCallback {
 
         private final int executionNodeId;
-        private final Map<Integer, ?> subContextMap;
 
-        public RemoveContextCallback(int executionNodeId,
-                                     Map<Integer, ?> subContextMap) {
+        public RemoveContextCallback(int executionNodeId) {
             this.executionNodeId = executionNodeId;
-            this.subContextMap = subContextMap;
         }
 
         @Override
         public void onClose() {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("[{}] Closing subContext {}",
-                        System.identityHashCode(subContextMap), executionNodeId);
+                        System.identityHashCode(subContexts), executionNodeId);
             }
 
-            Object remove = subContextMap.remove(executionNodeId);
+            Object remove = subContexts.remove(executionNodeId);
             int remaining;
             if (remove == null) {
                 LOGGER.error("Closed context {} which was already closed.", executionNodeId);

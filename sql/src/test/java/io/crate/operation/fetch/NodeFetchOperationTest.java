@@ -94,7 +94,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
     public void testFetchOperationNoLuceneDocCollector() throws Exception {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        builder.addCollectContext(1, new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
+        builder.addSubContext(1, new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
         jobContextService.createOrMergeContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(

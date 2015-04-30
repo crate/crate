@@ -155,7 +155,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         int jobSearchContextId = 0;
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         JobCollectContext collectContext = new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, collectingProjector);
-        builder.addCollectContext(node.executionNodeId(), collectContext);
+        builder.addSubContext(node.executionNodeId(), collectContext);
         jobContextService.createOrMergeContext(builder);
         collectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, collectContext, 0);
@@ -342,7 +342,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         node.maxRowGranularity(RowGranularity.DOC);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId().get());
-        builder.addCollectContext(node.executionNodeId(),
+        builder.addSubContext(node.executionNodeId(),
                 new JobCollectContext(node.jobId().get(), RAM_ACCOUNTING_CONTEXT, collectingProjector));
         jobContextService.createOrMergeContext(builder);
 
@@ -350,7 +350,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId().get()).getCollectContext(node.executionNodeId());
+        JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId().get()).getSubContext(node.executionNodeId());
         ShardId shardId = new ShardId("test", 0);
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);

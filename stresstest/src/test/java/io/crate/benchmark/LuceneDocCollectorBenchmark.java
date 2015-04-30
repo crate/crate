@@ -201,7 +201,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         int jobSearchContextId = 0;
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         JobCollectContext collectContext = new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, collectingProjector);
-        builder.addCollectContext(node.executionNodeId(), collectContext);
+        builder.addSubContext(node.executionNodeId(), collectContext);
         collectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, collectContext, 0);
         collector.pageSize(PAGE_SIZE);

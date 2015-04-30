@@ -89,7 +89,7 @@ public class ExecutionNodeOperationStarter implements RowUpstream {
 
         @Override
         public Void visitCollectNode(final CollectNode collectNode, final JobExecutionContext context) {
-            final JobCollectContext collectContext = context.getCollectContext(collectNode.executionNodeId());
+            final JobCollectContext collectContext = context.getSubContext(collectNode.executionNodeId());
             threadPool.executor(COLLECT_EXECUTOR).execute(new Runnable() {
                 @Override
                 public void run() {

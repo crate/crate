@@ -63,18 +63,18 @@ public class JobContextServiceTest extends CrateUnitTest {
         // create new context
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(jobId);
-        builder1.addPageDownstreamContext(1, mock(PageDownstreamContext.class));
+        builder1.addSubContext(1, mock(PageDownstreamContext.class));
         JobExecutionContext ctx1 = jobContextService.createOrMergeContext(builder1);
         assertThat(ctx1.lastAccessTime(), is(-1L));
 
         // builder with the same jobId returns the same JobExecutionContext but the subContexts will be merged
         JobExecutionContext.Builder builder2 = jobContextService.newBuilder(jobId);
-        builder2.addPageDownstreamContext(2, mock(PageDownstreamContext.class));
+        builder2.addSubContext(2, mock(PageDownstreamContext.class));
         JobExecutionContext ctx2 = jobContextService.createOrMergeContext(builder2);
         assertThat(ctx2, is(ctx1));
 
-        assertThat(ctx1.getPageDownstreamContext(1), notNullValue());
-        assertThat(ctx1.getPageDownstreamContext(2), notNullValue());
+        assertThat(ctx1.getSubContextOrNull(1), notNullValue());
+        assertThat(ctx1.getSubContextOrNull(2), notNullValue());
     }
 
     @Test
@@ -87,7 +87,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     public void testAccessContext() throws Exception {
         JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
         assertThat(ctx1.lastAccessTime(), is(-1L));
-        ctx1.getCollectContextOrNull(1);
+        ctx1.getSubContextOrNull(1);
         assertThat(ctx1.lastAccessTime(), greaterThan(-1L));
     }
 
@@ -96,7 +96,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
                 new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
-        builder1.addPageDownstreamContext(1, pageDownstreamContext);
+        builder1.addSubContext(1, pageDownstreamContext);
         JobExecutionContext ctx1 = jobContextService.createOrMergeContext(builder1);
 
         Field activeSubContexts = JobExecutionContext.class.getDeclaredField("activeSubContexts");
@@ -125,7 +125,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
                 new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
-        builder1.addPageDownstreamContext(1, pageDownstreamContext);
+        builder1.addSubContext(1, pageDownstreamContext);
         return jobContextService.createOrMergeContext(builder1);
     }
 
@@ -136,7 +136,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         JobContextService jobContextService1 = new JobContextService(settings, testThreadPool);
 
         JobExecutionContext jobExecutionContext = getJobExecutionContextWithOneActiveSubContext(jobContextService1);
-        jobExecutionContext.getCollectContextOrNull(1);
+        jobExecutionContext.getSubContextOrNull(1);
         Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
         activeContexts.setAccessible(true);
 
@@ -165,7 +165,7 @@ public class JobContextServiceTest extends CrateUnitTest {
                 @Override
                 public void run() {
                     JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-                    builder.addPageDownstreamContext(currentSubContextId, pageDownstreamContext);
+                    builder.addSubContext(currentSubContextId, pageDownstreamContext);
                     jobContextService.createOrMergeContext(builder);
                 }
             });
@@ -183,8 +183,8 @@ public class JobContextServiceTest extends CrateUnitTest {
 
         JobExecutionContext context = jobContextService.getContext(jobId);
         for (int i = 1; i < 49; i++) {
-            assertThat(context.getPageDownstreamContext(i), nullValue());
+            assertThat(context.getSubContextOrNull(i), nullValue());
         }
-        assertThat(context.getPageDownstreamContext(49), notNullValue());
+        assertThat(context.getSubContextOrNull(49), notNullValue());
     }
 }

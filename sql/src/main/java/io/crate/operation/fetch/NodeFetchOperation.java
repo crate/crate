@@ -119,7 +119,7 @@ public class NodeFetchOperation implements RowUpstream {
         int numShards = shardBuckets.size();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        JobCollectContext jobCollectContext = jobExecutionContext.getCollectContext(executionNodeId);
+        JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionNodeId);
 
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(rowDownstream, toFetchReferences.size());
 

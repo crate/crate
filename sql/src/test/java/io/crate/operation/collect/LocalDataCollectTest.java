@@ -542,7 +542,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
     private Bucket getBucket(CollectNode collectNode) throws InterruptedException, ExecutionException {
         CollectingProjector cd = new CollectingProjector();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId().get());
-        builder.addCollectContext(
+        builder.addSubContext(
                 collectNode.executionNodeId(),
                 new JobCollectContext(collectNode.jobId().get(), RAM_ACCOUNTING_CONTEXT, cd));
         jobContextService.createOrMergeContext(builder);
