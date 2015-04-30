@@ -462,6 +462,9 @@ The table schema is as follows:
 |                  | getting relocated to at the time |             |
 +------------------+----------------------------------+-------------+
 | size             | Current size in bytes.           | Long        |
+|                  | This value is cached for max.    |             |
+|                  | 10 seconds to reduce file system |             |
+|                  | access.                          |             |
 +------------------+----------------------------------+-------------+
 | state            | The current state of the shard.  | String      |
 |                  | Possible states are:             |             |
