@@ -21,14 +21,24 @@
 
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.core.CachedRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
+import org.elasticsearch.index.store.StoreStats;
+
+import java.util.concurrent.TimeUnit;
 
 public class ShardSizeExpression extends SysShardExpression<Long> {
 
     public static final String NAME = "size";
 
     private final IndexShard indexShard;
+    private final CachedRef<StoreStats> storeStatsCache = new CachedRef<StoreStats>(10, TimeUnit.SECONDS) {
+        @Override
+        protected StoreStats refresh() {
+            return indexShard.storeStats();
+        }
+    };
 
     @Inject
     public ShardSizeExpression(IndexShard indexShard) {
@@ -38,7 +48,7 @@ public class ShardSizeExpression extends SysShardExpression<Long> {
 
     @Override
     public Long value() {
-        return indexShard.storeStats().getSizeInBytes();
+        return storeStatsCache.get().getSizeInBytes();
     }
 
 }

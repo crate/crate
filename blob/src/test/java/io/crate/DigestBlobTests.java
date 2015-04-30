@@ -86,7 +86,6 @@ public class DigestBlobTests extends CrateUnitTest {
         UUID transferId = UUID.randomUUID();
         int currentPos = 2;
 
-
         BlobContainer container = new BlobContainer(tmpDir.toFile());
         File filePath = new File(container.getTmpDirectory(), String.format("%s.%s", digest, transferId.toString()));
         if (filePath.exists()) {

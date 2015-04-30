@@ -21,16 +21,26 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
+import io.crate.blob.stats.BlobStats;
 import io.crate.blob.v2.BlobShard;
+import io.crate.core.CachedRef;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.elasticsearch.common.inject.Inject;
+
+import java.util.concurrent.TimeUnit;
 
 public class BlobShardSizeExpression extends SysShardExpression<Long> implements BlobShardReferenceImplementation {
 
     public static final String NAME = "size";
 
     private final BlobShard blobShard;
+    private final CachedRef<BlobStats> blobStatsCache = new CachedRef<BlobStats>(10, TimeUnit.SECONDS) {
+        @Override
+        protected BlobStats refresh() {
+            return blobShard.blobStats();
+        }
+    };
 
     @Inject
     public BlobShardSizeExpression(BlobShard blobShard) {
@@ -40,6 +50,6 @@ public class BlobShardSizeExpression extends SysShardExpression<Long> implements
 
     @Override
     public Long value() {
-        return blobShard.blobStats().totalUsage();
+        return blobStatsCache.get().totalUsage();
     }
 }
