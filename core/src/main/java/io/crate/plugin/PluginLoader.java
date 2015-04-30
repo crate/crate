@@ -35,13 +35,19 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 
 public class PluginLoader {
 
@@ -49,6 +55,7 @@ public class PluginLoader {
     private static PluginLoader INSTANCE;
 
     private final Settings settings;
+    private final Environment environment;
     private final List<Plugin> plugins;
     private final ImmutableMap<Plugin, List<CrateComponentLoader.OnModuleReference>> onModuleReferences;
     private final ESLogger logger;
@@ -62,7 +69,10 @@ public class PluginLoader {
 
     public PluginLoader(Settings settings) {
         this.settings = settings;
+        environment = new Environment(settings);
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+
+        loadPluginsIntoClassLoader();
 
         ResourceFinder finder = new ResourceFinder(RESOURCE_PATH);
         List<Class<? extends Plugin>> implementations = null;
@@ -100,6 +110,70 @@ public class PluginLoader {
             }));
         }
     }
+
+    private void loadPluginsIntoClassLoader() {
+        File pluginsDirectory = environment.pluginsFile();
+        if (!isAccessibleDirectory(pluginsDirectory, logger)) {
+            return;
+        }
+
+        ClassLoader classLoader = settings.getClassLoader();
+        Class classLoaderClass = classLoader.getClass();
+        Method addURL = null;
+        while (!classLoaderClass.equals(Object.class)) {
+            try {
+                addURL = classLoaderClass.getDeclaredMethod("addURL", URL.class);
+                addURL.setAccessible(true);
+                break;
+            } catch (NoSuchMethodException e) {
+                // no method, try the parent
+                classLoaderClass = classLoaderClass.getSuperclass();
+            }
+        }
+        if (addURL == null) {
+            logger.debug("failed to find addURL method on classLoader [" + classLoader + "] to add methods");
+            return;
+        }
+
+        for (File plugin : pluginsDirectory.listFiles()) {
+            if (!plugin.canRead()) {
+                logger.debug("[{}] is not readable.", plugin.getAbsolutePath());
+                continue;
+            }
+
+            logger.trace("--- adding plugin [{}]", plugin.getAbsolutePath());
+
+
+            try {
+                // add the root
+                addURL.invoke(classLoader, plugin.toURI().toURL());
+                if (plugin.isFile()) {
+                    continue;
+                }
+
+                // gather files to add
+                List<File> libFiles = Lists.newArrayList();
+                if (plugin.listFiles() != null) {
+                    libFiles.addAll(Arrays.asList(plugin.listFiles()));
+                }
+                File libLocation = new File(plugin, "lib");
+                if (libLocation.exists() && libLocation.isDirectory() && libLocation.listFiles() != null) {
+                    libFiles.addAll(Arrays.asList(libLocation.listFiles()));
+                }
+
+                // if there are jars in it, add it as well
+                for (File libFile : libFiles) {
+                    if (!(libFile.getName().endsWith(".jar") || libFile.getName().endsWith(".zip"))) {
+                        continue;
+                    }
+                    addURL.invoke(classLoader, libFile.toURI().toURL());
+                }
+            } catch (Throwable e) {
+                logger.warn("failed to add plugin [" + plugin + "]", e);
+            }
+        }
+    }
+
 
     private Plugin loadPlugin(Class<? extends Plugin> pluginClass) {
         Constructor<? extends Plugin> constructor;
