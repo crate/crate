@@ -129,7 +129,7 @@ If a SQL statement is sent to Crate the work-flow is roughly as follows:
  - HTTP Request processing
  - Parse request body and create SQLRequest (happens in ``RestSQLAction.java``)
  - Process SQLRequest (see ``doExecute`` in ``TransportBaseSQLAction.java``)
-    - Statement is parsed, resulting in an abstract syntax tree 
+    - Statement is parsed, resulting in an abstract syntax tree
     - AST is analyzed, basically using meta data like schema information to add
       information.
     - Some statements (mostly DDL) are executed directly
@@ -199,7 +199,7 @@ A minimal example for the logging configuration looks like this::
         layout:
           type: consolePattern
           conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
-		  
+
 In order for the admin interface to work please check out the crate admin repository::
 
 	https://github.com/crate/crate-admin
