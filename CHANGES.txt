@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
+
  - Removed the limitation that the WHERE clause couldn't contain certain
    expressions in `select count(*)` queries.
 
