@@ -21,9 +21,7 @@
 
 package io.crate.action.job;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -31,9 +29,9 @@ import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row1;
 import io.crate.executor.callbacks.OperationFinishedStatsTablesCallback;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
+import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.PageDownstream;
@@ -61,7 +59,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -143,20 +140,16 @@ public class ContextPreparer {
             if (indexShardMap == null) {
                 throw new IllegalArgumentException("The routing of the countNode doesn't contain the current nodeId");
             }
-            try {
-                final SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.LONG});
-                context.directResultFuture = Futures.transform(countOperation.count(indexShardMap, countNode.whereClause()),
-                        new Function<Long, Bucket>() {
-                            @Nullable
-                            @Override
-                            public Bucket apply(@Nullable Long input) {
-                                singleBucketBuilder.setNextRow(new Row1(input));
-                                return singleBucketBuilder.doFinish();
-                            }
-                        });
-            } catch (InterruptedException | IOException e) {
-                throw Throwables.propagate(e);
-            }
+
+            final SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.LONG});
+            CountContext countContext = new CountContext(
+                    countOperation,
+                    singleBucketBuilder,
+                    indexShardMap,
+                    countNode.whereClause()
+            );
+            context.directResultFuture = singleBucketBuilder.result();
+            context.contextBuilder.addSubContext(countNode.executionNodeId(), countContext);
             return null;
         }
 

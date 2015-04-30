@@ -21,6 +21,7 @@
 
 package io.crate.action.job;
 
+import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
@@ -83,7 +84,8 @@ public class ExecutionNodeOperationStarter implements RowUpstream {
 
         @Override
         public Void visitCountNode(CountNode countNode, JobExecutionContext context) {
-            // nothing to do; count doesn't use a context (yet) and is started directly in the ContextPreparer
+            CountContext countContext = context.getSubContext(countNode.executionNodeId());
+            countContext.start();
             return null;
         }
 
