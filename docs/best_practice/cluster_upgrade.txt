@@ -17,13 +17,22 @@ requests but will make sure that any pending requests are finished.
 
 .. warning::
 
-   Please make sure beforehand that your upgrade path is working
-   i.e. that the old and new versions are compatible as they will run
-   next to each other for the time of the upgrade process.
-   Updating  `hotfix` versions is not necessary in most cases, but if you
-   want to update `minor` or `major` versions, to be 100% safe, you should
-   restart the cluster instead of doing a Zero Downtime.
-   See :ref:`versions <sys-versions>`.
+    `feature` or `major` versions are often not compatible and upgrading requires
+    a full cluster restart.
+
+    The exception are `hotfix` updates which are always safe. For example
+    updating from 0.48.1 to 0.48.2 or even directly to 0.48.3 is safe.
+
+    Most of the time incompatibility between `feature` or `major` versions is
+    caused by changes in the binary serialization format which is used for
+    communication between the nodes but might also be caused by other changes
+    like lucene index format changes.
+
+    Please check the changelog to see if a `feature` or `major` version upgrade
+    is safe. If there is no note indicating that the zero downtime upgrade is
+    safe it should be considered unsafe.
+
+    See :ref:`versions <sys-versions>`.
 
 .. note::
 
