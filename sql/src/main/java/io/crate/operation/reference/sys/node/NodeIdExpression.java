@@ -22,6 +22,8 @@
 package io.crate.operation.reference.sys.node;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
 
@@ -30,19 +32,20 @@ public class NodeIdExpression extends SysNodeExpression<BytesRef> {
 
     public static final String NAME = "id";
 
-    private final Discovery discovery;
+    private final ClusterService clusterService;
     private BytesRef value;
 
     @Inject
-    public NodeIdExpression(Discovery discovery) {
-        this.discovery = discovery;
+    public NodeIdExpression(ClusterService clusterService) {
+        this.clusterService = clusterService;
     }
 
     @Override
     public BytesRef value() {
+        DiscoveryNode localNode = clusterService.localNode();
         // value could not be ready on node start-up, but is static once set
-        if (value == null && discovery.localNode() != null) {
-            value = new BytesRef(discovery.localNode().getId());
+        if (value == null && localNode != null) {
+            value = new BytesRef(localNode.getId());
         }
         return value;
     }
