@@ -7,6 +7,9 @@ Unreleased
 
 NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 
+ - Fix: performing queries on a partitioned table could cause unnecessary
+   ``execution rejected`` errors
+
  - Fixed an issue that caused GROUP BY queries with multiple group keys, no
    order by and limit to hang.
 

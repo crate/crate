@@ -21,12 +21,11 @@
 
 package io.crate.benchmark;
 
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.test.integration.NodeSettingsSource;
 import io.crate.test.integration.PathAccessor;
+import io.crate.testing.SQLTransportExecutor;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
@@ -81,6 +80,15 @@ public class BenchmarkBase {
 
     public final ESLogger logger = Loggers.getLogger(getClass());
 
+    protected SQLTransportExecutor sqlExecutor = new SQLTransportExecutor(
+            new SQLTransportExecutor.ClientProvider() {
+                @Override
+                public Client client() {
+                    return getClient(true);
+                }
+            }
+    );
+
     @Rule
     public TestRule ruleChain = RuleChain.emptyRuleChain();
 
@@ -94,6 +102,10 @@ public class BenchmarkBase {
 
     public SQLResponse execute(String stmt, Object[] args) {
         return getClient(true).execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+    }
+
+    public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
+        return sqlExecutor.exec(new SQLBulkRequest(stmt, bulkArgs));
     }
 
     @Before

@@ -44,6 +44,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1772,5 +1773,30 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rows().length, Is.is(2));
         assertThat((String)response.rows()[0][0], Is.is("hello"));
         assertThat(response.rows()[1][0], Is.is(nullValue()));
+    }
+
+    @Test
+    public void testFetchPartitionedTable() throws Exception {
+        execute("SET GLOBAL stats.enabled = true");
+        execute("create table t (name string, p string) partitioned by (p) with (number_of_replicas=0)");
+        ensureYellow();
+        Object[][] bulkArgs = new Object[100][];
+        for (int i = 0; i < 100; i++) {
+            bulkArgs[i] = new Object[]{"Marvin", i};
+        }
+        execute("insert into t (name, p) values (?, ?)", bulkArgs);
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response.rowCount(), is(100L));
+        waitNoPendingTasksOnAll();
+        execute("select count(*), job_id, arbitrary(name) from sys.operations_log where name='fetch' group by 2");
+        assertThat(response.rowCount(), is(lessThanOrEqualTo(1L)));
+    }
+
+    @After
+    @Override
+    public void tearDown() throws Exception {
+        execute("SET GLOBAL stats.enabled = false");
+        super.tearDown();
     }
 }

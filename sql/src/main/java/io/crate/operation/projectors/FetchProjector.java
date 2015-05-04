@@ -77,8 +77,8 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final List<String> executionNodes;
     private final int numNodes;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
-    private final Map<String, Object[]> partitionValuesCache = new HashMap<>();
-    private final Object partitionValuesCacheLock = new Object();
+    private final Map<String, Row> partitionRowsCache = new HashMap<>();
+    private final Object partitionRowsCacheLock = new Object();
 
     private int inputCursor = 0;
     private boolean consumedRows = false;
@@ -171,15 +171,16 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         String nodeId = jobSearchContextIdToNode.get(jobSearchContextId);
         String index = jobSearchContextIdToShard.get(jobSearchContextId).getIndex();
-        int nodeIdIndex = Objects.hash(nodeId, index);
+        int nodeIdIndex = Objects.hash(nodeId);
 
         NodeBucket nodeBucket = nodeBuckets.get(nodeIdIndex);
         if (nodeBucket == null) {
-            nodeBucket = new NodeBucket(nodeId, jobSearchContextIdToShard.get(jobSearchContextId).getIndex(), executionNodes.indexOf(nodeId));
+            nodeBucket = new NodeBucket(nodeId, executionNodes.indexOf(nodeId));
             nodeBuckets.put(nodeIdIndex, nodeBucket);
 
         }
-        nodeBucket.add(inputCursor++, docId, row);
+        Row partitionRow = partitionedByRow(index);
+        nodeBucket.add(inputCursor++, docId, partitionRow, row);
         if (bulkSize != NO_BULK_REQUESTS && nodeBucket.size() >= bulkSize) {
             flushNodeBucket(nodeBucket);
             nodeBuckets.remove(nodeIdIndex);
@@ -228,22 +229,25 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     @Nullable
     private Row partitionedByRow(String index) {
+        synchronized (partitionRowsCacheLock) {
+            if (partitionRowsCache.containsKey(index)) {
+                return partitionRowsCache.get(index);
+            }
+        }
+        Row partitionValuesRow = null;
         if (!partitionedBy.isEmpty() && PartitionName.isPartition(index)) {
             Object[] partitionValues;
-            synchronized (partitionValuesCacheLock) {
-                partitionValues = partitionValuesCache.get(index);
-                if (partitionValues == null) {
-                    List<BytesRef> partitionRawValues = PartitionName.fromStringSafe(index).values();
-                    partitionValues = new Object[partitionRawValues.size()];
-                    for (int i = 0; i < partitionRawValues.size(); i++) {
-                        partitionValues[i] = partitionedBy.get(i).type().value(partitionRawValues.get(i));
-                    }
-                    partitionValuesCache.put(index, partitionValues);
-                }
+            List<BytesRef> partitionRowValues = PartitionName.fromStringSafe(index).values();
+            partitionValues = new Object[partitionRowValues.size()];
+            for (int i = 0; i < partitionRowValues.size(); i++) {
+                partitionValues[i] = partitionedBy.get(i).type().value(partitionRowValues.get(i));
             }
-            return new RowN(partitionValues);
+            partitionValuesRow = new RowN(partitionValues);
         }
-        return null;
+        synchronized (partitionRowsCacheLock) {
+            partitionRowsCache.put(index, partitionValuesRow);
+        }
+        return partitionValuesRow;
     }
 
     private void flushNodeBucket(final NodeBucket nodeBucket) {
@@ -259,7 +263,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         if (bulkSize > NO_BULK_REQUESTS) {
             request.closeContext(false);
         }
-        final Row partitionRow = partitionedByRow(nodeBucket.index);
         transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
             @Override
             public void onResponse(NodeFetchResponse response) {
@@ -271,6 +274,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                         if (needInputRow) {
                             collectRowDelegate.delegate(nodeBucket.inputRow(idx));
                         }
+                        Row partitionRow = nodeBucket.partitionRow(idx);
                         if (partitionRow != null) {
                             partitionRowDelegate.delegate(partitionRow);
                         }
@@ -328,20 +332,20 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         private final int nodeIdx;
         private final String nodeId;
-        private final String index;
+        private final List<Row> partitionRows = new ArrayList<>();
         private final List<Row> inputRows = new ArrayList<>();
         private final IntArrayList cursors = new IntArrayList();
         private final LongArrayList docIds = new LongArrayList();
 
-        public NodeBucket(String nodeId, String index, int nodeIdx) {
+        public NodeBucket(String nodeId, int nodeIdx) {
             this.nodeId = nodeId;
-            this.index = index;
             this.nodeIdx = nodeIdx;
         }
 
-        public void add(int cursor, Long docId, Row row) {
+        public void add(int cursor, Long docId, @Nullable Row partitionRow, Row row) {
             cursors.add(cursor);
             docIds.add(docId);
+            partitionRows.add(partitionRow);
             inputRows.add(new RowN(row.materialize()));
         }
 
@@ -359,6 +363,11 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         public Row inputRow(int index) {
             return inputRows.get(index);
+        }
+
+        @Nullable
+        public Row partitionRow(int idx) {
+            return partitionRows.get(idx);
         }
     }
 
