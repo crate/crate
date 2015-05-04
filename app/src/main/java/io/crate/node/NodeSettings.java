@@ -55,9 +55,5 @@ public class NodeSettings {
         if (settingsBuilder.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {
             settingsBuilder.put("cluster.name", "crate");
         }
-
-        int availableProcessors = Math.min(32, Runtime.getRuntime().availableProcessors());
-        int halfProcMaxAt10 = Math.min(((availableProcessors + 1) / 2), 10);
-        settingsBuilder.put("threadpool.generic.size", halfProcMaxAt10);
     }
 }
