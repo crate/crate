@@ -270,6 +270,7 @@ distributions {
                 exclude 'crate-sql.jar'
                 exclude 'crate-udc.jar'
                 exclude 'crate-client.jar'
+                exclude 'es.jar'
             }
             into("lib") {
                 from jar
@@ -306,6 +307,8 @@ jar {
 
     from(configurations.compileNotTransitive.collect { it.isDirectory() ? it : zipTree(it) }){
         exclude 'META-INF/**' // Don't let Gradle merge service files
+        // exclude overloaded ES classes
+        exclude 'org/elasticsearch/node/internal/InternalSettingsPreparer*'
     }
 
     // include service files from the buildDir
