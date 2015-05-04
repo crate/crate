@@ -25,8 +25,8 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardState;
-import org.elasticsearch.index.shard.service.IndexShard;
 
 import javax.annotation.Nullable;
 

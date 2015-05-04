@@ -86,75 +86,76 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
     public static final String SETTING_PIPELINING_MAX_EVENTS = "http.pipelining.max_events";
     public static final String SETTING_HTTP_COMPRESSION = "http.compression";
     public static final String SETTING_HTTP_COMPRESSION_LEVEL = "http.compression_level";
+    public static final String SETTING_HTTP_DETAILED_ERRORS_ENABLED = "http.detailed_errors.enabled";
 
     public static final boolean DEFAULT_SETTING_PIPELINING = true;
     public static final int DEFAULT_SETTING_PIPELINING_MAX_EVENTS = 10000;
 
-    private final NetworkService networkService;
-    final BigArrays bigArrays;
-
-    final ByteSizeValue maxContentLength;
-    final ByteSizeValue maxInitialLineLength;
-    final ByteSizeValue maxHeaderSize;
-    final ByteSizeValue maxChunkSize;
-
-    private final int workerCount;
-
-    private final boolean blockingServer;
-
-    final boolean pipelining;
-
-    private final int pipeliningMaxEvents;
-
-    final boolean compression;
-
-    private final int compressionLevel;
-
-    final boolean resetCookies;
-
-    private final String port;
-
-    private final String bindHost;
-
-    private final String publishHost;
-
-    private final String tcpNoDelay;
-    private final String tcpKeepAlive;
-    private final Boolean reuseAddress;
-
-    private final ByteSizeValue tcpSendBufferSize;
-    private final ByteSizeValue tcpReceiveBufferSize;
-    private final ReceiveBufferSizePredictorFactory receiveBufferSizePredictorFactory;
-
-    final ByteSizeValue maxCumulationBufferCapacity;
-    final int maxCompositeBufferComponents;
+    protected final NetworkService networkService;
+    protected final BigArrays bigArrays;
+    private final DiscoveryNodeService discoveryNodeService;
     private final BlobService blobService;
     private final BlobIndices blobIndices;
 
-    private volatile ServerBootstrap serverBootstrap;
+    protected final ByteSizeValue maxContentLength;
+    protected final ByteSizeValue maxInitialLineLength;
+    protected final ByteSizeValue maxHeaderSize;
+    protected final ByteSizeValue maxChunkSize;
 
-    private volatile BoundTransportAddress boundAddress;
+    protected final int workerCount;
 
-    private volatile Channel serverChannel;
+    protected final boolean blockingServer;
 
-    OpenChannelsHandler serverOpenChannels;
+    protected final boolean pipelining;
 
-    private volatile HttpServerAdapter httpServerAdapter;
+    protected final int pipeliningMaxEvents;
 
-    private DiscoveryNodeService discoveryNodeService;
+    protected final boolean compression;
+
+    protected final int compressionLevel;
+
+    protected final boolean resetCookies;
+
+    protected final String port;
+
+    protected final String bindHost;
+
+    protected final String publishHost;
+
+    protected final boolean detailedErrorsEnabled;
+
+    protected int publishPort;
+
+    protected final String tcpNoDelay;
+    protected final String tcpKeepAlive;
+    protected final Boolean reuseAddress;
+
+    protected final ByteSizeValue tcpSendBufferSize;
+    protected final ByteSizeValue tcpReceiveBufferSize;
+    protected final ReceiveBufferSizePredictorFactory receiveBufferSizePredictorFactory;
+
+    protected final ByteSizeValue maxCumulationBufferCapacity;
+    protected final int maxCompositeBufferComponents;
+
+    protected volatile ServerBootstrap serverBootstrap;
+
+    protected volatile BoundTransportAddress boundAddress;
+
+    protected volatile Channel serverChannel;
+
+    protected OpenChannelsHandler serverOpenChannels;
+
+    protected volatile HttpServerAdapter httpServerAdapter;
 
     @Inject
-    public NettyHttpServerTransport(Settings settings, NetworkService networkService,
-            BlobService blobService,
-            BlobIndices blobIndices,
-            DiscoveryNodeService discoveryNodeService,
-            BigArrays bigArrays) {
+    public NettyHttpServerTransport(Settings settings, NetworkService networkService, BigArrays bigArrays,
+                                    DiscoveryNodeService discoveryNodeService, BlobService blobService, BlobIndices blobIndices) {
         super(settings);
         this.networkService = networkService;
         this.bigArrays = bigArrays;
+        this.discoveryNodeService = discoveryNodeService;
         this.blobService = blobService;
         this.blobIndices = blobIndices;
-        this.discoveryNodeService = discoveryNodeService;
 
         if (settings.getAsBoolean("netty.epollBugWorkaround", false)) {
             System.setProperty("org.jboss.netty.epollBugWorkaround", "true");
@@ -174,11 +175,13 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         this.port = componentSettings.get("port", settings.get("http.port", "4200-4300"));
         this.bindHost = componentSettings.get("bind_host", settings.get("http.bind_host", settings.get("http.host")));
         this.publishHost = componentSettings.get("publish_host", settings.get("http.publish_host", settings.get("http.host")));
+        this.publishPort = componentSettings.getAsInt("publish_port", settings.getAsInt("http.publish_port", 0));
         this.tcpNoDelay = componentSettings.get("tcp_no_delay", settings.get(TCP_NO_DELAY, "true"));
         this.tcpKeepAlive = componentSettings.get("tcp_keep_alive", settings.get(TCP_KEEP_ALIVE, "true"));
         this.reuseAddress = componentSettings.getAsBoolean("reuse_address", settings.getAsBoolean(TCP_REUSE_ADDRESS, NetworkUtils.defaultReuseAddress()));
         this.tcpSendBufferSize = componentSettings.getAsBytesSize("tcp_send_buffer_size", settings.getAsBytesSize(TCP_SEND_BUFFER_SIZE, TCP_DEFAULT_SEND_BUFFER_SIZE));
         this.tcpReceiveBufferSize = componentSettings.getAsBytesSize("tcp_receive_buffer_size", settings.getAsBytesSize(TCP_RECEIVE_BUFFER_SIZE, TCP_DEFAULT_RECEIVE_BUFFER_SIZE));
+        this.detailedErrorsEnabled = settings.getAsBoolean(SETTING_HTTP_DETAILED_ERRORS_ENABLED, true);
 
         long defaultReceiverPredictor = 512 * 1024;
         if (JvmInfo.jvmInfo().mem().directMemoryMax().bytes() > 0) {
@@ -210,6 +213,9 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
         logger.debug("using max_chunk_size[{}], max_header_size[{}], max_initial_line_length[{}], max_content_length[{}], receive_predictor[{}->{}], pipelining[{}], pipelining_max_events[{}]",
                 maxChunkSize, maxHeaderSize, maxInitialLineLength, this.maxContentLength, receivePredictorMin, receivePredictorMax, pipelining, pipeliningMaxEvents);
+
+
+
     }
 
     public Settings settings() {
@@ -286,12 +292,16 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
         InetSocketAddress boundAddress = (InetSocketAddress) serverChannel.getLocalAddress();
         InetSocketAddress publishAddress;
+        if (0 == publishPort) {
+            publishPort = boundAddress.getPort();
+        }
         try {
-            publishAddress = new InetSocketAddress(networkService.resolvePublishHostAddress(publishHost), boundAddress.getPort());
+            publishAddress = new InetSocketAddress(networkService.resolvePublishHostAddress(publishHost), publishPort);
         } catch (Exception e) {
             throw new BindTransportException("Failed to resolve publish address", e);
         }
         this.boundAddress = new BoundTransportAddress(new InetSocketTransportAddress(boundAddress), new InetSocketTransportAddress(publishAddress));
+
         final String httpAddress = "http://" + publishAddress.getAddress().getHostAddress() + ":" + publishAddress.getPort();
 
         discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
@@ -357,11 +367,11 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         return new HttpStats(channels == null ? 0 : channels.numberOfOpenChannels(), channels == null ? 0 : channels.totalChannels());
     }
 
-    void dispatchRequest(HttpRequest request, HttpChannel channel) {
+    protected void dispatchRequest(HttpRequest request, HttpChannel channel) {
         httpServerAdapter.dispatchRequest(request, channel);
     }
 
-    void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
+    protected void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
         if (e.getCause() instanceof ReadTimeoutException) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Connection timeout [{}]", ctx.getChannel().getRemoteAddress());
@@ -383,7 +393,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
     }
 
     public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-        return new HttpChannelPipelineFactory(this);
+        return new HttpChannelPipelineFactory(this, detailedErrorsEnabled);
     }
 
     protected static class HttpChannelPipelineFactory implements ChannelPipelineFactory {
@@ -391,9 +401,9 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         protected final NettyHttpServerTransport transport;
         protected final HttpRequestHandler requestHandler;
 
-        public HttpChannelPipelineFactory(NettyHttpServerTransport transport) {
+        public HttpChannelPipelineFactory(NettyHttpServerTransport transport, boolean detailedErrorsEnabled) {
             this.transport = transport;
-            this.requestHandler = new HttpRequestHandler(transport);
+            this.requestHandler = new HttpRequestHandler(transport, detailedErrorsEnabled);
         }
 
         @Override
@@ -417,8 +427,10 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             }
             pipeline.addLast("decoder", requestDecoder);
             pipeline.addLast("decoder_compress", new ESHttpContentDecompressor(transport.compression));
+
             HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndices);
             pipeline.addLast("blob_handler", blobHandler);
+
             HttpChunkAggregator httpChunkAggregator = new HttpChunkAggregator((int) transport.maxContentLength.bytes());
             if (transport.maxCompositeBufferComponents != -1) {
                 httpChunkAggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);

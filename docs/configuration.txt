@@ -106,6 +106,16 @@ Ports
 
   The HTTP protocol is used for the REST endpoint which is used by all clients except the Java client.
 
+.. _http.publish_port:
+
+**http.publish_port**
+  | *Runtime:*   ``no``
+
+  The port HTTP clients should use to communicate with the node. It is necessary to
+  define this setting if the bound HTTP port (``http.port``)
+  of the node is not directly reachable from outside, e.g. running it
+  behind a firewall or inside a Docker container.
+
 .. _transport.tcp.port:
 
 **transport.tcp.port**
@@ -607,7 +617,7 @@ Recovery
 .. _indices.recovery.max_bytes_per_sec:
 
 **indices.recovery.max_bytes_per_sec**
-  | *Default:*   ``20mb``
+  | *Default:*   ``40mb``
   | *Runtime:*  ``yes``
 
   Specifies the maximum number of bytes that can be transferred during
@@ -616,6 +626,51 @@ Recovery
   setting allows to control the network usage of the recovery
   process. Higher values may result in higher network utilization, but
   also faster recovery process.
+
+.. _indices.recovery.retry_delay_state_sync:
+
+**indices.recovery.retry_delay_state_sync**
+  | *Default:*  ``500ms``
+  | *Runtime:*  ``yes``
+
+  Defines the time to wait after an issue caused by cluster state syncing
+  before retrying to recover.
+
+.. _indices.recovery.retry_delay_network:
+
+**indices.recovery.retry_delay_network**
+  | *Default:*  ``5s``
+  | *Runtime:*  ``yes``
+
+  Defines the time to wait after an issue caused by the network
+  before retrying to recover.
+
+.. _indices.recovery.retry_activity_timeout:
+
+**indices.recovery.retry_activity_timeout**
+  | *Default:*  ``15m``
+  | *Runtime:*  ``yes``
+
+  Defines the interval after which idle recoveries will be failed.
+
+.. _indices.recovery.retry_internal_action_timeout:
+
+**indices.recovery.retry_internal_action_timeout**
+  | *Default:*  ``15m``
+  | *Runtime:*  ``yes``
+
+  Defines the timeout for internal requests made as part of the
+  recovery.
+
+.. _indices.recovery.retry_internal_long_action_timeout:
+
+**indices.recovery.retry_internal_long_action_timeout**
+  | *Default:*  ``30m``
+  | *Runtime:*  ``yes``
+
+  Defines the timeout for internal requests made as part of the
+  recovery that are expected to take a long time. Defaults to twice
+  :ref:`retry_internal_action_timeout <indices.recovery.retry_internal_action_timeout>`.
 
 .. _indices.store.throttle:
 

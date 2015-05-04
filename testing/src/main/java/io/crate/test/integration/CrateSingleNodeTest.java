@@ -21,6 +21,7 @@
 
 package io.crate.test.integration;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.google.common.collect.Sets;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
@@ -29,6 +30,7 @@ import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.test.ElasticsearchSingleNodeTest;
 import org.junit.After;
 
+@ThreadLeakFilters(defaultFilters = true, filters = { CrateIntegrationTest.TestThreadFilter.class } )
 public class CrateSingleNodeTest extends ElasticsearchSingleNodeTest {
 
     @Override

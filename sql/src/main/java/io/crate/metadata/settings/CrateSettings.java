@@ -721,7 +721,12 @@ public class CrateSettings {
                     INDICES_RECOVERY_TRANSLOG_OPS,
                     INDICES_RECOVERY_TRANSLOG_SIZE,
                     INDICES_RECOVERY_COMPRESS,
-                    INDICES_RECOVERY_MAX_BYTES_PER_SEC
+                    INDICES_RECOVERY_MAX_BYTES_PER_SEC,
+                    INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC,
+                    INDICES_RECOVERY_RETRY_DELAY_NETWORK,
+                    INDICES_RECOVERY_ACTIVITY_TIMEOUT,
+                    INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT,
+                    INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT
             );
         }
 
@@ -801,7 +806,72 @@ public class CrateSettings {
         public String name() { return "max_bytes_per_sec"; }
 
         @Override
-        public ByteSizeValue defaultValue() { return new ByteSizeValue(20, ByteSizeUnit.MB); }
+        public ByteSizeValue defaultValue() { return new ByteSizeValue(40, ByteSizeUnit.MB); }
+
+        @Override
+        public Setting parent() {
+            return INDICES_RECOVERY;
+        }
+    };
+
+    public static final TimeSetting INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC = new TimeSetting() {
+        @Override
+        public String name() { return "retry_delay_state_sync"; }
+
+        @Override
+        public TimeValue defaultValue() { return TimeValue.timeValueMillis(500); }
+
+        @Override
+        public Setting parent() {
+            return INDICES_RECOVERY;
+        }
+    };
+
+    public static final TimeSetting INDICES_RECOVERY_RETRY_DELAY_NETWORK = new TimeSetting() {
+        @Override
+        public String name() { return "retry_delay_network"; }
+
+        @Override
+        public TimeValue defaultValue() { return TimeValue.timeValueSeconds(5); }
+
+        @Override
+        public Setting parent() {
+            return INDICES_RECOVERY;
+        }
+    };
+
+    public static final TimeSetting INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT = new TimeSetting() {
+        @Override
+        public String name() { return "internal_action_timeout"; }
+
+        @Override
+        public TimeValue defaultValue() { return TimeValue.timeValueMinutes(15); }
+
+        @Override
+        public Setting parent() {
+            return INDICES_RECOVERY;
+        }
+    };
+
+    public static final TimeSetting INDICES_RECOVERY_ACTIVITY_TIMEOUT = new TimeSetting() {
+        @Override
+        public String name() { return "activity_timeout"; }
+
+        @Override
+        public TimeValue defaultValue() { return INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT.defaultValue(); }
+
+        @Override
+        public Setting parent() {
+            return INDICES_RECOVERY;
+        }
+    };
+
+    public static final TimeSetting INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT = new TimeSetting() {
+        @Override
+        public String name() { return "internal_action_long_timeout"; }
+
+        @Override
+        public TimeValue defaultValue() { return new TimeValue(INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT.defaultValue().millis() * 2); }
 
         @Override
         public Setting parent() {
@@ -1024,6 +1094,7 @@ public class CrateSettings {
             return BULK;
         }
     };
+
 
     public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES, BULK);
 

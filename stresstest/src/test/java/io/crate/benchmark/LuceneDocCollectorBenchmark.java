@@ -58,7 +58,7 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.service.IndexService;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
@@ -149,8 +149,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
         }
 
-        shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
-        jobContextService = indexService.shardInjector(0).getInstance(JobContextService.class);
+        shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);
+        jobContextService = indexService.shardInjectorSafe(0).getInstance(JobContextService.class);
 
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "continent");
         reference = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
@@ -244,7 +244,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             executor.shutdown();
             executor.awaitTermination(2L, TimeUnit.MINUTES);
             executor.shutdownNow();
-            getClient(true).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
+            getClient(true).admin().indices().prepareFlush(INDEX_NAME).execute().actionGet();
             refresh(client());
             dataGenerated = true;
             logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Elasticsearch to 1.5.2
+
  - Fix: Removed unnecessary close context calls on CollectContext
 
  - Select queries will now wait a bit longer before throwing an error in case

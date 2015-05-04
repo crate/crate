@@ -30,8 +30,8 @@ import io.crate.operation.RowDownstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;

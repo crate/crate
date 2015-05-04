@@ -51,7 +51,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.service.IndexService;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.junit.Before;
@@ -97,8 +97,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         IndicesService instanceFromNode = cluster().getInstanceFromFirstNode(IndicesService.class);
         IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
 
-        shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
-        jobContextService = indexService.shardInjector(0).getInstance(JobContextService.class);
+        shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);
+        jobContextService = indexService.shardInjectorSafe(0).getInstance(JobContextService.class);
 
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
         Reference ref = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
@@ -323,8 +323,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         IndicesService instanceFromNode = cluster().getInstanceFromFirstNode(IndicesService.class);
         IndexService indexService = instanceFromNode.indexServiceSafe("test");
 
-        ShardCollectService shardCollectService = indexService.shardInjector(0).getInstance(ShardCollectService.class);
-        JobContextService jobContextService = indexService.shardInjector(0).getInstance(JobContextService.class);
+        ShardCollectService shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);
+        JobContextService jobContextService = indexService.shardInjectorSafe(0).getInstance(JobContextService.class);
 
         ReferenceIdent xIdent = new ReferenceIdent(new TableIdent("doc", "test"), "x");
         Reference x = new Reference(new ReferenceInfo(xIdent, RowGranularity.DOC, DataTypes.INTEGER));

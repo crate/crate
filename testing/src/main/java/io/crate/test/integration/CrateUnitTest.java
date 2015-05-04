@@ -27,13 +27,12 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.ElasticsearchTestCase;
-import org.elasticsearch.test.ElasticsearchThreadFilter;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.mockito.MockitoAnnotations;
 
-@ThreadLeakFilters(defaultFilters = true, filters = ElasticsearchThreadFilter.class)
+@ThreadLeakFilters(defaultFilters = true, filters={CrateIntegrationTest.TestThreadFilter.class})
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
 public class CrateUnitTest extends AbstractRandomizedTest {

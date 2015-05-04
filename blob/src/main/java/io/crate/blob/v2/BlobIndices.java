@@ -23,7 +23,6 @@ package io.crate.blob.v2;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.BlobEnvironment;
@@ -51,13 +50,13 @@ import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.service.IndexService;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 
 import java.io.File;
-import java.util.List;
 
 public class BlobIndices extends AbstractComponent implements ClusterStateListener {
 
@@ -102,7 +101,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
         this.blobEnvironment = blobEnvironment;
-        clusterService.addLast(this);
+        clusterService.addFirst(this);
         logger.setLevel("debug");
     }
 
@@ -176,12 +175,13 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     public BlobShard blobShard(String index, int shardId) {
         IndexService indexService = indicesService.indexService(index);
         if (indexService != null) {
-            Injector injector = indexService.shardInjector(shardId);
-            if (injector != null) {
+            try {
+                Injector injector = indexService.shardInjectorSafe(shardId);
                 return injector.getInstance(BlobShard.class);
+            } catch (IndexShardMissingException e) {
+                return null;
             }
         }
-
         return null;
     }
 
@@ -207,11 +207,6 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     public BlobShardFuture blobShardFuture(String index, int shardId) {
         return new BlobShardFuture(this, indicesLifecycle, index, shardId);
 
-    }
-
-    public List<String> indices() {
-        return FluentIterable.from(indicesService.indices().keySet())
-                .filter(indicesFilter).toList();
     }
 
     /**
@@ -268,10 +263,10 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
                 if (!newMetaData.hasIndex(current.index())) {
                     if (isBlobIndex(current.index())) {
                         File indexLocation = null;
-                        File indexBlobsPath = null;
+                        File customBlobsPath = null;
                         if (current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
-                            indexBlobsPath = new File(current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
-                            indexLocation = blobEnvironment.indexLocation(new Index(current.index()), indexBlobsPath);
+                            customBlobsPath = new File(current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
+                            indexLocation = blobEnvironment.indexLocation(new Index(current.index()), customBlobsPath);
                         } else if (blobEnvironment.blobsPath() != null) {
                             indexLocation = blobEnvironment.indexLocation(new Index(current.index()));
                         }
@@ -280,15 +275,20 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
                             if (indexLocation.exists()) {
                                 logger.debug("[{}] Deleting blob index directory '{}'",
                                         current.index(), indexLocation.getAbsolutePath());
-                                FileSystemUtils.deleteRecursively(indexLocation);
+                                if (!FileSystemUtils.deleteRecursively(indexLocation)) {
+                                    logger.warn("Could not delete blob index directory {}", indexLocation.getAbsolutePath());
+                                }
+                            } else {
+                                logger.warn("blob index directory {} does not exist", indexLocation.getAbsolutePath());
                             }
 
                             // check if custom index blobs path is empty, if so delete whole path
-                            if (indexBlobsPath != null
-                                    && blobEnvironment.isCustomBlobPathEmpty(indexBlobsPath)) {
+                            if (customBlobsPath != null && blobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
                                 logger.debug("[{}] Empty per table defined blobs path found, deleting {}",
-                                        current.index(), indexBlobsPath.getAbsolutePath());
-                                FileSystemUtils.deleteRecursively(indexBlobsPath);
+                                        current.index(), customBlobsPath.getAbsolutePath());
+                                if (!FileSystemUtils.deleteRecursively(customBlobsPath)) {
+                                    logger.warn("Could not delete custom blob path {}", customBlobsPath.getAbsolutePath());
+                                }
                             }
                         }
                     }

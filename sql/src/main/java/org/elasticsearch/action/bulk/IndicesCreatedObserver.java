@@ -59,7 +59,7 @@ class IndicesCreatedObserver {
 
             @Override
             public void onClusterServiceClose() {
-                observer.close();
+                callback.onFailure(new IllegalStateException("ClusterService closed"));
             }
 
             @Override

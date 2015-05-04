@@ -56,6 +56,7 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.jvm.JvmStats;
+import org.elasticsearch.monitor.network.NetworkProbe;
 import org.elasticsearch.monitor.network.NetworkService;
 import org.elasticsearch.monitor.network.NetworkStats;
 import org.elasticsearch.monitor.os.OsService;
@@ -116,7 +117,6 @@ public class TestSysNodesExpressions extends CrateUnitTest {
 
             ClusterService clusterService = mock(ClusterService.class);
             bind(ClusterService.class).toInstance(clusterService);
-
 
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);
@@ -181,7 +181,7 @@ public class TestSysNodesExpressions extends CrateUnitTest {
             TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
             when(node.address()).thenReturn(transportAddress);
             when(node.attributes()).thenReturn(
-                    ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
+                ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
             );
 
             NetworkStats.Tcp tcp = mock(NetworkStats.Tcp.class, new Answer<Long>() {
@@ -192,6 +192,7 @@ public class TestSysNodesExpressions extends CrateUnitTest {
             });
             NetworkStats networkStats = mock(NetworkStats.class);
             when(networkStats.tcp()).thenReturn(tcp);
+            bind(NetworkProbe.class).toInstance(mock(NetworkProbe.class));
             NetworkService networkService = mock(NetworkService.class);
             when(networkService.stats()).thenReturn(networkStats);
             bind(NetworkService.class).toInstance(networkService);
@@ -336,10 +337,8 @@ public class TestSysNodesExpressions extends CrateUnitTest {
 
     @Test
     public void testName() throws Exception {
-
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "name");
         SysExpression<String> name = (SysExpression<String>) resolver.getImplementation(ident);
-
         assertEquals(new BytesRef("node 1"), name.value());
     }
 
@@ -538,7 +537,7 @@ public class TestSysNodesExpressions extends CrateUnitTest {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version");
         SysObjectReference version = (SysObjectReference) resolver.getImplementation(ident);
 
-        ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version", Arrays.asList("number"));
+        ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version", Collections.singletonList("number"));
         SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>)resolver.getImplementation(ident);
 
         assertThat(version.value().get(NodeVersionExpression.NUMBER), instanceOf(String.class));

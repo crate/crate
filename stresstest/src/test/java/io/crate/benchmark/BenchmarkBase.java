@@ -201,8 +201,8 @@ public class BenchmarkBase {
         executor.shutdown();
         executor.awaitTermination(2L, TimeUnit.MINUTES);
         executor.shutdownNow();
-        getClient(true).admin().indices().prepareFlush(tableName).setFull(true).execute().actionGet();
-        getClient(false).admin().indices().prepareFlush(tableName).setFull(true).execute().actionGet();
+        getClient(true).admin().indices().prepareFlush(tableName).execute().actionGet();
+        getClient(false).admin().indices().prepareFlush(tableName).execute().actionGet();
         refresh(client());
         logger.info("{} documents generated.", numberOfDocuments);
     }

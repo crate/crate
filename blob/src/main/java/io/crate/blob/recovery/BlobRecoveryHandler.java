@@ -31,9 +31,9 @@ import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.IndexShardState;
-import org.elasticsearch.index.shard.service.InternalIndexShard;
 import org.elasticsearch.indices.recovery.*;
 import org.elasticsearch.transport.*;
 
@@ -53,7 +53,7 @@ public class BlobRecoveryHandler {
     private final TransportService transportService;
     private final BlobShard blobShard;
     private final RecoverySettings recoverySettings;
-    private final InternalIndexShard shard;
+    private final IndexShard shard;
     private final BlobTransferTarget blobTransferTarget;
     private final int GET_HEAD_TIMEOUT;
 
@@ -61,7 +61,7 @@ public class BlobRecoveryHandler {
                                RecoverySettings recoverySettings,
                                BlobTransferTarget blobTransferTarget,
                                BlobIndices blobIndices,
-                               InternalIndexShard shard, StartRecoveryRequest request)
+                               IndexShard shard, StartRecoveryRequest request)
     {
         this.recoverySettings = recoverySettings;
         this.blobShard = blobIndices.blobShardSafe(request.shardId().index().name(), request.shardId().id());

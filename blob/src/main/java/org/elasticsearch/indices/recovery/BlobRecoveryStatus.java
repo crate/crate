@@ -39,19 +39,19 @@ public class BlobRecoveryStatus {
     }
 
     public long recoveryId(){
-        return indexRecoveryStatus.recoveryId;
+        return indexRecoveryStatus.recoveryId();
     }
 
     public boolean canceled() {
-        return indexRecoveryStatus.isCanceled();
+        return indexRecoveryStatus.CancellableThreads().isCancelled();
     }
 
     public void sentCanceledToSource() {
-        indexRecoveryStatus.sentCanceledToSource = true;
+        indexRecoveryStatus.CancellableThreads().checkForCancel();
     }
 
     public ShardId shardId() {
-        return indexRecoveryStatus.shardId;
+        return indexRecoveryStatus.shardId();
     }
 
     public ConcurrentMapLong<BlobRecoveryTransferStatus> onGoingTransfers() {

@@ -25,16 +25,14 @@ import io.crate.blob.BlobWriteException;
 import io.crate.blob.exceptions.IllegalBlobRecoveryStateException;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -100,29 +98,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
         transportService.registerHandler(Actions.START_TRANSFER, new StartTransferRequestHandler());
         transportService.registerHandler(Actions.DELETE_FILE, new DeleteFileRequestHandler());
         transportService.registerHandler(Actions.FINALIZE_RECOVERY, new FinalizeRecoveryRequestHandler());
-
-        indicesLifecycle.addListener(new IndicesLifecycle.Listener() {
-            @Override
-            public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard) {
-                if (indexShard != null) {
-                    // TODO: handle shard close -> cancel
-                }
-            }
-        });
-
     }
-
-    private void removeAndCleanOnGoingRecovery(@Nullable BlobRecoveryStatus status) {
-        if (status == null) {
-            return;
-        }
-        // clean it from the on going recoveries since it is being closed
-        status = onGoingRecoveries.remove(status.recoveryId());
-        if (status == null) {
-            return;
-        }
-    }
-
 
     abstract class BaseHandler<T extends TransportRequest> extends BaseTransportRequestHandler<T> {
 
@@ -145,22 +121,17 @@ public class BlobRecoveryTarget extends AbstractComponent {
             logger.info("[{}] StartRecoveryRequestHandler start recovery with recoveryId {}",
                 request.shardId().getId(), request.recoveryId);
 
-            //if (!request.shardId().index().equals(blobService.getIndex())){
-            //    throw new IllegalStateException(
-            //            String.format("tried blob recovery on none-blob index {}", request.shardId().index()));
-            //}
-
             IndexShard indexShard = indicesService.indexServiceSafe(request.shardId().index().name())
                                                   .shardSafe(request.shardId().id());
             RecoveryStatus onGoingIndexRecovery = indexRecoveryTarget.recoveryStatus(indexShard);
 
-            if (onGoingIndexRecovery.isCanceled()) {
+            if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
                 throw new IndexShardClosedException(request.shardId());
             }
 
             BlobShard blobShard = indicesService.indexServiceSafe(
-                    onGoingIndexRecovery.shardId.getIndex()).shardInjectorSafe(
-                    onGoingIndexRecovery.shardId.id()).getInstance(BlobShard.class);
+                    onGoingIndexRecovery.shardId().getIndex()).shardInjectorSafe(
+                    onGoingIndexRecovery.shardId().id()).getInstance(BlobShard.class);
 
             BlobRecoveryStatus status = new BlobRecoveryStatus(onGoingIndexRecovery, blobShard);
             onGoingRecoveries.put(request.recoveryId(), status);

@@ -23,8 +23,8 @@ package io.crate.operation.reference.sys.shard;
 
 import io.crate.core.CachedRef;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.index.store.StoreStats;
+import org.elasticsearch.index.shard.IndexShard;
 
 import java.util.concurrent.TimeUnit;
 
