@@ -7,6 +7,9 @@ Unreleased
 
 NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 
+ - Fixed an issue that caused GROUP BY queries with multiple group keys, no
+   order by and limit to hang.
+
  - Add plugin support
 
  - Increased performance of ``hostname`` and ``id`` expression for ``sys.nodes`` table

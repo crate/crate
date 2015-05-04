@@ -353,14 +353,13 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
             // 2nd level
             ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 +
                     (keyInputs.size() + aggregators.length) * 4));
-            //Object[][] rows = new Object[result.size()][keyInputs.size() + aggregators.length];
             RowN row = new RowN(keyInputs.size() + aggregators.length);
             for (Map.Entry<List<Object>, Object[]> entry : result.entrySet()) {
                 Object[] cells = new Object[row.size()];
                 transformToRow(entry, cells, aggregators);
                 row.cells(cells);
                 if (!downstream.setNextRow(row)){
-                    return;
+                    break;
                 }
             }
             downstream.finish();

@@ -71,6 +71,17 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals(34, response.rows()[1][0]);
     }
 
+    @Test
+    public void testNonDistributedGroupByWithManyKeysNoOrderByAndLimit() throws Exception {
+        execute("create table t (name string, x int) clustered by (name) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("insert into t (name, x) values ('Marvin', 1), ('Trillian', 1), ('Ford', 1), ('Arthur', 1)");
+        execute("refresh table t");
+
+        execute("select count(*), name from t group by name, x limit 2");
+        assertThat(response.rowCount(), is(2L));
+    }
 
     @Test
     public void testGroupByOnClusteredByColumnPartOfPrimaryKey() throws Exception {
