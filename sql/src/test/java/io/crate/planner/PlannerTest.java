@@ -845,6 +845,30 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testUpdatePlanWithMultiplePrimaryKeyValuesPartitioned() throws Exception {
+        Upsert planNode =  (Upsert) plan("update parted set name='Vogon lyric fan' where " +
+                "(id=2 and date = 0) OR" +
+                "(id=3 and date=123)");
+        assertThat(planNode.nodes().size(), is(1));
+
+        PlanNode next = planNode.nodes().get(0).get(0);
+
+        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
+        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode) next;
+
+        List<String> partitions = new ArrayList<>(2);
+        List<String> ids = new ArrayList<>(2);
+        for (SymbolBasedUpsertByIdNode.Item item : updateNode.items()) {
+            partitions.add(item.index());
+            ids.add(item.id());
+            assertThat(item.updateAssignments().length, is(1));
+            assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
+        }
+        assertThat(ids, containsInAnyOrder("AgEyATA=", "AgEzAzEyMw==")); // multi primary key - values concatenated and base64'ed
+        assertThat(partitions, containsInAnyOrder(".partitioned.parted.04130", ".partitioned.parted.04232chj"));
+    }
+
+    @Test
     public void testCopyFromPlan() throws Exception {
         IterablePlan plan = (IterablePlan) plan("copy users from '/path/to/file.extension'");
         Iterator<PlanNode> iterator = plan.iterator();

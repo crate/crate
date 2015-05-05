@@ -7,6 +7,9 @@ Unreleased
 
 NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 
+ - Fix: fix update queries on partitioned tables which are partitioned
+   by part of the primary key
+
  - Fix: correctly display initial and reset settings in ``sys.cluster.settings``
 
  - add dynamic settings ``bulk.request_timeout`` and ``bulk.partition_creation_timeout``

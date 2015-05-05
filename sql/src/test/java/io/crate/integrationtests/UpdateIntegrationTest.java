@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.analyze.UpdateStatementAnalyzer;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -603,4 +604,31 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         }
     }
 
+    @Test
+    public void testUpdateByIdPartitionColumnPartOfPrimaryKey() throws Exception {
+        execute("create table party (" +
+                "  id int primary key, " +
+                "  type byte primary key, " +
+                "  value string" +
+                ") partitioned by (type) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into party (id, type, value) values (?, ?, ?)", new Object[][]{
+                {1, 2, "foo"},
+                {2, 3, "bar"},
+                {2, 4, "baz"}
+        });
+        execute("refresh table party");
+
+        execute("update party set value='updated' where (id=1 and type=2) or (id=2 and type=4)");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("refresh table party");
+
+        execute("select id, type, value from party order by id, value");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "1| 2| updated\n" +
+                "2| 3| bar\n" +
+                "2| 4| updated\n"));
+
+    }
 }

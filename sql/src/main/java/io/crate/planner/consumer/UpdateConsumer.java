@@ -32,6 +32,7 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
@@ -175,19 +176,27 @@ public class UpdateConsumer implements Consumer {
                                              WhereClause whereClause,
                                              SymbolBasedUpsertByIdNode upsertByIdNode) {
             String[] indices = Planner.indices(tableInfo, whereClause);
-            assert indices.length == 1;
+            assert tableInfo.isPartitioned() || indices.length == 1;
 
             Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
 
+
             for (DocKeys.DocKey key : whereClause.docKeys().get()) {
+                String index;
+                if (key.partitionValues().isPresent()) {
+                    index = new PartitionName(tableInfo.ident(), key.partitionValues().get()).stringValue();
+                } else {
+                    index = indices[0];
+                }
                 upsertByIdNode.add(
-                        indices[0],
+                        index,
                         key.id(),
                         key.routing(),
                         assignments.v2(),
                         key.version().orNull());
             }
         }
+
 
         private Tuple<String[], Symbol[]> convertAssignments(Map<Reference, Symbol> assignments) {
             String[] assignmentColumns = new String[assignments.size()];
