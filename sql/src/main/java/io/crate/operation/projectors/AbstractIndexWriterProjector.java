@@ -34,6 +34,7 @@ import io.crate.core.collections.Row1;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;

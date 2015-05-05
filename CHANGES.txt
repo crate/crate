@@ -7,6 +7,8 @@ Unreleased
 
 NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 
+ - add dynamic settings ``bulk.request_timeout`` and ``bulk.partition_creation_timeout``
+
  - make the ``sys.shards.size`` expression refresh all 10 seconds maximum
 
  - Fixed an issue that caused GROUP BY queries with multiple group keys, no

@@ -31,6 +31,7 @@ import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;

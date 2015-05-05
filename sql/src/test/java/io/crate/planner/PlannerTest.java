@@ -140,7 +140,7 @@ public class PlannerTest extends CrateUnitTest {
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
                     .addPartitions(
-                            new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue(),
+                            new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue(), // TODO: invalid partition: null not valid as part of primary key
                             new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
                             new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()
                     )
@@ -825,7 +825,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
-        Upsert planNode =  (Upsert) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");;
+        Upsert planNode =  (Upsert) plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
         assertThat(planNode.nodes().size(), is(1));
 
         List<DQLPlanNode> childNodes = planNode.nodes().get(0);

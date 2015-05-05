@@ -561,16 +561,19 @@
 
 ###################################### SQL ####################################
 
-# If disabled, queries filtering for a primary key will be broadcast to all available shards
-# instead of hitting just the related single shard.
+# A SQL DML operation over a huge amount of rows (such as INSERT FROM SUBQUERY,
+# UPDATE or COPY FROM) can take an enormous amount of time and resources
+# of your cluster. To execute such queries more failsafe even with
+# slower hardware increase this timeout
 #
-#crate.planner.optimize_pk_queries: true
+# bulk.request_timeout: 1m
 
-
-# An insert from subquery can take an enormous amount of time and ressources of
-# your cluster. To execute such queries more failsafe even with slower hardware
-# increase this timeout
-#insert_by_query.request_timeout: 1m
+# A SQL DML operation can cause lots of operations on the master
+# node when new partitions need to be created.
+# Those operations are not handled by the bulk.request_timeout setting.
+# If this setting is omitted a timeout of 10s per single master operation is used.
+#
+# bulk.partition_creation_timeout: 10s
 
 ########################## SQL Query Circuit Breaker ##########################
 

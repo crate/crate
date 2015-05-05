@@ -36,6 +36,7 @@ import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.ShardingProjector;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
@@ -255,8 +256,7 @@ public class BulkShardProcessor {
     public void close() {
         trace("close");
         closed = true;
-        createPendingIndices();
-        executeRequests();
+        executeIfNeeded();
         if (pending.get() == 0) {
             setResult();
         }
@@ -284,16 +284,16 @@ public class BulkShardProcessor {
     }
 
     private void executeIfNeeded() {
-        if (closed
+        if ((closed
                 || requestsForNewIndices.size() >= createIndicesBulkSize
-                || pendingNewIndexRequests.get() >= bulkSize) {
+                || pendingNewIndexRequests.get() >= bulkSize) && failure.get() == null) {
             createPendingIndices();
         }
         executeRequestsIfNeeded();
     }
 
     private void executeRequestsIfNeeded() {
-        if (closed || counter.get() >= bulkSize) {
+        if ((closed || counter.get() >= bulkSize) && failure.get() == null) {
             executeRequests();
         }
     }
@@ -338,8 +338,13 @@ public class BulkShardProcessor {
 
         if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices...", indices.size());
-            TimeValue timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
-            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
+            TimeValue timeout = CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.extractTimeValue(clusterService.state().metaData().settings());
+            if (timeout.millis() == 0L) {
+                // apply default
+                // wait up to 10 seconds for every single create index request
+                timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
+            }
+            final BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
                     .ignoreExisting(true)
                     .timeout(timeout); // wait up to 10 seconds for every create index request
             FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {

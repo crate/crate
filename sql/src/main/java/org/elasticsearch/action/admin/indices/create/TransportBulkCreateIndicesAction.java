@@ -24,7 +24,6 @@ package org.elasticsearch.action.admin.indices.create;
 import io.crate.core.collections.UniqueBlockingQueue;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.PlainListenableActionFuture;
 import org.elasticsearch.action.support.master.TransportMasterNodeOperationAction;
@@ -41,7 +40,8 @@ import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -104,25 +104,6 @@ public class TransportBulkCreateIndicesAction extends TransportMasterNodeOperati
 
         final AtomicInteger pending = new AtomicInteger(0);
         final AtomicReference<Throwable> exception = new AtomicReference<>();
-        List<ListenableActionFuture<ClusterStateUpdateResponse>> futures = new ArrayList<>(request.requests().size());
-        for (CreateIndexRequest createIndexRequest : request.requests()) {
-            try {
-                RequestItem item = new RequestItem(createIndexRequest, threadPool);
-                if (requestQueue.put(item)) {
-                    futures.add(item.future);
-                    pending.incrementAndGet();
-                } else {
-                    String index = item.request.index();
-                    finalResponse.addAlreadyExisted(index);
-                    logger.trace("index [{}] already in the queue", index);
-                }
-            } catch (InterruptedException e) {
-                logger.debug("got interrupted while adding create index request to the queue");
-                Thread.interrupted();
-                listener.onFailure(e);
-                return;
-            }
-        }
         ActionListener<ClusterStateUpdateResponse> actionListener = new ActionListener<ClusterStateUpdateResponse>() {
             @Override
             public void onResponse(ClusterStateUpdateResponse response) {
@@ -156,8 +137,24 @@ public class TransportBulkCreateIndicesAction extends TransportMasterNodeOperati
             }
         };
 
-        for (ListenableActionFuture<ClusterStateUpdateResponse> actionFuture : futures) {
-            actionFuture.addListener(actionListener);
+
+        for (CreateIndexRequest createIndexRequest : request.requests()) {
+            try {
+                RequestItem item = new RequestItem(createIndexRequest, threadPool);
+                if (requestQueue.put(item)) {
+                    item.future.addListener(actionListener);
+                    pending.incrementAndGet();
+                } else {
+                    String index = item.request.index();
+                    finalResponse.addAlreadyExisted(index);
+                    logger.trace("index [{}] already in the queue", index);
+                }
+            } catch (InterruptedException e) {
+                logger.debug("got interrupted while adding create index request to the queue");
+                Thread.interrupted();
+                listener.onFailure(e);
+                return;
+            }
         }
     }
 

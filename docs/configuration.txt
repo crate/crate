@@ -267,6 +267,36 @@ Graceful Stop
   if it runs into the timeout which is specified with the
   `cluster.graceful_stop.timeout`_ setting.
 
+
+.. _conf_bulk_operations:
+
+Bulk Operations
+---------------
+
+SQL DML Statements involving a huge amount of rows
+like :ref:`copy_from`, :ref:`ref-insert` or :ref:`ref-update` can take an enormous
+amount of time and resources. The following settings change the behaviour of
+those queries.
+
+.. _bulk.request_timeout:
+
+**bulk.request_timeout**
+  | *Default:* ``1m``
+  | *Runtime:* ``yes``
+
+  Defines the timeout of internal shard-based requests involved
+  in the execution of SQL DML Statements over a huge amount of rows.
+
+**bulk.partition_creation_timeout**
+  | *Default:* ``0s``
+  | *Runtime:* ``yes``
+
+  Timeout that applies to creating partitions while handling SQL DML Statements
+  over a huge amount of rows. If this value is set to ``0s``,
+  which is the default, a dynamic timeout of 10s per partition created in
+  bulk is applied. So, if 10 partitions are to be created at once,
+  a timeout of 100s applies to that operation.
+
 Discovery
 ---------
 .. _discovery.zen.minimum_master_nodes:

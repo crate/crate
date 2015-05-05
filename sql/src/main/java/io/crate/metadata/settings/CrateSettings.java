@@ -119,7 +119,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
+            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO, BULK);
         }
     };
 
@@ -979,6 +979,52 @@ public class CrateSettings {
         }
     };
 
+    public static final NestedSetting BULK = new NestedSetting() {
+        @Override
+        public String name() {
+            return "bulk";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(BULK_PARTITION_CREATION_TIMEOUT, BULK_REQUEST_TIMEOUT);
+        }
+    };
+
+    public static final TimeSetting BULK_REQUEST_TIMEOUT = new TimeSetting() {
+        @Override
+        public String name() {
+            return "request_timeout";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return new TimeValue(1, TimeUnit.MINUTES);
+        }
+
+        @Override
+        public Setting parent() {
+            return BULK;
+        }
+    };
+
+    public static final TimeSetting BULK_PARTITION_CREATION_TIMEOUT = new TimeSetting() {
+        @Override
+        public String name() {
+            return "partition_creation_timeout";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return new TimeValue(0, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public Setting parent() {
+            return BULK;
+        }
+    };
+
     public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES);
 
     public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
@@ -1114,6 +1160,12 @@ public class CrateSettings {
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.CLUSTER_INFO_UPDATE))
             .put(CrateSettings.CLUSTER_INFO_UPDATE_INTERVAL.settingName(),
                     new SettingsAppliers.TimeSettingsApplier(CrateSettings.CLUSTER_INFO_UPDATE_INTERVAL))
+            .put(CrateSettings.BULK.settingName(),
+                    new SettingsAppliers.ObjectSettingsApplier(CrateSettings.BULK))
+            .put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(),
+                    new SettingsAppliers.TimeSettingsApplier(CrateSettings.BULK_REQUEST_TIMEOUT))
+            .put(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.settingName(),
+                    new SettingsAppliers.TimeSettingsApplier(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT))
             .build();
 
     @Nullable
