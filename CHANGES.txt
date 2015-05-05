@@ -7,6 +7,8 @@ Unreleased
 
 NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 
+ - Fix: correctly display initial and reset settings in ``sys.cluster.settings``
+
  - add dynamic settings ``bulk.request_timeout`` and ``bulk.partition_creation_timeout``
 
  - make the ``sys.shards.size`` expression refresh all 10 seconds maximum

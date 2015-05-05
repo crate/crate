@@ -119,7 +119,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO, BULK);
+            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
         }
     };
 
@@ -1025,7 +1025,7 @@ public class CrateSettings {
         }
     };
 
-    public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES);
+    public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES, BULK);
 
     public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
             .put(CrateSettings.STATS.settingName(),

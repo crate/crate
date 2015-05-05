@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Map;
@@ -33,8 +34,11 @@ import static org.hamcrest.Matchers.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.TEST)
 public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal));
+        builder.put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "42s");
+        return builder.build();
     }
 
     @Test
@@ -64,6 +68,24 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertThat((Boolean)response.rows()[0][0], is(false));
         assertThat((Integer)response.rows()[0][1], is(10_000));
         assertThat((Integer)response.rows()[0][2], is(10_000));
+    }
+
+    @Test
+    public void testResetPersistent() throws Exception {
+
+        execute("select settings['bulk']['request_timeout'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("42s")); // configured via nodeSettings
+
+        execute("set global persistent bulk.request_timeout = '59s'");
+        execute("select settings['bulk']['request_timeout'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("59s"));
+
+        execute("reset global bulk.request_timeout");
+        execute("select settings['bulk']['request_timeout'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("42s"));
     }
 
     @Test

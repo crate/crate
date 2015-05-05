@@ -25,17 +25,19 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class ApplySettingsTest extends CrateUnitTest {
 
     @Test
     public void testOnRefreshSettings() throws Exception {
 
-        ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<String, Object>();
-        ClusterSettingsExpression.ApplySettings applySettings = new ClusterSettingsExpression.ApplySettings(values);
+        ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
+        ClusterSettingsExpression.ApplySettings applySettings = new ClusterSettingsExpression.ApplySettings(ImmutableSettings.EMPTY, values);
 
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
                 .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
@@ -61,5 +63,40 @@ public class ApplySettingsTest extends CrateUnitTest {
         name = CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName();
         assertEquals(values.get(name), settings.getAsInt(name, 2));
 
+    }
+
+    @Test
+    public void testOnRefreshSettingsWithInitial() throws Exception {
+
+        ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
+        values.put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), CrateSettings.BULK_REQUEST_TIMEOUT.defaultValue());
+        Settings initialSettings = ImmutableSettings.builder()
+                .put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), 10L, TimeUnit.SECONDS)
+                .build();
+        ClusterSettingsExpression.ApplySettings applySettings = new ClusterSettingsExpression.ApplySettings(initialSettings, values);
+
+        ImmutableSettings.Builder builder = ImmutableSettings.builder()
+                .put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), 1L, TimeUnit.SECONDS)
+                .put(CrateSettings.STATS_ENABLED.settingName(), false)
+                .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "full")
+                .put(CrateSettings.GRACEFUL_STOP_TIMEOUT.settingName(), "1m")
+                .put(CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName(), 2);
+        Settings settings = builder.build();
+        applySettings.onRefreshSettings(settings);
+
+        String name = CrateSettings.BULK_REQUEST_TIMEOUT.settingName();
+        assertEquals(values.get(name), settings.getAsTime(name, new TimeValue(100, TimeUnit.SECONDS)).toString());
+
+        name = CrateSettings.STATS_ENABLED.settingName();
+        assertEquals(values.get(name), settings.getAsBoolean(name, true));
+
+        name = CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName();
+        assertEquals(values.get(name), settings.get(name, "none"));
+
+        name = CrateSettings.GRACEFUL_STOP_TIMEOUT.settingName();
+        assertEquals(values.get(name), settings.get(name, "1h"));
+
+        name = CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName();
+        assertEquals(values.get(name), settings.getAsInt(name, 2));
     }
 }
