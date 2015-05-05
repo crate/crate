@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -318,10 +319,15 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
 
         if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices in bulk...", indices.size());
-            TimeValue timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
+            TimeValue timeout = CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.extractTimeValue(clusterService.state().metaData().settings());
+            if (timeout.millis() == 0L) {
+                // apply default
+                // wait up to 10 seconds for every single create index request
+                timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
+            }
             BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
                     .ignoreExisting(true)
-                    .timeout(timeout); // wait up to 10 seconds for every create index request
+                    .timeout(timeout);
 
             FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override
@@ -377,8 +383,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
     public void close() {
         trace("close");
         closed = true;
-        createPendingIndices();
-        executeRequests();
+        executeIfNeeded();
         if (pending.get() == 0) {
             setResult();
         }
@@ -405,16 +410,16 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
     }
 
     private void executeIfNeeded() {
-        if (closed
+        if ((closed
                 || requestsForNewIndices.size() >= createIndicesBulkSize
-                || pendingNewIndexRequests.get() >= bulkSize) {
+                || pendingNewIndexRequests.get() >= bulkSize) && failure.get() == null) {
             createPendingIndices();
         }
         executeRequestsIfNeeded();
     }
 
     private void executeRequestsIfNeeded() {
-        if (closed || requestItemCounter.get() >= bulkSize) {
+        if ((closed || requestItemCounter.get() >= bulkSize) && failure.get() == null) {
             executeRequests();
         }
     }

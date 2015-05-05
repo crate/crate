@@ -146,5 +146,8 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
         childImplementations.put(
                 CrateSettings.INDICES.name(),
                 new NestedSettingExpression(CrateSettings.INDICES, values));
+        childImplementations.put(
+                CrateSettings.BULK.name(),
+                new NestedSettingExpression(CrateSettings.BULK, values));
     }
 }

@@ -7,8 +7,10 @@ Unreleased
 
 NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 
+ - add dynamic settings ``bulk.request_timeout`` and ``bulk.partition_creation_timeout``
+
  - make the ``sys.shards.size`` expression refresh all 10 seconds maximum
- 
+
  - Fix: performing queries on a partitioned table could cause unnecessary
    ``execution rejected`` errors
 

@@ -302,6 +302,12 @@ public class SysClusterTableInfo extends SysTableInfo {
                 CrateSettings.CLUSTER_INFO.name(),
                 CrateSettings.CLUSTER_INFO_UPDATE.name(),
                 CrateSettings.CLUSTER_INFO_UPDATE_INTERVAL.name()));
+
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.BULK.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.BULK.name(),
+                CrateSettings.BULK_REQUEST_TIMEOUT.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.BULK.name(),
+                CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
     }
 
     @Inject

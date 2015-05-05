@@ -64,7 +64,7 @@ class IndicesCreatedObserver {
 
             @Override
             public void onTimeout(TimeValue timeout) {
-                callback.onFailure(new TimeoutException("waiting for indices to be created timed out after " + timeout.toString()));
+                callback.onFailure(new TimeoutException("waiting for partitions to be created timed out after " + timeout.toString()));
             }
         }, new IndicesCreatedPredicate(indicesToWaitFor), timeout);
     }

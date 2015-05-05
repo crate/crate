@@ -55,11 +55,11 @@ currently applied cluster settings.
 ::
 
     cr> select settings from sys.cluster;
-    +--------------------------------------------------------------------------------------------...-+
-    | settings                                                                                       |
-    +--------------------------------------------------------------------------------------------...-+
-    | {"cluster": {...}, "routing": {...}, "discovery": {...}, "indices": {...}, "stats": {...}}     |
-    +--------------------------------------------------------------------------------------------...-+
+    +-----------------------------------------------------------------------------------------------------------...-+
+    | settings                                                                                                      |
+    +-----------------------------------------------------------------------------------------------------------...-+
+    | {"bulk": {...}, "cluster": {...}, "routing": {...}, "discovery": {...}, "indices": {...}, "stats": {...}}     |
+    +-----------------------------------------------------------------------------------------------------------...-+
     SELECT 1 row in set (... sec)
 
 ::
@@ -137,8 +137,11 @@ currently applied cluster settings.
     | settings['cluster']['info']                                                       | object    |
     | settings['cluster']['info']['update']                                             | object    |
     | settings['cluster']['info']['update']['interval']                                 | string    |
+    | settings['bulk']                                                                  | object    |
+    | settings['bulk']['request_timeout']                                               | string    |
+    | settings['bulk']['partition_creation_timeout']                                    | string    |
     +-----------------------------------------------------------------------------------+-----------+
-    SELECT 67 rows in set (... sec)
+    SELECT 70 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 

@@ -261,7 +261,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
         return new IndexWriterProjector(
                 clusterService,
-                settings,
+                clusterService.state().metaData().settings(),
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
                 projection.tableIdent(),
@@ -291,7 +291,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         }
         return new ColumnIndexWriterProjector(
                 clusterService,
-                settings,
+                clusterService.state().metaData().settings(),
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
                 projection.tableIdent(),

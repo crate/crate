@@ -37,6 +37,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
@@ -51,7 +52,6 @@ import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesA
 import org.elasticsearch.action.bulk.AssignmentVisitor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
@@ -144,7 +144,7 @@ public abstract class AbstractIndexWriterProjector implements
         ShardUpsertRequest.Builder requestBuilder = new ShardUpsertRequest.Builder(
                 visitorContext.dataTypes(),
                 visitorContext.columnIndicesToStream(),
-                settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT),
+                CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 true,
                 overwriteDuplicates,
                 updateAssignments,

@@ -28,6 +28,7 @@ import io.crate.core.collections.Row1;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
@@ -35,7 +36,6 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
@@ -81,7 +81,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
         SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
-                settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT),
+                CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 false,
                 false,
                 assignmentsColumns,

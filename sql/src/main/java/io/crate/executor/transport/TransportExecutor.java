@@ -381,7 +381,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public ImmutableList<Task> visitSymbolBasedUpsertByIdNode(SymbolBasedUpsertByIdNode node, UUID jobId) {
             return singleTask(new SymbolBasedUpsertByIdTask(jobId,
                     clusterService,
-                    settings,
+                    clusterService.state().metaData().settings(),
                     transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
                     transportActionProvider.transportBulkCreateIndicesAction(),
