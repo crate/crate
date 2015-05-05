@@ -43,7 +43,7 @@ public abstract class Setting<T, E> {
     public abstract E extract(Settings settings);
 
     public List<Setting> children() {
-        return ImmutableList.<Setting>of();
+        return ImmutableList.of();
     }
 
     @Nullable

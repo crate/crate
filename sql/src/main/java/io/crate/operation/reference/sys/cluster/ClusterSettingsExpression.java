@@ -28,12 +28,14 @@ import io.crate.operation.reference.sys.SysClusterObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 
 public class ClusterSettingsExpression extends SysClusterObjectReference {
@@ -44,7 +46,7 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
         private final Map<String, Object> values;
         private final String name;
 
-        protected SettingExpression(Setting setting, Map<String, Object> values) {
+        protected SettingExpression(Setting<?, ?> setting, Map<String, Object> values) {
             super(new ColumnIdent(NAME, setting.chain()));
             this.name = setting.settingName();
             this.values = values;
@@ -61,7 +63,7 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
 
         private final Map<String, Object> values;
 
-        protected NestedSettingExpression(Setting setting, Map<String, Object> values) {
+        protected NestedSettingExpression(Setting<?, ?> setting, Map<String, Object> values) {
             super(new ColumnIdent(NAME, setting.chain()));
             this.values = values;
             addChildImplementations(setting.children());
@@ -84,28 +86,39 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
 
     static class ApplySettings implements NodeSettingsService.Listener {
 
-        private final Map values;
+        private final ConcurrentMap<String, Object> values;
+        private final Settings initialSettings;
         protected final ESLogger logger;
 
-        ApplySettings(Map values) {
+        ApplySettings(Settings initialSettings, ConcurrentMap<String, Object> values) {
             this.logger = Loggers.getLogger(getClass());
             this.values = values;
+            this.initialSettings = initialSettings;
         }
 
         @Override
         public void onRefreshSettings(Settings settings) {
-            applySettings(CrateSettings.CRATE_SETTINGS, settings);
+            applySettings(CrateSettings.CRATE_SETTINGS,
+                    ImmutableSettings.builder()
+                            .put(initialSettings)
+                            .put(settings).build()
+            );
         }
 
-        private void applySettings(List<Setting> clusterSettings, Settings settings) {
-            for (Setting setting : clusterSettings) {
+        /**
+         * if setting is not available in new settings
+         * and not in initialSettings, reset to default
+         */
+        private void applySettings(List<Setting> clusterSettings, Settings newSettings) {
+            for (Setting<?, ?> setting : clusterSettings) {
+
                 String name = setting.settingName();
-                Object newValue = setting.extract(settings);
-                if (settings.get(name) == null) {
-                    applySettings((List<Setting>) setting.children(), settings);
+                Object newValue = setting.extract(newSettings);
+                if (newSettings.get(name) == null) {
+                    applySettings(setting.children(), newSettings);
                 }
                 if (!newValue.equals(values.get(name))) {
-                    if (settings.get(name) != null) {
+                    if (newSettings.get(name) != null) {
                         logger.info("updating [{}] from [{}] to [{}]", name, values.get(name), newValue);
                     }
                     values.put(name, newValue);
@@ -120,16 +133,18 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
     @Inject
     public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
         super(NAME);
-        nodeSettingsService.addListener(new ApplySettings(values));
+        applyDefaults(CrateSettings.CRATE_SETTINGS);
+        ApplySettings applySettings = new ApplySettings(settings, values);
+
+        nodeSettingsService.addListener(applySettings);
         addChildImplementations();
-        applySettings(CrateSettings.CRATE_SETTINGS);
     }
 
-    private final void applySettings(List<Setting> settings) {
-        for (Setting setting : settings) {
+    private void applyDefaults(List<Setting> settings) {
+        for (Setting<?, ?> setting : settings) {
             String settingName = setting.settingName();
             values.put(settingName, setting.defaultValue());
-            applySettings((List<Setting>) setting.children());
+            applyDefaults(setting.children());
         }
     }
 

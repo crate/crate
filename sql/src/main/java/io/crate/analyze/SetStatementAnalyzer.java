@@ -74,7 +74,7 @@ public class SetStatementAnalyzer extends DefaultTraversalVisitor<SetAnalyzedSta
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
                 }
                 settingsToRemove.addAll(settingNames);
-                logger.info("resetting []", settingNames);
+                logger.info("resetting [{}]", settingNames);
             }
         }
         statement.settingsToRemove(settingsToRemove);
