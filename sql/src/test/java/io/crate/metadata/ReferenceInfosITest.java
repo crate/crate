@@ -25,7 +25,6 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -37,7 +36,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
 
@@ -114,7 +113,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         TableInfo entsafterTable = referenceInfos.getTableInfo(new TableIdent(null, "entsafter"));
         assertNotNull(entsafterTable);
         assertThat(entsafterTable.concreteIndices().length, is(2));
-        assertThat(Arrays.asList(entsafterTable.concreteIndices()), contains("terminator", "transformer"));
+        assertThat(Arrays.asList(entsafterTable.concreteIndices()), containsInAnyOrder("terminator", "transformer"));
     }
 
 
