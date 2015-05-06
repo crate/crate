@@ -136,7 +136,7 @@ currently applied cluster settings.
     | settings['indices']['fielddata']['breaker']['overhead']                           | double    |
     | settings['cluster']['info']                                                       | object    |
     | settings['cluster']['info']['update']                                             | object    |
-    | settings['cluster']['info']['update']['interval']                                 | string    |
+    | settings['cluster']['info']['update']['interval']                                 | long      |
     | settings['bulk']                                                                  | object    |
     | settings['bulk']['request_timeout']                                               | string    |
     | settings['bulk']['partition_creation_timeout']                                    | string    |
