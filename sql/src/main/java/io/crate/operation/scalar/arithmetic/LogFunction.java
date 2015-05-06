@@ -58,9 +58,9 @@ public abstract class LogFunction extends Scalar<Number,Number> {
     }
 
     /**
-     * @param result
+     * @param result the value to validate
      * @param caller used in the error message for clarification purposes.
-     * @return
+     * @return the validated result
      */
     protected Double validateResult(Double result, String caller) {
         if (result == null) {

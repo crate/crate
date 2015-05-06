@@ -158,7 +158,7 @@ public class RegexMatcher {
      * - boundary matchers like \b, \B, \A, \G, \Z, \z
      * - embedded flag expressions like (?i), (?d), etc.
      *
-     * @see {@link java.util.regex.Pattern}
+     * @see java.util.regex.Pattern
      *
      */
     public static boolean isPcrePattern(Object pattern) {

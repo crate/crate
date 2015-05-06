@@ -32,8 +32,6 @@ public class NodeSettings {
 
     /**
      * Crate default settings
-     *
-     * @return
      */
     public static void applyDefaultSettings(ImmutableSettings.Builder settingsBuilder) {
 

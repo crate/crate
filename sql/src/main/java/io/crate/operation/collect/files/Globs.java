@@ -25,7 +25,7 @@ package io.crate.operation.collect.files;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * This is a copy of {@link sun.nio.fs.Globs} to make the methods public available.
+ * This is a copy of sun.nio.fs.Globs to make the methods public available.
  */
 public class Globs {
     private Globs() { }

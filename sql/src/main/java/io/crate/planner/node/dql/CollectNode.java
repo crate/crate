@@ -126,7 +126,7 @@ public class CollectNode extends AbstractDQLPlanNode {
      * Only used on {@link io.crate.operation.collect.HandlerSideDataCollectOperation},
      * so no serialization is needed.
      *
-     * @return
+     * @return true if collect operates on a partitioned table, false otherwise
      */
     public boolean isPartitioned() {
         return isPartitioned;

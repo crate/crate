@@ -234,9 +234,6 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     /**
      * Returns the full index name, adds blob index prefix.
-     *
-     * @param indexName
-     * @return
      */
     public static String fullIndexName(String indexName) {
         if (isBlobIndex(indexName)) {
@@ -247,9 +244,6 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     /**
      * Strips the blob index prefix from a full index name
-     *
-     * @param indexName
-     * @return
      */
     public static String indexName(String indexName) {
         if (!isBlobIndex(indexName)) {
