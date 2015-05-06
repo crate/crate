@@ -232,7 +232,7 @@ public class BlobTransferTarget extends AbstractComponent {
             }
         }
         if (toSchedule) {
-            logger.info("finished transfer {}, removing state", transferId);
+            logger.debug("finished transfer {}, removing state", transferId);
 
             /**
              * there might be a race condition that the recoveryActive flag is still false although a
@@ -340,7 +340,7 @@ public class BlobTransferTarget extends AbstractComponent {
         synchronized (lock) {
             recoveryActive = false;
             for (UUID finishedUpload : finishedUploads) {
-                logger.info("finished transfer and recovery for {}, removing state", finishedUpload);
+                logger.debug("finished transfer and recovery for {}, removing state", finishedUpload);
                 activeTransfers.remove(finishedUpload);
             }
         }

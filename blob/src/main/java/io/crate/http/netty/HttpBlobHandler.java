@@ -32,6 +32,7 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -52,6 +53,7 @@ import static org.jboss.netty.channel.Channels.write;
 import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.*;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.PARTIAL_CONTENT;
+import static org.jboss.netty.handler.codec.http.HttpResponseStatus.TOO_MANY_REQUESTS;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
@@ -215,7 +217,12 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             logger.trace("channel closed: {}", ex.toString());
             return;
         } else if (ex instanceof IOException) {
-            logger.warn(ex.getMessage());
+            String message = ex.getMessage();
+            if (message != null && message.contains("Connection reset by peer")) {
+                logger.debug(message);
+            } else {
+                logger.warn(message, e);
+            }
             return;
         }
 
@@ -228,6 +235,9 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             body = null;
         } else if (ex instanceof BlobsDisabledException || ex instanceof IndexMissingException) {
             status = HttpResponseStatus.BAD_REQUEST;
+            body = ex.getMessage();
+        } else if (ex instanceof EsRejectedExecutionException) {
+            status = TOO_MANY_REQUESTS;
             body = ex.getMessage();
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
