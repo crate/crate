@@ -71,7 +71,6 @@ public class UnassignedShardsCollectService implements CollectService {
 
         /**
          * Determine if <code>shardId</code> is a primary or secondary shard.
-         *
          */
         public boolean isPrimary(ShardId shardId) {
             if (seenPrimaries == null) {

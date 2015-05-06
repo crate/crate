@@ -221,11 +221,6 @@ public class PartitionName {
     /**
      * decode a partitionTableName with all of its pre-splitted parts into
      * and instance of <code>PartitionName</code>
-     * @param schemaName
-     * @param tableName
-     * @param partitionIdent
-     * @return
-     * @throws IOException
      */
     public static PartitionName fromPartitionIdent(@Nullable String schemaName, String tableName,
                                                    String partitionIdent) {

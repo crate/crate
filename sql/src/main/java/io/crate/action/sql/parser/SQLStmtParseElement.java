@@ -24,10 +24,10 @@ package io.crate.action.sql.parser;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 /**
- * used to parse the "stmt" element that is expected to be in requests parsed by the {@link io.crate.action.sql.parser
- * .SQLXContentSourceParser}
+ * used to parse the "stmt" element that is expected to be in requests
+ * parsed by the io.crate.action.sql.parser.SQLXContentSourceParser
  * <p/>
- * Fills the stmt in the {@link io.crate.action.sql.parser.SQLXContentSourceContext}.
+ * Fills the stmt in the io.crate.action.sql.parser.SQLXContentSourceContext.
  */
 public class SQLStmtParseElement implements SQLParseElement {
 

@@ -242,10 +242,6 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
 
     /**
      * extract datatype, converts types to LONG for integer numeric types, to DOUBLE for decimal numeric types
-     *
-     * @param params
-     * @param name
-     * @return
      */
     private static DataType extractDataType(Map<String, Object> params, String name) {
         Object type = params.get(name);

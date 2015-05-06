@@ -46,7 +46,7 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
      *
      * @param comparisonResult the result of someLiteral.compareTo(otherLiteral)
      * @return true/false
-     * @see {@linkplain io.crate.operation.operator.CmpOperator#compare(int)}
+     * @see io.crate.operation.operator.CmpOperator#compare(int)
      */
     protected abstract boolean compare(int comparisonResult);
 

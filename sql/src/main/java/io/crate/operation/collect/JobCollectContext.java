@@ -168,7 +168,7 @@ public class JobCollectContext implements ExecutionSubContext {
 
     /**
      * Try to find a {@link CrateSearchContext} for the same shard.
-     * If one is found return its {@link Engine.Searcher}, otherwise return null.
+     * If one is found return its Engine.Searcher, otherwise return null.
      */
     protected Engine.Searcher acquireSearcher(IndexShard indexShard) {
         List<Integer> jobSearchContextIds = shardsMap.get(indexShard.shardId());

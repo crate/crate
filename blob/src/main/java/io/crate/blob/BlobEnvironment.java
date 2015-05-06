@@ -67,9 +67,6 @@ public class BlobEnvironment {
 
     /**
      * Return the index location respecting global blobs data path value
-     *
-     * @param index
-     * @return
      */
     public File indexLocation(Index index) {
         if (blobsPath == null) {
@@ -80,10 +77,6 @@ public class BlobEnvironment {
 
     /**
      * Return the index location according to the given base path
-     *
-     * @param index
-     * @param path
-     * @return
      */
     public File indexLocation(Index index, File path) {
         File indexLocation = nodeEnvironment.indexLocations(index)[0];
@@ -94,9 +87,6 @@ public class BlobEnvironment {
 
     /**
      * Return the shard location respecting global blobs data path value
-     *
-     * @param shardId
-     * @return
      */
     public File shardLocation(ShardId shardId) {
         if (blobsPath == null) {
@@ -108,9 +98,6 @@ public class BlobEnvironment {
     /**
      * Return the shard location according to the given base path
      *
-     * @param shardId
-     * @param path
-     * @return
      */
     public File shardLocation(ShardId shardId, File path) {
         File shardLocation = nodeEnvironment.shardLocations(shardId)[0];
@@ -121,8 +108,6 @@ public class BlobEnvironment {
 
     /**
      * Validates a given blobs data path
-     *
-     * @param blobsPath
      */
     public void validateBlobsPath(File blobsPath) {
         if (blobsPath.exists()) {
@@ -144,9 +129,6 @@ public class BlobEnvironment {
 
     /**
      * Check if a given blob data path contains no indices and non crate related path
-     *
-     * @param root
-     * @return
      */
     public boolean isCustomBlobPathEmpty(File root) {
         if (root != null && root.exists()) {
