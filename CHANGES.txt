@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added new table settings that can be set on ``CREATE TABLE``
+   and changed/reset with ``ALTER TABLE``.
+
  - Fix: Updated es/upstream to prevent errors caused by too many cluster
    state updates when dropping tables with a huge amount of partitions
 

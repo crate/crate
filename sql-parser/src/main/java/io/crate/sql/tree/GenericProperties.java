@@ -95,7 +95,7 @@ public class GenericProperties extends Node {
 
     @Override
     public String toString() {
-        return null;
+        return properties.toString();
     }
 
     @Override

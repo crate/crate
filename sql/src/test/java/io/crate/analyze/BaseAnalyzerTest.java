@@ -29,7 +29,6 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.Input;
-import io.crate.operation.reference.sys.cluster.SysClusterExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
@@ -221,11 +220,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
     static final ReferenceInfo CLUSTER_NAME_INFO = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
     private ThreadPool threadPool;
 
-    static class ClusterNameExpression extends SysClusterExpression<BytesRef> {
-
-        protected ClusterNameExpression() {
-            super(CLUSTER_NAME_INFO.ident().columnIdent().name());
-        }
+    static class ClusterNameExpression extends SimpleObjectExpression<BytesRef> {
 
         @Override
         public BytesRef value() {

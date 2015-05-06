@@ -455,7 +455,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         Map<String, Object> meta = (Map)analysis.mapping().get("_meta");
         assertNotNull(meta);
-        assertThat((String)meta.get("routing"), is("name"));
+        assertThat((String) meta.get("routing"), is("name"));
 
     }
 
@@ -665,4 +665,123 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(statement.tableIdent().schema(), is("hoschi"));
     }
+
+    @Test
+    public void testChangeReadBlock() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.read\"=true)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_READ), is("true"));
+    }
+
+    @Test
+    public void testChangeWriteBlock() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.write\"=true)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_WRITE), is("true"));
+    }
+
+    @Test
+    public void testChangeMetadataBlock() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.metadata\"=true)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_METADATA), is("true"));
+    }
+
+    @Test
+    public void testChangeReadOnlyBlock() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.read_only\"=true)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY), is("true"));
+    }
+
+    @Test
+    public void testChangeFlushThresholdOpsNumber() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_ops\"=10)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_OPS), is("10"));
+    }
+
+    @Test
+    public void testChangeFlushThresholdSize() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_size\"=300)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE), is("300"));
+    }
+
+    @Test
+    public void testChangeFlushThresholdPeriod() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_period\"=35)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD), is("35"));
+    }
+
+    @Test
+    public void testChangeFlushDisable() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.disable_flush\"=true)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_DISABLE), is("true"));
+    }
+
+    @Test
+    public void testChangeTranslogInterval() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.interval\"=50)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_INTERVAL), is("50"));
+    }
+
+    @Test
+    public void testRoutingAllocationEnable() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"routing.allocation.enable\"=\"none\")");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE), is("none"));
+    }
+
+    @Test
+    public void testRoutingAllocationValidation() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        analyze("alter table users set (\"routing.allocation.enable\"=\"foo\")");
+    }
+
+    @Test
+    public void testRecoveryShardsWithString() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"recovery.initial_shards\"=\"full\")");
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), is("full"));
+
+    }
+
+    @Test
+    public void testRecoveryShardsWithInteger() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"recovery.initial_shards\"=1)");
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), is("1"));
+
+    }
+
+    @Test
+    public void testGatewayLocalSyncPeriod() throws Exception {
+
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"gateway.local.sync\"=1)");
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.GATEWAY_LOCAL_SYNC), is("1"));
+
+    }
+
+    @Test
+    public void testRecoveryShardsValidation() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        analyze("alter table users set (\"recovery.initial_shards\"=\"foo\")");
+    }
+
+    @Test
+    public void testCreateReadOnlyTable() throws Exception {
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+                "create table foo (id integer primary key, name string) "
+                + "clustered into 3 shards with (\"blocks.read_only\"=true)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY), is("true"));
+    }
+
 }

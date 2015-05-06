@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
@@ -31,15 +32,18 @@ public class PartitionInfo {
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
     private final Map<String, Object> values;
+    private final ImmutableMap<String, Object> tableParameters;
 
     public PartitionInfo(PartitionName name,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
-                         Map<String, Object> values) {
+                         Map<String, Object> values,
+                         ImmutableMap<String, Object> tableParameters) {
         this.name = name;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.values = values;
+        this.tableParameters = tableParameters;
     }
 
     public PartitionName name() {
@@ -88,4 +92,9 @@ public class PartitionInfo {
                 .add("numberOfReplicas", numberOfReplicas)
                 .toString();
     }
+
+    public ImmutableMap<String, Object> tableParameters() {
+        return tableParameters;
+    }
 }
+

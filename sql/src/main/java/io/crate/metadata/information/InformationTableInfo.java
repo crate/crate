@@ -45,16 +45,80 @@ public class InformationTableInfo extends AbstractTableInfo {
     private final ImmutableList<ReferenceInfo> columns;
     private final String[] concreteIndices;
 
+    public static class Columns {
+        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
+        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
+        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
+        public static final ColumnIdent VALUES = new ColumnIdent("values");
+        public static final ColumnIdent NUMBER_OF_SHARDS = new ColumnIdent("number_of_shards");
+        public static final ColumnIdent NUMBER_OF_REPLICAS = new ColumnIdent("number_of_replicas");
+        public static final ColumnIdent CLUSTERED_BY = new ColumnIdent("clustered_by");
+        public static final ColumnIdent PARTITIONED_BY = new ColumnIdent("partitioned_by");
+        public static final ColumnIdent BLOBS_PATH = new ColumnIdent("blobs_path");
+        public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
+        public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
+                ImmutableList.of("blocks"));
+        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ_ONLY = new ColumnIdent("settings",
+                ImmutableList.of("blocks", "read_only"));
+        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ = new ColumnIdent("settings",
+                ImmutableList.of("blocks", "read"));
+        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_WRITE = new ColumnIdent("settings",
+                ImmutableList.of("blocks", "write"));
+        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_METADATA = new ColumnIdent("settings",
+                ImmutableList.of("blocks", "metadata"));
+        public static final ColumnIdent TABLE_SETTINGS_ROUTING= new ColumnIdent("settings",
+                ImmutableList.of("routing"));
+        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION = new ColumnIdent("settings",
+                ImmutableList.of("routing", "allocation"));
+        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = new ColumnIdent("settings",
+                ImmutableList.of("routing", "allocation", "enable"));
+        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = new ColumnIdent("settings",
+                ImmutableList.of("routing", "allocation", "total_shards_per_node"));
+        public static final ColumnIdent TABLE_SETTINGS_RECOVERY = new ColumnIdent("settings",
+                ImmutableList.of("recovery"));
+        public static final ColumnIdent TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = new ColumnIdent("settings",
+                ImmutableList.of("recovery","initial_shards"));
+        public static final ColumnIdent TABLE_SETTINGS_WARMER = new ColumnIdent("settings",
+                ImmutableList.of("warmer"));
+        public static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
+                ImmutableList.of("warmer", "enabled"));
+        public static final ColumnIdent TABLE_SETTINGS_GATEWAY = new ColumnIdent("settings",
+                ImmutableList.of("gateway"));
+        public static final ColumnIdent TABLE_SETTINGS_GATEWAY_LOCAL = new ColumnIdent("settings",
+                ImmutableList.of("gateway", "local"));
+        public static final ColumnIdent TABLE_SETTINGS_GATEWAY_LOCAL_SYNC = new ColumnIdent("settings",
+                ImmutableList.of("gateway", "local", "sync"));
+        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
+                ImmutableList.of("translog"));
+        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = new ColumnIdent("settings",
+                ImmutableList.of("translog", "flush_threshold_ops"));
+        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = new ColumnIdent("settings",
+                ImmutableList.of("translog", "flush_threshold_size"));
+        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD = new ColumnIdent("settings",
+                ImmutableList.of("translog", "flush_threshold_period"));
+        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH = new ColumnIdent("settings",
+                ImmutableList.of("translog", "disable_flush"));
+        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_INTERVAL = new ColumnIdent("settings",
+                ImmutableList.of("translog", "interval"));
+    }
+
     protected InformationTableInfo(InformationSchemaInfo schemaInfo,
-                                 TableIdent ident,
-                                 ImmutableList<ColumnIdent> primaryKeyIdentList,
-                                 ImmutableMap<ColumnIdent, ReferenceInfo> references,
-                                 ImmutableList<ReferenceInfo> columns) {
+                                   TableIdent ident,
+                                   ImmutableList<ColumnIdent> primaryKeyIdentList,
+                                   LinkedHashMap<ColumnIdent, ReferenceInfo> references) {
+        this(schemaInfo, ident, primaryKeyIdentList, references, null);
+    }
+
+    protected InformationTableInfo(InformationSchemaInfo schemaInfo,
+                                   TableIdent ident,
+                                   ImmutableList<ColumnIdent> primaryKeyIdentList,
+                                   LinkedHashMap<ColumnIdent, ReferenceInfo> references,
+                                   @Nullable ImmutableList<ReferenceInfo> columns) {
         super(schemaInfo);
         this.ident = ident;
         this.primaryKeyIdentList = primaryKeyIdentList;
-        this.references = references;
-        this.columns = columns;
+        this.references = ImmutableMap.copyOf(references);
+        this.columns = columns != null ? columns : ImmutableList.copyOf(references.values());
         this.concreteIndices = new String[]{ident.esName()};
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         Map<String, List<Integer>> tableLocation = new TreeMap<>();

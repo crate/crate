@@ -21,17 +21,15 @@
 package io.crate.operation.reference.information;
 
 import com.google.common.base.MoreObjects;
-import io.crate.metadata.PartitionInfo;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.*;
 import io.crate.metadata.information.InformationPartitionsTableInfo;
-import io.crate.metadata.information.RowCollectExpression;
+import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
 
 public abstract class InformationTablePartitionsExpression<T>
-        extends RowCollectExpression<PartitionInfo, T> {
+        extends RowContextCollectorExpression<PartitionInfo, T> {
 
     public static final PartitionsTableNameExpression TABLE_NAME_EXPRESSION = new PartitionsTableNameExpression();
     public static final PartitionsSchemaNameExpression SCHEMA_NAME_EXPRESSION = new PartitionsSchemaNameExpression();
@@ -39,6 +37,7 @@ public abstract class InformationTablePartitionsExpression<T>
     public static final PartitionsValuesExpression VALUES_EXPRESSION = new PartitionsValuesExpression();
     public static final PartitionsNumberOfShardsExpression NUMBER_OF_SHARDS_EXPRESSION = new PartitionsNumberOfShardsExpression();
     public static final PartitionsNumberOfReplicasExpression NUMBER_OF_REPLICAS_EXPRESSION = new PartitionsNumberOfReplicasExpression();
+    public static final PartitionsSettingsExpression SETTINGS_EXPRESSION = new PartitionsSettingsExpression();
 
     protected InformationTablePartitionsExpression(ReferenceInfo info) {
         super(info);

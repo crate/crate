@@ -30,6 +30,19 @@ public class AlterPartitionedTableParameterInfo extends TableParameterInfo {
                     .add(NUMBER_OF_REPLICAS)
                     .add(NUMBER_OF_SHARDS)
                     .add(REFRESH_INTERVAL)
+                    .add(READ_ONLY)
+                    .add(BLOCKS_READ)
+                    .add(BLOCKS_WRITE)
+                    .add(BLOCKS_METADATA)
+                    .add(FLUSH_THRESHOLD_OPS)
+                    .add(FLUSH_THRESHOLD_SIZE)
+                    .add(FLUSH_THRESHOLD_PERIOD)
+                    .add(FLUSH_DISABLE)
+                    .add(TRANSLOG_INTERVAL)
+                    .add(ROUTING_ALLOCATION_ENABLE)
+                    .add(TOTAL_SHARDS_PER_NODE)
+                    .add(RECOVERY_INITIAL_SHARDS)
+                    .add(WARMER_ENABLED)
                     .build();
 
     protected static final TableParameterInfo PARTITION_TABLE_PARAMETER_INFO = new TablePartitionParameterInfo();

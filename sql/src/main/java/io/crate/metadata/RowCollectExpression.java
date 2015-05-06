@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,19 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys;
+package io.crate.metadata;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.operation.reference.NestedObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 
-public abstract class SysClusterObjectReference extends NestedObjectExpression {
+/**
+ * Base interface for row based expressions.
+ * @param <T> The returnType of the expression
+ */
+public interface RowCollectExpression<R, T> extends ReferenceImplementation<T> {
 
-    protected SysClusterObjectReference(String name) {
-        this(new ColumnIdent(name));
-    }
-
-    protected SysClusterObjectReference(ColumnIdent ident) {
-        assert SysClusterTableInfo.INFOS.containsKey(ident);
-    }
+    ReferenceInfo info();
+    void setNextRow(R row);
 }

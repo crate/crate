@@ -122,15 +122,16 @@ table with data partitioned by year::
 
 Resulting partitions of the last insert by query::
 
-    cr> select * from information_schema.table_partitions
+    cr> select table_name, partition_ident, values, number_of_shards, number_of_replicas
+    ... from information_schema.table_partitions
     ... where table_name = 'locations_parted'
     ... order by partition_ident;
-    +------------------+-------------+-----------------+------------------+------------------+--------------------+
-    | table_name       | schema_name | partition_ident | values           | number_of_shards | number_of_replicas |
-    +------------------+-------------+-----------------+------------------+------------------+--------------------+
-    | locations_parted | doc         | 042j2e9n74      | {"year": "1979"} |                2 |                  0 |
-    | locations_parted | doc         | 042j4c1h6c      | {"year": "2013"} |                2 |                  0 |
-    +------------------+-------------+-----------------+------------------+------------------+--------------------+
+    +------------------+-----------------+------------------+------------------+--------------------+
+    | table_name       | partition_ident | values           | number_of_shards | number_of_replicas |
+    +------------------+-----------------+------------------+------------------+--------------------+
+    | locations_parted | 042j2e9n74      | {"year": "1979"} |                2 |                  0 |
+    | locations_parted | 042j4c1h6c      | {"year": "2013"} |                2 |                  0 |
+    +------------------+-----------------+------------------+------------------+--------------------+
     SELECT 2 rows in set (... sec)
 
 .. Hidden: drop previously created table

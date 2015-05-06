@@ -112,7 +112,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.maxRowGranularity(RowGranularity.DOC);
         Bucket result = collect(collectNode);
         System.out.println(TestingHelpers.printedTable(result));
-        assertEquals("sys| shards| 1| 0| NULL| NULL| NULL\n", TestingHelpers.printedTable(result));
+        assertEquals("sys| shards| 1| 0| NULL| NULL| NULL| NULL\n", TestingHelpers.printedTable(result));
     }
 
 

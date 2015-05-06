@@ -22,12 +22,13 @@
 package io.crate.operation.reference.information;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.information.RowCollectExpression;
+import io.crate.metadata.*;
 import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.RowCollectNestedObjectExpression;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+
+import java.util.Map;
 
 @Singleton
 public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
@@ -36,52 +37,91 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
 
     @Inject
     public InformationDocLevelReferenceResolver() {
-        ImmutableMap.Builder<ReferenceIdent, RowCollectExpression<?, ?>> builder =
-                ImmutableMap.builder();
+        ImmutableMap.Builder<ReferenceIdent, RowCollectExpression<?, ?>> builder = ImmutableMap.builder();
 
         // information_schema.tables
-        add(builder, InformationTablesExpression.SCHEMA_NAME_EXPRESSION);
-        add(builder, InformationTablesExpression.TABLE_NAME_EXPRESSION);
-        add(builder, InformationTablesExpression.NUMBER_OF_SHARDS_EXPRESSION);
-        add(builder, InformationTablesExpression.NUMBER_OF_REPLICAS_EXPRESSION);
-        add(builder, InformationTablesExpression.CLUSTERED_BY_EXPRESSION);
-        add(builder, InformationTablesExpression.PARTITION_BY_EXPRESSION);
-        add(builder, InformationTablesExpression.BLOB_PATH_EXPRESSION);
+        builder.put(InformationTablesExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
+                InformationTablesExpression.SCHEMA_NAME_EXPRESSION);
+        builder.put(InformationTablesExpression.TABLE_NAME_EXPRESSION.info().ident(),
+                InformationTablesExpression.TABLE_NAME_EXPRESSION);
+        builder.put(InformationTablesExpression.NUMBER_OF_SHARDS_EXPRESSION.info().ident(),
+                InformationTablesExpression.NUMBER_OF_SHARDS_EXPRESSION);
+        builder.put(InformationTablesExpression.NUMBER_OF_REPLICAS_EXPRESSION.info().ident(),
+                InformationTablesExpression.NUMBER_OF_REPLICAS_EXPRESSION);
+        builder.put(InformationTablesExpression.CLUSTERED_BY_EXPRESSION.info().ident(),
+                InformationTablesExpression.CLUSTERED_BY_EXPRESSION);
+        builder.put(InformationTablesExpression.PARTITION_BY_EXPRESSION.info().ident(),
+                InformationTablesExpression.PARTITION_BY_EXPRESSION);
+        builder.put(InformationTablesExpression.BLOB_PATH_EXPRESSION.info().ident(),
+                InformationTablesExpression.BLOB_PATH_EXPRESSION);
+        builder.put(InformationTablesExpression.SETTINGS_EXPRESSION.info().ident(),
+                InformationTablesExpression.SETTINGS_EXPRESSION);
+        addChildImplementationToBuilder(builder, InformationTablesExpression.SETTINGS_EXPRESSION);
 
-                // information_schema.columns
-        add(builder, InformationColumnsExpression.SCHEMA_NAME_EXPRESSION);
-        add(builder, InformationColumnsExpression.TABLE_NAME_EXPRESSION);
-        add(builder, InformationColumnsExpression.COLUMN_NAME_EXPRESSION);
-        add(builder, InformationColumnsExpression.ORDINAL_EXPRESSION);
-        add(builder, InformationColumnsExpression.DATA_TYPE_EXPRESSION);
+
+        // information_schema.columns
+        builder.put(InformationColumnsExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
+                InformationColumnsExpression.SCHEMA_NAME_EXPRESSION);
+        builder.put(InformationColumnsExpression.TABLE_NAME_EXPRESSION.info().ident(),
+                InformationColumnsExpression.TABLE_NAME_EXPRESSION);
+        builder.put(InformationColumnsExpression.COLUMN_NAME_EXPRESSION.info().ident(),
+                InformationColumnsExpression.COLUMN_NAME_EXPRESSION);
+        builder.put(InformationColumnsExpression.ORDINAL_EXPRESSION.info().ident(),
+                InformationColumnsExpression.ORDINAL_EXPRESSION);
+        builder.put(InformationColumnsExpression.DATA_TYPE_EXPRESSION.info().ident(),
+                InformationColumnsExpression.DATA_TYPE_EXPRESSION);
 
         // information_schema.table_partitions
-        add(builder, InformationTablePartitionsExpression.TABLE_NAME_EXPRESSION);
-        add(builder, InformationTablePartitionsExpression.SCHEMA_NAME_EXPRESSION);
-        add(builder, InformationTablePartitionsExpression.PARTITION_IDENT_EXPRESSION);
-        add(builder, InformationTablePartitionsExpression.VALUES_EXPRESSION);
-        add(builder, InformationTablePartitionsExpression.NUMBER_OF_SHARDS_EXPRESSION);
-        add(builder, InformationTablePartitionsExpression.NUMBER_OF_REPLICAS_EXPRESSION);
+        builder.put(InformationTablePartitionsExpression.TABLE_NAME_EXPRESSION.info().ident(),
+                InformationTablePartitionsExpression.TABLE_NAME_EXPRESSION);
+        builder.put(InformationTablePartitionsExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
+                InformationTablePartitionsExpression.SCHEMA_NAME_EXPRESSION);
+        builder.put(InformationTablePartitionsExpression.PARTITION_IDENT_EXPRESSION.info().ident(),
+                InformationTablePartitionsExpression.PARTITION_IDENT_EXPRESSION);
+        builder.put(InformationTablePartitionsExpression.VALUES_EXPRESSION.info().ident(),
+                InformationTablePartitionsExpression.VALUES_EXPRESSION);
+        builder.put(InformationTablePartitionsExpression.NUMBER_OF_SHARDS_EXPRESSION.info().ident(),
+                InformationTablePartitionsExpression.NUMBER_OF_SHARDS_EXPRESSION);
+        builder.put(InformationTablePartitionsExpression.NUMBER_OF_REPLICAS_EXPRESSION.info().ident(),
+                InformationTablePartitionsExpression.NUMBER_OF_REPLICAS_EXPRESSION);
+        builder.put(InformationTablePartitionsExpression.SETTINGS_EXPRESSION.info().ident(),
+                InformationTablePartitionsExpression.SETTINGS_EXPRESSION);
+        addChildImplementationToBuilder(builder, InformationTablePartitionsExpression.SETTINGS_EXPRESSION);
 
         // information_schema.table_constraints
-        add(builder, InformationTableConstraintsExpression.SCHEMA_NAME_EXPRESSION);
-        add(builder, InformationTableConstraintsExpression.TABLE_NAME_EXPRESSION);
-        add(builder, InformationTableConstraintsExpression.CONSTRAINT_NAME_EXPRESSION);
-        add(builder, InformationTableConstraintsExpression.CONSTRAINT_TYPE_EXPRESSION);
+        builder.put(InformationTableConstraintsExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
+                InformationTableConstraintsExpression.SCHEMA_NAME_EXPRESSION);
+        builder.put(InformationTableConstraintsExpression.TABLE_NAME_EXPRESSION.info().ident(),
+                InformationTableConstraintsExpression.TABLE_NAME_EXPRESSION);
+        builder.put(InformationTableConstraintsExpression.CONSTRAINT_NAME_EXPRESSION.info().ident(),
+                InformationTableConstraintsExpression.CONSTRAINT_NAME_EXPRESSION);
+        builder.put(InformationTableConstraintsExpression.CONSTRAINT_TYPE_EXPRESSION.info().ident(),
+                InformationTableConstraintsExpression.CONSTRAINT_TYPE_EXPRESSION);
 
         // information_schema.routines
-        add(builder, InformationRoutinesExpression.ROUTINE_NAME_EXPRESSION);
-        add(builder, InformationRoutinesExpression.ROUTINE_TYPE_EXPRESSION);
+        builder.put(InformationRoutinesExpression.ROUTINE_NAME_EXPRESSION.info().ident(),
+                InformationRoutinesExpression.ROUTINE_NAME_EXPRESSION);
+        builder.put(InformationRoutinesExpression.ROUTINE_TYPE_EXPRESSION.info().ident(),
+                InformationRoutinesExpression.ROUTINE_TYPE_EXPRESSION);
 
         // information_schema.schemata
-        add(builder, InformationSchemataExpression.SCHEMA_NAME_EXPRESSION);
+        builder.put(InformationSchemataExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
+                InformationSchemataExpression.SCHEMA_NAME_EXPRESSION);
 
         implementations = builder.build();
     }
 
-    private static void add(ImmutableMap.Builder<ReferenceIdent, RowCollectExpression<?, ?>> builder,
-                            RowCollectExpression<?, ?> expression) {
-        builder.put(expression.info().ident(), expression);
+
+    private void addChildImplementationToBuilder(ImmutableMap.Builder<ReferenceIdent, RowCollectExpression<?, ?>> builder, RowCollectNestedObjectExpression parent) {
+        for (Map.Entry<String, ReferenceImplementation> e : parent.getChildImplementations().entrySet()) {
+            if (e.getValue() instanceof RowCollectNestedObjectExpression) {
+                addChildImplementationToBuilder(builder, (RowCollectNestedObjectExpression) e.getValue());
+            }
+            if (e.getValue() instanceof RowCollectExpression) {
+                ReferenceIdent ident = ((RowCollectExpression)e.getValue()).info().ident();
+                builder.put(ident, (RowCollectExpression) e.getValue());
+            }
+        }
     }
 
     @Override

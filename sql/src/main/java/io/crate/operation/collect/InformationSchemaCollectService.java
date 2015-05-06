@@ -27,7 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.*;
-import io.crate.metadata.information.RowCollectExpression;
+import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
