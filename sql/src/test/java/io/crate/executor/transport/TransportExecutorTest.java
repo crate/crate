@@ -76,12 +76,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         CrateTestCluster cluster = cluster();
     }
 
-    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey) {
-        return newGetNode(tableName, outputs, Collections.singletonList(singleStringKey));
+    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey, int executionNodeId) {
+        return newGetNode(tableName, outputs, Collections.singletonList(singleStringKey), executionNodeId);
     }
 
-    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys) {
-        return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys);
+    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
+        return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys, executionNodeId);
     }
 
     @Test
@@ -89,7 +89,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode node = newGetNode("characters", outputs, "2");
+        Planner.Context ctx = new Planner.Context(clusterService());
+        ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionNodeId());
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -103,7 +104,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
-        ESGetNode node = newGetNode("characters", outputs, "2");
+        Planner.Context ctx = new Planner.Context(clusterService());
+        ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionNodeId());
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -115,7 +117,8 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testESMultiGet() throws Exception {
         setup.setUpCharacters();
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode node = newGetNode("characters", outputs, asList("1", "2"));
+        Planner.Context ctx = new Planner.Context(clusterService());
+        ESGetNode node = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionNodeId());
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -455,7 +458,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "99");
+        ESGetNode getNode = newGetNode("characters", outputs, "99", ctx.nextExecutionNodeId());
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
@@ -544,7 +547,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode getNode = newGetNode("characters", outputs, Arrays.asList("99", "42"));
+        ESGetNode getNode = newGetNode("characters", outputs, Arrays.asList("99", "42"), ctx.nextExecutionNodeId());
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
@@ -576,7 +579,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "1");
+        ESGetNode getNode = newGetNode("characters", outputs, "1", ctx.nextExecutionNodeId());
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
@@ -610,7 +613,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "5");
+        ESGetNode getNode = newGetNode("characters", outputs, "5", ctx.nextExecutionNodeId());
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
@@ -643,7 +646,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "1");
+        ESGetNode getNode = newGetNode("characters", outputs, "1", ctx.nextExecutionNodeId());
         plan = new IterablePlan(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);

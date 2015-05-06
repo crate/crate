@@ -34,6 +34,9 @@ import io.crate.core.collections.Buckets;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.jobs.ESGetContext;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -69,13 +72,16 @@ public class ESGetTask extends JobTask {
     private final TransportAction transportAction;
     private final ActionRequest request;
     private final ActionListener listener;
+    private final JobContextService jobContextService;
+    private final int executionNodeId;
 
     public ESGetTask(UUID jobId,
                      Functions functions,
                      ProjectionToProjectorVisitor projectionToProjectorVisitor,
                      TransportMultiGetAction multiGetAction,
                      TransportGetAction getAction,
-                     ESGetNode node) {
+                     ESGetNode node,
+                     JobContextService jobContextService) {
         super(jobId);
 
         assert multiGetAction != null;
@@ -84,6 +90,8 @@ public class ESGetTask extends JobTask {
         assert node.docKeys().size() > 0;
         assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
+        this.jobContextService = jobContextService;
+        executionNodeId = node.executionNodeId();
 
         final GetResponseContext ctx = new GetResponseContext(functions, node);
         List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size());
@@ -261,7 +269,10 @@ public class ESGetTask extends JobTask {
     @Override
     @SuppressWarnings("unchecked")
     public void start() {
-        transportAction.execute(request, listener);
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
+        ESGetContext context = new ESGetContext(request, listener, transportAction);
+        contextBuilder.addSubContext(executionNodeId, context);
+        context.start();
     }
 
     @Override

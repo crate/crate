@@ -339,7 +339,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     globalProjectionToProjectionVisitor,
                     transportActionProvider.transportMultiGetAction(),
                     transportActionProvider.transportGetAction(),
-                    node));
+                    node,
+                    jobContextService));
         }
 
         @Override

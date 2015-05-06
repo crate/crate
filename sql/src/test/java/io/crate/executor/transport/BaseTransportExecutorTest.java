@@ -85,11 +85,11 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     Reference partedDateRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(partedTable, "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP));
 
-    protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, String singleStringKey) {
-        return newGetNode(tableInfo, outputs, Arrays.asList(singleStringKey));
+    protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, String singleStringKey, int executionNodeId) {
+        return newGetNode(tableInfo, outputs, Arrays.asList(singleStringKey), executionNodeId);
     }
 
-    protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys) {
+    protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
         QuerySpec querySpec = new QuerySpec();
         querySpec.outputs(outputs);
         List<List<Symbol>> keys = new ArrayList<>(singleStringKeys.size());
@@ -99,7 +99,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         WhereClause whereClause = new WhereClause();
         whereClause.docKeys(new DocKeys(keys, false, -1, null));
         querySpec.where(whereClause);
-        return new ESGetNode(tableInfo, querySpec);
+        return new ESGetNode(executionNodeId, tableInfo, querySpec);
     }
 
     @Before

@@ -42,12 +42,14 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     private final List<Symbol> sortSymbols;
     private final boolean[] reverseFlags;
     private final Boolean[] nullsFirst;
+    private final int executionNodeId;
 
     private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
     private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
     private final DocKeys docKeys;
 
-    public ESGetNode(TableInfo tableInfo,
+    public ESGetNode(int executionNodeId,
+                     TableInfo tableInfo,
                      QuerySpec querySpec) {
 
         assert querySpec.where().docKeys().isPresent();
@@ -55,6 +57,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         this.querySpec = querySpec;
         this.outputs = querySpec.outputs();
         this.docKeys = querySpec.where().docKeys().get();
+        this.executionNodeId = executionNodeId;
 
 
         outputTypes(Symbols.extractTypes(outputs));
@@ -109,6 +112,9 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         return nullsFirst;
     }
 
+    public int executionNodeId() {
+        return executionNodeId;
+    }
 
     @Override
     public String toString() {
