@@ -43,6 +43,138 @@ will overwrite the prior one:
  3. options from config file
  4. command-line properties
 
+Table Settings
+==============
+
+.. _number_of_replicas
+
+**number_of_replicas**
+  | *Default:*    ``1``
+  | *Runtime:*    ``yes``
+
+.. _refresh_interval
+
+**refresh_interval**
+  | *Default:*   ``1000``
+  | *Runtime:*   ``yes``
+
+  Specifies the refresh interval of a shard in milliseconds.
+
+Blocks
+------
+
+.. _read_only
+
+**read_only**
+  | *Runtime:*   ``yes``
+
+  Allows to have a read only table.
+
+.. _read
+
+**read**
+  | *Runtime:*   ``yes``
+
+  Disable/enable all the read operations.
+
+.. _write
+
+**write**
+  | *Runtime:*   ``yes``
+
+  Disable/enable all the write operations
+
+.. _metadata
+
+**metadata**
+  | *Runtime:*   ``yes``
+
+  Disables/enables the table settings modifications.
+
+Translog
+--------
+
+.. _flush_threshold_ops
+
+**flush_threshold_ops**
+  | *Runtime:*   ``yes``
+
+  Sets the number of operations before flushing.
+
+.. _flush_threshold_size
+
+**flush_threshold_size**
+  | *Runtime:*   ``yes``
+
+  Sets size of transaction log prior to flushing.
+
+.. _flush_threshold_period
+
+**flush_threshold_period**
+  | *Runtime:*   ``yes``
+
+  Sets period of no flushing after which force flush occurs.
+
+.. _disable_flush
+
+**disable_flush**
+  | *Default:*    ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable flushing.
+
+Allocation
+----------
+
+.. _enable
+
+**enable**
+  | *Default:*    ``all``
+  | *Runtime:*   ``yes``
+
+  Controls shard allocation for a specific table.
+
+.. _total_shards_per_node
+
+**total_shards_per_node**
+  | *Default:*    ``-1``
+  | *Runtime:*   ``yes``
+
+Controls the total number of shards (replicas and primaries) allowed to be allocated on a single node.
+
+Recovery
+--------
+
+.. _initial_shards
+
+**initial_shards**
+  | *Default:*    ``quorum``
+  | *Runtime:*   ``yes``
+
+When using local gateway a particular shard is recovered only if there can be allocated quorum of it’s copies in the cluster.
+
+Warming
+-------
+
+.. _enable
+
+**enable**
+  | *Default:*    ``true``
+  | *Runtime:*   ``yes``
+
+disable/enable table warming. Table warming allows to run registered queries to warm up the table before it is available.
+
+Column Policy
+-------------
+
+.. _column_policy
+
+**column_policy**
+  | *Default:*    ``dynamic``
+  | *Runtime:*   ``yes``
+
+Specifies the column policy of the table.
+
 Node Specific Settings
 ======================
 
