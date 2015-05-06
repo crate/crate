@@ -193,6 +193,70 @@ to 1000 milliseconds.
 
 For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
 
+blocks
+~~~~~~
+
+:read_only: Allows to have a read only table if set to ``true``. Allows writes and table settings changes if set to ``false``.
+
+:read: Disables all the read operations for a table if set to ``true``
+
+:write: Disables all the write operations for a table if set to ``true``
+
+:metadata: Disables the table settings modifications if set to ``true``
+
+translog
+~~~~~~~~
+
+:flush_threshold_ops: Number of operations prior to flushing.
+
+:flush_threshold_size: Size (bytes) of transaction log prior to flushing.
+
+:flush_threshold_period: Period of no flushing after which force flush occurs.
+
+:disable_flush: Disables flushing.
+
+.. note::
+
+    It is recommended to use ``disable_flush`` only for short periods of time.
+
+:interval: Frequency of flush necessity check.
+
+gateway.local.sync
+~~~~~~~~~~~~~~~~~~
+
+How often the translog is fsynced to disk. Defaults to 5s
+
+allocation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:total_shards_per_node: Controls the total number of shards (replicas and primaries) allowed to be allocated on a single node. Defaults to unbounded (-1).
+
+allocation.enable
+~~~~~~~~~~~~~~~~~
+
+Controls shard allocation for a specific table. Can be set to:
+
+:all: Allows shard allocation for all shards. (Default)
+
+:primaries: Allows shard allocation only for primary shards.
+
+:new_primaries: Allows shard allocation only for primary shards for new tables.
+
+:none: No shard allocation allowed.
+
+recovery.initial_shards
+~~~~~~~~~~~~~~~~~~~~~~~
+
+When using local gateway a particular shard is recovered only if there can be allocated quorum of it's copies in the cluster. It can be set to:
+
+:values: ``quorum`` (default), ``quorum-1``, ``full``, ``full-1`` and number values (e.g. ``1``, ``2`` ...)
+
+warming.enable
+~~~~~~~~~~~~~~
+
+Table warming allows to run registered queries to warm up the table before it is available.
+Enabled by default.
+
 .. _sql_ref_column_policy:
 
 column_policy
