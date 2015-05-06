@@ -172,6 +172,7 @@ public class TestSysNodesExpressions extends CrateUnitTest {
 
             Discovery discovery = mock(Discovery.class);
             bind(Discovery.class).toInstance(discovery);
+            when(clusterService.localNode()).thenReturn(node);
             when(discovery.localNode()).thenReturn(node);
             when(node.getId()).thenReturn("node-id-1");
             when(node.getName()).thenReturn("node 1");
