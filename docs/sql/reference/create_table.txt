@@ -189,7 +189,7 @@ refresh_interval
 Specifies the refresh interval of a shard in milliseconds. The default is set
 to 1000 milliseconds.
 
-:refresh_interval: The refresh interval in milliseconds. A value of smaller or
+:value: The refresh interval in milliseconds. A value of smaller or
     equal than 0 turns off the automatic refresh. A value of greater than 0
     schedules a periodic refresh of the table.
 
@@ -200,6 +200,119 @@ to 1000 milliseconds.
     internal factors that might trigger a refresh.
 
 For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
+
+blocks.read_only
+~~~~~~~~~~~~~~~~
+
+Allows to have a read only table.
+
+:value:  Table is read only if value set to ``true``. Allows writes and table settings changes if set to ``false``.
+
+blocks.read
+~~~~~~~~~~~
+
+``disable``/``enable`` all the read operations
+
+:value: Set to ``true`` to disable all read operations for a table, otherwise set ``false``.
+
+blocks.write
+~~~~~~~~~~~~
+
+``disable``/``enable`` all the write operations
+
+:value: Set to ``true`` to disable all write operations and table settings modifications, otherwise set ``false``.
+
+blocks.metadata
+~~~~~~~~~~~~~~~
+
+``disable``/``enable`` the table settings modifications.
+
+:values: Disables the table settings modifications if set to ``true``, if set to ``false`` — table settings modifications are enabled.
+
+translog.flush_threshold_ops
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sets the number of operations before flushing.
+
+:value: Number of operations prior to flushing.
+
+translog.flush_threshold_size
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sets size of transaction log prior to flushing.
+
+:value: Size (bytes) of translog.
+
+translog.flush_threshold_period
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sets period of no flushing after which force flush occurs.
+
+:value: Period length in milliseconds.
+
+translog.disable_flush
+~~~~~~~~~~~~~~~~~~~~~~
+
+``enable``/``disable`` flushing.
+
+:value: set ``true`` to disable flushing, otherwise set to ``false``.
+
+.. note::
+
+    It is recommended to use ``disable_flush`` only for short periods of time.
+
+translog.interval
+~~~~~~~~~~~~~~~~~
+
+Sets frequency of flush necessity check.
+
+:value: frequency in milliseconds.
+
+
+gateway.local.sync
+~~~~~~~~~~~~~~~~~~
+
+How often the translog is fsynced to disk. Defaults to 5s
+
+:value: interval in milliseconds.
+
+allocation.total_shards_per_node
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Controls the total number of shards (replicas and primaries) allowed to be allocated on a single node. Defaults to unbounded (-1).
+
+:value: number of shards per node.
+
+allocation.enable
+~~~~~~~~~~~~~~~~~
+
+Controls shard allocation for a specific table. Can be set to:
+
+:all: Allows shard allocation for all shards. (Default)
+
+:primaries: Allows shard allocation only for primary shards.
+
+:new_primaries: Allows shard allocation only for primary shards for new tables.
+
+:none: No shard allocation allowed.
+
+.. _initial_shards_ref:
+
+recovery.initial_shards
+~~~~~~~~~~~~~~~~~~~~~~~
+
+When using local gateway a particular shard is recovered only if there can be allocated quorum of its copies in the cluster. It can be set to:
+
+:value: ``quorum`` (default), ``quorum-1``, ``full``, ``full-1`` and number values (e.g. ``1``, ``2`` ...)
+
+warming.enable
+~~~~~~~~~~~~~~
+
+``disable``/``enable`` table warming.
+Table warming allows to run registered queries to warm up the table before it is available.
+Enabled by default.
+
+:value: ``true`` to enable warming up, otherwise ``false``
 
 .. _sql_ref_column_policy:
 
@@ -220,4 +333,4 @@ The column policy is defined like this::
     usable as usual columns. One can retrieve them, sort by them
     and use them in where clauses.
 
-For futher details and examples see :ref:`column_policy`.
+For futher details and examples see :ref:`column_policy` or :ref:`configuration`.
