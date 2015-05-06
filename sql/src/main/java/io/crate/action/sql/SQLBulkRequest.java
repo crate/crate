@@ -21,7 +21,7 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -51,7 +51,7 @@ public class SQLBulkRequest extends SQLBaseRequest {
     }
 
     public void bulkArgs(Object[][] bulkArgs){
-        this.bulkArgs = Objects.firstNonNull(bulkArgs, EMPTY_BULK_ARGS);
+        this.bulkArgs = MoreObjects.firstNonNull(bulkArgs, EMPTY_BULK_ARGS);
     }
 
     @Override
@@ -97,7 +97,7 @@ public class SQLBulkRequest extends SQLBaseRequest {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("stmt", stmt)
                 .add("bulkArgs", Arrays.asList(bulkArgs))
                 .add("creationTime", creationTime).toString();

@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
@@ -71,7 +72,7 @@ public class Reference extends Symbol {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("info", info())
                 .toString();
     }

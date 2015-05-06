@@ -22,7 +22,7 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 
 public class SortItem
         extends Node
@@ -72,7 +72,7 @@ public class SortItem
     @Override
     public String toString()
     {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("sortKey", sortKey)
                 .add("ordering", ordering)
                 .add("nullOrdering", nullOrdering)

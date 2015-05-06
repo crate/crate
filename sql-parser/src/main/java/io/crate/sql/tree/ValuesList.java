@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 
@@ -31,7 +32,7 @@ public class ValuesList extends Node {
     private final List<Expression> values;
 
     public ValuesList(List<Expression> values) {
-        this.values = Objects.firstNonNull(values, ImmutableList.<Expression>of());
+        this.values = MoreObjects.firstNonNull(values, ImmutableList.<Expression>of());
     }
 
     public List<Expression> values() {
@@ -46,7 +47,7 @@ public class ValuesList extends Node {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("values", values)
                 .toString();
     }

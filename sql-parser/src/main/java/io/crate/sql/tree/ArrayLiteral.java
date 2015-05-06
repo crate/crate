@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
@@ -32,7 +32,7 @@ public class ArrayLiteral extends Literal {
     private final List<Expression> values;
 
     public ArrayLiteral(@Nullable List<Expression> values) {
-        this.values = Objects.firstNonNull(values, ImmutableList.<Expression>of());
+        this.values = MoreObjects.firstNonNull(values, ImmutableList.<Expression>of());
     }
 
     public List<Expression> values() {

@@ -21,9 +21,8 @@
 
 package io.crate.core.collections;
 
-import com.google.common.collect.Iterators;
-
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
@@ -141,7 +140,7 @@ public class NoopQueue<E> implements BlockingQueue<E>, Queue<E> {
 
     @Override
     public Iterator<E> iterator() {
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
     }
 
     @Override

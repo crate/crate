@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -88,7 +88,7 @@ public class AnalyzedColumnDefinition {
     }
 
     public String index() {
-        return Objects.firstNonNull(index, "not_analyzed");
+        return MoreObjects.firstNonNull(index, "not_analyzed");
     }
 
     public void dataType(String dataType) {
@@ -184,7 +184,7 @@ public class AnalyzedColumnDefinition {
         }
         if (dataType().equals("string") && analyzer != null) {
             mapping.put("analyzer", analyzer());
-        } else if(collectionType == "array"){
+        } else if ("array".equals(collectionType)) {
             Map<String, Object> outerMapping = new HashMap<String, Object>(){{
                 put("type", "array");
             }};
@@ -243,7 +243,7 @@ public class AnalyzedColumnDefinition {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("ident", ident).toString();
+        return MoreObjects.toStringHelper(this).add("ident", ident).toString();
     }
 
     public List<AnalyzedColumnDefinition> children() {

@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 import java.util.List;
@@ -56,7 +57,7 @@ public class TokenFilters extends AnalyzerElement {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("tokenFilters", tokenFilters).toString();
+        return MoreObjects.toStringHelper(this).add("tokenFilters", tokenFilters).toString();
     }
 
     @Override

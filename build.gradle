@@ -50,6 +50,7 @@ allprojects {
                 options.fork = true
                 options.bootClasspath = "$System.env.JAVA7_HOME/jre/lib/rt.jar"
             }
+            options.compilerArgs << "-Xlint:deprecation"
         }
     }
 }

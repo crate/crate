@@ -23,7 +23,6 @@ package io.crate.planner;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -152,7 +151,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
 
         @Override
         public Void visitAggregation(Aggregation symbol, PrintContext context) {
-            context.print(Objects.toStringHelper(symbol)
+            context.print(MoreObjects.toStringHelper(symbol)
                     .add("functionIdent", symbol.functionIdent())
                     .add("inputs", symbol.inputs())
                     .add("fromStep", symbol.fromStep())

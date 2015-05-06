@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 
 import javax.annotation.Nullable;
@@ -74,7 +74,7 @@ public class CreateBlobTable extends Statement {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("name", name)
                 .add("clusteredBy", clusteredBy)
                 .add("properties", genericProperties).toString();

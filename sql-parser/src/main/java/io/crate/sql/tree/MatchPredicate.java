@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
@@ -43,7 +44,7 @@ public class MatchPredicate extends Expression {
         this.idents = idents;
         this.value = value;
         this.matchType = matchType;
-        this.properties = Objects.firstNonNull(properties, GenericProperties.EMPTY);
+        this.properties = MoreObjects.firstNonNull(properties, GenericProperties.EMPTY);
     }
 
     public List<MatchPredicateColumnIdent> idents() {

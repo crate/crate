@@ -28,7 +28,6 @@ import org.apache.lucene.queries.BlendedTermQuery;
 import org.apache.lucene.queries.ExtendedCommonTermsQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.Version;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.index.cache.IndexCache;
@@ -145,7 +144,7 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
 
     @Test
     public void testCrossFieldMatchType() throws Exception {
-        Analyzer analyzer = new GermanAnalyzer(Version.LUCENE_4_9);
+        Analyzer analyzer = new GermanAnalyzer();
         SearchContext searchContext = mock(SearchContext.class);
         MapperService.SmartNameFieldMappers smartNameFieldMappers = mock(MapperService.SmartNameFieldMappers.class);
         when(searchContext.smartFieldMappers(anyString())).thenReturn(smartNameFieldMappers);
@@ -204,7 +203,7 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     }
 
     private SearchContext mockSearchContext() {
-        Analyzer analyzer = new GermanAnalyzer(Version.LUCENE_4_9);
+        Analyzer analyzer = new GermanAnalyzer();
         SearchContext searchContext = mock(SearchContext.class);
         MapperService mapperService = mock(MapperService.class);
         when(searchContext.mapperService()).thenReturn(mapperService);

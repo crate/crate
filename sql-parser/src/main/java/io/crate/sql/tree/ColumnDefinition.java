@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 
@@ -36,7 +37,7 @@ public class ColumnDefinition extends TableElement {
     public ColumnDefinition(String ident, ColumnType type, @Nullable List<ColumnConstraint> constraints) {
         this.ident = ident;
         this.type = type;
-        this.constraints = Objects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
+        this.constraints = MoreObjects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
     }
 
 
@@ -73,7 +74,7 @@ public class ColumnDefinition extends TableElement {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("ident", ident)
                 .add("type", type)
                 .add("constraints", constraints)

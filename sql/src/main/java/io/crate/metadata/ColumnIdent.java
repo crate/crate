@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
@@ -68,7 +69,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
 
     public ColumnIdent(String name, @Nullable List<String> path) {
         this(name);
-        this.path = Objects.firstNonNull(path, ImmutableList.<String>of());
+        this.path = MoreObjects.firstNonNull(path, ImmutableList.<String>of());
     }
 
     public static ColumnIdent fromPath(@Nullable String path) {

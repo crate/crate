@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import io.crate.types.DataType;
@@ -100,7 +101,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("type", type)
                 .add("ident", ident)
                 .add("returnType", returnType)

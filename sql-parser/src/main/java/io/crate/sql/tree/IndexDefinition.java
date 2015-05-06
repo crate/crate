@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 import javax.annotation.Nullable;
@@ -37,7 +38,7 @@ public class IndexDefinition extends TableElement {
         this.ident = ident;
         this.method = method;
         this.columns = columns;
-        this.properties = Objects.firstNonNull(properties, GenericProperties.EMPTY);
+        this.properties = MoreObjects.firstNonNull(properties, GenericProperties.EMPTY);
     }
 
     public String ident() {
@@ -78,7 +79,7 @@ public class IndexDefinition extends TableElement {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("ident", ident)
                 .add("method", method)
                 .add("columns", columns)

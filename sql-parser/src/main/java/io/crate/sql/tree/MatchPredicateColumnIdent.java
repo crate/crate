@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
@@ -38,7 +39,7 @@ public class MatchPredicateColumnIdent extends Expression {
                     boost instanceof LongLiteral || boost instanceof DoubleLiteral || boost instanceof ParameterExpression,
                     "'boost' value must be a numeric literal or a parameter expression");
         }
-        this.boost = Objects.firstNonNull(boost, new NullLiteral());
+        this.boost = MoreObjects.firstNonNull(boost, new NullLiteral());
     }
 
     public Expression columnIdent() {

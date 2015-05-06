@@ -21,7 +21,7 @@
 
 package io.crate.planner.symbol;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -49,7 +49,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     public InputColumn(int index, @Nullable DataType dataType) {
         assert index >= 0;
         this.index = index;
-        this.dataType = Objects.firstNonNull(dataType, DataTypes.UNDEFINED);
+        this.dataType = MoreObjects.firstNonNull(dataType, DataTypes.UNDEFINED);
     }
 
     public InputColumn(int index) {
@@ -98,7 +98,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("index", index)
                 .add("type", dataType)
                 .toString();

@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.transport.RemoteTransportException;
@@ -60,6 +60,6 @@ public class Exceptions {
         }
         @SuppressWarnings("all") // throwable not thrown
         Throwable unwrappedT = unwrap(t);
-        return Objects.firstNonNull(unwrappedT.getMessage(), unwrappedT.toString());
+        return MoreObjects.firstNonNull(unwrappedT.getMessage(), unwrappedT.toString());
     }
 }

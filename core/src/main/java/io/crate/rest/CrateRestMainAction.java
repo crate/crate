@@ -21,7 +21,6 @@
 
 package io.crate.rest;
 
-import org.apache.lucene.util.Constants;
 import io.crate.Build;
 import io.crate.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -97,7 +96,7 @@ public class CrateRestMainAction extends BaseRestHandler {
                                 // this includes bugfix release version as well and is already in
                                 // the right format. We can also be sure that the format is maitained
                                 // since this is also recorded in lucene segments and has BW compat
-                        .field("lucene_version", Constants.LUCENE_MAIN_VERSION)
+                        .field("lucene_version", org.apache.lucene.util.Version.LATEST.toString())
                         .endObject();
                 //builder.field("tagline", "You Know, for Search");
                 builder.endObject();

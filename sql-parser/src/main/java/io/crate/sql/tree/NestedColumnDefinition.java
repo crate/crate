@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
@@ -38,7 +38,7 @@ public class NestedColumnDefinition extends TableElement {
                                   @Nullable List<ColumnConstraint> constraints) {
         this.name = name;
         this.type = type;
-        this.constraints = Objects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
+        this.constraints = MoreObjects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
     }
 
     public Expression name() {
@@ -55,7 +55,7 @@ public class NestedColumnDefinition extends TableElement {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("name", name)
                 .add("type", type)
                 .add("constraints", constraints)

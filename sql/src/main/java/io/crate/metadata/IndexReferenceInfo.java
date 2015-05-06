@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
@@ -73,7 +73,7 @@ public class IndexReferenceInfo extends ReferenceInfo {
                          List<ReferenceInfo> columns,
                          @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType);
-        this.columns = Objects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
+        this.columns = MoreObjects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
         this.analyzer = analyzer;
     }
 
@@ -117,6 +117,6 @@ public class IndexReferenceInfo extends ReferenceInfo {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("ident", ident()).toString();
+        return MoreObjects.toStringHelper(this).add("ident", ident()).toString();
     }
 }

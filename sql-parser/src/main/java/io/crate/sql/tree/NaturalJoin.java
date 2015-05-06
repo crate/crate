@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 
 public class NaturalJoin
         extends JoinCriteria
@@ -44,6 +44,6 @@ public class NaturalJoin
     @Override
     public String toString()
     {
-        return Objects.toStringHelper(this).toString();
+        return MoreObjects.toStringHelper(this).toString();
     }
 }

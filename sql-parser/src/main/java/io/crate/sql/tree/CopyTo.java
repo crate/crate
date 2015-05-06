@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
@@ -48,7 +48,7 @@ public class CopyTo extends Statement {
         this.directoryUri = directoryUri;
         this.targetUri = targetUri;
         this.genericProperties = Optional.fromNullable(genericProperties);
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<Expression>of());
+        this.columns = MoreObjects.firstNonNull(columns, ImmutableList.<Expression>of());
     }
 
     public Table table() {
@@ -95,7 +95,7 @@ public class CopyTo extends Statement {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("table", table)
                 .add("columns", columns)
                 .add("directoryUri", directoryUri)
