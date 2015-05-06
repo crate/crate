@@ -26,32 +26,37 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 
 public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
 
     // timestamp for Do Feb 25 12:38:01.123 UTC 1999
     private static final Long TIMESTAMP = 919946281123L;
 
-    private final FunctionInfo functionInfo = new FunctionInfo(
+    private static final FunctionInfo functionInfo = new FunctionInfo(
             new FunctionIdent(
                     DateTruncFunction.NAME,
                     ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.TIMESTAMP)),
             DataTypes.TIMESTAMP);
-    private final DateTruncFunction func = new DateTruncFunction(functionInfo);
+    private static final DateTruncFunction func = new DateTruncFunction(functionInfo);
+
+    private static final FunctionInfo functionInfoTZ = new FunctionInfo(
+            new FunctionIdent(
+                    DateTruncFunction.NAME,
+                    ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING, DataTypes.TIMESTAMP)),
+            DataTypes.TIMESTAMP);
+    private static final DateTruncFunction funcTZ = new DateTruncFunction(functionInfoTZ);
 
     protected class DateTruncInput implements Input<Object> {
         private Object o;
@@ -69,17 +74,48 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         return func.normalizeSymbol(function);
     }
 
+    public Symbol normalize(Symbol interval, Symbol tz, Symbol timestamp) {
+        Function function = new Function(funcTZ.info(), Arrays.asList(interval, tz, timestamp));
+        return funcTZ.normalizeSymbol(function);
+    }
+
     private void assertTruncated(String interval, Long timestamp, Long expected) throws Exception {
         BytesRef ival = null;
         if (interval != null) {
             ival = new BytesRef(interval);
         }
+        Scalar<Long, Object> function = func.compile(Arrays.<Symbol>asList(
+                Literal.newLiteral(interval),
+                DateTruncFunction.DEFAULT_TZ_LITERAL,
+                Literal.newLiteral(timestamp)));
         Input[] inputs = new Input[] {
                 new DateTruncInput(ival),
                 new DateTruncInput(timestamp),
         };
-        assertThat(func.evaluate(inputs), is(expected));
+        assertThat(function.evaluate(inputs), is(expected));
     }
+
+    private void assertTruncated(String interval, String timeZone, Long timestamp, Long expected) throws Exception {
+        BytesRef ival = null;
+        if (interval != null) {
+            ival = new BytesRef(interval);
+        }
+        BytesRef tz = null;
+        if (timeZone != null) {
+            tz = new BytesRef(timeZone);
+        }
+        Scalar<Long, Object> function = funcTZ.compile(Arrays.<Symbol>asList(
+                Literal.newLiteral(interval),
+                Literal.newLiteral(tz),
+                Literal.newLiteral(timestamp)));
+        Input[] inputs = new Input[] {
+                new DateTruncInput(ival),
+                new DateTruncInput(tz),
+                new DateTruncInput(timestamp),
+        };
+        assertThat(function.evaluate(inputs), is(expected));
+    }
+
 
     @Test
     @SuppressWarnings("unchecked")
@@ -93,7 +129,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral(1401777485000L)
         ));
         Literal day = (Literal)implementation.normalizeSymbol(function);
-        assertThat((Long)day.value(), is(1401753600000L));
+        assertThat((Long) day.value(), is(1401753600000L));
     }
 
     @Test
@@ -108,31 +144,13 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral("2014-06-03")
         ));
         Literal day = (Literal)implementation.normalizeSymbol(function);
-        assertThat((Long)day.value(), is(1401753600000L));
-    }
-
-    @Test (expected = IllegalArgumentException.class)
-    @SuppressWarnings("unchecked")
-    public void testDateTruncWithStringReference() {
-        Scalar implementation = (Scalar)functions.get(new FunctionIdent(DateTruncFunction.NAME,
-                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)));
-        assertNotNull(implementation);
-        Function function = new Function(implementation.info(), Arrays.<Symbol>asList(
-                Literal.newLiteral("day"),
-                createReference("dummy", DataTypes.STRING)
-        ));
-        implementation.normalizeSymbol(function);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testNormalizeSymbolUnknownInterval() throws Exception {
-        normalize(Literal.newLiteral("unknown interval"), Literal.newLiteral(""));
+        assertThat((Long) day.value(), is(1401753600000L));
     }
 
     @Test
     public void testNormalizeSymbolReferenceTimestamp() throws Exception {
         Function function = new Function(func.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral("day"), new Reference(new ReferenceInfo(null,null, DataTypes.TIMESTAMP))));
+                Arrays.<Symbol>asList(new Reference(new ReferenceInfo(null,null, DataTypes.STRING)), new Reference(new ReferenceInfo(null,null, DataTypes.TIMESTAMP))));
         Symbol result = func.normalizeSymbol(function);
         assertSame(function, result);
     }
@@ -145,14 +163,19 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         assertLiteralSymbol(result, 1393286400000L, DataTypes.TIMESTAMP);
     }
 
-    @Test(expected = AssertionError.class)
-    public void testEvaluatePreconditionNullInterval() throws Exception {
-        assertTruncated(null, TIMESTAMP, null);
+    @Test
+    public void testNullInterval() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid interval NULL for scalar 'date_trunc'");
+        String val = null;
+        normalize(Literal.newLiteral(val), Literal.newLiteral(TIMESTAMP));
     }
 
-    @Test(expected = AssertionError.class)
-    public void testEvaluatePreconditionUnknownInterval() throws Exception {
-        assertTruncated("unknown interval", TIMESTAMP, null);
+    @Test
+    public void testInvalidInterval() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid interval 'invalid interval' for scalar 'date_trunc'");
+        normalize(Literal.newLiteral("invalid interval"), Literal.newLiteral(TIMESTAMP));
     }
 
     @Test
@@ -174,4 +197,116 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         assertTruncated("quarter", TIMESTAMP, 915148800000L);    // Fri Jan  1 00:00:00.000 UTC 1999
     }
 
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDateTruncWithLongDataType() {
+        Scalar implementation = (Scalar)functions.get(new FunctionIdent(DateTruncFunction.NAME,
+                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING, DataTypes.LONG)));
+        assertNotNull(implementation);
+
+        Object day = implementation.evaluate(
+                new Input() {
+                    @Override
+                    public BytesRef value() {
+                        return new BytesRef("day");
+                    }
+                },
+                new Input() {
+                    @Override
+                    public BytesRef value() {
+                        return new BytesRef("Europe/Vienna");
+                    }
+                },
+                new Input() {
+                    @Override
+                    public Long value() {
+                        return 1401777485000L;
+                    }
+                }
+        );
+        assertThat((Long)day, is(1401746400000L));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDateTruncWithStringLiteralTzAware() {
+        Scalar implementation = (Scalar)functions.get(new FunctionIdent(DateTruncFunction.NAME,
+                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING)));
+        assertNotNull(implementation);
+
+        Function function = new Function(implementation.info(), Arrays.<Symbol>asList(
+                Literal.newLiteral("day"),
+                Literal.newLiteral("Europe/Vienna"),
+                Literal.newLiteral("2014-06-03")
+        ));
+        Literal day = (Literal)implementation.normalizeSymbol(function);
+        assertThat((Long) day.value(), is(1401746400000L));
+    }
+
+    @Test
+    public void testNormalizeSymbolTzAwareReferenceTimestamp() throws Exception {
+        Function function = new Function(funcTZ.info(),
+                Arrays.<Symbol>asList(Literal.newLiteral("day"), Literal.newLiteral("+01:00"),
+                        new Reference(new ReferenceInfo(null,null,DataTypes.TIMESTAMP))));
+        Symbol result = funcTZ.normalizeSymbol(function);
+        assertSame(function, result);
+    }
+
+    @Test
+    public void testNormalizeSymbolTzAwareTimestampLiteral() throws Exception {
+        Symbol result = normalize(
+                Literal.newLiteral("day"),
+                Literal.newLiteral("UTC"),
+                Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
+        assertLiteralSymbol(result, 1393286400000L, DataTypes.TIMESTAMP);
+    }
+
+    @Test
+    public void testNullTimezone() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid time zone value NULL for scalar 'date_trunc'");
+        String tz = null;
+        normalize(Literal.newLiteral("day"), Literal.newLiteral(tz), Literal.newLiteral(TIMESTAMP));
+    }
+
+    @Test
+    public void testInvalidTimeZone() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid time zone value 'no time zone' for scalar 'date_trunc'");
+        normalize(Literal.newLiteral("day"), Literal.newLiteral("no time zone"), Literal.newLiteral(TIMESTAMP));
+    }
+
+    @Test
+    public void testEvaluatePreconditionsTzAware() throws Exception {
+        Long expected = 919946281000L;  // Thu Feb 25 12:38:01 UTC 1999
+        assertTruncated("second", "UTC", null, null);
+        assertTruncated("second", "UTC", TIMESTAMP, expected);
+    }
+
+    @Test
+    public void testEvaluateTimeZoneAware() throws Exception {
+        assertTruncated("hour", "Europe/Vienna", TIMESTAMP, 919944000000L); // Thu Feb 25 12:00:00.000 UTC 1999
+        assertTruncated("hour", "CET", TIMESTAMP, 919944000000L);           // Thu Feb 25 12:00:00.000 UTC 1999
+        assertTruncated("day", "UTC", TIMESTAMP, 919900800000L);            // Thu Feb 25 12:00:00.000 UTC 1999
+        assertTruncated("day", "Europe/Moscow", TIMESTAMP, 919890000000L);  // Wed Feb 24 21:00:00.000 UTC 1999
+        assertTruncated("day", "+01:00", TIMESTAMP, 919897200000L);         // Wed Feb 24 23:00:00.000 UTC 1999
+        assertTruncated("day", "+03:00", TIMESTAMP, 919890000000L);         // Wed Feb 24 21:00:00.000 UTC 1999
+        assertTruncated("day", "-08:00", TIMESTAMP, 919929600000L);         // Thu Feb 25 08:00:00.000 UTC 1999
+    }
+
+    @Test
+    public void testCompileInputColumns() throws Exception {
+        Scalar implementation = (Scalar)functions.get(new FunctionIdent(DateTruncFunction.NAME,
+                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING, DataTypes.LONG)));
+        assertNotNull(implementation);
+
+        List<Symbol> arguments = ImmutableList.<Symbol>of(
+                new InputColumn(0, DataTypes.STRING),
+                new InputColumn(1, DataTypes.STRING),
+                new InputColumn(2, DataTypes.TIMESTAMP)
+        );
+        Scalar compiledImplementation = implementation.compile(arguments);
+        assertThat(compiledImplementation, sameInstance(implementation));
+    }
 }
