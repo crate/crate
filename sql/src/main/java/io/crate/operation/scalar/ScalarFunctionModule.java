@@ -55,7 +55,6 @@ public class ScalarFunctionModule extends AbstractModule {
         CollectionCountFunction.register(this);
         CollectionAverageFunction.register(this);
         DateTruncFunction.register(this);
-        DateTruncTimeZoneAwareFunction.register(this);
         FormatFunction.register(this);
         SubstrFunction.register(this);
         MatchesFunction.register(this);

@@ -53,6 +53,8 @@ public class TimestampType extends LongType implements Streamer<Long>, DataTypeF
         if (value instanceof String) {
             return valueFromString((String) value);
         }
+        // we treat float and double values as seconds with milliseconds as fractions
+        // see timestamp documentation
         if (value instanceof Double) {
             return ((Number)(((Double)value) * 1000)).longValue();
         }

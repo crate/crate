@@ -44,21 +44,24 @@ class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<
 
         final HashMap<Symbol, InputColumn> inputs;
 
-
-
         Context(Collection<? extends Symbol> inputs, @Nullable Aggregation.Step fromStep) {
             this.inputs = new HashMap(inputs.size());
             int i = 0;
             for (Symbol input : inputs) {
-                DataType valueType = input.valueType();
-                if (fromStep != null && fromStep == Aggregation.Step.PARTIAL){
-                    // TODO: once we have the datatype of partial aggs, we need to add it here
-                    Function function = (Function) input;
-                    if (function.info().type() == FunctionInfo.Type.AGGREGATE){
-                        valueType = DataTypes.UNDEFINED;
+                // only non-literals should be replaced with input columns.
+                // otherwise {@link io.crate.metadata.Scalar#compile} won't do anything which
+                // results in poor performance of some scalar implementations
+                if (!input.symbolType().isValueSymbol()) {
+                    DataType valueType = input.valueType();
+                    if (fromStep != null && fromStep == Aggregation.Step.PARTIAL) {
+                        // TODO: once we have the datatype of partial aggs, we need to add it here
+                        Function function = (Function) input;
+                        if (function.info().type() == FunctionInfo.Type.AGGREGATE) {
+                            valueType = DataTypes.UNDEFINED;
+                        }
                     }
+                    this.inputs.put(input, new InputColumn(i, valueType));
                 }
-                this.inputs.put(input, new InputColumn(i, valueType));
                 i++;
             }
         }
