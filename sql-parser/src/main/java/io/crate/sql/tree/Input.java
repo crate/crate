@@ -26,8 +26,6 @@ import com.google.common.base.Objects;
 
 /**
  * Represents a reference to a field in a physical execution plan
- * <p/>
- * TODO: This class belongs to the execution engine and should not be in this package.
  */
 public class Input
 {

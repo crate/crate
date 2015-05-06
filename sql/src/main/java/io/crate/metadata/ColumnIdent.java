@@ -107,9 +107,9 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     }
 
     /**
-     * person['addresses']['street'] --> person['addresses']
+     * person['addresses']['street'] --&gt; person['addresses']
      * <p>
-     * person --> null
+     * person --&gt; null
      */
     public ColumnIdent getParent() {
         if (isColumn()) {
@@ -130,9 +130,9 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     }
 
     /**
-     * person['addresses']['street'] --> person
+     * person['addresses']['street'] --&gt; person
      * <p>
-     * person --> person
+     * person --&gt; person
      */
     public ColumnIdent getRoot() {
         if (isColumn()) {

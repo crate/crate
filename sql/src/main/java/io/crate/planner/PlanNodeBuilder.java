@@ -93,8 +93,9 @@ public class PlanNodeBuilder {
     /**
      * sets the inputTypes from the previousNode's outputTypes
      * and calculates the outputTypes using the projections and input types.
-     * <p/>
+     * <p>
      * must be called after projections have been set
+     * </p>
      */
     public static void connectTypes(DQLPlanNode previousNode, DQLPlanNode nextNode) {
         nextNode.inputTypes(previousNode.outputTypes());

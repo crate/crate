@@ -36,6 +36,7 @@ public interface RowDownstreamHandle {
      *
      * This method must be thread safe.
      *
+     * @param row the next row - must be materialized if you want to keep its contents
      * @return false if the downstream does not need any more rows, true otherwise.
      */
     public boolean setNextRow(Row row);
@@ -47,6 +48,7 @@ public interface RowDownstreamHandle {
 
     /**
      * Is called from the upstream in case of a failure.
+     * @param throwable the cause of the fail
      */
     public void fail(Throwable throwable);
 

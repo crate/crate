@@ -43,12 +43,13 @@ import java.util.List;
  *
  * Currently only one projector can be executed on a shard
  *
+ *
  * <pre>
- * Data -> Shard chain 0 \
+ * Data -&gt; Shard chain 0 \
  *                        \
- * Data -> Shard chain 1 ----> Node chain --> Result
+ * Data -&gt; Shard chain 1 ----&gt; Node chain --&gt; Result
  *                        /
- * Data -> Shard chain 2 /
+ * Data -&gt; Shard chain 2 /
  * </pre>
  *
  * If there is no projector to be executed on a shard,
@@ -57,11 +58,13 @@ import java.util.List;
  * Usage:
  *
  * <ul>
- * <li> construct one from a list of projections
- * <li> get a shard projector by calling {@linkplain #newShardDownstreamProjector(io.crate.operation.projectors.ProjectionToProjectorVisitor)}
- * from a shard context. do this for every shard you have
- * <li> call {@linkplain #startProjections()}
- * <li> feed data to the shard projectors
+ *  <li> construct one from a list of projections</li>
+ *  <li> get a shard projector by calling {@linkplain #newShardDownstreamProjector(io.crate.operation.projectors.ProjectionToProjectorVisitor)}
+ *       from a shard context. do this for every shard you have
+ *  </li>
+ *  <li> call {@linkplain #startProjections()}</li>
+ *  <li> feed data to the shard projectors</li>
+ * </ul>
  */
 public class ShardProjectorChain {
 

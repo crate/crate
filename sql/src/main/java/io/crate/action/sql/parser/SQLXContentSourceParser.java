@@ -30,10 +30,12 @@ import org.elasticsearch.common.xcontent.XContentParser;
 
 /**
  * Parser for SQL statements in JSON and other XContent formats
- * <p/>
+ * <p>
+ *     <pre>
  * {
- * "stmt": "select * from...."
+ *  "stmt": "select * from...."
  * }
+ *     </pre>
  */
 public class SQLXContentSourceParser {
 

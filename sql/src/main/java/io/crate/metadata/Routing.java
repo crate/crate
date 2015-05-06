@@ -28,8 +28,8 @@ public class Routing implements Streamable {
 
     /**
      * @return a map with the locations in the following format: <p>
-     *  Map< nodeName (string), <br />
-     *  &nbsp;&nbsp;&nbsp;&nbsp;Map< indexName (string), Set<ShardId (int) > <br />
+     *  Map&lt;nodeName (string), <br>
+     *  &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;indexName (string), List&lt;ShardId (int)&gt;&gt;&gt; <br>
      *  </p>
      */
     @Nullable
@@ -50,7 +50,7 @@ public class Routing implements Streamable {
 
     /**
      * get the number of shards in this routing for a node with given nodeId
-     * @return int >= 0
+     * @return int &gt;= 0
      */
     public int numShards(String nodeId) {
         int count = 0;
@@ -67,7 +67,7 @@ public class Routing implements Streamable {
 
     /**
      * get the number of shards in this routing
-     * @return int >= 0
+     * @return int &gt;= 0
      */
     public int numShards() {
         if (numShards == -1) {

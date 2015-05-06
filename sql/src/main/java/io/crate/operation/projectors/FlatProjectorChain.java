@@ -39,11 +39,12 @@ import java.util.List;
  *
  * Usage:
  * <ul>
- * <li> construct it,
- * <li> call {@linkplain #startProjections()},
- * <li> get the first projector using {@linkplain #firstProjector()}
- * <li> feed data to it,
- * <li> and get the result of the {@linkplain #resultProvider()} with {@linkplain ResultProvider#result()}.
+ * <li> construct it, </li>
+ * <li> call {@linkplain #startProjections()}, </li>
+ * <li> get the first projector using {@linkplain #firstProjector()} </li>
+ * <li> feed data to it, </li>
+ * <li> and get the result of the {@linkplain #resultProvider()} with {@linkplain ResultProvider#result()}. </li>
+ * </ul>
  */
 public class FlatProjectorChain {
 

@@ -39,15 +39,19 @@ import java.util.Map;
 
 /**
  * the normalizer does symbol normalization and reference resolving if possible
- * <p/>
+ * <p>
  * E.g.:
  * The query
- * <p/>
+ * </p>
+ * <p>
  * and(true, eq(column_ref, 'someliteral'))
- * <p/>
+ * </p>
+ * <p>
  * will be changed to
- * <p/>
+ * </p>
+ * <p>
  * eq(column_ref, 'someliteral')
+ * </p>
  */
 public class EvaluatingNormalizer {
 

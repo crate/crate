@@ -35,7 +35,7 @@ import java.util.List;
 /**
  * Visitor to change regular column references into references using the DOC sys column.
  *
- * e.g.   s.t.colname -> s.t._DOC['colname']
+ * e.g.   s.t.colname -&gt; s.t._DOC['colname']
  */
 public class DocReferenceConverter {
 
@@ -60,7 +60,7 @@ public class DocReferenceConverter {
     };
 
     /**
-     * re-writes any references to source lookup ( n -> _doc['n'] )
+     * re-writes any references to source lookup ( n -&gt; _doc['n'] )
      *
      * won't be converted: partition columns or non-doc-schema columns
      */

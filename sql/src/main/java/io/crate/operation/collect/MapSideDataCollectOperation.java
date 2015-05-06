@@ -147,14 +147,15 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
 
     /**
      * dispatch by the following criteria:
-     * <p/>
-     * * if local node id is contained in routing:
-     * * if no shards are given:
-     * -> run node level collect
-     * * if shards are given:
-     * -> run shard or doc level collect
-     * * else if we got cluster RowGranularity:
-     * -> run node level collect (cluster level)
+     * <p>
+     * * if local node id is contained in routing:<br>
+     * * if no shards are given:<br>
+     * &nbsp; -&gt; run node level collect<br>
+     * * if shards are given:<br>
+     * &nbsp; -&gt; run shard or doc level collect<br>
+     * * else if we got cluster RowGranularity:<br>
+     * &nbsp; -&gt; run node level collect (cluster level)<br>
+     * </p>
      */
     @Override
     public ListenableFuture<Bucket> collect(CollectNode collectNode,
@@ -253,9 +254,10 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
 
     /**
      * collect data on shard or doc level
-     * <p/>
+     * <p>
      * collects data from each shard in a separate thread,
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
+     * </p>
      *
      * @param collectNode {@link io.crate.planner.node.dql.CollectNode} containing routing information and symbols to collect
      * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.dql.CollectNode#routing}

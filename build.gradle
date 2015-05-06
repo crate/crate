@@ -29,6 +29,10 @@ allprojects {
     findbugs {
         ignoreFailures = true
     }
+
+    tasks.withType(Javadoc) {
+        failOnError = false
+    }
 }
 
 final testOutputs = [:].withDefault {[]}

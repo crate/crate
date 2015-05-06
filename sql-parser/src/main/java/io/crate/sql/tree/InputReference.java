@@ -25,9 +25,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A reference to an execution engine {@link Input}.
- * <p/>
+ * <p>
  * This is used to replace a {@link QualifiedNameReference} with a direct reference to the physical
- * channel and field to avoid unnecessary lookups in a symbol->input map during evaluation
+ * channel and field to avoid unnecessary lookups in a symbol -&gt; input map during evaluation
+ * </p>
  */
 public class InputReference
         extends Expression
