@@ -24,11 +24,11 @@ package io.crate.sql.tree;
 /**
  * ATTENTION! pattern and value swapped. use left and right
  * because they appear on wrong order in ANY LIKE predicate.
+ * <p>
+ * <code>&lt;PATTERN&gt; LIKE (&lt;COLUMN&gt;) [ ESCAPE &lt;ESCAPE_VALUE&gt; ]</code>
+ * </p>
  *
- * <code><PATTERN> LIKE (<COLUMN>) [ ESCAPE <ESCAPE_VALUE> ]</code>
- *
- *
- * left is pattern
+ * left is pattern <br>
  * right is the array expression
  */
 public class ArrayLikePredicate extends LikePredicate implements ArrayComparison {

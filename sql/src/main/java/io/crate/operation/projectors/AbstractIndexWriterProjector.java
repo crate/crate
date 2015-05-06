@@ -93,9 +93,10 @@ public abstract class AbstractIndexWriterProjector implements
      * 3 states:
      *
      * <ul>
-     * <li> writing into a normal table - <code>partitionIdent = null, partitionedByInputs = []</code>
-     * <li> writing into a partitioned table - <code>partitionIdent = null, partitionedByInputs = [...]</code>
-     * <li> writing into a single partition - <code>partitionIdent = "...", partitionedByInputs = []</code>
+     * <li> writing into a normal table - <code>partitionIdent = null, partitionedByInputs = []</code></li>
+     * <li> writing into a partitioned table - <code>partitionIdent = null, partitionedByInputs = [...]</code></li>
+     * <li> writing into a single partition - <code>partitionIdent = "...", partitionedByInputs = []</code></li>
+     * </ul>
      */
     protected AbstractIndexWriterProjector(BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                            TransportActionProvider transportActionProvider,

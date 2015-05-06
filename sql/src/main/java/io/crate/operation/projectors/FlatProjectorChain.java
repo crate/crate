@@ -49,6 +49,7 @@ import java.util.UUID;
  * <li> get the first projector using {@linkplain #firstProjector()}
  * <li> feed data to it,
  * <li> wait for the result of {@linkplain #resultProvider()} or your custom downstream
+ * </ul>
  */
 public class FlatProjectorChain {
 

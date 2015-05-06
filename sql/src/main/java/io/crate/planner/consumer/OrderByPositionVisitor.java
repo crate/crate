@@ -34,6 +34,8 @@ import java.util.List;
  * <ul>
  *   <li>if an <code>orderBySymbol</code> is no input column with explicit index,
  *    it must be part of <code>sourceSymbols</code>.
+ *   </li>
+ * </ul>
  */
 @Singleton
 public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor.Context, Void> {

@@ -30,9 +30,10 @@ import java.util.Collection;
 
 /**
  * An extension point allowing to plug in custom functionality.
- * <p/>
+ * <p>
  * A plugin may implement a constructor with a {@link Settings} argument, which will be called
  * preferred to an empty one.
+ * </p>
  */
 public interface Plugin {
 

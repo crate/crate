@@ -31,7 +31,7 @@ import java.io.IOException;
  *
  * order from large-grained to fine-grained:
  *
- * CLUSTER > PARTITION > NODE > SHARD > DOC
+ * CLUSTER &gt; PARTITION &gt; NODE &gt; SHARD &gt; DOC
  */
 public enum RowGranularity {
 

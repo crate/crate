@@ -32,7 +32,7 @@ import java.util.List;
  * <p>
  *     Visitor to replace function symbols containing references with true literals.
  *
- * <br /><br />
+ * <br><br>
  *     <b>WARNING</b>: The function tree that is processed by this visitor should already
  *     have been normalized. If there are any literals still unresolved this won't work correctly!
  * </p>
@@ -40,11 +40,11 @@ import java.util.List;
  * <h3>Example</h3>
  *
  * <pre>
- *     true and x = 1       -> true and true
+ *     true and x = 1       -&gt; true and true
  * </pre>
  *
  * <pre>
- *     true and id is null  -> true and true
+ *     true and id is null  -&gt; true and true
  * </pre>
  */
 public class ReferenceToTrueVisitor extends SymbolVisitor<Void, Symbol> {

@@ -53,6 +53,10 @@ allprojects {
             options.compilerArgs << "-Xlint:deprecation"
         }
     }
+
+    tasks.withType(Javadoc) {
+        failOnError = false
+    }
 }
 
 
