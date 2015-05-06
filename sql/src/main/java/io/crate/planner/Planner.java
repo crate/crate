@@ -183,7 +183,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement statement, Context context) {
         Preconditions.checkState(!statement.sourceMaps().isEmpty(), "no values given");
-        return processInsertStatement(statement);
+        return processInsertStatement(statement, context);
     }
 
     @Override
@@ -486,12 +486,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
     }
 
-    private Upsert processInsertStatement(InsertFromValuesAnalyzedStatement analysis) {
+    private Upsert processInsertStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
         String[] onDuplicateKeyAssignmentsColumns = null;
         if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
         }
         SymbolBasedUpsertByIdNode upsertByIdNode = new SymbolBasedUpsertByIdNode(
+                context.nextExecutionNodeId(),
                 analysis.tableInfo().isPartitioned(),
                 analysis.isBulkRequest(),
                 onDuplicateKeyAssignmentsColumns,

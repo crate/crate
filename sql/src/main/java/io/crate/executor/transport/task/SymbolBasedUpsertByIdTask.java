@@ -32,6 +32,9 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.UpsertByIdContext;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -47,8 +50,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 
@@ -69,6 +70,8 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     private final List<ListenableFuture<TaskResult>> resultList;
     private final AutoCreateIndex autoCreateIndex;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
+    private final JobContextService jobContextService;
+
     @Nullable
     private SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
 
@@ -81,7 +84,8 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                                      TransportCreateIndexAction transportCreateIndexAction,
                                      TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                                      BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                     SymbolBasedUpsertByIdNode node) {
+                                     SymbolBasedUpsertByIdNode node,
+                                     JobContextService jobContextService) {
         super(jobId);
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
@@ -89,6 +93,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
         this.clusterService = clusterService;
         this.node = node;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
+        this.jobContextService = jobContextService;
         autoCreateIndex = new AutoCreateIndex(settings);
 
         if (node.items().size() == 1) {
@@ -143,38 +148,11 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
         upsertRequest.continueOnError(false);
         upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version(), item.routing());
 
-        transportShardUpsertActionDelegate.execute(upsertRequest, new ActionListener<ShardUpsertResponse>() {
-            @Override
-            public void onResponse(ShardUpsertResponse updateResponse) {
-                int location = updateResponse.itemIndices().get(0);
-                if (updateResponse.responses().get(location) != null) {
-                    futureResult.set(TaskResult.ONE_ROW);
-                } else {
-                    ShardUpsertResponse.Failure failure = updateResponse.failures().get(location);
-                    if (logger.isDebugEnabled()) {
-                        if (failure.versionConflict()) {
-                            logger.debug("Upsert of document with id {} failed because of a version conflict", failure.id());
-                        } else {
-                            logger.debug("Upsert of document with id {} failed {}", failure.id(), failure.message());
-                        }
-                    }
-                    futureResult.set(TaskResult.ZERO);
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                e = ExceptionsHelper.unwrapCause(e);
-                if (item.insertValues() == null
-                        && (e instanceof DocumentMissingException
-                        || e instanceof VersionConflictEngineException)) {
-                    // on updates, set affected row to 0 if document is not found or version conflicted
-                    futureResult.set(TaskResult.ZERO);
-                } else {
-                    futureResult.setException(e);
-                }
-            }
-        });
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
+        UpsertByIdContext upsertByIdContext = new UpsertByIdContext(upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
+        contextBuilder.addSubContext(node.executionNodeId(), upsertByIdContext);
+        jobContextService.createOrMergeContext(contextBuilder);
+        upsertByIdContext.start();
     }
 
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {

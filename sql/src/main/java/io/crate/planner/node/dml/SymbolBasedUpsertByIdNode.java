@@ -93,12 +93,15 @@ public class SymbolBasedUpsertByIdNode extends DMLPlanNode {
     private final boolean partitionedTable;
     private final boolean bulkRequest;
     private final List<Item> items;
+    private final int executionNodeId;
+
     @Nullable
     private final String[] updateColumns;
     @Nullable
     private final Reference[] insertColumns;
 
-    public SymbolBasedUpsertByIdNode(boolean partitionedTable,
+    public SymbolBasedUpsertByIdNode(int executionNodeId,
+                                     boolean partitionedTable,
                                      boolean bulkRequest,
                                      String[] updateColumns,
                                      @Nullable Reference[] insertColumns) {
@@ -107,6 +110,7 @@ public class SymbolBasedUpsertByIdNode extends DMLPlanNode {
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
+        this.executionNodeId = executionNodeId;
     }
 
     public String[] updateColumns() {
@@ -145,6 +149,10 @@ public class SymbolBasedUpsertByIdNode extends DMLPlanNode {
 
     public List<Item> items() {
         return items;
+    }
+
+    public int executionNodeId() {
+        return executionNodeId;
     }
 
     @Override

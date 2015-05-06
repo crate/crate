@@ -386,7 +386,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     transportActionProvider.transportCreateIndexAction(),
                     transportActionProvider.transportBulkCreateIndicesAction(),
                     bulkRetryCoordinatorPool,
-                    node));
+                    node,
+                    jobContextService));
         }
 
         @Override

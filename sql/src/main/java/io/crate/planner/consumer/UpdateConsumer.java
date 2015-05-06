@@ -95,7 +95,7 @@ public class UpdateConsumer implements Consumer {
                 if (whereClause.docKeys().isPresent()) {
                     if (upsertByIdNode == null) {
                         Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
-                        upsertByIdNode = new SymbolBasedUpsertByIdNode(false, statement.nestedStatements().size() > 1, assignments.v1(), null);
+                        upsertByIdNode = new SymbolBasedUpsertByIdNode(context.plannerContext().nextExecutionNodeId(), false, statement.nestedStatements().size() > 1, assignments.v1(), null);
                         childNodes.add(new IterablePlan(upsertByIdNode));
                     }
                     upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);

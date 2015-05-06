@@ -435,8 +435,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ensureGreen();
 
         /* insert into characters (id, name) values (99, 'Marvin'); */
-
+        Planner.Context ctx = new Planner.Context(clusterService());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                ctx.nextExecutionNodeId(),
                 false,
                 false,
                 null,
@@ -473,8 +474,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ensureGreen();
 
         /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
-
+        Planner.Context ctx = new Planner.Context(clusterService());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                ctx.nextExecutionNodeId(),
                 true,
                 false,
                 null,
@@ -520,8 +522,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ensureGreen();
 
         /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
-
+        Planner.Context ctx = new Planner.Context(clusterService());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                ctx.nextExecutionNodeId(),
                 false,
                 false,
                 null,
@@ -558,8 +561,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
+        Planner.Context ctx = new Planner.Context(clusterService());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
-                false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
+                ctx.nextExecutionNodeId(), false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
         updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
         Plan plan = new IterablePlan(updateNode);
 
@@ -587,7 +591,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name, female) values (5, 'Zaphod Beeblebrox', false)
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
+        Planner.Context ctx = new Planner.Context(clusterService());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                ctx.nextExecutionNodeId(),
                 false,
                 false,
                 new String[]{nameRef.ident().columnIdent().fqn()},
@@ -619,7 +625,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name, female) values (1, 'Zaphod Beeblebrox', false)
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
+        Planner.Context ctx = new Planner.Context(clusterService());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+                ctx.nextExecutionNodeId(),
                 false,
                 false,
                 new String[]{femaleRef.ident().columnIdent().fqn()},
