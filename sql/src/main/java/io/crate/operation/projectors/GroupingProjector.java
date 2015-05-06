@@ -231,6 +231,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
             // HashMap.get requires some objects (iterators) and at least 2 integers
             ramAccountingContext.addBytes(32);
             Object[] states = result.get(key);
+            ramAccountingContext.addBytes(-32);
             if (states == null) {
                 states = new Object[aggregators.length];
                 for (int i = 0; i < aggregators.length; i++) {
@@ -324,6 +325,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
             // HashMap.get requires some objects (iterators) and at least 2 integers
             ramAccountingContext.addBytes(32);
             Object[] states = result.get(key);
+            ramAccountingContext.addBytes(-32);
             if (states == null) {
                 states = new Object[aggregators.length];
                 for (int i = 0; i < aggregators.length; i++) {
