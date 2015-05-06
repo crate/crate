@@ -35,25 +35,19 @@ import io.crate.planner.node.dql.CountNode;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collection;
 
 @Singleton
 public class ExecutionNodeOperationStarter implements RowUpstream {
 
-    private static final String COLLECT_EXECUTOR = ThreadPool.Names.SEARCH;
-
-    private final ThreadPool threadPool;
     private final StatsTables statsTables;
     private final MapSideDataCollectOperation mapSideDataCollectOperation;
     private final InnerStarter innerStarter;
 
     @Inject
-    public ExecutionNodeOperationStarter(ThreadPool threadPool,
-                                         StatsTables statsTables,
+    public ExecutionNodeOperationStarter(StatsTables statsTables,
                                          MapSideDataCollectOperation mapSideDataCollectOperation) {
-        this.threadPool = threadPool;
         this.statsTables = statsTables;
         this.mapSideDataCollectOperation = mapSideDataCollectOperation;
         this.innerStarter = new InnerStarter();
@@ -90,24 +84,19 @@ public class ExecutionNodeOperationStarter implements RowUpstream {
         }
 
         @Override
-        public Void visitCollectNode(final CollectNode collectNode, final JobExecutionContext context) {
-            final JobCollectContext collectContext = context.getSubContext(collectNode.executionNodeId());
-            threadPool.executor(COLLECT_EXECUTOR).execute(new Runnable() {
-                @Override
-                public void run() {
-                    statsTables.operationStarted(collectNode.executionNodeId(), context.jobId(), collectNode.name());
+        public Void visitCollectNode(CollectNode collectNode, JobExecutionContext context) {
+            JobCollectContext collectContext = context.getSubContext(collectNode.executionNodeId());
+            statsTables.operationStarted(collectNode.executionNodeId(), context.jobId(), collectNode.name());
 
-                    try {
-                        mapSideDataCollectOperation.collect(
-                                collectNode,
-                                collectContext.rowDownstream(), collectContext.ramAccountingContext());
-                    } catch (Throwable t) {
-                        RowDownstreamHandle rowDownstreamHandle =
-                                collectContext.rowDownstream().registerUpstream(ExecutionNodeOperationStarter.this);
-                        rowDownstreamHandle.fail(t);
-                    }
-                }
-            });
+            try {
+                mapSideDataCollectOperation.collect(
+                        collectNode,
+                        collectContext.rowDownstream(), collectContext.ramAccountingContext());
+            } catch (Throwable t) {
+                RowDownstreamHandle rowDownstreamHandle =
+                        collectContext.rowDownstream().registerUpstream(ExecutionNodeOperationStarter.this);
+                rowDownstreamHandle.fail(t);
+            }
             return null;
         }
     }
