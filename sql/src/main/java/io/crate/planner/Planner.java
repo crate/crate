@@ -410,12 +410,16 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Context context) {
+        if (analysis.noOp()) {
+            return NoopPlan.INSTANCE;
+        }
         TableIdent tableIdent = analysis.tableIdent();
 
         CreateTableNode createTableNode;
         if (analysis.isPartitioned()) {
             createTableNode = CreateTableNode.createPartitionedTableNode(
                     tableIdent,
+                    analysis.ifNotExists(),
                     analysis.tableParameter().settings().getByPrefix("index."),
                     analysis.mapping(),
                     analysis.templateName(),
@@ -424,6 +428,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } else {
             createTableNode = CreateTableNode.createTableNode(
                     tableIdent,
+                    analysis.ifNotExists(),
                     analysis.tableParameter().settings(),
                     analysis.mapping()
             );

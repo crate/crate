@@ -778,7 +778,16 @@ createTable returns [Statement value]
             $value = new CreateTable($namedTable.value,
                                      $tableElementList.value,
                                      $crateTableOptionList.value,
-                                     $genericProperties.value);
+                                     $genericProperties.value,
+                                     false);
+        }
+    | ^(CREATE_TABLE EXISTS namedTable tableElementList crateTableOptionList genericProperties?)
+        {
+            $value = new CreateTable($namedTable.value,
+                                     $tableElementList.value,
+                                     $crateTableOptionList.value,
+                                     $genericProperties.value,
+                                     true);
         }
     ;
 

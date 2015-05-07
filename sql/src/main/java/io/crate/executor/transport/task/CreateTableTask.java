@@ -23,10 +23,10 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Joiner;
 import io.crate.Constants;
-import io.crate.executor.TaskResult;
-import io.crate.metadata.PartitionName;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TaskExecutionException;
+import io.crate.executor.TaskResult;
+import io.crate.metadata.PartitionName;
 import io.crate.planner.node.ddl.CreateTableNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -40,6 +40,8 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
 import java.util.List;
 import java.util.Locale;
@@ -129,6 +131,10 @@ public class CreateTableTask extends AbstractChainedTask {
             // this is a generic mapping parse exception,
             // the cause has usually a better more detailed error message
             result.setException(e.getCause());
+        } else if (planNode.ifNotExists() &&
+                (e instanceof IndexAlreadyExistsException
+                        || (e instanceof IndexTemplateAlreadyExistsException && planNode.createsPartitionedTable()))) {
+            result.set(SUCCESS_RESULT);
         } else {
             result.setException(e);
         }

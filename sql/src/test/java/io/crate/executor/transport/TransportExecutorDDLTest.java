@@ -117,6 +117,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     public void testCreateTableTask() throws Exception {
         CreateTableNode createTableNode = CreateTableNode.createTableNode(
                 new TableIdent(null, "test"),
+                false,
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
@@ -144,6 +145,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ensureGreen();
         CreateTableNode createTableNode = CreateTableNode.createTableNode(
                 new TableIdent(null, "test"),
+                false,
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
@@ -176,6 +178,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ensureGreen();
         CreateTableNode createTableNode = CreateTableNode.createTableNode(
                 new TableIdent(null, "test"),
+                false,
                 TEST_SETTINGS,
                 TEST_MAPPING
         );

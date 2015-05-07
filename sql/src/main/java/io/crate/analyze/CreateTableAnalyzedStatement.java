@@ -35,17 +35,30 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
     private TableIdent tableIdent;
+    private boolean noOp = false;
+    private boolean ifNotExists = false;
 
     public CreateTableAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver){
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
-    public void table(TableIdent tableIdent, ReferenceInfos referenceInfos) {
+    public void table(TableIdent tableIdent, boolean ifNotExists, ReferenceInfos referenceInfos) {
         tableIdent.validate();
-        if (referenceInfos.tableExists(tableIdent)) {
+        if (ifNotExists) {
+            noOp = referenceInfos.tableExists(tableIdent);
+        } else if (referenceInfos.tableExists(tableIdent)) {
             throw new TableAlreadyExistsException(tableIdent);
         }
+        this.ifNotExists = ifNotExists;
         this.tableIdent = tableIdent;
+    }
+
+    public boolean noOp() {
+        return noOp;
+    }
+
+    public boolean ifNotExists() {
+        return ifNotExists;
     }
 
     @Override

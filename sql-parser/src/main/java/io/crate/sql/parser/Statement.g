@@ -812,10 +812,10 @@ createStatement
     ;
 
 createTableStmt
-    : table
+    : ( IF NOT EXISTS )? table
       tableElementList
       crateTableOption*
-      (WITH '(' genericProperties ')' )? -> ^(CREATE_TABLE table tableElementList crateTableOption* genericProperties?)
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_TABLE EXISTS? table tableElementList crateTableOption* genericProperties?)
     ;
 
 createBlobTableStmt

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the IF NOT EXISTS clause to the CREATE TABLE statement
+
 2015/05/07 0.49.0
 =================
 

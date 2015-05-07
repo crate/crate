@@ -33,18 +33,25 @@ public class CreateTable extends Statement {
 
     private final Table name;
     private final List<TableElement> tableElements;
+    private final boolean ifNotExists;
     private final List<CrateTableOption> crateTableOptions;
     private final Optional<GenericProperties> properties;
 
     public CreateTable(Table name,
                        List<TableElement> tableElements,
                        @Nullable List<CrateTableOption> crateTableOptions,
-                       @Nullable GenericProperties genericProperties)
+                       @Nullable GenericProperties genericProperties,
+                       boolean ifNotExists)
     {
         this.name = name;
         this.tableElements = tableElements;
+        this.ifNotExists = ifNotExists;
         this.crateTableOptions = crateTableOptions != null ? crateTableOptions : ImmutableList.<CrateTableOption>of();
         this.properties = Optional.fromNullable(genericProperties);
+    }
+
+    public boolean ifNotExists() {
+        return ifNotExists;
     }
 
     public Table name() {
@@ -72,7 +79,7 @@ public class CreateTable extends Statement {
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(name, tableElements, crateTableOptions, properties);
+        return Objects.hashCode(name, tableElements, crateTableOptions, properties, ifNotExists);
     }
 
     @Override
@@ -83,6 +90,7 @@ public class CreateTable extends Statement {
         CreateTable that = (CreateTable) o;
 
         if (properties != that.properties) return false;
+        if (ifNotExists != that.ifNotExists) return false;
         if (!crateTableOptions.equals(that.crateTableOptions)) return false;
         if (!name.equals(that.name)) return false;
         if (!tableElements.equals(that.tableElements)) return false;
@@ -97,6 +105,7 @@ public class CreateTable extends Statement {
                 .add("name", name)
                 .add("tableElements", tableElements)
                 .add("crateTableOptions", crateTableOptions)
+                .add("ifNotExists", ifNotExists)
                 .add("properties", properties).toString();
     }
 }

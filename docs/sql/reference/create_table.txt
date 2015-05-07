@@ -12,7 +12,7 @@ Synopsis
 
 ::
 
-    CREATE TABLE table_ident ( [
+    CREATE TABLE [ IF NOT EXISTS ] table_ident ( [
         { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
         [, ... ] ]
     )
@@ -58,6 +58,7 @@ constraint can also be written as a table constraint; a column
 constraint is only a notational convenience for use when the
 constraint only affects one column.
 
+
 Parameters
 ==========
 
@@ -69,6 +70,13 @@ Parameters
 :data_type: The data type of the column. This can include array and
     object specifiers. For more information on the data types
     supported by Crate see .
+
+
+IF NOT EXISTS Clause
+====================
+
+If the optional IF NOT EXISTS clause is used this statement won't do anything
+if the table exists already.
 
 .. _primary_key_constraint:
 

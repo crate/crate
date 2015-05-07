@@ -32,6 +32,7 @@ import java.util.Map;
 public class CreateTableNode extends DDLPlanNode {
 
     private final TableIdent tableIdent;
+    private boolean ifNotExists;
     private final Settings settings;
     private final Map<String, Object> mapping;
 
@@ -39,11 +40,14 @@ public class CreateTableNode extends DDLPlanNode {
     private final Optional<String> templateName;
     private final Optional<String> templateIndexMatch;
 
-    private CreateTableNode(TableIdent tableIdent, Settings settings,
+    private CreateTableNode(TableIdent tableIdent,
+                            boolean ifNotExists,
+                            Settings settings,
                             Map<String, Object> mapping,
                             @Nullable String templateName,
                             @Nullable String templateIndexMatch) {
         this.tableIdent = tableIdent;
+        this.ifNotExists = ifNotExists;
         this.settings = settings;
 
         this.mapping = mapping;
@@ -52,17 +56,19 @@ public class CreateTableNode extends DDLPlanNode {
     }
 
     public static CreateTableNode createPartitionedTableNode(TableIdent tableIdent,
-                                                       Settings settings,
-                                                       Map<String, Object> mapping,
-                                                       String templateName,
-                                                       String templateIndexMatch) {
-        return new CreateTableNode(tableIdent, settings, mapping, templateName, templateIndexMatch);
+                                                             boolean ifNotExists,
+                                                             Settings settings,
+                                                             Map<String, Object> mapping,
+                                                             String templateName,
+                                                             String templateIndexMatch) {
+        return new CreateTableNode(tableIdent, ifNotExists, settings, mapping, templateName, templateIndexMatch);
     }
 
     public static CreateTableNode createTableNode(TableIdent tableIdent,
+                                                  boolean ifNotExists,
                                                   Settings settings,
                                                   Map<String, Object> mapping) {
-        return new CreateTableNode(tableIdent, settings, mapping, null, null);
+        return new CreateTableNode(tableIdent, ifNotExists, settings, mapping, null, null);
     }
 
     public TableIdent tableIdent() {
@@ -92,5 +98,9 @@ public class CreateTableNode extends DDLPlanNode {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitCreateTableNode(this, context);
+    }
+
+    public boolean ifNotExists() {
+        return ifNotExists;
     }
 }

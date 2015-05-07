@@ -126,6 +126,7 @@ public class TestStatementBuilder
         printStatement("copy foo partition (a=?) to DIRECTORY '/folder' with (some_param=4)");
 
 
+        printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
         printStatement("create table t (id integer primary key, name string) clustered into ? shards");

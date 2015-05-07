@@ -100,7 +100,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     private void setTableIdent(CreateTable node, Context context) {
         TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.parameterContext().defaultSchema());
-        context.statement.table(tableIdent, referenceInfos);
+        context.statement.table(tableIdent, node.ifNotExists(), referenceInfos);
     }
 
     @Override
