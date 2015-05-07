@@ -92,8 +92,6 @@ public class PlanNodeBuilder {
                 plannerContext.nextExecutionNodeId(),
                 "localMerge",
                 previousNode.executionNodes().size());
-        node.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
-        node.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         node.projections(projections);
         connectTypes(previousNode, node);
         return node;
@@ -129,8 +127,6 @@ public class PlanNodeBuilder {
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
         );
-        node.jobSearchContextIdToNode(plannerContext.jobSearchContextIdToNode());
-        node.jobSearchContextIdToShard(plannerContext.jobSearchContextIdToShard());
         node.projections(projections);
         connectTypes(previousNode, node);
         return node;

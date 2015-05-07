@@ -308,8 +308,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         QueryThenFetch qtf = (QueryThenFetch) plan;
 
         assertThat(qtf.collectNode().keepContextForFetcher(), is(true));
-        assertThat(qtf.mergeNode().jobSearchContextIdToNode(), notNullValue());
-        assertThat(qtf.mergeNode().jobSearchContextIdToShard(), notNullValue());
+        assertThat(((FetchProjection) qtf.mergeNode().projections().get(1)).jobSearchContextIdToNode(), notNullValue());
+        assertThat(((FetchProjection) qtf.mergeNode().projections().get(1)).jobSearchContextIdToShard(), notNullValue());
 
         Job job = executor.newJob(plan);
         ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
@@ -399,8 +399,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                         fetchProjection.partitionedBy(),
                         fetchProjection.executionNodes(),
                         bulkSize,
-                        fetchProjection.closeContexts()
-                ));
+                        fetchProjection.closeContexts(),
+                        fetchProjection.jobSearchContextIdToNode(),
+                        fetchProjection.jobSearchContextIdToShard()));
             } else {
                 newProjections.add(projection);
             }

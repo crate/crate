@@ -176,13 +176,17 @@ public class QueryThenFetchConsumer implements Consumer {
                 if (topNProjection.limit() > Constants.DEFAULT_SELECT_LIMIT) {
                     bulkSize = Constants.DEFAULT_SELECT_LIMIT;
                 }
+
                 FetchProjection fetchProjection = new FetchProjection(
                         collectNode.executionNodeId(),
                         DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
                         tableInfo.partitionedByColumns(),
                         collectNode.executionNodes(),
                         bulkSize,
-                        querySpec.isLimited());
+                        querySpec.isLimited(),
+                        context.plannerContext().jobSearchContextIdToNode(),
+                        context.plannerContext().jobSearchContextIdToShard()
+                );
                 mergeProjections.add(fetchProjection);
             } else {
                 topNProjection = projectionBuilder.topNProjection(

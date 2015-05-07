@@ -21,8 +21,6 @@
 
 package io.crate.planner.node.dql;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -33,7 +31,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -55,10 +52,6 @@ public class MergeNode extends AbstractDQLPlanNode {
     private int numUpstreams;
     private Set<String> executionNodes;
     private UUID jobId;
-    @Nullable
-    private IntObjectOpenHashMap<String> jobSearchContextIdToNode;
-    @Nullable
-    private IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
 
     /**
      * expects sorted input and produces sorted output
@@ -148,24 +141,6 @@ public class MergeNode extends AbstractDQLPlanNode {
         this.inputTypes = inputTypes;
     }
 
-    public void jobSearchContextIdToNode(IntObjectOpenHashMap<String> jobSearchContextIdToNode) {
-        this.jobSearchContextIdToNode = jobSearchContextIdToNode;
-    }
-
-    @Nullable
-    public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
-        return jobSearchContextIdToNode;
-    }
-
-    public void jobSearchContextIdToShard(IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard) {
-        this.jobSearchContextIdToShard = jobSearchContextIdToShard;
-    }
-
-    @Nullable
-    public IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard() {
-        return jobSearchContextIdToShard;
-    }
-
     public boolean sortedInputOutput() {
         return sortedInputOutput;
     }
@@ -225,21 +200,6 @@ public class MergeNode extends AbstractDQLPlanNode {
             }
         }
 
-        int numJobSearchContextIdToNode = in.readVInt();
-        if (numJobSearchContextIdToNode > 0) {
-            jobSearchContextIdToNode = new IntObjectOpenHashMap<>(numJobSearchContextIdToNode);
-            for (int i = 0; i < numJobSearchContextIdToNode; i++) {
-                jobSearchContextIdToNode.put(in.readVInt(), in.readString());
-            }
-        }
-        int numJobSearchContextIdToShard = in.readVInt();
-        if (numJobSearchContextIdToShard > 0) {
-            jobSearchContextIdToShard = new IntObjectOpenHashMap<>(numJobSearchContextIdToShard);
-            for (int i = 0; i < numJobSearchContextIdToShard; i++) {
-                jobSearchContextIdToShard.put(in.readVInt(), ShardId.readShardId(in));
-            }
-        }
-
         sortedInputOutput = in.readBoolean();
         if (sortedInputOutput) {
             int orderByIndicesLength = in.readVInt();
@@ -280,25 +240,6 @@ public class MergeNode extends AbstractDQLPlanNode {
             out.writeVInt(executionNodes.size());
             for (String node : executionNodes) {
                 out.writeString(node);
-            }
-        }
-
-        if (jobSearchContextIdToNode == null) {
-            out.writeVInt(0);
-        } else {
-            out.writeVInt(jobSearchContextIdToNode.size());
-            for (IntObjectCursor<String> entry : jobSearchContextIdToNode) {
-                out.writeVInt(entry.key);
-                out.writeString(entry.value);
-            }
-        }
-        if (jobSearchContextIdToShard == null) {
-            out.writeVInt(0);
-        } else {
-            out.writeVInt(jobSearchContextIdToShard.size());
-            for (IntObjectCursor<ShardId> entry : jobSearchContextIdToShard) {
-                out.writeVInt(entry.key);
-                entry.value.writeTo(out);
             }
         }
 

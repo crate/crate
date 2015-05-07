@@ -21,10 +21,13 @@
 
 package io.crate.planner.projection;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,6 +52,8 @@ public class FetchProjection extends Projection {
     private Set<String> executionNodes;
     private int bulkSize;
     private boolean closeContexts;
+    private IntObjectOpenHashMap<String> jobSearchContextIdToNode;
+    private IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
 
     private FetchProjection() {
     }
@@ -59,19 +64,10 @@ public class FetchProjection extends Projection {
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes,
-                           int bulkSize) {
-        this(executionNodeId, docIdSymbol, inputSymbols, outputSymbols, partitionBy,
-                executionNodes, bulkSize, false);
-    }
-
-    public FetchProjection(int executionNodeId,
-                           Symbol docIdSymbol,
-                           List<Symbol> inputSymbols,
-                           List<Symbol> outputSymbols,
-                           List<ReferenceInfo> partitionBy,
-                           Set<String> executionNodes,
                            int bulkSize,
-                           boolean closeContexts) {
+                           boolean closeContexts,
+                           IntObjectOpenHashMap<String> jobSearchContextIdToNode,
+                           IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard) {
         this.executionNodeId = executionNodeId;
         this.docIdSymbol = docIdSymbol;
         this.inputSymbols = inputSymbols;
@@ -80,6 +76,8 @@ public class FetchProjection extends Projection {
         this.executionNodes = executionNodes;
         this.bulkSize = bulkSize;
         this.closeContexts = closeContexts;
+        this.jobSearchContextIdToNode = jobSearchContextIdToNode;
+        this.jobSearchContextIdToShard = jobSearchContextIdToShard;
     }
 
     public int executionNodeId() {
@@ -112,6 +110,15 @@ public class FetchProjection extends Projection {
 
     public boolean closeContexts() {
         return closeContexts;
+    }
+
+
+    public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
+        return jobSearchContextIdToNode;
+    }
+
+    public IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard() {
+        return jobSearchContextIdToShard;
     }
 
     @Override
@@ -189,6 +196,17 @@ public class FetchProjection extends Projection {
         }
         bulkSize = in.readVInt();
         closeContexts = in.readBoolean();
+
+        int numJobSearchContextIdToNode = in.readVInt();
+        jobSearchContextIdToNode = new IntObjectOpenHashMap<>(numJobSearchContextIdToNode);
+        for (int i = 0; i < numJobSearchContextIdToNode; i++) {
+            jobSearchContextIdToNode.put(in.readVInt(), in.readString());
+        }
+        int numJobSearchContextIdToShard = in.readVInt();
+        jobSearchContextIdToShard = new IntObjectOpenHashMap<>(numJobSearchContextIdToShard);
+        for (int i = 0; i < numJobSearchContextIdToShard; i++) {
+            jobSearchContextIdToShard.put(in.readVInt(), ShardId.readShardId(in));
+        }
     }
 
     @Override
@@ -213,5 +231,16 @@ public class FetchProjection extends Projection {
         }
         out.writeVInt(bulkSize);
         out.writeBoolean(closeContexts);
+
+        out.writeVInt(jobSearchContextIdToNode.size());
+        for (IntObjectCursor<String> entry : jobSearchContextIdToNode) {
+            out.writeVInt(entry.key);
+            out.writeString(entry.value);
+        }
+        out.writeVInt(jobSearchContextIdToShard.size());
+        for (IntObjectCursor<ShardId> entry : jobSearchContextIdToShard) {
+            out.writeVInt(entry.key);
+            entry.value.writeTo(out);
+        }
     }
 }

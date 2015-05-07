@@ -21,14 +21,12 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowDownstream;
 import io.crate.planner.projection.Projection;
-import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -85,22 +83,22 @@ public class FlatProjectorChain {
                                                             final RamAccountingContext ramAccountingContext,
                                                             Collection<Projection> projections,
                                                             RowDownstream downstream) {
-        return withAttachedDownstream(projectorVisitor, ramAccountingContext, projections,
-                downstream, Optional.<UUID>absent(),
-                Optional.<IntObjectOpenHashMap<String>>absent(),
-                Optional.<IntObjectOpenHashMap<ShardId>>absent());
+        return withAttachedDownstream(
+                projectorVisitor,
+                ramAccountingContext,
+                projections,
+                downstream,
+                Optional.<UUID>absent()
+        );
     }
 
     public static FlatProjectorChain withAttachedDownstream(final ProjectionToProjectorVisitor projectorVisitor,
                                                             final RamAccountingContext ramAccountingContext,
                                                             Collection<Projection> projections,
                                                             RowDownstream downstream,
-                                                            Optional<UUID> jobId,
-                                                            Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
-                                                            Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
+                                                            Optional<UUID> jobId) {
         Preconditions.checkArgument(!projections.isEmpty(), "no projections given");
-        return create(projectorVisitor, ramAccountingContext, projections, downstream, false,
-                jobId, jobSearchContextIdToNode, jobSearchContextIdToShard);
+        return create(projectorVisitor, ramAccountingContext, projections, downstream, false, jobId);
 
     }
 
@@ -110,21 +108,15 @@ public class FlatProjectorChain {
     public static FlatProjectorChain withResultProvider(ProjectionToProjectorVisitor projectorVisitor,
                                                         RamAccountingContext ramAccountingContext,
                                                         Collection<Projection> projections) {
-        return withResultProvider(projectorVisitor, ramAccountingContext, projections,
-                Optional.<UUID>absent(),
-                Optional.<IntObjectOpenHashMap<String>>absent(),
-                Optional.<IntObjectOpenHashMap<ShardId>>absent());
+        return withResultProvider(projectorVisitor, ramAccountingContext, projections, Optional.<UUID>absent());
     }
 
     public static FlatProjectorChain withResultProvider(ProjectionToProjectorVisitor projectorVisitor,
                                                         RamAccountingContext ramAccountingContext,
                                                         Collection<Projection> projections,
-                                                        Optional<UUID> jobId,
-                                                        Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
-                                                        Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
+                                                        Optional<UUID> jobId) {
 
-        return create(projectorVisitor, ramAccountingContext, projections, null, true,
-                jobId, jobSearchContextIdToNode, jobSearchContextIdToShard);
+        return create(projectorVisitor, ramAccountingContext, projections, null, true, jobId);
     }
 
     /**
@@ -143,9 +135,7 @@ public class FlatProjectorChain {
                                              Collection<Projection> projections,
                                              @Nullable RowDownstream rowDownstream,
                                              boolean addResultProviderIfPresent,
-                                             Optional<UUID> jobId,
-                                             Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
-                                             Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {
+                                             Optional<UUID> jobId) {
         assert (rowDownstream == null && addResultProviderIfPresent) || (rowDownstream != null && !addResultProviderIfPresent);
         Preconditions.checkArgument(!projections.isEmpty() || addResultProviderIfPresent, "no projections given");
         List<Projector> localProjectors = new ArrayList<>();
@@ -154,7 +144,8 @@ public class FlatProjectorChain {
             Projector projector = projectorVisitor.process(
                     projection,
                     ramAccountingContext,
-                    jobId, jobSearchContextIdToNode, jobSearchContextIdToShard);
+                    jobId
+            );
             localProjectors.add(projector);
             if (previousProjector != null) {
                 previousProjector.downstream(projector);
