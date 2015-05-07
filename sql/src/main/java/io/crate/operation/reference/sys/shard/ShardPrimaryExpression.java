@@ -32,7 +32,6 @@ public class ShardPrimaryExpression extends SysShardExpression<Boolean> {
 
     @Inject
     public ShardPrimaryExpression(IndexShard indexShard) {
-        super(NAME);
         this.indexShard = indexShard;
     }
 

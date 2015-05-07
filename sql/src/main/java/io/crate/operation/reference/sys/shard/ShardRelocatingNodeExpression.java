@@ -33,7 +33,6 @@ public class ShardRelocatingNodeExpression extends SysShardExpression<BytesRef> 
 
     @Inject
     public ShardRelocatingNodeExpression(IndexShard indexShard) {
-        super(NAME);
         this.indexShard = indexShard;
     }
 

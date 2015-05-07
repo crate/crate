@@ -31,7 +31,6 @@ public class BlobShardPartitionOrphanedExpression extends SysShardExpression<Boo
 
     @Inject
     public BlobShardPartitionOrphanedExpression() {
-        super(NAME);
     }
 
     @Override

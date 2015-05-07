@@ -166,7 +166,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
         @Inject
         public ShardIdExpression(ShardId shardId) {
-            super("id");
             this.shardId = shardId;
         }
 

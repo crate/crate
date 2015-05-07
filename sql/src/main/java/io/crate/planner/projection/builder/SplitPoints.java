@@ -27,10 +27,9 @@ import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
 
-/**
-* Created by bd on 30.1.15.
-*/
+
 public class SplitPoints {
+
     private final ArrayList<Symbol> toCollect;
     private final ArrayList<Function> aggregates;
     private final ArrayList<Symbol> leaves;
@@ -42,18 +41,6 @@ public class SplitPoints {
         this.toCollect = new ArrayList<>(estimate);
         this.aggregates = new ArrayList<>(estimate);
         this.leaves = new ArrayList<>(estimate);
-    }
-
-    void allocateCollectSymbol(Symbol symbol){
-        if (!toCollect.contains(symbol)) {
-            toCollect.add(symbol);
-        }
-    }
-
-    void allocateAggregate(Function aggregate){
-        if (!aggregates.contains(aggregate)) {
-            aggregates.add(aggregate);
-        }
     }
 
     public QuerySpec querySpec() {

@@ -32,7 +32,6 @@ public class ShardIdExpression extends SysShardExpression<Integer> {
 
     @Inject
     public ShardIdExpression(ShardId shardId) {
-        super(NAME);
         this.shardId = shardId;
     }
 

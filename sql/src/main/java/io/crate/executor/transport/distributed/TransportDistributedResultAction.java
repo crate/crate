@@ -19,14 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport.merge;
+package io.crate.executor.transport.distributed;
 
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
-import io.crate.executor.transport.distributed.DistributedResultRequest;
-import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;

@@ -117,16 +117,6 @@ public class BulkRetryCoordinator {
         retryExecutorService.shutdownNow();
     }
 
-    /**
-     * keeping a reference to the request around
-     */
-    public interface RequestActionListener<Request, Response> {
-
-        void onResponse(Request request, Response response);
-
-        void onFailure(Request request, Throwable e);
-    }
-
     private class RetryBulkActionListener<Response> implements ActionListener<Response> {
 
         private final ActionListener<Response> listener;

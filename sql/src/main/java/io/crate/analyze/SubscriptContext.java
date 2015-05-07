@@ -30,8 +30,6 @@ import java.util.List;
 
 public class SubscriptContext {
 
-    private final ParameterContext parameterContext;
-
     private QualifiedName qName;
 
     private Expression expression;
@@ -39,8 +37,7 @@ public class SubscriptContext {
     private List<String> parts = new ArrayList<>();
     private Integer index;
 
-    public SubscriptContext(ParameterContext parameterContext) {
-        this.parameterContext = parameterContext;
+    public SubscriptContext() {
     }
 
     public QualifiedName qName() {
@@ -77,7 +74,4 @@ public class SubscriptContext {
         this.expression = expression;
     }
 
-    public ParameterContext parameterContext() {
-        return parameterContext;
-    }
 }

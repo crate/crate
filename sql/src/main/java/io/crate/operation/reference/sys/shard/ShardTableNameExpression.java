@@ -35,7 +35,6 @@ public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
 
     @Inject
     public ShardTableNameExpression(ShardId shardId) {
-        super(NAME);
         String tableName = shardId.getIndex();
         try {
             tableName = PartitionName.tableName(tableName);

@@ -24,7 +24,6 @@ package io.crate.executor.transport.distributed;
 import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.core.collections.Row1;
-import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;

@@ -33,7 +33,6 @@ public class ShardNumDocsExpression extends SysShardExpression<Long> {
 
     @Inject
     public ShardNumDocsExpression(IndexShard indexShard) {
-        super(NAME);
         this.indexShard = indexShard;
     }
 

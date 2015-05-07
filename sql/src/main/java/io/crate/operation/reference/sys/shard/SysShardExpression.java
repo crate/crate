@@ -21,29 +21,9 @@
 
 package io.crate.operation.reference.sys.shard;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SysShardsTableInfo;
-import org.elasticsearch.common.Preconditions;
 
 public abstract class SysShardExpression<T> extends SysExpression<T> implements ShardReferenceImplementation {
-
-    private final ReferenceInfo info;
-
-    protected SysShardExpression(String name) {
-        this(new ColumnIdent(name));
-    }
-
-    protected SysShardExpression(ColumnIdent ident) {
-        info = SysShardsTableInfo.INFOS.get(ident);
-        Preconditions.checkNotNull(info, "info");
-    }
-
-    @Deprecated
-    public ReferenceInfo info() {
-        return info;
-    }
 
 }

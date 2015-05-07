@@ -523,7 +523,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitSubscriptExpression(SubscriptExpression node, ExpressionAnalysisContext context) {
-            SubscriptContext subscriptContext = new SubscriptContext(parameterContext);
+            SubscriptContext subscriptContext = new SubscriptContext();
             SUBSCRIPT_VISITOR.process(node, subscriptContext);
             return resolveSubscriptSymbol(subscriptContext, context);
         }

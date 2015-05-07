@@ -42,7 +42,6 @@ public class ShardSizeExpression extends SysShardExpression<Long> {
 
     @Inject
     public ShardSizeExpression(IndexShard indexShard) {
-        super(NAME);
         this.indexShard = indexShard;
     }
 

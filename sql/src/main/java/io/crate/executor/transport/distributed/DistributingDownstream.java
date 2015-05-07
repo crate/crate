@@ -25,16 +25,13 @@ import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.executor.transport.merge.TransportDistributedResultAction;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;

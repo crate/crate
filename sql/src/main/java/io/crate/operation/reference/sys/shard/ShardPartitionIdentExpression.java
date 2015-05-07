@@ -32,7 +32,6 @@ public class ShardPartitionIdentExpression extends SysShardExpression<BytesRef> 
 
     @Inject
     public ShardPartitionIdentExpression(ShardId shardId) {
-        super(NAME);
         String ident = "";
         try {
             ident = PartitionName.ident(shardId.getIndex());

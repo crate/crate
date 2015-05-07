@@ -32,7 +32,6 @@ public class BlobShardSchemaNameExpression extends SysShardExpression<BytesRef> 
     public static final BytesRef BLOB_SCHEMA_NAME = new BytesRef(BlobSchemaInfo.NAME);
 
     protected BlobShardSchemaNameExpression() {
-        super(NAME);
     }
 
     @Override

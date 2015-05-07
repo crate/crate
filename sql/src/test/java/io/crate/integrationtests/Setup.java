@@ -314,17 +314,6 @@ public class Setup {
         transportExecutor.refresh("characters");
     }
 
-    public void setUpBooks() {
-        transportExecutor.exec("create table books (id int primary key, title string, author string)");
-        transportExecutor.ensureGreen();
-        transportExecutor.exec("insert into books (id, title, author) values (?, ?, ?)", new Object[][]{
-                new Object[] { 1, "The Hitchhiker's Guide to the Galaxy", "Douglas Adams"},
-                new Object[] { 2, "The Restaurant at the End of the Universe", "Douglas Adams"},
-                new Object[] { 3, "Life, the Universe and Everything", "Douglas Adams"}
-        });
-        transportExecutor.refresh("books");
-    }
-
     public void setUpPartitionedTableWithName() {
         transportExecutor.exec("create table parted (id int, name string, date timestamp) partitioned by (date)");
         transportExecutor.ensureGreen();

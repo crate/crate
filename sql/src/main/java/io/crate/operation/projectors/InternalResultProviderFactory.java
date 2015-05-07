@@ -28,7 +28,7 @@ import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributingDownstream;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
-import io.crate.executor.transport.merge.TransportDistributedResultAction;
+import io.crate.executor.transport.distributed.TransportDistributedResultAction;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.StreamerVisitor;

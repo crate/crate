@@ -44,7 +44,6 @@ public class BlobShardSizeExpression extends SysShardExpression<Long> implements
 
     @Inject
     public BlobShardSizeExpression(BlobShard blobShard) {
-        super(NAME);
         this.blobShard = blobShard;
     }
 

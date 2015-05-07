@@ -22,16 +22,11 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.symbol.Reference;
 import io.crate.types.DataType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.search.SearchHit;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -104,35 +99,4 @@ public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
             return result == NOT_FOUND ? null : type.value(result);
         }
     }
-
-    public static class PartitionedByColumnExtractor extends ESFieldExtractor {
-
-        private final Reference reference;
-        private final int valueIdx;
-        private final Map<String, List<BytesRef>> cache;
-
-        public PartitionedByColumnExtractor(Reference reference, List<ReferenceInfo> partitionedByInfos) {
-            this.reference = reference;
-            this.valueIdx = partitionedByInfos.indexOf(reference.info());
-            this.cache = new HashMap<>();
-        }
-
-        @Override
-        public Object extract(SearchHit hit) {
-            try {
-                List<BytesRef> values = cache.get(hit.index());
-                if (values == null) {
-                    values = PartitionName.fromStringSafe(hit.index()).values();
-                }
-                BytesRef value = values.get(valueIdx);
-                if (value == null) {
-                    return null;
-                }
-                return reference.info().type().value(value);
-            } catch (IllegalArgumentException e) {
-                return null;
-            }
-        }
-    }
-
 }

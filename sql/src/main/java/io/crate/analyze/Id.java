@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import io.crate.metadata.ColumnIdent;
 import org.apache.lucene.util.BytesRef;
@@ -39,33 +38,11 @@ import java.util.List;
 
 public class Id {
 
-    public static final Function<Id, String> ROUTING_VALUES_FUNCTION = new Function<Id, String>() {
-        @javax.annotation.Nullable
-        @Override
-        public String apply(@Nullable Id input) {
-            return input.routingValue();
-        }
-    };
-
-    public static final Function<Id, String> ID_STRING_FUNCTION = new Function<Id, String>() {
-        @javax.annotation.Nullable
-        @Override
-        public String apply(@Nullable Id input) {
-            return input.stringValue();
-        }
-    };
-
     private final List<BytesRef> values;
     private String routingValue;
 
     // used to avoid bytesRef/string conversion if there is just one primary key used for IndexRequests
     private String singleStringValue = null;
-
-    public Id(List<BytesRef> values){
-        this.values = values;
-        singleStringValue = null;
-        this.routingValue = null;
-    }
 
     public Id(List<ColumnIdent> primaryKeys, List<BytesRef> primaryKeyValues,
               ColumnIdent clusteredBy) {

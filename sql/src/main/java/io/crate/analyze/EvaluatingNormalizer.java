@@ -96,14 +96,6 @@ public class EvaluatingNormalizer {
                 analysisMetaData.referenceResolver(), fieldResolver, inPlace);
     }
 
-    public EvaluatingNormalizer ensureInPlace(boolean inPlace){
-        if (inPlace == this.inPlace){
-            return this;
-        }
-        return new EvaluatingNormalizer(this.functions,
-                this.granularity, this.referenceResolver, this.fieldResolver, inPlace);
-    }
-
     private abstract class BaseVisitor extends SymbolVisitor<Void, Symbol> {
         @Override
         public Symbol visitField(Field field, Void context) {

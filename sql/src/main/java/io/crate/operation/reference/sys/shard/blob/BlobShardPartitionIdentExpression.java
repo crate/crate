@@ -33,7 +33,6 @@ public class BlobShardPartitionIdentExpression extends SysShardExpression<BytesR
 
     @Inject
     public BlobShardPartitionIdentExpression() {
-        super(NAME);
     }
 
     @Override

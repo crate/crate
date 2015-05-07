@@ -47,7 +47,6 @@ import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
@@ -78,7 +77,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
     private UpdateConsumer updateConsumer;
-    private AggregationProjection localMergeProjection;
 
     public static class Context {
 

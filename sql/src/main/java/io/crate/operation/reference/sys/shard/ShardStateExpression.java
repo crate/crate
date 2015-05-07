@@ -32,7 +32,6 @@ public class ShardStateExpression extends SysShardExpression<BytesRef> {
 
     @Inject
     public ShardStateExpression(IndexShard indexShard) {
-        super(NAME);
         this.indexShard = indexShard;
     }
 

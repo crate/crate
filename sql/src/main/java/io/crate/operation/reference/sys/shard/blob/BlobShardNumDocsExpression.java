@@ -33,7 +33,6 @@ public class BlobShardNumDocsExpression extends SysShardExpression<Long> impleme
 
     @Inject
     protected BlobShardNumDocsExpression(BlobShard blobShard) {
-        super(NAME);
         this.blobShard = blobShard;
     }
 

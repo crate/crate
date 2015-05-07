@@ -36,7 +36,6 @@ public class ShardSchemaNameExpression extends SysShardExpression<BytesRef> {
 
     @Inject
     public ShardSchemaNameExpression(ShardId shardId) {
-        super(NAME);
         String indexName = shardId.getIndex();
         Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(indexName);
         if (matcher.matches()) {

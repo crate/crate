@@ -124,24 +124,6 @@ public class TransportQueryShardAction {
         }
     }
 
-    public void executeScrollQuery(String node, final QueryShardScrollRequest request, final ActionListener<ScrollQuerySearchResult> listener) {
-        Runnable localRunnable = new Runnable() {
-            @Override
-            public void run() {
-                executeScrollOnShard(request, listener);
-            }
-        };
-        TransportResponseHandler<?> responseHandler = new DefaultTransportResponseHandler<ScrollQuerySearchResult>(listener, executorName) {
-            @Override
-            public ScrollQuerySearchResult newInstance() {
-                return new ScrollQuerySearchResult();
-            }
-        };
-        executeLocalOrViaTransport(node, localRunnable, request, queryScrollTransportAction, responseHandler);
-
-
-    }
-
     public void executeScrollOnShard(QueryShardScrollRequest request, ActionListener<ScrollQuerySearchResult> listener) {
         try {
             ScrollQuerySearchResult result = searchService.executeScrollQueryPhase(request);

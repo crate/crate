@@ -36,7 +36,6 @@ public class BlobShardTableNameExpression extends SysShardExpression<BytesRef> i
 
     @Inject
     public BlobShardTableNameExpression(ShardId shardId) {
-        super(NAME);
         this.tableName = new BytesRef(BlobIndices.stripPrefix.apply(shardId.index().name()));
     }
 

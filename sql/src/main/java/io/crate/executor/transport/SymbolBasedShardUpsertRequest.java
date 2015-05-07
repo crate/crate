@@ -240,15 +240,6 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         return this;
     }
 
-    public SymbolBasedShardUpsertRequest add(int location,
-                                  String id,
-                                  Symbol[] assignments,
-                                  @Nullable Long version,
-                                  @Nullable String routing) {
-        add(location, id, assignments, null, version, routing);
-        return this;
-    }
-
     public String type() {
         return Constants.DEFAULT_MAPPING_TYPE;
     }

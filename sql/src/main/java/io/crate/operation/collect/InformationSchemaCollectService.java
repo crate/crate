@@ -150,7 +150,6 @@ public class InformationSchemaCollectService implements CollectService {
 
     static class InformationSchemaCollector<R> implements CrateCollector, RowUpstream {
 
-        private final List<Input<?>> inputs;
         private final List<RowCollectExpression<R, ?>> collectorExpressions;
         private final InputRow row;
         private final RowDownstreamHandle downstream;
@@ -163,12 +162,10 @@ public class InformationSchemaCollectService implements CollectService {
                                              Iterable<R> rows,
                                              Input<Boolean> condition) {
             this.downstream = downstream.registerUpstream(this);
-            this.inputs = inputs;
             this.row = new InputRow(inputs);
             this.collectorExpressions = collectorExpressions;
             this.rows = rows;
             this.condition = condition;
-            assert downstream != null;
         }
 
         @Override

@@ -84,7 +84,7 @@ public class ProjectionBuilder {
                                                    Aggregation.Step fromStep,
                                                    Aggregation.Step toStep,
                                                    InputCreatingVisitor.Context context) {
-        ArrayList<Aggregation> aggregations = new ArrayList(functions.size());
+        ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
             assert function.info().type() == FunctionInfo.Type.AGGREGATE;
             Aggregation aggregation;

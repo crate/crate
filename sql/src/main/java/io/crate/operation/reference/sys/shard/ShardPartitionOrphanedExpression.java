@@ -35,7 +35,6 @@ public class ShardPartitionOrphanedExpression extends SysShardExpression<Boolean
 
     @Inject
     public ShardPartitionOrphanedExpression(ShardId shardId, ClusterService clusterService) {
-        super(NAME);
         this.clusterService = clusterService;
         tableName = shardId.getIndex();
         try {

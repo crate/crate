@@ -28,7 +28,6 @@ import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.mock;
 
 
 public class SubscriptVisitorTest extends CrateUnitTest {
@@ -36,8 +35,7 @@ public class SubscriptVisitorTest extends CrateUnitTest {
     public SubscriptVisitor visitor = new SubscriptVisitor();
 
     private SubscriptContext analyzeSubscript(String expressionString) {
-        ParameterContext parameterContext = mock(ParameterContext.class);
-        SubscriptContext context = new SubscriptContext(parameterContext);
+        SubscriptContext context = new SubscriptContext();
         Expression expression = SqlParser.createExpression(expressionString);
         expression.accept(visitor, context);
         return context;
