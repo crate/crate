@@ -32,6 +32,7 @@ import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
@@ -1876,5 +1877,11 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(plan.collectNode().downstreamNodes().size(), is(1));
         assertThat(plan.collectNode().downstreamNodes().get(0), is(LOCAL_NODE_ID));
         assertThat(plan.collectNode().hasDistributingDownstreams(), is(true));
+    }
+
+    @Test
+    public void testKillPlan() throws Exception {
+        Plan killPlan = plan("kill all");
+        assertThat(killPlan, Matchers.<Plan>is(KillPlan.INSTANCE));
     }
 }

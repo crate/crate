@@ -583,4 +583,7 @@ public abstract class AstVisitor<R, C>
         return visitExpression(node, context);
     }
 
+    public R visitKillStatement(KillStatement node, C context) {
+        return visitStatement(node, context);
+    }
 }
