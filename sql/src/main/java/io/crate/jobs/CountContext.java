@@ -48,6 +48,8 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
+    private ListenableFuture<Long> countFuture;
+
     public CountContext(CountOperation countOperation,
                         RowDownstream rowDownstream,
                         Map<String, List<Integer>> indexShardMap,
@@ -60,7 +62,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     public void start() {
         try {
-            ListenableFuture<Long> countFuture = countOperation.count(indexShardMap, whereClause);
+            countFuture = countOperation.count(indexShardMap, whereClause);
             Futures.addCallback(countFuture, new FutureCallback<Long>() {
                 @Override
                 public void onSuccess(@Nullable Long result) {
@@ -93,5 +95,12 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
                 callback.onClose();
             }
         }
+    }
+
+    public void kill() {
+        if (countFuture != null) {
+            countFuture.cancel(true);
+        }
+        close();
     }
 }
