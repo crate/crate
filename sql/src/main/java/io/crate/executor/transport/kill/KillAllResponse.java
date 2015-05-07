@@ -21,7 +21,33 @@
 
 package io.crate.executor.transport.kill;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
+import java.io.IOException;
+
 public class KillAllResponse extends TransportResponse {
+
+    private long numKilled;
+
+    public KillAllResponse(long numKilled) {
+        this.numKilled = numKilled;
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeVLong(numKilled);
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        numKilled = in.readVLong();
+    }
+
+    public long numKilled() {
+        return numKilled;
+    }
 }
