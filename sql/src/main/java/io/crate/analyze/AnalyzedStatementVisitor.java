@@ -100,4 +100,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitAddColumnStatement(AddColumnAnalyzedStatement analysis, C context) {
         return visitDDLAnalyzedStatement(analysis, context);
     }
+
+    public R visitKillAnalyzedStatement(KillAnalyzedStatement analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
+    }
 }

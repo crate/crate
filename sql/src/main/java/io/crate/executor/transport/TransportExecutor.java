@@ -49,6 +49,7 @@ import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -304,6 +305,11 @@ public class TransportExecutor implements Executor, TaskExecutor {
         @Override
         public List<Task> visitQueryThenFetch(QueryThenFetch plan, Job job) {
             return ImmutableList.of(createExecutableNodesTask(job, plan.collectNode(), plan.mergeNode()));
+        }
+
+        @Override
+        public List<Task> visitKillPlan(KillPlan killPlan, Job job) {
+            return ImmutableList.<Task>of(new KillTask(job.id()));
         }
     }
 
