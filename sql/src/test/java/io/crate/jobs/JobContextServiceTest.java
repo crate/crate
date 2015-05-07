@@ -31,9 +31,8 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
@@ -97,6 +96,48 @@ public class JobContextServiceTest extends CrateUnitTest {
         assertThat(ctx1.lastAccessTime(), is(-1L));
         ctx1.getSubContextOrNull(1);
         assertThat(ctx1.lastAccessTime(), greaterThan(-1L));
+    }
+
+    @Test
+    public void testKillAllCallsKillOnSubContext() throws Exception {
+        final AtomicBoolean killCalled = new AtomicBoolean(false);
+        ExecutionSubContext dummyContext = new ExecutionSubContext() {
+            List<ContextCallback> callbacks = new ArrayList<>();
+
+            @Override
+            public void addCallback(ContextCallback contextCallback) {
+                callbacks.add(contextCallback);
+            }
+
+            @Override
+            public void close() {
+                for (ContextCallback callback : callbacks) {
+                    callback.onClose();
+                }
+            }
+
+            @Override
+            public void kill() {
+                killCalled.set(true);
+                for (ContextCallback callback : callbacks) {
+                    callback.onClose();
+                }
+            }
+        };
+
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
+        builder.addSubContext(1, dummyContext);
+        jobContextService.createContext(builder);
+
+        Field activeContextsField = JobContextService.class.getDeclaredField("activeContexts");
+        activeContextsField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<UUID, JobExecutionContext> activeContexts = (Map<UUID, JobExecutionContext>) activeContextsField.get(jobContextService);
+        assertThat(activeContexts.size(), is(1));
+        jobContextService.killAll();
+
+        assertThat(killCalled.get(), is(true));
+        assertThat(activeContexts.size(), is(0));
     }
 
     @Test
