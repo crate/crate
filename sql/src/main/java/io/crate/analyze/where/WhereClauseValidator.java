@@ -20,7 +20,7 @@ public abstract class WhereClauseValidator {
 
     public static void validate(WhereClause whereClause) {
         if (whereClause.hasQuery()){
-            visitor.process(whereClause.query(), new Visitor.Context(whereClause));
+            visitor.process(whereClause.query(), new Visitor.Context());
         }
     }
 
@@ -29,10 +29,8 @@ public abstract class WhereClauseValidator {
         public static class Context {
 
             public final Stack<Function> functions = new Stack<>();
-            private final WhereClause whereClause;
 
-            public Context(WhereClause whereClause) {
-                this.whereClause = whereClause;
+            public Context() {
             }
         }
 

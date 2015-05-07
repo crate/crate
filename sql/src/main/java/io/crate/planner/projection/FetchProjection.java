@@ -22,7 +22,6 @@
 package io.crate.planner.projection;
 
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operation.projectors.FetchProjector;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -52,16 +51,6 @@ public class FetchProjection extends Projection {
     private boolean closeContexts;
 
     private FetchProjection() {
-    }
-
-    public FetchProjection(int executionNodeId,
-                           Symbol docIdSymbol,
-                           List<Symbol> inputSymbols,
-                           List<Symbol> outputSymbols,
-                           List<ReferenceInfo> partitionBy,
-                           Set<String> executionNodes) {
-        this(executionNodeId, docIdSymbol, inputSymbols, outputSymbols, partitionBy,
-                executionNodes, FetchProjector.NO_BULK_REQUESTS, false);
     }
 
     public FetchProjection(int executionNodeId,

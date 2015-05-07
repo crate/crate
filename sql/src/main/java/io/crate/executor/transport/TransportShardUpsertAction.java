@@ -156,7 +156,7 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
 
     @Override
     protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
-        ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse(shardRequest.shardId.getIndex());
+        ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
         ShardUpsertRequest request = shardRequest.request;
         SymbolToFieldExtractorContext extractorContextUpdate = null;
         SymbolToInputContext implContextInsert = null;
@@ -178,18 +178,14 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
         while (it.hasNext()) {
             ShardUpsertRequest.Item item = it.next();
             try {
-                IndexResponse indexResponse = indexItem(
+                indexItem(
                         request,
                         item, shardRequest.shardId,
                         extractorContextUpdate,
                         implContextInsert,
                         request.insertAssignments() != null, // try insert first
                         0);
-                shardUpsertResponse.add(item.location(),
-                        new ShardUpsertResponse.Response(
-                                item.id(),
-                                indexResponse.getVersion(),
-                                indexResponse.isCreated()));
+                shardUpsertResponse.add(item.location(), new ShardUpsertResponse.Response());
             } catch (Throwable t) {
                 if (TransportActions.isShardNotAvailableException(t) || !request.continueOnError()) {
                     throw t;

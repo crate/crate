@@ -61,7 +61,6 @@ public class EvaluatingNormalizer {
     private final ReferenceResolver referenceResolver;
     private final FieldResolver fieldResolver;
     private final BaseVisitor visitor;
-    private final boolean inPlace;
 
 
     /**
@@ -78,7 +77,6 @@ public class EvaluatingNormalizer {
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
         this.fieldResolver = fieldResolver;
-        this.inPlace = inPlace;
         if (inPlace) {
             this.visitor = new InPlaceVisitor();
         } else {

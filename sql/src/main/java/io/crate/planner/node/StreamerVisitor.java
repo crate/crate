@@ -24,7 +24,6 @@ package io.crate.planner.node;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -57,10 +56,8 @@ public class StreamerVisitor {
     public static class Context {
         private List<Streamer<?>> inputStreamers = new ArrayList<>();
         private List<Streamer<?>> outputStreamers = new ArrayList<>();
-        private RamAccountingContext ramAccountingContext;
 
-        public Context(RamAccountingContext ramAccountingContext) {
-            this.ramAccountingContext = ramAccountingContext;
+        public Context() {
         }
 
         public Streamer<?>[] inputStreamers() {
@@ -83,14 +80,14 @@ public class StreamerVisitor {
         this.executionNodeStreamerVisitor = new ExecutionNodeStreamerVisitor();
     }
 
-    public Context processPlanNode(PlanNode node, RamAccountingContext ramAccountingContext) {
-        Context context = new Context(ramAccountingContext);
+    public Context processPlanNode(PlanNode node) {
+        Context context = new Context();
         planNodeStreamerVisitor.process(node, context);
         return context;
     }
 
-    public Context processExecutionNode(ExecutionNode executionNode, RamAccountingContext ramAccountingContext) {
-        Context context = new Context(ramAccountingContext);
+    public Context processExecutionNode(ExecutionNode executionNode) {
+        Context context = new Context();
         executionNodeStreamerVisitor.process(executionNode, context);
         return context;
     }

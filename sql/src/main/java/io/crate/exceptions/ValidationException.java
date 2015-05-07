@@ -34,10 +34,6 @@ public class ValidationException extends RuntimeException implements CrateExcept
         super(message, cause);
     }
 
-    public ValidationException(Throwable cause) {
-        super(cause);
-    }
-
     @Override
     public int errorCode() {
         return 0;

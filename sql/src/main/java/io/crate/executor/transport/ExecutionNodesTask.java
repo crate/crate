@@ -137,7 +137,7 @@ public class ExecutionNodesTask extends JobTask {
         assert mergeNode != null : "mergeNode must not be null";
         RamAccountingContext ramAccountingContext = trackOperation(mergeNode, "localMerge");
 
-        Streamer<?>[] streamers = streamerVisitor.processExecutionNode(mergeNode, ramAccountingContext).inputStreamers();
+        Streamer<?>[] streamers = streamerVisitor.processExecutionNode(mergeNode).inputStreamers();
         final PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(ramAccountingContext, streamers);
         Map<String, Collection<ExecutionNode>> nodesByServer = groupExecutionNodesByServer(executionNodes);
         if (nodesByServer.size() == 0) {

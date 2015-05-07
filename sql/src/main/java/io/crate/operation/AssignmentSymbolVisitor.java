@@ -53,14 +53,6 @@ public class AssignmentSymbolVisitor extends SymbolVisitor<AssignmentSymbolVisit
         }
     }
 
-    public Context process(Symbol... symbols) {
-        Context context = new Context();
-        for (Symbol symbol : symbols) {
-            process(symbol, context);
-        }
-        return context;
-    }
-
     public Context process(Collection<Symbol> symbols) {
         Context context = new Context();
         for (Symbol symbol : symbols) {

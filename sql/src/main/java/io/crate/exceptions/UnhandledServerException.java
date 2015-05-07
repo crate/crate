@@ -35,10 +35,6 @@ public class UnhandledServerException extends RuntimeException implements CrateE
         super(cause);
     }
 
-    public UnhandledServerException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
-
     @Override
     public int errorCode() {
         return 0;

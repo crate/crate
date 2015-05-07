@@ -61,10 +61,6 @@ public class JobCollectContext implements ExecutionSubContext {
         this.downstream = downstream;
     }
 
-    public UUID id() {
-        return id;
-    }
-
     public RamAccountingContext ramAccountingContext() {
         return ramAccountingContext;
     }

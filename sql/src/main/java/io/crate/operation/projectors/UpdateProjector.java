@@ -38,8 +38,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
@@ -51,7 +49,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class UpdateProjector implements Projector, RowDownstreamHandle {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(UpdateProjector.class);
     public static final int DEFAULT_BULK_SIZE = 1024;
 
     private RowDownstreamHandle downstream;

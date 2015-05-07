@@ -62,10 +62,6 @@ public class SymbolToFieldExtractor<T> {
             references.add(reference);
         }
 
-        public List<Reference> references() {
-            return references;
-        }
-
         public String[] referenceNames() {
             if (referenceNames == null) {
                 referenceNames = Lists.transform(references, new com.google.common.base.Function<Reference, String>() {

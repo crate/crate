@@ -21,9 +21,7 @@
 
 package io.crate.executor.transport.distributed;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -37,23 +35,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+@SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
 public class MultiBucketBuilder {
-
-    public static final Function<StreamBucket.Builder, Bucket> BUILD_FUNCTION_THREAD_SAFE =
-            new Function<StreamBucket.Builder, Bucket>() {
-                @Nullable
-                @Override
-                public Bucket apply(StreamBucket.Builder input) {
-                    synchronized (input) {
-                        try {
-                            return input.build();
-                        } catch (IOException e) {
-                            Throwables.propagate(e);
-                        }
-                    }
-                    return null;
-                }
-            };
 
     private final List<StreamBucket.Builder> bucketBuilders;
 
@@ -62,10 +45,6 @@ public class MultiBucketBuilder {
         for (int i = 0; i < numBuckets; i++) {
             bucketBuilders.add(new StreamBucket.Builder(streamers));
         }
-    }
-
-    public List<Bucket> build() {
-        return Lists.transform(bucketBuilders, BUILD_FUNCTION_THREAD_SAFE);
     }
 
     public Bucket build(int bucketIdx) {

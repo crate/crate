@@ -67,11 +67,6 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
         return this;
     }
 
-    public BulkCreateIndicesRequest requests(List<CreateIndexRequest> requests) {
-        this.createIndexRequests = requests;
-        return this;
-    }
-
     public Collection<CreateIndexRequest> requests() {
         return createIndexRequests;
     }

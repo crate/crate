@@ -82,6 +82,6 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
     }
 
     protected Streamer<?>[] getStreamers(ExecutionNode node) {
-        return streamerVisitor.processExecutionNode(node, null).outputStreamers();
+        return streamerVisitor.processExecutionNode(node).outputStreamers();
     }
 }

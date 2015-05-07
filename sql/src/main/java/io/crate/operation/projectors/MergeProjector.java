@@ -187,12 +187,6 @@ public class MergeProjector implements Projector  {
             }
         }
 
-        public boolean isEmpty() {
-            synchronized (lock) {
-                return rows.isEmpty();
-            }
-        }
-
         public boolean emitUntil(Row until) {
             synchronized (lock) {
                 while (firstRow != null && ordering.compare(firstRow, until) >= 0) {

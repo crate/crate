@@ -41,7 +41,6 @@ public class RowInputSymbolVisitor extends AbstractImplementationSymbolVisitor<R
         private Row row;
         private List<Reference> references = new ArrayList<>();
 
-        private int inputIndexPartitionedBy = 0;
         private Row partitionByRow;
         private List<ReferenceInfo> partitionedBy;
 

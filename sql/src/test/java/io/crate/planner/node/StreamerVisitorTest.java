@@ -23,7 +23,6 @@ package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -44,23 +43,20 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class StreamerVisitorTest extends CrateUnitTest {
-
-    private static final RamAccountingContext ramAccountingContext =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private StreamerVisitor visitor;
     private FunctionInfo maxInfo;
@@ -83,7 +79,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
     public void testGetOutputStreamersFromCollectNode() throws Exception {
         CollectNode collectNode = new CollectNode(0, "bla", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.FLOAT, DataTypes.OBJECT));
-        StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode, ramAccountingContext);
+        StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode);
         Streamer<?>[] streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(3));
         assertThat(streamers[0], instanceOf(DataTypes.BOOLEAN.streamer().getClass()));
@@ -91,7 +87,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
         assertThat(streamers[2], instanceOf(DataTypes.OBJECT.streamer().getClass()));
 
         // as executionNode
-        ctx = visitor.processExecutionNode(collectNode, ramAccountingContext);
+        ctx = visitor.processExecutionNode(collectNode);
         streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(3));
         assertThat(streamers[0], instanceOf(DataTypes.BOOLEAN.streamer().getClass()));
@@ -104,12 +100,12 @@ public class StreamerVisitorTest extends CrateUnitTest {
         // null means we expect an aggstate here
         CollectNode collectNode = new CollectNode(0, "bla", EMPTY_ROUTING);
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, DataTypes.OBJECT));
-        StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode, ramAccountingContext);
+        StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode);
         // assume an unknown column
         assertEquals(DataTypes.UNDEFINED.streamer(), ctx.outputStreamers()[1]);
 
         // as executionNode
-        ctx = visitor.processExecutionNode(collectNode, ramAccountingContext);
+        ctx = visitor.processExecutionNode(collectNode);
         // assume an unknown column
         assertEquals(DataTypes.UNDEFINED.streamer(), ctx.outputStreamers()[1]);
     }
@@ -124,7 +120,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
                 new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
         ));
         collectNode.projections(Arrays.<Projection>asList(aggregationProjection));
-        StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode, ramAccountingContext);
+        StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode);
         Streamer<?>[] streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(4));
         assertThat(streamers[0], instanceOf(DataTypes.BOOLEAN.streamer().getClass()));
@@ -145,8 +141,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
                         Aggregation.Step.PARTIAL, Aggregation.Step.FINAL))
         );
         collectNode.projections(Arrays.<Projection>asList(groupProjection, new TopNProjection(10,0)));
-        RamAccountingContext mockedRamCtx = mock(RamAccountingContext.class);
-        StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode, mockedRamCtx);
+        StreamerVisitor.Context ctx = visitor.processPlanNode(collectNode);
         Streamer<?>[] streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(1));
         assertThat(streamers[0], instanceOf(DataTypes.LONG.streamer().getClass()));
@@ -156,7 +151,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
     public void testGetInputStreamersForMergeNode() throws Exception {
         MergeNode mergeNode = new MergeNode(0, "mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.SHORT, DataTypes.TIMESTAMP));
-        StreamerVisitor.Context ctx = visitor.processPlanNode(mergeNode, ramAccountingContext);
+        StreamerVisitor.Context ctx = visitor.processPlanNode(mergeNode);
         Streamer<?>[] streamers = ctx.inputStreamers();
         assertThat(streamers.length, is(3));
         assertThat(streamers[0], instanceOf(DataTypes.BOOLEAN.streamer().getClass()));
@@ -168,7 +163,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
     public void testGetInputStreamersForMergeNodeWithWrongNull() throws Exception {
         MergeNode mergeNode = new MergeNode(0, "mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, DataTypes.TIMESTAMP));
-        visitor.processPlanNode(mergeNode, ramAccountingContext);
+        visitor.processPlanNode(mergeNode);
     }
 
     @Test
@@ -180,7 +175,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
                 new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
         mergeNode.projections(Arrays.<Projection>asList(aggregationProjection));
-        StreamerVisitor.Context ctx = visitor.processPlanNode(mergeNode, ramAccountingContext);
+        StreamerVisitor.Context ctx = visitor.processPlanNode(mergeNode);
         Streamer<?>[] streamers = ctx.inputStreamers();
         assertThat(streamers.length, is(2));
         assertThat(streamers[0], instanceOf(DataTypes.INTEGER.streamer().getClass()));
@@ -222,7 +217,7 @@ public class StreamerVisitorTest extends CrateUnitTest {
 
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
         mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.LONG, DataTypes.STRING));
-        StreamerVisitor.Context context = visitor.processPlanNode(mergeNode, ramAccountingContext);
+        StreamerVisitor.Context context = visitor.processPlanNode(mergeNode);
         assertSame(DataTypes.STRING.streamer(), context.outputStreamers()[1]);
         assertSame(DataTypes.LONG.streamer(), context.outputStreamers()[0]);
     }

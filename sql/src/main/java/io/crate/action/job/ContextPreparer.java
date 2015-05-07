@@ -163,7 +163,7 @@ public class ContextPreparer {
                     context.ramAccountingContext,
                     Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
             );
-            StreamerVisitor.Context streamerContext = streamerVisitor.processPlanNode(node, context.ramAccountingContext);
+            StreamerVisitor.Context streamerContext = streamerVisitor.processPlanNode(node);
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
                     pageDownstream, streamerContext.inputStreamers(), node.numUpstreams());
 

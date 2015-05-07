@@ -31,10 +31,10 @@ import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.UpsertByIdContext;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -47,8 +47,6 @@ import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -74,8 +72,6 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
     @Nullable
     private SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
-
-    private static final ESLogger logger = Loggers.getLogger(SymbolBasedUpsertByIdTask.class);
 
     public SymbolBasedUpsertByIdTask(UUID jobId,
                                      ClusterService clusterService,

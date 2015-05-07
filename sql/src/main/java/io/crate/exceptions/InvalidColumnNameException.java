@@ -23,10 +23,6 @@ package io.crate.exceptions;
 
 public class InvalidColumnNameException extends ValidationException {
 
-    public InvalidColumnNameException(String columnName, Throwable e) {
-        super(String.format("column name \"%s\" is invalid.", columnName), e);
-    }
-
     public InvalidColumnNameException(String columnName) {
         super(String.format("column name \"%s\" is invalid.", columnName));
     }

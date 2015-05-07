@@ -92,11 +92,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         this.downstreamNodes = ImmutableList.of(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE);
     }
 
-    public CollectNode(int executionNodeId, String name, @Nullable UUID jobId) {
-        super(executionNodeId, name);
-        this.jobId = Optional.fromNullable(jobId);
-    }
-
     @Override
     public Type type() {
         return Type.COLLECT;

@@ -76,14 +76,6 @@ public abstract class TermBuilder<T> {
             NumericUtils.intToPrefixCoded(value, 0, builder);
             return builder.get();
         }
-
-        public BytesRef term(Byte value) {
-            return term(value.intValue());
-        }
-
-        public BytesRef term(Short value) {
-            return term(value.intValue());
-        }
     }
 
     static class ByteTermBuilder extends TermBuilder<Byte> {

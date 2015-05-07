@@ -57,10 +57,6 @@ public class ESClusterUpdateSettingsNode extends DDLPlanNode {
         transientSettings = ImmutableSettings.EMPTY;
     }
 
-    public ESClusterUpdateSettingsNode(Set<String> persistentSettingsToRemove) {
-        this(persistentSettingsToRemove, persistentSettingsToRemove);
-    }
-
     public Settings persistentSettings() {
         return persistentSettings;
     }

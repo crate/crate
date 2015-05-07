@@ -105,12 +105,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
     public Projector process(Projection projection,
                              RamAccountingContext ramAccountingContext,
-                             Optional<UUID> jobId) {
-        return super.process(projection, new Context(ramAccountingContext, jobId));
-    }
-
-    public Projector process(Projection projection,
-                             RamAccountingContext ramAccountingContext,
                              Optional<UUID> jobId,
                              Optional<IntObjectOpenHashMap<String>> jobSearchContextIdToNode,
                              Optional<IntObjectOpenHashMap<ShardId>> jobSearchContextIdToShard) {

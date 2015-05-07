@@ -46,7 +46,6 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -70,13 +69,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
             new ReferenceIdent(charactersIdent, "name"), RowGranularity.DOC, DataTypes.STRING));
     Reference femaleRef = TestingHelpers.createReference(charactersIdent.name(), new ColumnIdent("female"), DataTypes.BOOLEAN);
 
-    Reference booksIdRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(booksIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));
-    Reference titleRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(booksIdent, "title"), RowGranularity.DOC, DataTypes.STRING));
-    Reference authorRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(booksIdent, "author"), RowGranularity.DOC, DataTypes.STRING));
-
     TableIdent partedTable = new TableIdent("doc", "parted");
     Reference partedIdRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(partedTable, "id"), RowGranularity.DOC, DataTypes.INTEGER));
@@ -84,10 +76,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
             new ReferenceIdent(partedTable, "name"), RowGranularity.DOC, DataTypes.STRING));
     Reference partedDateRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(partedTable, "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP));
-
-    protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, String singleStringKey, int executionNodeId) {
-        return newGetNode(tableInfo, outputs, Arrays.asList(singleStringKey), executionNodeId);
-    }
 
     protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
         QuerySpec querySpec = new QuerySpec();

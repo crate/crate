@@ -87,37 +87,9 @@ public class ShardUpsertResponse extends ActionResponse implements BulkProcessor
      
     public static class Response implements Streamable {
          
-        private String id;
-        private long version;
-        private boolean created;
-         
         Response() {
         }
-         
-        public Response(String id, long version, boolean created) {
-            this.id = id;
-            this.version = version;
-            this.created = created;
-        }
-         
-        public String id() {
-            return this.id;
-        }
-         
-        /**
-         * Returns the current version of the doc indexed.
-         */
-        public long version() {
-            return this.version;
-        }
-         
-        /**
-         * Returns true if document was created due to an UPSERT operation
-         */
-        public boolean created() {
-            return this.created;
-        }
-         
+
         public static Response readResponse(StreamInput in) throws IOException {
             Response response = new Response();
             response.readFrom(in);
@@ -126,35 +98,20 @@ public class ShardUpsertResponse extends ActionResponse implements BulkProcessor
          
         @Override
         public void readFrom(StreamInput in) throws IOException {
-            id = in.readString();
-            version = in.readLong();
-            created = in.readBoolean();
         }
          
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(id);
-            out.writeLong(version);
-            out.writeBoolean(created);
         }
     }
 
 
 
-    private String index;
     private IntArrayList locations = new IntArrayList();
     private List<Response> responses = new ArrayList<>();
     private List<Failure> failures = new ArrayList<>();
 
     public ShardUpsertResponse() {
-    }
-
-    public ShardUpsertResponse(String index) {
-        this.index = index;
-    }
-
-    public String index() {
-        return this.index;
     }
 
     public void add(int location, Response response) {
@@ -187,7 +144,6 @@ public class ShardUpsertResponse extends ActionResponse implements BulkProcessor
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        index = in.readSharedString();
         int size = in.readVInt();
         locations = new IntArrayList(size);
         responses = new ArrayList<>(size);
@@ -210,7 +166,6 @@ public class ShardUpsertResponse extends ActionResponse implements BulkProcessor
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeSharedString(index);
         out.writeVInt(locations.size());
         for (int i = 0; i < locations.size(); i++) {
             out.writeVInt(locations.get(i));

@@ -55,8 +55,6 @@ public class InsertFromSubQueryConsumer implements Consumer {
     private static class Context {
         ConsumerContext consumerContext;
         boolean result = false;
-        boolean insertVisited = false;
-        ColumnIndexWriterProjection indexWriterProjection;
 
         public Context(ConsumerContext context){
             this.consumerContext = context;
@@ -87,9 +85,6 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     ImmutableSettings.EMPTY,
                     insertFromSubQueryAnalyzedStatement.tableInfo().isPartitioned()
             );
-
-            context.insertVisited = true;
-            context.indexWriterProjection = indexWriterProjection;
 
             AnalyzedRelation innerRelation = insertFromSubQueryAnalyzedStatement.subQueryRelation();
             if (innerRelation instanceof PlannedAnalyzedRelation) {

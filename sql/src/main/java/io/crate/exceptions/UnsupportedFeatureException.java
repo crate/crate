@@ -23,10 +23,6 @@ package io.crate.exceptions;
 
 public class UnsupportedFeatureException extends ValidationException {
 
-    public UnsupportedFeatureException(Throwable e) {
-        super(e);
-    }
-
     public UnsupportedFeatureException(String msg) {
         super(msg);
     }
