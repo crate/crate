@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.JobTask;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.KillAllResponse;
@@ -37,6 +38,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class KillTask extends JobTask {
@@ -61,12 +63,14 @@ public class KillTask extends JobTask {
         DiscoveryNodes nodes = clusterService.state().nodes();
         KillAllRequest request = new KillAllRequest();
         final AtomicInteger counter = new AtomicInteger(nodes.size());
+        final AtomicLong numKilled = new AtomicLong(0);
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
 
         for (DiscoveryNode node : nodes) {
             transportKillAllNodeAction.execute(node.id(), request, new ActionListener<KillAllResponse>() {
                 @Override
                 public void onResponse(KillAllResponse killAllResponse) {
+                    numKilled.addAndGet(killAllResponse.numKilled());
                     countdown();
                 }
 
@@ -80,7 +84,7 @@ public class KillTask extends JobTask {
                     if (counter.decrementAndGet() == 0) {
                         Throwable throwable = lastThrowable.get();
                         if (throwable == null) {
-                            result.set(TaskResult.ROW_COUNT_UNKNOWN);
+                            result.set(new RowCountResult(numKilled.get()));
                         } else {
                             result.setException(throwable);
                         }

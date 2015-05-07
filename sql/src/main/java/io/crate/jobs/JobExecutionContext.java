@@ -156,7 +156,8 @@ public class JobExecutionContext {
         return this.keepAlive;
     }
 
-    public void kill() {
+    public long kill() {
+        long numKilled = 0L;
         if (!closed.getAndSet(true)) {
             if (activeSubContexts.get() == 0) {
                 callContextCallback();
@@ -165,9 +166,11 @@ public class JobExecutionContext {
                     // kill will trigger the ContextCallback onClose too
                     // so it is not necessary to remove the executionSubContext from the map here as it will be done in the callback
                     executionSubContext.kill();
+                    numKilled++;
                 }
             }
         }
+        return numKilled;
     }
 
     public void close() {

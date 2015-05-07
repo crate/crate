@@ -32,6 +32,7 @@ import org.junit.rules.ExpectedException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -71,10 +72,11 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
         PageDownstreamContext pageDownstreamContext = mock(PageDownstreamContext.class);
         builder.addSubContext(1, pageDownstreamContext);
+        builder.addSubContext(2, mock(PageDownstreamContext.class));
         JobExecutionContext jobExecutionContext = builder.build();
 
-        jobExecutionContext.kill();
-        jobExecutionContext.kill(); // second call is ignored, only killed once
+        assertThat(jobExecutionContext.kill(), is(2L));
+        assertThat(jobExecutionContext.kill(), is(0L)); // second call is ignored, only killed once
 
         verify(pageDownstreamContext, times(1)).kill();
     }
