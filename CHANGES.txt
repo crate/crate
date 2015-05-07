@@ -5,26 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
-NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
-
- - Fix: fix update queries on partitioned tables which are partitioned
-   by part of the primary key
-
- - Fix: correctly display initial and reset settings in ``sys.cluster.settings``
-
- - add dynamic settings ``bulk.request_timeout`` and ``bulk.partition_creation_timeout``
-
- - make the ``sys.shards.size`` expression refresh all 10 seconds maximum
-
  - Fix: performing queries on a partitioned table could cause unnecessary
    ``execution rejected`` errors
 
- - Fixed an issue that caused GROUP BY queries with multiple group keys, no
-   order by and limit to hang.
-
  - Add plugin support
-
- - Increased performance of ``hostname`` and ``id`` expression for ``sys.nodes`` table
 
  - Removed the limitation that the WHERE clause couldn't contain certain
    expressions in `select count(*)` queries.
@@ -40,6 +24,25 @@ NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
  - Ordering by `_score` must be defined explictly now even when using a
    `match` predicate.
    Note: This is a backward incompatibility change.
+
+2015/05/07 0.48.4
+=================
+
+NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
+
+ - Fix: fix update queries on partitioned tables which are partitioned
+   by part of the primary key
+
+ - Fix: correctly display initial and reset settings in ``sys.cluster.settings``
+
+ - add dynamic settings ``bulk.request_timeout`` and ``bulk.partition_creation_timeout``
+
+ - make the ``sys.shards.size`` expression refresh all 10 seconds maximum
+
+ - Fixed an issue that caused GROUP BY queries with multiple group keys, no
+   order by and limit to hang.
+
+ - Increased performance of ``hostname`` and ``id`` expression for ``sys.nodes`` table
 
 2015/04/28 0.48.3
 =================
