@@ -22,33 +22,77 @@
 package io.crate.executor.transport.task;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.kill.KillAllRequest;
+import io.crate.executor.transport.kill.KillAllResponse;
+import io.crate.executor.transport.kill.TransportKillAllNodeAction;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class KillTask extends JobTask {
 
-    // TODO: add kill transport
-    public KillTask(UUID jobId) {
+    private final SettableFuture<TaskResult> result;
+    private final List<ListenableFuture<TaskResult>> results;
+    private ClusterService clusterService;
+    private TransportKillAllNodeAction transportKillAllNodeAction;
+
+    public KillTask(ClusterService clusterService,
+                    TransportKillAllNodeAction transportKillAllNodeAction,
+                    UUID jobId) {
         super(jobId);
+        this.clusterService = clusterService;
+        this.transportKillAllNodeAction = transportKillAllNodeAction;
+        result = SettableFuture.create();
+        results = ImmutableList.of((ListenableFuture<TaskResult>) result);
     }
 
     @Override
     public void start() {
-        // TODO: do something
+        DiscoveryNodes nodes = clusterService.state().nodes();
+        KillAllRequest request = new KillAllRequest();
+        final AtomicInteger counter = new AtomicInteger(nodes.size());
+        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
+
+        for (DiscoveryNode node : nodes) {
+            transportKillAllNodeAction.execute(node.id(), request, new ActionListener<KillAllResponse>() {
+                @Override
+                public void onResponse(KillAllResponse killAllResponse) {
+                    countdown();
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    lastThrowable.set(e);
+                    countdown();
+                }
+
+                private void countdown() {
+                    if (counter.decrementAndGet() == 0) {
+                        Throwable throwable = lastThrowable.get();
+                        if (throwable == null) {
+                            result.set(TaskResult.ROW_COUNT_UNKNOWN);
+                        } else {
+                            result.setException(throwable);
+                        }
+                    }
+                }
+            });
+        }
     }
 
     @Override
     public List<ListenableFuture<TaskResult>> result() {
-        return ImmutableList.of(
-                Futures.<TaskResult>immediateFailedFuture(
-                        new UnsupportedOperationException("KILL statement not supported")
-                )
-        );
+        return results;
     }
 
     @Override

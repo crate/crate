@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import io.crate.action.job.TransportJobAction;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
+import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class TransportExecutorModule extends AbstractModule {
@@ -39,5 +40,6 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportShardUpsertAction.class).asEagerSingleton();
         bind(TransportFetchNodeAction.class).asEagerSingleton();
         bind(TransportCloseContextNodeAction.class).asEagerSingleton();
+        bind(TransportKillAllNodeAction.class).asEagerSingleton();
     }
 }

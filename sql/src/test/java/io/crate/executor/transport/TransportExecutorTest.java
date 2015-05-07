@@ -52,7 +52,6 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -65,7 +64,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
@@ -738,13 +736,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(KillPlan.INSTANCE);
         assertThat(job.tasks(), hasSize(1));
         assertThat(job.tasks().get(0), instanceOf(KillTask.class));
-
-        expectedException.expect(ExecutionException.class);
-        expectedException.expectCause(
-                TestingHelpers.cause(
-                        UnsupportedOperationException.class,
-                        "KILL statement not supported")
-        );
 
         List<ListenableFuture<TaskResult>> results = executor.execute(job);
         assertThat(results, hasSize(1));
