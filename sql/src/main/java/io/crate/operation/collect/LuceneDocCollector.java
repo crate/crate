@@ -23,7 +23,7 @@ package io.crate.operation.collect;
 
 import io.crate.Constants;
 import io.crate.action.sql.query.CrateSearchContext;
-import io.crate.action.sql.query.CrateSearchService;
+import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
@@ -214,7 +214,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         try {
             if( orderBy != null) {
                 Integer batchSize = limit == null ? pageSize : Math.min(pageSize, limit);
-                Sort sort = CrateSearchService.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
+                Sort sort = LuceneSortGenerator.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
                 TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
                 int collected = topFieldDocs.scoreDocs.length;
                 ScoreDoc lastCollected = collectTopFields(topFieldDocs);
