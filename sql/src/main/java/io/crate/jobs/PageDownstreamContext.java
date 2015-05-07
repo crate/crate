@@ -175,6 +175,11 @@ public class PageDownstreamContext implements ExecutionSubContext {
         finish();
     }
 
+    @Override
+    public void kill() {
+        throw new UnsupportedOperationException("kill is not implemented");
+    }
+
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {
 
         @Override

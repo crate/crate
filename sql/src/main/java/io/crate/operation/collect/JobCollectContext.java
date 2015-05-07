@@ -228,6 +228,11 @@ public class JobCollectContext implements ExecutionSubContext {
         }
     }
 
+    @Override
+    public void kill() {
+        throw new UnsupportedOperationException("kill is not implemented");
+    }
+
     /**
      * Acquire a new searcher, wrapper method needed for simplified testing
      */
