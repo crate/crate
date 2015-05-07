@@ -47,6 +47,7 @@ import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
@@ -464,6 +465,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         }
         return node != null ? new IterablePlan(node) : NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, Context context) {
+        return KillPlan.INSTANCE;
     }
 
     private void createESDeleteNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
