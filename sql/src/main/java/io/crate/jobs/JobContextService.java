@@ -113,6 +113,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return newContext;
     }
 
+    public void killAll() {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
     private class RemoveContextCallback implements ContextCallback {
         private final UUID jobId;
 
