@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.action.job.TransportJobAction;
+import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -67,6 +68,7 @@ public class TransportActionProvider {
     private final Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider;
 
     private final Provider<TransportJobAction> transportJobInitActionProvider;
+    private final Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider;
 
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
@@ -82,6 +84,7 @@ public class TransportActionProvider {
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
                                    Provider<SymbolBasedTransportShardUpsertAction> symbolBasedTransportShardUpsertActionProvider,
+                                   Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider,
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
                                    Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
@@ -99,6 +102,7 @@ public class TransportActionProvider {
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.symbolBasedTransportShardUpsertActionProvider = symbolBasedTransportShardUpsertActionProvider;
+        this.transportKillAllNodeActionProvider = transportKillAllNodeActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
         this.transportCloseContextNodeActionProvider = transportCloseContextNodeActionProvider;
@@ -183,5 +187,9 @@ public class TransportActionProvider {
 
     public TransportUpdateSettingsAction transportUpdateSettingsAction() {
         return transportUpdateSettingsActionProvider.get();
+    }
+
+    public TransportKillAllNodeAction transportKillAllNodeAction() {
+        return transportKillAllNodeActionProvider.get();
     }
 }
