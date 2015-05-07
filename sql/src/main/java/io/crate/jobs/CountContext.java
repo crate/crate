@@ -97,6 +97,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
         }
     }
 
+    @Override
     public void kill() {
         if (countFuture != null) {
             countFuture.cancel(true);

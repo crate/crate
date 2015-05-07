@@ -25,4 +25,5 @@ public interface ExecutionSubContext {
 
     void addCallback(ContextCallback contextCallback);
     void close();
+    void kill();
 }
