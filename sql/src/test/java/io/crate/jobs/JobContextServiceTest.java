@@ -134,7 +134,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, JobExecutionContext> activeContexts = (Map<UUID, JobExecutionContext>) activeContextsField.get(jobContextService);
         assertThat(activeContexts.size(), is(1));
-        jobContextService.killAll();
+        assertThat(jobContextService.killAll(), is(1L));
 
         assertThat(killCalled.get(), is(true));
         assertThat(activeContexts.size(), is(0));

@@ -59,7 +59,7 @@ public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, Ki
                 new DefaultTransportResponseHandler<KillAllResponse>(listener, executorName()) {
             @Override
             public KillAllResponse newInstance() {
-                return new KillAllResponse();
+                return new KillAllResponse(0);
             }
         });
     }
@@ -77,8 +77,7 @@ public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, Ki
     @Override
     public void nodeOperation(KillAllRequest request, ActionListener<KillAllResponse> listener) {
         try {
-            jobContextService.killAll();
-            listener.onResponse(new KillAllResponse());
+            listener.onResponse(new KillAllResponse(jobContextService.killAll()));
         } catch (Throwable t) {
             listener.onFailure(t);
         }
