@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class JobExecutionContext {
@@ -41,6 +42,7 @@ public class JobExecutionContext {
     private final UUID jobId;
     private final long keepAlive;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
+    private final AtomicBoolean closed = new AtomicBoolean(false);
     private ThreadPool threadPool;
 
     volatile ContextCallback contextCallback;
@@ -143,13 +145,29 @@ public class JobExecutionContext {
         return this.keepAlive;
     }
 
+    public void kill() {
+        if (!closed.getAndSet(true)) {
+            if (activeSubContexts.get() == 0) {
+                callContextCallback();
+            } else {
+                for (ExecutionSubContext executionSubContext : subContexts.values()) {
+                    // kill will trigger the ContextCallback onClose too
+                    // so it is not necessary to remove the executionSubContext from the map here as it will be done in the callback
+                    executionSubContext.kill();
+                }
+            }
+        }
+    }
+
     public void close() {
-        LOGGER.trace("close called on JobExecutionContext {}", jobId);
-        if (activeSubContexts.get() == 0) {
-            callContextCallback();
-        } else {
-            for (ExecutionSubContext executionSubContext : subContexts.values()) {
-                executionSubContext.close();
+        if (!closed.getAndSet(true)) {
+            LOGGER.trace("close called on JobExecutionContext {}", jobId);
+            if (activeSubContexts.get() == 0) {
+                callContextCallback();
+            } else {
+                for (ExecutionSubContext executionSubContext : subContexts.values()) {
+                    executionSubContext.close();
+                }
             }
         }
     }

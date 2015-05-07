@@ -33,6 +33,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class JobExecutionContextTest extends CrateUnitTest {
 
@@ -61,5 +63,20 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
         builder.addSubContext(1, mock(PageDownstreamContext.class));
         builder.addSubContext(1, mock(PageDownstreamContext.class));
+    }
+
+
+    @Test
+    public void testKillPropagatesToSubContexts() throws Exception {
+        JobExecutionContext.Builder builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
+
+        PageDownstreamContext pageDownstreamContext = mock(PageDownstreamContext.class);
+        builder.addSubContext(1, pageDownstreamContext);
+        JobExecutionContext jobExecutionContext = builder.build();
+
+        jobExecutionContext.kill();
+        jobExecutionContext.kill(); // second call is ignored, only killed once
+
+        verify(pageDownstreamContext, times(1)).kill();
     }
 }

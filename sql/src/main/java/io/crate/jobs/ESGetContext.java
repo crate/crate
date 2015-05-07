@@ -65,6 +65,11 @@ public class ESGetContext implements ExecutionSubContext {
         }
     }
 
+    @Override
+    public void kill() {
+        throw new UnsupportedOperationException("kill is not implemented");
+    }
+
     private static class InternalActionListener implements ActionListener {
 
         private final ActionListener listener;

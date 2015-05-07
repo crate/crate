@@ -110,4 +110,9 @@ public class UpsertByIdContext implements ExecutionSubContext {
             }
         }
     }
+
+    @Override
+    public void kill() {
+        throw new UnsupportedOperationException("kill is not implemented");
+    }
 }
