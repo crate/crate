@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 
@@ -55,6 +56,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     private final ScheduledFuture<?> keepAliveReaper;
     private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
+
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
+    private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
 
     @Inject
     public JobContextService(Settings settings,
@@ -104,17 +109,32 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         }
         final UUID jobId = contextBuilder.jobId();
         JobExecutionContext newContext = contextBuilder.build();
-        newContext.contextCallback(new RemoveContextCallback(jobId));
-        JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
-        if (existing != null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "context for job %s already exists", jobId));
+
+        readLock.lock();
+        try {
+            newContext.contextCallback(new RemoveContextCallback(jobId));
+            JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
+            if (existing != null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "context for job %s already exists", jobId));
+            }
+        } finally {
+            readLock.unlock();
         }
         return newContext;
     }
 
     public void killAll() {
-        throw new UnsupportedOperationException("Not implemented");
+        writeLock.lock();
+        try {
+            for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
+                jobExecutionContext.kill();
+            }
+            assert activeContexts.size() == 0 :
+                    "after killing all contexts they should have been removed from the map due to the callbacks";
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private class RemoveContextCallback implements ContextCallback {
