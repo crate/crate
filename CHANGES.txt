@@ -2,8 +2,8 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2015/05/07 0.48.4
+=================
 
 NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 
