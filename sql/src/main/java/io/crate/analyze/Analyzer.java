@@ -187,6 +187,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
+            context.expectsAffectedRows(true);
             return KillAnalyzedStatement.INSTANCE;
         }
 
