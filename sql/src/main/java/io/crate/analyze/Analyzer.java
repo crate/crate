@@ -186,6 +186,11 @@ public class Analyzer {
         }
 
         @Override
+        public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
+            return KillAnalyzedStatement.INSTANCE;
+        }
+
+        @Override
         protected AnalyzedStatement visitNode(Node node, Analysis context) {
             throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", node));
         }

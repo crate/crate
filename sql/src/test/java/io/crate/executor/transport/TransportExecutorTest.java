@@ -31,6 +31,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.metadata.*;
@@ -46,8 +47,10 @@ import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -55,9 +58,12 @@ import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
@@ -66,9 +72,8 @@ import static org.hamcrest.core.Is.is;
 
 public class TransportExecutorTest extends BaseTransportExecutorTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setup() {
@@ -716,5 +721,23 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
             // each of the bulk request hits 2 records
             assertThat(((RowCountResult)result).rowCount(), is(2L));
         }
+    }
+
+    @Test
+    public void testKillTask() throws Exception {
+        Job job = executor.newJob(KillPlan.INSTANCE);
+        assertThat(job.tasks(), hasSize(1));
+        assertThat(job.tasks().get(0), instanceOf(KillTask.class));
+
+        expectedException.expect(ExecutionException.class);
+        expectedException.expectCause(
+                TestingHelpers.cause(
+                        UnsupportedOperationException.class,
+                        "KILL statement not supported")
+        );
+
+        List<ListenableFuture<TaskResult>> results = executor.execute(job);
+        assertThat(results, hasSize(1));
+        results.get(0).get();
     }
 }
