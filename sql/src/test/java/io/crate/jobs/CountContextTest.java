@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnknownUpstreamFailure;
@@ -30,6 +31,9 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.count.CountOperation;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
@@ -61,5 +65,42 @@ public class CountContextTest extends CrateUnitTest {
         countContext.start();
         future.setException(new UnknownUpstreamFailure());
         verify(callback, times(1)).onClose();
+    }
+
+    @Test
+    public void testKillOperationFuture() throws Exception {
+        ListenableFuture<Long> future = mock(ListenableFuture.class);
+        CountOperation countOperation = new FakeCountOperation(future);
+
+        RowDownstream rowDownstream = mock(RowDownstream.class);
+        when(rowDownstream.registerUpstream(any(RowUpstream.class))).thenReturn(mock(RowDownstreamHandle.class));
+        CountContext countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+
+        ContextCallback callback = mock(ContextCallback.class);
+        countContext.addCallback(callback);
+        countContext.start();
+        countContext.kill();
+
+        verify(future, times(1)).cancel(true);
+        verify(callback, times(1)).onClose();
+    }
+
+    private static class FakeCountOperation implements CountOperation {
+
+        private final ListenableFuture<Long> future;
+
+        public FakeCountOperation(ListenableFuture<Long> future) {
+            this.future = future;
+        }
+
+        @Override
+        public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap, WhereClause whereClause) throws IOException, InterruptedException {
+            return future;
+        }
+
+        @Override
+        public long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
+            return 0;
+        }
     }
 }
