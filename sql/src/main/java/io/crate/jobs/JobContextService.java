@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 
@@ -54,6 +55,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     private final ScheduledFuture<?> keepAliveReaper;
     private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
+
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
+    private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
 
     @Inject
     public JobContextService(Settings settings,
@@ -104,31 +109,45 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         final UUID jobId = contextBuilder.jobId();
         JobExecutionContext newContext = contextBuilder.build();
 
-        while (true) {
-            JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
-            if (existing == null) {
-                newContext.contextCallback(new RemoveContextCallback(jobId));
-                return newContext;
-            } else {
-                LOGGER.trace("context for job {} already existed. Merging them ", jobId);
-                ContextCallback callback = existing.contextCallback;
-                synchronized (existing.mergeLock) {
-                    existing.contextCallback = null;
-                    existing.merge(newContext);
-                }
-                JobExecutionContext context = activeContexts.putIfAbsent(jobId, existing);
-                if (context == null || existing == context) {
+        readLock.lock();
+        try {
+            while (true) {
+                JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
+                if (existing == null) {
+                    newContext.contextCallback(new RemoveContextCallback(jobId));
+                    return newContext;
+                } else {
+                    LOGGER.trace("context for job {} already existed. Merging them ", jobId);
+                    ContextCallback callback = existing.contextCallback;
                     synchronized (existing.mergeLock) {
-                        existing.contextCallback = callback;
+                        existing.contextCallback = null;
+                        existing.merge(newContext);
                     }
-                    return existing;
+                    JobExecutionContext context = activeContexts.putIfAbsent(jobId, existing);
+                    if (context == null || existing == context) {
+                        synchronized (existing.mergeLock) {
+                            existing.contextCallback = callback;
+                        }
+                        return existing;
+                    }
                 }
             }
+        } finally {
+            readLock.unlock();
         }
     }
 
     public void killAll() {
-        throw new UnsupportedOperationException("Not implemented");
+        writeLock.lock();
+        try {
+            for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
+                jobExecutionContext.kill();
+            }
+            assert activeContexts.size() == 0 :
+                    "after killing all contexts they should have been removed from the map due to the callbacks";
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private class RemoveContextCallback implements ContextCallback {
