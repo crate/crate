@@ -21,7 +21,10 @@
 
 package io.crate.executor.transport.task;
 
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.kill.KillAllRequest;
+import io.crate.executor.transport.kill.KillAllResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
@@ -32,20 +35,49 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.transport.DummyTransportAddress;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
 public class KillTaskTest extends CrateUnitTest {
 
+    @Captor
+    public ArgumentCaptor<ActionListener<KillAllResponse>> responseListener;
+
+    private KillTask killTask;
 
     @SuppressWarnings("unchecked")
     @Test
     public void testExecuteIsCalledOnTransportForEachNode() throws Exception {
+        TransportKillAllNodeAction killNodeAction = startKillTaskAndGetTransportKillAllNodeAction();
+
+        verify(killNodeAction, times(1)).execute(eq("n1"), any(KillAllRequest.class), any(ActionListener.class));
+        verify(killNodeAction, times(1)).execute(eq("n2"), any(KillAllRequest.class), any(ActionListener.class));
+        verify(killNodeAction, times(1)).execute(eq("n3"), any(KillAllRequest.class), any(ActionListener.class));
+    }
+
+    @Test
+    public void testRowCountIsAccumulated() throws Exception {
+        TransportKillAllNodeAction killNodeAction = startKillTaskAndGetTransportKillAllNodeAction();
+        verify(killNodeAction, times(3)).execute(anyString(), any(KillAllRequest.class), responseListener.capture());
+
+        for (ActionListener<KillAllResponse> killAllResponseActionListener : responseListener.getAllValues()) {
+            killAllResponseActionListener.onResponse(new KillAllResponse(3));
+        }
+
+        Bucket rows = killTask.result().get(0).get().rows();
+        assertThat(rows.size(), is(1));
+        Row next = rows.iterator().next();
+        assertThat((Long) next.get(0), is(9L));
+    }
+
+    private TransportKillAllNodeAction startKillTaskAndGetTransportKillAllNodeAction() {
         ClusterService clusterService = mock(ClusterService.class);
         TransportKillAllNodeAction killNodeAction = mock(TransportKillAllNodeAction.class);
-
         DiscoveryNodes nodes = DiscoveryNodes.builder()
                 .put(new DiscoveryNode("n1", DummyTransportAddress.INSTANCE, Version.CURRENT))
                 .put(new DiscoveryNode("n2", DummyTransportAddress.INSTANCE, Version.CURRENT))
@@ -55,11 +87,9 @@ public class KillTaskTest extends CrateUnitTest {
         when(clusterService.state()).thenReturn(state);
         when(state.nodes()).thenReturn(nodes);
 
-        KillTask killTask = new KillTask(clusterService, killNodeAction, UUID.randomUUID());
+        killTask = new KillTask(clusterService, killNodeAction, UUID.randomUUID());
         killTask.start();
-
-        verify(killNodeAction, times(1)).execute(eq("n1"), any(KillAllRequest.class), any(ActionListener.class));
-        verify(killNodeAction, times(1)).execute(eq("n2"), any(KillAllRequest.class), any(ActionListener.class));
-        verify(killNodeAction, times(1)).execute(eq("n3"), any(KillAllRequest.class), any(ActionListener.class));
+        return killNodeAction;
     }
+
 }

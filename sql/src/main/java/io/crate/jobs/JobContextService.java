@@ -124,17 +124,19 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return newContext;
     }
 
-    public void killAll() {
+    public long killAll() {
+        long numKilled = 0L;
         writeLock.lock();
         try {
             for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
-                jobExecutionContext.kill();
+                numKilled += jobExecutionContext.kill();
             }
             assert activeContexts.size() == 0 :
                     "after killing all contexts they should have been removed from the map due to the callbacks";
         } finally {
             writeLock.unlock();
         }
+        return numKilled;
     }
 
     private class RemoveContextCallback implements ContextCallback {
