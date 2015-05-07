@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/05/07 0.49.0
+=================
+
  - Fix: performing queries on a partitioned table could cause unnecessary
    ``execution rejected`` errors
 
