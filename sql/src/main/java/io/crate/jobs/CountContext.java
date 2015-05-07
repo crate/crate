@@ -66,15 +66,18 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
                 public void onSuccess(@Nullable Long result) {
                     rowDownstreamHandle.setNextRow(new Row1(result));
                     rowDownstreamHandle.finish();
+                    close();
                 }
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
                     rowDownstreamHandle.fail(t);
+                    close();
                 }
             });
         } catch (InterruptedException | IOException e) {
             rowDownstreamHandle.fail(e);
+            close();
         }
     }
 
