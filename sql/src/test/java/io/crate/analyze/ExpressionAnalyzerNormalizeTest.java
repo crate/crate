@@ -44,15 +44,20 @@ import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.inject.Binder;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.Matchers.instanceOf;
@@ -84,6 +89,7 @@ public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
 
     private ExpressionAnalyzer expressionAnalyzer;
     private ExpressionAnalysisContext context;
+    private ThreadPool threadPool;
 
 
     static class AbsFunction extends Scalar<Double, Number> {
@@ -112,6 +118,34 @@ public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
         }
     }
 
+    @Before
+    public void prepare() {
+        threadPool = new ThreadPool("testing");
+        Injector injector = new ModulesBuilder()
+                .add(new Module() {
+                    @Override
+                    public void configure(Binder binder) {
+                        binder.bind(ThreadPool.class).toInstance(threadPool);
+                    }
+                })
+                .add(new MockedClusterServiceModule())
+                .add(new TestMetaDataModule())
+                .createInjector();
+        expressionAnalyzer = new ExpressionAnalyzer(injector.getInstance(AnalysisMetaData.class),
+                new ParameterContext(new Object[0], new Object[0][], null),
+                new FullQualifedNameFieldProvider(
+                        ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                                new QualifiedName(Arrays.asList("doc", "test1")), new TableRelation(userTableInfo)))
+        );
+        context = new ExpressionAnalysisContext();
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindFunctions() {
@@ -126,23 +160,6 @@ public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
             when(schemaInfo.getTableInfo(TEST_TABLE_IDENT.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
-    }
-
-
-
-    @Before
-    public void prepare() {
-        Injector injector = new ModulesBuilder()
-                .add(new MockedClusterServiceModule())
-                .add(new TestMetaDataModule())
-                .createInjector();
-        expressionAnalyzer = new ExpressionAnalyzer(injector.getInstance(AnalysisMetaData.class),
-                new ParameterContext(new Object[0], new Object[0][], null),
-                new FullQualifedNameFieldProvider(
-                        ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                            new QualifiedName(Arrays.asList("doc", "test1")), new TableRelation(userTableInfo)))
-        );
-        context = new ExpressionAnalysisContext();
     }
 
     @Test

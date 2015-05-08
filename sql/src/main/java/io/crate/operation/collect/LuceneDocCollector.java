@@ -130,7 +130,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         searchContext = new DefaultSearchContext(0, searchRequest,
                 searchShardTarget,
-                EngineSearcher.getSearcherWithRetry(indexShard, null),
+                EngineSearcher.getSearcherWithRetry(indexShard, "search", null),
                 indexService,
                 indexShard,
                 scriptService,

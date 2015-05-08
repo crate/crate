@@ -58,11 +58,15 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.highlight.HighlightModule;
 import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -74,26 +78,11 @@ public class ShardProjectorChainTest extends CrateUnitTest {
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private ProjectionToProjectorVisitor projectionToProjectorVisitor;
-
-    private class TestModule extends AbstractModule {
-
-        @Override
-        protected void configure() {
-            ClusterService clusterService = mock(ClusterService.class);
-            ClusterState state = mock(ClusterState.class);
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            when(state.metaData()).thenReturn(metaData);
-            when(clusterService.state()).thenReturn(state);
-            bind(ClusterService.class).toInstance(clusterService);
-            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
-        }
-    }
+    private ThreadPool threadPool;
 
     @Before
     public void prepare() {
+        threadPool = newMockedThreadPool();
         ModulesBuilder builder = new ModulesBuilder().add(
                 new ScalarFunctionModule(),
                 new OperatorModule(),
@@ -115,6 +104,30 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 implementationSymbolVisitor,
                 null
         );
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
+    private class TestModule extends AbstractModule {
+
+        @Override
+        protected void configure() {
+            bind(ThreadPool.class).toInstance(threadPool);
+            ClusterService clusterService = mock(ClusterService.class);
+            ClusterState state = mock(ClusterState.class);
+            MetaData metaData = mock(MetaData.class);
+            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(state.metaData()).thenReturn(metaData);
+            when(clusterService.state()).thenReturn(state);
+            bind(ClusterService.class).toInstance(clusterService);
+            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
+            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+        }
     }
 
     private Aggregation countAggregation() {

@@ -195,7 +195,7 @@ public class CrateSearchService extends InternalSearchService {
                 request.index(),
                 request.shardId()
         );
-        Engine.Searcher engineSearcher = EngineSearcher.getSearcherWithRetry(indexShard, searcher);
+        Engine.Searcher engineSearcher = EngineSearcher.getSearcherWithRetry(indexShard, "search", searcher);
         long keepAlive = defaultKeepAlive;
         if (request.scroll().isPresent() && request.scroll().get().keepAlive() != null) {
             keepAlive = request.scroll().get().keepAlive().millis();

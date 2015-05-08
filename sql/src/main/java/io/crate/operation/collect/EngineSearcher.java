@@ -21,6 +21,8 @@
 
 package io.crate.operation.collect;
 
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShardState;
@@ -30,16 +32,23 @@ import javax.annotation.Nullable;
 
 public class EngineSearcher {
 
-    public static Engine.Searcher getSearcherWithRetry(IndexShard indexShard, @Nullable Engine.Searcher searcher) {
+    private static final ESLogger LOGGER = Loggers.getLogger(EngineSearcher.class);
+
+    public static Engine.Searcher getSearcherWithRetry(IndexShard indexShard,
+                                                       String searcherName,
+                                                       @Nullable Engine.Searcher searcher) {
         Engine.Searcher engineSearcher = searcher;
         int retry = 0;
         while (engineSearcher == null) {
             try {
-                engineSearcher = indexShard.acquireSearcher("search");
+                engineSearcher = indexShard.acquireSearcher(searcherName);
             } catch (IllegalIndexShardStateException e) {
-                if (e.currentState() == IndexShardState.POST_RECOVERY && retry < 10) {
+                if (e.currentState() == IndexShardState.POST_RECOVERY && retry < 100) {
                     try {
-                        Thread.sleep(retry);
+                        if (LOGGER.isWarnEnabled() && retry > 10) {
+                            LOGGER.warn("shard in POST_RECOVERY - retry: " + retry);
+                        }
+                        Thread.sleep(retry * 10);
                     } catch (InterruptedException e1) {
                         throw e;
                     }

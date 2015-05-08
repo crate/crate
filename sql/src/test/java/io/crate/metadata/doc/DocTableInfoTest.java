@@ -9,13 +9,31 @@ import io.crate.planner.symbol.DynamicReference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mock;
 
 public class DocTableInfoTest extends CrateUnitTest {
+
+    ExecutorService executorService;
+
+    @Before
+    public void before() throws Exception {
+        executorService = Executors.newSingleThreadExecutor();
+    }
+
+    @After
+    public void after() throws Exception {
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.SECONDS);
+    }
 
     @Test
     public void testGetColumnInfo() throws Exception {
@@ -40,7 +58,9 @@ public class DocTableInfoTest extends CrateUnitTest {
                 new BytesRef("0"),
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<PartitionName>of(),
-                ColumnPolicy.DYNAMIC);
+                ColumnPolicy.DYNAMIC,
+                executorService
+        );
 
         ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("o", ImmutableList.of("foobar")));
         assertNull(foobar);
@@ -85,7 +105,9 @@ public class DocTableInfoTest extends CrateUnitTest {
                 new BytesRef("0"),
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<PartitionName>of(),
-                ColumnPolicy.DYNAMIC);
+                ColumnPolicy.DYNAMIC,
+                executorService
+        );
 
 
         ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));

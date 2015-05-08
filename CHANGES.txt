@@ -3,6 +3,9 @@ Changes for Crate
 =================
 
 
+ - Select queries will now wait a bit longer before throwing an error in case
+   the shards of a table aren't fully active.
+
  - Fix: In some cases a ``DROP TABLE`` statment does not delete all
    partitions. Now it's possible to repeat the statement in order
    to delete the orphaned partitions.

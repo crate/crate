@@ -47,16 +47,16 @@ import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
@@ -71,10 +71,12 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     private Analyzer analyzer;
     private AnalysisMetaData ctxMetaData;
+    private ThreadPool threadPool;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        threadPool = newMockedThreadPool();
         Injector injector = new ModulesBuilder()
                 .add(new MockedClusterServiceModule())
                 .add(new PredicateModule())
@@ -91,10 +93,17 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
             .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
             .build());
 
-    static class TestMetaDataModule extends MetaDataModule {
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
+    class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
+            bind(ThreadPool.class).toInstance(threadPool);
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo("users")).thenReturn(

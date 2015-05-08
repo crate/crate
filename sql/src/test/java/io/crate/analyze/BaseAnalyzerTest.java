@@ -41,13 +41,27 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.inject.Binder;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.joda.time.DateTime;
+import org.junit.After;
 import org.junit.Before;
 
 import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 
 public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
@@ -211,6 +225,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
     static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
 
     static final ReferenceInfo CLUSTER_NAME_INFO = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
+    private ThreadPool threadPool;
 
     static class ClusterNameExpression extends SysClusterExpression<BytesRef> {
 
@@ -320,11 +335,24 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
     @Before
     public void prepareModules() throws Exception {
+        threadPool = newMockedThreadPool();
         ModulesBuilder builder = new ModulesBuilder();
+        builder.add(new Module() {
+            @Override
+            public void configure(Binder binder) {
+                binder.bind(ThreadPool.class).toInstance(threadPool);
+            }
+        });
         for (Module m : getModules()) {
             builder.add(m);
         }
         injector = builder.createInjector();
         analyzer = injector.getInstance(Analyzer.class);
+    }
+
+    @After
+    public void tearDownThreadPool() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 }
