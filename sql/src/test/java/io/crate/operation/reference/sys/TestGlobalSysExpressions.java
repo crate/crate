@@ -48,10 +48,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.node.service.NodeService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -64,12 +67,34 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
 
     private static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
     private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
+    private ThreadPool threadPool;
+
+
+    @Before
+    public void prepare() throws Exception {
+        threadPool = new ThreadPool("testing");
+        injector = new ModulesBuilder().add(
+                new TestModule(),
+                new MetaDataModule(),
+                new MetaDataSysModule()
+        ).createInjector();
+        resolver = injector.getInstance(ReferenceResolver.class);
+        referenceInfos = injector.getInstance(ReferenceInfos.class);
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
 
     class TestModule extends AbstractModule {
 
         @Override
         protected void configure() {
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(ThreadPool.class).toInstance(threadPool);
 
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);
@@ -98,18 +123,6 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             b.addBinding(SysClusterTableInfo.INFOS.get(new ColumnIdent("settings")).ident()).to(
                     ClusterSettingsExpression.class).asEagerSingleton();
         }
-    }
-
-
-    @Before
-    public void prepare() throws Exception {
-        injector = new ModulesBuilder().add(
-                new TestModule(),
-                new MetaDataModule(),
-                new MetaDataSysModule()
-        ).createInjector();
-        resolver = injector.getInstance(ReferenceResolver.class);
-        referenceInfos = injector.getInstance(ReferenceInfos.class);
     }
 
     @Test

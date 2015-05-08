@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -106,6 +107,6 @@ public class ReferenceInfosTest {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
 
-        return new ReferenceInfos(builtInSchema, clusterService, mock(TransportPutIndexTemplateAction.class));
+        return new ReferenceInfos(builtInSchema, clusterService, mock(ThreadPool.class), mock(TransportPutIndexTemplateAction.class));
     }
 }

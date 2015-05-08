@@ -46,7 +46,9 @@ import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
@@ -70,10 +73,12 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     private Analyzer analyzer;
     private AnalysisMetaData ctxMetaData;
+    private ThreadPool threadPool;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        threadPool = newMockedThreadPool();
         Injector injector = new ModulesBuilder()
                 .add(new MockedClusterServiceModule())
                 .add(new PredicateModule())
@@ -85,15 +90,22 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         ctxMetaData = injector.getInstance(AnalysisMetaData.class);
     }
 
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
     static final Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
             .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
             .map());
 
-    static class TestMetaDataModule extends MetaDataModule {
+    class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
+            bind(ThreadPool.class).toInstance(threadPool);
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo("users")).thenReturn(

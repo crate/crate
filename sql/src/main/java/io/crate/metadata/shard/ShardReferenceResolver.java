@@ -35,9 +35,11 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 public class ShardReferenceResolver extends AbstractReferenceResolver {
 
@@ -46,6 +48,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
 
     @Inject
     public ShardReferenceResolver(Index index,
+                                  ThreadPool threadPool,
                                   DocSchemaInfo docSchemaInfo,
                                   ClusterService clusterService,
                                   final TransportPutIndexTemplateAction transportPutIndexTemplateAction,
@@ -63,7 +66,10 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 DocTableInfo info = new DocTableInfoBuilder(
                         docSchemaInfo,
                         tableIdent,
-                        clusterService, transportPutIndexTemplateAction, true).build();
+                        clusterService,
+                        transportPutIndexTemplateAction,
+                        (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
+                        true).build();
                 assert info.isPartitioned();
                 int i = 0;
                 int numPartitionedColumns = info.partitionedByColumns().size();

@@ -52,10 +52,15 @@ import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.index.store.StoreStats;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -68,12 +73,35 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     private ReferenceInfos referenceInfos;
 
     private String indexName = "wikipedia_de";
+    private static ThreadPool threadPool = new ThreadPool("testing");
+
+    @Before
+    public void prepare() throws Exception {
+        injector = new ModulesBuilder().add(
+                new TestModule(),
+                new MetaDataModule(),
+                new MetaDataSysModule(),
+                new SysClusterExpressionModule(),
+                new MetaDataShardModule(),
+                new SysShardExpressionModule()
+        ).createInjector();
+        resolver = injector.getInstance(ShardReferenceResolver.class);
+        referenceInfos = injector.getInstance(ReferenceInfos.class);
+    }
+
+    @AfterClass
+    public static void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+        threadPool =  null;
+    }
 
     class TestModule extends AbstractModule {
 
         @SuppressWarnings("unchecked")
         @Override
         protected void configure() {
+            bind(ThreadPool.class).toInstance(threadPool);
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
 
             ClusterService clusterService = mock(ClusterService.class);
@@ -125,21 +153,6 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             when(clusterService.state()).thenReturn(clusterState);
             when(clusterState.metaData()).thenReturn(metaData);
         }
-    }
-
-
-    @Before
-    public void prepare() throws Exception {
-        injector = new ModulesBuilder().add(
-                new TestModule(),
-                new MetaDataModule(),
-                new MetaDataSysModule(),
-                new SysClusterExpressionModule(),
-                new MetaDataShardModule(),
-                new SysShardExpressionModule()
-        ).createInjector();
-        resolver = injector.getInstance(ShardReferenceResolver.class);
-        referenceInfos = injector.getInstance(ReferenceInfos.class);
     }
 
     @Test
