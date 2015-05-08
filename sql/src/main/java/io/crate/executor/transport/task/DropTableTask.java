@@ -25,6 +25,7 @@ import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.ddl.DropTableNode;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
@@ -34,6 +35,7 @@ import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplat
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.indices.IndexTemplateMissingException;
 
 import java.util.List;
 import java.util.Locale;
@@ -79,7 +81,13 @@ public class DropTableTask extends AbstractChainedTask {
 
                 @Override
                 public void onFailure(Throwable e) {
-                    result.setException(e);
+                    e = ExceptionsHelper.unwrapCause(e);
+                    if (e instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
+                        logger.warn(e.getMessage());
+                        deleteESIndex(tableInfo.ident().esName());
+                    } else {
+                        result.setException(e);
+                    }
                 }
             });
         } else {
