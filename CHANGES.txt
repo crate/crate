@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: In some cases a ``DROP TABLE`` statment does not delete all
+   partitions. Now it's possible to repeat the statement in order
+   to delete the orphaned partitions.
+
 2015/05/07 0.49.0
 =================
 
