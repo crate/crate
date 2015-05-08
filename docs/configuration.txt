@@ -46,15 +46,16 @@ will overwrite the prior one:
 Table Settings
 ==============
 
-.. _number_of_replicas
+For more info about table creating syntax please refer to :ref:`ref-create-table`
 
-**number_of_replicas**
+**index.number_of_replicas**
   | *Default:*    ``1``
   | *Runtime:*    ``yes``
 
-.. _refresh_interval
+  Specifies the number or range of replicas each shard of a table should
+  have for normal operation.
 
-**refresh_interval**
+**index.refresh_interval**
   | *Default:*   ``1000``
   | *Runtime:*   ``yes``
 
@@ -63,30 +64,26 @@ Table Settings
 Blocks
 ------
 
-.. _read_only
-
-**read_only**
+**index.blocks.read_only**
+  | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
-  Allows to have a read only table.
+  Disable/enable read-only table.
 
-.. _read
-
-**read**
+**index.blocks.read**
+  | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
   Disable/enable all the read operations.
 
-.. _write
-
-**write**
+**index.blocks.write**
+  | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
-  Disable/enable all the write operations
+  Disable/enable all the write operations.
 
-.. _metadata
-
-**metadata**
+**index.blocks.metadata**
+  | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
   Disables/enables the table settings modifications.
@@ -94,30 +91,25 @@ Blocks
 Translog
 --------
 
-.. _flush_threshold_ops
-
-**flush_threshold_ops**
+**index.translog.flush_threshold_ops**
+  | *Default:*   ``unlimited``
   | *Runtime:*   ``yes``
 
   Sets the number of operations before flushing.
 
-.. _flush_threshold_size
-
-**flush_threshold_size**
+**index.translog.flush_threshold_size**
+  | *Default:*   ``200mb``
   | *Runtime:*   ``yes``
 
   Sets size of transaction log prior to flushing.
 
-.. _flush_threshold_period
-
-**flush_threshold_period**
+**index.translog.flush_threshold_period**
+  | *Default:*   ``30m``
   | *Runtime:*   ``yes``
 
   Sets period of no flushing after which force flush occurs.
 
-.. _disable_flush
-
-**disable_flush**
+**index.translog.disable_flush**
   | *Default:*    ``false``
   | *Runtime:*   ``yes``
 
@@ -126,17 +118,13 @@ Translog
 Allocation
 ----------
 
-.. _enable
-
-**enable**
+**index.routing.allocation.enable**
   | *Default:*    ``all``
   | *Runtime:*   ``yes``
 
   Controls shard allocation for a specific table.
 
-.. _total_shards_per_node
-
-**total_shards_per_node**
+**index.routing.allocation.total_shards_per_node**
   | *Default:*    ``-1``
   | *Runtime:*   ``yes``
 
@@ -145,20 +133,16 @@ Controls the total number of shards (replicas and primaries) allowed to be alloc
 Recovery
 --------
 
-.. _initial_shards
-
-**initial_shards**
+**index.recovery.initial_shards**
   | *Default:*    ``quorum``
   | *Runtime:*   ``yes``
 
 When using local gateway a particular shard is recovered only if there can be allocated quorum of it’s copies in the cluster.
 
-Warming
--------
+Warmer
+------
 
-.. _enable
-
-**enable**
+**index.warmer.enabled**
   | *Default:*    ``true``
   | *Runtime:*   ``yes``
 
@@ -166,8 +150,6 @@ disable/enable table warming. Table warming allows to run registered queries to 
 
 Column Policy
 -------------
-
-.. _column_policy
 
 **column_policy**
   | *Default:*    ``dynamic``

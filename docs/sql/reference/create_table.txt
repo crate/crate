@@ -254,6 +254,7 @@ translog.disable_flush
     It is recommended to use ``disable_flush`` only for short periods of time.
 
 translog.interval
+~~~~~~~~~~~~~~~~~
 
 Sets frequency of flush necessity check.
 
@@ -322,4 +323,4 @@ The column policy is defined like this::
     usable as usual columns. One can retrieve them, sort by them
     and use them in where clauses.
 
-For futher details and examples see :ref:`column_policy`.
+For futher details and examples see :ref:`column_policy` or :ref:`configuration`.
