@@ -40,12 +40,17 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Binder;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 
@@ -54,10 +59,18 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     private ReferenceToTrueVisitor visitor;
     private ExpressionAnalyzer expressionAnalyzer;
     private ExpressionAnalysisContext expressionAnalysisContext;
+    private ThreadPool threadPool;
 
     @Before
     public void prepare() throws Exception {
+        threadPool = new ThreadPool("testing");
         Injector injector = new ModulesBuilder()
+            .add(new Module() {
+                @Override
+                public void configure(Binder binder) {
+                    binder.bind(ThreadPool.class).toInstance(threadPool);
+                }
+            })
             .add(new MockedClusterServiceModule())
             .add(new MetaDataModule())
             .add(new OperatorModule())
@@ -72,6 +85,12 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
                         ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("dummy"), new DummyRelation()))
         );
         expressionAnalysisContext = new ExpressionAnalysisContext();
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     private Symbol convert(Symbol symbol) {

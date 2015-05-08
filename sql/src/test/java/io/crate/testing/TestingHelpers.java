@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Futures;
@@ -35,10 +36,16 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.mockito.stubbing.Stubber;
+import org.powermock.api.mockito.PowerMockito;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -47,11 +54,16 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.*;
 
 public class TestingHelpers {
 
@@ -512,6 +524,34 @@ public class TestingHelpers {
         ));
     }
 
+    public static ThreadPool newMockedThreadPool() {
+        ThreadPool threadPool = PowerMockito.mock(ThreadPool.class);
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                executorService.shutdown();
+                return null;
+            }
+        }).when(threadPool).shutdown();
+        when(threadPool.executor(anyString())).thenReturn(executorService);
+
+        try {
+            doAnswer(new Answer() {
+                @Override
+                public Object answer(InvocationOnMock invocation) throws Throwable {
+                    executorService.awaitTermination(1, TimeUnit.SECONDS);
+                    return null;
+                }
+            }).when(threadPool).awaitTermination(anyLong(), any(TimeUnit.class));
+        } catch (InterruptedException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return threadPool;
+    }
+
     private static class CauseMatcher extends TypeSafeMatcher<Throwable> {
 
         private final Class<? extends Throwable> type;
@@ -530,11 +570,9 @@ public class TestingHelpers {
 
         @Override
         public void describeTo(Description description) {
-            description.appendText("expects type ")
-                    .appendValue(type);
+            description.appendText("expects type ").appendValue(type);
             if (expectedMessage != null) {
-                description.appendText(" and a message ")
-                        .appendValue(expectedMessage);
+                description.appendText(" and a message ").appendValue(expectedMessage);
             }
         }
     }

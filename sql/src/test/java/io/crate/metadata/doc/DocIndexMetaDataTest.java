@@ -33,14 +33,19 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Matchers.anyString;
@@ -48,6 +53,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DocIndexMetaDataTest extends CrateUnitTest {
+
+    private ThreadPool threadPool;
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, ImmutableSettings.Builder.EMPTY_SETTINGS, null);
@@ -77,6 +84,17 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
         return new DocIndexMetaData(metaData, new TableIdent(null, name)).build();
+    }
+
+    @Before
+    public void before() throws Exception {
+        threadPool = newMockedThreadPool();
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     @Test
@@ -819,8 +837,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new ReferenceInfos(
                 ImmutableMap.<String, SchemaInfo>of("doc",
-                    new DocSchemaInfo(clusterService, transportPutIndexTemplateAction)),
+                    new DocSchemaInfo(clusterService, threadPool, transportPutIndexTemplateAction)),
                     clusterService,
+                    threadPool,
                     transportPutIndexTemplateAction),
             new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class))
         );

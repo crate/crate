@@ -36,12 +36,14 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,16 +57,19 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
     private final Map<String, SchemaInfo> builtInSchemas;
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final ExecutorService executorService;
 
     private volatile Map<String, SchemaInfo> schemas = new HashMap<>();
 
     @Inject
     public ReferenceInfos(Map<String, SchemaInfo> builtInSchemas,
                           ClusterService clusterService,
+                          ThreadPool threadPool,
                           TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
         this.builtInSchemas = builtInSchemas;
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.executorService = (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST);
         schemas.putAll(builtInSchemas);
         schemas.putAll(resolveCustomSchemas(clusterService.state().metaData()));
         clusterService.add(this);
@@ -133,7 +138,7 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
      * @return an instance of SchemaInfo for the given name
      */
     private SchemaInfo getCustomSchemaInfo(String name) {
-        return new DocSchemaInfo(name, clusterService, transportPutIndexTemplateAction);
+        return new DocSchemaInfo(name, executorService, clusterService, transportPutIndexTemplateAction);
     }
 
     /**

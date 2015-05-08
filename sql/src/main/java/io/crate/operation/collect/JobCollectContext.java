@@ -224,7 +224,7 @@ public class JobCollectContext implements ExecutionSubContext {
                 }
             }
         } else {
-            LOGGER.warn("close called on an already closed JobCollectContext: {}", id);
+            LOGGER.trace("close called on an already closed JobCollectContext: {}", id);
         }
     }
 

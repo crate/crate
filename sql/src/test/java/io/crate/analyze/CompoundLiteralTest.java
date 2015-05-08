@@ -45,7 +45,9 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,6 +56,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -63,9 +66,11 @@ import static org.mockito.Mockito.when;
 public class CompoundLiteralTest extends CrateUnitTest {
 
     private AnalysisMetaData analysisMetaData;
+    private ThreadPool threadPool;
 
     @Before
     public void prepare() {
+        threadPool = new ThreadPool("dummy");
         ClusterService clusterService = mock(ClusterService.class);
         ClusterState state = mock(ClusterState.class);
         MetaData metaData = mock(MetaData.class);
@@ -79,11 +84,19 @@ public class CompoundLiteralTest extends CrateUnitTest {
                 new Functions(
                         Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
                         Collections.<String, DynamicFunctionResolver>emptyMap()),
-                new ReferenceInfos(Collections.<String, SchemaInfo>emptyMap(),
-                                   clusterService,
-                                   transportPutIndexTemplateAction),
+                new ReferenceInfos(
+                        Collections.<String, SchemaInfo>emptyMap(),
+                        clusterService,
+                        threadPool,
+                        transportPutIndexTemplateAction),
                 new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap())
         );
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     private Symbol analyzeExpression(String expression) {

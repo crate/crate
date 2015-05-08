@@ -52,11 +52,13 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
@@ -90,6 +92,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private final Function<String, TableInfo> tableInfoFunction;
     private final String schemaName;
+    private final ExecutorService executorService;
 
 
     /**
@@ -97,7 +100,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
      */
     @Inject
     public DocSchemaInfo(ClusterService clusterService,
+                         ThreadPool threadPool,
                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+        executorService = (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST);
         schemaName = ReferenceInfos.DEFAULT_SCHEMA_NAME;
         this.clusterService = clusterService;
         clusterService.add(this);
@@ -117,9 +122,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
      * constructor used for custom schemas
      */
     public DocSchemaInfo(final String schemaName,
+                         ExecutorService executorService,
                          ClusterService clusterService,
                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
         this.schemaName = schemaName;
+        this.executorService = executorService;
         this.clusterService = clusterService;
         clusterService.add(this);
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -155,6 +162,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 new TableIdent(name(), name),
                 clusterService,
                 transportPutIndexTemplateAction,
+                executorService,
                 checkAliasSchema
         );
         return builder.build();

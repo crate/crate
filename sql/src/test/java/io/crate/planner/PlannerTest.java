@@ -36,6 +36,7 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -50,12 +51,15 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
@@ -90,12 +94,35 @@ public class PlannerTest extends CrateUnitTest {
     private ClusterService clusterService;
 
     private final static String LOCAL_NODE_ID = "foo";
+    private ThreadPool threadPool;
+
+
+    @Before
+    public void prepare() throws Exception {
+        threadPool = TestingHelpers.newMockedThreadPool();
+        Injector injector = new ModulesBuilder()
+                .add(new TestModule())
+                .add(new AggregationImplModule())
+                .add(new ScalarFunctionModule())
+                .add(new PredicateModule())
+                .add(new OperatorModule())
+                .createInjector();
+        analyzer = injector.getInstance(Analyzer.class);
+        planner = injector.getInstance(Planner.class);
+    }
+
+    @After
+    public void after() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
 
 
     class TestModule extends MetaDataModule {
 
         @Override
         protected void configure() {
+            bind(ThreadPool.class).toInstance(threadPool);
             clusterService = mock(ClusterService.class);
             DiscoveryNode localNode = mock(DiscoveryNode.class);
             when(localNode.id()).thenReturn(LOCAL_NODE_ID);
@@ -248,19 +275,6 @@ public class PlannerTest extends CrateUnitTest {
             when(schemaInfo.systemSchema()).thenReturn(true);
             return schemaInfo;
         }
-    }
-
-    @Before
-    public void prepare() throws Exception {
-        Injector injector = new ModulesBuilder()
-                .add(new TestModule())
-                .add(new AggregationImplModule())
-                .add(new ScalarFunctionModule())
-                .add(new PredicateModule())
-                .add(new OperatorModule())
-                .createInjector();
-        analyzer = injector.getInstance(Analyzer.class);
-        planner = injector.getInstance(Planner.class);
     }
 
     private Plan plan(String statement) {
