@@ -42,6 +42,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Rule;
@@ -1772,5 +1773,23 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rows().length, Is.is(2));
         assertThat((String)response.rows()[0][0], Is.is("hello"));
         assertThat(response.rows()[1][0], Is.is(nullValue()));
+    }
+
+    @Test
+    public void testDeleteOrphanedPartitions() throws Throwable {
+        execute("create table foo (name string, p string) partitioned by (p) with (number_of_replicas=0, refresh_interval = 0)");
+        ensureYellow();
+        execute("insert into foo (name, p) values (?, ?)", new Object[]{"Marvin", 1});
+        execute("refresh table foo");
+
+        String templateName = PartitionName.templateName(null, "foo");
+        client().admin().indices().prepareDeleteTemplate(templateName).execute().actionGet();
+        waitNoPendingTasksOnAll();
+        execute("select * from sys.shards where table_name = 'foo'");
+        assertThat(response.rowCount(), CoreMatchers.is(5L));
+        execute("drop table foo");
+
+        execute("select * from sys.shards where table_name = 'foo'");
+        assertThat(response.rowCount(), CoreMatchers.is(0L));
     }
 }
