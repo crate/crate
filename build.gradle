@@ -50,12 +50,19 @@ allprojects {
                 options.fork = true
                 options.bootClasspath = "$System.env.JAVA7_HOME/jre/lib/rt.jar"
             }
-            options.compilerArgs << "-Xlint:deprecation"
         }
     }
 
     tasks.withType(Javadoc) {
         failOnError = false
+    }
+}
+
+configure(subprojects.findAll {it.name != 'es'}) {
+    tasks.withType(JavaCompile) {
+        doFirst {
+            options.compilerArgs << "-Xlint:deprecation"
+        }
     }
 }
 
