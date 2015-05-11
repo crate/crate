@@ -22,13 +22,12 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.*;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
@@ -38,16 +37,16 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class UnassignedShardsCollectService implements CollectService {
 
+    public static final IndexShardsEntryToShardIds INDEX_SHARDS_ENTRY_TO_SHARD_IDS = new IndexShardsEntryToShardIds();
     private final CollectInputSymbolVisitor<Input<?>> inputSymbolVisitor;
     private final static Iterable<UnassignedShard> NO_SHARDS = FluentIterable.from(ImmutableList.<UnassignedShard>of());
 
@@ -63,6 +62,20 @@ public class UnassignedShardsCollectService implements CollectService {
                 unassignedShardsReferenceResolver
         );
         this.clusterService = clusterService;
+    }
+
+    private static class IndexShardsEntryToShardIds implements Function<Map.Entry<String, List<Integer>>, Iterable<? extends ShardId>> {
+        @Nullable
+        @Override
+        public Iterable<? extends ShardId> apply(final Map.Entry<String, List<Integer>> entry) {
+            return FluentIterable.from(entry.getValue()).transform(new Function<Integer, ShardId>() {
+                @Nullable
+                @Override
+                public ShardId apply(Integer input) {
+                    return new ShardId(entry.getKey(), input);
+                }
+            });
+        }
     }
 
     protected class UnassignedShardIteratorContext {
@@ -91,26 +104,48 @@ public class UnassignedShardsCollectService implements CollectService {
 
     }
 
-    private Iterable<UnassignedShard> createIterator() {
-        List<ShardRouting> allShards = clusterService.state().routingTable().allShards();
+    private Iterable<UnassignedShard> createIterator(final Map<String, List<Integer>> indexShardMap) {
+        String[] indices = indexShardMap.keySet().toArray(new String[indexShardMap.size()]);
+        final List<ShardRouting> allShards = clusterService.state().routingTable().allShards(indices);
         if (allShards == null || allShards.size() == 0) {
             return NO_SHARDS;
         }
 
-        final UnassignedShardIteratorContext context = new UnassignedShardIteratorContext();
-        return FluentIterable.from(allShards).transform(new Function<ShardRouting, UnassignedShard>() {
+        FluentIterable<ShardId> shardIdsFromRouting = FluentIterable
+                .from(indexShardMap.entrySet())
+                .transformAndConcat(INDEX_SHARDS_ENTRY_TO_SHARD_IDS);
+
+        final ImmutableListMultimap<String, ShardRouting> shardsByNode = Multimaps.index(allShards, new Function<ShardRouting, String>() {
             @Nullable
             @Override
-            public UnassignedShard apply(@Nullable ShardRouting input) {
-                assert input != null;
-                if (!input.active()) {
-                    return new UnassignedShard(
-                            input.shardId(), clusterService,
-                            context.isPrimary(input.shardId()), input.state());
-                }
-                return null;
+            public String apply(ShardRouting input) {
+                return input.currentNodeId() == null ? TableInfo.NULL_NODE_ID : input.currentNodeId();
             }
-        }).filter(Predicates.notNull());
+        });
+        final UnassignedShardIteratorContext context = new UnassignedShardIteratorContext();
+        return shardIdsFromRouting.transform(new Function<ShardId, UnassignedShard>() {
+            @Nullable
+            @Override
+            public UnassignedShard apply(ShardId input) {
+                ImmutableList<ShardRouting> shardRoutings = shardsByNode.get(TableInfo.NULL_NODE_ID);
+                if (shardRoutings == null) {
+                    // shard state has changed since the routing got calculated and is now probably already active.
+                    // display it as initializing anyway.
+                    return new UnassignedShard(
+                            input, clusterService, context.isPrimary(input), ShardRoutingState.INITIALIZING);
+                }
+
+                ShardRoutingState state = ShardRoutingState.UNASSIGNED;
+                for (ShardRouting shardRouting : shardRoutings) {
+                    if (shardRouting.shardId().equals(input)) {
+                        state = shardRouting.state();
+                        break;
+                    }
+                }
+                return new UnassignedShard(
+                        input, clusterService, context.isPrimary(input), state);
+            }
+        });
     }
 
     @Override
@@ -121,7 +156,10 @@ public class UnassignedShardsCollectService implements CollectService {
         }
         CollectInputSymbolVisitor.Context context = inputSymbolVisitor.process(node);
 
-        Iterable<UnassignedShard> iterable = createIterator();
+        Map<String, Map<String, List<Integer>>> locations = node.routing().locations();
+        assert locations != null : "locations must be present";
+        Map<String, List<Integer>> indexShardMap = locations.get(TableInfo.NULL_NODE_ID);
+        Iterable<UnassignedShard> iterable = createIterator(indexShardMap);
 
         Input<Boolean> condition;
         if (node.whereClause().hasQuery()) {
