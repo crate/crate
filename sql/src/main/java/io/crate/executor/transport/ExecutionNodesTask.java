@@ -273,14 +273,20 @@ public class ExecutionNodesTask extends JobTask {
             return;
         }
         final ContextCloser contextCloser = new ContextCloser(transportCloseContextNodeAction);
-        result.addListener(new Runnable() {
+        Futures.addCallback(Futures.allAsList(results), new FutureCallback<List<TaskResult>>() {
             @Override
-            public void run() {
+            public void onSuccess(@Nullable List<TaskResult> result) {
+                // do nothing, contexts will be closed through fetch projection
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                // if a failure happens, no fetch projection will be called, clean up contexts
                 for (ExecutionNode executionNode : executionNodes) {
                     contextCloser.process(executionNode, server);
                 }
             }
-        }, MoreExecutors.directExecutor());
+        });
     }
 
     private RamAccountingContext trackOperation(ExecutionNode executionNode, String operationName) {
