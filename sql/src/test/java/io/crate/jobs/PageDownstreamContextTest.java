@@ -30,8 +30,10 @@ import io.crate.test.integration.CrateUnitTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
 
-import static org.mockito.Mockito.mock;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.mockito.Mockito.*;
 
 public class PageDownstreamContextTest extends CrateUnitTest {
 
@@ -46,5 +48,20 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
+    }
+
+    @Test
+    public void testKill() throws Exception {
+        PageDownstream downstream = mock(PageDownstream.class);
+        ContextCallback callback = mock(ContextCallback.class);
+
+        PageDownstreamContext ctx = new PageDownstreamContext(downstream, new Streamer[0], 3);
+        ctx.addCallback(callback);
+        ctx.kill();
+
+        verify(callback, times(1)).onClose();
+        ArgumentCaptor<JobKilledException> e = ArgumentCaptor.forClass(JobKilledException.class);
+        verify(downstream, times(1)).fail(e.capture());
+        assertThat(e.getValue(), instanceOf(JobKilledException.class));
     }
 }
