@@ -104,6 +104,8 @@ public class ScalarFunctionModule extends AbstractModule {
         ExtractFunctions.register(this);
         CurrentTimestampFunction.register(this);
 
+        ConcatFunction.register(this);
+
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the
         // register functions in their onModule(...) hooks

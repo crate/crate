@@ -26,6 +26,35 @@ See below for a list of available scalar functions.
 Generic Functions
 =================
 
+concat('first_arg', second_arg, [ parameter , ... ]) returns string
+-------------------------------------------------------------------
+
+The ``concat`` function takes two or more arguments and will return the text
+representations of all the arguments concatenated. NULL values are ignored.
+
+::
+
+    cr> select concat('foo', null, 'bar') from sys.cluster;
+    +----------------------------+
+    | concat('foo', null, 'bar') |
+    +----------------------------+
+    | foobar                     |
+    +----------------------------+
+    SELECT 1 row in set (... sec)
+
+
+
+There is also a special concat operator ``||`` which can also be used::
+
+    cr> select 'foo' || 'bar' from sys.cluster;
+    +----------------------+
+    | concat('foo', 'bar') |
+    +----------------------+
+    | foobar               |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+
 format('format_string', parameter, [ parameter , ... ]) returns string
 ----------------------------------------------------------------------
 

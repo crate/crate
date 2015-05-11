@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``concat`` scalar function and the concat operator ``||``.
+
  - Updated Elasticsearch to 1.5.2
 
  - Fix: Removed unnecessary close context calls on CollectContext
