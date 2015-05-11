@@ -21,7 +21,6 @@
 
 package io.crate.action.job;
 
-import com.google.common.base.Optional;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.StreamBucket;
@@ -31,28 +30,32 @@ import org.elasticsearch.transport.TransportResponse;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JobResponse extends TransportResponse {
 
-    private Optional<Bucket> directResponse = Optional.absent();
+    private List<Bucket> directResponse = new ArrayList<>();
     private Streamer<?>[] streamers = null;
 
     public JobResponse() {
     }
 
-    public JobResponse(@Nonnull Bucket bucket) {
-        this.directResponse = Optional.of(bucket);
+    public JobResponse(@Nonnull List<Bucket> buckets) {
+        this.directResponse = buckets;
     }
 
-    public Optional<Bucket> directResponse() {
+    public List<Bucket> directResponse() {
         return directResponse;
     }
 
     public void streamers(Streamer<?>[] streamers) {
-        Bucket directResponse = directResponse().orNull();
-        if (directResponse != null && directResponse instanceof StreamBucket) {
-            assert streamers != null;
-            ((StreamBucket) directResponse).streamers(streamers);
+        List<Bucket> directResponse = directResponse();
+        for (Bucket bucket : directResponse) {
+            if (bucket instanceof StreamBucket) {
+                assert streamers != null;
+                ((StreamBucket) bucket).streamers(streamers);
+            }
         }
         this.streamers = streamers;
     }
@@ -60,19 +63,20 @@ public class JobResponse extends TransportResponse {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        if (in.readBoolean()) {
+        int size = in.readVInt();
+        for (int i = 0; i < size; i++) {
             StreamBucket bucket = new StreamBucket(streamers);
             bucket.readFrom(in);
-            directResponse = Optional.<Bucket>of(bucket);
+            directResponse.add(bucket);
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeBoolean(directResponse.isPresent());
-        if (directResponse.isPresent()) {
-            StreamBucket.writeBucket(out, streamers, directResponse.get());
+        out.writeVInt(directResponse.size());
+        for (Bucket bucket : directResponse) {
+            StreamBucket.writeBucket(out, streamers, bucket);
         }
     }
 }

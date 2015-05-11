@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
@@ -54,7 +55,7 @@ public class ExecutionNodesTaskTest {
         MergeNode m2 = new MergeNode(3, "merge2", 2);
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
 
-        Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodesTask.groupExecutionNodesByServer(new ExecutionNode[]{c1, m1, m2});
+        Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodesTask.groupExecutionNodesByServer(ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c1, m1, m2)));
 
         assertThat(groupByServer.containsKey("node1"), is(true));
         assertThat(groupByServer.get("node1"), Matchers.<ExecutionNode>containsInAnyOrder(c1, m2));
@@ -74,10 +75,10 @@ public class ExecutionNodesTaskTest {
         CollectNode c1 = new CollectNode(1, "c1");
         c1.downstreamNodes(Collections.singletonList("foo"));
 
-        assertThat(ExecutionNodesTask.hasDirectResponse(new ExecutionNode[]{c1}), is(false));
+        assertThat(ExecutionNodesTask.hasDirectResponse(ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c1))), is(false));
 
         CollectNode c2 = new CollectNode(1, "c1");
         c2.downstreamNodes(Collections.singletonList(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE));
-        assertThat(ExecutionNodesTask.hasDirectResponse(new ExecutionNode[]{c2}), is(true));
+        assertThat(ExecutionNodesTask.hasDirectResponse(ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c2))), is(true));
     }
 }

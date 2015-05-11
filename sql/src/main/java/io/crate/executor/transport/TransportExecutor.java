@@ -42,6 +42,7 @@ import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
+import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.StreamerVisitor;
@@ -201,30 +202,25 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public List<Task> visitCountPlan(CountPlan countPlan, Job job) {
-            return ImmutableList.<Task>of(new ExecutionNodesTask(
-                    job.id(),
-                    clusterService,
-                    contextPreparer,
-                    executionNodeOperationStarter,
-                    handlerSideDataCollectOperation,
-                    globalProjectionToProjectionVisitor,
-                    jobContextService,
-                    pageDownstreamFactory,
-                    statsTables,
-                    threadPool,
-                    transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportCloseContextNodeAction(),
-                    streamerVisitor,
-                    circuitBreaker,
-                    countPlan.mergeNode(),
-                    countPlan.countNode()
-            ));
+            return ImmutableList.of(createExecutableNodesTask(job, countPlan.countNode(), countPlan.mergeNode()));
         }
 
-        private Task createExecutableNodesTask(Job job, CollectNode collectNode, @Nullable MergeNode localMergeNode) {
-            collectNode.jobId(job.id());
-            if (localMergeNode != null) {
-                localMergeNode.jobId(job.id());
+        private Task createExecutableNodesTask(Job job, ExecutionNode executionNode, @Nullable MergeNode localMergeNode) {
+            return createExecutableNodesTask(job,
+                    ImmutableList.<List<ExecutionNode>>of(ImmutableList.of(executionNode)),
+                    localMergeNode == null ? null : ImmutableList.of(localMergeNode));
+        }
+
+        private ExecutionNodesTask createExecutableNodesTask(Job job, List<List<ExecutionNode>> groupedExecutionNodes, @Nullable List<MergeNode> localMergeNodes) {
+            for (List<ExecutionNode> executionNodeGroup : groupedExecutionNodes) {
+                for (ExecutionNode executionNode : executionNodeGroup) {
+                    executionNode.jobId(job.id());
+                }
+            }
+            if (localMergeNodes != null) {
+                for (MergeNode localMergeNode : localMergeNodes) {
+                    localMergeNode.jobId(job.id());
+                }
             }
             return new ExecutionNodesTask(
                     job.id(),
@@ -241,8 +237,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     transportActionProvider.transportCloseContextNodeAction(),
                     streamerVisitor,
                     circuitBreaker,
-                    localMergeNode,
-                    collectNode
+                    localMergeNodes,
+                    groupedExecutionNodes
             );
         }
 
@@ -253,15 +249,20 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public List<Task> visitUpsert(Upsert plan, Job job) {
-            ImmutableList.Builder<Task> taskBuilder = ImmutableList.builder();
-
-            for (Plan subPlan : plan.nodes()) {
-                List<Task> subTasks = planVisitor.process(subPlan, job);
-                UpsertTask upsertTask = new UpsertTask(TransportExecutor.this, job.id(), subTasks);
-                taskBuilder.add(upsertTask);
+            if (plan.nodes().size() == 1 && plan.nodes().get(0) instanceof IterablePlan) {
+                return process(plan.nodes().get(0), job);
             }
 
-            return taskBuilder.build();
+            List<List<ExecutionNode>> groupedExecutionNodes = new ArrayList<>(plan.nodes().size());
+            List<MergeNode> mergeNodes = new ArrayList<>(plan.nodes().size());
+            for (Plan subPlan : plan.nodes()) {
+                assert subPlan instanceof CollectAndMerge;
+                groupedExecutionNodes.add(ImmutableList.<ExecutionNode>of(((CollectAndMerge) subPlan).collectNode()));
+                mergeNodes.add(((CollectAndMerge) subPlan).localMergeNode());
+            }
+            ExecutionNodesTask task = createExecutableNodesTask(job, groupedExecutionNodes, mergeNodes);
+            task.rowCountResult(true);
+            return ImmutableList.<Task>of(task);
         }
 
         @Override
@@ -269,29 +270,18 @@ public class TransportExecutor implements Executor, TaskExecutor {
             plan.collectNode().jobId(job.id());
             plan.reducerMergeNode().jobId(job.id());
             MergeNode localMergeNode = plan.localMergeNode();
+            List<MergeNode> mergeNodes = null;
             if (localMergeNode != null) {
                 localMergeNode.jobId(job.id());
+                mergeNodes = ImmutableList.of(localMergeNode);
             }
             return ImmutableList.<Task>of(
-                    new ExecutionNodesTask(
-                            job.id(),
-                            clusterService,
-                            contextPreparer,
-                            executionNodeOperationStarter,
-                            handlerSideDataCollectOperation,
-                            globalProjectionToProjectionVisitor,
-                            jobContextService,
-                            pageDownstreamFactory,
-                            statsTables,
-                            threadPool,
-                            transportActionProvider.transportJobInitAction(),
-                            transportActionProvider.transportCloseContextNodeAction(),
-                            streamerVisitor,
-                            circuitBreaker,
-                            localMergeNode,
-                            plan.collectNode(),
-                            plan.reducerMergeNode()
-                    ));
+                    createExecutableNodesTask(job,
+                            ImmutableList.<List<ExecutionNode>>of(
+                                    ImmutableList.<ExecutionNode>of(
+                                            plan.collectNode(),
+                                            plan.reducerMergeNode())),
+                            mergeNodes));
         }
 
         @Override
@@ -301,7 +291,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 // TODO: remove this hack
                 Task previousTask = Iterables.getLast(tasks);
                 if (previousTask instanceof ExecutionNodesTask) {
-                    ((ExecutionNodesTask) previousTask).mergeNode(node.handlerMergeNode().get());
+                    ((ExecutionNodesTask) previousTask).mergeNodes(ImmutableList.of(node.handlerMergeNode().get()));
                 } else {
                     ArrayList<Task> tasks2 = new ArrayList<>(tasks);
                     tasks2.addAll(nodeVisitor.visitMergeNode(node.handlerMergeNode().get(), job.id()));

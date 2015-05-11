@@ -29,39 +29,35 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.MergeProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dql.*;
+import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
@@ -644,4 +640,81 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(objects, contains(isRow(1, "Arthur", true)));
     }
 
+    @Test
+    public void testBulkUpdateByQueryTask() throws Exception {
+        setup.setUpCharacters();
+        /* update characters set name 'Zaphod Beeblebrox' where female = false
+           update characters set name 'Zaphod Beeblebrox' where female = true
+         */
+
+        List<Plan> childNodes = new ArrayList<>();
+        Planner.Context plannerContext = new Planner.Context(clusterService());
+
+        TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
+        Reference uidReference = new Reference(
+                new ReferenceInfo(
+                        new ReferenceIdent(tableInfo.ident(), "_uid"),
+                        RowGranularity.DOC, DataTypes.STRING));
+
+        // 1st collect and merge nodes
+        Function whereClause1 = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
+
+        UpdateProjection updateProjection = new UpdateProjection(
+                new InputColumn(0, DataTypes.STRING),
+                new String[]{"name"},
+                new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")},
+                null);
+
+        CollectNode collectNode1 = PlanNodeBuilder.collect(
+                tableInfo,
+                plannerContext,
+                new WhereClause(whereClause1),
+                ImmutableList.<Symbol>of(uidReference),
+                ImmutableList.<Projection>of(updateProjection),
+                null,
+                Preference.PRIMARY.type()
+        );
+        MergeNode mergeNode1 = PlanNodeBuilder.localMerge(
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode1,
+                plannerContext);
+        childNodes.add(new CollectAndMerge(collectNode1, mergeNode1));
+
+        // 2nd collect and merge nodes
+        Function whereClause2 = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
+
+        CollectNode collectNode2 = PlanNodeBuilder.collect(
+                tableInfo,
+                plannerContext,
+                new WhereClause(whereClause2),
+                ImmutableList.<Symbol>of(uidReference),
+                ImmutableList.<Projection>of(updateProjection),
+                null,
+                Preference.PRIMARY.type()
+        );
+        MergeNode mergeNode2 = PlanNodeBuilder.localMerge(
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode2,
+                plannerContext);
+        childNodes.add(new CollectAndMerge(collectNode2, mergeNode2));
+
+        Upsert plan = new Upsert(childNodes);
+        Job job = executor.newJob(plan);
+
+        assertThat(job.tasks().size(), is(1));
+        assertThat(job.tasks().get(0), instanceOf(ExecutionNodesTask.class));
+        List<ListenableFuture<TaskResult>> results = executor.execute(job);
+        assertThat(results.size(), is(2));
+
+        for (int i = 0; i < results.size(); i++) {
+            TaskResult result = results.get(i).get();
+            assertThat(result, instanceOf(RowCountResult.class));
+            // each of the bulk request hits 2 records
+            assertThat(((RowCountResult)result).rowCount(), is(2L));
+        }
+    }
 }

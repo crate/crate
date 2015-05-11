@@ -39,6 +39,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
 
 @Singleton
 public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
@@ -84,25 +86,24 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     public void nodeOperation(final JobRequest request, final ActionListener<JobResponse> actionListener) {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId());
 
-        ListenableFuture<Bucket> directResponseFuture = null;
+        List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
         for (ExecutionNode executionNode : request.executionNodes()) {
             ListenableFuture<Bucket> responseFuture = contextPreparer.prepare(request.jobId(), executionNode, contextBuilder);
             if (responseFuture != null) {
-                assert directResponseFuture == null : "only one executionNode may have a directResponse";
-                directResponseFuture = responseFuture;
+                directResponseFutures.add(responseFuture);
             }
         }
 
         JobExecutionContext context = jobContextService.createOrMergeContext(contextBuilder);
         executionNodeOperationStarter.startOperations(request.executionNodes(), context);
 
-        if (directResponseFuture == null) {
+        if (directResponseFutures.size() == 0) {
             actionListener.onResponse(new JobResponse());
         } else {
-            Futures.addCallback(directResponseFuture, new FutureCallback<Bucket>() {
+            Futures.addCallback(Futures.allAsList(directResponseFutures), new FutureCallback<List<Bucket>>() {
                 @Override
-                public void onSuccess(Bucket bucket) {
-                    actionListener.onResponse(new JobResponse(bucket));
+                public void onSuccess(List<Bucket> buckets) {
+                    actionListener.onResponse(new JobResponse(buckets));
                 }
 
                 @Override
