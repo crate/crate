@@ -38,6 +38,7 @@ import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.Input;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
@@ -208,6 +209,9 @@ public class LocalDataCollectTest extends CrateUnitTest {
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
 
+
+            bind(ReferenceInfos.class).toInstance(mock(ReferenceInfos.class));
+
             BulkRetryCoordinator bulkRetryCoordinator = mock(BulkRetryCoordinator.class);
             BulkRetryCoordinatorPool bulkRetryCoordinatorPool = mock(BulkRetryCoordinatorPool.class);
             when(bulkRetryCoordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
@@ -308,6 +312,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
             bind(ShardCollectService.class).asEagerSingleton();
 
             bind(DiscoveryService.class).toInstance(discoveryService);
+
 
             // blob stuff
             MapBinder<ReferenceIdent, BlobShardReferenceImplementation> blobBinder = MapBinder

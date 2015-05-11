@@ -25,33 +25,26 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.PartitionName;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoBuilder;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 public class ShardReferenceResolver extends AbstractReferenceResolver {
 
     private final Map<ReferenceIdent, ReferenceImplementation> implementations;
-    private static final ESLogger logger = Loggers.getLogger(ShardReferenceResolver.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(ShardReferenceResolver.class);
 
     @Inject
     public ShardReferenceResolver(Index index,
-                                  ThreadPool threadPool,
-                                  DocSchemaInfo docSchemaInfo,
+                                  ReferenceInfos referenceInfos,
                                   ClusterService clusterService,
-                                  final TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                   final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
                                   final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
         ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();
@@ -62,24 +55,14 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
             TableIdent tableIdent = new TableIdent(PartitionName.schemaName(index.name()), PartitionName.tableName(index.name()));
             // check if alias exists
             if (clusterService.state().metaData().hasConcreteIndex(tableIdent.esName())) {
-                // get DocTableInfo for virtual partitioned table
-                DocTableInfo info = new DocTableInfoBuilder(
-                        docSchemaInfo,
-                        tableIdent,
-                        clusterService,
-                        transportPutIndexTemplateAction,
-                        (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
-                        true).build();
+                TableInfo info = referenceInfos.getTableInfo(tableIdent);
                 assert info.isPartitioned();
                 int i = 0;
                 int numPartitionedColumns = info.partitionedByColumns().size();
 
                 PartitionName partitionName;
                 try {
-                    partitionName = PartitionName.fromString(
-                            index.name(),
-                            tableIdent.schema(),
-                            tableIdent.name());
+                    partitionName = PartitionName.fromString(index.name(), tableIdent.schema(), tableIdent.name());
                 } catch (IllegalArgumentException e) {
                     throw new UnhandledServerException(
                             String.format(Locale.ENGLISH,
@@ -97,12 +80,10 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                     i++;
                 }
             } else {
-                logger.error("Orphaned partition '{}' with missing table '{}' found",
-                        index, tableIdent.fqn());
+                LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
             }
         }
         this.implementations = builder.build();
-
     }
 
     @Override
