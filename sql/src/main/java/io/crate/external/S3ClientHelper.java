@@ -25,8 +25,10 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.*;
+import com.amazonaws.retry.PredefinedRetryPolicies;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.simpleworkflow.flow.interceptors.RetryPolicy;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 
@@ -57,10 +59,13 @@ public class S3ClientHelper {
                     };
 
     // TODO: use HTTPS and fix certificate issue
-    private final static ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTP)
-            .withMaxErrorRetry(2)
-            .withConnectionTimeout(20000)
-            .withSocketTimeout(20000);
+    private final static ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTP);
+
+    static {
+        CLIENT_CONFIGURATION.setRetryPolicy(PredefinedRetryPolicies.getDefaultRetryPolicyWithCustomMaxRetries(5));
+        CLIENT_CONFIGURATION.setUseTcpKeepAlive(true);
+    }
+
     private final static String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
 
     private final IntObjectMap<AmazonS3> clientMap = new IntObjectOpenHashMap<>(1);
