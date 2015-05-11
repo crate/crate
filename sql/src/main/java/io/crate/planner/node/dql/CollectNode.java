@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -42,7 +41,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * A plan node which collects data.
@@ -55,7 +53,6 @@ public class CollectNode extends AbstractDQLPlanNode {
             return new CollectNode();
         }
     };
-    private Optional<UUID> jobId = Optional.absent();
     private Routing routing;
     private List<Symbol> toCollect;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
@@ -206,14 +203,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         }
     }
 
-    public Optional<UUID> jobId() {
-        return jobId;
-    }
-
-    public void jobId(@Nullable UUID jobId) {
-        this.jobId = Optional.fromNullable(jobId);
-    }
-
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitCollectNode(this, context);
@@ -252,9 +241,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         downstreamNodes = new ArrayList<>(numDownStreams);
         for (int i = 0; i < numDownStreams; i++) {
             downstreamNodes.add(in.readString());
-        }
-        if (in.readBoolean()) {
-            jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
         keepContextForFetcher = in.readBoolean();
 
@@ -297,11 +283,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         } else {
             out.writeVInt(0);
         }
-        out.writeBoolean(jobId.isPresent());
-        if (jobId.isPresent()) {
-            out.writeLong(jobId.get().getMostSignificantBits());
-            out.writeLong(jobId.get().getLeastSignificantBits());
-        }
         out.writeBoolean(keepContextForFetcher);
         if (limit != null ) {
             out.writeBoolean(true);
@@ -336,7 +317,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             result = new CollectNode(executionNodeId(), name(), routing, newToCollect, projections);
             result.downstreamNodes = downstreamNodes;
             result.maxRowGranularity = maxRowGranularity;
-            result.jobId = jobId;
+            result.jobId(jobId());
             result.keepContextForFetcher = keepContextForFetcher;
             result.isPartitioned(isPartitioned);
             result.whereClause(newWhereClause);

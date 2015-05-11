@@ -51,7 +51,6 @@ public class MergeNode extends AbstractDQLPlanNode {
     private List<DataType> inputTypes;
     private int numUpstreams;
     private Set<String> executionNodes;
-    private UUID jobId;
 
     /**
      * expects sorted input and produces sorted output
@@ -125,14 +124,6 @@ public class MergeNode extends AbstractDQLPlanNode {
         return numUpstreams;
     }
 
-    public UUID jobId() {
-        return jobId;
-    }
-
-    public void jobId(UUID jobId) {
-        this.jobId = jobId;
-    }
-
     public List<DataType> inputTypes() {
         return inputTypes;
     }
@@ -182,7 +173,6 @@ public class MergeNode extends AbstractDQLPlanNode {
         }
 
         numUpstreams = in.readVInt();
-        jobId = new UUID(in.readLong(), in.readLong());
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -225,8 +215,6 @@ public class MergeNode extends AbstractDQLPlanNode {
         }
 
         out.writeVInt(numUpstreams);
-        out.writeLong(jobId.getMostSignificantBits());
-        out.writeLong(jobId.getLeastSignificantBits());
 
         int numCols = inputTypes.size();
         out.writeVInt(numCols);
@@ -261,7 +249,7 @@ public class MergeNode extends AbstractDQLPlanNode {
                 .add("name", name())
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
-                .add("jobId", jobId)
+                .add("jobId", jobId())
                 .add("numUpstreams", numUpstreams)
                 .add("executionNodes", executionNodes)
                 .add("inputTypes", inputTypes)

@@ -32,6 +32,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class CountNode implements ExecutionNode {
 
@@ -41,6 +42,7 @@ public class CountNode implements ExecutionNode {
             return new CountNode();
         }
     };
+    private UUID jobId;
     private int executionNodeId;
     private Routing routing;
     private WhereClause whereClause;
@@ -61,6 +63,16 @@ public class CountNode implements ExecutionNode {
     @Override
     public String name() {
         return "count";
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
+    }
+
+    @Override
+    public void jobId(UUID jobId) {
+        this.jobId = jobId;
     }
 
     public Routing routing() {
@@ -98,6 +110,7 @@ public class CountNode implements ExecutionNode {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        jobId = new UUID(in.readLong(), in.readLong());
         executionNodeId = in.readVInt();
         routing = new Routing();
         routing.readFrom(in);
@@ -106,6 +119,9 @@ public class CountNode implements ExecutionNode {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        assert jobId != null : "jobId must not be null";
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
         out.writeVInt(executionNodeId);
         routing.writeTo(out);
         whereClause.writeTo(out);

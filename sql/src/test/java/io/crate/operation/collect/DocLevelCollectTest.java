@@ -217,8 +217,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         CollectingProjector cd = new CollectingProjector();
         ContextPreparer contextPreparer = cluster().getInstance(ContextPreparer.class);
         JobContextService contextService = cluster().getInstance(JobContextService.class);
-        JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId().get());
-        contextPreparer.prepare(collectNode.jobId().get(), collectNode, builder);
+        JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
+        contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
         contextService.createOrMergeContext(builder);
         operation.collect(collectNode, cd, RAM_ACCOUNTING_CONTEXT);
         return cd.result().get();

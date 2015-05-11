@@ -256,7 +256,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         final List<Row> rows = new ArrayList<>();
         for (Map.Entry<String, LongArrayList> nodeEntry : jobSearchContextDocIds.entrySet()) {
             NodeFetchRequest nodeFetchRequest = new NodeFetchRequest();
-            nodeFetchRequest.jobId(plan.collectNode().jobId().get());
+            nodeFetchRequest.jobId(plan.collectNode().jobId());
             nodeFetchRequest.executionNodeId(plan.collectNode().executionNodeId());
             nodeFetchRequest.toFetchReferences(context.references());
             nodeFetchRequest.closeContext(true);
@@ -292,8 +292,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         List<JobExecutionContext> executionContexts = new ArrayList<>(2);
         for (JobContextService jobContextService : cluster().getInstances(JobContextService.class)) {
-            JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId().get());
-            contextPreparer.prepare(collectNode.jobId().get(), collectNode, builder);
+            JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId());
+            contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
             executionContexts.add(jobContextService.createOrMergeContext(builder));
         }
         return executionContexts;

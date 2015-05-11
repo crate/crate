@@ -101,7 +101,7 @@ public class FileUriCollectNode extends CollectNode {
                 sharedStorage());
         result.downstreamNodes(downstreamNodes());
         result.maxRowGranularity(maxRowGranularity());
-        result.jobId(jobId().orNull());
+        result.jobId(jobId());
         result.isPartitioned(isPartitioned());
         result.whereClause(normalizedWhereClause);
         return result;

@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public interface ExecutionNode extends Streamable {
 
@@ -68,6 +69,11 @@ public interface ExecutionNode extends Streamable {
     List<String> downstreamNodes();
 
     int downstreamExecutionNodeId();
+
+    UUID jobId();
+
+    void jobId(UUID jobId);
+
 
     <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context);
 }

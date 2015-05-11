@@ -35,9 +35,11 @@ import org.elasticsearch.common.io.stream.Streamable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, ExecutionNode {
 
+    private UUID jobId;
     private int executionNodeId;
     private String name;
     protected List<Projection> projections = ImmutableList.of();
@@ -55,6 +57,16 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
 
     public String name() {
         return name;
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
+    }
+
+    @Override
+    public void jobId(UUID jobId) {
+        this.jobId = jobId;
     }
 
     @Override
@@ -112,6 +124,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
     @Override
     public void readFrom(StreamInput in) throws IOException {
         name = in.readString();
+        jobId = new UUID(in.readLong(), in.readLong());
         executionNodeId = in.readVInt();
 
         int numCols = in.readVInt();
@@ -135,6 +148,9 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
+        assert jobId != null : "jobId must not be null";
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
         out.writeVInt(executionNodeId);
 
         int numCols = outputTypes.size();

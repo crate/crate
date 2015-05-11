@@ -44,28 +44,6 @@ public class CollectNodeTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         CollectNode cn = new CollectNode(0, "cn");
         cn.maxRowGranularity(RowGranularity.DOC);
-
-        cn.downstreamNodes(Arrays.asList("n1", "n2"));
-        cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
-
-        BytesStreamOutput out = new BytesStreamOutput();
-        cn.writeTo(out);
-
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode(1, "collect");
-        cn2.readFrom(in);
-        assertThat(cn, equalTo(cn2));
-
-        assertThat(cn.toCollect(), is(cn2.toCollect()));
-        assertThat(cn.downstreamNodes(), is(cn2.downstreamNodes()));
-        assertThat(cn.maxRowGranularity(), is(cn.maxRowGranularity()));
-
-    }
-
-    @Test
-    public void testStreamingWithJobId() throws Exception {
-        CollectNode cn = new CollectNode(0, "cn");
-        cn.maxRowGranularity(RowGranularity.DOC);
         cn.downstreamNodes(Arrays.asList("n1", "n2"));
         cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
         cn.jobId(UUID.randomUUID());
