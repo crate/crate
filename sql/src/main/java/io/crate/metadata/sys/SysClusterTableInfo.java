@@ -264,6 +264,21 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("settings", DataTypes.LONG, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_RECOVERY.name(),
                 CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
+                CrateSettings.INDICES_RECOVERY.name(),
+                CrateSettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
+                CrateSettings.INDICES_RECOVERY.name(),
+                CrateSettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
+                CrateSettings.INDICES_RECOVERY.name(),
+                CrateSettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
+                CrateSettings.INDICES_RECOVERY.name(),
+                CrateSettings.INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
+                CrateSettings.INDICES_RECOVERY.name(),
+                CrateSettings.INDICES_RECOVERY_ACTIVITY_TIMEOUT.name()));
 
         register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_STORE.name()));

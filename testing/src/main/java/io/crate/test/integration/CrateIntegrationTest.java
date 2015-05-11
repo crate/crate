@@ -23,6 +23,8 @@ package io.crate.test.integration;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.randomizedtesting.SeedUtils;
+import com.carrotsearch.randomizedtesting.ThreadFilter;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.google.common.base.Joiner;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.ExceptionsHelper;
@@ -56,6 +58,7 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.network.MulticastChannel;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -63,7 +66,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.repositories.RepositoryMissingException;
-import org.elasticsearch.test.ElasticsearchTestCase;
+import org.elasticsearch.test.*;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -77,12 +80,36 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.*;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.core.IsEqual.equalTo;
 
+@ThreadLeakFilters(defaultFilters = true, filters = { CrateIntegrationTest.TestThreadFilter.class })
 public class CrateIntegrationTest extends ElasticsearchTestCase {
+
+    public static class TestThreadFilter implements ThreadFilter {
+
+        private final Pattern nodePrefix = Pattern.compile("\\[(" +
+                "(" + Pattern.quote(InternalTestCluster.TRANSPORT_CLIENT_PREFIX) + ")?(" +
+                Pattern.quote(CrateTestCluster.GLOBAL_CLUSTER_NODE_PREFIX) + "|" +
+                Pattern.quote(ElasticsearchIntegrationTest.SUITE_CLUSTER_NODE_PREFIX) + "|" +
+                Pattern.quote(ElasticsearchIntegrationTest.TEST_CLUSTER_NODE_PREFIX) + "|" +
+                Pattern.quote(ExternalTestCluster.EXTERNAL_CLUSTER_PREFIX) + ")"
+                + ")\\d+\\]");
+
+        @Override
+        public boolean reject(Thread t) {
+            String threadName = t.getName();
+            if (threadName.contains("[" + MulticastChannel.SHARED_CHANNEL_NAME + "]")
+                    || threadName.contains("[" + ElasticsearchSingleNodeTest.nodeName() + "]")
+                    || threadName.contains("Keep-Alive-Timer")) {
+                return true;
+            }
+            return nodePrefix.matcher(t.getName()).find();
+        }
+    }
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);

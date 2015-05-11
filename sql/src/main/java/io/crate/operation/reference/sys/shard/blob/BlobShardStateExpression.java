@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys.shard.blob;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.operation.reference.sys.shard.ShardStateExpression;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.service.IndexShard;
+import org.elasticsearch.index.shard.IndexShard;
 
 public class BlobShardStateExpression extends ShardStateExpression implements BlobShardReferenceImplementation {
 

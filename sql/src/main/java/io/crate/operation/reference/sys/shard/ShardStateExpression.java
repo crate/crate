@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.shard;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.service.IndexShard;
+import org.elasticsearch.index.shard.IndexShard;
 
 public class ShardStateExpression extends SysShardExpression<BytesRef> {
 

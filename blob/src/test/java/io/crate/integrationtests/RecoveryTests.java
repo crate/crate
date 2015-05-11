@@ -45,7 +45,6 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.test.ElasticsearchThreadFilter;
 import org.junit.Test;
 
 import java.security.MessageDigest;
@@ -63,7 +62,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
-@ThreadLeakFilters(defaultFilters = true, filters = {ElasticsearchThreadFilter.class, RecoveryTests.RecoveryTestThreadFilter.class})
+@ThreadLeakFilters(defaultFilters = true, filters = {CrateIntegrationTest.TestThreadFilter.class, RecoveryTests.RecoveryTestThreadFilter.class})
 public class RecoveryTests extends CrateIntegrationTest {
 
     public static class RecoveryTestThreadFilter implements ThreadFilter {

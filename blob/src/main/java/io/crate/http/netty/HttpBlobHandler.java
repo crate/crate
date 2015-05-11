@@ -393,20 +393,21 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     private void delete(String index, String digest) throws IOException {
         digestBlob = blobService.newBlob(index, digest);
         if (digestBlob.delete()) {
-            simpleResponse(HttpResponseStatus.NO_CONTENT, null); // 204 for success
+             // 204 for success
+            simpleResponse(HttpResponseStatus.NO_CONTENT, null);
         } else {
             simpleResponse(HttpResponseStatus.NOT_FOUND, null);
         }
     }
 
-    protected void writeToFile(ChannelBuffer input, boolean last, boolean continueExpected) throws
+    protected void writeToFile(ChannelBuffer input, boolean last, final boolean continueExpected) throws
             IOException {
         if (digestBlob == null) {
             throw new IllegalStateException("digestBlob is null in writeToFile");
         }
 
-        HttpResponseStatus exitStatus = null;
         RemoteDigestBlob.Status status = digestBlob.addContent(input, last);
+        HttpResponseStatus exitStatus = null;
         switch (status) {
             case FULL:
                 exitStatus = HttpResponseStatus.CREATED;

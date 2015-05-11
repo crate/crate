@@ -294,7 +294,7 @@
 
 # Set to throttle throughput when recovering (eg. 100mb, by default unlimited):
 #
-# indices.recovery.max_size_per_sec: 20mb
+# indices.recovery.max_size_per_sec: 40mb
 
 # Set to limit the number of open concurrent streams when
 # recovering a shard from a peer:
@@ -329,6 +329,31 @@
 # may result in higher network utilization, but also faster recovery process.
 #
 # indices.recovery.max_bytes_per_sec: 20mb
+
+# Specifies the time to wait after an issue caused by cluster state syncing
+# before retrying to recover.
+#
+# indices.recovery.retry_delay_state_sync: 500ms
+
+# Specifies the time to wait after an issue caused by the network
+# before retrying to recover.
+#
+# indices.recovery.retry_delay_network: 5s
+
+# Specifies the interval after which idle recoveries will be failed.
+#
+# indices.recovery.retry_activity_timeout: 15m
+
+# Specifies the timeout for internal requests made as part of the
+# recovery.
+#
+# indices.recovery.retry_internal_action_timeout: 15m
+
+# Specifies the timeout for internal requests made as part of the
+# recovery that are expected to take a long time.
+#
+# indices.recovery.retry_internal_long_action_timeout: 30m
+
 
 ############################ Store Level Throttling ###########################
 

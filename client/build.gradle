@@ -26,8 +26,8 @@ dependencies {
         exclude group: 'org.slf4j'
     }
     // needed by ES Version class - keep up to date with es dependencies
-    compile 'org.apache.lucene:lucene-core:4.10.3'
-    compile 'org.apache.lucene:lucene-analyzers-common:4.10.3'
+    compile 'org.apache.lucene:lucene-core:4.10.4'
+    compile 'org.apache.lucene:lucene-analyzers-common:4.10.4'
 
     compile 'com.google.code.findbugs:annotations:3.0.0'
     compile files(project(':core').sourceSets.shared.output.classesDir)

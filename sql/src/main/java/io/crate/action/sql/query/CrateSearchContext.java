@@ -32,9 +32,9 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.service.IndexService;
-import org.elasticsearch.index.shard.service.IndexShard;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchShardTarget;
@@ -184,7 +184,7 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
 
         @Override
-        public Map<String, String> templateParams() {
+        public Map<String, Object> templateParams() {
             return null;
         }
 

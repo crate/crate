@@ -24,7 +24,7 @@ package io.crate.blob;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import org.elasticsearch.common.util.concurrent.BaseFuture;
-import org.elasticsearch.index.shard.service.IndexShard;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
 
 public class BlobShardFuture extends BaseFuture<BlobShard> {

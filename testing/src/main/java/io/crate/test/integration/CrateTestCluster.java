@@ -44,10 +44,8 @@ import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.index.engine.IndexEngineModule;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.internal.InternalNode;
-import org.elasticsearch.test.engine.MockEngineModule;
 import org.elasticsearch.test.store.MockFSIndexStoreModule;
 import org.elasticsearch.test.transport.AssertingLocalTransport;
 import org.elasticsearch.transport.TransportModule;
@@ -79,6 +77,7 @@ import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
  */
 public class CrateTestCluster implements Iterable<Client> {
 
+    public static final String GLOBAL_CLUSTER_NODE_PREFIX = "node_";
     private static final ESLogger logger = Loggers.getLogger(CrateTestCluster.class);
 
     /* sorted map to make traverse order reproducible */
@@ -140,7 +139,6 @@ public class CrateTestCluster implements Iterable<Client> {
 
         ImmutableSettings.Builder builder = settingsBuilder()
             .put("index.store.type", MockFSIndexStoreModule.class.getName()) // no RAM dir for now!
-            .put(IndexEngineModule.EngineSettings.ENGINE_TYPE, MockEngineModule.class.getName())
             .put("cluster.name", clusterName)
             .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED, false)
                 // decrease the routing schedule so new nodes will be added quickly - some random value between 30 and 80 ms
@@ -298,9 +296,8 @@ public class CrateTestCluster implements Iterable<Client> {
         Node node = nodeBuilder().settings(finalSettings).build();
         return new NodeAndClient(name, node, new ClientFactory());
     }
-
     private String buildNodeName(int id) {
-        return "node_" + id;
+        return GLOBAL_CLUSTER_NODE_PREFIX + id;
     }
 
     public synchronized Client client() {

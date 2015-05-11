@@ -76,13 +76,16 @@ public class CustomBlobPathTest extends CrateIntegrationTest {
         blobIndices.createBlobTable("test", indexSettings).get();
         ensureGreen();
         assertTrue(blobEnvironment.shardLocation(new ShardId(".blob_test", 0)).exists()
-         || blobEnvironment.shardLocation(new ShardId(".blob_test", 1)).exists());
+                || blobEnvironment.shardLocation(new ShardId(".blob_test", 1)).exists());
         assertTrue(blobEnvironment2.shardLocation(new ShardId(".blob_test", 0)).exists()
                 || blobEnvironment2.shardLocation(new ShardId(".blob_test", 1)).exists());
 
         blobIndices.dropBlobTable("test").get();
-        assertFalse(blobEnvironment.indexLocation(new Index(".blob_test")).exists());
-        assertFalse(blobEnvironment2.indexLocation(new Index(".blob_test")).exists());
+
+        File loc1 = blobEnvironment.indexLocation(new Index(".blob_test"));
+        File loc2 = blobEnvironment2.indexLocation(new Index(".blob_test"));
+        assertFalse(loc1.exists());
+        assertFalse(loc2.exists());
     }
 
     @Test
@@ -113,16 +116,20 @@ public class CustomBlobPathTest extends CrateIntegrationTest {
                 || blobEnvironment2.shardLocation(new ShardId(".blob_test2", 1), tempBlobPath).exists());
 
         blobIndices.dropBlobTable("test").get();
-        assertFalse(blobEnvironment.indexLocation(new Index(".blob_test"), tempBlobPath).exists());
-        assertFalse(blobEnvironment2.indexLocation(new Index(".blob_test"), tempBlobPath).exists());
+
+        File loc1 = blobEnvironment.indexLocation(new Index(".blob_test"));
+        File loc2 = blobEnvironment2.indexLocation(new Index(".blob_test"));
+        assertFalse(loc1.exists());
+        assertFalse(loc2.exists());
 
         // blobs path still exists because other index is using it
         assertTrue(tempBlobPath.exists());
 
         blobIndices.dropBlobTable("test2").get();
-        assertFalse(blobEnvironment.indexLocation(new Index(".blob_test2"), tempBlobPath).exists());
-        assertFalse(blobEnvironment2.indexLocation(new Index(".blob_test2"), tempBlobPath).exists());
-
+        loc1 = blobEnvironment.indexLocation(new Index(".blob_test2"));
+        loc2 = blobEnvironment2.indexLocation(new Index(".blob_test2"));
+        assertFalse(loc1.exists());
+        assertFalse(loc2.exists());
         // no index using the blobs path anymore, should be deleted
         assertFalse(tempBlobPath.exists());
 

@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.shard;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.service.IndexShard;
+import org.elasticsearch.index.shard.IndexShard;
 
 public class ShardNumDocsExpression extends SysShardExpression<Long> {
 

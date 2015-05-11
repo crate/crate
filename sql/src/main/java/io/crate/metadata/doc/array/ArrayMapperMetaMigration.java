@@ -76,13 +76,15 @@ public class ArrayMapperMetaMigration implements LocalGatewayMetaMigrator.LocalG
                         migrateToNewArrayType(arrayColumns, (Map<String, Object>)mappingMap.get("properties"));
 
                         try {
+                            MappingMetaData migrated = new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, mappingMap);
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("migrated to new mapping: {}", migrated.source().string());
+                            }
+
                             // this will increase the version of the index metadata
                             metaBuilder.put(
                                     IndexMetaData.builder(cursor.value)
-                                            .putMapping(
-                                                    Constants.DEFAULT_MAPPING_TYPE,
-                                                    XContentFactory.jsonBuilder().map(mappingMap).string()
-                                            )
+                                            .putMapping(migrated)
                             );
                         } catch (IOException e) {
                             logger.error("error writing the migrated index metadata for index [{}]", e, cursor.key);

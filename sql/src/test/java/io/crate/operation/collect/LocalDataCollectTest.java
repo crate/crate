@@ -87,12 +87,11 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.settings.IndexSettings;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.service.IndexShard;
-import org.elasticsearch.index.shard.service.InternalIndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -295,7 +294,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
         @Override
         protected void configure() {
-            IndexShard shard = mock(InternalIndexShard.class);
+            IndexShard shard = mock(IndexShard.class);
             bind(IndexShard.class).toInstance(shard);
             when(shard.shardId()).thenReturn(shardId);
             Index index = new Index(TEST_TABLE_NAME);

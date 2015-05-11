@@ -38,6 +38,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
@@ -68,83 +69,100 @@ public class ArrayMapperMetaMigrationTest extends CrateUnitTest {
     public void testMigrateOldIndices() throws Exception {
         File dataFolder = tempFolder.newFolder();
         InternalNode node = startNode(dataFolder);
-        node.client().admin().indices().prepareCreate("with_meta")
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, XContentFactory.jsonBuilder()
-                                .startObject()
-                                .startObject("_meta")
-                                .startObject("columns")
-                                .startObject("a")
-                                .field("collection_type", "array")
-                                .endObject()
-                                .endObject()
-                                .endObject()
-                                .startObject("properties")
-                                .startObject("a")
-                                .field("type", "string")
-                                .field("index", "not_analyzed")
-                                .endObject()
-                                .endObject()
-                                .endObject()
-                ).addMapping("other", XContentFactory.jsonBuilder()
-                        .startObject()
-                        .startObject("_meta")
-                        .startObject("columns")
-                        .startObject("a")
-                        .field("collection_type", "array")
-                        .endObject()
-                        .endObject()
-                        .endObject()
-                        .startObject("properties")
-                        .startObject("a")
-                        .field("type", "string")
-                        .field("index", "not_analyzed")
-                        .endObject()
-                        .endObject()
-                        .endObject()
-        ).execute().actionGet();
-        node.client().admin().indices().prepareCreate("without_meta")
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, XContentFactory.jsonBuilder()
-                                .startObject()
-                                .startObject("properties")
-                                .startObject("a")
-                                .field("type", "string")
-                                .field("index", "not_analyzed")
-                                .endObject()
-                                .endObject()
-                                .endObject()
-                ).execute().actionGet();
-        node.client().admin().cluster().prepareHealth()
-                .setWaitForRelocatingShards(0).setWaitForGreenStatus()
-                .execute().actionGet();
-        // restart the node
-        node.stop();
-        node.close();
-        node = null;
+        try {
+            node.client().admin().indices().prepareCreate("with_meta")
+                    .addMapping(Constants.DEFAULT_MAPPING_TYPE, XContentFactory.jsonBuilder()
+                                    .startObject()
+                                    .startObject("_meta")
+                                    .startObject("columns")
+                                    .startObject("a")
+                                    .field("collection_type", "array")
+                                    .endObject()
+                                    .endObject()
+                                    .endObject()
+                                    .startObject("properties")
+                                    .startObject("a")
+                                    .field("type", "string")
+                                    .field("index", "not_analyzed")
+                                    .endObject()
+                                    .endObject()
+                                    .endObject()
+                    ).addMapping("other", XContentFactory.jsonBuilder()
+                            .startObject()
+                            .startObject("_meta")
+                            .startObject("columns")
+                            .startObject("a")
+                            .field("collection_type", "array")
+                            .endObject()
+                            .endObject()
+                            .endObject()
+                            .startObject("properties")
+                            .startObject("a")
+                            .field("type", "string")
+                            .field("index", "not_analyzed")
+                            .endObject()
+                            .endObject()
+                            .endObject()
+            ).execute().actionGet();
+            node.client().admin().indices().prepareCreate("without_meta")
+                    .addMapping(Constants.DEFAULT_MAPPING_TYPE, XContentFactory.jsonBuilder()
+                                    .startObject()
+                                    .startObject("properties")
+                                    .startObject("a")
+                                    .field("type", "string")
+                                    .field("index", "not_analyzed")
+                                    .endObject()
+                                    .endObject()
+                                    .endObject()
+                    ).execute().actionGet();
+            node.client().admin().cluster().prepareHealth()
+                    .setWaitForRelocatingShards(0).setWaitForGreenStatus()
+                    .execute().actionGet();
+            // restart the node
+            node.stop();
+            node.close();
 
-        InternalNode newNode = startNode(dataFolder);
+            InternalNode newNode = startNode(dataFolder);
+            try {
+                newNode.client().admin().cluster().prepareHealth()
+                        .setWaitForRelocatingShards(0).setWaitForGreenStatus()
+                        .execute().actionGet();
+                MetaData metaData = newNode.client().admin().cluster().prepareState()
+                        .execute().actionGet().getState().metaData();
+                IndexMetaData withMeta = metaData.index("with_meta");
 
-        newNode.client().admin().cluster().prepareHealth()
-                .setWaitForRelocatingShards(0).setWaitForGreenStatus()
-                .execute().actionGet();
-        MetaData metaData = newNode.client().admin().cluster().prepareState()
-                .execute().actionGet().getState().metaData();
-        IndexMetaData withMeta = metaData.index("with_meta");
+                // _meta.columns is gone
+                // use sourceAsMap as it deterministically strips the mapping type
+                // _meta might still be there but empty, so be lenient about it
+                Map<String, Object> sourceMap = withMeta.mapping(Constants.DEFAULT_MAPPING_TYPE).sourceAsMap();
+                if (sourceMap.containsKey("_meta")) {
+                    assertThat(((Map)sourceMap.get("_meta")).size(), is(0));
+                }
+                assertThat(toJson((Map<String, Object>)sourceMap.get("properties")), is("{\"a\":{\"type\":\"array\",\"inner\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}"));
 
-        // _meta.columns is gone
-        assertThat(withMeta.mapping(Constants.DEFAULT_MAPPING_TYPE).source().string(),
-                is("{\"default\":{\"properties\":{\"a\":{\"type\":\"array\",\"inner\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}}"));
+                // _meta.columns still there
+                assertThat(toJson(withMeta.mapping("other").sourceAsMap()),
+                        is("{\"_meta\":{\"columns\":{\"a\":{\"collection_type\":\"array\"}}},\"properties\":{\"a\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}"));
+                assertThat(withMeta.version(), is(greaterThan(1L)));
+                IndexMetaData withOutMeta = newNode.client().admin().cluster().prepareState()
+                        .execute().actionGet().getState().metaData().index("without_meta");
+                // no change
+                assertThat(toJson(withOutMeta.mapping(Constants.DEFAULT_MAPPING_TYPE).sourceAsMap()), is("{\"properties\":{\"a\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}"));
+                assertThat(withOutMeta.version(), is(1L));
+            } finally {
+                newNode.stop();
+                newNode.close();
+            }
+        } finally {
+            if (!node.isClosed()) {
+                node.stop();
+                node.close();
+            }
+        }
+    }
 
-        // _meta.columns still there
-        assertThat(withMeta.mapping("other").source().string(),
-                is("{\"other\":{\"_meta\":{\"columns\":{\"a\":{\"collection_type\":\"array\"}}},\"properties\":{\"a\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}"));
-        assertThat(withMeta.version(), is(greaterThan(1L)));
-        IndexMetaData withOutMeta = newNode.client().admin().cluster().prepareState()
-                .execute().actionGet().getState().metaData().index("without_meta");
-        // no change
-        assertThat(withOutMeta.mapping(Constants.DEFAULT_MAPPING_TYPE).source().string(), is("{\"default\":{\"properties\":{\"a\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}"));
-        assertThat(withOutMeta.version(), is(1L));
-        newNode.stop();
-        newNode.close();
+    private String toJson(Map<String, Object> map) throws IOException {
+        return XContentFactory.jsonBuilder().map(map).string();
     }
 
     @Test

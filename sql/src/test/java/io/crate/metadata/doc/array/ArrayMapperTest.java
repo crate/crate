@@ -21,7 +21,9 @@
 
 package io.crate.metadata.doc.array;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.google.common.base.Joiner;
+import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateSingleNodeTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.ElasticsearchParseException;
@@ -34,6 +36,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -41,7 +44,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.core.ArrayMapper;
 import org.elasticsearch.index.mapper.core.StringFieldMapper;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
-import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -52,6 +54,7 @@ import java.io.IOException;
 
 import static org.hamcrest.Matchers.*;
 
+@ThreadLeakFilters(defaultFilters = true, filters = { CrateIntegrationTest.TestThreadFilter.class })
 public class ArrayMapperTest extends CrateSingleNodeTest {
 
     public static final String INDEX = "my_index";
