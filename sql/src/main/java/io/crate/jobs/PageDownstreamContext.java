@@ -179,7 +179,14 @@ public class PageDownstreamContext implements ExecutionSubContext {
 
     @Override
     public void kill() {
-        throw new UnsupportedOperationException("kill is not implemented");
+        if (!closed.getAndSet(true)) {
+            for (ContextCallback contextCallback : callbacks) {
+                contextCallback.onClose();
+            }
+            pageDownstream.fail(new JobKilledException());
+        } else {
+            LOGGER.warn("called kill on an already closed PageDownstreamContext");
+        }
     }
 
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {

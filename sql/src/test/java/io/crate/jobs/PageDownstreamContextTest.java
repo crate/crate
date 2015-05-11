@@ -28,16 +28,16 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.Matchers.notNull;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 public class PageDownstreamContextTest extends CrateUnitTest {
 
@@ -63,5 +63,20 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         Throwable t = ref.get();
         assertThat(t, instanceOf(IllegalStateException.class));
         assertThat(t.getMessage(), is("May not set the same bucket of a page more than once"));
+    }
+
+    @Test
+    public void testKill() throws Exception {
+        PageDownstream downstream = mock(PageDownstream.class);
+        ContextCallback callback = mock(ContextCallback.class);
+
+        PageDownstreamContext ctx = new PageDownstreamContext(downstream, new Streamer[0], 3);
+        ctx.addCallback(callback);
+        ctx.kill();
+
+        verify(callback, times(1)).onClose();
+        ArgumentCaptor<JobKilledException> e = ArgumentCaptor.forClass(JobKilledException.class);
+        verify(downstream, times(1)).fail(e.capture());
+        assertThat(e.getValue(), instanceOf(JobKilledException.class));
     }
 }
