@@ -15,7 +15,7 @@ dependencies {
     compile project(':core')
     compile project(':blob')
     compile project(':sql-parser')
-    compile 'com.amazonaws:aws-java-sdk:1.8.7'
+    compile 'com.amazonaws:aws-java-sdk:1.9.34'
     compile 'org.apache.commons:commons-math3:3.4.1'
     testCompile project(':testing')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
