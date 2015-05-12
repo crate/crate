@@ -41,7 +41,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     private final SymbolBasedShardUpsertRequest request;
     private final SymbolBasedUpsertByIdNode.Item item;
-    private final SettableFuture futureResult;
+    private final SettableFuture<TaskResult> futureResult;
     private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
 
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
@@ -51,7 +51,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     public UpsertByIdContext(SymbolBasedShardUpsertRequest request,
                              SymbolBasedUpsertByIdNode.Item item,
-                             SettableFuture futureResult,
+                             SettableFuture<TaskResult> futureResult,
                              SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate){
         this.request = request;
         this.item = item;
@@ -63,6 +63,9 @@ public class UpsertByIdContext implements ExecutionSubContext {
         transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardUpsertResponse>() {
             @Override
             public void onResponse(ShardUpsertResponse updateResponse) {
+                if(closed.get()){
+                    return;
+                }
                 int location = updateResponse.itemIndices().get(0);
                 if (updateResponse.responses().get(location) != null) {
                     futureResult.set(TaskResult.ONE_ROW);
@@ -82,6 +85,9 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
             @Override
             public void onFailure(Throwable e) {
+                if(closed.get()){
+                    return;
+                }
                 e = ExceptionsHelper.unwrapCause(e);
                 if (item.insertValues() == null
                         && (e instanceof DocumentMissingException
@@ -113,6 +119,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     @Override
     public void kill() {
-        throw new UnsupportedOperationException("kill is not implemented");
+        close();
+        futureResult.setException(new JobKilledException());
     }
 }
