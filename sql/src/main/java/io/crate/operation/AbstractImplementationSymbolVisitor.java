@@ -53,7 +53,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
 
     protected abstract C newContext();
 
-    public C process(CollectNode node) {
+    public C extractImplementations(CollectNode node) {
         C context = newContext();
         if (node.toCollect() != null) {
             for (Symbol symbol : node.toCollect()) {
@@ -63,7 +63,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
         return context;
     }
 
-    public C process(Symbol... symbols) {
+    public C extractImplementations(Symbol... symbols) {
         C context = newContext();
         for (Symbol symbol : symbols) {
             context.add(process(symbol, context));
@@ -71,7 +71,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
         return context;
     }
 
-    public C process(Collection<? extends Symbol> symbols) {
+    public C extractImplementations(Collection<? extends Symbol> symbols) {
         C context = newContext();
         for (Symbol symbol : symbols) {
             context.add(process(symbol, context));
