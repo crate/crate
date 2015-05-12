@@ -26,6 +26,7 @@ import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext {
@@ -53,9 +54,13 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
 
     @Override
     public void close() {
+        doClose(null);
+    }
+    
+    private void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
-                callback.onClose();
+                callback.onClose(t, -1L);
             }
         }
     }
@@ -72,6 +77,11 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
     @Override
     public void kill() {
         bulkShardProcessor.kill();
-        close();
+        doClose(new CancellationException());
+    }
+
+    @Override
+    public String name() {
+        return "bulk-update-by-id";
     }
 }

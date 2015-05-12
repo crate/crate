@@ -56,7 +56,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext.addCallback(callback);
         countContext.start();
         future.set(1L);
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
 
         // on error
         countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
@@ -64,7 +64,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext.addCallback(callback);
         countContext.start();
         future.setException(new UnknownUpstreamFailure());
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
     }
 
     @Test
@@ -82,7 +82,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext.kill();
 
         verify(future, times(1)).cancel(true);
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
     }
 
     private static class FakeCountOperation implements CountOperation {

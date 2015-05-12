@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
-import io.crate.action.job.ExecutionNodeOperationStarter;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
@@ -41,7 +40,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageDownstreamFactory;
-import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
 import io.crate.planner.node.ExecutionNode;
@@ -71,14 +69,12 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final Functions functions;
     private final TaskCollectingVisitor planVisitor;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
-    private final StatsTables statsTables;
     private final NodeVisitor nodeVisitor;
     private final ThreadPool threadPool;
 
     private final ClusterService clusterService;
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
-    private final ExecutionNodeOperationStarter executionNodeOperationStarter;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
@@ -95,27 +91,23 @@ public class TransportExecutor implements Executor, TaskExecutor {
     public TransportExecutor(Settings settings,
                              JobContextService jobContextService,
                              ContextPreparer contextPreparer,
-                             ExecutionNodeOperationStarter executionNodeOperationStarter,
                              TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              PageDownstreamFactory pageDownstreamFactory,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
-                             StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                              StreamerVisitor streamerVisitor) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
-        this.executionNodeOperationStarter = executionNodeOperationStarter;
         this.transportActionProvider = transportActionProvider;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
-        this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.streamerVisitor = streamerVisitor;
@@ -226,10 +218,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     job.id(),
                     clusterService,
                     contextPreparer,
-                    executionNodeOperationStarter,
                     jobContextService,
                     pageDownstreamFactory,
-                    statsTables,
                     threadPool,
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportCloseContextNodeAction(),

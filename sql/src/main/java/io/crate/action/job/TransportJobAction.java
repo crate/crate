@@ -51,18 +51,15 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     private final Transports transports;
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
-    private final ExecutionNodeOperationStarter executionNodeOperationStarter;
 
     @Inject
     public TransportJobAction(TransportService transportService,
                               Transports transports,
                               JobContextService jobContextService,
-                              ContextPreparer contextPreparer,
-                              ExecutionNodeOperationStarter executionNodeOperationStarter) {
+                              ContextPreparer contextPreparer) {
         this.transports = transports;
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
-        this.executionNodeOperationStarter = executionNodeOperationStarter;
 
         transportService.registerHandler(ACTION_NAME, new NodeActionRequestHandler<JobRequest, JobResponse>(this) {
             @Override
@@ -95,7 +92,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         }
 
         JobExecutionContext context = jobContextService.createContext(contextBuilder);
-        executionNodeOperationStarter.startOperations(request.executionNodes(), context);
+        context.start();
 
         if (directResponseFutures.size() == 0) {
             actionListener.onResponse(new JobResponse());

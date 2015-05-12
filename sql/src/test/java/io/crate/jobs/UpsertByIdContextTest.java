@@ -49,7 +49,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         ShardUpsertResponse response = mock(ShardUpsertResponse.class);
         listener.getValue().onResponse(response);
 
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
         expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
         future.get();
     }
@@ -57,7 +57,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     @Test
     public void testStartAfterKill() throws Exception {
         context.kill();
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
         expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
         future.get();
 
@@ -67,13 +67,13 @@ public class UpsertByIdContextTest extends CrateUnitTest {
 
         // close context and verify that the callbacks are not called twice
         context.close();
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
     }
 
     @Test
     public void testStartAfterClose() throws Exception {
         context.close();
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
 
         context.start();
         expectedException.expectCause(TestingHelpers.cause(ContextClosedException.class));
@@ -84,6 +84,6 @@ public class UpsertByIdContextTest extends CrateUnitTest {
 
         // kill context to verify that the callbacks are not called twice
         context.kill();
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
     }
 }

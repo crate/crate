@@ -226,8 +226,9 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
                     it.remove();
                 }
                 for (ContextCallback contextCallback : contextCallbacks) {
-                    contextCallback.onClose();
+                    contextCallback.onClose(null, ramAccountingContext.totalBytes());
                 }
+                ramAccountingContext.close();
             }
         } else {
             LOGGER.trace("close called on an already closed JobCollectContext: {}", id);
@@ -237,6 +238,11 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
     @Override
     public void kill() {
         throw new UnsupportedOperationException("kill is not implemented");
+    }
+
+    @Override
+    public String name() {
+        return collectNode.name();
     }
 
     /**
@@ -252,6 +258,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
         } catch (Throwable t) {
             RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);
             rowDownstreamHandle.fail(t);
+            close();
         }
     }
 }

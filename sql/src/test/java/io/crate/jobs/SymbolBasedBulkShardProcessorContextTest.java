@@ -52,7 +52,7 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
 
         context.kill();
         verify(processor, times(1)).kill();
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
     }
 
     @Test
@@ -62,14 +62,14 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
         context.close();
         // BulkShardProcessor is killed and callback is closed once
         verify(processor, times(1)).kill();
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
     }
 
     @Test
     public void testStartAfterKill() throws Exception {
         context.kill();
         verify(processor, times(1)).kill();
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
 
         // close is never called on BulkShardProcessor so no requests are issued
         context.start();

@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CountContext implements RowUpstream, ExecutionSubContext {
@@ -90,11 +91,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     @Override
     public void close() {
-        if (!closed.getAndSet(true)) {
-            for (ContextCallback callback : callbacks) {
-                callback.onClose();
-            }
-        }
+        doClose(null);
     }
 
     @Override
@@ -102,6 +99,19 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
         if (countFuture != null) {
             countFuture.cancel(true);
         }
-        close();
+        doClose(new CancellationException());;
+    }
+
+    @Override
+    public String name() {
+        return "count(*)";
+    }
+
+    private void doClose(@Nullable Throwable throwable) {
+        if (!closed.getAndSet(true)) {
+            for (ContextCallback callback : callbacks) {
+                callback.onClose(throwable, -1L);
+            }
+        }
     }
 }

@@ -70,7 +70,7 @@ public class ESDeleteTask extends JobTask {
         }
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        context = new ESJobContext(requests, listeners, resultList, transport);
+        context = new ESJobContext("delete", requests, listeners, resultList, transport);
         contextBuilder.addSubContext(node.executionNodeId(), context);
         jobContextService.createContext(contextBuilder);
     }
