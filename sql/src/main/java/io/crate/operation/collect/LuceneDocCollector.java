@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
@@ -172,9 +173,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         try {
             wantMore = downstream.setNextRow(inputRow);
         } catch (Throwable t) {
-            Collectors.cancelIfInterrupted(t);
-            // only get here, if not cancelled
-            throw t;
+            throw new CollectionAbortedException(
+                    Collectors.gotInterrupted(t) ? new CancellationException() : t);
         }
         if (!wantMore || (limit != null && rowCount == limit)) {
             // no more rows required, we can stop here
@@ -249,8 +249,14 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             }
             downstream.finish();
         } catch (CollectionAbortedException e) {
-            // ok, we stopped lucene from searching unnecessary leaf readers
-            downstream.finish();
+            if (e.getCause() == null) {
+                // ok, we stopped lucene from searching unnecessary leaf readers
+                downstream.finish();
+            } else {
+                // got a reason for abortion, hand it over
+                failed = true;
+                downstream.fail(Throwables.getRootCause(e));
+            }
         } catch (Exception e) {
             failed = true;
             downstream.fail(
