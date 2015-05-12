@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
+import io.crate.jobs.JobKilledException;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.ExceptionsHelper;
@@ -273,6 +274,9 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         try {
             executeLock.acquire();
             for (Iterator<Map.Entry<ShardId, Request>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+                if (failure.get() != null) {
+                    return;
+                }
                 Map.Entry<ShardId, Request> entry = it.next();
                 final Request request = entry.getValue();
                 final ShardId shardId = entry.getKey();
@@ -385,6 +389,11 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         if (pending.get() == 0) {
             setResult();
         }
+    }
+
+    public void kill() {
+        failure.compareAndSet(null, new JobKilledException());
+        result.cancel(true);
     }
 
     private void setFailure(Throwable e) {
