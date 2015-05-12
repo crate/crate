@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
 public class SymbolBasedUpsertByIdTask extends JobTask {
 
@@ -221,7 +222,11 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 }
 
                 private void setAllToFailed(@Nullable Throwable throwable) {
-                    if (throwable == null) {
+                    if (throwable instanceof CancellationException) {
+                        for (ListenableFuture<TaskResult> future : resultList) {
+                            ((SettableFuture<TaskResult>) future).setException(throwable);
+                        }
+                    } else if (throwable == null) {
                         for (ListenableFuture<TaskResult> future : resultList) {
                             ((SettableFuture<TaskResult>) future).set(TaskResult.FAILURE);
                         }

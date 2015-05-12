@@ -22,18 +22,18 @@
 package io.crate.integrationtests;
 
 
-import io.crate.action.sql.SQLBulkRequest;
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.sql.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -278,5 +278,51 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("Time"));
         assertThat((String) response.rows()[0][1], is("is"));
+    }
+
+
+    @Test
+    public void testKilledJobLog() throws Exception {
+        execute("create table likes (" +
+                "   event_id string," +
+                "   item_id string" +
+                ") clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("SET GLOBAL stats.enabled = true");
+
+        final String stmt = "insert into likes (event_id, item_id) values (?, ?)";
+        final Object[][] bulkArgs = new Object[100][];
+        for(int i = 0; i < bulkArgs.length; i++) {
+            bulkArgs[i] = new Object[]{"event1", "item1"};
+        }
+        final SettableFuture<SQLBulkResponse> res = SettableFuture.create();
+        Thread insertThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    res.set(execute(stmt, bulkArgs));
+                } catch (SQLActionException e) {
+                    // that's what we want
+                    res.setException(e);
+                }
+            }
+        });
+        insertThread.start();
+        Thread.sleep(50);
+        execute("kill all");
+        insertThread.join();
+        try {
+            res.get();
+        } catch (ExecutionException e) {
+            // in this case the job was successfully killed, so it must occur as killed the jobs log
+            SQLResponse response = execute("select * from sys.jobs_log where error = ? and stmt = ?", new Object[]{"KILLED", stmt});
+            assertThat(response.rowCount(), is(1L));
+        }
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+        execute("SET GLOBAL stats.enabled=false");
     }
 }
