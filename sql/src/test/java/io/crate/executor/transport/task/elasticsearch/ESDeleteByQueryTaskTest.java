@@ -27,6 +27,7 @@ import io.crate.jobs.ESJobContext;
 import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
@@ -50,7 +51,7 @@ public class ESDeleteByQueryTaskTest extends CrateUnitTest {
 
     private final ThreadPool testThreadPool = TestingHelpers.newMockedThreadPool();
     private final JobContextService jobContextService = new JobContextService(
-            ImmutableSettings.EMPTY, testThreadPool);
+            ImmutableSettings.EMPTY, testThreadPool, mock(StatsTables.class));
 
     @After
     public void cleanUp() throws Exception {

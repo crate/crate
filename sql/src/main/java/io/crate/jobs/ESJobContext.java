@@ -26,9 +26,11 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ESJobContext implements ExecutionSubContext {
@@ -37,14 +39,17 @@ public class ESJobContext implements ExecutionSubContext {
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final List<? extends ActionListener> listeners;
+    private String operationName;
     private final List<? extends ActionRequest> requests;
     private final List<? extends Future<TaskResult>> resultFutures;
     private final TransportAction transportAction;
 
-    public ESJobContext(List<? extends ActionRequest> requests,
+    public ESJobContext(String operationName,
+                        List<? extends ActionRequest> requests,
                         List<? extends ActionListener> listeners,
                         List<? extends Future<TaskResult>> resultFutures,
                         TransportAction transportAction) {
+        this.operationName = operationName;
         this.requests = requests;
         this.listeners = listeners;
         this.resultFutures = resultFutures;
@@ -66,9 +71,13 @@ public class ESJobContext implements ExecutionSubContext {
 
     @Override
     public void close() {
+        doClose(null);
+    }
+
+    void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
-                callback.onClose();
+                callback.onClose(t, -1L);
             }
         }
     }
@@ -78,15 +87,19 @@ public class ESJobContext implements ExecutionSubContext {
         for (Future<?> resultFuture : resultFutures) {
             resultFuture.cancel(true);
         }
-        close();
+        doClose(new CancellationException());
+    }
+
+    public String name() {
+        return operationName;
     }
 
     private static class InternalActionListener implements ActionListener {
 
         private final ActionListener listener;
-        private final ExecutionSubContext context;
+        private final ESJobContext context;
 
-        public InternalActionListener (ActionListener listener, ExecutionSubContext context) {
+        public InternalActionListener (ActionListener listener, ESJobContext context) {
             this.listener = listener;
             this.context = context;
         }
@@ -94,13 +107,13 @@ public class ESJobContext implements ExecutionSubContext {
         @Override
         public void onResponse(Object o) {
             listener.onResponse(o);
-            context.close();
+            context.doClose(null);
         }
 
         @Override
         public void onFailure(Throwable e) {
             listener.onFailure(e);
-            context.close();
+            context.doClose(e);
         }
     }
 }

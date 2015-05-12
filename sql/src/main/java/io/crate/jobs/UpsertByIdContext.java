@@ -34,7 +34,9 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UpsertByIdContext implements ExecutionSubContext {
@@ -84,7 +86,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
                     }
                     futureResult.set(TaskResult.ZERO);
                 }
-                close();
+                doClose(null);
             }
 
             @Override
@@ -101,7 +103,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
                 } else {
                     futureResult.setException(e);
                 }
-                close();
+                doClose(e);
             }
         });
     }
@@ -114,16 +116,25 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     @Override
     public void close() {
+        doClose(null);
+    }
+
+    private void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
-                callback.onClose();
+                callback.onClose(t, -1L);
             }
         }
     }
 
     @Override
     public void kill() {
-        close();
+        doClose(new CancellationException());
         futureResult.cancel(true);
+    }
+
+    @Override
+    public String name() {
+        return "upsert-by-id";
     }
 }

@@ -124,7 +124,7 @@ public class ESGetTask extends JobTask {
         results = ImmutableList.of(Futures.transform(result, QueryResult.TO_TASK_RESULT));
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        context = new ESJobContext(ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
+        context = new ESJobContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
         contextBuilder.addSubContext(executionNodeId, context);
         jobContextService.createContext(contextBuilder);
 

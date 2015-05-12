@@ -343,7 +343,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
-        jobContextService = new JobContextService(ImmutableSettings.EMPTY, testThreadPool);
+        jobContextService = new JobContextService(ImmutableSettings.EMPTY, testThreadPool, mock(StatsTables.class));
 
         ClusterService clusterService = injector.getInstance(ClusterService.class);
         operation = new MapSideDataCollectOperation(

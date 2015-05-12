@@ -27,18 +27,19 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
-import io.crate.action.job.*;
+import io.crate.action.job.ContextPreparer;
+import io.crate.action.job.JobRequest;
+import io.crate.action.job.JobResponse;
+import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.executor.callbacks.OperationFinishedStatsTablesCallback;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
-import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -64,10 +65,8 @@ public class ExecutionNodesTask extends JobTask {
     private final boolean hasDirectResponse;
     private final ClusterService clusterService;
     private ContextPreparer contextPreparer;
-    private final ExecutionNodeOperationStarter executionNodeOperationStarter;
     private final JobContextService jobContextService;
     private final PageDownstreamFactory pageDownstreamFactory;
-    private final StatsTables statsTables;
     private final ThreadPool threadPool;
     private TransportCloseContextNodeAction transportCloseContextNodeAction;
     private final StreamerVisitor streamerVisitor;
@@ -78,16 +77,14 @@ public class ExecutionNodesTask extends JobTask {
     /**
      * @param mergeNodes list of mergeNodes for the final merge operation on the handler.
      *                  This may be null in the constructor but then it must be set using the
-     *                  {@link #mergeNodes(List<MergeNode>)} setter before {@link #start()} is called.
+     *                  {@link #mergeNodes(List)} setter before {@link #start()} is called.
      *                   Multiple merge nodes are only occurring on bulk operations.
      */
     protected ExecutionNodesTask(UUID jobId,
                                  ClusterService clusterService,
                                  ContextPreparer contextPreparer,
-                                 ExecutionNodeOperationStarter executionNodeOperationStarter,
                                  JobContextService jobContextService,
                                  PageDownstreamFactory pageDownstreamFactory,
-                                 StatsTables statsTables,
                                  ThreadPool threadPool,
                                  TransportJobAction transportJobAction,
                                  TransportCloseContextNodeAction transportCloseContextNodeAction,
@@ -98,10 +95,8 @@ public class ExecutionNodesTask extends JobTask {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
-        this.executionNodeOperationStarter = executionNodeOperationStarter;
         this.jobContextService = jobContextService;
         this.pageDownstreamFactory = pageDownstreamFactory;
-        this.statsTables = statsTables;
         this.threadPool = threadPool;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.streamerVisitor = streamerVisitor;
@@ -142,8 +137,8 @@ public class ExecutionNodesTask extends JobTask {
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(groupedExecutionNodes.size());
 
         for (int i = 0; i < groupedExecutionNodes.size(); i++) {
-            RamAccountingContext ramAccountingContext = trackOperation(mergeNodes.get(i),
-                    "localMerge", results.get(i));
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(
+                    circuitBreaker, mergeNodes.get(i));
 
             PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(ramAccountingContext, streamers,
                     mergeNodes.get(i), groupedExecutionNodes.get(i), rowDownstream);
@@ -176,6 +171,7 @@ public class ExecutionNodesTask extends JobTask {
                 Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
         );
         return new PageDownstreamContext(
+                mergeNode.name(),
                 finalMergePageDownstream,
                 streamers,
                 executionNodes.get(executionNodes.size() - 1).executionNodes().size()
@@ -227,9 +223,7 @@ public class ExecutionNodesTask extends JobTask {
                 contextPreparer.prepare(jobId(), executionNode, builder);
             }
             JobExecutionContext context = jobContextService.createContext(builder);
-            for (ExecutionNode executionNode : localExecutionNodes) {
-                executionNodeOperationStarter.startOperation(executionNode, context);
-            }
+            context.start();
         }
     }
 
@@ -256,15 +250,6 @@ public class ExecutionNodesTask extends JobTask {
                 }
             }
         });
-    }
-
-    private RamAccountingContext trackOperation(ExecutionNode executionNode, String operationName,
-                                                ListenableFuture<TaskResult> result) {
-        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionNode);
-        statsTables.operationStarted(executionNode.executionNodeId(), jobId(), operationName);
-        Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(
-                executionNode.executionNodeId(), statsTables, ramAccountingContext));
-        return ramAccountingContext;
     }
 
     @Override

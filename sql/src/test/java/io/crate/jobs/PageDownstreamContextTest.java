@@ -45,7 +45,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     @Test
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Exception {
         expectedException.expect(IllegalStateException.class);
-        PageDownstreamContext ctx = new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 3);
+        PageDownstreamContext ctx = new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
@@ -57,11 +57,11 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         PageDownstream downstream = mock(PageDownstream.class);
         ContextCallback callback = mock(ContextCallback.class);
 
-        PageDownstreamContext ctx = new PageDownstreamContext(downstream, new Streamer[0], 3);
+        PageDownstreamContext ctx = new PageDownstreamContext("dummy", downstream, new Streamer[0], 3);
         ctx.addCallback(callback);
         ctx.kill();
 
-        verify(callback, times(1)).onClose();
+        verify(callback, times(1)).onClose(any(CancellationException.class), anyLong());
         ArgumentCaptor<CancellationException> e = ArgumentCaptor.forClass(CancellationException.class);
         verify(downstream, times(1)).fail(e.capture());
         assertThat(e.getValue(), instanceOf(CancellationException.class));

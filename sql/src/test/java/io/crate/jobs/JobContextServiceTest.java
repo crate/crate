@@ -23,6 +23,7 @@ package io.crate.jobs;
 
 import io.crate.Streamer;
 import io.crate.operation.PageDownstream;
+import io.crate.operation.collect.StatsTables;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -45,7 +46,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private final Settings settings = ImmutableSettings.EMPTY;
     private final JobContextService jobContextService = new JobContextService(
-            settings, testThreadPool);
+            settings, testThreadPool, mock(StatsTables.class));
 
     @After
     public void cleanUp() throws Exception {
@@ -85,9 +86,12 @@ public class JobContextServiceTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCreateCallWithEmptyBuilderReturnsNull() throws Exception {
+    public void testCreateCallWithEmptyBuilderThrowsAnError() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("JobExecutionContext.Builder must at least contain 1 SubExecutionContext");
+
         JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
-        assertThat(jobContextService.createContext(builder), nullValue());
+        jobContextService.createContext(builder);
     }
 
     @Test
@@ -101,27 +105,12 @@ public class JobContextServiceTest extends CrateUnitTest {
     @Test
     public void testKillAllCallsKillOnSubContext() throws Exception {
         final AtomicBoolean killCalled = new AtomicBoolean(false);
-        ExecutionSubContext dummyContext = new ExecutionSubContext() {
-            List<ContextCallback> callbacks = new ArrayList<>();
-
-            @Override
-            public void addCallback(ContextCallback contextCallback) {
-                callbacks.add(contextCallback);
-            }
-
-            @Override
-            public void close() {
-                for (ContextCallback callback : callbacks) {
-                    callback.onClose();
-                }
-            }
+        ExecutionSubContext dummyContext = new DummySubContext() {
 
             @Override
             public void kill() {
+                super.kill();
                 killCalled.set(true);
-                for (ContextCallback callback : callbacks) {
-                    callback.onClose();
-                }
             }
         };
 
@@ -144,7 +133,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     public void testJobExecutionContextIsSelfClosing() throws Exception {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
+                new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], 1);
         builder1.addSubContext(1, pageDownstreamContext);
         JobExecutionContext ctx1 = jobContextService.createContext(builder1);
 
@@ -188,7 +177,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
+                new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], 1);
         builder1.addSubContext(1, pageDownstreamContext);
         return jobContextService.createContext(builder1);
     }
@@ -197,7 +186,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     public void testKeepAliveExpiration() throws Exception {
         JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMillis(1);
         JobContextService.DEFAULT_KEEP_ALIVE = timeValueMillis(0).millis();
-        JobContextService jobContextService1 = new JobContextService(settings, testThreadPool);
+        JobContextService jobContextService1 = new JobContextService(settings, testThreadPool, mock(StatsTables.class));
 
         JobExecutionContext jobExecutionContext = getJobExecutionContextWithOneActiveSubContext(jobContextService1);
         jobExecutionContext.getSubContextOrNull(1);
@@ -216,7 +205,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         JobContextService.DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
     }
 
-    private static class DummySubContext implements ExecutionSubContext {
+    protected static class DummySubContext implements ExecutionSubContext {
 
         private List<ContextCallback> callbacks = new ArrayList<>();
 
@@ -226,15 +215,25 @@ public class JobContextServiceTest extends CrateUnitTest {
         }
 
         @Override
+        public void start() {
+
+        }
+
+        @Override
         public void close() {
             for (ContextCallback callback : callbacks) {
-                callback.onClose();
+                callback.onClose(null, -1L);
             }
         }
 
         @Override
         public void kill() {
             close();
+        }
+
+        @Override
+        public String name() {
+            return "dummy";
         }
     }
 }

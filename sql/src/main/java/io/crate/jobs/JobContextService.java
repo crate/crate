@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -53,6 +54,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
 
     private final ThreadPool threadPool;
+    private StatsTables statsTables;
     private final ScheduledFuture<?> keepAliveReaper;
     private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
@@ -63,9 +65,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     @Inject
     public JobContextService(Settings settings,
-                             ThreadPool threadPool) {
+                             ThreadPool threadPool,
+                             StatsTables statsTables) {
         super(settings);
         this.threadPool = threadPool;
+        this.statsTables = statsTables;
         this.keepAliveReaper = threadPool.scheduleWithFixedDelay(new Reaper(), DEFAULT_KEEP_ALIVE_INTERVAL);
     }
 
@@ -99,13 +103,12 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, threadPool);
+        return new JobExecutionContext.Builder(jobId, threadPool, statsTables);
     }
 
-    @Nullable
     public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) {
         if (contextBuilder.isEmpty()) {
-            return null;
+            throw new IllegalArgumentException("JobExecutionContext.Builder must at least contain 1 SubExecutionContext");
         }
         final UUID jobId = contextBuilder.jobId();
         JobExecutionContext newContext = contextBuilder.build();
@@ -149,7 +152,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         }
 
         @Override
-        public void onClose() {
+        public void onClose(@Nullable Throwable error, long bytesUsed) {
             activeContexts.remove(jobId);
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("[{}]: JobExecutionContext called onClose for job {} removing it -" +

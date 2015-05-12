@@ -41,6 +41,7 @@ public class PageDownstreamContext implements ExecutionSubContext {
     private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
     private final Object lock = new Object();
+    private String name;
     private final PageDownstream pageDownstream;
     private final Streamer<?>[] streamer;
     private final int numBuckets;
@@ -52,9 +53,11 @@ public class PageDownstreamContext implements ExecutionSubContext {
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
 
-    public PageDownstreamContext(PageDownstream pageDownstream,
+    public PageDownstreamContext(String name,
+                                 PageDownstream pageDownstream,
                                  Streamer<?>[] streamer,
                                  int numBuckets) {
+        this.name = name;
         this.pageDownstream = pageDownstream;
         this.streamer = streamer;
         this.numBuckets = numBuckets;
@@ -158,7 +161,7 @@ public class PageDownstreamContext implements ExecutionSubContext {
         LOGGER.trace("calling finish on pageDownstream {}", pageDownstream);
         if (!closed.getAndSet(true)) {
             for (ContextCallback contextCallback : callbacks) {
-                contextCallback.onClose();
+                contextCallback.onClose(null, -1L);
             }
             pageDownstream.finish();
         } else {
@@ -172,6 +175,11 @@ public class PageDownstreamContext implements ExecutionSubContext {
     }
 
     @Override
+    public void start() {
+        // no-op
+    }
+
+    @Override
     public void close() {
         finish();
     }
@@ -179,13 +187,19 @@ public class PageDownstreamContext implements ExecutionSubContext {
     @Override
     public void kill() {
         if (!closed.getAndSet(true)) {
+            CancellationException cancellationException = new CancellationException();
             for (ContextCallback contextCallback : callbacks) {
-                contextCallback.onClose();
+                contextCallback.onClose(cancellationException, -1L);
             }
-            pageDownstream.fail(new CancellationException());
+            pageDownstream.fail(cancellationException);
         } else {
             LOGGER.warn("called kill on an already closed PageDownstreamContext");
         }
+    }
+
+    @Override
+    public String name() {
+        return name;
     }
 
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {
