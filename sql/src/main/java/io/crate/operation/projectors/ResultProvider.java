@@ -21,11 +21,11 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.operation.RowDownstreamHandle;
 
 public interface ResultProvider extends Projector, RowDownstreamHandle {
 
-    ListenableFuture<Bucket> result();
+    SettableFuture<Bucket> result();
 }

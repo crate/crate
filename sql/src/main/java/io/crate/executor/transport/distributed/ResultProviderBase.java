@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.distributed;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.operation.RowDownstream;
@@ -79,7 +78,7 @@ public abstract class ResultProviderBase implements ResultProvider {
     }
 
     @Override
-    public ListenableFuture<Bucket> result() {
+    public SettableFuture<Bucket> result() {
         return result;
     }
 
