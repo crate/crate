@@ -21,15 +21,11 @@
 
 package io.crate.executor.transport.task;
 
-import com.google.common.util.concurrent.FutureFallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.RowCountResult;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -48,23 +44,17 @@ public abstract class AsyncChainedTask extends JobTask {
     protected AsyncChainedTask(UUID jobId) {
         super(jobId);
         result = SettableFuture.create();
-        ListenableFuture<TaskResult> resultFallback = Futures.withFallback(result, new FutureFallback<TaskResult>() {
-            @Override
-            public ListenableFuture<TaskResult> create(@Nonnull Throwable t) throws Exception {
-                return Futures.<TaskResult>immediateFuture(RowCountResult.error(t));
-            }
-        });
-        resultList = new ArrayList<>();
-        resultList.add(resultFallback);
+        resultList = new ArrayList<>(1);
+        resultList.add(result);
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
+    public List<? extends ListenableFuture<TaskResult>> result() {
         return resultList;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         resultList.addAll(result);
     }
 }

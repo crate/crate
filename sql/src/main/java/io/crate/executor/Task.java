@@ -53,11 +53,11 @@ public interface Task {
      * {@linkplain com.google.common.util.concurrent.ListenableFuture} instances.
      * This method may be called before {@linkplain #start()} is called.
      */
-    List<ListenableFuture<TaskResult>> result();
+    List<? extends ListenableFuture<TaskResult>> result();
 
     /**
      * let this class get to know the result of the former ("upstream") task
      * @param result the result of the "upstream" task.
      */
-    void upstreamResult(List<ListenableFuture<TaskResult>> result);
+    void upstreamResult(List<? extends ListenableFuture<TaskResult>> result);
 }

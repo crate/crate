@@ -39,7 +39,7 @@ import java.util.UUID;
 
 public abstract class AbstractChainedTask extends JobTask {
 
-    protected List<ListenableFuture<TaskResult>> upstreamResult = ImmutableList.of();
+    protected List<? extends ListenableFuture<TaskResult>> upstreamResult = ImmutableList.of();
     protected final List<ListenableFuture<TaskResult>> resultList;
     protected final SettableFuture<TaskResult> result;
 
@@ -82,12 +82,12 @@ public abstract class AbstractChainedTask extends JobTask {
     protected abstract void doStart(List<TaskResult> upstreamResults);
 
     @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         this.upstreamResult = result;
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
+    public List<? extends ListenableFuture<TaskResult>> result() {
         return resultList;
     }
 

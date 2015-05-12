@@ -266,12 +266,12 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
+    public List<? extends ListenableFuture<TaskResult>> result() {
         return resultList;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("UpsertByIdTask can't have an upstream result");
     }
 }
