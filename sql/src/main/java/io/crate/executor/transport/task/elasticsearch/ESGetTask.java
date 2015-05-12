@@ -43,10 +43,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.CollectingProjector;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -68,12 +65,9 @@ public class ESGetTask extends JobTask {
 
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
+
     private final List<ListenableFuture<TaskResult>> results;
-    private final TransportAction transportAction;
-    private final ActionRequest request;
-    private final ActionListener listener;
-    private final JobContextService jobContextService;
-    private final int executionNodeId;
+    private final ESGetContext context;
 
     public ESGetTask(UUID jobId,
                      Functions functions,
@@ -90,8 +84,7 @@ public class ESGetTask extends JobTask {
         assert node.docKeys().size() > 0;
         assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
-        this.jobContextService = jobContextService;
-        executionNodeId = node.executionNodeId();
+        int executionNodeId = node.executionNodeId();
 
         final GetResponseContext ctx = new GetResponseContext(functions, node);
         List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size());
@@ -106,12 +99,17 @@ public class ESGetTask extends JobTask {
 
         ListenableFuture<Bucket> result;
 
+        ActionListener listener;
+        ActionRequest request;
+        TransportAction transportAction;
         if (node.docKeys().size() > 1) {
             MultiGetRequest multiGetRequest = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
             request = multiGetRequest;
             FlatProjectorChain projectorChain = getFlatProjectorChain(projectionToProjectorVisitor, node);
-            result = projectorChain.resultProvider().result();
+            ResultProvider resultProvider = projectorChain.resultProvider();
+            assert resultProvider != null : "ResultProvider is NULL";
+            result = resultProvider.result();
             listener = new MultiGetResponseListener(extractors, projectorChain);
 
         } else {
@@ -124,6 +122,12 @@ public class ESGetTask extends JobTask {
 
         }
         results = ImmutableList.of(Futures.transform(result, QueryResult.TO_TASK_RESULT));
+
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
+        context = new ESGetContext(request, listener, transportAction);
+        contextBuilder.addSubContext(executionNodeId, context);
+        jobContextService.createContext(contextBuilder);
+
     }
 
     public static String indexName(TableInfo tableInfo, Optional<List<BytesRef>> values) {
@@ -267,11 +271,7 @@ public class ESGetTask extends JobTask {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void start() {
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        ESGetContext context = new ESGetContext(request, listener, transportAction);
-        contextBuilder.addSubContext(executionNodeId, context);
         context.start();
     }
 

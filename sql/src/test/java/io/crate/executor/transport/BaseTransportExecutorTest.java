@@ -77,7 +77,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     Reference partedDateRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(partedTable, "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP));
 
-    protected static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
+    public static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
         QuerySpec querySpec = new QuerySpec();
         querySpec.outputs(outputs);
         List<List<Symbol>> keys = new ArrayList<>(singleStringKeys.size());
@@ -94,7 +94,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     public void transportSetUp() {
         CrateTestCluster cluster = cluster();
         executor = cluster.getInstance(TransportExecutor.class);
-
         docSchemaInfo = cluster.getInstance(DocSchemaInfo.class);
     }
 

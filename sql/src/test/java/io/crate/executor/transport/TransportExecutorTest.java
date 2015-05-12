@@ -30,9 +30,11 @@ import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.RowCountResult;
+import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
+import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -86,11 +88,19 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testESGetTask() throws Exception {
         setup.setUpCharacters();
 
+        // create plan
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Planner.Context ctx = new Planner.Context(clusterService());
         ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionNodeId());
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
+
+        // validate tasks
+        assertThat(job.tasks().size(), is(1));
+        Task task = job.tasks().get(0);
+        assertThat(task, instanceOf(ESGetTask.class));
+
+        // execute and validate results
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(isRow(2, "Ford")));

@@ -46,7 +46,9 @@ public class ESGetContext implements ExecutionSubContext {
     }
 
     public void start() {
-        transportAction.execute(request, new InternalActionListener(listener, this));
+        if (!closed.get()) {
+            transportAction.execute(request, new InternalActionListener(listener, this));
+        }
     }
 
     @Override
