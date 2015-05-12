@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
@@ -203,16 +204,24 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
         IterablePlan plan = new IterablePlan();
         TableRelation tableRelation = analyzedStatement.analyzedRelation();
+        List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
+        boolean deleteById = false;
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
             if (whereClause.noMatch()) {
                 continue;
             }
-            if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size()==1) {
-                createESDeleteNode(tableRelation.tableInfo(), whereClause, plan);
+            if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size() == 1) {
+                deleteById = true;
+                docKeys.add(whereClause.docKeys().get().getOnlyKey());
+                //createESDeleteNode(tableRelation.tableInfo(), whereClause, plan, context);
             } else {
                 createESDeleteByQueryNode(tableRelation.tableInfo(), whereClause, plan);
             }
         }
+        if (deleteById) {
+            plan.add(new ESDeleteNode(context.nextExecutionNodeId(), tableRelation.tableInfo(), docKeys));
+        }
+
         if (plan.isEmpty()) {
             return NoopPlan.INSTANCE;
         }
@@ -473,10 +482,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, Context context) {
         return KillPlan.INSTANCE;
-    }
-
-    private void createESDeleteNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
-        plan.add(new ESDeleteNode(tableInfo, whereClause.docKeys().get().getOnlyKey()));
     }
 
     private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {

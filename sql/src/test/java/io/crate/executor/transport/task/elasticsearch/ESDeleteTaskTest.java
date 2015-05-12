@@ -22,46 +22,44 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.executor.transport.BaseTransportExecutorTest;
+import io.crate.analyze.where.DocKeys;
 import io.crate.jobs.ESJobContext;
 import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.action.get.TransportGetAction;
-import org.elasticsearch.action.get.TransportMultiGetAction;
+import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ESGetTaskTest extends CrateUnitTest {
+public class ESDeleteTaskTest extends CrateUnitTest {
 
-    private static ESGetNode node;
+    private static ESDeleteNode node;
 
     static {
         TableIdent tableIdent = new TableIdent("doc", "dummy");
         TableInfo tableInfo = mock(DocTableInfo.class);
         when(tableInfo.ident()).thenReturn(tableIdent);
-        node = BaseTransportExecutorTest.newGetNode(
+        node = new ESDeleteNode(
+                1,
                 tableInfo,
-                ImmutableList.<Symbol>of(),
-                ImmutableList.of("1"),
-                1
+                ImmutableList.of(new DocKeys(ImmutableList.<List<Symbol>>of(ImmutableList.<Symbol>of(Literal.newLiteral("1"))), false, -1, null).getOnlyKey())
         );
     }
 
@@ -77,13 +75,10 @@ public class ESGetTaskTest extends CrateUnitTest {
     @Test
     public void testContextCreation() throws Exception {
         UUID jobId = UUID.randomUUID();
-        ESGetTask task = new ESGetTask(
+        ESDeleteTask task = new ESDeleteTask(
                 jobId,
-                mock(Functions.class),
-                mock(ProjectionToProjectorVisitor.class),
-                mock(TransportMultiGetAction.class),
-                mock(TransportGetAction.class),
                 node,
+                mock(TransportDeleteAction.class),
                 jobContextService);
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
@@ -95,13 +90,10 @@ public class ESGetTaskTest extends CrateUnitTest {
     @Test
     public void testContextKill() throws Exception {
         UUID jobId = UUID.randomUUID();
-        ESGetTask task = new ESGetTask(
+        ESDeleteTask task = new ESDeleteTask(
                 jobId,
-                mock(Functions.class),
-                mock(ProjectionToProjectorVisitor.class),
-                mock(TransportMultiGetAction.class),
-                mock(TransportGetAction.class),
                 node,
+                mock(TransportDeleteAction.class),
                 jobContextService);
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
