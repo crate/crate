@@ -22,10 +22,10 @@
 package io.crate.operation.reference.sys;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.operation.reference.NestedObjectExpression;
 
-public abstract class SysClusterObjectReference extends SysObjectReference {
+public abstract class SysClusterObjectReference extends NestedObjectExpression {
 
     protected SysClusterObjectReference(String name) {
         this(new ColumnIdent(name));

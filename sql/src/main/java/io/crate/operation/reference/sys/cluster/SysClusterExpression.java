@@ -23,13 +23,10 @@ package io.crate.operation.reference.sys.cluster;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysExpression;
-import org.elasticsearch.common.Preconditions;
+import io.crate.metadata.SimpleObjectExpression;
 
-public abstract class SysClusterExpression<T> extends SysExpression<T> implements ReferenceImplementation {
-
+public abstract class SysClusterExpression<T> extends SimpleObjectExpression<T> {
 
     protected SysClusterExpression(String name) {
         this(new ColumnIdent(name));

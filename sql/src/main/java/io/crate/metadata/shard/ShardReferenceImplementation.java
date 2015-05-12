@@ -23,5 +23,5 @@ package io.crate.metadata.shard;
 
 import io.crate.metadata.ReferenceImplementation;
 
-public interface ShardReferenceImplementation extends ReferenceImplementation {
+public interface ShardReferenceImplementation<T> extends ReferenceImplementation<T> {
 }

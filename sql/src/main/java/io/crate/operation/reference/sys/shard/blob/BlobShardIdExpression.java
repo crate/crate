@@ -26,7 +26,7 @@ import io.crate.operation.reference.sys.shard.ShardIdExpression;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
-public class BlobShardIdExpression extends ShardIdExpression implements BlobShardReferenceImplementation {
+public class BlobShardIdExpression extends ShardIdExpression implements BlobShardReferenceImplementation<Integer> {
 
     @Inject
     public BlobShardIdExpression(ShardId shardId) {

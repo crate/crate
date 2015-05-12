@@ -25,7 +25,7 @@ import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.elasticsearch.common.inject.Inject;
 
-public class BlobShardPartitionOrphanedExpression extends SysShardExpression<Boolean> implements BlobShardReferenceImplementation {
+public class BlobShardPartitionOrphanedExpression extends SysShardExpression<Boolean> implements BlobShardReferenceImplementation<Boolean> {
 
     public static final String NAME = "orphan_partition";
 

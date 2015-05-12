@@ -27,7 +27,7 @@ import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.operation.Input;
 import org.apache.lucene.util.BytesRef;
 
-public class PartitionedColumnExpression implements Input, ShardReferenceImplementation {
+public class PartitionedColumnExpression implements ShardReferenceImplementation {
 
     private final Object value;
 

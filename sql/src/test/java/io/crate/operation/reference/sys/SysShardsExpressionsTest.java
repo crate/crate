@@ -26,7 +26,7 @@ import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.shard.*;
@@ -49,7 +49,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.*;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -161,28 +160,28 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testClusterExpression() throws Exception {
         // Looking up cluster wide expressions must work too
         ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, "name");
-        SysExpression<BytesRef> name = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> name = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("crate"), name.value());
     }
 
     @Test
     public void testId() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "id");
-        SysExpression<Integer> shardExpression = (SysExpression<Integer>) resolver.getImplementation(ident);
+        SimpleObjectExpression<Integer> shardExpression = (SimpleObjectExpression<Integer>) resolver.getImplementation(ident);
         assertEquals(new Integer(1), shardExpression.value());
     }
 
     @Test
     public void testSize() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "size");
-        SysExpression<Long> shardExpression = (SysExpression<Long>) resolver.getImplementation(ident);
+        SimpleObjectExpression<Long> shardExpression = (SimpleObjectExpression<Long>) resolver.getImplementation(ident);
         assertEquals(new Long(123456), shardExpression.value());
     }
 
     @Test
     public void testNumDocs() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "num_docs");
-        SysExpression<Long> shardExpression = (SysExpression<Long>) resolver.getImplementation(ident);
+        SimpleObjectExpression<Long> shardExpression = (SimpleObjectExpression<Long>) resolver.getImplementation(ident);
         assertEquals(new Long(654321), shardExpression.value());
 
         // second call should throw Exception
@@ -192,28 +191,28 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testState() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "state");
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("STARTED"), shardExpression.value());
     }
 
     @Test
     public void testPrimary() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "primary");
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(true, shardExpression.value());
     }
 
     @Test
     public void testRelocatingNode() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "relocating_node");
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("node_X"), shardExpression.value());
     }
 
     @Test
     public void testTableName() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardTableNameExpression.NAME);
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
     }
 
@@ -223,7 +222,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardTableNameExpression.NAME);
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
 
         // reset indexName
@@ -235,7 +234,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionIdentExpression.NAME);
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("_1"), shardExpression.value());
 
         // reset indexName
@@ -246,7 +245,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testPartitionIdentOfNonPartition() throws Exception {
         // expression should return NULL on non partitioned tables
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionIdentExpression.NAME);
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef(""), shardExpression.value());
     }
 
@@ -255,7 +254,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionOrphanedExpression.NAME);
-        SysExpression<Boolean> shardExpression = (SysExpression<Boolean>) resolver.getImplementation(ident);
+        SimpleObjectExpression<Boolean> shardExpression = (SimpleObjectExpression<Boolean>) resolver.getImplementation(ident);
         assertEquals(true, shardExpression.value());
 
         // reset indexName
@@ -265,7 +264,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testSchemaName() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardSchemaNameExpression.NAME);
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("doc"), shardExpression.value());
     }
 
@@ -274,7 +273,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = "my_schema.wikipedia_de";
         prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardSchemaNameExpression.NAME);
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("my_schema"), shardExpression.value());
         // reset indexName
         indexName = "wikipedia_de";
@@ -286,7 +285,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = "my_schema.wikipedia_de";
         prepare();
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardTableNameExpression.NAME);
-        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
 
         // reset indexName
