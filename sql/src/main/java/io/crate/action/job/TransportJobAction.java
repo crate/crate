@@ -94,7 +94,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             }
         }
 
-        JobExecutionContext context = jobContextService.createOrMergeContext(contextBuilder);
+        JobExecutionContext context = jobContextService.createContext(contextBuilder);
         executionNodeOperationStarter.startOperations(request.executionNodes(), context);
 
         if (directResponseFutures.size() == 0) {

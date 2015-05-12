@@ -294,7 +294,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         for (JobContextService jobContextService : cluster().getInstances(JobContextService.class)) {
             JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId());
             contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
-            executionContexts.add(jobContextService.createOrMergeContext(builder));
+            executionContexts.add(jobContextService.createContext(builder));
         }
         return executionContexts;
     }

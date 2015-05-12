@@ -62,20 +62,4 @@ public class JobExecutionContextTest extends CrateUnitTest {
         builder.addSubContext(1, mock(PageDownstreamContext.class));
         builder.addSubContext(1, mock(PageDownstreamContext.class));
     }
-
-    @Test
-    public void testMergeWithSameSubContextThrowsAnError() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("subContext 1 is already present");
-
-        JobExecutionContext.Builder builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
-        builder.addSubContext(1, mock(PageDownstreamContext.class));
-
-        JobExecutionContext firstContext = builder.build();
-
-        builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
-        builder.addSubContext(1, mock(PageDownstreamContext.class));
-
-        firstContext.merge(builder.build());
-    }
 }

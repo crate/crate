@@ -33,6 +33,7 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
@@ -97,34 +98,19 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     @Nullable
-    public JobExecutionContext createOrMergeContext(JobExecutionContext.Builder contextBuilder) {
+    public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) {
         if (contextBuilder.isEmpty()) {
             return null;
         }
         final UUID jobId = contextBuilder.jobId();
         JobExecutionContext newContext = contextBuilder.build();
-
-        while (true) {
-            JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
-            if (existing == null) {
-                newContext.contextCallback(new RemoveContextCallback(jobId));
-                return newContext;
-            } else {
-                LOGGER.trace("context for job {} already existed. Merging them ", jobId);
-                ContextCallback callback = existing.contextCallback;
-                synchronized (existing.mergeLock) {
-                    existing.contextCallback = null;
-                    existing.merge(newContext);
-                }
-                JobExecutionContext context = activeContexts.putIfAbsent(jobId, existing);
-                if (context == null || existing == context) {
-                    synchronized (existing.mergeLock) {
-                        existing.contextCallback = callback;
-                    }
-                    return existing;
-                }
-            }
+        newContext.contextCallback(new RemoveContextCallback(jobId));
+        JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
+        if (existing != null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "context for job %s already exists", jobId));
         }
+        return newContext;
     }
 
     private class RemoveContextCallback implements ContextCallback {

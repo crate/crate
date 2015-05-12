@@ -95,7 +95,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         builder.addSubContext(1, new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
-        jobContextService.createOrMergeContext(builder);
+        jobContextService.createContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,

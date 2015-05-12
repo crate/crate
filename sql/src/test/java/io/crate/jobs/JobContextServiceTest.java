@@ -21,9 +21,6 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.operation.PageDownstream;
 import io.crate.test.integration.CrateUnitTest;
@@ -34,10 +31,9 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
@@ -64,23 +60,35 @@ public class JobContextServiceTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(jobId);
         builder1.addSubContext(1, mock(PageDownstreamContext.class));
-        JobExecutionContext ctx1 = jobContextService.createOrMergeContext(builder1);
+        JobExecutionContext ctx1 = jobContextService.createContext(builder1);
+        assertThat(ctx1.lastAccessTime(), is(-1L));
+    }
+
+    @Test
+    public void testAcquireContextSameJobId() throws Exception {
+        UUID jobId = UUID.randomUUID();
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+                "context for job %s already exists", jobId));
+
+        // create new context
+        JobExecutionContext.Builder builder1 = jobContextService.newBuilder(jobId);
+        builder1.addSubContext(1, mock(PageDownstreamContext.class));
+        JobExecutionContext ctx1 = jobContextService.createContext(builder1);
         assertThat(ctx1.lastAccessTime(), is(-1L));
 
-        // builder with the same jobId returns the same JobExecutionContext but the subContexts will be merged
+        // creating a context with the same jobId will fail
         JobExecutionContext.Builder builder2 = jobContextService.newBuilder(jobId);
         builder2.addSubContext(2, mock(PageDownstreamContext.class));
-        JobExecutionContext ctx2 = jobContextService.createOrMergeContext(builder2);
-        assertThat(ctx2, is(ctx1));
 
-        assertThat(ctx1.getSubContextOrNull(1), notNullValue());
-        assertThat(ctx1.getSubContextOrNull(2), notNullValue());
+        jobContextService.createContext(builder2);
     }
 
     @Test
     public void testCreateCallWithEmptyBuilderReturnsNull() throws Exception {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
-        assertThat(jobContextService.createOrMergeContext(builder), nullValue());
+        assertThat(jobContextService.createContext(builder), nullValue());
     }
 
     @Test
@@ -97,7 +105,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         PageDownstreamContext pageDownstreamContext =
                 new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
         builder1.addSubContext(1, pageDownstreamContext);
-        JobExecutionContext ctx1 = jobContextService.createOrMergeContext(builder1);
+        JobExecutionContext ctx1 = jobContextService.createContext(builder1);
 
         Field activeSubContexts = JobExecutionContext.class.getDeclaredField("activeSubContexts");
         activeSubContexts.setAccessible(true);
@@ -126,7 +134,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         PageDownstreamContext pageDownstreamContext =
                 new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
         builder1.addSubContext(1, pageDownstreamContext);
-        return jobContextService.createOrMergeContext(builder1);
+        return jobContextService.createContext(builder1);
     }
 
     @Test
@@ -150,41 +158,5 @@ public class JobContextServiceTest extends CrateUnitTest {
         // set back original values
         JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
         JobContextService.DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
-    }
-
-    @Test
-    public void testCreateOrMergeThreaded() throws Exception {
-        final UUID jobId = UUID.randomUUID();
-        ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(20));
-
-        for (int i = 0; i < 50; i++) {
-            final int currentSubContextId = i;
-            final PageDownstreamContext pageDownstreamContext =
-                    new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
-            ListenableFuture<?> future = executorService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-                    builder.addSubContext(currentSubContextId, pageDownstreamContext);
-                    jobContextService.createOrMergeContext(builder);
-                }
-            });
-            if (currentSubContextId < 49) {
-                future.addListener(new Runnable() {
-                    @Override
-                    public void run() {
-                        pageDownstreamContext.finish();
-                    }
-                }, MoreExecutors.directExecutor());
-            }
-        }
-        executorService.shutdown();
-        executorService.awaitTermination(500, TimeUnit.MILLISECONDS);
-
-        JobExecutionContext context = jobContextService.getContext(jobId);
-        for (int i = 1; i < 49; i++) {
-            assertThat(context.getSubContextOrNull(i), nullValue());
-        }
-        assertThat(context.getSubContextOrNull(49), notNullValue());
     }
 }

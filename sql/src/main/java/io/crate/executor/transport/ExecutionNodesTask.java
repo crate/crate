@@ -237,12 +237,12 @@ public class ExecutionNodesTask extends JobTask {
 
         if (localExecutionNodes == null || localExecutionNodes.isEmpty()) {
             // only the local merge happens locally so it is enough to just create that context.
-            jobContextService.createOrMergeContext(builder);
+            jobContextService.createContext(builder);
         } else {
             for (ExecutionNode executionNode : localExecutionNodes) {
                 contextPreparer.prepare(jobId(), executionNode, builder);
             }
-            JobExecutionContext context = jobContextService.createOrMergeContext(builder);
+            JobExecutionContext context = jobContextService.createContext(builder);
             for (ExecutionNode executionNode : localExecutionNodes) {
                 executionNodeOperationStarter.startOperation(executionNode, context);
             }

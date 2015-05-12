@@ -29,7 +29,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -45,7 +44,6 @@ public class JobExecutionContext {
     private ThreadPool threadPool;
 
     volatile ContextCallback contextCallback;
-    final Object mergeLock = new Object();
 
     private final AtomicInteger activeSubContexts = new AtomicInteger(0);
 
@@ -100,12 +98,6 @@ public class JobExecutionContext {
 
     void contextCallback(ContextCallback contextCallback) {
         this.contextCallback = contextCallback;
-    }
-
-    void merge(JobExecutionContext executionContext) {
-        for (Map.Entry<Integer, ExecutionSubContext> entry : executionContext.subContexts.entrySet()) {
-            addContext(entry.getKey(), entry.getValue());
-        }
     }
 
     private void addContext(int subContextId, ExecutionSubContext subContext) {
@@ -166,10 +158,8 @@ public class JobExecutionContext {
         if (contextCallback == null) {
             return;
         }
-        synchronized (mergeLock) {
-            if (contextCallback != null && activeSubContexts.get() == 0) {
-                contextCallback.onClose();
-            }
+        if (activeSubContexts.get() == 0) {
+            contextCallback.onClose();
         }
     }
 
