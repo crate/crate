@@ -1317,8 +1317,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name from test order by id asc");
         assertEquals("Earth\nSaturn\nMoon\nMars\n", TestingHelpers.printedTable(response.rows()));
 
-
-        bulkResp = execute("update test set name = 'bulk_update' where id = ?", new Object[][]{
+        // test bulk update-by-id
+        bulkResp = execute("update test set name = concat(name, '-updated') where id = ?", new Object[][]{
                 new Object[]{2},
                 new Object[]{3},
                 new Object[]{4},
@@ -1329,9 +1329,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         }
         refresh();
 
-        execute("select count(*) from test where name = 'bulk_update'");
+        execute("select count(*) from test where name like '%-updated'");
         assertThat((Long) response.rows()[0][0], is(3L));
 
+        // test bulk of delete-by-id
         bulkResp = execute("delete from test where id = ?", new Object[][] {
                 new Object[] { 1 },
                 new Object[] { 3 }
@@ -1344,6 +1345,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(2L));
+
+        // test bulk of delete-by-query
+        bulkResp = execute("delete from test where name = ?", new Object[][] {
+                new Object[] { "Saturn-updated" },
+                new Object[] { "Mars-updated" }
+        });
+        assertThat(bulkResp.results().length, is(2));
+        for (SQLBulkResponse.Result result : bulkResp.results()) {
+            assertThat(result.rowCount(), is(-1L));
+        }
+        refresh();
+
+        execute("select count(*) from test");
+        assertThat((Long) response.rows()[0][0], is(0L));
 
     }
 

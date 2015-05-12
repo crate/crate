@@ -37,7 +37,6 @@ import io.crate.operation.scalar.arithmetic.RoundFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -426,20 +425,6 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 Literal.newLiteral(4)));
 
         generator.convert(new WhereClause(whereClause));
-    }
-
-    @Test
-    public void testConvertESDeleteByQueryNode() throws Exception {
-        FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataTypes.STRING)));
-        Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Marvin")));
-
-        ESDeleteByQueryNode deleteByQueryNode = new ESDeleteByQueryNode(
-                new String[]{characters.esName()},
-                new WhereClause(whereClause));
-
-        BytesReference reference = generator.convert(deleteByQueryNode);
-        String actual = reference.toUtf8();
-        assertThat(actual, is("{\"query\":{\"term\":{\"name\":\"Marvin\"}}}"));
     }
 
     @Test

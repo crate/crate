@@ -25,30 +25,43 @@ import io.crate.analyze.WhereClause;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.ESDQLPlanNode;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ESDeleteByQueryNode extends DMLPlanNode {
 
-    private final String[] indices;
-    private final WhereClause whereClause;
-    private final String routing;
+    private final int executionNodeId;
+    private final List<String[]> indices;
+    private final List<WhereClause> whereClauses;
+    private final List<String> routings;
 
-    public ESDeleteByQueryNode(String[] indices, WhereClause whereClause) {
-        assert whereClause != null;
+    public ESDeleteByQueryNode(int executionNodeId,
+                               List<String[]> indices,
+                               List<WhereClause> whereClauses) {
+        assert whereClauses.size() > 0;
+        this.executionNodeId = executionNodeId;
         this.indices = indices;
-        this.whereClause = whereClause;
-        this.routing = ESDQLPlanNode.noCommaStringRouting(whereClause.clusteredBy());
+        this.whereClauses = whereClauses;
+        this.routings = new ArrayList<>(whereClauses.size());
+        for (WhereClause whereClause : whereClauses) {
+            routings.add(ESDQLPlanNode.noCommaStringRouting(whereClause.clusteredBy()));
+        }
     }
 
+    public int executionNodeId() {
+        return executionNodeId;
+    }
 
-    public String[] indices() {
+    public List<String[]> indices() {
         return indices;
     }
 
-    public String routing() {
-        return routing;
+    public List<String> routings() {
+        return routings;
     }
 
-    public WhereClause whereClause() {
-        return whereClause;
+    public List<WhereClause> whereClauses() {
+        return whereClauses;
     }
 
     @Override

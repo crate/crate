@@ -204,22 +204,22 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
         IterablePlan plan = new IterablePlan();
         TableRelation tableRelation = analyzedStatement.analyzedRelation();
+        List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
         List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
-        boolean deleteById = false;
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
             if (whereClause.noMatch()) {
                 continue;
             }
             if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size() == 1) {
-                deleteById = true;
                 docKeys.add(whereClause.docKeys().get().getOnlyKey());
-                //createESDeleteNode(tableRelation.tableInfo(), whereClause, plan, context);
-            } else {
-                createESDeleteByQueryNode(tableRelation.tableInfo(), whereClause, plan);
+            } else if (!whereClause.noMatch()) {
+                whereClauses.add(whereClause);
             }
         }
-        if (deleteById) {
+        if (!docKeys.isEmpty()) {
             plan.add(new ESDeleteNode(context.nextExecutionNodeId(), tableRelation.tableInfo(), docKeys));
+        } else if (!whereClauses.isEmpty()) {
+            createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauses, plan, context);
         }
 
         if (plan.isEmpty()) {
@@ -484,17 +484,27 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return KillPlan.INSTANCE;
     }
 
-    private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
-        String[] indices = indices(tableInfo, whereClause);
-        if (indices.length > 0) {
-            if (tableInfo.isPartitioned() && !whereClause.hasQuery()) {
-                plan.add(new ESDeleteIndexNode(indices));
-            } else {
-                // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
-                // forbidden through analysis, we must issue deleteByQuery request in addition
-                // to above deleteIndex request(s)
-                plan.add(new ESDeleteByQueryNode(indices, whereClause));
+    private void createESDeleteByQueryNode(TableInfo tableInfo,
+                                           List<WhereClause> whereClauses,
+                                           IterablePlan plan,
+                                           Context context) {
+
+        List<String[]> indicesList = new ArrayList<>(whereClauses.size());
+        for (WhereClause whereClause : whereClauses) {
+            String[] indices = indices(tableInfo, whereClauses.get(0));
+            if (indices.length > 0) {
+                if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
+                    plan.add(new ESDeleteIndexNode(indices));
+                } else {
+                    indicesList.add(indices);
+                }
             }
+        }
+        // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
+        // forbidden through analysis, we must issue deleteByQuery request in addition
+        // to above deleteIndex request(s)
+        if (!indicesList.isEmpty()) {
+            plan.add(new ESDeleteByQueryNode(context.nextExecutionNodeId(), indicesList, whereClauses));
         }
     }
 
