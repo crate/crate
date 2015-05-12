@@ -48,6 +48,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -196,6 +197,61 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
             scheduledExecutorService.shutdownNow();
             bulkRetryCoordinator.close();
         }
+    }
+
+    @Test
+    public void testKill() throws Exception {
+        ClusterService clusterService = mock(ClusterService.class);
+        OperationRouting operationRouting = mock(OperationRouting.class);
+
+        mockShard(operationRouting, 1);
+        mockShard(operationRouting, 2);
+        mockShard(operationRouting, 3);
+        when(clusterService.operationRouting()).thenReturn(operationRouting);
+
+        final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
+        SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new SymbolBasedTransportShardUpsertActionDelegate() {
+            @Override
+            public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+                ref.set(listener);
+            }
+        };
+
+        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
+        when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);
+
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
+                ImmutableSettings.EMPTY
+        );
+        BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
+        when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
+
+        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+                TimeValue.timeValueMillis(10),
+                false,
+                false,
+                null,
+                new Reference[]{fooRef}
+        );
+
+        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+                clusterService,
+                mock(TransportBulkCreateIndicesAction.class),
+                ImmutableSettings.EMPTY,
+                coordinatorPool,
+                false,
+                1,
+                builder,
+                transportShardUpsertActionDelegate
+        );
+
+        assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(true));
+        bulkShardProcessor.kill();
+        // A CancellationException is thrown
+        expectedException.expect(CancellationException.class);
+        bulkShardProcessor.result().get();
+        // it's not possible to add more
+        assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(false));
     }
 
     private void mockShard(OperationRouting operationRouting, Integer shardId) {
