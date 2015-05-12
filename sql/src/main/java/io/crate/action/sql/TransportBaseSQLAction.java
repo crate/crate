@@ -68,6 +68,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
@@ -233,8 +234,15 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
                     @Override
                     public void onFailure(@Nonnull Throwable t) {
-                        logger.debug("Error processing SQLRequest", t);
-                        statsTables.jobFinished(jobId, Exceptions.messageOf(t));
+                        String message;
+                        if (t instanceof CancellationException) {
+                            message = Constants.KILLED_MESSAGE;
+                            logger.debug("KILLED: [{}]", request.stmt());
+                        } else {
+                            message = Exceptions.messageOf(t);
+                            logger.debug("Error processing SQLRequest", t);
+                        }
+                        statsTables.jobFinished(jobId, message);
                         sendResponse(listener, buildSQLActionException(t));
                     }
                 }
