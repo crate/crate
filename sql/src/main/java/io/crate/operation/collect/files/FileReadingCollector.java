@@ -39,6 +39,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -51,6 +52,7 @@ import java.util.zip.GZIPInputStream;
 
 public class FileReadingCollector implements CrateCollector {
 
+    public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactoryMap;
     private final URI fileUri;
     private final Predicate<URI> globPredicate;
@@ -167,29 +169,41 @@ public class FileReadingCollector implements CrateCollector {
         uris = getUris(fileInput, uriPredicate);
         try {
             for (URI uri : uris) {
-                InputStream inputStream = fileInput.getStream(uri);
-                if (inputStream == null) {
-                    continue;
-                }
-                BufferedReader reader;
-                reader = createReader(inputStream);
-
-                try {
-                    while ((line = reader.readLine()) != null) {
-                        if (line.length() == 0) { // skip empty lines
-                            continue;
-                        }
-                        collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
-                        if (!downstream.setNextRow(row)) {
-                            throw new CollectionAbortedException();
-                        }
-                    }
-                } finally {
-                    reader.close();
-                }
+                readLines(fileInput, collectorContext, uri, 0, 0);
             }
         } finally {
             downstream.finish();
+        }
+    }
+
+    private void readLines(FileInput fileInput, CollectorContext collectorContext, URI uri, long startLine, int retry) throws IOException {
+        InputStream inputStream = fileInput.getStream(uri);
+        if (inputStream == null) {
+            return;
+        }
+
+        String line;
+        long linesRead = 0L;
+        try (BufferedReader reader = createReader(inputStream)) {
+            while ((line = reader.readLine()) != null) {
+                linesRead++;
+                if (linesRead < startLine) {
+                    continue;
+                }
+                if (line.length() == 0) { // skip empty lines
+                    continue;
+                }
+                collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
+                if (!downstream.setNextRow(row)) {
+                    break;
+                }
+            }
+        } catch (SocketTimeoutException e) {
+            if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
+                throw e;
+            } else {
+                readLines(fileInput, collectorContext, uri, linesRead + 1, retry + 1);
+            }
         }
     }
 
