@@ -45,12 +45,12 @@ allprojects {
     // if environment variable JAVA7_HOME is set, add it to bootClasspath
     // for compiling for java 7 compatibility using javac from jdk8
     tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:deprecation"
         doFirst {
             if (sourceCompatibility == '1.7' && System.env.JAVA7_HOME != null) {
                 options.fork = true
                 options.bootClasspath = "$System.env.JAVA7_HOME/jre/lib/rt.jar"
             }
-            options.compilerArgs << "-Xlint:deprecation"
         }
     }
 
