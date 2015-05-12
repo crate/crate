@@ -194,12 +194,10 @@ public class FileReadingCollector implements CrateCollector {
                     reader.close();
                 }
             }
-
-        } catch (IOException e) {
+            downstream.finish();
+        } catch (Throwable e) {
             downstream.fail(e);
-            return;
         }
-        downstream.finish();
     }
 
     private BufferedReader createReader(InputStream inputStream) throws IOException {

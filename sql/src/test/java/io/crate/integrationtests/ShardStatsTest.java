@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.blob.v2.BlobIndices;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -79,6 +80,32 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(5L));
         assertEquals("UNASSIGNED", response.rows()[0][1]);
         assertEquals(false, response.rows()[0][2]);
+    }
+
+    @Test
+    public void testSelectCountIncludingUnassignedShards() throws Exception {
+        execute("create table locations (id integer primary key, name string) with(number_of_replicas=2)");
+        ensureYellow();
+
+        execute("select count(*) from sys.shards where schema_name='doc' AND table_name='locations'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long) response.rows()[0][0], is(15L));
+    }
+
+    @Test
+    public void testOnlyUnassignedShards() throws Exception {
+        execute("set global transient cluster.routing.allocation.enable=none");
+        try {
+            execute("create table no_shards (id int) with (number_of_replicas=2)");
+            execute("select state, id, table_name from sys.shards where schema_name='doc' AND table_name='no_shards'");
+            assertThat(response.rowCount(), is(15L));
+            Object[] stateColumn = TestingHelpers.getColumn(response.rows(), 0);
+            for (Object val : stateColumn) {
+                assertThat((String)val, is("UNASSIGNED"));
+            }
+        } finally {
+            execute("reset global cluster.routing.allocation.enable");
+        }
     }
 
     @Test

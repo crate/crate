@@ -21,6 +21,8 @@
 
 package io.crate.metadata.settings;
 
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 public abstract class FloatSetting extends Setting<Float, Float> {
@@ -31,6 +33,11 @@ public abstract class FloatSetting extends Setting<Float, Float> {
 
     public Float minValue() {
         return Float.MIN_VALUE;
+    }
+
+    @Override
+    public DataType dataType() {
+        return DataTypes.FLOAT;
     }
 
     @Override

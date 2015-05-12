@@ -22,8 +22,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -40,15 +38,8 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
-import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.CollectingProjector;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.ExecutionNodeVisitor;
-import io.crate.planner.node.ExecutionNodes;
-import io.crate.planner.node.StreamerVisitor;
+import io.crate.planner.node.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
@@ -74,8 +65,6 @@ public class ExecutionNodesTask extends JobTask {
     private final ClusterService clusterService;
     private ContextPreparer contextPreparer;
     private final ExecutionNodeOperationStarter executionNodeOperationStarter;
-    private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
-    private final ProjectionToProjectorVisitor projectionToProjectorVisitor;
     private final JobContextService jobContextService;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final StatsTables statsTables;
@@ -96,8 +85,6 @@ public class ExecutionNodesTask extends JobTask {
                                  ClusterService clusterService,
                                  ContextPreparer contextPreparer,
                                  ExecutionNodeOperationStarter executionNodeOperationStarter,
-                                 HandlerSideDataCollectOperation handlerSideDataCollectOperation,
-                                 ProjectionToProjectorVisitor projectionToProjectorVisitor,
                                  JobContextService jobContextService,
                                  PageDownstreamFactory pageDownstreamFactory,
                                  StatsTables statsTables,
@@ -112,8 +99,6 @@ public class ExecutionNodesTask extends JobTask {
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
         this.executionNodeOperationStarter = executionNodeOperationStarter;
-        this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
-        this.projectionToProjectorVisitor = projectionToProjectorVisitor;
         this.jobContextService = jobContextService;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.statsTables = statsTables;
@@ -146,7 +131,7 @@ public class ExecutionNodesTask extends JobTask {
     public void start() {
         assert mergeNodes != null : "mergeNodes must not be null";
 
-        Map<String, Collection<ExecutionNode>> nodesByServer = groupExecutionNodesByServer(groupedExecutionNodes);
+        Map<String, Collection<ExecutionNode>> nodesByServer = ExecutionNodeGrouper.groupByServer(clusterService.state().nodes().localNodeId(), groupedExecutionNodes);
         RowDownstream rowDownstream;
         if (rowCountResult) {
             rowDownstream = new RowCountResultRowDownstream(results);
@@ -203,19 +188,18 @@ public class ExecutionNodesTask extends JobTask {
         int idx = 0;
         for (Map.Entry<String, Collection<ExecutionNode>> entry : nodesByServer.entrySet()) {
             String serverNodeId = entry.getKey();
+            if (TableInfo.NULL_NODE_ID.equals(serverNodeId)) {
+                continue; // handled by local node
+            }
             Collection<ExecutionNode> executionNodes = entry.getValue();
 
-            if (serverNodeId.equals(TableInfo.NULL_NODE_ID)) {
-                handlerSideCollect(executionNodes, pageDownstreamContexts);
+            JobRequest request = new JobRequest(jobId(), executionNodes);
+            if (hasDirectResponse) {
+                transportJobAction.execute(serverNodeId, request,
+                        new DirectResponseListener(idx, streamers, pageDownstreamContexts));
             } else {
-                JobRequest request = new JobRequest(jobId(), executionNodes);
-                if (hasDirectResponse) {
-                    transportJobAction.execute(serverNodeId, request,
-                            new DirectResponseListener(idx, streamers, pageDownstreamContexts));
-                } else {
-                    transportJobAction.execute(serverNodeId, request,
-                            new FailureOnlyResponseListener(results));
-                }
+                transportJobAction.execute(serverNodeId, request,
+                        new FailureOnlyResponseListener(results));
             }
             idx++;
         }
@@ -246,58 +230,6 @@ public class ExecutionNodesTask extends JobTask {
             for (ExecutionNode executionNode : localExecutionNodes) {
                 executionNodeOperationStarter.startOperation(executionNode, context);
             }
-        }
-    }
-
-    private void handlerSideCollect(Collection<ExecutionNode> executionNodes,
-                                    List<PageDownstreamContext> pageDownstreamContexts) {
-        assert executionNodes.size() == 1 && pageDownstreamContexts.size() == 1
-                : "handlerSideCollect is only possible with 1 collectNode";
-        ExecutionNode onlyElement = Iterables.getOnlyElement(executionNodes);
-        assert onlyElement instanceof CollectNode : "handlerSideCollect is only possible with 1 collectNode";
-
-        final PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(0);
-        CollectNode collectNode = ((CollectNode) onlyElement);
-        RamAccountingContext ramAccountingContext = trackOperation(collectNode,
-                "handlerSide collect", results.get(0));
-
-        CollectingProjector collectingProjector = new CollectingProjector();
-        Futures.addCallback(collectingProjector.result(), new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(Bucket result) {
-                pageDownstreamContext.setBucket(0, result, true, new PageResultListener() {
-                    @Override
-                    public void needMore(boolean needMore) {
-                        // can't page
-                    }
-
-                    @Override
-                    public int buckedIdx() {
-                        return 0;
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                pageDownstreamContext.failure(0, t);
-            }
-        });
-
-        RowDownstream rowDownstream = collectingProjector;
-        if (!collectNode.projections().isEmpty()) {
-            FlatProjectorChain flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
-                    projectionToProjectorVisitor,
-                    ramAccountingContext,
-                    collectNode.projections(),
-                    collectingProjector);
-            flatProjectorChain.startProjections();
-            rowDownstream = flatProjectorChain.firstProjector();
-        }
-        if (hasDirectResponse) {
-            handlerSideDataCollectOperation.collect(collectNode, rowDownstream, ramAccountingContext);
-        } else {
-            throw new UnsupportedOperationException("handler side collect doesn't support push based collect");
         }
     }
 
@@ -360,18 +292,6 @@ public class ExecutionNodesTask extends JobTask {
         return false;
     }
 
-    static Map<String, Collection<ExecutionNode>> groupExecutionNodesByServer(List<List<ExecutionNode>> groupedExecutionNodes) {
-        ArrayListMultimap<String, ExecutionNode> executionNodesGroupedByServer = ArrayListMultimap.create();
-        for (List<ExecutionNode> executionNodeGroup : groupedExecutionNodes) {
-            for (ExecutionNode executionNode : executionNodeGroup) {
-                for (String server : executionNode.executionNodes()) {
-                    executionNodesGroupedByServer.put(server, executionNode);
-                }
-            }
-        }
-        return executionNodesGroupedByServer.asMap();
-    }
-
     private static class DirectResponseListener implements ActionListener<JobResponse> {
 
         private final int bucketIdx;
@@ -389,7 +309,7 @@ public class ExecutionNodesTask extends JobTask {
             jobResponse.streamers(streamer);
             for (int i = 0; i < pageDownstreamContexts.size(); i++) {
                 PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
-                Bucket  bucket = jobResponse.directResponse().get(i);
+                Bucket bucket = jobResponse.directResponse().get(i);
                 if (bucket == null) {
                     pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
                 }

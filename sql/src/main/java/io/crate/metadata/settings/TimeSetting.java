@@ -21,6 +21,8 @@
 
 package io.crate.metadata.settings;
 
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 
@@ -37,6 +39,11 @@ public abstract class TimeSetting extends Setting<TimeValue, String> {
 
     public TimeValue minValue() {
         return new TimeValue(0);
+    }
+
+    @Override
+    public DataType dataType() {
+        return DataTypes.STRING;
     }
 
     @Override

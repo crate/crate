@@ -140,7 +140,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
     @Override
     public SortField visitFunction(final Function function, final SortSymbolContext context) {
-        CollectInputSymbolVisitor.Context inputContext = inputSymbolVisitor.process(function);
+        CollectInputSymbolVisitor.Context inputContext = inputSymbolVisitor.extractImplementations(function);
         ArrayList<Input<?>> inputs = inputContext.topLevelInputs();
         assert inputs.size() == 1;
         final Input functionInput = inputs.get(0);

@@ -170,21 +170,25 @@ public class InformationSchemaCollectService implements CollectService {
 
         @Override
         public void doCollect(RamAccountingContext ramAccountingContext) {
-            for (R row : rows) {
-                for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
-                    collectorExpression.setNextRow(row);
+            try {
+                for (R row : rows) {
+                    for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
+                        collectorExpression.setNextRow(row);
+                    }
+                    Boolean match = condition.value();
+                    if (match == null || !match) {
+                        // no match
+                        continue;
+                    }
+                    if (!downstream.setNextRow(this.row)) {
+                        // no more rows required, we can stop here
+                        break;
+                    }
                 }
-                Boolean match = condition.value();
-                if (match == null || !match) {
-                    // no match
-                    continue;
-                }
-                if (!downstream.setNextRow(this.row)) {
-                    // no more rows required, we can stop here
-                    break;
-                }
+                downstream.finish();
+            } catch (Throwable t) {
+                downstream.fail(t);
             }
-            downstream.finish();
         }
 
     }
@@ -199,7 +203,7 @@ public class InformationSchemaCollectService implements CollectService {
         assert routing.locations().get(TableInfo.NULL_NODE_ID).size() == 1;
         String fqTableName = routing.locations().get(TableInfo.NULL_NODE_ID).keySet().iterator().next();
         Iterable<?> iterator = iterables.get(fqTableName);
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
 
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {

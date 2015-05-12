@@ -249,7 +249,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Iterable<Projection> projections = Iterables.filter(plan.mergeNode().projections(), Predicates.instanceOf(FetchProjection.class));
         FetchProjection fetchProjection = (FetchProjection )Iterables.getOnlyElement(projections);
         RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(cluster().getInstance(Functions.class));
-        RowInputSymbolVisitor.Context context = rowInputSymbolVisitor.process(fetchProjection.outputSymbols());
+        RowInputSymbolVisitor.Context context = rowInputSymbolVisitor.extractImplementations(fetchProjection.outputSymbols());
 
 
         final CountDownLatch latch = new CountDownLatch(jobSearchContextDocIds.size());

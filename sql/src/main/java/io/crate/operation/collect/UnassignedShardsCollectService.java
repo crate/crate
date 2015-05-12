@@ -154,7 +154,7 @@ public class UnassignedShardsCollectService implements CollectService {
         if (node.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
         }
-        CollectInputSymbolVisitor.Context context = inputSymbolVisitor.process(node);
+        CollectInputSymbolVisitor.Context context = inputSymbolVisitor.extractImplementations(node);
 
         Map<String, Map<String, List<Integer>>> locations = node.routing().locations();
         assert locations != null : "locations must be present";
@@ -194,22 +194,26 @@ public class UnassignedShardsCollectService implements CollectService {
 
         @Override
         public void doCollect(RamAccountingContext ramAccountingContext) {
-            for (UnassignedShard row : rows) {
-                for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
-                    collectorExpression.setNextRow(row);
-                }
-                Boolean match = condition.value();
-                if (match == null || !match) {
-                    // no match
-                    continue;
-                }
+            try {
+                for (UnassignedShard row : rows) {
+                    for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
+                        collectorExpression.setNextRow(row);
+                    }
+                    Boolean match = condition.value();
+                    if (match == null || !match) {
+                        // no match
+                        continue;
+                    }
 
-                if (!downstream.setNextRow(this.row)) {
-                    // no more rows required, we can stop here
-                    break;
+                    if (!downstream.setNextRow(this.row)) {
+                        // no more rows required, we can stop here
+                        break;
+                    }
                 }
+                downstream.finish();
+            } catch (Throwable t) {
+                downstream.fail(t);
             }
-            downstream.finish();
         }
     }
 }

@@ -75,7 +75,7 @@ public class SystemCollectService implements CollectService {
         assert tables.size() == 1;
         StatsTables.IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());
         assert iterableGetter != null;
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
 
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {
@@ -112,22 +112,26 @@ public class SystemCollectService implements CollectService {
 
         @Override
         public void doCollect(RamAccountingContext ramAccountingContext) {
-            for (R row : rows) {
-                for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
-                    collectorExpression.setNextRow(row);
-                }
-                Boolean match = condition.value();
-                if (match == null || !match) {
-                    // no match
-                    continue;
-                }
+            try {
+                for (R row : rows) {
+                    for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
+                        collectorExpression.setNextRow(row);
+                    }
+                    Boolean match = condition.value();
+                    if (match == null || !match) {
+                        // no match
+                        continue;
+                    }
 
-                if (!downstream.setNextRow(this.row)) {
-                    // no more rows required, we can stop here
-                    break;
+                    if (!downstream.setNextRow(this.row)) {
+                        // no more rows required, we can stop here
+                        break;
+                    }
                 }
+                downstream.finish();
+            } catch (Throwable t) {
+                downstream.fail(t);
             }
-            downstream.finish();
         }
     }
 }

@@ -107,9 +107,9 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
             assertThat(response.rowCount(), is(4L));
             assertThat(TestingHelpers.printedTable(response.rows()),
                     is("0.0| t| 0.0\n" +
-                            "0.0| quotes| 0.0\n" +
-                            "14.0| characters| 14.0\n" +
-                            "0.0| blobs| 0.0\n"));
+                       "0.0| quotes| 0.0\n" +
+                       "14.0| characters| 14.0\n" +
+                       "0.0| blobs| 0.0\n"));
         } finally {
             transportExecutor.exec("drop table t");
         }

@@ -23,10 +23,12 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
@@ -65,6 +67,7 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     private boolean isPartitioned = false;
     private boolean keepContextForFetcher = false;
+    private @Nullable String handlerSideCollect = null;
 
     private @Nullable Integer limit = null;
     private @Nullable OrderBy orderBy = null;
@@ -94,10 +97,18 @@ public class CollectNode extends AbstractDQLPlanNode {
         return Type.COLLECT;
     }
 
+    /**
+     * @return a set of node ids where this collect operation is executed,
+     *         excluding the NULL_NODE_ID for special collect purposes
+     */
     @Override
     public Set<String> executionNodes() {
         if (routing != null) {
-            return routing.nodes();
+            if (routing.isNullRouting()) {
+                return routing.nodes();
+            } else {
+                return Sets.filter(routing.nodes(), TableInfo.IS_NOT_NULL_NODE_ID);
+            }
         } else {
             return ImmutableSet.of();
         }
@@ -180,8 +191,7 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     /**
      * Whether collect operates on a partitioned table.
-     * Only used on {@link io.crate.operation.collect.HandlerSideDataCollectOperation},
-     * so no serialization is needed.
+     * Only used on local collect, so no serialization is needed.
      *
      * @return true if collect operates on a partitioned table, false otherwise
      */
@@ -252,6 +262,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             orderBy = OrderBy.fromStream(in);
         }
         isPartitioned = in.readBoolean();
+        handlerSideCollect = in.readOptionalString();
     }
 
     @Override
@@ -297,6 +308,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             out.writeBoolean(false);
         }
         out.writeBoolean(isPartitioned);
+        out.writeOptionalString(handlerSideCollect);
     }
 
     /**
@@ -319,6 +331,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             result.maxRowGranularity = maxRowGranularity;
             result.jobId(jobId());
             result.keepContextForFetcher = keepContextForFetcher;
+            result.handlerSideCollect = handlerSideCollect;
             result.isPartitioned(isPartitioned);
             result.whereClause(newWhereClause);
         }
@@ -331,5 +344,14 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     public boolean keepContextForFetcher() {
         return keepContextForFetcher;
+    }
+
+    public void handlerSideCollect(String handlerSideCollect) {
+        this.handlerSideCollect = handlerSideCollect;
+    }
+
+    @Nullable
+    public String handlerSideCollect() {
+        return handlerSideCollect;
     }
 }

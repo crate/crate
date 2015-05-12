@@ -23,6 +23,7 @@ package io.crate.metadata.settings;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
@@ -50,6 +51,8 @@ public abstract class Setting<T, E> {
     public Setting parent() {
         return null;
     }
+
+    public abstract DataType dataType();
 
     /**
      * Return a list of setting names up to the uppers parent which will be used
