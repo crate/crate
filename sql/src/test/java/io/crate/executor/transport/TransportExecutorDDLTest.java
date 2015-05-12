@@ -124,7 +124,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(createTableNode);
 
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> futures = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket rows = listenableFuture.get().get(0).rows();
         assertThat(rows, contains(isRow(1L)));
@@ -152,7 +152,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(createTableNode);
 
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> futures = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));
@@ -185,7 +185,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(createTableNode);
 
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> futures = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));
@@ -215,7 +215,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(deleteIndexNode);
 
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> futures = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));
@@ -240,7 +240,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(deleteIndexNode);
 
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> futures = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));
@@ -271,7 +271,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(node);
 
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> futures = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));
@@ -357,7 +357,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         Plan plan = new IterablePlan(planNode);
 
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> futures = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));

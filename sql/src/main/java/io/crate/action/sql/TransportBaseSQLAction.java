@@ -216,7 +216,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         final UUID jobId = job.id();
         assert jobId != null;
         statsTables.jobStarted(jobId, request.stmt());
-        List<ListenableFuture<TaskResult>> resultFutureList = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> resultFutureList = executor.execute(job);
         Futures.addCallback(Futures.allAsList(resultFutureList), new FutureCallback<List<TaskResult>>() {
                     @Override
                     public void onSuccess(@Nullable List<TaskResult> result) {

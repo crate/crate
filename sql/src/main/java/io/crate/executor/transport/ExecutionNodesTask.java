@@ -271,16 +271,12 @@ public class ExecutionNodesTask extends JobTask {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
-        List<ListenableFuture<TaskResult>> results = new ArrayList<>(this.results.size());
-        for (ListenableFuture<TaskResult> result : this.results) {
-            results.add((SettableFuture)result);
-        }
+    public List<? extends ListenableFuture<TaskResult>> result() {
         return results;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
     }
 

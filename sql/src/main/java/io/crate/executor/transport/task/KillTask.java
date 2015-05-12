@@ -100,7 +100,7 @@ public class KillTask extends JobTask {
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         // ignore
     }
 }

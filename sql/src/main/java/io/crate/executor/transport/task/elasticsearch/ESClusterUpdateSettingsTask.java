@@ -89,12 +89,12 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
+    public List<? extends ListenableFuture<TaskResult>> result() {
         return results;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
                         getClass().getSimpleName()));

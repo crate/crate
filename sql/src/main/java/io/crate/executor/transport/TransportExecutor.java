@@ -142,7 +142,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> execute(Job job) {
+    public List<? extends ListenableFuture<TaskResult>> execute(Job job) {
         assert job.tasks().size() > 0;
         return execute(job.tasks());
 
@@ -154,7 +154,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
+    public List<? extends ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
         Task lastTask = null;
         assert tasks.size() > 0 : "need at least one task to execute";
         for (Task task : tasks) {
@@ -349,7 +349,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return singleTask(new ESDeleteTask(
                     jobId,
                     node,
-                    transportActionProvider.transportDeleteAction()));
+                    transportActionProvider.transportDeleteAction(),
+                    jobContextService));
         }
 
         @Override

@@ -104,7 +104,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(task, instanceOf(ESGetTask.class));
 
         // execute and validate results
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(isRow(2, "Ford")));
     }
@@ -119,7 +119,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionNodeId());
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(isRow(2, null)));
     }
@@ -132,7 +132,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ESGetNode node = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionNodeId());
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
 
         assertThat(objects.size(), is(2));
@@ -171,7 +171,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, containsInAnyOrder(
                 isRow(1, "Arthur"),
@@ -219,7 +219,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(isRow(2, "Ford")));
     }
@@ -286,7 +286,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(
                 isRow(1, "Arthur"),
@@ -358,7 +358,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
 
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, contains(isRow(2, 315532800000L)));
     }
@@ -395,7 +395,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(plan);
 
         assertThat(job.tasks().size(), is(1));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
         assertThat(rows, containsInAnyOrder(
                 isRow(3, "Ford", 1396388720242L),
@@ -449,7 +449,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
 
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket rows = taskResult.rows();
         assertThat(rows, contains(isRow(1L)));
@@ -490,7 +490,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
 
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket indexResult = taskResult.rows();
         assertThat(indexResult, contains(isRow(1L)));
@@ -538,7 +538,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
 
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket rows = taskResult.rows();
         assertThat(rows, contains(isRow(2L)));
@@ -570,7 +570,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket rows = taskResult.rows();
         assertThat(rows, contains(isRow(1L)));
@@ -604,7 +604,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket rows = taskResult.rows();
         assertThat(rows, contains(isRow(1L)));
@@ -637,7 +637,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Plan plan = new IterablePlan(updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
-        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket rows = taskResult.rows();
         assertThat(rows, contains(isRow(1L)));
@@ -720,7 +720,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         assertThat(job.tasks().size(), is(1));
         assertThat(job.tasks().get(0), instanceOf(ExecutionNodesTask.class));
-        List<ListenableFuture<TaskResult>> results = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> results = executor.execute(job);
         assertThat(results.size(), is(2));
 
         for (int i = 0; i < results.size(); i++) {
@@ -737,7 +737,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(job.tasks(), hasSize(1));
         assertThat(job.tasks().get(0), instanceOf(KillTask.class));
 
-        List<ListenableFuture<TaskResult>> results = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> results = executor.execute(job);
         assertThat(results, hasSize(1));
         results.get(0).get();
     }
