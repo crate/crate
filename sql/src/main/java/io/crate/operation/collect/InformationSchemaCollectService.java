@@ -199,7 +199,7 @@ public class InformationSchemaCollectService implements CollectService {
         assert routing.locations().get(TableInfo.NULL_NODE_ID).size() == 1;
         String fqTableName = routing.locations().get(TableInfo.NULL_NODE_ID).keySet().iterator().next();
         Iterable<?> iterator = iterables.get(fqTableName);
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
 
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {

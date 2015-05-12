@@ -161,7 +161,7 @@ public class UnassignedShardsCollectService implements CollectService {
         if (node.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
         }
-        CollectInputSymbolVisitor.Context context = inputSymbolVisitor.process(node);
+        CollectInputSymbolVisitor.Context context = inputSymbolVisitor.extractImplementations(node);
 
         Map<String, Map<String, List<Integer>>> locations = node.routing().locations();
         assert locations != null : "locations must be present";

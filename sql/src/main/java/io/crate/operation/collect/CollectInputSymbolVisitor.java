@@ -71,7 +71,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
     }
 
     @Override
-    public Context process(CollectNode node) {
+    public Context extractImplementations(CollectNode node) {
         Context context = newContext();
         context.orderBy(node.orderBy());
         if (node.toCollect() != null) {

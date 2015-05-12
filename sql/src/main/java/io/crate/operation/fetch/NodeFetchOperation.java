@@ -132,7 +132,7 @@ public class NodeFetchOperation implements RowUpstream {
                 throw new IllegalArgumentException(errorMsg);
             }
             // create new collect expression for every shard (collect expressions are not thread-safe)
-            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(toFetchReferences);
+            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(toFetchReferences);
             shardFetchers.add(
                     new LuceneDocFetcher(
                             docCtx.topLevelInputs(),
