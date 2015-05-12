@@ -21,6 +21,8 @@
 
 package io.crate.metadata.settings;
 
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 public abstract class IntSetting extends Setting<Integer, Integer> {
@@ -31,6 +33,11 @@ public abstract class IntSetting extends Setting<Integer, Integer> {
 
     public Integer minValue() {
         return Integer.MIN_VALUE;
+    }
+
+    @Override
+    public DataType dataType() {
+        return DataTypes.INTEGER;
     }
 
     @Override

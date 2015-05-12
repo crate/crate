@@ -21,6 +21,8 @@
 
 package io.crate.metadata.settings;
 
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 public abstract class DoubleSetting extends Setting<Double, Double> {
@@ -31,6 +33,11 @@ public abstract class DoubleSetting extends Setting<Double, Double> {
 
     public Double minValue() {
         return Double.MIN_VALUE;
+    }
+
+    @Override
+    public DataType dataType() {
+        return DataTypes.DOUBLE;
     }
 
     @Override

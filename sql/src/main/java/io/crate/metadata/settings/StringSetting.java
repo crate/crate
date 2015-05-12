@@ -22,6 +22,8 @@
 package io.crate.metadata.settings;
 
 import com.google.common.base.Joiner;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
@@ -42,6 +44,11 @@ public abstract class StringSetting extends Setting<String, String> {
     @Override
     public String defaultValue() {
         return "";
+    }
+
+    @Override
+    public DataType dataType() {
+        return DataTypes.STRING;
     }
 
     @Override
