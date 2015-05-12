@@ -9,6 +9,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -16,17 +17,26 @@ import static org.mockito.Mockito.*;
 
 public class UpsertByIdContextTest extends CrateUnitTest {
 
-    @Test
-    public void testKill() throws Exception {
+    private SymbolBasedTransportShardUpsertActionDelegate delegate;
+    private UpsertByIdContext context;
+    private SettableFuture<TaskResult> future;
+    private ContextCallback callback;
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        delegate = mock(SymbolBasedTransportShardUpsertActionDelegate.class);
         SymbolBasedShardUpsertRequest request = mock(SymbolBasedShardUpsertRequest.class);
         SymbolBasedUpsertByIdNode.Item item = mock(SymbolBasedUpsertByIdNode.Item.class);
-        SymbolBasedTransportShardUpsertActionDelegate delegate = mock(SymbolBasedTransportShardUpsertActionDelegate.class);
+        future = SettableFuture.create();
+        context = new UpsertByIdContext(request, item, future, delegate);
 
-        SettableFuture<TaskResult> future = SettableFuture.create();
-        UpsertByIdContext context = new UpsertByIdContext(request, item, future, delegate);
-        ContextCallback callback = mock(ContextCallback.class);
+        callback = mock(ContextCallback.class);
         context.addCallback(callback);
+    }
 
+    @Test
+    public void testKill() throws Exception {
         ArgumentCaptor<ActionListener> listener = ArgumentCaptor.forClass(ActionListener.class);
         context.start();
         verify(delegate).execute(any(SymbolBasedShardUpsertRequest.class), listener.capture());
@@ -41,5 +51,39 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         expectedException.expectCause(TestingHelpers.cause(JobKilledException.class));
         expectedException.expectMessage("Job execution was interrupted by kill");
         future.get();
+    }
+
+    @Test
+    public void testStartAfterKill() throws Exception {
+        context.kill();
+        verify(callback, times(1)).onClose();
+        expectedException.expectCause(TestingHelpers.cause(JobKilledException.class));
+        expectedException.expectMessage("Job execution was interrupted by kill");
+        future.get();
+
+        // start does nothing, because the context is already closed
+        context.start();
+        verify(delegate, never()).execute(any(SymbolBasedShardUpsertRequest.class), any(ActionListener.class));
+
+        // close context and verify that the callbacks are not called twice
+        context.close();
+        verify(callback, times(1)).onClose();
+    }
+
+    @Test
+    public void testStartAfterClose() throws Exception {
+        context.close();
+        verify(callback, times(1)).onClose();
+
+        context.start();
+        expectedException.expectCause(TestingHelpers.cause(ContextClosedException.class));
+        expectedException.expectMessage("Can't start already closed context");
+        future.get();
+        // start does nothing, because the context is already closed
+        verify(delegate, never()).execute(any(SymbolBasedShardUpsertRequest.class), any(ActionListener.class));
+
+        // kill context to verify that the callbacks are not called twice
+        context.kill();
+        verify(callback, times(1)).onClose();
     }
 }
