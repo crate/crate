@@ -76,6 +76,11 @@ public class ESDeleteTask extends JobTask {
     }
 
     @Override
+    public void start() {
+        context.start();
+    }
+
+    @Override
     public List<? extends ListenableFuture<TaskResult>> result() {
         return resultList;
     }
@@ -85,11 +90,6 @@ public class ESDeleteTask extends JobTask {
         throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
                         getClass().getSimpleName()));
-    }
-
-    @Override
-    public void start() {
-        context.start();
     }
 
     static class DeleteResponseListener implements ActionListener<DeleteResponse> {

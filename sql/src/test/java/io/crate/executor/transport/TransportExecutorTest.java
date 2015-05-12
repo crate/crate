@@ -414,8 +414,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(idRef, Literal.newLiteral(2)));
 
         ESDeleteByQueryNode node = new ESDeleteByQueryNode(
-                new String[]{"characters"},
-                new WhereClause(whereClause));
+                1,
+                ImmutableList.of(new String[]{"characters"}),
+                ImmutableList.of(new WhereClause(whereClause)));
         Plan plan = new IterablePlan(node);
         Job job = executor.newJob(plan);
         ESDeleteByQueryTask task = (ESDeleteByQueryTask) job.tasks().get(0);

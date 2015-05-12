@@ -137,22 +137,6 @@ public class ESQueryBuilder {
         return context.builder.bytes();
     }
 
-    /**
-     * use to create a full elasticsearch query "statement" used by deleteByQuery actions.
-     */
-    public BytesReference convert(ESDeleteByQueryNode node) throws IOException {
-        assert node != null;
-
-        Context context = new Context();
-        context.builder = XContentFactory.jsonBuilder().startObject();
-        XContentBuilder builder = context.builder;
-
-        whereClause(context, node.whereClause());
-
-        builder.endObject();
-        return builder.bytes();
-    }
-
     static class Context {
         XContentBuilder builder;
         final Map<String, Object> ignoredFields = new HashMap<>();

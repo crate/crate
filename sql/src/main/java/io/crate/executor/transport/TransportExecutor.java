@@ -341,7 +341,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return singleTask(new ESDeleteByQueryTask(
                     jobId,
                     node,
-                    transportActionProvider.transportDeleteByQueryAction()));
+                    transportActionProvider.transportDeleteByQueryAction(),
+                    jobContextService));
         }
 
         @Override
