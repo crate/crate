@@ -75,7 +75,7 @@ public class SystemCollectService implements CollectService {
         assert tables.size() == 1;
         StatsTables.IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());
         assert iterableGetter != null;
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
 
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {
