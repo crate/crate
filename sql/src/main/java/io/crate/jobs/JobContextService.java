@@ -129,7 +129,9 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         writeLock.lock();
         try {
             for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
-                numKilled += jobExecutionContext.kill();
+                jobExecutionContext.kill();
+                 // don't use  numKilled = activeContext.size() because the content of activeContexts could change
+                numKilled++;
             }
             assert activeContexts.size() == 0 :
                     "after killing all contexts they should have been removed from the map due to the callbacks";
