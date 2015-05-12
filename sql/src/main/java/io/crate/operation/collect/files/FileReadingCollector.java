@@ -177,12 +177,10 @@ public class FileReadingCollector implements CrateCollector {
             for (URI uri : uris) {
                 readLines(fileInput, collectorContext, uri, 0, 0);
             }
-
-        } catch (IOException e) {
+            downstream.finish();
+        } catch (Throwable e) {
             downstream.fail(e);
-            return;
         }
-        downstream.finish();
     }
 
     private void readLines(FileInput fileInput, CollectorContext collectorContext, URI uri, long startLine, int retry) throws IOException {
