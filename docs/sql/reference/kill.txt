@@ -1,0 +1,37 @@
+.. highlight:: psql
+
+========
+KILL ALL
+========
+
+
+Kills all active jobs in the crate cluster.
+
+
+Synopsis
+========
+
+::
+
+    KILL ALL
+
+
+Description
+===========
+
+
+The ``KILL ALL`` statement will kill all active jobs within the crate cluster.
+
+
+Be aware that Crate doesn't have transactions. If an operation which modifies
+data is killed it won't rollback. For example if a update operation is killed
+it is likely that it updated some documents before being killed. This might
+leave the data in an inconsistent state. So take care when using ``KILL ALL``.
+
+
+In addition to that certain fast running operations have a small time frame in
+which they can be killed. For example if you delete a single document by id it
+could be that the document is deleted before the ``KILL`` command is being
+processed, but the client might still get an error that the operation has been
+killed because the ``KILL`` command is processed before the final result is
+sent to the client.
