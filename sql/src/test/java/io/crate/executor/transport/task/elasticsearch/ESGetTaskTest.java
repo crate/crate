@@ -39,24 +39,35 @@ import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
 
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ESGetTaskTest extends CrateUnitTest {
 
+    private static ESGetNode node;
+
+    static {
+        TableIdent tableIdent = new TableIdent("doc", "dummy");
+        TableInfo tableInfo = mock(DocTableInfo.class);
+        when(tableInfo.ident()).thenReturn(tableIdent);
+        node = BaseTransportExecutorTest.newGetNode(
+                tableInfo,
+                ImmutableList.<Symbol>of(),
+                ImmutableList.of("1"),
+                1
+        );
+    }
+
     private final ThreadPool testThreadPool = TestingHelpers.newMockedThreadPool();
-    private final Settings settings = ImmutableSettings.EMPTY;
     private final JobContextService jobContextService = new JobContextService(
-            settings, testThreadPool);
+            ImmutableSettings.EMPTY, testThreadPool);
 
     @After
     public void cleanUp() throws Exception {
@@ -65,16 +76,6 @@ public class ESGetTaskTest extends CrateUnitTest {
 
     @Test
     public void testContextCreation() throws Exception {
-        TableIdent tableIdent = new TableIdent("doc", "dummy");
-        TableInfo tableInfo = mock(DocTableInfo.class);
-        when(tableInfo.ident()).thenReturn(tableIdent);
-        ESGetNode node = BaseTransportExecutorTest.newGetNode(
-                tableInfo,
-                ImmutableList.<Symbol>of(),
-                ImmutableList.of("1"),
-                1
-        );
-
         UUID jobId = UUID.randomUUID();
         ESGetTask task = new ESGetTask(
                 jobId,
@@ -89,5 +90,26 @@ public class ESGetTaskTest extends CrateUnitTest {
         ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionNodeId());
         assertThat(subContext, notNullValue());
         assertThat(subContext, instanceOf(ESGetContext.class));
+    }
+
+    @Test
+    public void testContextKill() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        ESGetTask task = new ESGetTask(
+                jobId,
+                mock(Functions.class),
+                mock(ProjectionToProjectorVisitor.class),
+                mock(TransportMultiGetAction.class),
+                mock(TransportGetAction.class),
+                node,
+                jobContextService);
+
+        JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
+        ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionNodeId());
+        subContext.kill();
+
+        assertThat(task.result().size(), is(1));
+        assertThat(task.result().get(0).isCancelled(), is(true));
+        assertNull(jobExecutionContext.getSubContextOrNull(node.executionNodeId()));
     }
 }

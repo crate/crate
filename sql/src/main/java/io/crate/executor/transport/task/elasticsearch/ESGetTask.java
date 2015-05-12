@@ -97,7 +97,7 @@ public class ESGetTask extends JobTask {
 
         final FetchSourceContext fsc = new FetchSourceContext(ctx.referenceNames());
 
-        ListenableFuture<Bucket> result;
+        SettableFuture<Bucket> result;
 
         ActionListener listener;
         ActionRequest request;
@@ -124,7 +124,7 @@ public class ESGetTask extends JobTask {
         results = ImmutableList.of(Futures.transform(result, QueryResult.TO_TASK_RESULT));
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        context = new ESGetContext(request, listener, transportAction);
+        context = new ESGetContext(request, listener, transportAction, result);
         contextBuilder.addSubContext(executionNodeId, context);
         jobContextService.createContext(contextBuilder);
 

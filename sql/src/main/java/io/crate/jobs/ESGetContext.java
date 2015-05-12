@@ -21,6 +21,8 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.core.collections.Bucket;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
@@ -36,13 +38,16 @@ public class ESGetContext implements ExecutionSubContext {
     private final ActionListener listener;
     private final ActionRequest request;
     private final TransportAction transportAction;
+    private final SettableFuture<Bucket> resultFuture;
 
     public ESGetContext(ActionRequest request,
                         ActionListener listener,
-                        TransportAction transportAction) {
+                        TransportAction transportAction,
+                        SettableFuture<Bucket> resultFuture) {
         this.request = request;
         this.listener = listener;
         this.transportAction = transportAction;
+        this.resultFuture = resultFuture;
     }
 
     public void start() {
@@ -67,7 +72,8 @@ public class ESGetContext implements ExecutionSubContext {
 
     @Override
     public void kill() {
-        throw new UnsupportedOperationException("kill is not implemented");
+        resultFuture.cancel(true);
+        close();
     }
 
     private static class InternalActionListener implements ActionListener {
