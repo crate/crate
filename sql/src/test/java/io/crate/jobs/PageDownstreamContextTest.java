@@ -32,6 +32,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 
+import java.util.concurrent.CancellationException;
+
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.Mockito.*;
 
@@ -60,8 +62,8 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         ctx.kill();
 
         verify(callback, times(1)).onClose();
-        ArgumentCaptor<JobKilledException> e = ArgumentCaptor.forClass(JobKilledException.class);
+        ArgumentCaptor<CancellationException> e = ArgumentCaptor.forClass(CancellationException.class);
         verify(downstream, times(1)).fail(e.capture());
-        assertThat(e.getValue(), instanceOf(JobKilledException.class));
+        assertThat(e.getValue(), instanceOf(CancellationException.class));
     }
 }

@@ -33,6 +33,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PageDownstreamContext implements ExecutionSubContext {
@@ -181,7 +182,7 @@ public class PageDownstreamContext implements ExecutionSubContext {
             for (ContextCallback contextCallback : callbacks) {
                 contextCallback.onClose();
             }
-            pageDownstream.fail(new JobKilledException());
+            pageDownstream.fail(new CancellationException());
         } else {
             LOGGER.warn("called kill on an already closed PageDownstreamContext");
         }

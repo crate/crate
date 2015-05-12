@@ -31,7 +31,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
-import io.crate.jobs.JobKilledException;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.ExceptionsHelper;
@@ -51,6 +50,7 @@ import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -394,7 +394,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
     }
 
     public void kill() {
-        failure.compareAndSet(null, new JobKilledException());
+        failure.compareAndSet(null, new CancellationException());
         result.cancel(true);
     }
 
