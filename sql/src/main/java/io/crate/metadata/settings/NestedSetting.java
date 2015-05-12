@@ -22,6 +22,8 @@
 package io.crate.metadata.settings;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 public abstract class NestedSetting extends Setting<Object, Object> {
@@ -29,6 +31,11 @@ public abstract class NestedSetting extends Setting<Object, Object> {
     @Override
     public Object extract(Settings settings) {
         return settings.getAsSettings(settingName()).getAsMap();
+    }
+
+    @Override
+    public DataType dataType() {
+        return DataTypes.OBJECT;
     }
 
     @Override

@@ -25,6 +25,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.operation.reference.sys.SysClusterObjectReference;
+import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -45,18 +46,19 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
     static class SettingExpression extends SysClusterExpression<Object> {
         private final Map<String, Object> values;
         private final String name;
+        private final DataType dataType;
 
         protected SettingExpression(Setting<?, ?> setting, Map<String, Object> values) {
             super(new ColumnIdent(NAME, setting.chain()));
             this.name = setting.settingName();
             this.values = values;
+            this.dataType = setting.dataType();
         }
 
         @Override
         public Object value() {
-            return this.values.get(name);
+            return dataType.value(this.values.get(name));
         }
-
     }
 
     static class NestedSettingExpression extends SysClusterObjectReference {
