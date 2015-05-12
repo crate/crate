@@ -21,6 +21,8 @@
 
 package io.crate.metadata.settings;
 
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
@@ -32,6 +34,11 @@ public abstract class ByteSizeSetting extends Setting<ByteSizeValue, String> {
 
     public long minValue() {
         return Long.MIN_VALUE;
+    }
+
+    @Override
+    public DataType dataType() {
+        return DataTypes.STRING;
     }
 
     @Override
