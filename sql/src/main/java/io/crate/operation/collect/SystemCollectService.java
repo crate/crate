@@ -112,22 +112,26 @@ public class SystemCollectService implements CollectService {
 
         @Override
         public void doCollect(RamAccountingContext ramAccountingContext) {
-            for (R row : rows) {
-                for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
-                    collectorExpression.setNextRow(row);
-                }
-                Boolean match = condition.value();
-                if (match == null || !match) {
-                    // no match
-                    continue;
-                }
+            try {
+                for (R row : rows) {
+                    for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
+                        collectorExpression.setNextRow(row);
+                    }
+                    Boolean match = condition.value();
+                    if (match == null || !match) {
+                        // no match
+                        continue;
+                    }
 
-                if (!downstream.setNextRow(this.row)) {
-                    // no more rows required, we can stop here
-                    break;
+                    if (!downstream.setNextRow(this.row)) {
+                        // no more rows required, we can stop here
+                        break;
+                    }
                 }
+                downstream.finish();
+            } catch (Throwable t) {
+                downstream.fail(t);
             }
-            downstream.finish();
         }
     }
 }

@@ -60,8 +60,9 @@ public class BlobDocCollector implements CrateCollector {
         BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor();
         try {
             blobShard.blobContainer().walkFiles(null, fileVisitor);
-        } finally {
             downstream.finish();
+        } catch (Throwable t) {
+            downstream.fail(t);
         }
     }
 
