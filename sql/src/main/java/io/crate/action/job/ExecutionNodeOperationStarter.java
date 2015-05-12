@@ -23,10 +23,8 @@ package io.crate.action.job;
 
 import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
@@ -42,14 +40,11 @@ import java.util.Collection;
 public class ExecutionNodeOperationStarter implements RowUpstream {
 
     private final StatsTables statsTables;
-    private final MapSideDataCollectOperation mapSideDataCollectOperation;
     private final InnerStarter innerStarter;
 
     @Inject
-    public ExecutionNodeOperationStarter(StatsTables statsTables,
-                                         MapSideDataCollectOperation mapSideDataCollectOperation) {
+    public ExecutionNodeOperationStarter(StatsTables statsTables) {
         this.statsTables = statsTables;
-        this.mapSideDataCollectOperation = mapSideDataCollectOperation;
         this.innerStarter = new InnerStarter();
     }
 
@@ -87,20 +82,7 @@ public class ExecutionNodeOperationStarter implements RowUpstream {
         public Void visitCollectNode(CollectNode collectNode, JobExecutionContext context) {
             JobCollectContext collectContext = context.getSubContext(collectNode.executionNodeId());
             statsTables.operationStarted(collectNode.executionNodeId(), context.jobId(), collectNode.name());
-
-            try {
-                collectContext.collectFuture(
-                    mapSideDataCollectOperation.collect(
-                        collectNode,
-                        collectContext.rowDownstream(),
-                        collectContext.ramAccountingContext()
-                    )
-                );
-            } catch (Throwable t) {
-                RowDownstreamHandle rowDownstreamHandle =
-                        collectContext.rowDownstream().registerUpstream(ExecutionNodeOperationStarter.this);
-                rowDownstreamHandle.fail(t);
-            }
+            collectContext.start();
             return null;
         }
     }
