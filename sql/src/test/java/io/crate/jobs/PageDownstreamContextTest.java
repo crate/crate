@@ -32,6 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
@@ -75,8 +76,8 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         ctx.kill();
 
         verify(callback, times(1)).onClose();
-        ArgumentCaptor<JobKilledException> e = ArgumentCaptor.forClass(JobKilledException.class);
+        ArgumentCaptor<CancellationException> e = ArgumentCaptor.forClass(CancellationException.class);
         verify(downstream, times(1)).fail(e.capture());
-        assertThat(e.getValue(), instanceOf(JobKilledException.class));
+        assertThat(e.getValue(), instanceOf(CancellationException.class));
     }
 }

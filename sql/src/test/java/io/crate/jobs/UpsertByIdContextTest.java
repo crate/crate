@@ -13,6 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.concurrent.CancellationException;
+
 import static org.mockito.Mockito.*;
 
 public class UpsertByIdContextTest extends CrateUnitTest {
@@ -48,8 +50,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         listener.getValue().onResponse(response);
 
         verify(callback, times(1)).onClose();
-        expectedException.expectCause(TestingHelpers.cause(JobKilledException.class));
-        expectedException.expectMessage("Job execution was interrupted by kill");
+        expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
         future.get();
     }
 
@@ -57,8 +58,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     public void testStartAfterKill() throws Exception {
         context.kill();
         verify(callback, times(1)).onClose();
-        expectedException.expectCause(TestingHelpers.cause(JobKilledException.class));
-        expectedException.expectMessage("Job execution was interrupted by kill");
+        expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
         future.get();
 
         // start does nothing, because the context is already closed

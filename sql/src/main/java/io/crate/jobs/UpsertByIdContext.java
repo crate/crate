@@ -124,6 +124,6 @@ public class UpsertByIdContext implements ExecutionSubContext {
     @Override
     public void kill() {
         close();
-        futureResult.setException(new JobKilledException());
+        futureResult.cancel(true);
     }
 }
