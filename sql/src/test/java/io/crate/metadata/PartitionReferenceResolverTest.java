@@ -38,6 +38,11 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "foo"), "bar");
         when(fallbackRefResolver.getImplementation(ident)).thenReturn(new ReferenceImplementation() {
             @Override
+            public Object value() {
+                return null;
+            }
+
+            @Override
             public ReferenceImplementation getChildImplementation(String name) {
                 return null;
             }

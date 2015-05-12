@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.operation.reference.sys.SysNodeStaticObjectArrayReference;
-import io.crate.operation.reference.sys.SysObjectReference;
+import io.crate.operation.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -52,7 +52,7 @@ public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
     }
 
     @Override
-    protected List<SysObjectReference> getChildImplementations() {
+    protected List<NestedObjectExpression> getChildImplementations() {
         if (childImplementations.isEmpty()) {
             addChildImplementations();
         }

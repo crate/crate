@@ -19,16 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.sys;
+package io.crate.metadata;
 
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.Input;
 
 /**
- * Base class for system expressions. Implementations of system expressions should inherit from it.
+ * Base class for expressions. Implementations of expressions should inherit from it.
  * @param <T> The returnType of the expression
  */
-public abstract class SysExpression<T> implements ReferenceImplementation, Input<T> {
+public abstract class SimpleObjectExpression<T> implements ReferenceImplementation<T> {
 
     @Override
     public ReferenceImplementation getChildImplementation(String name) {

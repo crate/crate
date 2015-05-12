@@ -22,8 +22,8 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.shard.ShardReferenceImplementation;
-import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.SimpleObjectExpression;
 
-public abstract class SysShardExpression<T> extends SysExpression<T> implements ShardReferenceImplementation {
+public abstract class SysShardExpression<T> extends SimpleObjectExpression<T> {
 
 }

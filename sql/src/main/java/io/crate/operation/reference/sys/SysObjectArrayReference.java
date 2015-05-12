@@ -24,32 +24,33 @@ package io.crate.operation.reference.sys;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.SimpleObjectExpression;
+import io.crate.operation.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public abstract class SysObjectArrayReference extends SysExpression<Object[]>
-        implements ReferenceImplementation {
+public abstract class SysObjectArrayReference extends SimpleObjectExpression<Object[]>
+        implements ReferenceImplementation<Object[]> {
 
-    protected abstract List<SysObjectReference> getChildImplementations();
+    protected abstract List<NestedObjectExpression> getChildImplementations();
 
     @Override
-    public SysExpression<Object[]> getChildImplementation(String name) {
-        List<SysObjectReference> childImplementations = getChildImplementations();
+    public ReferenceImplementation<Object[]> getChildImplementation(String name) {
+        List<NestedObjectExpression> childImplementations = getChildImplementations();
         assert childImplementations.size() > 0;
         final Object[] values = new Object[childImplementations.size()];
         int i = 0;
-        for (SysObjectReference sysObjectReference : childImplementations) {
-            SysExpression<?> child = sysObjectReference.getChildImplementation(name);
+        for (NestedObjectExpression sysObjectReference : childImplementations) {
+            ReferenceImplementation<?> child = sysObjectReference.getChildImplementation(name);
             if (child != null) {
                 Object value = child.value();
                 values[i++] = value;
             }
         }
-        return new SysExpression<Object[]>() {
+        return new SimpleObjectExpression<Object[]>() {
             @Override
             public Object[] value() {
                 return values;
@@ -62,14 +63,14 @@ public abstract class SysObjectArrayReference extends SysExpression<Object[]>
 
     @Override
     public Object[] value() {
-        List<SysObjectReference> childImplementations = getChildImplementations();
+        List<NestedObjectExpression> childImplementations = getChildImplementations();
         Object[] values = new Object[childImplementations.size()];
         int i = 0;
-        for (SysObjectReference expression : childImplementations) {
-            Map<String, Object> map = Maps.transformValues(expression.childImplementations, new Function<SysExpression, Object>() {
+        for (NestedObjectExpression expression : childImplementations) {
+            Map<String, Object> map = Maps.transformValues(expression.getChildImplementations(), new Function<ReferenceImplementation, Object>() {
                 @Nullable
                 @Override
-                public Object apply(@Nullable SysExpression input) {
+                public Object apply(@Nullable ReferenceImplementation input) {
                     Object value = input.value();
                     if (value != null && value instanceof BytesRef) {
                         return ((BytesRef) value).utf8ToString();

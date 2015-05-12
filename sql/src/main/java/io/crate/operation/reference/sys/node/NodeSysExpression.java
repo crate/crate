@@ -25,12 +25,12 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.reference.sys.SysObjectReference;
+import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.common.inject.Inject;
 
-public class NodeSysExpression extends SysObjectReference {
+public class NodeSysExpression extends NestedObjectExpression {
 
     private final SysNodesTableInfo tableInfo;
     private final ReferenceResolver resolver;
@@ -42,7 +42,7 @@ public class NodeSysExpression extends SysObjectReference {
         for (ReferenceInfo info : tableInfo.columns()) {
             childImplementations.put(
                     info.ident().columnIdent().name(),
-                    (SysExpression) resolver.getImplementation(info.ident()));
+                    resolver.getImplementation(info.ident()));
         }
     }
 

@@ -30,7 +30,7 @@ import org.elasticsearch.common.inject.Inject;
 
 import java.util.concurrent.TimeUnit;
 
-public class BlobShardSizeExpression extends SysShardExpression<Long> implements BlobShardReferenceImplementation {
+public class BlobShardSizeExpression extends SysShardExpression<Long> implements BlobShardReferenceImplementation<Long> {
 
     public static final String NAME = "size";
 

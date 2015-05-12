@@ -120,7 +120,7 @@ import static org.mockito.Mockito.when;
 public class LocalDataCollectTest extends CrateUnitTest {
 
 
-    static class TestExpression implements ReferenceImplementation, Input<Integer> {
+    static class TestExpression implements ReferenceImplementation<Integer> {
         public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("default", "collect"), "truth");
         public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.NODE, DataTypes.INTEGER);
 
@@ -159,7 +159,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         }
     }
 
-    static class ShardIdExpression extends SysShardExpression<Integer> {
+    static class ShardIdExpression extends SysShardExpression<Integer> implements ShardReferenceImplementation<Integer> {
 
         private final ShardId shardId;
 

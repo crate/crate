@@ -26,10 +26,11 @@ import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
+import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
 import io.crate.test.integration.CrateUnitTest;
@@ -138,19 +139,19 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
     @Test
     public void testChildImplementationLookup() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
-        SysObjectReference load = (SysObjectReference) resolver.getImplementation(ident);
+        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(ident);
 
         Input ci = load.getChildImplementation("1");
         assertEquals(1D, ci.value());
 
-        SysExpression<Double> l1 = (SysExpression<Double>) resolver.getImplementation(LOAD1_INFO.ident());
+        SimpleObjectExpression<Double> l1 = (SimpleObjectExpression<Double>) resolver.getImplementation(LOAD1_INFO.ident());
         assertTrue(ci == l1);
     }
 
     @Test
     public void testClusterSettings() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, ClusterSettingsExpression.NAME);
-        SysObjectReference settingsExpression = (SysObjectReference) resolver.getImplementation(ident);
+        NestedObjectExpression settingsExpression = (NestedObjectExpression) resolver.getImplementation(ident);
 
         Map settings = settingsExpression.value();
 

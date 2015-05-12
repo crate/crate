@@ -19,30 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys;
+package io.crate.operation.reference;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.sys.SysExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class SysObjectReference extends SysExpression<Map<String, Object>>
-        implements ReferenceImplementation {
+public abstract class NestedObjectExpression implements ReferenceImplementation<Map<String, Object>> {
 
-    protected final Map<String, SysExpression> childImplementations = new HashMap<>();
+    protected final Map<String, ReferenceImplementation> childImplementations = new HashMap<>();
+
+    public Map<String, ReferenceImplementation> getChildImplementations() {
+        return childImplementations;
+    }
 
     @Override
-    public SysExpression getChildImplementation(String name) {
+    public ReferenceImplementation getChildImplementation(String name) {
         return childImplementations.get(name);
     }
 
     @Override
     public Map<String,Object> value() {
         Map<String, Object> map = new HashMap<>();
-        for (Map.Entry<String, SysExpression> e : childImplementations.entrySet()) {
+        for (Map.Entry<String, ReferenceImplementation> e : childImplementations.entrySet()) {
             Object value = e.getValue().value();
 
             // convert nested columns of type e.getValue().value() to String here
@@ -54,4 +56,5 @@ public abstract class SysObjectReference extends SysExpression<Map<String, Objec
         }
         return Collections.unmodifiableMap(map);
     }
+
 }
