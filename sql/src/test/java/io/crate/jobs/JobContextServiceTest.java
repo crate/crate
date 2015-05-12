@@ -158,6 +158,21 @@ public class JobContextServiceTest extends CrateUnitTest {
     }
 
     @Test
+    public void testKillReturnsNumberOfJobsKilled() throws Exception {
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
+        builder.addSubContext(1, new DummySubContext());
+        builder.addSubContext(2, new DummySubContext());
+        builder.addSubContext(3, new DummySubContext());
+        builder.addSubContext(4, new DummySubContext());
+        jobContextService.createContext(builder);
+        builder = jobContextService.newBuilder(UUID.randomUUID());
+        builder.addSubContext(1, new DummySubContext());
+        jobContextService.createContext(builder);
+
+        assertThat(jobContextService.killAll(), is(2L));
+    }
+
+    @Test
     public void testCloseContext() throws Exception {
         JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
 
@@ -199,5 +214,27 @@ public class JobContextServiceTest extends CrateUnitTest {
         // set back original values
         JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
         JobContextService.DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
+    }
+
+    private static class DummySubContext implements ExecutionSubContext {
+
+        private List<ContextCallback> callbacks = new ArrayList<>();
+
+        @Override
+        public void addCallback(ContextCallback contextCallback) {
+            callbacks.add(contextCallback);
+        }
+
+        @Override
+        public void close() {
+            for (ContextCallback callback : callbacks) {
+                callback.onClose();
+            }
+        }
+
+        @Override
+        public void kill() {
+            close();
+        }
     }
 }
