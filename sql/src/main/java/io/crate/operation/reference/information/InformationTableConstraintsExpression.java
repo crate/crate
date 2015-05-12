@@ -23,14 +23,15 @@ package io.crate.operation.reference.information;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.information.RowCollectExpression;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.information.InformationTableConstraintsTableInfo;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 
-public abstract class InformationTableConstraintsExpression<T> extends RowCollectExpression<TableInfo, T> {
+public abstract class InformationTableConstraintsExpression<T> extends RowContextCollectorExpression<TableInfo, T> {
 
     private static final BytesRef PRIMARY_KEY = new BytesRef("PRIMARY_KEY");
 

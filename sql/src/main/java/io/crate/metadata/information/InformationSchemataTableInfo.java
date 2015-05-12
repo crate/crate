@@ -31,6 +31,8 @@ import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.LinkedHashMap;
+
 public class InformationSchemataTableInfo extends InformationTableInfo {
 
     public static final String NAME = "schemata";
@@ -51,8 +53,7 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
     protected InformationSchemataTableInfo(InformationSchemaInfo schemaInfo) {
         super(schemaInfo, IDENT,
                 ImmutableList.of(Columns.SCHEMA_NAME),
-                ImmutableMap.of(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME),
-                ImmutableList.of(ReferenceInfos.SCHEMA_NAME)
+                new LinkedHashMap<ColumnIdent, ReferenceInfo>() {{ put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME); }}
         );
     }
 }

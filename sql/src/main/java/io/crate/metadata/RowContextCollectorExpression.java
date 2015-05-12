@@ -21,9 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.operation.Input;
-
-public abstract class RowContextCollectorExpression<R, T> implements ReferenceImplementation<T> {
+public abstract class RowContextCollectorExpression<R, T> implements RowCollectExpression<R, T> {
 
     protected final ReferenceInfo info;
     protected R row;

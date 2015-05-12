@@ -22,6 +22,7 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.AlterBlobTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -57,6 +58,7 @@ public class BlobTableInfo implements TableInfo {
     private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
     private final BytesRef blobsPath;
     private final TableParameterInfo tableParameterInfo;
+    private ImmutableMap<String,Object> tableParameters;
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
 
@@ -73,6 +75,7 @@ public class BlobTableInfo implements TableInfo {
                          ClusterService clusterService,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
+                         ImmutableMap<String, Object> tableParameters,
                          BytesRef blobsPath) {
         this.blobSchemaInfo = blobSchemaInfo;
         this.ident = ident;
@@ -82,6 +85,7 @@ public class BlobTableInfo implements TableInfo {
         this.numberOfReplicas = numberOfReplicas;
         this.blobsPath = blobsPath;
         this.tableParameterInfo = new AlterBlobTableParameterInfo();
+        this.tableParameters = tableParameters;
 
         registerStaticColumns();
     }
@@ -250,5 +254,10 @@ public class BlobTableInfo implements TableInfo {
     @Override
     public TableParameterInfo tableParameterInfo() {
         return tableParameterInfo;
+    }
+
+    @Override
+    public ImmutableMap<String, Object> tableParameters() {
+        return tableParameters;
     }
 }

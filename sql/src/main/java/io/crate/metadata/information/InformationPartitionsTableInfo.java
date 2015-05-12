@@ -31,6 +31,8 @@ import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.LinkedHashMap;
+
 public class InformationPartitionsTableInfo extends InformationTableInfo {
 
     public static final String NAME = "table_partitions";
@@ -62,21 +64,14 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         super(schemaInfo,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
-                ImmutableMap.<ColumnIdent, ReferenceInfo>builder()
-                        .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
-                        .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
-                        .put(Columns.PARTITION_IDENT, ReferenceInfos.PARTITION_IDENT)
-                        .put(Columns.VALUES, ReferenceInfos.VALUES)
-                        .put(Columns.NUMBER_OF_SHARDS, ReferenceInfos.NUMBER_OF_SHARDS)
-                        .put(Columns.NUMBER_OF_REPLICAS, ReferenceInfos.NUMBER_OF_REPLICAS)
-                        .build(),
-                ImmutableList.<ReferenceInfo>builder()
-                        .add(ReferenceInfos.TABLE_NAME)
-                        .add(ReferenceInfos.SCHEMA_NAME)
-                        .add(ReferenceInfos.PARTITION_IDENT)
-                        .add(ReferenceInfos.VALUES)
-                        .add(ReferenceInfos.NUMBER_OF_SHARDS)
-                        .add(ReferenceInfos.NUMBER_OF_REPLICAS)
-                        .build());
+                new LinkedHashMap<ColumnIdent, ReferenceInfo>() {{
+                    put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME);
+                    put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME);
+                    put(Columns.PARTITION_IDENT, ReferenceInfos.PARTITION_IDENT);
+                    put(Columns.VALUES, ReferenceInfos.VALUES);
+                    put(Columns.NUMBER_OF_SHARDS, ReferenceInfos.NUMBER_OF_SHARDS);
+                    put(Columns.NUMBER_OF_REPLICAS, ReferenceInfos.NUMBER_OF_REPLICAS);
+                }}
+        );
     }
 }

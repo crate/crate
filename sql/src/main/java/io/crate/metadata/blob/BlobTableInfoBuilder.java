@@ -91,6 +91,7 @@ public class BlobTableInfoBuilder {
                 clusterService,
                 md.numberOfShards(),
                 md.numberOfReplicas(),
+                md.tableParameters(),
                 blobsPath(md));
     }
 

@@ -34,6 +34,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,19 +68,19 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.tables order by schema_name, table_name");
         assertEquals(13L, response.rowCount());
 
-        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "schemata", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "table_constraints", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "table_partitions", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[5], new Object[]{"information_schema", "tables", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[6], new Object[]{"sys", "cluster", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[7], new Object[]{"sys", "jobs", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[8], new Object[]{"sys", "jobs_log", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[9], new Object[]{"sys", "nodes", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[10], new Object[]{"sys", "operations", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[11], new Object[]{"sys", "operations_log", 1, "0", null, null, null});
-        assertArrayEquals(response.rows()[12], new Object[]{"sys", "shards", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "schemata", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "table_constraints", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "table_partitions", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[5], new Object[]{"information_schema", "tables", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[6], new Object[]{"sys", "cluster", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[7], new Object[]{"sys", "jobs", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[8], new Object[]{"sys", "jobs_log", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[9], new Object[]{"sys", "nodes", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[10], new Object[]{"sys", "operations", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[11], new Object[]{"sys", "operations_log", 1, "0", null, null, null, null});
+        assertArrayEquals(response.rows()[12], new Object[]{"sys", "shards", 1, "0", null, null, null, null});
     }
 
     @Test
@@ -244,7 +245,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(5, response.rows()[0][1]);
         assertEquals("1", response.rows()[0][2]);
         assertEquals("id", response.rows()[0][3]);
-        assertArrayEquals(new String[]{"id"}, (String[])response.rows()[0][4]);
+        assertArrayEquals(new String[]{"id"}, (String[]) response.rows()[0][4]);
     }
 
     @Test
@@ -431,7 +432,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(212L, response.rowCount());
+        assertEquals(232L, response.rowCount());
     }
 
     @Test
@@ -769,6 +770,25 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         execute("select sum(number_of_shards) from information_schema.tables");
         assertEquals(1, response.rowCount());
+    }
+
+    @Test
+    public void testTableSettings() throws Exception {
+        execute("create table table_props (name string) with (number_of_replicas=0)");
+        execute("select settings['blocks'], settings['routing'], settings['recovery'], settings['warmer'], settings['translog'] "+
+                "from information_schema.tables where table_name='table_props'");
+        assertEquals("{metadata=false, read=false, read_only=false, write=false}",
+                response.rows()[0][0].toString());
+        assertEquals("{allocation={enable=all, total_shards_per_node=-1}}",
+                response.rows()[0][1].toString());
+        assertEquals("{initial_shards=quorum}",
+                response.rows()[0][2].toString());
+        assertEquals("{enabled=true}",
+                response.rows()[0][3].toString());
+        assertEquals("{disable_flush=false, flush_threshold_period=30m, flush_threshold_ops=2147483647, flush_threshold_size=200mb, interval=5s}",
+                response.rows()[0][4].toString());
+        execute("select settings from information_schema.tables where table_name='nodes' and schema_name='sys'");
+        assertEquals(null, response.rows()[0][0]);
     }
 
     @Test
