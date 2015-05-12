@@ -29,6 +29,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.is;
+
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -62,7 +64,7 @@ public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
         }
 
         executorService.shutdown();
-        executorService.awaitTermination(1500, TimeUnit.MILLISECONDS);
+        assertThat("executorservice did not shutdown within timeout", executorService.awaitTermination(3, TimeUnit.SECONDS), is(true));
 
         Throwable throwable = lastThrowable.get();
         if (throwable != null) {
