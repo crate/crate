@@ -21,6 +21,7 @@
 
 package io.crate.metadata.blob;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -43,6 +44,7 @@ public class BlobTableInfoTest extends CrateUnitTest {
             null,
             5,
             new BytesRef("0"),
+            ImmutableMap.<String, Object>of(),
             new BytesRef("/tmp/blobs_path"));
 
     @Test

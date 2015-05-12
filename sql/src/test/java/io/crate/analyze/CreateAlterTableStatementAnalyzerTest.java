@@ -731,6 +731,14 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testChangeTranslogInterval() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.interval\"=50)");
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.tableParameter().settings().get("index.translog.interval"), is("50"));
+    }
+
+    @Test
     public void testRoutingAllocationEnable() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"routing.allocation.enable\"=\"none\")");

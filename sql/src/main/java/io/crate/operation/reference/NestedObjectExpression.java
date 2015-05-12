@@ -22,6 +22,7 @@
 package io.crate.operation.reference;
 
 import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.RowCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;

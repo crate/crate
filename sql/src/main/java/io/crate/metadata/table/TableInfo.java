@@ -21,6 +21,7 @@
 
 package io.crate.metadata.table;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
@@ -124,5 +125,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
     public ColumnPolicy columnPolicy();
 
     public TableParameterInfo tableParameterInfo();
+
+    public ImmutableMap<String, Object> tableParameters();
 
 }

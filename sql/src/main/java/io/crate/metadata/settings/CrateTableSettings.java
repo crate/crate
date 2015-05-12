@@ -91,6 +91,18 @@ public class CrateTableSettings {
         }
     };
 
+    public static final TimeSetting TRANSLOG_INTERVAL = new TimeSetting() {
+        @Override
+        public String name() {
+            return TableParameterInfo.TRANSLOG_INTERVAL;
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueSeconds(5);
+        }
+    };
+
     public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting() {
         @Override
         public String name() {

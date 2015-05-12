@@ -162,7 +162,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         waitNoPendingTasksOnAll();
 
         execute("select * from information_schema.tables where schema_name='my_schema' and table_name='parted'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 5| 0| _id| [month]| NULL\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 5| 0| _id| [month]| NULL| "+
+                "{routing={allocation={enable=all, total_shards_per_node=-1}},"+
+                " translog={disable_flush=false, flush_threshold_period=30m, flush_threshold_ops=2147483647, flush_threshold_size=200mb, interval=5s},"+
+                " blocks={metadata=false, read=false, read_only=false, write=false},"+
+                " recovery={initial_shards=quorum},"+
+                " warmer={enabled=true}}\n"));
 
         // no other tables with that name, e.g. partitions considered as tables or such
         execute("select schema_name, table_name from information_schema.tables where table_name like '%parted%'");

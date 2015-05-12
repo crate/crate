@@ -22,12 +22,13 @@
 package io.crate.operation.reference.sys.cluster;
 
 import io.crate.ClusterIdService;
+import io.crate.metadata.SimpleObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.concurrent.ExecutionException;
 
-public class ClusterIdExpression extends SysClusterExpression<BytesRef> {
+public class ClusterIdExpression extends SimpleObjectExpression<BytesRef> {
 
     public static final String NAME = "id";
     private final ClusterIdService clusterIdService;
@@ -35,7 +36,6 @@ public class ClusterIdExpression extends SysClusterExpression<BytesRef> {
 
     @Inject
     public ClusterIdExpression(ClusterIdService clusterIdService) {
-        super(NAME);
         this.clusterIdService = clusterIdService;
     }
 

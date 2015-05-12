@@ -21,10 +21,10 @@
 
 package io.crate.operation.reference.sys.cluster;
 
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
-import io.crate.operation.reference.sys.SysClusterObjectReference;
+import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -38,16 +38,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 
-public class ClusterSettingsExpression extends SysClusterObjectReference {
+public class ClusterSettingsExpression extends NestedObjectExpression {
 
     public static final String NAME = "settings";
 
-    static class SettingExpression extends SysClusterExpression<Object> {
+    static class SettingExpression extends SimpleObjectExpression<Object> {
         private final Map<String, Object> values;
         private final String name;
 
         protected SettingExpression(Setting<?, ?> setting, Map<String, Object> values) {
-            super(new ColumnIdent(NAME, setting.chain()));
             this.name = setting.settingName();
             this.values = values;
         }
@@ -59,12 +58,11 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
 
     }
 
-    static class NestedSettingExpression extends SysClusterObjectReference {
+    static class NestedSettingExpression extends NestedObjectExpression {
 
         private final Map<String, Object> values;
 
         protected NestedSettingExpression(Setting<?, ?> setting, Map<String, Object> values) {
-            super(new ColumnIdent(NAME, setting.chain()));
             this.values = values;
             addChildImplementations(setting.children());
         }
@@ -132,7 +130,6 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
 
     @Inject
     public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
-        super(NAME);
         applyDefaults(CrateSettings.CRATE_SETTINGS);
         ApplySettings applySettings = new ApplySettings(settings, values);
 

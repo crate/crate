@@ -28,16 +28,16 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.gateway.local.LocalGatewayAllocator;
-import org.elasticsearch.index.shard.service.InternalIndexShard;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.TranslogService;
-import org.elasticsearch.indices.warmer.InternalIndicesWarmer;
+import org.elasticsearch.indices.IndicesWarmer;
 
 public class TableParameterInfo {
 
     // all available table settings
     public static final String NUMBER_OF_REPLICAS = IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
     public static final String AUTO_EXPAND_REPLICAS = IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
-    public static final String REFRESH_INTERVAL = InternalIndexShard.INDEX_REFRESH_INTERVAL;
+    public static final String REFRESH_INTERVAL = IndexShard.INDEX_REFRESH_INTERVAL;
     public static final String NUMBER_OF_SHARDS = IndexMetaData.SETTING_NUMBER_OF_SHARDS;
     public static final String READ_ONLY = IndexMetaData.SETTING_READ_ONLY;
     public static final String BLOCKS_READ = IndexMetaData.SETTING_BLOCKS_READ;
@@ -48,10 +48,11 @@ public class TableParameterInfo {
     public static final String FLUSH_THRESHOLD_SIZE = TranslogService.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE;
     public static final String FLUSH_THRESHOLD_PERIOD = TranslogService.INDEX_TRANSLOG_FLUSH_THRESHOLD_PERIOD;
     public static final String FLUSH_DISABLE = TranslogService.INDEX_TRANSLOG_DISABLE_FLUSH;
+    public static final String TRANSLOG_INTERVAL = TranslogService.INDEX_TRANSLOG_FLUSH_INTERVAL;
     public static final String ROUTING_ALLOCATION_ENABLE = EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE;
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE;
     public static final String RECOVERY_INITIAL_SHARDS = LocalGatewayAllocator.INDEX_RECOVERY_INITIAL_SHARDS;
-    public static final String WARMER_ENABLED = InternalIndicesWarmer.INDEX_WARMER_ENABLED;
+    public static final String WARMER_ENABLED = IndicesWarmer.INDEX_WARMER_ENABLED;
 
     // all available table mapping keys
     public static final String COLUMN_POLICY = ColumnPolicy.ES_MAPPING_NAME;
@@ -68,6 +69,7 @@ public class TableParameterInfo {
                     .add(FLUSH_THRESHOLD_SIZE)
                     .add(FLUSH_THRESHOLD_PERIOD)
                     .add(FLUSH_DISABLE)
+                    .add(TRANSLOG_INTERVAL)
                     .add(ROUTING_ALLOCATION_ENABLE)
                     .add(TOTAL_SHARDS_PER_NODE)
                     .add(RECOVERY_INITIAL_SHARDS)
