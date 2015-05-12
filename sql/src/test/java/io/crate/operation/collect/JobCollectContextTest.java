@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -41,7 +42,6 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import javax.annotation.Nullable;
-
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -90,7 +90,10 @@ public class JobCollectContextTest extends CrateUnitTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        jobCollectContext = spy(new JobCollectContext(UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
+        jobCollectContext = spy(new JobCollectContext(
+                UUID.randomUUID(),
+                mock(CollectNode.class),
+                mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
         indexShard = mock(IndexShard.class);
         shardId = new ShardId("dummy", 1);
         when(indexShard.shardId()).thenReturn(shardId);

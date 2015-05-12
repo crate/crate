@@ -68,7 +68,7 @@ public class ContextPreparer {
 
     private static final ESLogger LOGGER = Loggers.getLogger(ContextPreparer.class);
 
-    private final MapSideDataCollectOperation collectOperationHandler;
+    private final MapSideDataCollectOperation collectOperation;
     private ClusterService clusterService;
     private CountOperation countOperation;
     private final CircuitBreaker circuitBreaker;
@@ -80,7 +80,7 @@ public class ContextPreparer {
     private final InnerPreparer innerPreparer;
 
     @Inject
-    public ContextPreparer(MapSideDataCollectOperation collectOperationHandler,
+    public ContextPreparer(MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
                            StatsTables statsTables,
@@ -89,7 +89,7 @@ public class ContextPreparer {
                            PageDownstreamFactory pageDownstreamFactory,
                            ResultProviderFactory resultProviderFactory,
                            StreamerVisitor streamerVisitor) {
-        this.collectOperationHandler = collectOperationHandler;
+        this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
@@ -177,7 +177,7 @@ public class ContextPreparer {
 
         @Override
         public Void visitCollectNode(final CollectNode node, final PreparerContext context) {
-            ResultProvider downstream = collectOperationHandler.createDownstream(node);
+            ResultProvider downstream = collectOperation.createDownstream(node);
 
             if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
                 context.directResultFuture = downstream.result();
@@ -186,6 +186,8 @@ public class ContextPreparer {
                     node.executionNodeId(), statsTables, context.ramAccountingContext));
             final JobCollectContext jobCollectContext = new JobCollectContext(
                     context.jobId,
+                    node,
+                    collectOperation,
                     context.ramAccountingContext,
                     downstream
             );

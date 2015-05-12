@@ -154,7 +154,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         int jobSearchContextId = 0;
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        JobCollectContext collectContext = new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, collectingProjector);
+        JobCollectContext collectContext = new JobCollectContext(
+                jobId, node, mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, collectingProjector);
         builder.addSubContext(node.executionNodeId(), collectContext);
         jobContextService.createContext(builder);
         collectContext.registerJobContextId(shardId, jobSearchContextId);
@@ -343,7 +344,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId());
         builder.addSubContext(node.executionNodeId(),
-                new JobCollectContext(node.jobId(), RAM_ACCOUNTING_CONTEXT, collectingProjector));
+                new JobCollectContext(node.jobId(), node, mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, collectingProjector));
         jobContextService.createContext(builder);
 
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
