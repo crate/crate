@@ -345,6 +345,9 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                 @Override
                 public void onSuccess(@Nullable Void result) {
                     RowN row = null;
+                    if (failure.get() != null) {
+                        return;
+                    }
                     for (PendingRequest pendingRequest : pendings) {
                         // add pending requests for created indices
                         ShardId shardId = shardId(pendingRequest.indexName,

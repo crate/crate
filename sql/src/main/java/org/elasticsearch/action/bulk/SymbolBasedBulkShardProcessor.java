@@ -336,6 +336,9 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
             FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override
                 public void onSuccess(@Nullable Void result) {
+                    if (failure.get() != null) {
+                        return;
+                    }
                     trace("applying pending requests for created indices...");
                     for (final PendingRequest pendingRequest : pendings) {
                         // add pending requests for created indices
