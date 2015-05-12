@@ -27,6 +27,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.Bucket;
@@ -39,13 +40,18 @@ import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.apache.lucene.util.IOUtils;
+import org.apache.tools.ant.taskdefs.TempFile;
+import org.junit.*;
+import org.junit.rules.TemporaryFolder;
+import org.mockito.ArgumentCaptor;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.*;
+import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -55,6 +61,7 @@ import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -167,6 +174,24 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     }
 
     @Test
+    public void testCollectWithOneSocketTimeout() throws Throwable {
+        S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
+
+        when(inputStream.read(new byte[anyInt()], anyInt(), anyByte()))
+                .thenAnswer(new WriteBufferAnswer(new byte[] { 102, 111, 111, 10}))  // first line: foo
+                .thenThrow(new SocketTimeoutException())  // exception causes retry
+                .thenAnswer(new WriteBufferAnswer(new byte[] { 102, 111, 111, 10}))  // first line again, because of retry
+                .thenAnswer(new WriteBufferAnswer(new byte[] { 98, 97, 114, 10 }))  // second line: bar
+                .thenReturn(-1);
+
+
+        CollectingProjector projector = getObjects("s3://fakebucket/foo", null, inputStream);
+        Bucket rows = projector.result().get();
+        assertThat(rows.size(), is(2));
+        assertThat(TestingHelpers.printedTable(rows), is("foo\nbar\n"));
+    }
+
+    @Test
     public void unsupportedURITest() throws Throwable {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("URI scheme is not supported");
@@ -184,6 +209,12 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     }
 
     private CollectingProjector getObjects(String fileUri, String compression) throws Throwable {
+        S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
+        when(inputStream.read(new byte[anyInt()], anyInt(), anyByte())).thenReturn(-1);
+        return getObjects(fileUri, compression, inputStream);
+    }
+
+    private CollectingProjector getObjects(String fileUri, String compression, final S3ObjectInputStream s3InputStream) throws Throwable {
         CollectingProjector projector = new CollectingProjector();
         FileCollectInputSymbolVisitor.Context context =
                 inputSymbolVisitor.process(createReference("_raw", DataTypes.STRING));
@@ -205,14 +236,12 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                                 S3ObjectSummary summary = mock(S3ObjectSummary.class);
                                 S3Object s3Object = mock(S3Object.class);
 
-                                S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
 
                                 when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
                                 when(objectListing.getObjectSummaries()).thenReturn(Arrays.asList(summary));
                                 when(summary.getKey()).thenReturn("foo");
                                 when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
-                                when(s3Object.getObjectContent()).thenReturn(inputStream);
-                                when(inputStream.read(new byte[anyInt()], anyInt(), anyByte())).thenReturn(-1);
+                                when(s3Object.getObjectContent()).thenReturn(s3InputStream);
                                 when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
                                 when(objectListing.isTruncated()).thenReturn(false);
                                 return client;
@@ -244,5 +273,21 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             uri = uri.replace("file:/", "file:///");
         }
         return uri;
+    }
+
+    private static class WriteBufferAnswer implements Answer<Integer> {
+
+        private byte[] bytes;
+
+        public WriteBufferAnswer(byte[] bytes) {
+            this.bytes = bytes;
+        }
+
+        @Override
+        public Integer answer(InvocationOnMock invocation) throws Throwable {
+            byte[] buffer = (byte[]) invocation.getArguments()[0];
+            System.arraycopy(bytes, 0, buffer, 0, bytes.length);
+            return bytes.length;
+        }
     }
 }
