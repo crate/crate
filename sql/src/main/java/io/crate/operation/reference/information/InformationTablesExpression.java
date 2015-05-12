@@ -44,6 +44,7 @@ public abstract class InformationTablesExpression<T>
     public static final TablesPartitionByExpression PARTITION_BY_EXPRESSION = new TablesPartitionByExpression();
     public static final TablesBlobPathExpression BLOB_PATH_EXPRESSION = new TablesBlobPathExpression();
 
+
     public InformationTablesExpression(ReferenceInfo info) {
         super(info);
     }

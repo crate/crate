@@ -2,6 +2,7 @@ package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
+import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -112,6 +113,18 @@ public class Routing implements Streamable {
 
     public int jobSearchContextIdBase() {
         return jobSearchContextIdBase;
+    }
+
+    /**
+     * check whether this routing only contains special routing entries for
+     * {@link TableInfo#NULL_NODE_ID}.
+     */
+    public boolean isNullRouting() {
+        if (locations == null) {
+            return false;
+        }
+        Set<String> nodes = locations.keySet();
+        return nodes.size() == 1 && nodes.contains(TableInfo.NULL_NODE_ID);
     }
 
     @Override
