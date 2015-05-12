@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
@@ -39,6 +40,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class JobCollectContext implements ExecutionSubContext {
 
@@ -52,6 +54,8 @@ public class JobCollectContext implements ExecutionSubContext {
     private final Object lock = new Object();
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<ContextCallback> contextCallbacks = new ArrayList<>(1);
+
+    private final AtomicReference<ListenableFuture<List<Void>>> collectFuture = new AtomicReference<>();
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
@@ -67,6 +71,15 @@ public class JobCollectContext implements ExecutionSubContext {
 
     public RowDownstream rowDownstream() {
         return downstream;
+    }
+
+    @Nullable
+    public ListenableFuture<List<Void>> collectFuture() {
+        return collectFuture.get();
+    }
+
+    public void collectFuture(ListenableFuture<List<Void>> collectFuture) {
+        this.collectFuture.set(collectFuture);
     }
 
     @Override

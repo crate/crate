@@ -117,7 +117,9 @@ public class MapSideDataCollectOperationTest {
                         return new CollectingProjector();
                     }
                 },
-                jobContextService
+                jobContextService,
+                mock(InformationSchemaCollectService.class),
+                mock(UnassignedShardsCollectService.class)
         );
 
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");

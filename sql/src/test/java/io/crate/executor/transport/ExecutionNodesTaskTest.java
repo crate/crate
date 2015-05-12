@@ -26,6 +26,7 @@ import com.google.common.collect.Sets;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionNodeGrouper;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import org.hamcrest.Matchers;
@@ -55,7 +56,7 @@ public class ExecutionNodesTaskTest {
         MergeNode m2 = new MergeNode(3, "merge2", 2);
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
 
-        Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodesTask.groupExecutionNodesByServer(ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c1, m1, m2)));
+        Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodeGrouper.groupByServer("node1", ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c1, m1, m2)));
 
         assertThat(groupByServer.containsKey("node1"), is(true));
         assertThat(groupByServer.get("node1"), Matchers.<ExecutionNode>containsInAnyOrder(c1, m2));
@@ -69,6 +70,7 @@ public class ExecutionNodesTaskTest {
         assertThat(groupByServer.containsKey("node4"), is(true));
         assertThat(groupByServer.get("node4"), Matchers.<ExecutionNode>containsInAnyOrder(m1));
     }
+
 
     @Test
     public void testDetectsHasDirectResponse() throws Exception {

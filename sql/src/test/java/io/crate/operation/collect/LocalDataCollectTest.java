@@ -207,6 +207,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
             functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
             functionBinder.addBinding(TestFunction.ident).toInstance(new TestFunction());
             bind(Functions.class).asEagerSingleton();
+            bind(ReferenceInfos.class).toInstance(mock(ReferenceInfos.class));
             bind(ThreadPool.class).toInstance(testThreadPool);
 
 
@@ -368,7 +369,9 @@ public class LocalDataCollectTest extends CrateUnitTest {
                         return new CollectingProjector();
                     }
                 },
-                jobContextService
+                jobContextService,
+                mock(InformationSchemaCollectService.class),
+                mock(UnassignedShardsCollectService.class)
         );
     }
 
