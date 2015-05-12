@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - ``COPY FROM``: imports from S3 will now retry the import in case of a read
+   timeout.
+
  - Fix: Removed unnecessary close context calls on CollectContext
 
  - Select queries will now wait a bit longer before throwing an error in case
