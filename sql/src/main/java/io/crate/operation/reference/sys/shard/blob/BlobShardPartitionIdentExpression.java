@@ -26,7 +26,7 @@ import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 
-public class BlobShardPartitionIdentExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation {
+public class BlobShardPartitionIdentExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
 
     public static final String NAME = "partition_ident";
     private static final BytesRef value = new BytesRef("");

@@ -152,7 +152,8 @@ public class LocalDataCollectTest extends CrateUnitTest {
         }
     }
 
-    static class ShardIdExpression extends SysShardExpression<Integer> {
+
+    static class ShardIdExpression extends SysShardExpression<Integer> implements ShardReferenceImplementation<Integer> {
 
         private final ShardId shardId;
 

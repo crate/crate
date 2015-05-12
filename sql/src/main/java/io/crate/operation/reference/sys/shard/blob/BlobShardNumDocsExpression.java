@@ -26,7 +26,7 @@ import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.elasticsearch.common.inject.Inject;
 
-public class BlobShardNumDocsExpression extends SysShardExpression<Long> implements BlobShardReferenceImplementation {
+public class BlobShardNumDocsExpression extends SysShardExpression<Long> implements BlobShardReferenceImplementation<Long> {
     public static final String NAME = "num_docs";
 
     private final BlobShard blobShard;

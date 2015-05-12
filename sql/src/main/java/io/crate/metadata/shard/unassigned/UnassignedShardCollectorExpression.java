@@ -7,7 +7,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.Input;
 
-public abstract class UnassignedShardCollectorExpression<T> implements ReferenceImplementation, Input<T> {
+public abstract class UnassignedShardCollectorExpression<T> implements ReferenceImplementation<T> {
 
     private final ReferenceInfo info;
     protected UnassignedShard row;

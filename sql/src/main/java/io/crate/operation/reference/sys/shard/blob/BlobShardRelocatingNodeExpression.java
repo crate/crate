@@ -23,10 +23,11 @@ package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.operation.reference.sys.shard.ShardRelocatingNodeExpression;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 
-public class BlobShardRelocatingNodeExpression extends ShardRelocatingNodeExpression implements BlobShardReferenceImplementation {
+public class BlobShardRelocatingNodeExpression extends ShardRelocatingNodeExpression implements BlobShardReferenceImplementation<BytesRef> {
 
     @Inject
     public BlobShardRelocatingNodeExpression(IndexShard indexShard) {

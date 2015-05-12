@@ -21,15 +21,17 @@
 
 package io.crate.operation.reference.sys;
 
+import io.crate.operation.reference.NestedObjectExpression;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class SysStaticObjectArrayReference extends SysObjectArrayReference {
 
-    protected final List<SysObjectReference> childImplementations = new ArrayList<>();
+    protected final List<NestedObjectExpression> childImplementations = new ArrayList<>();
 
     @Override
-    protected List<SysObjectReference> getChildImplementations() {
+    protected List<NestedObjectExpression> getChildImplementations() {
         return childImplementations;
     }
 

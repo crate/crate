@@ -28,7 +28,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
-public class BlobShardTableNameExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation {
+public class BlobShardTableNameExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
 
     public static final String NAME = "table_name";
 

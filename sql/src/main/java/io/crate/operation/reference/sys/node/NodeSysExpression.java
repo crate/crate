@@ -21,8 +21,8 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.sys.SysExpression;
-import io.crate.operation.reference.sys.SysObjectReference;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -39,7 +39,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class NodeSysExpression extends SysObjectReference {
+public class NodeSysExpression extends NestedObjectExpression {
 
     private final NodeService nodeService;
     private final OsService osService;
@@ -85,7 +85,7 @@ public class NodeSysExpression extends SysObjectReference {
     }
 
     @Override
-    public SysExpression getChildImplementation(String name) {
+    public ReferenceImplementation getChildImplementation(String name) {
         if (EXPRESSIONS_WITH_OS_STATS.contains(name)) {
             OsStats osStats = osService.stats();
             if (NodeMemoryExpression.NAME.equals(name)) {
@@ -105,5 +105,4 @@ public class NodeSysExpression extends SysObjectReference {
         }
         return super.getChildImplementation(name);
     }
-
 }

@@ -2,7 +2,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
-import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
@@ -41,7 +41,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new TableIdent("test", "dummy"), "load");
         dummyLoadInfo = new ReferenceInfo(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE);
 
-        referenceImplementationMap.put(dummyLoadIdent, new SysExpression<Double>() {
+        referenceImplementationMap.put(dummyLoadIdent, new SimpleObjectExpression<Double>() {
             @Override
             public Double value() {
                 return 0.08;

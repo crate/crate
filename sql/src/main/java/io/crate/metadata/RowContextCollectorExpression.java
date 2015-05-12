@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import io.crate.operation.Input;
 
-public abstract class RowContextCollectorExpression<R, T> implements ReferenceImplementation, Input<T> {
+public abstract class RowContextCollectorExpression<R, T> implements ReferenceImplementation<T> {
 
     protected final ReferenceInfo info;
     protected R row;
