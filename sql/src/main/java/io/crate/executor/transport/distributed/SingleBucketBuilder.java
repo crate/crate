@@ -61,7 +61,7 @@ public class SingleBucketBuilder extends ResultProviderBase {
     public synchronized boolean setNextRow(Row row) {
         try {
             bucketBuilder.add(row);
-        } catch (IOException e) {
+        } catch (Throwable e) {
             Throwables.propagate(e);
         }
         return true;

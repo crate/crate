@@ -194,22 +194,26 @@ public class UnassignedShardsCollectService implements CollectService {
 
         @Override
         public void doCollect(RamAccountingContext ramAccountingContext) {
-            for (UnassignedShard row : rows) {
-                for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
-                    collectorExpression.setNextRow(row);
-                }
-                Boolean match = condition.value();
-                if (match == null || !match) {
-                    // no match
-                    continue;
-                }
+            try {
+                for (UnassignedShard row : rows) {
+                    for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
+                        collectorExpression.setNextRow(row);
+                    }
+                    Boolean match = condition.value();
+                    if (match == null || !match) {
+                        // no match
+                        continue;
+                    }
 
-                if (!downstream.setNextRow(this.row)) {
-                    // no more rows required, we can stop here
-                    break;
+                    if (!downstream.setNextRow(this.row)) {
+                        // no more rows required, we can stop here
+                        break;
+                    }
                 }
+                downstream.finish();
+            } catch (Throwable t) {
+                downstream.fail(t);
             }
-            downstream.finish();
         }
     }
 }

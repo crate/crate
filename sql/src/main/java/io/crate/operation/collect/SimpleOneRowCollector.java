@@ -70,6 +70,10 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
 
     @Override
     public void doCollect(RamAccountingContext ramAccountingContext) {
-        collect(ramAccountingContext);
+        try {
+            collect(ramAccountingContext);
+        } catch (Throwable t) {
+            downstream.fail(t);
+        }
     }
 }
