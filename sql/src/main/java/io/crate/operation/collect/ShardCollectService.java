@@ -170,7 +170,7 @@ public class ShardCollectService {
                     return getLuceneIndexCollector(normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId);
                 }
             } else if (granularity == RowGranularity.SHARD) {
-                ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedCollectNode);
+                ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.extractImplementations(normalizedCollectNode);
                 return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downstream);
             }
             throw new UnhandledServerException(String.format("Granularity %s not supported", granularity.name()));
@@ -178,7 +178,7 @@ public class ShardCollectService {
     }
 
     private CrateCollector getBlobIndexCollector(CollectNode collectNode, RowDownstream downstream) {
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {
             condition = (Input)docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
@@ -198,7 +198,7 @@ public class ShardCollectService {
                                                    final RowDownstream downstream,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId) throws Exception {
-        final CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+        final CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
         final SearchShardTarget searchShardTarget = new SearchShardTarget(
                 clusterService.state().nodes().localNodeId(),
                 shardId.getIndex(),
