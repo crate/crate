@@ -44,6 +44,7 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.BitSet;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -137,8 +138,12 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
         if (remainingUpstreams.decrementAndGet() > 0) {
             return;
         }
+        if (throwable instanceof CancellationException) {
+            bulkShardProcessor.kill();
+        } else {
+            bulkShardProcessor.close();
+        }
 
-        bulkShardProcessor.close();
         if (downstream != null) {
             collectUpdateResultsAndPassOverRowCount();
         }

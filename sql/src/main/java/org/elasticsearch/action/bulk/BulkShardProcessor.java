@@ -52,6 +52,7 @@ import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -237,6 +238,11 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         }
     }
 
+    public void kill() {
+        failure.compareAndSet(null, new CancellationException());
+        result.cancel(true);
+    }
+
     private void setFailure(Throwable e) {
         failure.compareAndSet(null, e);
         result.setException(e);
@@ -278,6 +284,9 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
             executeLock.acquire();
 
             for (Iterator<Map.Entry<ShardId, Request>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+                if (failure.get() != null) {
+                    return;
+                }
                 Map.Entry<ShardId, Request> entry = it.next();
                 final Request shardRequest = entry.getValue();
                 final ShardId shardId = entry.getKey();

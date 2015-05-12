@@ -22,8 +22,11 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ContextCallback;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.test.integration.CrateUnitTest;
@@ -47,13 +50,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.*;
 
 /**
@@ -253,6 +256,40 @@ public class JobCollectContextTest extends CrateUnitTest {
         assertThat(ctx1, instanceOf(CrateSearchContext.class));
 
         jobCollectContext.close();
+        assertThat(((AtomicBoolean) closed.get(jobCollectContext)).get(), is(true));
+        assertThat(((Map) activeCollectors.get(jobCollectContext)).size(), is(0));
+    }
+
+    @Test
+    public void testKill() throws Exception {
+        final Field closed = JobCollectContext.class.getDeclaredField("closed");
+        closed.setAccessible(true);
+        final Field collectFuture = JobCollectContext.class.getDeclaredField("collectFuture");
+        collectFuture.setAccessible(true);
+        final Field activeCollectors = JobCollectContext.class.getDeclaredField("activeCollectors");
+        activeCollectors.setAccessible(true);
+
+        ListenableFuture<List<Void>> future = SettableFuture.create();
+        for (int i = 0; i < 10; i++) {
+            jobCollectContext.registerJobContextId(shardId, i);
+            jobCollectContext.createCollectorAndContext(indexShard, i, CONTEXT_FUNCTION);
+            collectFuture.set(jobCollectContext, future); // simulate .start()
+        }
+        ContextCallback closeCallback = mock(ContextCallback.class);
+        jobCollectContext.addCallback(closeCallback);
+        jobCollectContext.kill();
+
+        for (int i = 0; i < 10; i++) {
+            assertThat(jobCollectContext.findCollector(i), is(nullValue()));
+        }
+        try {
+            future.get();
+            fail("future not cancelled");
+        } catch (CancellationException ce) {
+            // fine
+        }
+        verify(closeCallback, times(1)).onClose(Mockito.any(Throwable.class), anyLong());
+
         assertThat(((AtomicBoolean) closed.get(jobCollectContext)).get(), is(true));
         assertThat(((Map) activeCollectors.get(jobCollectContext)).size(), is(0));
     }

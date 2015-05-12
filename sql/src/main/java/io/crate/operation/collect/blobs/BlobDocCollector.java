@@ -28,9 +28,11 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.collect.Collectors;
 import io.crate.operation.collect.CrateCollector;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class BlobDocCollector implements CrateCollector {
@@ -71,7 +73,8 @@ public class BlobDocCollector implements CrateCollector {
         private final InputRow row = new InputRow(inputs);
 
         @Override
-        public boolean visit(File file) {
+        public boolean visit(File file) throws IOException {
+            Collectors.cancelIfInterrupted();
             for (BlobCollectorExpression expression : expressions) {
                 expression.setNextBlob(file);
             }

@@ -28,10 +28,7 @@ import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -83,11 +80,11 @@ public class BlobContainer {
 
     public interface FileVisitor {
 
-        public boolean visit(File file);
+        public boolean visit(File file) throws IOException;
 
     }
 
-    public void walkFiles(FilenameFilter filter, FileVisitor visitor) {
+    public void walkFiles(FilenameFilter filter, FileVisitor visitor) throws IOException {
         for (File dir : subDirs) {
             File[] files = dir.listFiles(filter);
             if (files == null) {

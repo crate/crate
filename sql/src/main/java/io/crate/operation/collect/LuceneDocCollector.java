@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 /**
  * collect documents from ES shard, a lucene index
@@ -144,6 +145,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void collect(int doc) throws IOException {
+        Collectors.cancelIfInterrupted();
+
         rowCount++;
         if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
             // stop collecting because breaker limit was reached
@@ -165,11 +168,19 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
         }
-
-        if (!downstream.setNextRow(inputRow) || (limit != null && rowCount == limit)) {
+        boolean wantMore;
+        try {
+            wantMore = downstream.setNextRow(inputRow);
+        } catch (Throwable t) {
+            Collectors.cancelIfInterrupted(t);
+            // only get here, if not cancelled
+            throw t;
+        }
+        if (!wantMore || (limit != null && rowCount == limit)) {
             // no more rows required, we can stop here
             throw new CollectionAbortedException();
         }
+
     }
 
     @Override
@@ -219,6 +230,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                 int collected = topFieldDocs.scoreDocs.length;
                 ScoreDoc lastCollected = collectTopFields(topFieldDocs);
                 while ((limit == null || collected < limit) && topFieldDocs.scoreDocs.length >= batchSize && lastCollected != null) {
+                    Collectors.cancelIfInterrupted();
                     batchSize = limit == null ? pageSize : Math.min(pageSize, limit - collected);
                     Query alreadyCollectedQuery = alreadyCollectedQuery((FieldDoc)lastCollected);
                     if (alreadyCollectedQuery != null) {
@@ -241,7 +253,9 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             downstream.finish();
         } catch (Exception e) {
             failed = true;
-            downstream.fail(e);
+            downstream.fail(
+                    Collectors.gotInterrupted(e) ? new CancellationException() : e
+            );
         } finally {
             jobCollectContext.releaseContext(searchContext);
             if (!keepContextForFetcher || !producedRows || failed) {

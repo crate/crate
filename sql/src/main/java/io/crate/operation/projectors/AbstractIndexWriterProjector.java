@@ -61,6 +61,7 @@ import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -208,7 +209,11 @@ public abstract class AbstractIndexWriterProjector implements
         if (downstream != null) {
             downstream.fail(throwable);
         }
-        bulkShardProcessor.close();
+        if (throwable instanceof CancellationException) {
+            bulkShardProcessor.kill();
+        } else {
+            bulkShardProcessor.close();
+        }
     }
 
     private void setResultCallback() {

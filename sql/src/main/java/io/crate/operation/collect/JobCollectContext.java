@@ -237,7 +237,10 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
 
     @Override
     public void kill() {
-        throw new UnsupportedOperationException("kill is not implemented");
+        if (collectFuture != null) {
+            collectFuture.cancel(true);
+        }
+        close();
     }
 
     @Override

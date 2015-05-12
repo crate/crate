@@ -39,12 +39,12 @@ import org.mockito.MockitoAnnotations;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 public class DistributingDownstreamTest extends CrateUnitTest {
 
@@ -133,6 +133,15 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         for (DistributedResultRequest distributedResultRequest : captor.getAllValues()) {
             assertThat(distributedResultRequest.rows().size(), is(0));
         }
+
+    }
+
+    @Test
+    public void testNoRequestsSendWhenCancelled() throws Exception {
+        downstream.setNextRow(new Row1(new BytesRef("LateNightSprintFinishingAwesomeness")));
+        downstream.fail(new CancellationException());
+
+        verify(distributedResultAction, never()).pushResult(any(String.class), any(DistributedResultRequest.class), any(ActionListener.class));
 
     }
 

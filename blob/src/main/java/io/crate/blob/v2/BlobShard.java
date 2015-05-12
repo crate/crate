@@ -21,6 +21,7 @@
 
 package io.crate.blob.v2;
 
+import com.google.common.base.Throwables;
 import io.crate.blob.BlobContainer;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.stats.BlobStats;
@@ -33,6 +34,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.File;
+import java.io.IOException;
 
 public class BlobShard extends AbstractIndexShardComponent {
 
@@ -71,15 +73,19 @@ public class BlobShard extends AbstractIndexShardComponent {
 
         stats.location(blobContainer().getBaseDirectory().getAbsolutePath());
         stats.availableSpace(blobContainer().getBaseDirectory().getFreeSpace());
-        blobContainer().walkFiles(null, new BlobContainer.FileVisitor() {
-            @Override
-            public boolean visit(File file) {
-                stats.totalUsage(stats.totalUsage() + file.length());
-                stats.count(stats.count() + 1);
-                return true;
-            }
-        });
-
+        try {
+            blobContainer().walkFiles(null, new BlobContainer.FileVisitor() {
+                @Override
+                public boolean visit(File file) {
+                    stats.totalUsage(stats.totalUsage() + file.length());
+                    stats.count(stats.count() + 1);
+                    return true;
+                }
+            });
+        } catch (IOException e) {
+            logger.error("error getting blob stats", e);
+            Throwables.propagate(e);
+        }
         return stats;
     }
 
