@@ -82,6 +82,16 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectCountIncludingUnassignedShards() throws Exception {
+        execute("create table locations (id integer primary key, name string) with(number_of_replicas=2)");
+        ensureYellow();
+
+        execute("select count(*) from sys.shards where schema_name='doc' AND table_name='locations'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long) response.rows()[0][0], is(15L));
+    }
+
+    @Test
     public void testTableNameBlobTable() throws Exception {
         BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
         Settings indexSettings = ImmutableSettings.builder()

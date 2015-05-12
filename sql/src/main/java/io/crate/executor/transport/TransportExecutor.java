@@ -31,14 +31,16 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.NoopTask;
-import io.crate.executor.transport.task.*;
+import io.crate.executor.transport.task.CreateTableTask;
+import io.crate.executor.transport.task.DropTableTask;
+import io.crate.executor.transport.task.KillTask;
+import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageDownstreamFactory;
-import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
@@ -83,7 +85,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
 
     // operation for handler side collecting
-    private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
     private final PageDownstreamFactory pageDownstreamFactory;
@@ -99,7 +100,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              ThreadPool threadPool,
                              Functions functions,
                              ReferenceResolver referenceResolver,
-                             HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                              PageDownstreamFactory pageDownstreamFactory,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
@@ -111,7 +111,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.contextPreparer = contextPreparer;
         this.executionNodeOperationStarter = executionNodeOperationStarter;
         this.transportActionProvider = transportActionProvider;
-        this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
         this.functions = functions;
@@ -228,8 +227,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     clusterService,
                     contextPreparer,
                     executionNodeOperationStarter,
-                    handlerSideDataCollectOperation,
-                    globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,
                     statsTables,
