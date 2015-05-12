@@ -401,7 +401,8 @@ public class PlannerTest extends CrateUnitTest {
         Iterator<PlanNode> iterator = plan.iterator();
         ESDeleteNode node = (ESDeleteNode) iterator.next();
         assertThat(node.tableInfo().ident().name(), is("users"));
-        assertThat(node.key(), isDocKey(1L));
+        assertThat(node.docKeys().size(), is(1));
+        assertThat(node.docKeys().get(0), isDocKey(1L));
         assertFalse(iterator.hasNext());
     }
 

@@ -21,38 +21,41 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.core.collections.Bucket;
+import io.crate.executor.TaskResult;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ESGetContext implements ExecutionSubContext {
+public class ESJobContext implements ExecutionSubContext {
 
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    private final ActionListener listener;
-    private final ActionRequest request;
+    private final List<? extends ActionListener> listeners;
+    private final List<? extends ActionRequest> requests;
+    private final List<? extends Future<TaskResult>> resultFutures;
     private final TransportAction transportAction;
-    private final SettableFuture<Bucket> resultFuture;
 
-    public ESGetContext(ActionRequest request,
-                        ActionListener listener,
-                        TransportAction transportAction,
-                        SettableFuture<Bucket> resultFuture) {
-        this.request = request;
-        this.listener = listener;
+    public ESJobContext(List<? extends ActionRequest> requests,
+                        List<? extends ActionListener> listeners,
+                        List<? extends Future<TaskResult>> resultFutures,
+                        TransportAction transportAction) {
+        this.requests = requests;
+        this.listeners = listeners;
+        this.resultFutures = resultFutures;
         this.transportAction = transportAction;
-        this.resultFuture = resultFuture;
     }
 
     public void start() {
         if (!closed.get()) {
-            transportAction.execute(request, new InternalActionListener(listener, this));
+            for (int i = 0; i < requests.size(); i++) {
+                transportAction.execute(requests.get(i), new InternalActionListener(listeners.get(i), this));
+            }
         }
     }
 
@@ -72,7 +75,9 @@ public class ESGetContext implements ExecutionSubContext {
 
     @Override
     public void kill() {
-        resultFuture.cancel(true);
+        for (Future<?> resultFuture : resultFutures) {
+            resultFuture.cancel(true);
+        }
         close();
     }
 

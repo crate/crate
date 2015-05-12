@@ -25,23 +25,32 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.PlanNodeVisitor;
 
+import java.util.List;
+
 public class ESDeleteNode extends DMLPlanNode {
 
+    private final int executionNodeId;
     private final TableInfo tableInfo;
-    private final DocKeys.DocKey key;
+    private final List<DocKeys.DocKey> docKeys;
 
-    public ESDeleteNode(TableInfo tableInfo,
-                        DocKeys.DocKey key) {
+    public ESDeleteNode(int executionNodeId,
+                        TableInfo tableInfo,
+                        List<DocKeys.DocKey> docKeys) {
+        this.executionNodeId = executionNodeId;
         this.tableInfo = tableInfo;
-        this.key = key;
+        this.docKeys = docKeys;
+    }
+
+    public int executionNodeId() {
+        return executionNodeId;
     }
 
     public TableInfo tableInfo() {
         return tableInfo;
     }
 
-    public DocKeys.DocKey key() {
-        return key;
+    public List<DocKeys.DocKey> docKeys() {
+        return docKeys;
     }
 
     @Override
