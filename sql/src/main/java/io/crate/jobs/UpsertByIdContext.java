@@ -60,6 +60,10 @@ public class UpsertByIdContext implements ExecutionSubContext {
     }
 
     public void start() {
+        if(closed.get()){
+            futureResult.setException(new ContextClosedException());
+            return;
+        }
         transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardUpsertResponse>() {
             @Override
             public void onResponse(ShardUpsertResponse updateResponse) {
