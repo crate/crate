@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -152,7 +153,12 @@ public class DistributingDownstream extends ResultProviderBase {
 
     @Override
     public Throwable doFail(Throwable t) {
-        forwardFailures(t);
+        if (t instanceof CancellationException) {
+            // fail without sending anything
+            LOGGER.debug("{} killed", getClass().getSimpleName());
+        } else {
+            forwardFailures(t);
+        }
         return t;
     }
 

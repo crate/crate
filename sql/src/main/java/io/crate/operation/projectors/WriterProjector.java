@@ -32,6 +32,7 @@ import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.collect.Collectors;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
 import io.crate.operation.projectors.writer.OutputS3;
@@ -48,7 +49,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -168,11 +168,12 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
             failure.set(new UnhandledServerException("Failed to close output", e));
         }
         if (downstream != null) {
-            if (failure.get() == null) {
+            Throwable throwable = failure.get();
+            if (throwable == null) {
                 downstream.setNextRow(new Row1(counter.get()));
                 downstream.finish();
             } else {
-                downstream.fail(failure.get());
+                downstream.fail(throwable);
             }
         }
     }
@@ -182,7 +183,12 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         if (failure.get() != null) {
             return false;
         }
-        rowWriter.write(row);
+        try {
+            rowWriter.write(row);
+        } catch (Throwable t) {
+            Collectors.cancelIfInterrupted(t);
+            throw t;
+        }
         counter.incrementAndGet();
         return true;
     }

@@ -22,7 +22,10 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
-import com.google.common.collect.*;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimaps;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
@@ -43,7 +46,10 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class UnassignedShardsCollectService implements CollectService {
 
@@ -203,6 +209,8 @@ public class UnassignedShardsCollectService implements CollectService {
         public void doCollect(RamAccountingContext ramAccountingContext) {
             try {
                 for (UnassignedShard row : rows) {
+                    Collectors.cancelIfInterrupted();
+
                     for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);
                     }

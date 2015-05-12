@@ -114,6 +114,7 @@ public class SystemCollectService implements CollectService {
         public void doCollect(RamAccountingContext ramAccountingContext) {
             try {
                 for (R row : rows) {
+                    Collectors.cancelIfInterrupted();
                     for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);
                     }

@@ -21,26 +21,26 @@
 
 package io.crate.operation.collect;
 
-import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
+import com.google.common.base.Throwables;
 
+import java.nio.channels.ClosedByInterruptException;
 import java.util.concurrent.CancellationException;
 
-public class NoopCrateCollector implements CrateCollector {
+public class Collectors {
 
-    private RowDownstreamHandle downstream;
-
-    public NoopCrateCollector(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+    public static void cancelIfInterrupted() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new CancellationException();
+        }
     }
 
-    @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
-        if (Thread.currentThread().isInterrupted()) {
-            downstream.fail(new CancellationException());
-        } else {
-            downstream.finish();
+    public static void cancelIfInterrupted(Throwable t) {
+        if (gotInterrupted(t)) {
+            throw new CancellationException();
         }
+    }
+
+    public static boolean gotInterrupted(Throwable t) {
+        return Throwables.getRootCause(t) instanceof ClosedByInterruptException;
     }
 }

@@ -172,6 +172,7 @@ public class InformationSchemaCollectService implements CollectService {
         public void doCollect(RamAccountingContext ramAccountingContext) {
             try {
                 for (R row : rows) {
+                    Collectors.cancelIfInterrupted();
                     for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);
                     }
