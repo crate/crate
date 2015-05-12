@@ -89,9 +89,13 @@ public class ExecutionNodeOperationStarter implements RowUpstream {
             statsTables.operationStarted(collectNode.executionNodeId(), context.jobId(), collectNode.name());
 
             try {
-                mapSideDataCollectOperation.collect(
+                collectContext.collectFuture(
+                    mapSideDataCollectOperation.collect(
                         collectNode,
-                        collectContext.rowDownstream(), collectContext.ramAccountingContext());
+                        collectContext.rowDownstream(),
+                        collectContext.ramAccountingContext()
+                    )
+                );
             } catch (Throwable t) {
                 RowDownstreamHandle rowDownstreamHandle =
                         collectContext.rowDownstream().registerUpstream(ExecutionNodeOperationStarter.this);

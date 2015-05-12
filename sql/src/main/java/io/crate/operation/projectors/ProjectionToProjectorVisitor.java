@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;

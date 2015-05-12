@@ -40,6 +40,7 @@ public abstract class InformationTablesExpression<T> extends RowContextCollector
     public static final TablesBlobPathExpression BLOB_PATH_EXPRESSION = new TablesBlobPathExpression();
     public static final TablesSettingsExpression SETTINGS_EXPRESSION = new TablesSettingsExpression();
 
+
     public InformationTablesExpression(ReferenceInfo info) {
         super(info);
     }
