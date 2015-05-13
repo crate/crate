@@ -289,6 +289,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new TableUnknownException(((IndexMissingException) e).index().name(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
+        } else if (e instanceof CancellationException) {
+            return new JobKilledException();
         }
         return e;
     }
