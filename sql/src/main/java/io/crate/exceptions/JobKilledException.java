@@ -29,6 +29,6 @@ public class JobKilledException extends RuntimeException implements CrateExcepti
 
     @Override
     public int errorCode() {
-        return 5010;
+        return 5030;
     }
 }
