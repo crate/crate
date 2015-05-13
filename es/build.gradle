@@ -14,11 +14,9 @@ idea {
 }
 
 tasks.withType(JavaCompile) {
-    doFirst {
-        options.compilerArgs << '-XDignore.symbol.file'
-        options.fork = true // may not needed on 1.8
-        options.forkOptions.executable = 'javac' // may not needed on 1.8
-    }
+    options.compilerArgs << '-XDignore.symbol.file'
+    options.fork = true // may not needed on 1.8
+    options.forkOptions.executable = 'javac' // may not needed on 1.8
 }
 
 // generated in upstream directory with:

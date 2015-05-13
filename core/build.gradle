@@ -97,4 +97,10 @@ task writeBuildInfo << {
     }
 }
 
-compileJava.dependsOn writeBuildInfo
+tasks.withType(Jar) {
+    doFirst {
+        if (gradle.taskGraph.hasTask(':app:distTar')) {
+            tasks.writeBuildInfo.execute()
+        }
+    }
+}
