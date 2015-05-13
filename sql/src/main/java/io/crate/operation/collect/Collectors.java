@@ -22,8 +22,11 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Throwables;
+import org.apache.lucene.util.ThreadInterruptedException;
 
+import java.io.InterruptedIOException;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.FileLockInterruptionException;
 import java.util.concurrent.CancellationException;
 
 public class Collectors {
@@ -41,6 +44,11 @@ public class Collectors {
     }
 
     public static boolean gotInterrupted(Throwable t) {
-        return Throwables.getRootCause(t) instanceof ClosedByInterruptException;
+        Throwable cause = Throwables.getRootCause(t);
+        return cause instanceof ClosedByInterruptException
+                || cause instanceof InterruptedException
+                || cause instanceof InterruptedIOException
+                || cause instanceof ThreadInterruptedException
+                || cause instanceof FileLockInterruptionException;
     }
 }
