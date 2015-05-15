@@ -2,6 +2,9 @@
 Changes for Crate
 =================
 
+ - Fix: Deleting a partitioned table could return a succesful query result
+   even if some partitions were not deleted correctly
+
  - ``COPY FROM``: imports from S3 will now retry the import in case of a
    read timeout.
 
