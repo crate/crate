@@ -5,17 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
- - ``COPY FROM``: imports from S3 will now retry the import in case of a read
-   timeout.
-
  - Added the ``concat`` scalar function and the concat operator ``||``.
 
  - Updated Elasticsearch to 1.5.2
 
  - Fix: Removed unnecessary close context calls on CollectContext
-
- - Select queries will now wait a bit longer before throwing an error in case
-   the shards of a table aren't fully active.
 
  - Updated crash to version 0.12.0 which contains the following changes:
 
@@ -27,11 +21,23 @@ Unreleased
 
     - Attempting to use unknown command now results in an error
 
+ - Added the IF NOT EXISTS clause to the CREATE TABLE statement
+
+2015/05/15 0.48.5
+=================
+
+ - Fix: Deleting a partitioned table could return a succesful query result
+   even if some partitions were not deleted correctly
+
+ - ``COPY FROM``: imports from S3 will now retry the import in case of a
+   read timeout.
+
+ - Select queries will now wait a bit longer before throwing an error in case
+   the shards of a table aren't fully active.
+
  - Fix: In some cases a ``DROP TABLE`` statment does not delete all
    partitions. Now it's possible to repeat the statement in order
    to delete the orphaned partitions.
-
- - Added the IF NOT EXISTS clause to the CREATE TABLE statement
 
 2015/05/07 0.49.0
 =================
