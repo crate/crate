@@ -2,6 +2,9 @@
 Changes for Crate
 =================
 
+2015/05/15 0.48.5
+=================
+
  - Fix: Deleting a partitioned table could return a succesful query result
    even if some partitions were not deleted correctly
 
