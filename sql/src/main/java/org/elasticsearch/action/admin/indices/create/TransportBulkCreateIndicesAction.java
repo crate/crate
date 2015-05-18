@@ -42,6 +42,8 @@ import org.elasticsearch.transport.TransportService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -51,14 +53,15 @@ import java.util.concurrent.atomic.AtomicReference;
  * this action enqueues requests
  */
 @Singleton
-public class TransportBulkCreateIndicesAction extends TransportMasterNodeOperationAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse> {
+public class TransportBulkCreateIndicesAction
+        extends TransportMasterNodeOperationAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse> {
 
     public static final int QUEUE_SIZE = 100;
     public static final String NAME = "indices:admin/bulk_create";
 
     private final UniqueBlockingQueue<RequestItem> requestQueue;
-    private final QueuedRequestExecutor queuedRequestExecutor;
     private final MetaDataCreateIndexService createIndexService;
+    private final Future<?> queuedRequestExecutorFuture;
 
     @Inject
     protected TransportBulkCreateIndicesAction(Settings settings,
@@ -70,10 +73,12 @@ public class TransportBulkCreateIndicesAction extends TransportMasterNodeOperati
         super(settings, NAME, transportService, clusterService, threadPool, actionFilters);
         this.requestQueue = new UniqueBlockingQueue<>(QUEUE_SIZE);
         this.createIndexService = createIndexService;
-
-        this.queuedRequestExecutor = new QueuedRequestExecutor();
         // start queued Request executor
-        this.threadPool.executor(executor()).execute(queuedRequestExecutor);
+        queuedRequestExecutorFuture = ((ThreadPoolExecutor) threadPool.executor(executor())).submit(new QueuedRequestExecutor());
+    }
+
+    public void doStop() {
+        queuedRequestExecutorFuture.cancel(true);
     }
 
     @Override

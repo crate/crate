@@ -25,23 +25,28 @@ import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 
 public class SQLService extends AbstractLifecycleComponent<SQLService> {
 
     private final StatsTables statsTables;
+    private Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesAction;
     private final TransportSQLAction transportSQLAction;
     private final TransportSQLBulkAction transportSQLBulkAction;
 
     @Inject
     public SQLService(Settings settings,
                       StatsTables statsTables,
+                      Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesAction,
                       TransportSQLAction transportSQLAction,
                       TransportSQLBulkAction transportSQLBulkAction) {
         super(settings);
         this.statsTables = statsTables;
+        this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
         this.transportSQLAction = transportSQLAction;
         this.transportSQLBulkAction = transportSQLBulkAction;
     }
@@ -53,7 +58,7 @@ public class SQLService extends AbstractLifecycleComponent<SQLService> {
 
     @Override
     protected void doStop() throws ElasticsearchException {
-
+        transportBulkCreateIndicesAction.get().doStop();
     }
 
     @Override
