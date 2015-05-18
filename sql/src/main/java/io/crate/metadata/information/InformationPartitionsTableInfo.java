@@ -38,15 +38,6 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
     public static final String NAME = "table_partitions";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
-    public static class Columns {
-        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
-        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        public static final ColumnIdent VALUES = new ColumnIdent("values");
-        public static final ColumnIdent NUMBER_OF_SHARDS = new ColumnIdent("number_of_shards");
-        public static final ColumnIdent NUMBER_OF_REPLICAS = new ColumnIdent("number_of_replicas");
-    }
-
     public static class ReferenceInfos {
         public static final ReferenceInfo TABLE_NAME = info(Columns.TABLE_NAME, DataTypes.STRING);
         public static final ReferenceInfo SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
@@ -54,6 +45,50 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         public static final ReferenceInfo VALUES = info(Columns.VALUES, DataTypes.OBJECT);
         public static final ReferenceInfo NUMBER_OF_SHARDS = info(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
         public static final ReferenceInfo NUMBER_OF_REPLICAS = info(Columns.NUMBER_OF_REPLICAS, DataTypes.STRING);
+
+        public static final ReferenceInfo TABLE_SETTINGS = info(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
+
+        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS = info(
+                Columns.TABLE_SETTINGS_BLOCKS, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_READ_ONLY = info(
+                Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, DataTypes.BOOLEAN);
+        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_READ = info(
+                Columns.TABLE_SETTINGS_BLOCKS_READ, DataTypes.BOOLEAN);
+        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_WRITE = info(
+                Columns.TABLE_SETTINGS_BLOCKS_WRITE, DataTypes.BOOLEAN);
+        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_METADATA = info(
+                Columns.TABLE_SETTINGS_BLOCKS_METADATA, DataTypes.BOOLEAN);
+
+        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG = info(
+                Columns.TABLE_SETTINGS_TRANSLOG, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = info(
+                Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, DataTypes.INTEGER);
+        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = info(
+                Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, DataTypes.LONG);
+        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD = info(
+                Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, DataTypes.LONG);
+        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH = info(
+                Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, DataTypes.BOOLEAN);
+        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_INTERVAL = info(
+                Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, DataTypes.LONG);
+
+        public static final ReferenceInfo TABLE_SETTINGS_ROUTING= info(
+                Columns.TABLE_SETTINGS_ROUTING, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION = info(
+                Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = info(
+                Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, DataTypes.STRING);
+        public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = info(
+                Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER);
+
+        public static final ReferenceInfo TABLE_SETTINGS_RECOVERY = info(
+                Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = info(
+                Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, DataTypes.STRING);
+        public static final ReferenceInfo TABLE_SETTINGS_WARMER = info(
+                Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_WARMER_ENABLED = info(
+                Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN);
     }
 
     private static ReferenceInfo info(ColumnIdent columnIdent, DataType dataType) {
@@ -71,7 +106,36 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                     put(Columns.VALUES, ReferenceInfos.VALUES);
                     put(Columns.NUMBER_OF_SHARDS, ReferenceInfos.NUMBER_OF_SHARDS);
                     put(Columns.NUMBER_OF_REPLICAS, ReferenceInfos.NUMBER_OF_REPLICAS);
-                }}
+                    put(Columns.TABLE_SETTINGS, ReferenceInfos.TABLE_SETTINGS);
+                    put(Columns.TABLE_SETTINGS_BLOCKS, ReferenceInfos.TABLE_SETTINGS_BLOCKS);
+                    put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY);
+                    put(Columns.TABLE_SETTINGS_BLOCKS_READ, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ);
+                    put(Columns.TABLE_SETTINGS_BLOCKS_WRITE, ReferenceInfos.TABLE_SETTINGS_BLOCKS_WRITE);
+                    put(Columns.TABLE_SETTINGS_BLOCKS_METADATA, ReferenceInfos.TABLE_SETTINGS_BLOCKS_METADATA);
+                    put(Columns.TABLE_SETTINGS_TRANSLOG, ReferenceInfos.TABLE_SETTINGS_TRANSLOG);
+                    put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS);
+                    put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE);
+                    put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD);
+                    put(Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH);
+                    put(Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL);
+                    put(Columns.TABLE_SETTINGS_ROUTING, ReferenceInfos.TABLE_SETTINGS_ROUTING);
+                    put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION);
+                    put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE);
+                    put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE);
+                    put(Columns.TABLE_SETTINGS_RECOVERY, ReferenceInfos.TABLE_SETTINGS_RECOVERY);
+                    put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS);
+                    put(Columns.TABLE_SETTINGS_WARMER, ReferenceInfos.TABLE_SETTINGS_WARMER);
+                    put(Columns.TABLE_SETTINGS_WARMER_ENABLED, ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED);
+                }},
+                ImmutableList.of(
+                        ReferenceInfos.TABLE_NAME,
+                        ReferenceInfos.SCHEMA_NAME,
+                        ReferenceInfos.PARTITION_IDENT,
+                        ReferenceInfos.VALUES,
+                        ReferenceInfos.NUMBER_OF_SHARDS,
+                        ReferenceInfos.NUMBER_OF_REPLICAS,
+                        ReferenceInfos.TABLE_SETTINGS
+                )
         );
     }
 }

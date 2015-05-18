@@ -670,7 +670,6 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testChangeReadBlock() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.read\"=true)");
-        assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_READ), is("true"));
     }
 
@@ -678,7 +677,6 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testChangeWriteBlock() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.write\"=true)");
-        assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_WRITE), is("true"));
     }
 
@@ -686,7 +684,6 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testChangeMetadataBlock() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.metadata\"=true)");
-        assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_METADATA), is("true"));
     }
 
@@ -694,7 +691,6 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testChangeReadOnlyBlock() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.read_only\"=true)");
-        assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY), is("true"));
     }
 
@@ -702,61 +698,52 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testChangeFlushThresholdOpsNumber() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_ops\"=10)");
-        assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get("index.translog.flush_threshold_ops"), is("10"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_OPS), is("10"));
     }
 
     @Test
     public void testChangeFlushThresholdSize() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_size\"=300)");
-        assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get("index.translog.flush_threshold_size"), is("300"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE), is("300"));
     }
 
     @Test
     public void testChangeFlushThresholdPeriod() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_period\"=35)");
-        assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get("index.translog.flush_threshold_period"), is("35"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD), is("35"));
     }
 
     @Test
     public void testChangeFlushDisable() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.disable_flush\"=true)");
-        assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get("index.translog.disable_flush"), is("true"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_DISABLE), is("true"));
     }
 
     @Test
     public void testChangeTranslogInterval() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.interval\"=50)");
-        assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get("index.translog.interval"), is("50"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_INTERVAL), is("50"));
     }
 
     @Test
     public void testRoutingAllocationEnable() throws Exception {
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"routing.allocation.enable\"=\"none\")");
-        assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE), is("none"));
     }
 
     @Test
     public void testRoutingAllocationValidation() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"routing.allocation.enable\"=\"foo\")");
-        assertThat(analysis.table().ident().name(), is("users"));
+        analyze("alter table users set (\"routing.allocation.enable\"=\"foo\")");
     }
 
     @Test
     public void testRecoveryShardsWithString() throws Exception {
-
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"recovery.initial_shards\"=\"full\")");
         assertThat(analysis.table().ident().name(), is("users"));
@@ -766,7 +753,6 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRecoveryShardsWithInteger() throws Exception {
-
         AlterTableAnalyzedStatement analysis =
                 (AlterTableAnalyzedStatement)analyze("alter table users set (\"recovery.initial_shards\"=1)");
         assertThat(analysis.table().ident().name(), is("users"));
@@ -777,8 +763,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRecoveryShardsValidation() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"recovery.initial_shards\"=\"foo\")");
+        analyze("alter table users set (\"recovery.initial_shards\"=\"foo\")");
     }
 
     @Test

@@ -38,56 +38,6 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public static final String NAME = "tables";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
-    public static class Columns {
-        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
-        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        public static final ColumnIdent NUMBER_OF_SHARDS = new ColumnIdent("number_of_shards");
-        public static final ColumnIdent NUMBER_OF_REPLICAS = new ColumnIdent("number_of_replicas");
-        public static final ColumnIdent CLUSTERED_BY = new ColumnIdent("clustered_by");
-        public static final ColumnIdent PARTITIONED_BY = new ColumnIdent("partitioned_by");
-        public static final ColumnIdent BLOBS_PATH = new ColumnIdent("blobs_path");
-
-        public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
-                ImmutableList.of("blocks"));
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ_ONLY = new ColumnIdent("settings",
-                ImmutableList.of("blocks", "read_only"));
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ = new ColumnIdent("settings",
-                ImmutableList.of("blocks", "read"));
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_WRITE = new ColumnIdent("settings",
-                ImmutableList.of("blocks", "write"));
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_METADATA = new ColumnIdent("settings",
-                ImmutableList.of("blocks", "metadata"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING= new ColumnIdent("settings",
-                ImmutableList.of("routing"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION = new ColumnIdent("settings",
-                ImmutableList.of("routing", "allocation"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = new ColumnIdent("settings",
-                ImmutableList.of("routing", "allocation", "enable"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = new ColumnIdent("settings",
-                ImmutableList.of("routing", "allocation", "total_shards_per_node"));
-        public static final ColumnIdent TABLE_SETTINGS_RECOVERY = new ColumnIdent("settings",
-                ImmutableList.of("recovery"));
-        public static final ColumnIdent TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = new ColumnIdent("settings",
-                ImmutableList.of("recovery","initial_shards"));
-        public static final ColumnIdent TABLE_SETTINGS_WARMER = new ColumnIdent("settings",
-                ImmutableList.of("warmer"));
-        public static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
-                ImmutableList.of("warmer", "enabled"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
-                ImmutableList.of("translog"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = new ColumnIdent("settings",
-                ImmutableList.of("translog", "flush_threshold_ops"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = new ColumnIdent("settings",
-                ImmutableList.of("translog", "flush_threshold_size"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD = new ColumnIdent("settings",
-                ImmutableList.of("translog", "flush_threshold_period"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH = new ColumnIdent("settings",
-                ImmutableList.of("translog", "disable_flush"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_INTERVAL = new ColumnIdent("settings",
-                ImmutableList.of("translog", "interval"));
-    }
-
     public static class ReferenceInfos {
         public static final ReferenceInfo SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
         public static final ReferenceInfo TABLE_NAME = info(Columns.TABLE_NAME, DataTypes.STRING);
@@ -128,18 +78,18 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION = info(
                 Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, DataTypes.OBJECT);
         public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = info(
-                Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, DataTypes.OBJECT);
+                Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, DataTypes.STRING);
         public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = info(
-                Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.OBJECT);
+                Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER);
 
         public static final ReferenceInfo TABLE_SETTINGS_RECOVERY = info(
                 Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
         public static final ReferenceInfo TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = info(
-                Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, DataTypes.OBJECT);
+                Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, DataTypes.STRING);
         public static final ReferenceInfo TABLE_SETTINGS_WARMER = info(
                 Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT);
         public static final ReferenceInfo TABLE_SETTINGS_WARMER_ENABLED = info(
-                Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.OBJECT);
+                Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN);
     }
 
     private static ReferenceInfo info(ColumnIdent columnIdent, DataType dataType) {
