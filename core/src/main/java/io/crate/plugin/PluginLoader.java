@@ -42,17 +42,14 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 
 public class PluginLoader {
 
     private static final String RESOURCE_PATH = "META-INF/services/";
-    private static PluginLoader INSTANCE;
+    private static Map<Settings, PluginLoader> INSTANCES = new HashMap<>();
 
     private final Settings settings;
     private final Environment environment;
@@ -61,10 +58,12 @@ public class PluginLoader {
     private final ESLogger logger;
 
     public static synchronized PluginLoader getInstance(Settings settings) {
-        if (INSTANCE == null) {
-            INSTANCE = new PluginLoader(settings);
+        PluginLoader instance = INSTANCES.get(settings);
+        if (instance == null) {
+            instance = new PluginLoader(settings);
+            INSTANCES.put(settings, instance);
         }
-        return INSTANCE;
+        return instance;
     }
 
     public PluginLoader(Settings settings) {
@@ -111,6 +110,7 @@ public class PluginLoader {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void loadPluginsIntoClassLoader() {
         File pluginsDirectory = environment.pluginsFile();
         if (!isAccessibleDirectory(pluginsDirectory, logger)) {
@@ -135,7 +135,12 @@ public class PluginLoader {
             return;
         }
 
-        for (File plugin : pluginsDirectory.listFiles()) {
+        File[] plugins = pluginsDirectory.listFiles();
+        if (plugins == null) {
+            return;
+        }
+
+        for (File plugin : plugins) {
             if (!plugin.canRead()) {
                 logger.debug("[{}] is not readable.", plugin.getAbsolutePath());
                 continue;
@@ -153,12 +158,16 @@ public class PluginLoader {
 
                 // gather files to add
                 List<File> libFiles = Lists.newArrayList();
-                if (plugin.listFiles() != null) {
-                    libFiles.addAll(Arrays.asList(plugin.listFiles()));
+                File[] pluginFiles = plugin.listFiles();
+                if (pluginFiles != null) {
+                    libFiles.addAll(Arrays.asList(pluginFiles));
                 }
                 File libLocation = new File(plugin, "lib");
-                if (libLocation.exists() && libLocation.isDirectory() && libLocation.listFiles() != null) {
-                    libFiles.addAll(Arrays.asList(libLocation.listFiles()));
+                if (libLocation.exists() && libLocation.isDirectory()) {
+                    File[] pluginLibFiles = libLocation.listFiles();
+                    if (pluginLibFiles != null) {
+                        libFiles.addAll(Arrays.asList(pluginLibFiles));
+                    }
                 }
 
                 // if there are jars in it, add it as well
