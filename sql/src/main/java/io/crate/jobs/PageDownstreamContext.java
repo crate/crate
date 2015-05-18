@@ -89,7 +89,8 @@ public class PageDownstreamContext implements ExecutionSubContext {
         synchronized (lock) {
             LOGGER.trace("setBucket: {}", bucketIdx);
             if (allFuturesSet.get(bucketIdx)) {
-                throw new IllegalStateException("May not set the same bucket of a page more than once");
+                pageDownstream.fail(new IllegalStateException("May not set the same bucket of a page more than once"));
+                return;
             }
 
             if (pageEmpty()) {
@@ -114,7 +115,8 @@ public class PageDownstreamContext implements ExecutionSubContext {
         synchronized (lock) {
             LOGGER.trace("failure: bucket: {} {}", bucketIdx, throwable);
             if (allFuturesSet.get(bucketIdx)) {
-                throw new IllegalStateException("May not set the same bucket of a page more than once");
+                pageDownstream.fail(new IllegalStateException("May not set the same bucket %d of a page more than once"));
+                return;
             }
             if (pageEmpty()) {
                 LOGGER.trace("calling nextPage");

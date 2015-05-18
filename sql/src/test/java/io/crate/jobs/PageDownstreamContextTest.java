@@ -27,24 +27,41 @@ import io.crate.core.collections.SingleRowBucket;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.test.integration.CrateUnitTest;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.notNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 public class PageDownstreamContextTest extends CrateUnitTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Exception {
-        expectedException.expect(IllegalStateException.class);
-        PageDownstreamContext ctx = new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 3);
+        final AtomicReference<Throwable> ref = new AtomicReference<>();
+
+        PageDownstream pageDownstream = mock(PageDownstream.class);
+        doAnswer(new Answer() {
+            @Override
+            public Void answer(InvocationOnMock invocation) throws Throwable {
+                ref.set((Throwable) invocation.getArguments()[0]);
+                return null;
+            }
+        }).when(pageDownstream).fail((Throwable)notNull());
+
+        PageDownstreamContext ctx = new PageDownstreamContext(pageDownstream, new Streamer[0], 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
+
+        Throwable t = ref.get();
+        assertThat(t, instanceOf(IllegalStateException.class));
+        assertThat(t.getMessage(), is("May not set the same bucket of a page more than once"));
     }
 }
