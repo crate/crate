@@ -87,11 +87,6 @@ import static org.junit.Assert.assertFalse;
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
 public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
@@ -142,10 +137,10 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
         IndexService indexService;
         try {
-            IndicesService instanceFromNode = cluster.getInstanceFromNode(NODE2, IndicesService.class);
+            IndicesService instanceFromNode = CLUSTER.getInstance(IndicesService.class, NODE2);
             indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
         } catch (IndexMissingException e) {
-            IndicesService instanceFromNode = cluster.getInstanceFromNode(NODE1, IndicesService.class);
+            IndicesService instanceFromNode = CLUSTER.getInstance(IndicesService.class, NODE1);
             indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
         }
 
@@ -200,7 +195,9 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
         int jobSearchContextId = 0;
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        JobCollectContext collectContext = new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, collectingProjector);
+        JobCollectContext collectContext = new JobCollectContext(jobId, node,
+                CLUSTER.getInstance(MapSideDataCollectOperation.class),
+                RAM_ACCOUNTING_CONTEXT, collectingProjector);
         builder.addSubContext(node.executionNodeId(), collectContext);
         collectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, collectContext, 0);

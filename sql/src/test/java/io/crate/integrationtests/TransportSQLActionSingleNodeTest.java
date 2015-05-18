@@ -22,10 +22,12 @@
 package io.crate.integrationtests;
 
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Constants;
 import io.crate.action.sql.*;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,7 +40,7 @@ import java.util.concurrent.ExecutionException;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
 
     static {
@@ -176,12 +178,8 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat(res.results()[0].rowCount(), is(1L));
         assertThat(res.results()[1].rowCount(), is(1L));
 
-        waitNoPendingTasksOnAll(); // wait for schema update
-        int retries = 0;
-        do {
-            execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
-            retries++;
-        } while (response.rowCount() == 0 && retries < 10);
+        waitForConcreteMappingsOnAll("foo", Constants.DEFAULT_MAPPING_TYPE, "bar");
+        execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
         assertThat((String)response.rows()[0][0], is("long_array"));
     }
 
@@ -227,7 +225,15 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertResponseWithTypes("create blob table blablob2 clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         assertResponseWithTypes("drop blob table blablob2");
-        assertResponseWithTypes("create ANALYZER \"german_snowball\" extends snowball WITH (language='german')");
+
+        try {
+            assertResponseWithTypes("create ANALYZER \"german_snowball\" extends snowball WITH (language='german')");
+        } finally {
+            client().admin().cluster().prepareUpdateSettings()
+                    .setPersistentSettingsToRemove(ImmutableSet.of("crate.analysis.custom.analyzer.german_snowball"))
+                    .setTransientSettingsToRemove(ImmutableSet.of("crate.analysis.custom.analyzer.german_snowball"))
+                    .execute().actionGet();
+        }
     }
 
     private void assertResponseWithTypes(String stmt) {
@@ -323,6 +329,6 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     @After
     public void tearDown() throws Exception {
         super.tearDown();
-        execute("SET GLOBAL stats.enabled=false");
+        execute("reset GLOBAL stats.enabled");
     }
 }

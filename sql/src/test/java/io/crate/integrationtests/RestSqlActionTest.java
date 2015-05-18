@@ -23,14 +23,12 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.junit.Before;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class RestSqlActionTest extends SQLTransportIntegrationTest {
 
     @Before

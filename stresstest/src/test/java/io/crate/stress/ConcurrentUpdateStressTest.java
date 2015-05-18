@@ -25,7 +25,6 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.concurrent.Threaded;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -35,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
 public class ConcurrentUpdateStressTest extends AbstractIntegrationStressTest {
 
     private String[] values;

@@ -144,7 +144,7 @@ public class Setup {
             " age %s," +
             " birthdate timestamp," +
             " name string," +
-            " details object," +
+            " details object as (job string)," +
             " details_ignored object(ignored)" +
             ")", numericType));
         transportExecutor.ensureYellowOrGreen();

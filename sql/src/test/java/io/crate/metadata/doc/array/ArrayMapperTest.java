@@ -23,7 +23,6 @@ package io.crate.metadata.doc.array;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.google.common.base.Joiner;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateSingleNodeTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.ElasticsearchParseException;
@@ -54,7 +53,6 @@ import java.io.IOException;
 
 import static org.hamcrest.Matchers.*;
 
-@ThreadLeakFilters(defaultFilters = true, filters = { CrateIntegrationTest.TestThreadFilter.class })
 public class ArrayMapperTest extends CrateSingleNodeTest {
 
     public static final String INDEX = "my_index";

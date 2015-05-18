@@ -30,7 +30,6 @@ import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.test.ElasticsearchSingleNodeTest;
 import org.junit.After;
 
-@ThreadLeakFilters(defaultFilters = true, filters = { CrateIntegrationTest.TestThreadFilter.class } )
 public class CrateSingleNodeTest extends ElasticsearchSingleNodeTest {
 
     @Override

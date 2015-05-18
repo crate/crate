@@ -38,8 +38,6 @@ import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.test.integration.CrateIntegrationTest;
-import io.crate.test.integration.CrateTestCluster;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.After;
@@ -48,7 +46,6 @@ import org.junit.Before;
 import java.util.ArrayList;
 import java.util.List;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
 
     Setup setup = new Setup(sqlExecutor);
@@ -92,9 +89,8 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Before
     public void transportSetUp() {
-        CrateTestCluster cluster = cluster();
-        executor = cluster.getInstance(TransportExecutor.class);
-        docSchemaInfo = cluster.getInstance(DocSchemaInfo.class);
+        executor = internalCluster().getInstance(TransportExecutor.class);
+        docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class);
     }
 
     @After

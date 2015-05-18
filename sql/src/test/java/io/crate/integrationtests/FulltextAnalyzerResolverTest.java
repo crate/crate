@@ -22,22 +22,22 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
@@ -52,7 +52,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
     @Before
     public void AnalyzerServiceSetup() {
-        fulltextAnalyzerResolver = cluster().getInstance(FulltextAnalyzerResolver.class);
+        fulltextAnalyzerResolver = internalCluster().getInstance(FulltextAnalyzerResolver.class);
     }
 
     @AfterClass
@@ -60,6 +60,23 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         synchronized (FulltextAnalyzerResolverTest.class) {
             fulltextAnalyzerResolver = null;
         }
+    }
+
+    @Override
+    @After
+    public void tearDown() throws Exception {
+        Set<String> settingsToRemove = Sets.filter(getPersistentClusterSettings().getAsMap().keySet(), new Predicate<String>() {
+            @Override
+            public boolean apply(String input) {
+                return input.startsWith("crate");
+            }
+        });
+        if (!settingsToRemove.isEmpty()) {
+            client().admin().cluster().prepareUpdateSettings()
+                    .setTransientSettingsToRemove(settingsToRemove)
+                    .setPersistentSettingsToRemove(settingsToRemove).execute().actionGet();
+        }
+        super.tearDown();
     }
 
     public Settings getPersistentClusterSettings() {

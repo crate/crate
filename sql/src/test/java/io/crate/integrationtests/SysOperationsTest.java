@@ -48,7 +48,7 @@ public class SysOperationsTest extends ClassLifecycleIntegrationTest {
 
     @After
     public void after() {
-        executor.exec("set global stats.enabled = false");
+        executor.exec("reset global stats.enabled");
     }
 
     @Test
@@ -80,7 +80,7 @@ public class SysOperationsTest extends ClassLifecycleIntegrationTest {
         executor.exec("select * from sys.nodes");
         SQLResponse response = executor.exec("select _node['name'], id from sys.operations limit 1");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0].toString(), startsWith("node"));
+        assertThat(response.rows()[0][0].toString(), startsWith("shared"));
     }
 
 

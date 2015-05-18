@@ -33,10 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractIntegrationStressTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public ThreadedExecutionRule threadedExecutionRule = new ThreadedExecutionRule();
 

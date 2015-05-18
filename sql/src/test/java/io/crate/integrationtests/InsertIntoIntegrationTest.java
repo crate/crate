@@ -23,9 +23,9 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,12 +37,8 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
 public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     private Setup setup = new Setup(sqlExecutor);
 
@@ -566,23 +562,22 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
         execute("create table nodes (count integer, name string) with (number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into nodes (count, name) (select count(*), name from sys.nodes group by name)");
         refresh();
         execute("select count, name from nodes order by name");
         assertThat(response.rowCount(), is(2L));
         assertThat((int)response.rows()[0][0], is(1));
-        assertThat((String)response.rows()[0][1], is("node_0"));
+        assertThat((String)response.rows()[0][1], is("node_s0"));
         assertThat((int)response.rows()[1][0], is(1));
-        assertThat((String)response.rows()[1][1], is("node_1"));
+        assertThat((String)response.rows()[1][1], is("node_s1"));
     }
 
     @Test
     public void testInsertFromSubQueryDistributedGroupBy() throws Exception {
         this.setup.setUpCharacters();
-        waitNoPendingTasksOnAll();
         execute("create table t (id int, name string)");
-        ensureGreen();
+        ensureYellow();
         execute("insert into t (id, name) (select id, name from characters group by id, name)");
         assertThat(response.rowCount(), is(4L));
         refresh();
@@ -638,6 +633,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause");
         execute("create table users (name string)");
+        ensureYellow();
         execute("insert into users (name) (select name from users where _version = 1)");
     }
 
@@ -647,12 +643,14 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 "  name string, " +
                 "  zipcode string, " +
                 "  city string" +
-                ") partitioned by (city) with (number_of_replicas=0)");
+                ") clustered into 5 shards " +
+                "partitioned by (city) with (number_of_replicas=0)");
         execute("create table custom.destination (" +
                 "  name string, " +
                 "  zipcode string, " +
                 "  city string" +
-                ") partitioned by (zipcode) with (number_of_replicas=0)");
+                ") clustered into 5 shards " +
+                "partitioned by (zipcode) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into custom.source (name, zipcode, city) values (?, ?, ?)", new Object[][]{
                 {"Schulz", "10243", "Berlin"},

@@ -25,12 +25,16 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.logging.ESLoggerFactory;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.internal.InternalNode;
+import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.SettingsSource;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import java.io.IOException;
 import java.util.Random;
 
 import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
@@ -43,32 +47,47 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTi
  * This will be a lot faster then having to wipe the state after each test method.
  * The downside is that the tests aren't as isolated and if data is created it might affect other tests.
  *
- * For all other Integration test purposes use {@link io.crate.test.integration.CrateIntegrationTest}
  */
 @ThreadLeakScope(value = ThreadLeakScope.Scope.NONE)
 public class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
 
-
-    static {
-        ESLoggerFactory.getRootLogger().setLevel("WARN");
-        Loggers.getLogger("org.elasticsearch.http").setLevel("INFO");
-    }
-
-    public static CrateTestCluster GLOBAL_CLUSTER;
+    public static InternalTestCluster GLOBAL_CLUSTER;
     private static Random random;
 
+    public static final SettingsSource SETTINGS_SOURCE = new SettingsSource() {
+        @Override
+        public Settings node(int nodeOrdinal) {
+            return ImmutableSettings.builder()
+                    .put(InternalNode.HTTP_ENABLED, false)
+                    .put("plugin.types", "io.crate.plugin.CrateCorePlugin").build();
+        }
+
+        @Override
+        public Settings transportClient() {
+            return ImmutableSettings.EMPTY;
+        }
+    };
+
     @BeforeClass
-    public synchronized static void beforeClass() {
+    public synchronized static void beforeClass() throws IOException {
         long CLUSTER_SEED = System.nanoTime();
         if (random == null) {
             random = new Random(CLUSTER_SEED);
         }
         if (GLOBAL_CLUSTER == null) {
-            GLOBAL_CLUSTER = new CrateTestCluster(
+            GLOBAL_CLUSTER = new InternalTestCluster(
                     CLUSTER_SEED,
-                    CrateTestCluster.clusterName("shared", Integer.toString(CHILD_JVM_ID), CLUSTER_SEED));
+                    2,
+                    2,
+                    InternalTestCluster.clusterName("shared", Integer.toString(CHILD_JVM_ID), CLUSTER_SEED),
+                    SETTINGS_SOURCE,
+                    0,
+                    false,
+                    CHILD_JVM_ID,
+                    "shared"
+            );
         }
-        GLOBAL_CLUSTER.beforeTest(random);
+        GLOBAL_CLUSTER.beforeTest(random, 0.0D);
     }
 
     @AfterClass
@@ -76,6 +95,7 @@ public class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
         if (GLOBAL_CLUSTER != null) {
             GLOBAL_CLUSTER.client().admin().indices().prepareDelete("_all").execute().get();
             GLOBAL_CLUSTER.afterTest();
+            GLOBAL_CLUSTER.close();
             GLOBAL_CLUSTER = null;
         }
 

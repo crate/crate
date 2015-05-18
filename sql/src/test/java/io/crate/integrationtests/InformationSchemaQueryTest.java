@@ -21,17 +21,19 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.junit.Test;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testIgnoreClosedTables() throws Exception {
-        execute("create table t3 (col1 integer, col2 string) with (number_of_replicas=8)");
-        execute("create table t1 (col1 integer, col2 string) with (number_of_replicas=0)");
+        execute("create table t3 (col1 integer, col2 string) " +
+                "clustered into 5 shards " +
+                "with (number_of_replicas=8)");
+        execute("create table t1 (col1 integer, col2 string) " +
+                "clustered into 5 shards " +
+                "with (number_of_replicas=0)");
 
         client().admin().indices().close(new CloseIndexRequest("t3"));
         ensureGreen();

@@ -38,13 +38,13 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.test.integration.CrateIntegrationTest;
-import io.crate.test.integration.CrateTestCluster;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,12 +52,8 @@ import java.util.*;
 
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     private MapSideDataCollectOperation operation;
     private Functions functions;
@@ -66,10 +62,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Before
     public void prepare() {
-        CrateTestCluster cluster = cluster();
-        operation = cluster.getInstanceFromFirstNode(MapSideDataCollectOperation.class);
-        functions = cluster.getInstanceFromFirstNode(Functions.class);
-        localNodeId = cluster.getInstanceFromFirstNode(ClusterService.class).state().nodes().localNodeId();
+        operation = internalCluster().getInstance(MapSideDataCollectOperation.class);
+        functions = internalCluster().getInstance(Functions.class);
+        localNodeId = internalCluster().getInstance(ClusterService.class).state().nodes().localNodeId();
     }
 
     @Test
@@ -83,7 +78,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
-        assertTrue(((BytesRef) result.iterator().next().get(0)).utf8ToString().startsWith("shared-"));
+        assertThat(((BytesRef) result.iterator().next().get(0)).utf8ToString(), Matchers.startsWith("SUITE-"));
     }
 
     private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
@@ -100,7 +95,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         ).map());
         CollectNode collectNode = new CollectNode(0, "tablesCollect", routing);
         collectNode.jobId(UUID.randomUUID());
-        InformationSchemaInfo schemaInfo =  cluster().getInstance(InformationSchemaInfo.class);
+        InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
         List<Symbol> toCollect = new ArrayList<>();
         for (ReferenceInfo info : tablesTableInfo.columns()) {
@@ -130,7 +125,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         ).map());
         CollectNode collectNode = new CollectNode(0, "columnsCollect", routing);
         collectNode.jobId(UUID.randomUUID());
-        InformationSchemaInfo schemaInfo =  cluster().getInstance(InformationSchemaInfo.class);
+        InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
         List<Symbol> toCollect = new ArrayList<>();
         for (ReferenceInfo info : tableInfo.columns()) {

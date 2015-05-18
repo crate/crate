@@ -25,13 +25,13 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.FileSystemUtils;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Locale;
 
 public class BlobEnvironment {
@@ -39,7 +39,6 @@ public class BlobEnvironment {
     public static final String SETTING_BLOBS_PATH = "blobs.path";
     public static final String BLOBS_SUB_PATH = "blobs";
 
-    private final Settings settings;
     private final NodeEnvironment nodeEnvironment;
     private final ClusterName clusterName;
 
@@ -47,10 +46,7 @@ public class BlobEnvironment {
     private File blobsPath;
 
     @Inject
-    public BlobEnvironment(Settings settings,
-                           NodeEnvironment nodeEnvironment,
-                           ClusterName clusterName) {
-        this.settings = settings;
+    public BlobEnvironment(NodeEnvironment nodeEnvironment, ClusterName clusterName) {
         this.nodeEnvironment = nodeEnvironment;
         this.clusterName = clusterName;
     }
@@ -80,7 +76,7 @@ public class BlobEnvironment {
      */
     public File indexLocation(Index index, File path) {
         File indexLocation = nodeEnvironment.indexLocations(index)[0];
-        String dataPath = settings.getAsArray("path.data")[0];
+        String dataPath = nodeEnvironment.nodeDataPaths()[0].toString();
         String indexLocationSuffix = indexLocation.getAbsolutePath().substring(dataPath.length());
         return new File(path, indexLocationSuffix);
     }
@@ -100,9 +96,9 @@ public class BlobEnvironment {
      *
      */
     public File shardLocation(ShardId shardId, File path) {
-        File shardLocation = nodeEnvironment.shardLocations(shardId)[0];
-        String dataPath = settings.getAsArray("path.data")[0];
-        String shardLocationSuffix = shardLocation.getAbsolutePath().substring(dataPath.length());
+        Path shardLocation = nodeEnvironment.shardPaths(shardId)[0];
+        Path dataPath = nodeEnvironment.nodeDataPaths()[0];
+        String shardLocationSuffix = shardLocation.toAbsolutePath().toString().substring(dataPath.toString().length());
         return new File(new File(path, shardLocationSuffix), BLOBS_SUB_PATH);
     }
 

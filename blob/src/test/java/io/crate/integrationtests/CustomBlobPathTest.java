@@ -23,50 +23,63 @@ package io.crate.integrationtests;
 
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
-import org.junit.AfterClass;
+import org.elasticsearch.node.internal.InternalNode;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 
 import static org.hamcrest.CoreMatchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.TEST, numNodes = 2)
-public class CustomBlobPathTest extends CrateIntegrationTest {
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, scope = ElasticsearchIntegrationTest.Scope.TEST)
+public class CustomBlobPathTest extends ElasticsearchIntegrationTest {
+
+    @ClassRule
+    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static File globalBlobPath;
+    private String node1;
+    private String node2;
+
+    @BeforeClass
+    public static void pathSetup() throws Exception {
+        globalBlobPath = temporaryFolder.newFolder();
+    }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
-        builder.put(BlobEnvironment.SETTING_BLOBS_PATH, globalBlobPath.getAbsolutePath());
-        return builder.build();
+        return ImmutableSettings.settingsBuilder()
+                .put(super.nodeSettings(nodeOrdinal))
+                .put("plugin.types", CrateCorePlugin.class.getName())
+                .put(BlobEnvironment.SETTING_BLOBS_PATH, globalBlobPath.getAbsolutePath())
+                .put(InternalNode.HTTP_ENABLED, true)
+                .build();
     }
 
-    @BeforeClass
-    public static void setup() throws Exception {
-        globalBlobPath = Files.createTempDirectory(null).toFile();
-    }
-
-    @AfterClass
-    public static void cleanUpDirectories() throws IOException {
-        FileSystemUtils.deleteRecursively(globalBlobPath);
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        String[] nodeNames = internalCluster().getNodeNames();
+        node1 = nodeNames[0];
+        node2 = nodeNames[1];
     }
 
     @Test
     public void testGlobalBlobPath() throws Exception {
-        BlobIndices blobIndices = cluster().getInstance(BlobIndices.class, "node_0");
-        BlobEnvironment blobEnvironment = cluster().getInstance(BlobEnvironment.class, "node_0");
-        BlobEnvironment blobEnvironment2 = cluster().getInstance(BlobEnvironment.class, "node_1");
+        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class, node1);
+        BlobEnvironment blobEnvironment = internalCluster().getInstance(BlobEnvironment.class, node1);
+        BlobEnvironment blobEnvironment2 = internalCluster().getInstance(BlobEnvironment.class, node2);
         assertThat(blobEnvironment.blobsPath().getAbsolutePath(), is(globalBlobPath.getAbsolutePath()));
 
         Settings indexSettings = ImmutableSettings.builder()
@@ -90,12 +103,12 @@ public class CustomBlobPathTest extends CrateIntegrationTest {
 
     @Test
     public void testPerTableBlobPath() throws Exception {
-        BlobIndices blobIndices = cluster().getInstance(BlobIndices.class, "node_0");
-        BlobEnvironment blobEnvironment = cluster().getInstance(BlobEnvironment.class, "node_0");
-        BlobEnvironment blobEnvironment2 = cluster().getInstance(BlobEnvironment.class, "node_1");
+        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class, node1);
+        BlobEnvironment blobEnvironment = internalCluster().getInstance(BlobEnvironment.class, node1);
+        BlobEnvironment blobEnvironment2 = internalCluster().getInstance(BlobEnvironment.class, node2);
         assertThat(blobEnvironment.blobsPath().getAbsolutePath(), is(globalBlobPath.getAbsolutePath()));
 
-        File tempBlobPath = Files.createTempDirectory(null).toFile();
+        File tempBlobPath = temporaryFolder.newFolder();
         Settings indexSettings = ImmutableSettings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
@@ -130,8 +143,9 @@ public class CustomBlobPathTest extends CrateIntegrationTest {
         loc2 = blobEnvironment2.indexLocation(new Index(".blob_test2"));
         assertFalse(loc1.exists());
         assertFalse(loc2.exists());
-        // no index using the blobs path anymore, should be deleted
-        assertFalse(tempBlobPath.exists());
+
+        assertThat(tempBlobPath.exists(), is(true));
+        // TODO: add assertion that the folder is empty
 
         blobIndices.createBlobTable("test", indexSettings).get();
         ensureGreen();
@@ -144,8 +158,5 @@ public class CustomBlobPathTest extends CrateIntegrationTest {
         // blobs path still exists because a user defined file exists at the path
         assertTrue(tempBlobPath.exists());
         assertTrue(customFile.exists());
-
-        FileSystemUtils.deleteRecursively(tempBlobPath);
     }
-
 }

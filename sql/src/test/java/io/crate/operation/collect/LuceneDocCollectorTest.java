@@ -40,7 +40,6 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -54,6 +53,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -69,7 +69,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
+@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 1)
 public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     private final static Integer PAGE_SIZE = 20;
@@ -92,9 +92,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 " countryName string," +
                 " population integer" +
                 ") clustered into 1 shards with (number_of_replicas=0)");
-        refresh(client());
+        refresh();
         generateData();
-        IndicesService instanceFromNode = cluster().getInstanceFromFirstNode(IndicesService.class);
+        IndicesService instanceFromNode = internalCluster().getInstance(IndicesService.class);
         IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
 
         shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);
@@ -132,7 +132,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         }
         BulkResponse response = client().bulk(bulkRequest).actionGet();
         assertFalse(response.hasFailures());
-        refresh(client());
+        refresh();
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect) throws Exception{
@@ -321,7 +321,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         execute("refresh table test");
         collectingProjector.rows.clear();
 
-        IndicesService instanceFromNode = cluster().getInstanceFromFirstNode(IndicesService.class);
+        IndicesService instanceFromNode = internalCluster().getInstance(IndicesService.class);
         IndexService indexService = instanceFromNode.indexServiceSafe("test");
 
         ShardCollectService shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);

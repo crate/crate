@@ -22,23 +22,32 @@
 package io.crate.integrationtests;
 
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.junit.After;
 import org.junit.Test;
 
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.TEST)
+@ElasticsearchIntegrationTest.ClusterScope
 public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal));
         builder.put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "42s");
+        builder.put("gateway.type", "local");
         return builder.build();
+    }
+
+    @Override
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+        execute("reset global bulk.partition_creation_timeout, bulk.request_timeout");
     }
 
     @Test
@@ -104,7 +113,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(2, stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
         assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
 
-        cluster().fullRestart();
+        internalCluster().fullRestart();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
@@ -132,7 +141,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals("1s", bulk.get(CrateSettings.BULK_REQUEST_TIMEOUT.name()));
         assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
 
-        cluster().fullRestart();
+        internalCluster().fullRestart();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());

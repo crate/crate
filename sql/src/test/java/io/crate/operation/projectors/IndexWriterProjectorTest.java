@@ -37,7 +37,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
@@ -52,7 +51,6 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
@@ -70,10 +68,10 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         CollectExpression[] collectExpressions = new CollectExpression[]{sourceInput};
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
-                cluster().getInstance(ClusterService.class),
+                internalCluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                cluster().getInstance(TransportActionProvider.class),
-                cluster().getInstance(BulkRetryCoordinatorPool.class),
+                internalCluster().getInstance(TransportActionProvider.class),
+                internalCluster().getInstance(BulkRetryCoordinatorPool.class),
                 new TableIdent(null, "bulk_import"),
                 null,
                 new Reference(new ReferenceInfo(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING)),

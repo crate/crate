@@ -301,8 +301,8 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         assertEquals(1L, response.rowCount());
         Map<String, Object> fullNode = (Map<String, Object>) response.rows()[0][0];
         String nodeName = response.rows()[0][1].toString();
-        assertEquals("node_0", nodeName);
-        assertEquals("node_0", fullNode.get("name"));
+        assertEquals("shared0", nodeName);
+        assertEquals("shared0", fullNode.get("name"));
     }
 
     @Test
@@ -315,13 +315,10 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
                     "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name'] nulls last"
             );
             String nodeName = response.rows()[0][0].toString();
-            assertEquals("node_0", nodeName);
+            assertEquals("shared0", nodeName);
             assertThat(response.rows()[8][0], is(nullValue()));
         } finally {
-            transportExecutor.exec(
-                    "drop table users"
-            );
-            transportExecutor.ensureGreen();
+            transportExecutor.exec("drop table users");
         }
     }
 }

@@ -22,7 +22,6 @@
 package io.crate.testing;
 
 import io.crate.action.sql.*;
-import io.crate.test.integration.CrateTestCluster;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
@@ -33,6 +32,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.test.TestCluster;
 import org.hamcrest.Matchers;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -43,7 +43,7 @@ public class SQLTransportExecutor {
     private static final ESLogger logger = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
 
-    public static SQLTransportExecutor create(final CrateTestCluster testCluster) {
+    public static SQLTransportExecutor create(final TestCluster testCluster) {
         return new SQLTransportExecutor(new ClientProvider() {
             @Override
             public Client client() {

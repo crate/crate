@@ -26,8 +26,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,14 +37,14 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
     private ReferenceInfos referenceInfos;
 
     @Before
     public void setUpService() {
-        referenceInfos = cluster().getInstance(ReferenceInfos.class);
+        referenceInfos = internalCluster().getInstance(ReferenceInfos.class);
     }
 
     @Test
@@ -54,7 +54,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
                   "name string, " +
                   "details object(dynamic) as (size byte, created timestamp)" +
                 ") clustered into 10 shards with (number_of_replicas=1)");
-        ensureGreen();
+        ensureYellow();
 
         DocTableInfo ti = (DocTableInfo) referenceInfos.getTableInfo(new TableIdent(null, "t1"));
         assertThat(ti.ident().name(), is("t1"));
@@ -105,7 +105,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         request.addAlias("entsafter", "terminator");
         request.addAlias("entsafter", "transformer");
         client().admin().indices().aliases(request).actionGet();
-        ensureGreen();
+        ensureYellow();
 
         TableInfo entsafterTable = referenceInfos.getTableInfo(new TableIdent(null, "entsafter"));
         assertNotNull(entsafterTable);
@@ -129,7 +129,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     public void testShardsTable() throws Exception {
         execute("create table t2 (id int primary key) clustered into 4 shards with(number_of_replicas=0)");
         execute("create table t3 (id int primary key) clustered into 8 shards with(number_of_replicas=0)");
-        ensureGreen();
+        ensureYellow();
 
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "shards"));
         Routing routing = ti.getRouting(null, null);

@@ -87,6 +87,7 @@ public class CreateTableTask extends AbstractChainedTask {
                 .create(true)
                 .settings(planNode.settings())
                 .template(planNode.templateIndexMatch().get())
+                .order(100)
                 .alias(new Alias(planNode.tableIdent().esName()));
     }
 

@@ -21,10 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Test;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

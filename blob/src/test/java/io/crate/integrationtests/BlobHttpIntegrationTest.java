@@ -25,7 +25,8 @@ package io.crate.integrationtests;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.plugin.CrateCorePlugin;
+import io.crate.rest.CrateRestFilter;
 import org.apache.http.Header;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.*;
@@ -39,6 +40,8 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.node.internal.InternalNode;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -50,20 +53,30 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-public class BlobHttpIntegrationTest extends CrateIntegrationTest {
+public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
 
     protected InetSocketAddress address;
     protected InetSocketAddress address2;
 
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
 
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return ImmutableSettings.settingsBuilder()
+                .put(super.nodeSettings(nodeOrdinal))
+                .put("plugin.types", CrateCorePlugin.class.getName())
+                .put(InternalNode.HTTP_ENABLED, true)
+                .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
+                .build();
+    }
+
     @Before
     public void setup() throws ExecutionException, InterruptedException {
-        Iterable<HttpServerTransport> transports = cluster().getInstances(HttpServerTransport.class);
+        Iterable<HttpServerTransport> transports = internalCluster().getInstances(HttpServerTransport.class);
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
         address = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
         address2 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
-        BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
+        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
 
         Settings indexSettings = ImmutableSettings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)

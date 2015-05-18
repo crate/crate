@@ -27,8 +27,11 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.search.suggest.CustomSuggesterPlugin;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -38,9 +41,16 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
 
     private HttpPost httpPost;
 
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return ImmutableSettings.settingsBuilder()
+                .put(super.nodeSettings(nodeOrdinal))
+                .put("http.enabled", true).build();
+    }
+
     @Before
     public void setup() {
-        HttpServerTransport httpServerTransport = cluster().getInstance(HttpServerTransport.class);
+        HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = ((InetSocketTransportAddress) httpServerTransport.boundAddress().publishAddress())
                 .address();
         httpPost = new HttpPost(String.format("http://%s:%s/_sql?error_trace", address.getHostName(), address.getPort()));

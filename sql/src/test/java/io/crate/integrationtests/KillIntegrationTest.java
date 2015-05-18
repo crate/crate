@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.Exceptions;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -39,7 +38,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -93,7 +91,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
             Throwable exception = thrown.get();
             if (exception != null) {
                 assertThat(exception, instanceOf(SQLActionException.class));
-                assertThat(((SQLActionException)exception).stackTrace(), containsString("java.util.concurrent.CancellationException"));
+                assertThat(((SQLActionException)exception).stackTrace(), containsString("Job killed by user"));
             }
         } finally {
             executor.shutdownNow();

@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
@@ -31,7 +30,6 @@ import java.util.Arrays;
 
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

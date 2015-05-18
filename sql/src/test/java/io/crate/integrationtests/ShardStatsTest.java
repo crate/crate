@@ -22,17 +22,17 @@
 package io.crate.integrationtests;
 
 import io.crate.blob.v2.BlobIndices;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -69,7 +69,9 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByIncludingUnassignedShards() throws Exception {
-        execute("create table locations (id integer primary key, name string) with(number_of_replicas=2)");
+        execute("create table locations (id integer primary key, name string) " +
+                "clustered into 5 shards " +
+                "with(number_of_replicas=2)");
         ensureYellow();
 
         execute("select count(*), state, \"primary\" from sys.shards " +
@@ -83,7 +85,9 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountIncludingUnassignedShards() throws Exception {
-        execute("create table locations (id integer primary key, name string) with(number_of_replicas=2)");
+        execute("create table locations (id integer primary key, name string) " +
+                "clustered into 5 shards " +
+                "with(number_of_replicas=2)");
         ensureYellow();
 
         execute("select count(*) from sys.shards where schema_name='doc' AND table_name='locations'");
@@ -93,7 +97,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testTableNameBlobTable() throws Exception {
-        BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
+        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
         Settings indexSettings = ImmutableSettings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)

@@ -21,7 +21,6 @@
 
 package io.crate.test.integration;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.lucene.util.AbstractRandomizedTest;
@@ -32,7 +31,6 @@ import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.mockito.MockitoAnnotations;
 
-@ThreadLeakFilters(defaultFilters = true, filters={CrateIntegrationTest.TestThreadFilter.class})
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
 public class CrateUnitTest extends AbstractRandomizedTest {

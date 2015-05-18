@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,7 +34,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
+@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 1)
 public class BulkSettingsTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -64,6 +64,7 @@ public class BulkSettingsTest extends SQLTransportIntegrationTest {
         } finally {
             // wait until indices creation has been finished (with timeout)
             waitNoPendingTasksOnAll();
+            execute("reset global bulk.partition_creation_timeout");
         }
     }
 }

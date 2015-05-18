@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutorService;
@@ -31,7 +30,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

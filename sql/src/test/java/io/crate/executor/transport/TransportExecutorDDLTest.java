@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
@@ -34,11 +35,11 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.CreateTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -49,6 +50,7 @@ import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,7 +63,6 @@ import static org.elasticsearch.common.settings.ImmutableSettings.Builder.EMPTY_
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     static {
@@ -110,7 +111,17 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Before
     public void transportSetup() {
-        executor = cluster().getInstance(TransportExecutor.class);
+        executor = internalCluster().getInstance(TransportExecutor.class);
+    }
+
+    @Override
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+        client().admin().cluster().prepareUpdateSettings()
+                .setPersistentSettingsToRemove(ImmutableSet.of("persistent.level"))
+                .setTransientSettingsToRemove(ImmutableSet.of("persistent.level", "transient.uptime"))
+                .execute().actionGet();
     }
 
     @Test
@@ -253,12 +264,12 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     public void testClusterUpdateSettingsTask() throws Exception {
         final String persistentSetting = "persistent.level";
         final String transientSetting = "transient.uptime";
+
         // allow our settings to be updated (at all nodes)
-        DynamicSettings dynamicSettings;
-        for (int i = 0; i < cluster().size(); i++) {
-            dynamicSettings = cluster().getInstance(Key.get(DynamicSettings.class, ClusterDynamicSettings.class), "node_" + i);
-            dynamicSettings.addDynamicSetting(persistentSetting);
-            dynamicSettings.addDynamicSetting(transientSetting);
+        Key<DynamicSettings> dynamicSettingsKey = Key.get(DynamicSettings.class, ClusterDynamicSettings.class);
+        for (DynamicSettings settings : internalCluster().getInstances(dynamicSettingsKey)) {
+            settings.addDynamicSetting(persistentSetting);
+            settings.addDynamicSetting(transientSetting);
         }
 
         // Update persistent only
@@ -268,12 +279,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(persistentSettings);
 
-        Plan plan = new IterablePlan(node);
+        Bucket objects = executePlanNode(node);
 
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));
         assertEquals("panic", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
 
@@ -283,13 +290,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .build();
 
         node = new ESClusterUpdateSettingsNode(EMPTY_SETTINGS, transientSettings);
+        objects = executePlanNode(node);
 
-        plan = new IterablePlan(node);
-
-        job = executor.newJob(plan);
-        futures = executor.execute(job);
-        listenableFuture = Futures.allAsList(futures);
-        objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));
         assertEquals("123", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
 
@@ -302,16 +304,19 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .build();
 
         node = new ESClusterUpdateSettingsNode(persistentSettings, transientSettings);
+        objects = executePlanNode(node);
 
-        plan = new IterablePlan(node);
-
-        job = executor.newJob(plan);
-        futures = executor.execute(job);
-        listenableFuture = Futures.allAsList(futures);
-        objects = listenableFuture.get().get(0).rows();
         assertThat(objects, contains(isRow(1L)));
         assertEquals("normal", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
         assertEquals("243", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
+    }
+
+    private Bucket executePlanNode(PlanNode node) throws InterruptedException, java.util.concurrent.ExecutionException {
+        Plan plan = new IterablePlan(node);
+        Job job = executor.newJob(plan);
+        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
+        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
+        return listenableFuture.get().get(0).rows();
     }
 
     @Test
@@ -354,12 +359,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 indexSettings,
                 mapping,
                 alias);
-        Plan plan = new IterablePlan(planNode);
 
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket objects = listenableFuture.get().get(0).rows();
+        Bucket objects = executePlanNode(planNode);
         assertThat(objects, contains(isRow(1L)));
 
         refresh();

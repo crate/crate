@@ -25,15 +25,15 @@ import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.symbol.Literal;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
 public class InternalCountOperationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -49,16 +49,8 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
                 TestingHelpers.createReference("name", DataTypes.STRING),
                 Literal.newLiteral("Marvin"));
 
-        int errors = 0;
-        for (CountOperation countOperation : cluster().getInstances(CountOperation.class)) {
-            try {
-                assertThat(countOperation.count("t", 0, WhereClause.MATCH_ALL), is(3L));
-                assertThat(countOperation.count("t", 0, whereClause), is(1L));
-            } catch (IndexMissingException e) {
-                // one node doesn't have a index/shard, that's okay
-                errors++;
-            }
-        }
-        assertThat(errors, is(1));
+        CountOperation countOperation = internalCluster().getInstance(CountOperation.class);
+        assertThat(countOperation.count("t", 0, WhereClause.MATCH_ALL), is(3L));
+        assertThat(countOperation.count("t", 0, whereClause), is(1L));
     }
 }

@@ -50,10 +50,6 @@ import static org.hamcrest.core.Is.is;
 
 public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
@@ -583,7 +579,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response = executor.exec(
                 "select * from sys.jobs_log where stmt like 'insert into%' or stmt like 'delete%'");
         assertThat(response.rowCount(), is(2L));
-        executor.exec("reset global stats.enabled");
     }
 
     @Test
@@ -594,7 +589,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         executor.exec("select * from sys.jobs");
         executor.exec("select * from sys.jobs");
         executor.exec("select * from sys.jobs_log limit 1");
-        executor.exec("reset global stats.enabled");
     }
 
     @Test

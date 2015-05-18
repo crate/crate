@@ -24,12 +24,10 @@ package io.crate.stress;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLResponse;
 import io.crate.concurrent.Threaded;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class SysClusterStressTest extends AbstractIntegrationStressTest {
 
     @Test

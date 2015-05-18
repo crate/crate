@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.core.Is;
 import org.junit.After;
@@ -33,7 +32,6 @@ import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final int ORIGINAL_PAGE_SIZE = Constants.PAGE_SIZE;

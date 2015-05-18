@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -31,12 +30,7 @@ import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class AnyIntegrationTest extends SQLTransportIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

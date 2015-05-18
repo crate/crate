@@ -40,10 +40,6 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     private static SQLTransportExecutor executor;
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Before
     public void before() throws Exception {
         executor = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);
@@ -293,9 +289,9 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testRegexpMatchOnNode() throws Exception {
-        SQLResponse response = executor.exec("select name from sys.nodes where name ~ 'node_[0-9]{1,2}' order by name");
+        SQLResponse response = executor.exec("select name from sys.nodes where name ~ 'shared[0-1]{1,2}' order by name");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String)response.rows()[0][0], is("node_0"));
-        assertThat((String)response.rows()[1][0], is("node_1"));
+        assertThat((String)response.rows()[0][0], is("shared0"));
+        assertThat((String)response.rows()[1][0], is("shared1"));
     }
 }

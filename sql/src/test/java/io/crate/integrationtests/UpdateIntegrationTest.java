@@ -21,10 +21,10 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.analyze.UpdateStatementAnalyzer;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,7 +39,6 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     static {
@@ -206,14 +205,13 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test values (?)", args);
         assertEquals(1, response.rowCount());
         refresh();
-        waitNoPendingTasksOnAll();
 
         execute("update test set coolness['x'] = '3'");
 
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select coolness['x'], coolness['y'] from test");
+        executeWithRetryOnUnknownColumn("select coolness['x'], coolness['y'] from test");
         assertEquals(1, response.rowCount());
         assertEquals("3", response.rows()[0][0]);
         assertEquals(2L, response.rows()[0][1]);
@@ -463,7 +461,6 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test values (?)", new Object[]{map});
         assertEquals(1, response.rowCount());
         refresh();
-        waitNoPendingTasksOnAll();
 
         Map<String, Object> new_map = new HashMap<>();
         new_map.put("a", 1);
@@ -472,6 +469,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
+        waitForConcreteMappingsOnAll("test", Constants.DEFAULT_MAPPING_TYPE, "coolness.x");
         execute("select coolness['y'], coolness['x'] from test");
         assertEquals(1, response.rowCount());
         assertEquals(new_map, response.rows()[0][0]);

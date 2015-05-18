@@ -22,13 +22,11 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class MappingDefaultsTest extends SQLTransportIntegrationTest {
 
     @Test

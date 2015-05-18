@@ -66,13 +66,12 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
-import io.crate.test.integration.CrateIntegrationTest;
-import io.crate.test.integration.CrateTestCluster;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +82,7 @@ import java.util.concurrent.CountDownLatch;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     static {
@@ -98,9 +97,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     @Before
     public void transportSetUp() {
-        CrateTestCluster cluster = cluster();
-        executor = cluster.getInstance(TransportExecutor.class);
-        docSchemaInfo = cluster.getInstance(DocSchemaInfo.class);
+        executor = internalCluster().getInstance(TransportExecutor.class);
+        docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class);
     }
 
     @After
@@ -124,12 +122,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     private Plan analyzeAndPlan(String stmt) {
         Analysis analysis = analyze(stmt);
-        Planner planner = cluster().getInstance(Planner.class);
+        Planner planner = internalCluster().getInstance(Planner.class);
         return planner.plan(analysis);
     }
 
     private Analysis analyze(String stmt) {
-        Analyzer analyzer = cluster().getInstance(Analyzer.class);
+        Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
         return analyzer.analyze(
                 SqlParser.createStatement(stmt),
                 new ParameterContext(new Object[0], new Object[0][], null)
@@ -169,7 +167,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = createCollectNode(plannerContext, false);
 
         List<Bucket> results = new ArrayList<>();
-        Iterable<MapSideDataCollectOperation> collectOperations = cluster().getInstances(MapSideDataCollectOperation.class);
+        Iterable<MapSideDataCollectOperation> collectOperations = internalCluster().getInstances(MapSideDataCollectOperation.class);
         for (MapSideDataCollectOperation collectOperation : collectOperations) {
             List<JobExecutionContext> executionContexts = createJobContext(collectNode);
 
@@ -209,7 +207,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         setUpCharacters();
 
         Analysis analysis = analyze("select id, name from characters");
-        QueryThenFetchConsumer queryThenFetchConsumer = cluster().getInstance(QueryThenFetchConsumer.class);
+        QueryThenFetchConsumer queryThenFetchConsumer = internalCluster().getInstance(QueryThenFetchConsumer.class);
         Planner.Context plannerContext = new Planner.Context(clusterService());
         ConsumerContext consumerContext = new ConsumerContext(analysis.rootRelation(), plannerContext);
         queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext);
@@ -217,7 +215,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         QueryThenFetch plan = ((QueryThenFetch) ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan());
         UUID jobId = UUID.randomUUID();
         plan.collectNode().jobId(jobId);
-        Iterable<MapSideDataCollectOperation> collectOperations = cluster().getInstances(MapSideDataCollectOperation.class);
+        Iterable<MapSideDataCollectOperation> collectOperations = internalCluster().getInstances(MapSideDataCollectOperation.class);
 
         createJobContext(plan.collectNode());
 
@@ -229,7 +227,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             results.add(collectingProjector.result().get());
         }
 
-        TransportFetchNodeAction transportFetchNodeAction = cluster().getInstance(TransportFetchNodeAction.class);
+        TransportFetchNodeAction transportFetchNodeAction = internalCluster().getInstance(TransportFetchNodeAction.class);
 
         // extract docIds by nodeId and jobSearchContextId
         Map<String, LongArrayList> jobSearchContextDocIds = new HashMap<>();
@@ -248,9 +246,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         Iterable<Projection> projections = Iterables.filter(plan.mergeNode().projections(), Predicates.instanceOf(FetchProjection.class));
         FetchProjection fetchProjection = (FetchProjection )Iterables.getOnlyElement(projections);
-        RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(cluster().getInstance(Functions.class));
+        RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(internalCluster().getInstance(Functions.class));
         RowInputSymbolVisitor.Context context = rowInputSymbolVisitor.extractImplementations(fetchProjection.outputSymbols());
-
 
         final CountDownLatch latch = new CountDownLatch(jobSearchContextDocIds.size());
         final List<Row> rows = new ArrayList<>();
@@ -288,10 +285,10 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private List<JobExecutionContext> createJobContext(CollectNode collectNode) {
-        ContextPreparer contextPreparer = cluster().getInstance(ContextPreparer.class);
+        ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class);
 
         List<JobExecutionContext> executionContexts = new ArrayList<>(2);
-        for (JobContextService jobContextService : cluster().getInstances(JobContextService.class)) {
+        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
             JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId());
             contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
             executionContexts.add(jobContextService.createContext(builder));

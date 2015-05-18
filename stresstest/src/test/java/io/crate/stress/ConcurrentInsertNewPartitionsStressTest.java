@@ -24,7 +24,6 @@ package io.crate.stress;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.concurrent.Threaded;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Test;
 
@@ -33,13 +32,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
 public class ConcurrentInsertNewPartitionsStressTest extends AbstractIntegrationStressTest {
 
-    private static final String[] partitions = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
     private static final long TS = TimestampFormat.parseTimestampString("2015-01-01");
 
-    private static AtomicInteger PARTITION_INDEX = new AtomicInteger(0);
+    private static final AtomicInteger PARTITION_INDEX = new AtomicInteger(0);
 
     @Override
     public void prepareFirst() throws Exception {

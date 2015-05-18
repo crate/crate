@@ -407,6 +407,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                     PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
                             .create(false)
                             .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
+                            .order(template.order())
                             .settings(settingsBuilder.build())
                             .template(template.template());
                     for (ObjectObjectCursor<String, AliasMetaData> container : response.getIndexTemplates().get(0).aliases()) {

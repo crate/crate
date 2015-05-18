@@ -23,12 +23,16 @@ package io.crate.client;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.*;
-import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.plugin.CrateCorePlugin;
+import io.crate.rest.CrateRestFilter;
 import io.crate.types.DataType;
 import io.crate.types.StringType;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.node.internal.InternalNode;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
@@ -43,21 +47,25 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
-public class CrateClientTest extends CrateIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
+public class CrateClientTest extends ElasticsearchIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     private CrateClient client;
 
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return ImmutableSettings.settingsBuilder()
+                .put(super.nodeSettings(nodeOrdinal))
+                .put("node.mode", "network")
+                .put("plugin.types", CrateCorePlugin.class.getName())
+                .build();
+    }
+
     @Before
     public void prepare() {
-        int port = ((InetSocketTransportAddress) cluster()
+        int port = ((InetSocketTransportAddress) internalCluster()
                 .getInstance(TransportService.class)
                 .boundAddress().boundAddress()).address().getPort();
         client = new CrateClient("localhost:" + port);

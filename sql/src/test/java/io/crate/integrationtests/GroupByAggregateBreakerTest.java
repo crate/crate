@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
@@ -33,16 +32,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE)
 public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-
-    private Setup setup = new Setup(sqlExecutor);
-    private boolean setUpDone = false;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -52,16 +43,15 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         RamAccountingContext.FLUSH_BUFFER_SIZE = 24;
         return ImmutableSettings.builder()
+                .put(super.nodeSettings(nodeOrdinal))
                 .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, 512)
                 .build();
     }
 
     @Before
     public void initTestData() {
-        if (!setUpDone) {
-            this.setup.setUpEmployees();
-            setUpDone = true;
-        }
+        Setup setup = new Setup(sqlExecutor);
+        setup.setUpEmployees();
     }
 
     @Test

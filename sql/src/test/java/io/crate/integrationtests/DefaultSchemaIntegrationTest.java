@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -33,14 +33,13 @@ import java.io.File;
 
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
     public TemporaryFolder tmpFolder = new TemporaryFolder();
 
     private SQLResponse execute(SQLRequest sqlRequest) {
-        response = CrateIntegrationTest.client().execute(SQLAction.INSTANCE, sqlRequest).actionGet();
+        response = client().execute(SQLAction.INSTANCE, sqlRequest).actionGet();
         return response;
     }
 

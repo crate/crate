@@ -21,9 +21,10 @@
 
 package io.crate.benchmark;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.action.sql.*;
-import io.crate.test.integration.CrateTestCluster;
-import io.crate.test.integration.NodeSettingsSource;
+import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.test.integration.PathAccessor;
 import io.crate.testing.SQLTransportExecutor;
 import org.apache.lucene.util.AbstractRandomizedTest;
@@ -39,11 +40,10 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.test.InternalTestCluster;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -53,30 +53,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 
-@RunWith(JUnit4.class)
 @Ignore
-public class BenchmarkBase {
+@ThreadLeakScope(value = ThreadLeakScope.Scope.NONE)
+public abstract class BenchmarkBase extends RandomizedTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
+    private static final long SEED = System.nanoTime();
     protected static String NODE1;
     protected static String NODE2;
-    protected static CrateTestCluster cluster =
-        new CrateTestCluster(
-            System.nanoTime(),
-            0,
-            "local",
-            CrateTestCluster.clusterName("benchmark",
-                    Integer.toString(AbstractRandomizedTest.CHILD_JVM_ID), System.nanoTime()),
-            NodeSettingsSource.EMPTY
-        );
+    protected static InternalTestCluster CLUSTER;
 
     public static final String INDEX_NAME = "countries";
     public static final String DATA = "/setup/data/bench.json";
-
-    private Random random = new Random(System.nanoTime());
 
     public final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -108,15 +95,32 @@ public class BenchmarkBase {
         return sqlExecutor.exec(new SQLBulkRequest(stmt, bulkArgs));
     }
 
+    @BeforeClass
+    public synchronized static void beforeClass() throws IOException {
+        if (CLUSTER == null) {
+            CLUSTER = new InternalTestCluster(
+                    SEED,
+                    0,
+                    0,
+                    InternalTestCluster.clusterName("shared", Integer.toString(AbstractRandomizedTest.CHILD_JVM_ID), SEED),
+                    ClassLifecycleIntegrationTest.SETTINGS_SOURCE,
+                    0,
+                    false,
+                    AbstractRandomizedTest.CHILD_JVM_ID,
+                    "shared"
+            );
+        }
+        CLUSTER.beforeTest(getRandom(), 0.0d);
+    }
+
     @Before
     public void setUp() throws Exception {
         if (NODE1 == null) {
-            NODE1 = cluster.startNode(getNodeSettings(1));
+            NODE1 = CLUSTER.startNode(getNodeSettings(1));
         }
         if (NODE2 == null) {
-            NODE2 = cluster.startNode(getNodeSettings(2));
+            NODE2 = CLUSTER.startNode(getNodeSettings(2));
         }
-
         if (!indexExists()) {
             createTable();
             if (importData()) {
@@ -124,18 +128,19 @@ public class BenchmarkBase {
             } else if (generateData()) {
                 doGenerateData();
             }
-
         }
     }
 
     @AfterClass
     public static void tearDownClass() throws IOException {
         try {
-            cluster.client().admin().indices().prepareDelete("_all").execute().actionGet();
+            CLUSTER.client().admin().indices().prepareDelete("_all").execute().actionGet();
         } catch (IndexMissingException e) {
             // fine
         }
-        cluster.afterTest();
+        CLUSTER.afterTest();
+        CLUSTER.close();
+        CLUSTER = null;
     }
 
     protected void createTable() {
@@ -215,12 +220,8 @@ public class BenchmarkBase {
         return false;
     }
 
-    protected Random getRandom() {
-        return random;
-    }
-
     protected Client client() {
-        return cluster.client();
+        return CLUSTER.client();
     }
 
     protected RefreshResponse refresh(Client client) {
@@ -278,14 +279,14 @@ public class BenchmarkBase {
 
     public Settings getNodeSettings(int nodeId) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                .put("http.port", randomAvailablePort())
+                .put("plugin.types", "io.crate.plugin.CrateCorePlugin")
                 .put("transport.tcp.port", randomAvailablePort())
                 .put("index.store.type", "memory");
         return builder.build();
     }
 
     public Client getClient(boolean firstNode) {
-        return firstNode ? cluster.client(NODE1) : cluster.client(NODE2);
+        return firstNode ? CLUSTER.client(NODE1) : CLUSTER.client(NODE2);
     }
 
     public void loadBulk(boolean queryPlannerEnabled) throws Exception {

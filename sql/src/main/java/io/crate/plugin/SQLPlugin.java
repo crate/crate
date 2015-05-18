@@ -186,6 +186,7 @@ public class SQLPlugin extends AbstractPlugin {
         NumericScalarSortScript.register(scriptModule);
     }
 
+
     public void onModule(ActionModule actionModule) {
         actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
         actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);

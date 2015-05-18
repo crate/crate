@@ -22,13 +22,14 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Predicate;
+import io.crate.Constants;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -39,7 +40,7 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -285,8 +286,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("create table t1 (o object)");
         ensureYellow();
         execute("insert into t1 values ({a='abc'})");
-        refresh();
-        waitNoPendingTasksOnAll();
+        waitForConcreteMappingsOnAll("t1", Constants.DEFAULT_MAPPING_TYPE, "o.a");
+
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Validation failed for o['a']: Invalid string");
         execute("insert into t1 values ({a=['123', '456']})");
@@ -297,20 +298,9 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         setUpSimple();
         execute("insert into t1 (id, new_col) values (?,?)", new Object[]{0, "1970-01-01"});
         refresh();
-        SQLResponse response = null;
-        int retry = 0;
 
         // schema update is async; retry if new column isn't available immediately
-        while (retry < 10) {
-            try {
-                response = execute("select id, new_col from t1 where id=0");
-                break;
-            } catch (SQLActionException e) {
-                retry++;
-                Thread.sleep(10);
-            }
-        }
-        assertNotNull(response);
+        executeWithRetryOnUnknownColumn("select id, new_col from t1 where id=0");
         assertEquals(0L, response.rows()[0][1]);
     }
 
@@ -327,9 +317,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 }}
         });
         refresh();
-        waitNoPendingTasksOnAll();
 
-        SQLResponse response = execute("select id, new_col from t1 where id=0");
+        SQLResponse response = executeWithRetryOnUnknownColumn("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>)response.rows()[0][1];
         assertEquals(0, mapped.get("a_date"));

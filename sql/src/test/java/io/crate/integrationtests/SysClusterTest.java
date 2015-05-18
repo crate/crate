@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class SysClusterTest extends SQLTransportIntegrationTest {
 
     @Test

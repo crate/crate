@@ -26,23 +26,21 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     final static Joiner dotJoiner = Joiner.on('.');
@@ -87,12 +85,11 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table t1 (col1 integer primary key, " +
                     "col2 string) clustered into 7 " +
                     "shards");
+        execute("create table t2 (col1 integer primary key, " +
+                    "col2 string) clustered into " +
+                    "10 shards");
         execute(
-            "create table t2 (col1 integer primary key, " +
-                "col2 string) clustered into " +
-                "10 shards");
-        execute(
-            "create table t3 (col1 integer, col2 string) with (number_of_replicas=8)");
+            "create table t3 (col1 integer, col2 string) clustered into 5 shards with (number_of_replicas=8)");
         ensureYellow();
     }
 
@@ -168,7 +165,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         execute("create table foo (col1 integer primary key, " +
                 "col2 string) clustered by(col1) into 3 shards");
         ensureGreen();
@@ -218,7 +215,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where schema_name='doc' order by table_name asc limit 1 offset 1");
@@ -235,7 +232,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where schema_name='doc'");
         assertEquals(0L, response.rowCount());
 
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
@@ -252,7 +249,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where schema_name='blob'");
         assertEquals(0L, response.rowCount());
 
-        execute("create blob table test with (blobs_path='/tmp/blobs_path')");
+        execute("create blob table test clustered into 5 shards with (blobs_path='/tmp/blobs_path')");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
@@ -283,7 +280,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarFromInformationSchemaTable() throws Exception {
-        execute("create table test (col1 integer, col2 string)");
+        execute("create table test (col1 integer, col2 string) clustered into 5 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where schema_name='doc'");
         assertEquals(1L, response.rowCount());
@@ -378,6 +375,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                     ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
                             "crate.analysis.custom.analyzer.myotheranalyzer",
                             "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
+                .setTransientSettingsToRemove(
+                        ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
+                                "crate.analysis.custom.analyzer.myotheranalyzer",
+                                "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
                 .execute().actionGet();
     }
 
@@ -696,13 +697,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         });
         execute("refresh table t4");
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
-        int numRetries = 0;
-        while (response.rowCount() < 5 && numRetries < 10) {
-            // mapping still being updated - retry
-            execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
-            Thread.sleep(10 * numRetries);
-            numRetries++;
-        }
+
+        waitForMappingUpdateOnAll("t4", "stuff.middle_name");
+        execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(5, response.rowCount());
 
 
@@ -831,7 +828,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testTablePartitions() throws Exception {
-        execute("create table my_table (par int, content string) partitioned by (par)");
+        execute("create table my_table (par int, content string) " +
+                "clustered into 5 shards " +
+                "partitioned by (par)");
         execute("insert into my_table (par, content) values (1, 'content1')");
         execute("insert into my_table (par, content) values (1, 'content2')");
         execute("insert into my_table (par, content) values (2, 'content3')");
@@ -854,7 +853,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testPartitionedTableShardsAndReplicas() throws Exception {
-        execute("create table parted (par byte, content string) partitioned by (par) clustered into 2 shards with (number_of_replicas=0)");
+        execute("create table parted (par byte, content string) " +
+                "partitioned by (par) " +
+                "clustered into 2 shards with (number_of_replicas=0)");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
@@ -928,7 +929,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testTablePartitionsMultiCol() throws Exception {
-        execute("create table my_table (par int, par_str string, content string) partitioned by (par, par_str)");
+        execute("create table my_table (par int, par_str string, content string) " +
+                "clustered into 5 shards " +
+                "partitioned by (par, par_str)");
         execute("insert into my_table (par, par_str, content) values (1, 'foo', 'content1')");
         execute("insert into my_table (par, par_str, content) values (1, 'bar', 'content2')");
         execute("insert into my_table (par, par_str, content) values (2, 'foo', 'content3')");
@@ -958,14 +961,15 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testPartitionsNestedCol() throws Exception {
-        execute("create table my_table (id int, metadata object as (date timestamp)) partitioned by (metadata['date'])");
-        ensureGreen();
+        execute("create table my_table (id int, metadata object as (date timestamp)) " +
+                "clustered into 5 shards " +
+                "partitioned by (metadata['date'])");
+        ensureYellow();
         execute("insert into my_table (id, metadata) values (?, ?), (?, ?)",
                 new Object[]{
                         1, new MapBuilder<String, Object>().put("date","1970-01-01").map(),
                         2, new MapBuilder<String, Object>().put("date", "2014-05-28").map()
-                }
-                );
+                });
         refresh();
 
         execute("select table_name, partition_ident, values from information_schema.table_partitions order by table_name, partition_ident");
@@ -1006,7 +1010,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         };
         execute(stmtInsert, argsInsert);
         assertThat(response.rowCount(), is(1L));
-        ensureGreen();
+        waitForMappingUpdateOnAll("data_points", "data.somestringroute");
         refresh();
 
         String stmtIsColumns = "select table_name, column_name, data_type " +

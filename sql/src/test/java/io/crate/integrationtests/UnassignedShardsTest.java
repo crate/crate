@@ -21,20 +21,20 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class UnassignedShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOnlyUnassignedShards() throws Exception {
         execute("set global transient cluster.routing.allocation.enable=none");
         try {
-            execute("create table no_shards (id int) with (number_of_replicas=2)");
+            execute("create table no_shards (id int) clustered into 5 shards with (number_of_replicas=2)");
             execute("select state, id, table_name from sys.shards where schema_name='doc' AND table_name='no_shards'");
             assertThat(response.rowCount(), is(15L));
             Object[] stateColumn = TestingHelpers.getColumn(response.rows(), 0);

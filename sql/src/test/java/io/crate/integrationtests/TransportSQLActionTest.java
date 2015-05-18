@@ -27,7 +27,6 @@ import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.executor.TaskResult;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -46,13 +45,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
-
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     private Setup setup = new Setup(sqlExecutor);
 
@@ -1563,13 +1556,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testTwoSubStrOnSameColumn() throws Exception {
         this.setup.groupBySetup();
-        execute("select name, substr(name, 4, 3), substr(name, 3, 4) from sys.nodes order by name");
-        assertThat((String) response.rows()[0][0], is("node_0"));
-        assertThat((String) response.rows()[0][1], is("e_0"));
-        assertThat((String) response.rows()[0][2], is("de_0"));
-        assertThat((String) response.rows()[1][0], is("node_1"));
-        assertThat((String) response.rows()[1][1], is("e_1"));
-        assertThat((String) response.rows()[1][2], is("de_1"));
+        execute("select name, substr(name, 4, 4), substr(name, 3, 5) from sys.nodes order by name");
+        assertThat((String) response.rows()[0][0], is("node_s0"));
+        assertThat((String) response.rows()[0][1], is("e_s0"));
+        assertThat((String) response.rows()[0][2], is("de_s0"));
+        assertThat((String) response.rows()[1][0], is("node_s1"));
+        assertThat((String) response.rows()[1][1], is("e_s1"));
+        assertThat((String) response.rows()[1][2], is("de_s1"));
 
     }
 
@@ -1725,7 +1718,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "  quote string, " +
                 "  INDEX name_ft using fulltext(name) with (analyzer = 'english'), " +
                 "  INDEX quote_ft using fulltext(quote) with (analyzer = 'english') " +
-                ")");
+                ") clustered into 5 shards ");
         ensureYellow();
         execute("insert into characters (id, name, quote) values (?, ?, ?)", new Object[][]{
                 new Object[]{1, "Arthur", "It's terribly small, tiny little country."},

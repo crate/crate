@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 
-import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.junit.Test;
@@ -31,8 +30,8 @@ import java.io.IOException;
 
 import static org.hamcrest.core.StringStartsWith.startsWith;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
+
 
     @Test
     public void testWithoutBody() throws IOException {

@@ -24,14 +24,16 @@ package io.crate.integrationtests;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.search.suggest.CustomSuggesterPlugin;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,7 +49,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(randomDynamicTemplates = false)
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     static {
@@ -60,7 +62,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTable() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string) " +
+                "clustered into 5 shards with (number_of_replicas = 1)");
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
@@ -95,7 +98,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithRefreshIntervalDisableRefresh() throws Exception {
-        execute("create table test (id int primary key, content string) with (refresh_interval=0)");
+        execute("create table test (id int primary key, content string) " +
+                "clustered into 5 shards " +
+                "with (refresh_interval=0, number_of_replicas = 0)");
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
@@ -103,7 +108,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
-                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_replicas\":\"0\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"0\"," +
                 "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
@@ -113,7 +118,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("ALTER TABLE test SET (refresh_interval = 5000)");
         String expectedSetSettings = "{\"test\":{" +
                 "\"settings\":{" +
-                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_replicas\":\"0\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"5000\"," +
                 "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
@@ -123,7 +128,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("ALTER TABLE test RESET (refresh_interval)");
         String expectedResetSettings = "{\"test\":{" +
                 "\"settings\":{" +
-                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_replicas\":\"0\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"1000\"," +
                 "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
@@ -173,8 +178,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithStrictColumnPolicy() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)" +
-                "with (column_policy='strict')");
+        execute("create table test (col1 integer primary key, col2 string) " +
+                "clustered into 5 shards " +
+                "with (column_policy='strict', number_of_replicas = 0)");
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -190,7 +196,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
-                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_replicas\":\"0\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
                 "}}}";
@@ -512,33 +518,25 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
         ensureYellow();
-        assertThat(response.rowCount(), is(1L));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-                new Object[]{1, "Don't panic", 1395874800000L,
+                new Object[]{
+                        1, "Don't panic", 1395874800000L,
                         2, "Now panic", 1395961200000L}
         );
-        assertThat(response.rowCount(), is(2L));
-        ensureYellow();
-        refresh();
-
         execute("alter table quotes set (number_of_shards=5)");
-        waitNoPendingTasksOnAll();
 
         String templateName = PartitionName.templateName(null, "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-                .prepareGetTemplates(templateName).execute().actionGet();
+        GetIndexTemplatesResponse templatesResponse =
+                client().admin().indices().prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(5));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",
                 new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
         );
-        execute("refresh table quotes");
-
         String partition = new PartitionName("quotes", Arrays.asList(new BytesRef("1495961200000"))).stringValue();
-        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
-                partition).execute().get();
+        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(partition).execute().get();
         assertThat(settingsResponse.getSetting(partition, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("5"));
     }
 

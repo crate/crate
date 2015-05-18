@@ -25,7 +25,10 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
-import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.plugin.CrateCorePlugin;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -41,24 +44,30 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.hamcrest.Matchers;
 
 import java.io.IOException;
 import java.util.Map;
 
-public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
+public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrationTest {
 
     protected SQLTransportExecutor sqlExecutor = new SQLTransportExecutor(
         new SQLTransportExecutor.ClientProvider() {
             @Override
             public Client client() {
-                return CrateIntegrationTest.client();
+                return ElasticsearchIntegrationTest.client();
             }
         }
     );
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return ImmutableSettings.settingsBuilder()
+                .put(super.nodeSettings(nodeOrdinal))
+                .put("plugin.types", CrateCorePlugin.class.getName())
+                .build();
+    }
 
     protected long responseDuration;
     protected SQLResponse response;
@@ -86,8 +95,8 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
      */
     public SQLResponse executeWithRetryOnUnknownColumn(String statement) {
         SQLActionException lastException = null;
-        int retry = 0;
-        while (retry < 10) {
+        int retry = 1;
+        while (retry < 4000) {
             try {
                 response = execute(statement);
                 return response;
@@ -95,7 +104,12 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
                 lastException = e;
                 String message = e.getMessage();
                 if (message.startsWith("Column") && message.endsWith("unknown")) {
-                    retry++;
+                    try {
+                        Thread.sleep(retry);
+                    } catch (InterruptedException e1) {
+                        // ignore
+                    }
+                    retry = retry * 2;
                 } else {
                     throw e;
                 }
@@ -122,8 +136,7 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt) {
-        response = sqlExecutor.exec(stmt, new Object[0]);
-        return response;
+        return execute(stmt, new Object[0]);
     }
 
     /**
@@ -153,6 +166,23 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
         builder.endObject();
 
         return builder.string();
+    }
+
+    public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception{
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                Iterable<DocSchemaInfo> instances = internalCluster().getInstances(DocSchemaInfo.class);
+                for (DocSchemaInfo schemaInfo : instances) {
+                    DocTableInfo tableInfo = schemaInfo.getTableInfo(tableOrPartition);
+                    assertThat(tableInfo, Matchers.notNullValue());
+                    for (String fieldName : fieldNames) {
+                        ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
+                        assertThat(tableInfo.getReferenceInfo(columnIdent), Matchers.notNullValue());
+                    }
+                }
+            }
+        });
     }
 
     /**

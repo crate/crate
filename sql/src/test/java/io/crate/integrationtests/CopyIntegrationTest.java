@@ -21,11 +21,12 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -41,17 +42,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
 public class CopyIntegrationTest extends SQLTransportIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
     private String nestedArrayCopyFilePath = getClass().getResource("/essetup/data/nested_array").getPath();
@@ -91,7 +89,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         File tmpFolder = folder.newFolder("äwesöme földer");
         File file = new File(tmpFolder, "süpär.json");
 
-        List<String> lines = Arrays.asList("{\"id\": 1, \"name\": \"Arthur\"}");
+        List<String> lines = Collections.singletonList("{\"id\": 1, \"name\": \"Arthur\"}");
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
         execute("copy t from ?", new Object[] {tmpFolder.getAbsolutePath() + "/s*.json"});
@@ -244,8 +242,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyColumnsToDirectory() throws Exception {
         this.setup.groupBySetup();
-        waitNoPendingTasksOnAll();
-        
+
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy characters (name, details['job']) to DIRECTORY ?", new Object[]{uriTemplate});
         assertThat(response.cols().length, is(0));
@@ -255,7 +252,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         for (Path entry: stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1_.json"));
+        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_0_.json"));
         assertTrue(path.toFile().exists());
         assertThat(lines.size(), is(7));
 
@@ -284,8 +281,11 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         for (Path entry: stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1_.json"));
-        assertTrue(path.toFile().exists());
+        String[] list = folder.getRoot().list();
+        assertThat(list.length, greaterThanOrEqualTo(1));
+        for (String file : list) {
+            assertThat(file, startsWith("characters_"));
+        }
 
         assertThat(lines.size(), is(7));
         for (String line : lines) {
