@@ -39,6 +39,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsRecoveryExpression.NAME, new TablesSettingsRecoveryExpression());
         childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());
         childImplementations.put(TablesSettingsTranslogExpression.NAME, new TablesSettingsTranslogExpression());
+        childImplementations.put(TablesSettingsLocalSyncExpression.NAME, new TablesSettingsLocalSyncExpression());
     }
 
 
@@ -171,6 +172,28 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
                         @Override
                         public Boolean value() {
                             return (Boolean) this.row.tableParameters().get(TableParameterInfo.WARMER_ENABLED);
+                        }
+                    });
+        }
+    }
+
+    static class TablesSettingsLocalSyncExpression extends AbstractTablesSettingsExpression {
+
+        public static final String NAME = "gateway.local";
+
+        public TablesSettingsLocalSyncExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL);
+            addChildImplementations();
+        }
+
+        public static final String SYNC = "sync";
+
+        private void addChildImplementations() {
+            childImplementations.put(SYNC,
+                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC) {
+                        @Override
+                        public String value() {
+                            return (String) this.row.tableParameters().get(TableParameterInfo.GATEWAY_LOCAL_SYNC);
                         }
                     });
         }

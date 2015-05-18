@@ -82,6 +82,10 @@ public class InformationTableInfo extends AbstractTableInfo {
                 ImmutableList.of("warmer"));
         public static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
                 ImmutableList.of("warmer", "enabled"));
+        public static final ColumnIdent TABLE_SETTINGS_GATEWAY_LOCAL = new ColumnIdent("settings",
+                ImmutableList.of("gateway", "local"));
+        public static final ColumnIdent TABLE_SETTINGS_GATEWAY_LOCAL_SYNC = new ColumnIdent("settings",
+                ImmutableList.of("gateway", "local", "sync"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
                 ImmutableList.of("translog"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = new ColumnIdent("settings",

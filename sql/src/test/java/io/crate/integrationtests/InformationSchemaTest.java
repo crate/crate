@@ -73,6 +73,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         put("warmer", new HashMap(){{
             put("enabled", true);
         }});
+        put("gateway.local", new HashMap(){{
+            put("sync", "5s");
+        }});
     }};
 
     @Rule

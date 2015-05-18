@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
@@ -57,6 +56,7 @@ public class TablePropertiesAnalyzer {
                     .put(stripIndexPrefix(TableParameterInfo.FLUSH_DISABLE), TableParameterInfo.FLUSH_DISABLE)
                     .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_INTERVAL), TableParameterInfo.TRANSLOG_INTERVAL)
                     .put(stripIndexPrefix(TableParameterInfo.ROUTING_ALLOCATION_ENABLE), TableParameterInfo.ROUTING_ALLOCATION_ENABLE)
+                    .put(stripIndexPrefix(TableParameterInfo.GATEWAY_LOCAL_SYNC), TableParameterInfo.GATEWAY_LOCAL_SYNC)
                     .put(stripIndexPrefix(TableParameterInfo.TOTAL_SHARDS_PER_NODE), TableParameterInfo.TOTAL_SHARDS_PER_NODE)
                     .put(stripIndexPrefix(TableParameterInfo.RECOVERY_INITIAL_SHARDS), TableParameterInfo.RECOVERY_INITIAL_SHARDS)
                     .put(stripIndexPrefix(TableParameterInfo.WARMER_ENABLED), TableParameterInfo.WARMER_ENABLED)
@@ -90,6 +90,7 @@ public class TablePropertiesAnalyzer {
                     .put(TableParameterInfo.FLUSH_DISABLE, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.FLUSH_DISABLE))
                     .put(TableParameterInfo.TRANSLOG_INTERVAL, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.TRANSLOG_INTERVAL))
                     .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, new SettingsAppliers.StringSettingsApplier(CrateTableSettings.ROUTING_ALLOCATION_ENABLE))
+                    .put(TableParameterInfo.GATEWAY_LOCAL_SYNC, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.GATEWAY_LOCAL_SYNC))
                     .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.TOTAL_SHARDS_PER_NODE))
                     .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, new RecoveryInitialShardsApplier())
                     .put(TableParameterInfo.WARMER_ENABLED, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.WARMER_ENABLED))

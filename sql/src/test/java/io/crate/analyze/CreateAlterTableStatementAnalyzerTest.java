@@ -761,6 +761,16 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testGatewayLocalSyncPeriod() throws Exception {
+
+        AlterTableAnalyzedStatement analysis =
+                (AlterTableAnalyzedStatement)analyze("alter table users set (\"gateway.local.sync\"=1)");
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.GATEWAY_LOCAL_SYNC), is("1"));
+
+    }
+
+    @Test
     public void testRecoveryShardsValidation() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         analyze("alter table users set (\"recovery.initial_shards\"=\"foo\")");

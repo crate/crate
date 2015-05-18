@@ -52,6 +52,7 @@ public class TableParameterInfo {
     public static final String FLUSH_THRESHOLD_PERIOD = TranslogService.INDEX_TRANSLOG_FLUSH_THRESHOLD_PERIOD;
     public static final String FLUSH_DISABLE = TranslogService.INDEX_TRANSLOG_DISABLE_FLUSH;
     public static final String TRANSLOG_INTERVAL = TranslogService.INDEX_TRANSLOG_FLUSH_INTERVAL;
+    public static final String GATEWAY_LOCAL_SYNC = "index.gateway.local.sync";
     public static final String ROUTING_ALLOCATION_ENABLE = EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE;
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE;
     public static final String RECOVERY_INITIAL_SHARDS = LocalGatewayAllocator.INDEX_RECOVERY_INITIAL_SHARDS;
@@ -74,6 +75,7 @@ public class TableParameterInfo {
                     .add(FLUSH_DISABLE)
                     .add(TRANSLOG_INTERVAL)
                     .add(ROUTING_ALLOCATION_ENABLE)
+                    .add(GATEWAY_LOCAL_SYNC)
                     .add(TOTAL_SHARDS_PER_NODE)
                     .add(RECOVERY_INITIAL_SHARDS)
                     .add(WARMER_ENABLED)
@@ -127,6 +129,7 @@ public class TableParameterInfo {
                 .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, CrateTableSettings.TOTAL_SHARDS_PER_NODE.extract(settings))
                 .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.extract(settings))
                 .put(TableParameterInfo.WARMER_ENABLED, CrateTableSettings.WARMER_ENABLED.extract(settings))
+                .put(TableParameterInfo.GATEWAY_LOCAL_SYNC, CrateTableSettings.GATEWAY_LOCAL_SYNC.extract(settings))
                 .build();
     }
 }

@@ -90,6 +90,13 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT);
         public static final ReferenceInfo TABLE_SETTINGS_WARMER_ENABLED = info(
                 Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN);
+
+        public static final ReferenceInfo TABLE_SETTINGS_GATEWAY_LOCAL = info(
+                Columns.TABLE_SETTINGS_GATEWAY_LOCAL, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_GATEWAY_LOCAL_SYNC = info(
+                Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, DataTypes.OBJECT);
+
+
     }
 
     private static ReferenceInfo info(ColumnIdent columnIdent, DataType dataType) {

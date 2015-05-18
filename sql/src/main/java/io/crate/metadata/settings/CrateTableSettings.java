@@ -200,4 +200,16 @@ public class CrateTableSettings {
         }
     };
 
+    public static final TimeSetting GATEWAY_LOCAL_SYNC = new TimeSetting() {
+        @Override
+        public String name() {
+            return TableParameterInfo.GATEWAY_LOCAL_SYNC;
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueSeconds(5);
+        }
+    };
+
 }
