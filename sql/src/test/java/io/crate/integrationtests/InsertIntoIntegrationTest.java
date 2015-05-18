@@ -662,11 +662,12 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
 
-        execute("select * from information_schema.table_partitions where schema_name='custom' and table_name='source' order by partition_ident");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "source| custom| 043k4pbidhkms| {city=Berlin}| 5| 0\n" +
-                "source| custom| 0444opb9e1t6ipo| {city=Leipzig}| 5| 0\n" +
-                "source| custom| 046kqtbjehin4q31elpmarg| {city=Musterhausen}| 5| 0\n"));
+        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas "+
+                "from information_schema.table_partitions where schema_name='custom' and table_name='source' order by partition_ident");
+        String[] rows = TestingHelpers.printedTable(response.rows()).split("\n");
+        assertThat(rows[0], is("source| custom| 043k4pbidhkms| {city=Berlin}| 5| 0"));
+        assertThat(rows[1], is("source| custom| 0444opb9e1t6ipo| {city=Leipzig}| 5| 0"));
+        assertThat(rows[2], is("source| custom| 046kqtbjehin4q31elpmarg| {city=Musterhausen}| 5| 0"));
 
         execute("insert into custom.destination (select * from custom.source)");
         assertThat(response.rowCount(), is(3L));
@@ -679,10 +680,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 "Leipzig| Dings| 14713\n" +
                 "Musterhausen| Foo| 10243\n"));
 
-        execute("select * from information_schema.table_partitions where schema_name='custom' and table_name='destination' order by partition_ident");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "destination| custom| 04332c1i6gpg| {zipcode=10243}| 5| 0\n" +
-                "destination| custom| 04332d1n64pg| {zipcode=14713}| 5| 0\n"));
+        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas "+
+                "from information_schema.table_partitions where schema_name='custom' and table_name='destination' order by partition_ident");
+        rows = TestingHelpers.printedTable(response.rows()).split("\n");
+        assertThat(rows[0], is("destination| custom| 04332c1i6gpg| {zipcode=10243}| 5| 0"));
+        assertThat(rows[1], is("destination| custom| 04332d1n64pg| {zipcode=14713}| 5| 0"));
 
     }
 

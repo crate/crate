@@ -28,7 +28,6 @@ import io.crate.operation.reference.RowCollectNestedObjectExpression;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Collection;
 import java.util.Map;
 
 @Singleton
@@ -85,6 +84,9 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
                 InformationTablePartitionsExpression.NUMBER_OF_SHARDS_EXPRESSION);
         builder.put(InformationTablePartitionsExpression.NUMBER_OF_REPLICAS_EXPRESSION.info().ident(),
                 InformationTablePartitionsExpression.NUMBER_OF_REPLICAS_EXPRESSION);
+        builder.put(InformationTablePartitionsExpression.SETTINGS_EXPRESSION.info().ident(),
+                InformationTablePartitionsExpression.SETTINGS_EXPRESSION);
+        addChildImplementationToBuilder(builder, InformationTablePartitionsExpression.SETTINGS_EXPRESSION);
 
         // information_schema.table_constraints
         builder.put(InformationTableConstraintsExpression.SCHEMA_NAME_EXPRESSION.info().ident(),

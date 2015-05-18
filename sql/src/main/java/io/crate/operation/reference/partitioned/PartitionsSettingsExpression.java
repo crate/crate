@@ -19,35 +19,36 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.information;
+package io.crate.operation.reference.partitioned;
 
 import io.crate.analyze.TableParameterInfo;
-import io.crate.metadata.information.InformationTablesTableInfo;
+import io.crate.metadata.information.InformationPartitionsTableInfo;
+import io.crate.operation.reference.information.InformationTablePartitionsExpression;
 
-public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
+public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpression {
 
     public static final String NAME = "settings";
 
-    public TablesSettingsExpression() {
-        super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS);
+    public PartitionsSettingsExpression() {
+        super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS);
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(TablesSettingsBlocksExpression.NAME, new TablesSettingsBlocksExpression());
-        childImplementations.put(TablesSettingsRoutingExpression.NAME, new TablesSettingsRoutingExpression());
-        childImplementations.put(TablesSettingsRecoveryExpression.NAME, new TablesSettingsRecoveryExpression());
-        childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());
-        childImplementations.put(TablesSettingsTranslogExpression.NAME, new TablesSettingsTranslogExpression());
+        childImplementations.put(PartitionsSettingsBlocksExpression.NAME, new PartitionsSettingsBlocksExpression());
+        childImplementations.put(PartitionsSettingsRoutingExpression.NAME, new PartitionsSettingsRoutingExpression());
+        childImplementations.put(PartitionsSettingsRecoveryExpression.NAME, new PartitionsSettingsRecoveryExpression());
+        childImplementations.put(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression());
+        childImplementations.put(PartitionsSettingsTranslogExpression.NAME, new PartitionsSettingsTranslogExpression());
     }
 
 
-    static class TablesSettingsBlocksExpression extends AbstractTablesSettingsExpression {
+    static class PartitionsSettingsBlocksExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "blocks";
 
-        public TablesSettingsBlocksExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS);
+        public PartitionsSettingsBlocksExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS);
             addChildImplementations();
         }
 
@@ -58,28 +59,28 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(READ_ONLY,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY) {
+                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY) {
                         @Override
                         public Boolean value() {
                             return (Boolean) this.row.tableParameters().get(TableParameterInfo.READ_ONLY);
                         }
                     });
             childImplementations.put(READ,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ) {
+                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ) {
                         @Override
                         public Boolean value() {
                             return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_READ);
                         }
                     });
             childImplementations.put(WRITE,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_WRITE) {
+                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_WRITE) {
                         @Override
                         public Boolean value() {
                             return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_WRITE);
                         }
                     });
             childImplementations.put(METADATA,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_METADATA) {
+                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_METADATA) {
                         @Override
                         public Boolean value() {
                             return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_METADATA);
@@ -88,26 +89,26 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
     }
 
-    static class TablesSettingsRoutingExpression extends AbstractTablesSettingsExpression {
+    static class PartitionsSettingsRoutingExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "routing";
 
-        public TablesSettingsRoutingExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING);
+        public PartitionsSettingsRoutingExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING);
             addChildImplementations();
         }
 
         private void addChildImplementations() {
-            childImplementations.put(TablesSettingsRoutingAllocationExpression.NAME, new TablesSettingsRoutingAllocationExpression());
+            childImplementations.put(PartitionsSettingsRoutingAllocationExpression.NAME, new PartitionsSettingsRoutingAllocationExpression());
         }
     }
 
-    static class TablesSettingsRoutingAllocationExpression extends AbstractTablesSettingsExpression {
+    static class PartitionsSettingsRoutingAllocationExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "allocation";
 
-        public TablesSettingsRoutingAllocationExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION);
+        public PartitionsSettingsRoutingAllocationExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION);
             addChildImplementations();
         }
 
@@ -116,14 +117,14 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE) {
+                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE) {
                         @Override
                         public String value() {
                             return (String) this.row.tableParameters().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE);
                         }
                     });
             childImplementations.put(TOTAL_SHARDS_PER_NODE,
-                    new InformationTablesExpression<Integer>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE) {
+                    new InformationTablePartitionsExpression<Integer>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE) {
                         @Override
                         public Integer value() {
                             return (Integer) this.row.tableParameters().get(TableParameterInfo.TOTAL_SHARDS_PER_NODE);
@@ -132,12 +133,12 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
     }
 
-    static class TablesSettingsRecoveryExpression extends AbstractTablesSettingsExpression {
+    static class PartitionsSettingsRecoveryExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "recovery";
 
-        public TablesSettingsRecoveryExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY);
+        public PartitionsSettingsRecoveryExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY);
             addChildImplementations();
         }
 
@@ -145,7 +146,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(INITIAL_SHARDS,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS) {
+                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS) {
                         @Override
                         public String value() {
                             return (String) this.row.tableParameters().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS);
@@ -154,12 +155,12 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
     }
 
-    static class TablesSettingsWarmerExpression extends AbstractTablesSettingsExpression {
+    static class PartitionsSettingsWarmerExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "warmer";
 
-        public TablesSettingsWarmerExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_WARMER);
+        public PartitionsSettingsWarmerExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_WARMER);
             addChildImplementations();
         }
 
@@ -167,7 +168,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(ENABLED,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED) {
+                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED) {
                         @Override
                         public Boolean value() {
                             return (Boolean) this.row.tableParameters().get(TableParameterInfo.WARMER_ENABLED);
@@ -176,12 +177,12 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
     }
 
-    static class TablesSettingsTranslogExpression extends AbstractTablesSettingsExpression {
+    static class PartitionsSettingsTranslogExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "translog";
 
-        public TablesSettingsTranslogExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG);
+        public PartitionsSettingsTranslogExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG);
             addChildImplementations();
         }
 
@@ -193,35 +194,35 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_OPS,
-                    new InformationTablesExpression<Integer>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS) {
+                    new InformationTablePartitionsExpression<Integer>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS) {
                         @Override
                         public Integer value() {
                             return (Integer) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_OPS);
                         }
                     });
             childImplementations.put(FLUSH_THRESHOLD_SIZE,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE) {
+                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE) {
                         @Override
                         public String value() {
                             return (String) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE);
                         }
                     });
             childImplementations.put(FLUSH_THRESHOLD_PERIOD,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD) {
+                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD) {
                         @Override
                         public String value() {
                             return (String) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD);
                         }
                     });
             childImplementations.put(DISABLE_FLUSH,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH) {
+                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH) {
                         @Override
                         public Boolean value() {
                             return (Boolean) this.row.tableParameters().get(TableParameterInfo.FLUSH_DISABLE);
                         }
                     });
             childImplementations.put(INTERVAL,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL) {
+                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL) {
                         @Override
                         public String value() {
                             return (String) this.row.tableParameters().get(TableParameterInfo.TRANSLOG_INTERVAL);

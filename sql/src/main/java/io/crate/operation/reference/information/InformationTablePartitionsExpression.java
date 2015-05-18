@@ -23,6 +23,7 @@ package io.crate.operation.reference.information;
 import com.google.common.base.MoreObjects;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationPartitionsTableInfo;
+import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
@@ -36,6 +37,7 @@ public abstract class InformationTablePartitionsExpression<T>
     public static final PartitionsValuesExpression VALUES_EXPRESSION = new PartitionsValuesExpression();
     public static final PartitionsNumberOfShardsExpression NUMBER_OF_SHARDS_EXPRESSION = new PartitionsNumberOfShardsExpression();
     public static final PartitionsNumberOfReplicasExpression NUMBER_OF_REPLICAS_EXPRESSION = new PartitionsNumberOfReplicasExpression();
+    public static final PartitionsSettingsExpression SETTINGS_EXPRESSION = new PartitionsSettingsExpression();
 
     protected InformationTablePartitionsExpression(ReferenceInfo info) {
         super(info);
