@@ -9,4 +9,5 @@ include 'es',
         'client',
         'sql-parser',
         'stresstest',
-        'udc'
+        'udc',
+        'dns-discovery'

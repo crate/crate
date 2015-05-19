@@ -34,6 +34,13 @@ License: Apache License v2 (http://www.apache.org/licenses)
 
 =========================================================================
 
+SRV Discovery Plugin for Elasticsearch
+https://github.com/grantr/elasticsearch-srv-discovery
+developed by Grant Rodgers
+License: MIT License, http://www.opensource.org/licenses/mit-license.php
+
+=========================================================================
+
 Meyer CSS reset
 http://meyerweb.com/eric/tools/css/reset/
 License: none (public domain)
