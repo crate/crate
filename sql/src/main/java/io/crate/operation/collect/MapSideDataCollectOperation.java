@@ -285,6 +285,7 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
         }
 
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
+        TableUnknownException lastException = null;
 
         // get shardCollectors from single shards
         Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
@@ -294,7 +295,8 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
             try {
                 indexService = indicesService.indexServiceSafe(indexName);
             } catch (IndexMissingException e) {
-                throw new TableUnknownException(entry.getKey(), e);
+                lastException = new TableUnknownException(entry.getKey(), e);
+                continue;
             }
 
             for (Integer shardId : entry.getValue()) {
@@ -316,6 +318,11 @@ public abstract class MapSideDataCollectOperation<T extends ResultProvider> impl
                     throw new UnhandledServerException(e);
                 }
             }
+        }
+
+        if (lastException != null && shardCollectors.isEmpty()) {
+            // all collectors threw an table unknown exception, re-throw it
+            throw lastException;
         }
 
         // start the projection
