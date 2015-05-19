@@ -803,18 +803,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testTableSettings() throws Exception {
         execute("create table table_props (name string) with (number_of_replicas=0)");
-        execute("select settings['blocks'], settings['routing'], settings['recovery'], settings['warmer'], settings['translog'] "+
-                "from information_schema.tables where table_name='table_props'");
-        assertEquals("{metadata=false, read=false, read_only=false, write=false}",
-                response.rows()[0][0].toString());
-        assertEquals("{allocation={enable=all, total_shards_per_node=-1}}",
-                response.rows()[0][1].toString());
-        assertEquals("{initial_shards=quorum}",
-                response.rows()[0][2].toString());
-        assertEquals("{enabled=true}",
-                response.rows()[0][3].toString());
-        assertEquals("{disable_flush=false, flush_threshold_period=30m, flush_threshold_ops=2147483647, flush_threshold_size=200mb, interval=5s}",
-                response.rows()[0][4].toString());
+        execute("select settings from information_schema.tables where table_name='table_props'");
+        assertEquals(defaultTableSettings, response.rows()[0][0]);
         execute("select settings from information_schema.tables where table_name='nodes' and schema_name='sys'");
         assertEquals(null, response.rows()[0][0]);
     }
