@@ -7,12 +7,13 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
- - Added new table settings that can be set on ``CREATE TABLE``
-   and changed/reset with ``ALTER TABLE``.
+ - Fix: Handle concurrently dropped partitions while collecting rows
 
  - Fix: Updated es/upstream to prevent errors caused by too many cluster
    state updates when dropping tables with a huge amount of partitions
 
+ - Added new table settings that can be set on ``CREATE TABLE``
+   and changed/reset with ``ALTER TABLE``.
 
  - Fixed an issue that caused a node stop to always take up at least 10 seconds
 

@@ -40,7 +40,10 @@ import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
-import io.crate.operation.projectors.*;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ResultProvider;
+import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
@@ -256,6 +259,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 ramAccountingContext
         );
         int jobSearchContextId = collectNode.routing().jobSearchContextIdBase();
+        TableUnknownException lastException = null;
         // get shardCollectors from single shards
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : collectNode.routing().locations().entrySet()) {
@@ -267,12 +271,19 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     try {
                         indexService = indicesService.indexServiceSafe(indexName);
                     } catch (IndexMissingException e) {
-                        throw new TableUnknownException(entry.getKey(), e);
+                        lastException = new TableUnknownException(entry.getKey(), e);
+                        continue;
                     }
 
                     for (Integer shardId : entry.getValue()) {
-                        jobCollectContext.registerJobContextId(
-                                indexService.shardSafe(shardId).shardId(), jobSearchContextId);
+                        try {
+                            jobCollectContext.registerJobContextId(
+                                    indexService.shardSafe(shardId).shardId(), jobSearchContextId);
+                        } catch (IndexMissingException e) {
+                            // edge case: index was deleted while iterating over shards
+                            lastException = new TableUnknownException(entry.getKey(), e);
+                            break;
+                        }
                         Injector shardInjector;
                         try {
                             shardInjector = indexService.shardInjectorSafe(shardId);
@@ -301,6 +312,12 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     jobSearchContextId += shardIdMap.size();
                 }
             }
+        }
+
+        if (lastException != null
+                && jobSearchContextId == collectNode.routing().jobSearchContextIdBase()) {
+            // all collectors threw an table unknown exception, re-throw it
+            throw lastException;
         }
 
         // start the projection

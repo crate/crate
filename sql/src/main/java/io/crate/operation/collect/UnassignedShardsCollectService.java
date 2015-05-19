@@ -40,6 +40,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -106,7 +107,13 @@ public class UnassignedShardsCollectService implements CollectService {
 
     private Iterable<UnassignedShard> createIterator(final Map<String, List<Integer>> indexShardMap) {
         String[] indices = indexShardMap.keySet().toArray(new String[indexShardMap.size()]);
-        final List<ShardRouting> allShards = clusterService.state().routingTable().allShards(indices);
+        List<ShardRouting> allShards = null;
+        try {
+            allShards = clusterService.state().routingTable().allShards(indices);
+        } catch (IndexMissingException e) {
+            // edge case: index was deleted while collecting, no more shards
+            return NO_SHARDS;
+        }
         if (allShards == null || allShards.size() == 0) {
             return NO_SHARDS;
         }
