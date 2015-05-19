@@ -206,7 +206,7 @@ public class ExecutionNodesTask extends JobTask {
             Collection<ExecutionNode> executionNodes = entry.getValue();
 
             if (serverNodeId.equals(TableInfo.NULL_NODE_ID)) {
-                handlerSideCollect(executionNodes, pageDownstreamContexts);
+                handlerSideCollect(idx, executionNodes, pageDownstreamContexts);
             } else {
                 JobRequest request = new JobRequest(jobId(), executionNodes);
                 if (hasDirectResponse) {
@@ -249,23 +249,26 @@ public class ExecutionNodesTask extends JobTask {
         }
     }
 
-    private void handlerSideCollect(Collection<ExecutionNode> executionNodes,
+    private void handlerSideCollect(final int bucketIdx,
+                                    Collection<ExecutionNode> executionNodes,
                                     List<PageDownstreamContext> pageDownstreamContexts) {
         assert executionNodes.size() == 1 && pageDownstreamContexts.size() == 1
                 : "handlerSideCollect is only possible with 1 collectNode";
         ExecutionNode onlyElement = Iterables.getOnlyElement(executionNodes);
         assert onlyElement instanceof CollectNode : "handlerSideCollect is only possible with 1 collectNode";
 
+        LOGGER.trace("calling handlerSideCollect for job {}", jobId());
+
         final PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(0);
         CollectNode collectNode = ((CollectNode) onlyElement);
         RamAccountingContext ramAccountingContext = trackOperation(collectNode,
-                "handlerSide collect", results.get(0));
+                "handlerSide collect", results.size() > 1 ? results.get(bucketIdx) : results.get(0));
 
         CollectingProjector collectingProjector = new CollectingProjector();
         Futures.addCallback(collectingProjector.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket result) {
-                pageDownstreamContext.setBucket(0, result, true, new PageResultListener() {
+                pageDownstreamContext.setBucket(bucketIdx, result, true, new PageResultListener() {
                     @Override
                     public void needMore(boolean needMore) {
                         // can't page
@@ -273,14 +276,14 @@ public class ExecutionNodesTask extends JobTask {
 
                     @Override
                     public int buckedIdx() {
-                        return 0;
+                        return bucketIdx;
                     }
                 });
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                pageDownstreamContext.failure(0, t);
+                pageDownstreamContext.failure(bucketIdx, t);
             }
         });
 
