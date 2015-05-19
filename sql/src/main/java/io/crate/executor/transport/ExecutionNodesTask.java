@@ -175,7 +175,7 @@ public class ExecutionNodesTask extends JobTask {
             Collection<ExecutionNode> executionNodes = entry.getValue();
 
             if (serverNodeId.equals(TableInfo.NULL_NODE_ID)) {
-                handlerSideCollect(executionNodes, pageDownstreamContext);
+                handlerSideCollect(idx, executionNodes, pageDownstreamContext);
             } else {
                 JobRequest request = new JobRequest(jobId(), executionNodes);
                 if (hasDirectResponse) {
@@ -217,7 +217,8 @@ public class ExecutionNodesTask extends JobTask {
         }
     }
 
-    private void handlerSideCollect(Collection<ExecutionNode> executionNodes,
+    private void handlerSideCollect(final int bucketIdx,
+                                    Collection<ExecutionNode> executionNodes,
                                     final PageDownstreamContext pageDownstreamContext) {
         assert executionNodes.size() == 1 : "handlerSideCollect is only possible with 1 collectNode";
         ExecutionNode onlyElement = Iterables.getOnlyElement(executionNodes);
@@ -230,7 +231,7 @@ public class ExecutionNodesTask extends JobTask {
         Futures.addCallback(collectingProjector.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(Bucket result) {
-                pageDownstreamContext.setBucket(0, result, true, new PageResultListener() {
+                pageDownstreamContext.setBucket(bucketIdx, result, true, new PageResultListener() {
                     @Override
                     public void needMore(boolean needMore) {
                         // can't page
@@ -238,14 +239,14 @@ public class ExecutionNodesTask extends JobTask {
 
                     @Override
                     public int buckedIdx() {
-                        return 0;
+                        return bucketIdx;
                     }
                 });
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                pageDownstreamContext.failure(0, t);
+                pageDownstreamContext.failure(bucketIdx, t);
             }
         });
 

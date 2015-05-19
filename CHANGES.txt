@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Do not throw exception on querying `sys.shards` while
+   unassigned shards are changing
+
  - Fix: Handle concurrently dropped partitions while collecting rows
 
  - Fix: Updated es/upstream to prevent errors caused by too many cluster
