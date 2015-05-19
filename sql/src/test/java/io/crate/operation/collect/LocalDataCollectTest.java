@@ -57,6 +57,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
@@ -214,6 +215,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
             when(bulkRetryCoordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
             bind(BulkRetryCoordinatorPool.class).toInstance(bulkRetryCoordinatorPool);
 
+            bind(TransportBulkCreateIndicesAction.class).toInstance(mock(TransportBulkCreateIndicesAction.class));
             bind(CircuitBreakerService.class).toInstance(new NoneCircuitBreakerService());
             bind(ActionFilters.class).toInstance(mock(ActionFilters.class));
             bind(ScriptService.class).toInstance(mock(ScriptService.class));

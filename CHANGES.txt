@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused a node stop to always take up at least 10 seconds
+
+ - Further improved bulk partition creation which can occur during ``COPY
+   FROM`` or INSERTS with multi-values into partitioned tables
+
  - ``COPY FROM``: imports from S3 will now retry the import in case of a read
    timeout.
 
