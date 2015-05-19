@@ -32,6 +32,7 @@ evaluationDependsOn(':sql-parser')
 evaluationDependsOn(':blob')
 evaluationDependsOn(':udc')
 evaluationDependsOn(':client')
+evaluationDependsOn(':dns-discovery')
 
 dependencies {
     compile project(':core')
@@ -41,6 +42,7 @@ dependencies {
     compile project(':blob')
     compile project(':udc')
     compile project(':client')
+    compile project(':dns-discovery')
 
     testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.10') {
         exclude group: 'junit', module: 'junit'
@@ -56,6 +58,7 @@ dependencies {
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
     compileNotTransitive project(':client')
+    compileNotTransitive project(':dns-discovery')
 
     compileNotTransitive fileTree(dir: '../es/upstream/lib/sigar/', include: '*.jar')
 }
