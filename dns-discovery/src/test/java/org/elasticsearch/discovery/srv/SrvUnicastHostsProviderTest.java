@@ -86,6 +86,23 @@ public class SrvUnicastHostsProviderTest {
     }
 
     @Test
+    public void testValidResolverWithPort() throws Exception {
+        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+                .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "127.0.0.1:5353");
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
+                transportService, Version.CURRENT);
+        assertEquals("/127.0.0.1:5353", ((SimpleResolver)unicastHostsProvider.resolver).getAddress().toString());
+    }
+
+    @Test
+    public void testValidResolverWithInvalidPort() throws Exception {
+        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+                .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "127.0.0.1:42a");
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
+                transportService, Version.CURRENT);
+        assertEquals("/127.0.0.1:53", ((SimpleResolver)unicastHostsProvider.resolver).getAddress().toString());
+    }
+    @Test
     public void testBuildDynamicNodesNoQuery() throws Exception {
         // no query -> empty list of discovery nodes
         SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(ImmutableSettings.EMPTY,

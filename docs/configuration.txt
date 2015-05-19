@@ -537,6 +537,7 @@ would result in a list of discovery nodes ordered like::
   The hostname or IP of the DNS server used to resolve DNS records.
   If this is not set, or the specified hostname/IP is not resolvable,
   the default (system) resolver is used.
+  Optionally a custom port can be specified using the format ``hostname:port``.
 
 .. _conf_routing:
 

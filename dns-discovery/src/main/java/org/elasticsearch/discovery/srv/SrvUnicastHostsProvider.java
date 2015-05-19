@@ -48,6 +48,7 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
 
     public static final String DISCOVERY_SRV_QUERY = "discovery.srv.query";
     public static final String DISCOVERY_SRV_RESOLVER = "discovery.srv.resolver";
+
     private final TransportService transportService;
     private final Version version;
     private final String query;
@@ -64,8 +65,29 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
 
     @Nullable
     private Resolver resolver(Settings settings) {
+        String hostname = null;
+        int port = -1;
+        String resolverAddress = settings.get(DISCOVERY_SRV_RESOLVER);
+        if (resolverAddress != null) {
+            String[] parts = resolverAddress.split(":");
+            if (parts.length > 0) {
+                hostname = parts[0];
+                if (parts.length > 1) {
+                    try {
+                        port = Integer.valueOf(parts[1]);
+                    } catch (Exception e) {
+                        logger.warn("Resolver port is '{}' not an integer", parts[1]);
+                    }
+                }
+
+            }
+        }
         try {
-            return new SimpleResolver(settings.get(DISCOVERY_SRV_RESOLVER));
+            Resolver resolver = new SimpleResolver(hostname);
+            if (port > 0) {
+                resolver.setPort(port);
+            }
+            return resolver;
         } catch (UnknownHostException e) {
             logger.warn("Could not create resolver. Using default resolver.", e);
         }
