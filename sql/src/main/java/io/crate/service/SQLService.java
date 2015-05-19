@@ -53,7 +53,6 @@ public class SQLService extends AbstractLifecycleComponent<SQLService> {
 
     @Override
     protected void doStop() throws ElasticsearchException {
-
     }
 
     @Override

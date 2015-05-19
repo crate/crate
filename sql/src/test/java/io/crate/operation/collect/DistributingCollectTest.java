@@ -47,6 +47,7 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
@@ -145,6 +146,7 @@ public class DistributingCollectTest extends CrateUnitTest {
             bind(MetaDataCreateIndexService.class).toInstance(mock(MetaDataCreateIndexService.class));
             bind(ClusterInfoService.class).toInstance(mock(ClusterInfoService.class));
             bind(MapperService.class).toInstance(mock(MapperService.class));
+            bind(TransportBulkCreateIndicesAction.class).toInstance(mock(TransportBulkCreateIndicesAction.class));
 
             bind(TransportShardBulkAction.class).toInstance(mock(TransportShardBulkAction.class));
             bind(TransportCreateIndexAction.class).toInstance(mock(TransportCreateIndexAction.class));
