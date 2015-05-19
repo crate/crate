@@ -474,6 +474,19 @@
 # discovery.zen.fd.ping_retries: 3
 # discovery.zen.fd.ping_interval: 1s
 #
+############################# Discovery via DNS #############################
+
+# Service discovery allows Crate to discovery nodes via SRV DNS records.
+
+# To enable SRV discovery you need to set the discovery type to 'srv'.
+#
+# discovery.type: srv
+
+# Service discovery requires a query that is used to look up SRV records,
+# this is usually in the format _service._protocol.fqdn
+#
+# discovery.srv.query: _crate._srv.example.com
+
 ############################# Routing Allocation #############################
 
 # Allows to control shard allocation.
