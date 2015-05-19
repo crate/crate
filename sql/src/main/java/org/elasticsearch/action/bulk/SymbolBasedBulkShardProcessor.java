@@ -326,7 +326,6 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
                 timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
             }
             BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
-                    .ignoreExisting(true)
                     .timeout(timeout);
 
             FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {

@@ -330,7 +330,6 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                 timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
             }
             final BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
-                    .ignoreExisting(true)
                     .timeout(timeout); // wait up to 10 seconds for every create index request
             FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override

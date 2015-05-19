@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
+
     TransportBulkCreateIndicesAction action;
 
     @Rule
@@ -63,24 +64,11 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
     }
 
     @Test
-    public void testCreateBulkdIndicesSame() throws Exception {
-        expectedException.expect(IndexAlreadyExistsException.class);
-        expectedException.expectMessage("[index1] already exists");
-
-        client().admin().indices().prepareCreate("index1").execute().actionGet();
-        ensureYellow();
-
-        action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index2", "index3", "index1")).ignoreExisting(false)
-        ).actionGet();
-    }
-
-    @Test
     public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
         BulkCreateIndicesResponse response = action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1")).ignoreExisting(true)
+                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"))
         ).actionGet();
-        assertThat(response.responses().size(), is(3));
+        assertThat(response.responses().size(), is(4));
         ensureYellow();
 
         IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
@@ -89,7 +77,7 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
         assertThat(indicesExistsResponse.isExists(), is(true));
 
         BulkCreateIndicesResponse response2 = action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1")).ignoreExisting(true)
+                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"))
         ).actionGet();
         assertThat(response2.responses().size(), is(0));
         assertThat(response2.alreadyExisted(), containsInAnyOrder("index1", "index2", "index3"));
@@ -109,9 +97,7 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
         expectedException.expect(InvalidIndexNameException.class);
         expectedException.expectMessage("[invalid/#haha] Invalid index name [invalid/#haha], must not contain the following characters [\\, /, *, ?, \", <, >, |,  , ,]");
 
-        BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest()
-                .add(new CreateIndexRequest("valid"))
-                .add(new CreateIndexRequest("invalid/#haha").mapping("todo", "{\"properties\":{\"id\":{\"type\":\"integer\"}}}"));
+        BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(Arrays.asList("valid", "invalid/#haha"));
         try {
             action.execute(bulkCreateIndicesRequest).actionGet();
             fail("no exception thrown");
@@ -120,7 +106,7 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
             IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
                     .indices().prepareExists("valid")
                     .execute().actionGet();
-            assertThat(indicesExistsResponse.isExists(), is(true));
+            assertThat(indicesExistsResponse.isExists(), is(false)); // if one name is invalid no index is created
             throw t;
         }
     }

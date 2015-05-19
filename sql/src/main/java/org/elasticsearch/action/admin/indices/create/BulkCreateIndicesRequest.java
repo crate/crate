@@ -40,12 +40,14 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
 
     private List<CreateIndexRequest> createIndexRequests;
 
-    private boolean ignoreExisting = false;
-
     /**
      * Constructs a new request to create indices with the specified names.
      */
     public BulkCreateIndicesRequest(Collection<String> indices) {
+        // TODO: optimize this request to only serialize collection<string> indices
+        // and more importantly: The BulkCreateIndices transport doesn't really support the other options
+        // (like mappings, aliases) within the CreateIndexRequests
+        // so this is just confusing
         this.createIndexRequests = new ArrayList<>(indices.size());
         for (String index : indices) {
             this.createIndexRequests.add(new CreateIndexRequest(index));
@@ -58,25 +60,8 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     BulkCreateIndicesRequest() {
     }
 
-    public boolean ignoreExisting() {
-        return ignoreExisting;
-    }
-
-    public BulkCreateIndicesRequest ignoreExisting(boolean ignoreExisting) {
-        this.ignoreExisting = ignoreExisting;
-        return this;
-    }
-
     public Collection<CreateIndexRequest> requests() {
         return createIndexRequests;
-    }
-
-    public BulkCreateIndicesRequest add(CreateIndexRequest createIndexRequest) {
-        if (createIndexRequests == null) {
-            createIndexRequests = Lists.newArrayList();
-        }
-        createIndexRequests.add(createIndexRequest);
-        return this;
     }
 
     @Override
@@ -113,7 +98,7 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        ignoreExisting = in.readBoolean();
+        in.readBoolean();
         int numRequests = in.readVInt();
         createIndexRequests = new ArrayList<>(numRequests);
         for (int i = 0; i < numRequests; i++) {
@@ -126,7 +111,7 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeBoolean(ignoreExisting);
+        out.writeBoolean(true);  // used to be ignoreExisting setting; here for binary compat. - remove for next feature release
 
         if (createIndexRequests == null) {
             out.writeVInt(0);
