@@ -23,27 +23,18 @@ package io.crate.planner.node.ddl;
 
 import io.crate.planner.node.PlanNodeVisitor;
 
+import javax.annotation.Nonnull;
+
 public class ESDeleteIndexNode extends DDLPlanNode {
 
-    private final String index;
-    private final boolean partition;
+    private final String[] indices;
 
-    public ESDeleteIndexNode(String index) {
-        this(index, false);
+    public ESDeleteIndexNode(@Nonnull String ... indices) {
+        this.indices = indices;
     }
 
-    public ESDeleteIndexNode(String index, boolean partition) {
-        assert index != null : "index is null";
-        this.index = index;
-        this.partition = partition;
-    }
-
-    public String index() {
-        return index;
-    }
-
-    public boolean isPartition() {
-        return partition;
+    public String[] indices() {
+        return indices;
     }
 
     @Override

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Optimized ``DELETE FROM <partitioned_table>``
+
  - Fix: Do not throw exception on querying `sys.shards` while
    unassigned shards are changing
 
