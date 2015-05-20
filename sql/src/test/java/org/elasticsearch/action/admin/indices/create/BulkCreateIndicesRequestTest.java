@@ -42,7 +42,7 @@ public class BulkCreateIndicesRequestTest {
         BulkCreateIndicesRequest requestDeserialized = new BulkCreateIndicesRequest();
         requestDeserialized.readFrom(in);
 
-        assertThat(requestDeserialized.indices(), is(arrayContainingInAnyOrder("a", "b", "c")));
+        assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
 
         request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"));
         out = new BytesStreamOutput();
@@ -51,7 +51,7 @@ public class BulkCreateIndicesRequestTest {
         requestDeserialized = new BulkCreateIndicesRequest();
         requestDeserialized.readFrom(in);
 
-        assertThat(requestDeserialized.indices(), is(arrayContainingInAnyOrder("a", "b", "c")));
+        assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
     }
 
     @Test
@@ -63,6 +63,6 @@ public class BulkCreateIndicesRequestTest {
         BulkCreateIndicesRequest requestDeserialized = new BulkCreateIndicesRequest();
         requestDeserialized.readFrom(in);
 
-        assertThat(requestDeserialized.indices(), is(emptyArray()));
+        assertThat(requestDeserialized.indices().size(), is(0));
     }
 }

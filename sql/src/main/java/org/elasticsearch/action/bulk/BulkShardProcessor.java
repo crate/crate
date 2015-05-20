@@ -366,7 +366,6 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                 transportBulkCreateIndicesAction.execute(bulkCreateIndicesRequest, new ActionListener<BulkCreateIndicesResponse>() {
                     @Override
                     public void onResponse(BulkCreateIndicesResponse bulkCreateIndicesResponse) {
-                        trace("%d of %d indices already created", bulkCreateIndicesResponse.alreadyExisted(), indices.size());
                         indicesCreated.addAll(indices);
                     }
 

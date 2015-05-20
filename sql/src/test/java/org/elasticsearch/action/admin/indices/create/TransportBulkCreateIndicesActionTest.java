@@ -21,10 +21,10 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -33,7 +33,6 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -54,7 +53,7 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
         BulkCreateIndicesResponse response = action.execute(
                 new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index4"))
         ).actionGet();
-        assertThat(response.responses().size(), is(4));
+        assertThat(response.isAcknowledged(), is(true));
         ensureYellow();
 
         IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
@@ -68,8 +67,7 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
         BulkCreateIndicesResponse response = action.execute(
                 new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"))
         ).actionGet();
-        assertThat(response.responses().size(), is(4));
-        ensureYellow();
+        assertThat(response.isAcknowledged(), is(true));
 
         IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
                 .indices().prepareExists("index1", "index2", "index3")
@@ -79,17 +77,14 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
         BulkCreateIndicesResponse response2 = action.execute(
                 new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"))
         ).actionGet();
-        assertThat(response2.responses().size(), is(0));
-        assertThat(response2.alreadyExisted(), containsInAnyOrder("index1", "index2", "index3"));
+        assertThat(response2.isAcknowledged(), is(true));
     }
 
     @Test
     public void testEmpty() throws Exception {
         BulkCreateIndicesResponse response = action.execute(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of())
-        ).actionGet();
-        assertThat(response.responses().size(), is(0));
-
+                new BulkCreateIndicesRequest(ImmutableList.<String>of())).actionGet();
+        assertThat(response.isAcknowledged(), is(true));
     }
 
     @Test

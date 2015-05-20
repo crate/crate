@@ -24,9 +24,7 @@ package org.elasticsearch.action.admin.indices.create;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -181,7 +179,11 @@ public class TransportBulkCreateIndicesAction
     protected void masterOperation(final BulkCreateIndicesRequest request,
                                    final ClusterState state,
                                    final ActionListener<BulkCreateIndicesResponse> responseListener) throws ElasticsearchException {
-        // TODO: add kill-all support; requires serialization changes in BulkCreateIndicesRequest
+
+        if (request.indices().isEmpty()) {
+            responseListener.onResponse(new BulkCreateIndicesResponse(true));
+            return;
+        }
 
         synchronized (pendingLock) {
             if (activeOperations > 0) {
@@ -190,21 +192,13 @@ public class TransportBulkCreateIndicesAction
             }
             activeOperations++;
         }
+
         final ActionListener<BulkCreateIndicesResponse> listener = new PendingTriggeringActionListener(responseListener);
-
-        final List<CreateIndexResponse> responses = new ArrayList<>(request.requests().size());
-        final BulkCreateIndicesResponse finalResponse = new BulkCreateIndicesResponse(responses);
-
-        if (request.requests().isEmpty()) {
-            listener.onResponse(finalResponse);
-            return;
-        }
-
         final Map<Semaphore, Collection<String>> locked = new HashMap<>();
-        final Map<Semaphore, Collection<String>> unlocked = metaDataService.indexMetaDataLocks(Arrays.asList(request.indices()));
+        final Map<Semaphore, Collection<String>> unlocked = metaDataService.indexMetaDataLocks(request.indices());
 
         try {
-            tryAcquireLocksAndRemoveExistingIndices(state, finalResponse, locked, unlocked, 0L);
+            tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, 0L);
         } catch (InterruptedException e) {
             listener.onFailure(e);
             return;
@@ -218,14 +212,9 @@ public class TransportBulkCreateIndicesAction
 
                 if (!unlocked.isEmpty()) {
                     tryAcquireLocksAndCreateIndicesThreaded(
-                            timeStart, request, clusterService.state(), finalResponse, locked, unlocked, this);
+                            timeStart, request, clusterService.state(), locked, unlocked, this);
                 } else {
-                    for (CreateIndexRequest createIndexRequest : request.requests()) {
-                        if (!finalResponse.alreadyExisted().contains(createIndexRequest.index())) {
-                            responses.add(new CreateIndexResponse(clusterStateUpdateResponse.isAcknowledged()));
-                        }
-                    }
-                    listener.onResponse(finalResponse);
+                    listener.onResponse(new BulkCreateIndicesResponse(true));
                 }
             }
 
@@ -237,20 +226,19 @@ public class TransportBulkCreateIndicesAction
 
         if (locked.isEmpty() && unlocked.isEmpty()) {
             // all indices already existed?
-            listener.onResponse(finalResponse);
+            listener.onResponse(new BulkCreateIndicesResponse(true));
             return;
         }
 
         if (!locked.isEmpty()) {
-            createIndices(request, locked, stateUpdateListener, finalResponse);
+            createIndices(request, locked, stateUpdateListener);
         } else {
-            tryAcquireLocksAndCreateIndicesThreaded(timeStart, request, state, finalResponse, locked, unlocked, stateUpdateListener);
+            tryAcquireLocksAndCreateIndicesThreaded(timeStart, request, state, locked, unlocked, stateUpdateListener);
         }
     }
     private void tryAcquireLocksAndCreateIndicesThreaded(final long timeStart,
                                                          final BulkCreateIndicesRequest request,
                                                          final ClusterState state,
-                                                         final BulkCreateIndicesResponse finalResponse,
                                                          final Map<Semaphore, Collection<String>> locked,
                                                          final Map<Semaphore, Collection<String>> unlocked,
                                                          final ActionListener<ClusterStateUpdateResponse> stateUpdateListener) {
@@ -264,12 +252,12 @@ public class TransportBulkCreateIndicesAction
                             stateUpdateListener.onFailure(new ProcessClusterEventTimeoutException(request.masterNodeTimeout(), "acquire index lock"));
                             return;
                         }
-                        tryAcquireLocksAndRemoveExistingIndices(state, finalResponse, locked, unlocked, 0);
+                        tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, 0);
                         if (locked.isEmpty() && !unlocked.isEmpty()) {
-                            tryAcquireLocksAndRemoveExistingIndices(state, finalResponse, locked, unlocked,
+                            tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked,
                                     request.masterNodeTimeout().nanos() - elapsed);
                         } else {
-                            createIndices(request, locked, stateUpdateListener, finalResponse);
+                            createIndices(request, locked, stateUpdateListener);
                         }
                     } catch (InterruptedException e) {
                         stateUpdateListener.onFailure(e);
@@ -285,7 +273,6 @@ public class TransportBulkCreateIndicesAction
     }
 
     private void tryAcquireLocksAndRemoveExistingIndices(ClusterState state,
-                                                         BulkCreateIndicesResponse finalResponse,
                                                          Map<Semaphore, Collection<String>> locked,
                                                          Map<Semaphore, Collection<String>> unlocked,
                                                          long timeout) throws InterruptedException {
@@ -299,7 +286,6 @@ public class TransportBulkCreateIndicesAction
                 String index = iterator.next();
 
                 if (state.routingTable().hasIndex(index) || state.metaData().hasIndex(index)) {
-                    finalResponse.addAlreadyExisted(index);
                     iterator.remove();
                 }
             }
@@ -334,8 +320,7 @@ public class TransportBulkCreateIndicesAction
 
     private void createIndices(final BulkCreateIndicesRequest request,
                                final Map<Semaphore, Collection<String>> lockedIndices,
-                               ActionListener<ClusterStateUpdateResponse> listener,
-                               final BulkCreateIndicesResponse finalResponse) {
+                               ActionListener<ClusterStateUpdateResponse> listener) {
         clusterService.submitStateUpdateTask("create-indices [" +  "], cause [" +  "]", Priority.URGENT,
                 new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
 
@@ -369,11 +354,11 @@ public class TransportBulkCreateIndicesAction
                  * but optimized for bulk operation without separate mapping/alias/index settings.
                  */
 
-                List<String> indicesToCreate = new ArrayList<>(request.requests().size());
+                List<String> indicesToCreate = new ArrayList<>(request.indices().size());
                 String removalReason = null;
                 String testIndex = null;
                 try {
-                    validateAndFilterExistingIndices(currentState, indicesToCreate, request, finalResponse);
+                    validateAndFilterExistingIndices(currentState, indicesToCreate, request);
                     if (indicesToCreate.isEmpty()) {
                         return currentState;
                     }
@@ -467,8 +452,8 @@ public class TransportBulkCreateIndicesAction
 
                     ClusterState updatedState = ClusterState.builder(currentState).metaData(newMetaData).build();
                     RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable());
-                    for (CreateIndexRequest createIndexRequest : request.requests()) {
-                        routingTableBuilder.addAsNew(updatedState.metaData().index(createIndexRequest.index()));
+                    for (String index : request.indices()) {
+                        routingTableBuilder.addAsNew(updatedState.metaData().index(index));
                     }
                     RoutingAllocation.Result routingResult = allocationService.reroute(
                             ClusterState.builder(updatedState).routingTable(routingTableBuilder).build());
@@ -488,9 +473,9 @@ public class TransportBulkCreateIndicesAction
     }
 
     private void addMappingFromMappingsFile(Map<String, Map<String, Object>> mappings, File mappingsDir, BulkCreateIndicesRequest request) {
-        for (CreateIndexRequest createIndexRequest : request.requests()) {
+        for (String index : request.indices()) {
             // first index level
-            File indexMappingsDir = new File(mappingsDir, createIndexRequest.index());
+            File indexMappingsDir = new File(mappingsDir, index);
             if (indexMappingsDir.isDirectory()) {
                 addMappings(mappings, indexMappingsDir);
             }
@@ -503,13 +488,15 @@ public class TransportBulkCreateIndicesAction
         }
     }
 
-    private void validateAndFilterExistingIndices(ClusterState currentState, List<String> indicesToCreate, BulkCreateIndicesRequest request, BulkCreateIndicesResponse finalResponse) {
-        for (CreateIndexRequest createIndexRequest : request.requests()) {
+    private void validateAndFilterExistingIndices(ClusterState currentState,
+                                                  List<String> indicesToCreate,
+                                                  BulkCreateIndicesRequest request) {
+        for (String index : request.indices()) {
             try {
-                createIndexService.validateIndexName(createIndexRequest.index(), currentState);
-                indicesToCreate.add(createIndexRequest.index());
+                createIndexService.validateIndexName(index, currentState);
+                indicesToCreate.add(index);
             } catch (IndexAlreadyExistsException e) {
-                finalResponse.addAlreadyExisted(createIndexRequest.index());
+                // ignore
             }
         }
     }
@@ -610,7 +597,7 @@ public class TransportBulkCreateIndicesAction
                                                       IndexTemplateFilter indexTemplateFilter) {
         List<IndexTemplateMetaData> templates = new ArrayList<>();
         CreateIndexClusterStateUpdateRequest dummyRequest =
-                new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.requests().iterator().next().index());
+                new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.indices().iterator().next());
 
         // note: only use the first index name to see if template matches.
         // this means
@@ -636,7 +623,7 @@ public class TransportBulkCreateIndicesAction
 
     @Override
     protected ClusterBlockException checkBlock(BulkCreateIndicesRequest request, ClusterState state) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA, request.indices());
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA, Iterables.toArray(request.indices(), String.class));
     }
 
     private static class DefaultIndexTemplateFilter implements IndexTemplateFilter {

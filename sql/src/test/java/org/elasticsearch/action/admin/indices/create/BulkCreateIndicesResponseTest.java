@@ -25,6 +25,7 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,24 +35,17 @@ import static org.hamcrest.Matchers.is;
 public class BulkCreateIndicesResponseTest {
 
     @Test
-    public void testSerializationEmpty() throws Exception {
-        BulkCreateIndicesResponse response = new BulkCreateIndicesResponse();
-        BytesStreamOutput out = new BytesStreamOutput();
-        response.writeTo(out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-
-        BulkCreateIndicesResponse responseDeserialized = new BulkCreateIndicesResponse();
-        responseDeserialized.readFrom(in);
-
-        assertThat(responseDeserialized.responses(), is(empty()));
-        assertThat(responseDeserialized.isAcknowledged(), is(false));
+    public void testSerializationNotAcknowledged() throws Exception {
+        serializeAndAssertAcknowledged(false);
     }
 
     @Test
-    public void testSerialization() throws Exception {
-        BulkCreateIndicesResponse response = new BulkCreateIndicesResponse(
-                Arrays.asList(new CreateIndexResponse(true), new CreateIndexResponse(false))
-        );
+    public void testSerializationAcknowledged() throws Exception {
+        serializeAndAssertAcknowledged(true);
+    }
+
+    private void serializeAndAssertAcknowledged(boolean acknowledged) throws IOException {
+        BulkCreateIndicesResponse response = new BulkCreateIndicesResponse(acknowledged);
         BytesStreamOutput out = new BytesStreamOutput();
         response.writeTo(out);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
@@ -59,7 +53,6 @@ public class BulkCreateIndicesResponseTest {
         BulkCreateIndicesResponse responseDeserialized = new BulkCreateIndicesResponse();
         responseDeserialized.readFrom(in);
 
-        assertThat(responseDeserialized.responses().size(), is(2));
-        assertThat(responseDeserialized.isAcknowledged(), is(false));
+        assertThat(responseDeserialized.isAcknowledged(), is(acknowledged));
     }
 }
