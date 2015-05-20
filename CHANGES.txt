@@ -5,6 +5,9 @@ Changes for Crate
 unreleased
 ==========
 
+2015/05/20 0.48.6
+=================
+
  - Optimized ``DELETE FROM <partitioned_table>``
 
  - Fix: Handle concurrently dropped partitions while collecting rows
