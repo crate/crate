@@ -48,11 +48,6 @@ appender:
 #    type: dailyRollingFile
 #    file: ${path.logs}/${cluster.name}_table_search_slowlog.log
 #    datePattern: "'.'yyyy-MM-dd"
-
-#     if you want to keep the logs for a certain time range only,
-#     set the following value to fit your needs (or remove it if you don't
-#     need it at all).
-#    maxBackupIndex: 7
 #    layout:
 #      type: pattern
 #      conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
