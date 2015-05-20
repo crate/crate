@@ -10,6 +10,9 @@ Unreleased
  - Further improved bulk partition creation which can occur during ``COPY
    FROM`` or INSERTS with multi-values into partitioned tables
 
+ - Support to register a plugin with different settings to multiple crate
+   instances using the same JVM
+
  - Added the ``concat`` scalar function and the concat operator ``||``.
 
  - Updated Elasticsearch to 1.5.2
