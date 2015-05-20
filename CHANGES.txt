@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Updated es/upstream to prevent errors caused by too many cluster
+   state updates when dropping tables with a huge amount of partitions
+
  - Fixed an issue that caused a node stop to always take up at least 10 seconds
 
  - Further improved bulk partition creation which can occur during ``COPY
