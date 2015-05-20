@@ -49,49 +49,50 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
         super(settings);
         this.transportService = transportService;
         this.version = version;
-
         this.query = settings.get("discovery.srv.query");
     }
 
     @Override
     public List<DiscoveryNode> buildDynamicNodes() {
         List<DiscoveryNode> discoNodes = Lists.newArrayList();
-
         if (query == null) {
             logger.error("DNS query must not be null.");
             return discoNodes;
         }
         try {
             Record[] records = new Lookup(query, Type.SRV).run();
-
             logger.trace("building dynamic unicast discovery nodes...");
             if (records == null) {
                 logger.debug("No nodes found");
             } else {
-                for (Record record : records) {
-                    SRVRecord srv = (SRVRecord) record;
-
-                    String hostname = srv.getTarget().toString().replaceFirst("\\.$", "");
-                    int port = srv.getPort();
-                    String address = hostname + ":" + port;
-
-                    try {
-                        TransportAddress[] addresses = transportService.addressesFromString(address);
-                        logger.trace("adding {}, transport_address {}", address, addresses[0]);
-                        discoNodes.add(new DiscoveryNode("#srv-" + address, addresses[0], version.minimumCompatibilityVersion()));
-                    } catch (Exception e) {
-                        logger.warn("failed to add {}, address {}", e, address);
-                    }
-                }
+                discoNodes = parseRecords(records);
             }
         } catch (TextParseException e) {
             logger.warn("Unable to parse DNS query '{}'", query);
             logger.debug("DNS lookup exception:", e);
         }
-
-
         logger.debug("using dynamic discovery nodes {}", discoNodes);
-
         return discoNodes;
     }
+
+    protected List<DiscoveryNode> parseRecords(Record[] records) {
+        List<DiscoveryNode> discoNodes = Lists.newArrayList();
+        for (Record record : records) {
+            SRVRecord srv = (SRVRecord) record;
+
+            String hostname = srv.getTarget().toString().replaceFirst("\\.$", "");
+            int port = srv.getPort();
+            String address = hostname + ":" + port;
+
+            try {
+                TransportAddress[] addresses = transportService.addressesFromString(address);
+                logger.trace("adding {}, transport_address {}", address, addresses[0]);
+                discoNodes.add(new DiscoveryNode("#srv-" + address, addresses[0], version.minimumCompatibilityVersion()));
+            } catch (Exception e) {
+                logger.warn("failed to add {}, address {}", e, address);
+            }
+        }
+        return discoNodes;
+    }
+
 }
