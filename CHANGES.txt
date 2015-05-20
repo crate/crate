@@ -2,6 +2,12 @@
 Changes for Crate
 =================
 
+unreleased
+==========
+
+ - Fix: Updated es/upstream to prevent errors caused by too many cluster
+   state updates when dropping tables with a huge amount of partitions
+
 2015/05/15 0.48.5
 =================
 
