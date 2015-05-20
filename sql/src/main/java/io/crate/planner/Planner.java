@@ -400,11 +400,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
         String[] indices = indices(tableInfo, whereClause);
-        if (indices.length > 0 && !whereClause.noMatch()) {
-            if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
-                for (String index : indices) {
-                    plan.add(new ESDeleteIndexNode(index, true));
-                }
+        if (indices.length > 0) {
+            if (tableInfo.isPartitioned() && !whereClause.hasQuery()) {
+                plan.add(new ESDeleteIndexNode(indices));
             } else {
                 // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
                 // forbidden through analysis, we must issue deleteByQuery request in addition
