@@ -73,9 +73,9 @@ public class ESDeleteIndexTask extends AbstractChainedTask {
                              ESDeleteIndexNode node) {
         super(jobId);
         this.transport = transport;
-        this.request = new DeleteIndexRequest(node.index());
+        this.request = new DeleteIndexRequest(node.indices());
         this.request.indicesOptions(IndicesOptions.strictExpandOpen());
-        this.listener = new DeleteIndexListener(result, node.isPartition());
+        this.listener = new DeleteIndexListener(result, node.indices().length > 1);
     }
 
     @Override
