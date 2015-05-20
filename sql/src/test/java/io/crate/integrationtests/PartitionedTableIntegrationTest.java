@@ -161,8 +161,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureGreen();
         waitNoPendingTasksOnAll();
 
-        execute("select * from information_schema.tables where schema_name='my_schema' and table_name='parted'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 5| 0| _id| [month]| NULL\n"));
+        execute("select schema_name, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by "+
+                "from information_schema.tables where schema_name='my_schema' and table_name='parted'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 5| 0| _id| [month]\n"));
 
         // no other tables with that name, e.g. partitions considered as tables or such
         execute("select schema_name, table_name from information_schema.tables where table_name like '%parted%'");
@@ -1340,6 +1341,36 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+
+    }
+
+    @Test
+    public void testAlterPartitionedTableSettings() throws Exception {
+        execute("create table attrs (name string, attr string, value integer) " +
+                "partitioned by (name) clustered into 1 shards with (number_of_replicas=0, \"routing.allocation.total_shards_per_node\"=5)");
+        ensureYellow();
+        execute("insert into attrs (name, attr, value) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{"foo", "shards", 1, "bar", "replicas", 2});
+        refresh();
+        execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
+        response.rows();
+        HashMap<String, Object> routingAllocation = new HashMap<String, Object>() {{
+            put("enable", "all");
+            put("total_shards_per_node", 5);
+        }};
+        assertEquals(routingAllocation, response.rows()[0][0]);
+        assertEquals(routingAllocation, response.rows()[1][0]);
+
+        execute("alter table attrs set (\"routing.allocation.total_shards_per_node\"=1)");
+        execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
+        response.rows();
+        routingAllocation = new HashMap<String, Object>() {{
+            put("enable", "all");
+            put("total_shards_per_node", 1);
+        }};
+        assertEquals(routingAllocation, response.rows()[0][0]);
+        assertEquals(routingAllocation, response.rows()[1][0]);
+
 
     }
 

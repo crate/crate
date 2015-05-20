@@ -19,28 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.operation.reference.partitioned;
 
-public abstract class RowContextCollectorExpression<R, T> implements RowCollectExpression<R, T> {
+import io.crate.metadata.PartitionInfo;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.operation.reference.RowCollectNestedObjectExpression;
 
-    protected final ReferenceInfo info;
-    protected R row;
+public abstract class AbstractPartitionsSettingsExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
-    public RowContextCollectorExpression(ReferenceInfo info) {
-        this.info = info;
+    public AbstractPartitionsSettingsExpression(ReferenceInfo info) {
+        super(info);
     }
 
-    @Deprecated
-    public ReferenceInfo info() {
-        return info;
-    }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
-    }
-
-    public void setNextRow(R row) {
-        this.row = row;
-    }
 }
+

@@ -33,7 +33,6 @@ import io.crate.metadata.table.AbstractDynamicTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
@@ -66,6 +65,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     private final List<ColumnIdent> partitionedBy;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
+    private final ImmutableMap<String, Object> tableParameters;
     private ExecutorService executorService;
     private final ClusterService clusterService;
     private final TableParameterInfo tableParameterInfo;
@@ -94,6 +94,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
                         ClusterService clusterService,
                         int numberOfShards,
                         BytesRef numberOfReplicas,
+                        ImmutableMap<String, Object> tableParameters,
                         List<ColumnIdent> partitionedBy,
                         List<PartitionName> partitions,
                         ColumnPolicy columnPolicy,
@@ -110,6 +111,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         this.concreteIndices = concreteIndices;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
+        this.tableParameters = tableParameters;
         this.executorService = executorService;
         indices = new String[]{ident.esName()};
         this.isAlias = isAlias;
@@ -342,6 +344,11 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     @Override
     public TableParameterInfo tableParameterInfo () {
         return tableParameterInfo;
+    }
+
+    @Override
+    public ImmutableMap<String, Object> tableParameters() {
+        return tableParameters;
     }
 
     private class FetchRoutingListener implements ClusterStateObserver.Listener {

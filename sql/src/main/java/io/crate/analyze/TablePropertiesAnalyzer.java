@@ -25,10 +25,12 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.core.NumberOfReplicas;
+import io.crate.metadata.settings.CrateTableSettings;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
@@ -44,6 +46,20 @@ public class TablePropertiesAnalyzer {
             ImmutableBiMap.<String, String>builder()
                     .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_REPLICAS), TableParameterInfo.NUMBER_OF_REPLICAS)
                     .put(stripIndexPrefix(TableParameterInfo.REFRESH_INTERVAL), TableParameterInfo.REFRESH_INTERVAL)
+                    .put(stripIndexPrefix(TableParameterInfo.READ_ONLY), TableParameterInfo.READ_ONLY)
+                    .put(stripIndexPrefix(TableParameterInfo.BLOCKS_READ), TableParameterInfo.BLOCKS_READ)
+                    .put(stripIndexPrefix(TableParameterInfo.BLOCKS_WRITE), TableParameterInfo.BLOCKS_WRITE)
+                    .put(stripIndexPrefix(TableParameterInfo.BLOCKS_METADATA), TableParameterInfo.BLOCKS_METADATA)
+                    .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_OPS), TableParameterInfo.FLUSH_THRESHOLD_OPS)
+                    .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_SIZE), TableParameterInfo.FLUSH_THRESHOLD_SIZE)
+                    .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_PERIOD), TableParameterInfo.FLUSH_THRESHOLD_PERIOD)
+                    .put(stripIndexPrefix(TableParameterInfo.FLUSH_DISABLE), TableParameterInfo.FLUSH_DISABLE)
+                    .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_INTERVAL), TableParameterInfo.TRANSLOG_INTERVAL)
+                    .put(stripIndexPrefix(TableParameterInfo.ROUTING_ALLOCATION_ENABLE), TableParameterInfo.ROUTING_ALLOCATION_ENABLE)
+                    .put(stripIndexPrefix(TableParameterInfo.GATEWAY_LOCAL_SYNC), TableParameterInfo.GATEWAY_LOCAL_SYNC)
+                    .put(stripIndexPrefix(TableParameterInfo.TOTAL_SHARDS_PER_NODE), TableParameterInfo.TOTAL_SHARDS_PER_NODE)
+                    .put(stripIndexPrefix(TableParameterInfo.RECOVERY_INITIAL_SHARDS), TableParameterInfo.RECOVERY_INITIAL_SHARDS)
+                    .put(stripIndexPrefix(TableParameterInfo.WARMER_ENABLED), TableParameterInfo.WARMER_ENABLED)
                     .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_SHARDS), TableParameterInfo.NUMBER_OF_SHARDS)
                     .put("blobs_path", TableParameterInfo.BLOBS_PATH)
                     .build();
@@ -64,6 +80,20 @@ public class TablePropertiesAnalyzer {
             ImmutableMap.<String, SettingsApplier>builder()
                     .put(TableParameterInfo.NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
                     .put(TableParameterInfo.REFRESH_INTERVAL, new RefreshIntervalSettingApplier())
+                    .put(TableParameterInfo.READ_ONLY, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.READ_ONLY))
+                    .put(TableParameterInfo.BLOCKS_READ, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_READ))
+                    .put(TableParameterInfo.BLOCKS_WRITE, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_WRITE))
+                    .put(TableParameterInfo.BLOCKS_METADATA, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_METADATA))
+                    .put(TableParameterInfo.FLUSH_THRESHOLD_OPS, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_OPS))
+                    .put(TableParameterInfo.FLUSH_THRESHOLD_SIZE, new SettingsAppliers.ByteSizeSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_SIZE))
+                    .put(TableParameterInfo.FLUSH_THRESHOLD_PERIOD, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_PERIOD))
+                    .put(TableParameterInfo.FLUSH_DISABLE, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.FLUSH_DISABLE))
+                    .put(TableParameterInfo.TRANSLOG_INTERVAL, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.TRANSLOG_INTERVAL))
+                    .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, new SettingsAppliers.StringSettingsApplier(CrateTableSettings.ROUTING_ALLOCATION_ENABLE))
+                    .put(TableParameterInfo.GATEWAY_LOCAL_SYNC, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.GATEWAY_LOCAL_SYNC))
+                    .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.TOTAL_SHARDS_PER_NODE))
+                    .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, new RecoveryInitialShardsApplier())
+                    .put(TableParameterInfo.WARMER_ENABLED, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.WARMER_ENABLED))
                     .put(TableParameterInfo.NUMBER_OF_SHARDS, new NumberOfShardsSettingsApplier())
                     .put(TableParameterInfo.BLOBS_PATH, new BlobPathSettingApplier())
                     .build();
@@ -232,6 +262,40 @@ public class TablePropertiesAnalyzer {
         @Override
         public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
+        }
+    }
+
+    private static class RecoveryInitialShardsApplier extends SettingsAppliers.AbstractSettingsApplier {
+
+        public ImmutableSet<String> ALLOWED_VALUES = ImmutableSet.of(
+                "quorum",
+                "quorum-1",
+                "full",
+                "full-1",
+                "half"
+        );
+
+        public static final Settings DEFAULT = ImmutableSettings.builder()
+                .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.defaultValue())
+                .build();
+
+        private RecoveryInitialShardsApplier() {
+            super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), DEFAULT);
+        }
+
+        @SuppressWarnings("SuspiciousMethodCalls")
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            Object shardsRecoverySettings;
+            try {
+                shardsRecoverySettings = ExpressionToNumberVisitor.convert(expression, parameters).intValue();
+            } catch (IllegalArgumentException e) {
+                shardsRecoverySettings = ExpressionToObjectVisitor.convert(expression, parameters).toString();
+                if (!ALLOWED_VALUES.contains(shardsRecoverySettings)) {
+                    throw invalidException();
+                }
+            }
+            settingsBuilder.put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, shardsRecoverySettings);
         }
     }
 

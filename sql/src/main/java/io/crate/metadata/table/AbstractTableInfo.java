@@ -1,6 +1,7 @@
 package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
@@ -13,7 +14,9 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractTableInfo implements TableInfo {
 
@@ -95,6 +98,11 @@ public abstract class AbstractTableInfo implements TableInfo {
     @Override
     public TableParameterInfo tableParameterInfo() {
         return null;
+    }
+
+    @Override
+    public ImmutableMap<String, Object> tableParameters() {
+        return ImmutableMap.of();
     }
 
     @Override

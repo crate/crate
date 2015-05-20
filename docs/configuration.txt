@@ -43,6 +43,160 @@ will overwrite the prior one:
  3. options from config file
  4. command-line properties
 
+Table Settings
+==============
+
+For more info about table creating syntax please refer to :ref:`ref-create-table`
+
+**number_of_replicas**
+  | *Default:*    ``1``
+  | *Runtime:*    ``yes``
+
+  Specifies the number or range of replicas each shard of a table should
+  have for normal operation.
+
+**refresh_interval**
+  | *Default:*   ``1000``
+  | *Runtime:*   ``yes``
+
+  Specifies the refresh interval of a shard in milliseconds.
+
+Blocks
+------
+
+**blocks.read_only**
+  | *Default:*   ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable read-only table.
+
+**blocks.read**
+  | *Default:*   ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable all the read operations.
+
+**blocks.write**
+  | *Default:*   ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable all the write operations.
+
+**blocks.metadata**
+  | *Default:*   ``false``
+  | *Runtime:*   ``yes``
+
+  Disables/enables the table settings modifications.
+
+Translog
+--------
+
+  .. note::
+
+    The translog provides a persistent log of all operations that have not been
+    transferred (flushed) to disk. Whenever a record is inserted into a table
+    (or updated) that change is appended both to an in-memory buffer **and** the
+    translog. When the translog reaches a certain size
+    (see :ref:`flush.threshold.size <flush_threshold_size>`), or holds a certain
+    amount of operations (see :ref:`flush.threshold.ops <flush_threshold_ops>`), or
+    after a certain interval (see :ref:`flush.threshold.period <flush_threshold_period>`)
+    the translog is ``fsynced``, flushed to disk, and cleared.
+
+.. _flush_threshold_ops:
+
+**translog.flush_threshold_ops**
+  | *Default:*   ``unlimited``
+  | *Runtime:*   ``yes``
+
+  Sets the number of operations before flushing.
+
+.. _flush_threshold_size:
+
+**translog.flush_threshold_size**
+  | *Default:*   ``200mb``
+  | *Runtime:*   ``yes``
+
+  Sets size of transaction log prior to flushing.
+
+.. _flush_threshold_period:
+
+**translog.flush_threshold_period**
+  | *Default:*   ``30m``
+  | *Runtime:*   ``yes``
+
+  Sets period of no flushing after which force flush occurs.
+
+**translog.disable_flush**
+  | *Default:*    ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable flushing.
+
+**translog.interval**
+  | *Default:*    ``5s``
+  | *Runtime:*   ``yes``
+
+  How often to check if a flush is needed, randomized between the interval
+  value and 2x the interval value.
+
+Gateway
+-------
+
+**gateway.local.sync**
+  | *Default:*    ``5s``
+  | *Runtime:*   ``no``
+
+  Setting ``gateway.local.sync`` controls the period after which the translog
+  is ``fsynced`` to disk (defaults to 5 s). When setting this interval, please keep
+  in mind that changes logged during this interval and not synced to disk may get
+  lost in case of a failure.
+
+Allocation
+----------
+
+**routing.allocation.enable**
+  | *Default:*    ``all``
+  | *Runtime:*   ``yes``
+
+  Controls shard allocation for a specific table.
+
+**routing.allocation.total_shards_per_node**
+  | *Default:*    ``-1``  (unbounded)
+  | *Runtime:*   ``yes``
+
+  Controls the total number of shards (replicas and primaries) allowed to be
+  allocated on a single node.
+
+Recovery
+--------
+
+**recovery.initial_shards**
+  | *Default:*    ``quorum``
+  | *Runtime:*   ``yes``
+
+  When using local gateway a particular shard is recovered only if there can be
+  allocated quorum of it’s copies in the cluster. See :ref:`initial_shards_ref`
+  for more info on the option.
+
+Warmer
+------
+
+**warmer.enabled**
+  | *Default:*    ``true``
+  | *Runtime:*   ``yes``
+
+  disable/enable table warming. Table warming allows to run registered queries
+  to warm up the table before it is available.
+
+Column Policy
+-------------
+
+**column_policy**
+  | *Default:*    ``dynamic``
+  | *Runtime:*   ``yes``
+
+  Specifies the column policy of the table.
+
 Node Specific Settings
 ======================
 

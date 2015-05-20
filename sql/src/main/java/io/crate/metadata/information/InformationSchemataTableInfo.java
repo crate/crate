@@ -22,7 +22,6 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -30,6 +29,8 @@ import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import java.util.LinkedHashMap;
 
 public class InformationSchemataTableInfo extends InformationTableInfo {
 
@@ -51,8 +52,7 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
     protected InformationSchemataTableInfo(InformationSchemaInfo schemaInfo) {
         super(schemaInfo, IDENT,
                 ImmutableList.of(Columns.SCHEMA_NAME),
-                ImmutableMap.of(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME),
-                ImmutableList.of(ReferenceInfos.SCHEMA_NAME)
+                new LinkedHashMap<ColumnIdent, ReferenceInfo>() {{ put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME); }}
         );
     }
 }

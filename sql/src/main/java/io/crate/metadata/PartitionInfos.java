@@ -27,6 +27,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import io.crate.Constants;
+import io.crate.analyze.TableParameterInfo;
 import io.crate.core.NumberOfReplicas;
 import io.crate.core.StringUtils;
 import io.crate.metadata.doc.PartitionedByMappingExtractor;
@@ -66,7 +67,8 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
             try {
                 Map<String, Object> valuesMap = buildValuesMap(partitionName, input.value.mapping(Constants.DEFAULT_MAPPING_TYPE));
                 BytesRef numberOfReplicas = NumberOfReplicas.fromSettings(input.value.settings());
-                return new PartitionInfo(partitionName, input.value.getNumberOfShards(), numberOfReplicas, valuesMap);
+                return new PartitionInfo(partitionName, input.value.getNumberOfShards(), numberOfReplicas, valuesMap,
+                        TableParameterInfo.tableParametersFromIndexMetaData(input.value));
             } catch (Exception e) {
                 Loggers.getLogger(PartitionInfos.class).trace("error extracting partition infos from index {}", e, input.key);
                 return null; // must filter on null

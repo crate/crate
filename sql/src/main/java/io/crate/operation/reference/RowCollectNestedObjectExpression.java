@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,28 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.information;
+package io.crate.operation.reference;
 
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operation.Input;
+import io.crate.metadata.RowCollectExpression;
+import org.apache.lucene.util.BytesRef;
 
-/**
- * Base class for information_schema expressions.
- * @param <T> The returnType of the expression
- */
-public abstract class RowCollectExpression<R, T> implements ReferenceImplementation<T> {
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
+public abstract class RowCollectNestedObjectExpression<R> extends NestedObjectExpression implements RowCollectExpression<R, Map<String,Object>> {
     protected final ReferenceInfo info;
     protected R row;
 
-    public RowCollectExpression(ReferenceInfo info) {
+    public RowCollectNestedObjectExpression(ReferenceInfo info) {
         this.info = info;
-    }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
     }
 
     @Deprecated
@@ -50,5 +45,24 @@ public abstract class RowCollectExpression<R, T> implements ReferenceImplementat
 
     public void setNextRow(R row) {
         this.row = row;
+    }
+
+    @Override
+    public Map<String,Object> value() {
+        Map<String, Object> map = new HashMap<>();
+        for (Map.Entry<String, ReferenceImplementation> e : childImplementations.entrySet()) {
+            if (e.getValue() instanceof RowCollectExpression) {
+                ((RowCollectExpression) e.getValue()).setNextRow(this.row);
+            }
+            Object value = e.getValue().value();
+
+            // convert nested columns of type e.getValue().value() to String here
+            // as we do not want to convert them when building the response
+            if (value != null && value instanceof BytesRef) {
+                value = ((BytesRef)value).utf8ToString();
+            }
+            map.put(e.getKey(), value);
+        }
+        return Collections.unmodifiableMap(map);
     }
 }

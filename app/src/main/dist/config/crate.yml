@@ -133,6 +133,59 @@
 # index.number_of_shards: 1
 # index.number_of_replicas: 0
 
+# Set the refresh interval of a shard in milliseconds.
+#
+# index.refresh_interval: 1000
+
+# Disable/enable read-only table.
+#
+# index.blocks.read_only: false
+
+# Disable/enable all the read operations.
+#
+# index.blocks.read: false
+
+# Disable/enable all the write operations.
+#
+# index.blocks.write: false
+
+# Disables/enables the table settings modifications.
+#
+# index.blocks.metadata: false
+
+# Set the number of operations before flushing.
+#
+# index.translog.flush_threshold_ops: unlimited
+
+# Sets size of transaction log prior to flushing.
+#
+# index.translog.flush_threshold_size: 200mb
+
+# Sets period of no flushing after which force flush occurs.
+#
+# index.translog.flush_threshold_period: 30m
+
+# Disable/enable flushing.
+# Recommended to use only for small periods of time
+#
+# index.translog.disable_flush: false
+
+# Controls shard allocation for a specific table.
+#
+# index.routing.allocation.enable: all
+
+# Controls the total number of shards (replicas and primaries) allowed to be allocated on a single node.
+#
+# index.routing.allocation.total_shards_per_node: -1
+
+# When using local gateway a particular shard is recovered only if there can be allocated quorum of it’s copies in the cluster.
+#
+# index.recovery.initial_shards: quorum
+
+#disable/enable table warming. Table warming allows to run registered queries to warm up the table before it is available.
+#
+#index.warmer.enabled:true
+
 # These settings directly affect the performance of table and search operations
 # in your cluster. Assuming you have enough machines to hold shards and
 # replicas, the rule of thumb is:

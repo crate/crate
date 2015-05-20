@@ -3,11 +3,11 @@ package io.crate.operation.reference.sys.shard.unassigned;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
-import io.crate.operation.reference.sys.cluster.SysClusterExpression;
 import io.crate.operation.reference.sys.shard.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
@@ -113,11 +113,11 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
                 if (referenceImplementation == null) {
                     return null;
                 }
-                assert referenceImplementation instanceof SysClusterExpression;
+                assert referenceImplementation instanceof SimpleObjectExpression;
                 return new UnassignedShardCollectorExpression<Object>(info) {
                     @Override
                     public Object value() {
-                        return ((SysClusterExpression)referenceImplementation).value();
+                        return (referenceImplementation).value();
                     }
                 };
             } else if (info.ident().columnIdent().name().equals(SysNodesTableInfo.SYS_COL_NAME)) {

@@ -22,7 +22,6 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -31,6 +30,8 @@ import io.crate.planner.RowGranularity;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import java.util.LinkedHashMap;
 
 public class InformationTableConstraintsTableInfo extends InformationTableInfo {
 
@@ -59,18 +60,12 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
         super(schemaInfo,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
-                ImmutableMap.<ColumnIdent, ReferenceInfo>builder()
-                        .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
-                        .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
-                        .put(Columns.CONSTRAINT_NAME, ReferenceInfos.CONSTRAINT_NAME)
-                        .put(Columns.CONSTRAINT_TYPE, ReferenceInfos.CONSTRAINT_TYPE)
-                        .build(),
-                ImmutableList.<ReferenceInfo>builder()
-                        .add(ReferenceInfos.SCHEMA_NAME)
-                        .add(ReferenceInfos.TABLE_NAME)
-                        .add(ReferenceInfos.CONSTRAINT_NAME)
-                        .add(ReferenceInfos.CONSTRAINT_TYPE)
-                        .build()
+                new LinkedHashMap<ColumnIdent, ReferenceInfo>() {{
+                    put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME);
+                    put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME);
+                    put(Columns.CONSTRAINT_NAME, ReferenceInfos.CONSTRAINT_NAME);
+                    put(Columns.CONSTRAINT_TYPE, ReferenceInfos.CONSTRAINT_TYPE);
+                }}
         );
     }
 }
