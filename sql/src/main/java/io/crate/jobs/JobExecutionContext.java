@@ -23,15 +23,19 @@ package io.crate.jobs;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import io.crate.exceptions.Exceptions;
+import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class JobExecutionContext {
@@ -41,7 +45,9 @@ public class JobExecutionContext {
     private final UUID jobId;
     private final long keepAlive;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
+    private final AtomicBoolean closed = new AtomicBoolean(false);
     private ThreadPool threadPool;
+    private StatsTables statsTables;
 
     volatile ContextCallback contextCallback;
 
@@ -52,13 +58,15 @@ public class JobExecutionContext {
     public static class Builder {
 
         private final UUID jobId;
-        private ThreadPool threadPool;
+        private final ThreadPool threadPool;
+        private final StatsTables statsTables;
         private final long keepAlive = JobContextService.DEFAULT_KEEP_ALIVE;
         private final IntObjectOpenHashMap<ExecutionSubContext> subContexts = new IntObjectOpenHashMap<>();
 
-        Builder(UUID jobId, ThreadPool threadPool) {
+        Builder(UUID jobId, ThreadPool threadPool, StatsTables statsTables) {
             this.jobId = jobId;
             this.threadPool = threadPool;
+            this.statsTables = statsTables;
         }
 
         public void addSubContext(int executionNodeId, ExecutionSubContext subContext) {
@@ -78,7 +86,7 @@ public class JobExecutionContext {
         }
 
         public JobExecutionContext build() {
-            return new JobExecutionContext(jobId, keepAlive, threadPool, subContexts);
+            return new JobExecutionContext(jobId, keepAlive, threadPool, statsTables, subContexts);
         }
     }
 
@@ -86,10 +94,12 @@ public class JobExecutionContext {
     private JobExecutionContext(UUID jobId,
                                 long keepAlive,
                                 ThreadPool threadPool,
+                                StatsTables statsTables,
                                 IntObjectOpenHashMap<ExecutionSubContext> subContexts) {
         this.jobId = jobId;
         this.keepAlive = keepAlive;
         this.threadPool = threadPool;
+        this.statsTables = statsTables;
 
         for (IntObjectCursor<ExecutionSubContext> cursor : subContexts) {
             addContext(cursor.key, cursor.value);
@@ -115,6 +125,14 @@ public class JobExecutionContext {
 
     public UUID jobId() {
         return jobId;
+    }
+
+    public void start() {
+        for (Map.Entry<Integer, ExecutionSubContext> entry : subContexts.entrySet()) {
+            ExecutionSubContext subContext = entry.getValue();
+            statsTables.operationStarted(entry.getKey(), jobId, subContext.name());
+            subContext.start();
+        }
     }
 
     @Nullable
@@ -143,13 +161,32 @@ public class JobExecutionContext {
         return this.keepAlive;
     }
 
+    public long kill() {
+        long numKilled = 0L;
+        if (!closed.getAndSet(true)) {
+            if (activeSubContexts.get() == 0) {
+                callContextCallback();
+            } else {
+                for (ExecutionSubContext executionSubContext : subContexts.values()) {
+                    // kill will trigger the ContextCallback onClose too
+                    // so it is not necessary to remove the executionSubContext from the map here as it will be done in the callback
+                    executionSubContext.kill();
+                    numKilled++;
+                }
+            }
+        }
+        return numKilled;
+    }
+
     public void close() {
-        LOGGER.trace("close called on JobExecutionContext {}", jobId);
-        if (activeSubContexts.get() == 0) {
-            callContextCallback();
-        } else {
-            for (ExecutionSubContext executionSubContext : subContexts.values()) {
-                executionSubContext.close();
+        if (!closed.getAndSet(true)) {
+            LOGGER.trace("close called on JobExecutionContext {}", jobId);
+            if (activeSubContexts.get() == 0) {
+                callContextCallback();
+            } else {
+                for (ExecutionSubContext executionSubContext : subContexts.values()) {
+                    executionSubContext.close();
+                }
             }
         }
     }
@@ -159,7 +196,7 @@ public class JobExecutionContext {
             return;
         }
         if (activeSubContexts.get() == 0) {
-            contextCallback.onClose();
+            contextCallback.onClose(null, -1L);
         }
     }
 
@@ -172,7 +209,7 @@ public class JobExecutionContext {
         }
 
         @Override
-        public void onClose() {
+        public void onClose(@Nullable Throwable error, long bytesUsed) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("[{}] Closing subContext {}",
                         System.identityHashCode(subContexts), executionNodeId);
@@ -184,6 +221,7 @@ public class JobExecutionContext {
                 LOGGER.error("Closed context {} which was already closed.", executionNodeId);
                 remaining = activeSubContexts.get();
             } else {
+                statsTables.operationFinished(executionNodeId, Exceptions.messageOf(error), bytesUsed);
                 remaining = activeSubContexts.decrementAndGet();
             }
             if (remaining == 0) {

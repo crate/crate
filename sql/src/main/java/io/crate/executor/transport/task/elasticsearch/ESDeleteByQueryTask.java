@@ -21,8 +21,14 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.analyze.WhereClause;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.AsyncChainedTask;
+import io.crate.jobs.ESJobContext;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
@@ -30,46 +36,85 @@ import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
-public class ESDeleteByQueryTask extends AsyncChainedTask {
+public class ESDeleteByQueryTask extends JobTask {
 
-    private final ESDeleteByQueryNode deleteByQueryNode;
-    private final TransportDeleteByQueryAction transportDeleteByQueryAction;
-    private final ESQueryBuilder queryBuilder;
+    private final static ESQueryBuilder QUERY_BUILDER = new ESQueryBuilder();
+
+    private final List<ListenableFuture<TaskResult>> resultList;
+    private final ESJobContext context;
 
     public ESDeleteByQueryTask(UUID jobId,
-                               ESDeleteByQueryNode deleteByQueryNode,
-                               TransportDeleteByQueryAction transportDeleteByQueryAction) {
+                               ESDeleteByQueryNode node,
+                               TransportDeleteByQueryAction transport,
+                               JobContextService jobContextService) {
         super(jobId);
-        this.deleteByQueryNode = deleteByQueryNode;
-        this.transportDeleteByQueryAction = transportDeleteByQueryAction;
-        this.queryBuilder = new ESQueryBuilder();
+        resultList = new ArrayList<>(node.whereClauses().size());
+        List<DeleteByQueryRequest> requests = new ArrayList<>(node.whereClauses().size());
+        List<ActionListener> listeners = new ArrayList<>(node.whereClauses().size());
+
+        for (int i = 0; i < node.whereClauses().size(); i++) {
+            DeleteByQueryRequest request = new DeleteByQueryRequest();
+            SettableFuture<TaskResult> result = SettableFuture.create();
+            String[] indices = node.indices().get(i);
+            WhereClause whereClause = node.whereClauses().get(i);
+            String routing = node.routings().get(i);
+            try {
+                request.source(QUERY_BUILDER.convert(whereClause), false);
+                request.indices(indices);
+                if (whereClause.clusteredBy().isPresent()){
+                    request.routing(routing);
+                }
+            } catch (IOException e) {
+                result.setException(e);
+            }
+            resultList.add(result);
+            requests.add(request);
+            listeners.add(new Listener(result));
+        }
+
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
+        context = new ESJobContext("delete by query", requests, listeners, resultList, transport);
+        contextBuilder.addSubContext(node.executionNodeId(), context);
+        jobContextService.createContext(contextBuilder);
     }
 
     @Override
     public void start() {
-        final DeleteByQueryRequest request = new DeleteByQueryRequest();
+        context.start();
+    }
 
-        try {
-            request.source(queryBuilder.convert(deleteByQueryNode), false);
-            request.indices(deleteByQueryNode.indices());
-            if (deleteByQueryNode.whereClause().clusteredBy().isPresent()){
-                request.routing(deleteByQueryNode.routing());
-            }
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> result() {
+        return resultList;
+    }
 
-            transportDeleteByQueryAction.execute(request, new ActionListener<DeleteByQueryResponse>() {
-                @Override
-                public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
-                    result.set(TaskResult.ROW_COUNT_UNKNOWN);
-                }
+    @Override
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
+                        getClass().getSimpleName()));
+    }
 
-                @Override
-                public void onFailure(Throwable e) {
-                    result.setException(e);
-                }
-            });
-        } catch (IOException e) {
+    static class Listener implements ActionListener<DeleteByQueryResponse> {
+
+        protected final SettableFuture<TaskResult> result;
+
+        public Listener(SettableFuture<TaskResult> result) {
+            this.result = result;
+        }
+
+        @Override
+        public void onResponse(DeleteByQueryResponse indexDeleteByQueryResponses) {
+            result.set(TaskResult.ROW_COUNT_UNKNOWN);
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
             result.setException(e);
         }
     }

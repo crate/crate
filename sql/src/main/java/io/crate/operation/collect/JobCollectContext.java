@@ -22,11 +22,15 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
 import io.crate.jobs.ExecutionSubContext;
 import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
+import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
@@ -40,9 +44,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class JobCollectContext implements ExecutionSubContext {
+public class JobCollectContext implements ExecutionSubContext, RowUpstream {
 
     private final UUID id;
+    private final CollectNode collectNode;
+    private final CollectOperation collectOperation;
     private final RamAccountingContext ramAccountingContext;
     private final RowDownstream downstream;
     private final Map<Integer, LuceneDocCollector> activeCollectors = new HashMap<>();
@@ -53,20 +59,20 @@ public class JobCollectContext implements ExecutionSubContext {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<ContextCallback> contextCallbacks = new ArrayList<>(1);
 
+    private ListenableFuture<List<Void>> collectFuture;
+
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
-    public JobCollectContext(UUID jobId, RamAccountingContext ramAccountingContext, RowDownstream downstream) {
+    public JobCollectContext(UUID jobId,
+                             CollectNode collectNode,
+                             CollectOperation collectOperation,
+                             RamAccountingContext ramAccountingContext,
+                             RowDownstream downstream) {
         id = jobId;
+        this.collectNode = collectNode;
+        this.collectOperation = collectOperation;
         this.ramAccountingContext = ramAccountingContext;
         this.downstream = downstream;
-    }
-
-    public RamAccountingContext ramAccountingContext() {
-        return ramAccountingContext;
-    }
-
-    public RowDownstream rowDownstream() {
-        return downstream;
     }
 
     @Override
@@ -220,12 +226,26 @@ public class JobCollectContext implements ExecutionSubContext {
                     it.remove();
                 }
                 for (ContextCallback contextCallback : contextCallbacks) {
-                    contextCallback.onClose();
+                    contextCallback.onClose(null, ramAccountingContext.totalBytes());
                 }
+                ramAccountingContext.close();
             }
         } else {
             LOGGER.trace("close called on an already closed JobCollectContext: {}", id);
         }
+    }
+
+    @Override
+    public void kill() {
+        if (collectFuture != null) {
+            collectFuture.cancel(true);
+        }
+        close();
+    }
+
+    @Override
+    public String name() {
+        return collectNode.name();
     }
 
     /**
@@ -233,5 +253,15 @@ public class JobCollectContext implements ExecutionSubContext {
      */
     protected Engine.Searcher acquireNewSearcher(IndexShard indexShard) {
         return EngineSearcher.getSearcherWithRetry(indexShard, "search", null);
+    }
+
+    public void start() {
+        try {
+            collectFuture = collectOperation.collect(collectNode, downstream, ramAccountingContext);
+        } catch (Throwable t) {
+            RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);
+            rowDownstreamHandle.fail(t);
+            close();
+        }
     }
 }

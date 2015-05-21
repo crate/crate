@@ -38,7 +38,6 @@ import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.Input;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
@@ -208,10 +207,8 @@ public class LocalDataCollectTest extends CrateUnitTest {
             functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
             functionBinder.addBinding(TestFunction.ident).toInstance(new TestFunction());
             bind(Functions.class).asEagerSingleton();
-            bind(ThreadPool.class).toInstance(testThreadPool);
-
-
             bind(ReferenceInfos.class).toInstance(mock(ReferenceInfos.class));
+            bind(ThreadPool.class).toInstance(testThreadPool);
 
             BulkRetryCoordinator bulkRetryCoordinator = mock(BulkRetryCoordinator.class);
             BulkRetryCoordinatorPool bulkRetryCoordinatorPool = mock(BulkRetryCoordinatorPool.class);
@@ -348,7 +345,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
-        jobContextService = new JobContextService(ImmutableSettings.EMPTY, testThreadPool);
+        jobContextService = new JobContextService(ImmutableSettings.EMPTY, testThreadPool, mock(StatsTables.class));
 
         ClusterService clusterService = injector.getInstance(ClusterService.class);
         operation = new MapSideDataCollectOperation(
@@ -370,7 +367,9 @@ public class LocalDataCollectTest extends CrateUnitTest {
                         return new CollectingProjector();
                     }
                 },
-                jobContextService
+                jobContextService,
+                mock(InformationSchemaCollectService.class),
+                mock(UnassignedShardsCollectService.class)
         );
     }
 
@@ -547,7 +546,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId());
         builder.addSubContext(
                 collectNode.executionNodeId(),
-                new JobCollectContext(collectNode.jobId(), RAM_ACCOUNTING_CONTEXT, cd));
+                new JobCollectContext(collectNode.jobId(), collectNode, operation, RAM_ACCOUNTING_CONTEXT, cd));
         jobContextService.createContext(builder);
         cd.startProjection();
         operation.collect(collectNode, cd, null);

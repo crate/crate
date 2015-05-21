@@ -22,14 +22,12 @@
 package io.crate.action.job;
 
 import com.google.common.base.Optional;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
-import io.crate.executor.callbacks.OperationFinishedStatsTablesCallback;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
@@ -68,7 +66,7 @@ public class ContextPreparer {
 
     private static final ESLogger LOGGER = Loggers.getLogger(ContextPreparer.class);
 
-    private final MapSideDataCollectOperation collectOperationHandler;
+    private final MapSideDataCollectOperation collectOperation;
     private ClusterService clusterService;
     private CountOperation countOperation;
     private final CircuitBreaker circuitBreaker;
@@ -80,7 +78,7 @@ public class ContextPreparer {
     private final InnerPreparer innerPreparer;
 
     @Inject
-    public ContextPreparer(MapSideDataCollectOperation collectOperationHandler,
+    public ContextPreparer(MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
                            StatsTables statsTables,
@@ -89,7 +87,7 @@ public class ContextPreparer {
                            PageDownstreamFactory pageDownstreamFactory,
                            ResultProviderFactory resultProviderFactory,
                            StreamerVisitor streamerVisitor) {
-        this.collectOperationHandler = collectOperationHandler;
+        this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
@@ -165,11 +163,10 @@ public class ContextPreparer {
             );
             StreamerVisitor.Context streamerContext = streamerVisitor.processPlanNode(node);
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
-                    pageDownstream, streamerContext.inputStreamers(), node.numUpstreams());
-
-            statsTables.operationStarted(node.executionNodeId(), context.jobId, node.name());
-            Futures.addCallback(downstream.result(), new OperationFinishedStatsTablesCallback<Bucket>(
-                    node.executionNodeId(), statsTables, context.ramAccountingContext));
+                    node.name(),
+                    pageDownstream,
+                    streamerContext.inputStreamers(),
+                    node.numUpstreams());
 
             context.contextBuilder.addSubContext(node.executionNodeId(), pageDownstreamContext);
             return null;
@@ -177,15 +174,15 @@ public class ContextPreparer {
 
         @Override
         public Void visitCollectNode(final CollectNode node, final PreparerContext context) {
-            ResultProvider downstream = collectOperationHandler.createDownstream(node);
+            ResultProvider downstream = collectOperation.createDownstream(node);
 
             if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
                 context.directResultFuture = downstream.result();
             }
-            Futures.addCallback(downstream.result(), new OperationFinishedStatsTablesCallback<Bucket>(
-                    node.executionNodeId(), statsTables, context.ramAccountingContext));
             final JobCollectContext jobCollectContext = new JobCollectContext(
                     context.jobId,
+                    node,
+                    collectOperation,
                     context.ramAccountingContext,
                     downstream
             );

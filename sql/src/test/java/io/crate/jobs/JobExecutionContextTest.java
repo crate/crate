@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import io.crate.operation.collect.StatsTables;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -32,7 +33,8 @@ import org.junit.rules.ExpectedException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.mock;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.*;
 
 public class JobExecutionContextTest extends CrateUnitTest {
 
@@ -57,9 +59,27 @@ public class JobExecutionContextTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ExecutionSubContext for 1 already added");
 
-        JobExecutionContext.Builder builder = new JobExecutionContext.Builder(UUID.randomUUID(), threadPool);
+        JobExecutionContext.Builder builder =
+                new JobExecutionContext.Builder(UUID.randomUUID(), threadPool, mock(StatsTables.class));
 
         builder.addSubContext(1, mock(PageDownstreamContext.class));
         builder.addSubContext(1, mock(PageDownstreamContext.class));
+    }
+
+
+    @Test
+    public void testKillPropagatesToSubContexts() throws Exception {
+        JobExecutionContext.Builder builder =
+                new JobExecutionContext.Builder(UUID.randomUUID(), threadPool, mock(StatsTables.class));
+
+        PageDownstreamContext pageDownstreamContext = mock(PageDownstreamContext.class);
+        builder.addSubContext(1, pageDownstreamContext);
+        builder.addSubContext(2, mock(PageDownstreamContext.class));
+        JobExecutionContext jobExecutionContext = builder.build();
+
+        assertThat(jobExecutionContext.kill(), is(2L));
+        assertThat(jobExecutionContext.kill(), is(0L)); // second call is ignored, only killed once
+
+        verify(pageDownstreamContext, times(1)).kill();
     }
 }

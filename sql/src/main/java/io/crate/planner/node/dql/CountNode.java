@@ -22,8 +22,10 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -90,7 +92,11 @@ public class CountNode implements ExecutionNode {
 
     @Override
     public Set<String> executionNodes() {
-        return routing.nodes();
+        if (routing.isNullRouting()) {
+            return routing.nodes();
+        } else {
+            return Sets.filter(routing.nodes(), TableInfo.IS_NOT_NULL_NODE_ID);
+        }
     }
 
     @Override

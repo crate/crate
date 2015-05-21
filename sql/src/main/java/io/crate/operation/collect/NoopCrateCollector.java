@@ -25,6 +25,8 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 
+import java.util.concurrent.CancellationException;
+
 public class NoopCrateCollector implements CrateCollector {
 
     private RowDownstreamHandle downstream;
@@ -35,6 +37,10 @@ public class NoopCrateCollector implements CrateCollector {
 
     @Override
     public void doCollect(RamAccountingContext ramAccountingContext) {
-        downstream.finish();
+        if (Thread.currentThread().isInterrupted()) {
+            downstream.fail(new CancellationException());
+        } else {
+            downstream.finish();
+        }
     }
 }

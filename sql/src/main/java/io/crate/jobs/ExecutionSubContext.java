@@ -24,5 +24,9 @@ package io.crate.jobs;
 public interface ExecutionSubContext {
 
     void addCallback(ContextCallback contextCallback);
+    void start();
     void close();
+    void kill();
+
+    String name();
 }

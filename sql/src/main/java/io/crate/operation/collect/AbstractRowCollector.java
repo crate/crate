@@ -29,6 +29,7 @@ public abstract class AbstractRowCollector<T> implements RowCollector<T> {
             boolean carryOn;
             do {
                 carryOn = processRow();
+                Collectors.cancelIfInterrupted();
             } while(carryOn);
         }
         return finishCollect();

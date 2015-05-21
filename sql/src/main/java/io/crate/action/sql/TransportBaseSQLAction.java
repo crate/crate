@@ -68,6 +68,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
@@ -216,7 +217,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         final UUID jobId = job.id();
         assert jobId != null;
         statsTables.jobStarted(jobId, request.stmt());
-        List<ListenableFuture<TaskResult>> resultFutureList = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> resultFutureList = executor.execute(job);
         Futures.addCallback(Futures.allAsList(resultFutureList), new FutureCallback<List<TaskResult>>() {
                     @Override
                     public void onSuccess(@Nullable List<TaskResult> result) {
@@ -233,8 +234,15 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
                     @Override
                     public void onFailure(@Nonnull Throwable t) {
-                        logger.debug("Error processing SQLRequest", t);
-                        statsTables.jobFinished(jobId, Exceptions.messageOf(t));
+                        String message;
+                        if (t instanceof CancellationException) {
+                            message = Constants.KILLED_MESSAGE;
+                            logger.debug("KILLED: [{}]", request.stmt());
+                        } else {
+                            message = Exceptions.messageOf(t);
+                            logger.debug("Error processing SQLRequest", t);
+                        }
+                        statsTables.jobFinished(jobId, message);
                         sendResponse(listener, buildSQLActionException(t));
                     }
                 }
@@ -281,6 +289,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new TableUnknownException(((IndexMissingException) e).index().name(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
+        } else if (e instanceof CancellationException) {
+            return new JobKilledException();
         }
         return e;
     }

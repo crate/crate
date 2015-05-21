@@ -34,7 +34,7 @@ import io.crate.core.collections.Buckets;
 import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.jobs.ESGetContext;
+import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
@@ -67,7 +67,7 @@ public class ESGetTask extends JobTask {
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
 
     private final List<ListenableFuture<TaskResult>> results;
-    private final ESGetContext context;
+    private final ESJobContext context;
 
     public ESGetTask(UUID jobId,
                      Functions functions,
@@ -97,7 +97,7 @@ public class ESGetTask extends JobTask {
 
         final FetchSourceContext fsc = new FetchSourceContext(ctx.referenceNames());
 
-        ListenableFuture<Bucket> result;
+        SettableFuture<Bucket> result;
 
         ActionListener listener;
         ActionRequest request;
@@ -124,7 +124,7 @@ public class ESGetTask extends JobTask {
         results = ImmutableList.of(Futures.transform(result, QueryResult.TO_TASK_RESULT));
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        context = new ESGetContext(request, listener, transportAction);
+        context = new ESJobContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
         contextBuilder.addSubContext(executionNodeId, context);
         jobContextService.createContext(contextBuilder);
 
@@ -276,12 +276,12 @@ public class ESGetTask extends JobTask {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
+    public List<? extends ListenableFuture<TaskResult>> result() {
         return results;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
                         getClass().getSimpleName()));

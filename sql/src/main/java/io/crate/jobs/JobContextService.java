@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 
@@ -52,15 +54,22 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
 
     private final ThreadPool threadPool;
+    private StatsTables statsTables;
     private final ScheduledFuture<?> keepAliveReaper;
     private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
+    private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
+
     @Inject
     public JobContextService(Settings settings,
-                             ThreadPool threadPool) {
+                             ThreadPool threadPool,
+                             StatsTables statsTables) {
         super(settings);
         this.threadPool = threadPool;
+        this.statsTables = statsTables;
         this.keepAliveReaper = threadPool.scheduleWithFixedDelay(new Reaper(), DEFAULT_KEEP_ALIVE_INTERVAL);
     }
 
@@ -94,23 +103,45 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, threadPool);
+        return new JobExecutionContext.Builder(jobId, threadPool, statsTables);
     }
 
-    @Nullable
     public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) {
         if (contextBuilder.isEmpty()) {
-            return null;
+            throw new IllegalArgumentException("JobExecutionContext.Builder must at least contain 1 SubExecutionContext");
         }
         final UUID jobId = contextBuilder.jobId();
         JobExecutionContext newContext = contextBuilder.build();
-        newContext.contextCallback(new RemoveContextCallback(jobId));
-        JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
-        if (existing != null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "context for job %s already exists", jobId));
+
+        readLock.lock();
+        try {
+            newContext.contextCallback(new RemoveContextCallback(jobId));
+            JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
+            if (existing != null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "context for job %s already exists", jobId));
+            }
+        } finally {
+            readLock.unlock();
         }
         return newContext;
+    }
+
+    public long killAll() {
+        long numKilled = 0L;
+        writeLock.lock();
+        try {
+            for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
+                jobExecutionContext.kill();
+                 // don't use  numKilled = activeContext.size() because the content of activeContexts could change
+                numKilled++;
+            }
+            assert activeContexts.size() == 0 :
+                    "after killing all contexts they should have been removed from the map due to the callbacks";
+        } finally {
+            writeLock.unlock();
+        }
+        return numKilled;
     }
 
     private class RemoveContextCallback implements ContextCallback {
@@ -121,7 +152,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         }
 
         @Override
-        public void onClose() {
+        public void onClose(@Nullable Throwable error, long bytesUsed) {
             activeContexts.remove(jobId);
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("[{}]: JobExecutionContext called onClose for job {} removing it -" +

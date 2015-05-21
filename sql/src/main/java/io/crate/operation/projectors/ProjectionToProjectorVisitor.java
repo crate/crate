@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
@@ -115,13 +114,13 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         List<Input<?>> inputs = new ArrayList<>();
         List<CollectExpression<?>> collectExpressions = new ArrayList<>();
 
-        ImplementationSymbolVisitor.Context ctx = symbolVisitor.process(projection.outputs());
+        ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(projection.outputs());
         inputs.addAll(ctx.topLevelInputs());
         collectExpressions.addAll(ctx.collectExpressions());
 
         if (projection.isOrdered()) {
             int numOutputs = inputs.size();
-            ImplementationSymbolVisitor.Context orderByCtx = symbolVisitor.process(projection.orderBy());
+            ImplementationSymbolVisitor.Context orderByCtx = symbolVisitor.extractImplementations(projection.orderBy());
 
             // append orderby inputs to row, needed for sorting on them
             inputs.addAll(orderByCtx.topLevelInputs());
@@ -164,7 +163,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
     @Override
     public Projector visitGroupProjection(GroupProjection projection, Context context) {
-        ImplementationSymbolVisitor.Context symbolContext = symbolVisitor.process(projection.keys());
+        ImplementationSymbolVisitor.Context symbolContext = symbolVisitor.extractImplementations(projection.keys());
         List<Input<?>> keyInputs = symbolContext.topLevelInputs();
 
         for (Aggregation aggregation : projection.values()) {

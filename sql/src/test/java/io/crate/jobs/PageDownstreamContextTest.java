@@ -28,16 +28,17 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.Matchers.notNull;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 public class PageDownstreamContextTest extends CrateUnitTest {
 
@@ -54,7 +55,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             }
         }).when(pageDownstream).fail((Throwable)notNull());
 
-        PageDownstreamContext ctx = new PageDownstreamContext(pageDownstream, new Streamer[0], 3);
+        PageDownstreamContext ctx = new PageDownstreamContext("dummy", pageDownstream, new Streamer[0], 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
@@ -63,5 +64,20 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         Throwable t = ref.get();
         assertThat(t, instanceOf(IllegalStateException.class));
         assertThat(t.getMessage(), is("May not set the same bucket of a page more than once"));
+    }
+
+    @Test
+    public void testKill() throws Exception {
+        PageDownstream downstream = mock(PageDownstream.class);
+        ContextCallback callback = mock(ContextCallback.class);
+
+        PageDownstreamContext ctx = new PageDownstreamContext("dummy", downstream, new Streamer[0], 3);
+        ctx.addCallback(callback);
+        ctx.kill();
+
+        verify(callback, times(1)).onClose(any(CancellationException.class), anyLong());
+        ArgumentCaptor<CancellationException> e = ArgumentCaptor.forClass(CancellationException.class);
+        verify(downstream, times(1)).fail(e.capture());
+        assertThat(e.getValue(), instanceOf(CancellationException.class));
     }
 }

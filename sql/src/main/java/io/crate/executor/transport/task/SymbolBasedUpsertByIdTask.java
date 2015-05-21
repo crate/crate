@@ -31,9 +31,7 @@ import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
-import io.crate.jobs.UpsertByIdContext;
+import io.crate.jobs.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
@@ -47,6 +45,8 @@ import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
 public class SymbolBasedUpsertByIdTask extends JobTask {
 
@@ -70,8 +71,10 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final JobContextService jobContextService;
 
+    private final static ESLogger logger = Loggers.getLogger(SymbolBasedUpsertByIdTask.class);
+
     @Nullable
-    private SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
+    private SymbolBasedBulkShardProcessorContext bulkShardProcessorContext;
 
     public SymbolBasedUpsertByIdTask(UUID jobId,
                                      ClusterService clusterService,
@@ -117,9 +120,9 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 executeUpsertRequest(item, futureResult);
             }
 
-        } else if (bulkShardProcessor != null) {
+        } else if (bulkShardProcessorContext != null) {
             for (SymbolBasedUpsertByIdNode.Item item : node.items()) {
-                bulkShardProcessor.add(
+                bulkShardProcessorContext.add(
                         item.index(),
                         item.id(),
                         item.updateAssignments(),
@@ -127,7 +130,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                         item.routing(),
                         item.version());
             }
-            bulkShardProcessor.close();
+            bulkShardProcessorContext.start();
         }
     }
 
@@ -144,11 +147,15 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
         upsertRequest.continueOnError(false);
         upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version(), item.routing());
 
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
         UpsertByIdContext upsertByIdContext = new UpsertByIdContext(upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
-        contextBuilder.addSubContext(node.executionNodeId(), upsertByIdContext);
-        jobContextService.createContext(contextBuilder);
+        registerContext(upsertByIdContext);
         upsertByIdContext.start();
+    }
+
+    private void registerContext(ExecutionSubContext context) {
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
+        contextBuilder.addSubContext(node.executionNodeId(), context);
+        jobContextService.createContext(contextBuilder);
     }
 
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
@@ -161,7 +168,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 node.updateColumns(),
                 node.insertColumns()
         );
-        bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
                 transportBulkCreateIndicesAction,
                 settings,
@@ -170,6 +177,8 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 node.items().size(),
                 builder,
                 transportShardUpsertActionDelegate);
+        bulkShardProcessorContext = new SymbolBasedBulkShardProcessorContext(bulkShardProcessor);
+        registerContext(bulkShardProcessorContext);
 
         if (!node.isBulkRequest()) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();
@@ -213,7 +222,11 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 }
 
                 private void setAllToFailed(@Nullable Throwable throwable) {
-                    if (throwable == null) {
+                    if (throwable instanceof CancellationException) {
+                        for (ListenableFuture<TaskResult> future : resultList) {
+                            ((SettableFuture<TaskResult>) future).setException(throwable);
+                        }
+                    } else if (throwable == null) {
                         for (ListenableFuture<TaskResult> future : resultList) {
                             ((SettableFuture<TaskResult>) future).set(TaskResult.FAILURE);
                         }
@@ -258,12 +271,12 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
+    public List<? extends ListenableFuture<TaskResult>> result() {
         return resultList;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("UpsertByIdTask can't have an upstream result");
     }
 }

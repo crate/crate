@@ -51,5 +51,5 @@ public interface TaskExecutor {
      * @param tasks a collection of tasks to be executed
      * @return a list of futures, from the last task
      */
-    public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks);
+    public List<? extends ListenableFuture<TaskResult>> execute(Collection<Task> tasks);
 }

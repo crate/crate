@@ -24,6 +24,7 @@ package io.crate.planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.common.Nullable;
 
 public class PlanVisitor<C, R> {
@@ -78,5 +79,9 @@ public class PlanVisitor<C, R> {
 
     public R visitCountPlan(CountPlan countPlan, C context) {
         return visitPlan(countPlan, context);
+    }
+
+    public R visitKillPlan(KillPlan killPlan, C context) {
+        return visitPlan(killPlan, context);
     }
 }

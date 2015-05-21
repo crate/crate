@@ -34,14 +34,16 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UpsertByIdContext implements ExecutionSubContext {
 
     private final SymbolBasedShardUpsertRequest request;
     private final SymbolBasedUpsertByIdNode.Item item;
-    private final SettableFuture futureResult;
+    private final SettableFuture<TaskResult> futureResult;
     private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
 
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
@@ -51,7 +53,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     public UpsertByIdContext(SymbolBasedShardUpsertRequest request,
                              SymbolBasedUpsertByIdNode.Item item,
-                             SettableFuture futureResult,
+                             SettableFuture<TaskResult> futureResult,
                              SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate){
         this.request = request;
         this.item = item;
@@ -60,9 +62,16 @@ public class UpsertByIdContext implements ExecutionSubContext {
     }
 
     public void start() {
+        if(closed.get()){
+            futureResult.setException(new ContextClosedException());
+            return;
+        }
         transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardUpsertResponse>() {
             @Override
             public void onResponse(ShardUpsertResponse updateResponse) {
+                if(closed.get()){
+                    return;
+                }
                 int location = updateResponse.itemIndices().get(0);
                 if (updateResponse.responses().get(location) != null) {
                     futureResult.set(TaskResult.ONE_ROW);
@@ -77,11 +86,14 @@ public class UpsertByIdContext implements ExecutionSubContext {
                     }
                     futureResult.set(TaskResult.ZERO);
                 }
-                close();
+                doClose(null);
             }
 
             @Override
             public void onFailure(Throwable e) {
+                if(closed.get()){
+                    return;
+                }
                 e = ExceptionsHelper.unwrapCause(e);
                 if (item.insertValues() == null
                         && (e instanceof DocumentMissingException
@@ -91,7 +103,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
                 } else {
                     futureResult.setException(e);
                 }
-                close();
+                doClose(e);
             }
         });
     }
@@ -104,10 +116,25 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     @Override
     public void close() {
+        doClose(null);
+    }
+
+    private void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
-                callback.onClose();
+                callback.onClose(t, -1L);
             }
         }
+    }
+
+    @Override
+    public void kill() {
+        doClose(new CancellationException());
+        futureResult.cancel(true);
+    }
+
+    @Override
+    public String name() {
+        return "upsert-by-id";
     }
 }

@@ -1055,7 +1055,7 @@ public class LuceneQueryBuilder {
             // reason2: would have to load each value into the field cache
             function = (Function)DocReferenceConverter.convertIf(function, Predicates.<Reference>alwaysTrue());
 
-            final CollectInputSymbolVisitor.Context ctx = inputSymbolVisitor.process(function);
+            final CollectInputSymbolVisitor.Context ctx = inputSymbolVisitor.extractImplementations(function);
             assert ctx.topLevelInputs().size() == 1;
             @SuppressWarnings("unchecked")
             final Input<Boolean> condition = (Input<Boolean>) ctx.topLevelInputs().get(0);

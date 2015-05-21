@@ -296,6 +296,8 @@ Currently the defined error codes are:
     5002  one or more shards are not available.
     ----- ---------------------------------------------------------------------
     5003  the query failed on one or more shards
+    ----- ---------------------------------------------------------------------
+    5030  the query was killed by a `kill` statement
     ===== =====================================================================
 
 Bulk Errors

@@ -28,8 +28,11 @@ import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
+import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -62,7 +65,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         when(threadPoolExecutor.getPoolSize()).thenReturn(2);
         threadPool = mock(ThreadPool.class);
         when(threadPool.executor(any(String.class))).thenReturn(threadPoolExecutor);
-        jobContextService = new JobContextService(ImmutableSettings.EMPTY, threadPool);
+        jobContextService = new JobContextService(ImmutableSettings.EMPTY, threadPool, mock(StatsTables.class));
     }
 
     @AfterClass
@@ -94,7 +97,8 @@ public class NodeFetchOperationTest extends CrateUnitTest {
     public void testFetchOperationNoLuceneDocCollector() throws Exception {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        builder.addSubContext(1, new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
+        builder.addSubContext(1, new JobCollectContext(jobId,
+                mock(CollectNode.class), mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
         jobContextService.createContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(

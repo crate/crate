@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
@@ -47,6 +48,7 @@ import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
@@ -202,16 +204,24 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
         IterablePlan plan = new IterablePlan();
         TableRelation tableRelation = analyzedStatement.analyzedRelation();
+        List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
+        List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
             if (whereClause.noMatch()) {
                 continue;
             }
-            if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size()==1) {
-                createESDeleteNode(tableRelation.tableInfo(), whereClause, plan);
-            } else {
-                createESDeleteByQueryNode(tableRelation.tableInfo(), whereClause, plan);
+            if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size() == 1) {
+                docKeys.add(whereClause.docKeys().get().getOnlyKey());
+            } else if (!whereClause.noMatch()) {
+                whereClauses.add(whereClause);
             }
         }
+        if (!docKeys.isEmpty()) {
+            plan.add(new ESDeleteNode(context.nextExecutionNodeId(), tableRelation.tableInfo(), docKeys));
+        } else if (!whereClauses.isEmpty()) {
+            createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauses, plan, context);
+        }
+
         if (plan.isEmpty()) {
             return NoopPlan.INSTANCE;
         }
@@ -469,21 +479,32 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return node != null ? new IterablePlan(node) : NoopPlan.INSTANCE;
     }
 
-    private void createESDeleteNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
-        plan.add(new ESDeleteNode(tableInfo, whereClause.docKeys().get().getOnlyKey()));
+    @Override
+    public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, Context context) {
+        return KillPlan.INSTANCE;
     }
 
-    private void createESDeleteByQueryNode(TableInfo tableInfo, WhereClause whereClause, IterablePlan plan) {
-        String[] indices = indices(tableInfo, whereClause);
-        if (indices.length > 0) {
-            if (tableInfo.isPartitioned() && !whereClause.hasQuery()) {
-                plan.add(new ESDeleteIndexNode(indices));
-            } else {
-                // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
-                // forbidden through analysis, we must issue deleteByQuery request in addition
-                // to above deleteIndex request(s)
-                plan.add(new ESDeleteByQueryNode(indices, whereClause));
+    private void createESDeleteByQueryNode(TableInfo tableInfo,
+                                           List<WhereClause> whereClauses,
+                                           IterablePlan plan,
+                                           Context context) {
+
+        List<String[]> indicesList = new ArrayList<>(whereClauses.size());
+        for (WhereClause whereClause : whereClauses) {
+            String[] indices = indices(tableInfo, whereClauses.get(0));
+            if (indices.length > 0) {
+                if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
+                    plan.add(new ESDeleteIndexNode(indices));
+                } else {
+                    indicesList.add(indices);
+                }
             }
+        }
+        // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
+        // forbidden through analysis, we must issue deleteByQuery request in addition
+        // to above deleteIndex request(s)
+        if (!indicesList.isEmpty()) {
+            plan.add(new ESDeleteByQueryNode(context.nextExecutionNodeId(), indicesList, whereClauses));
         }
     }
 

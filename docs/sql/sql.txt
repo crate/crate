@@ -27,3 +27,4 @@ supported by Crate.
     reference/drop_table
     reference/create_analyzer
     reference/set
+    reference/kill

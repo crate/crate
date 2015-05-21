@@ -21,6 +21,9 @@
 
 package io.crate.jobs;
 
+import javax.annotation.Nullable;
+
 public interface ContextCallback {
-    void onClose();
+
+    void onClose(@Nullable Throwable error, long bytesUsed);
 }

@@ -95,6 +95,7 @@ statement returns [Statement value]
     | refresh                   { $value = $refresh.value; }
     | set                       { $value = $set.value; }
     | resetStatement            { $value = $resetStatement.value; }
+    | killStatement             { $value = $killStatement.value; }
     ;
 
 query returns [Query value]
@@ -969,4 +970,8 @@ set returns [SetStatement value]
 
 resetStatement returns [ResetStatement value]
     : ^(RESET columns=columnList) { $value = new ResetStatement($columns.value); }
+    ;
+
+killStatement returns [KillStatement value]
+    : ^(KILL ALL) { $value = KillStatement.INSTANCE; }
     ;

@@ -25,21 +25,21 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
-import io.crate.action.job.ExecutionNodeOperationStarter;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.NoopTask;
-import io.crate.executor.transport.task.*;
+import io.crate.executor.transport.task.CreateTableTask;
+import io.crate.executor.transport.task.DropTableTask;
+import io.crate.executor.transport.task.KillTask;
+import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.PageDownstreamFactory;
-import io.crate.operation.collect.HandlerSideDataCollectOperation;
-import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
 import io.crate.planner.node.ExecutionNode;
@@ -49,6 +49,7 @@ import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -68,21 +69,18 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final Functions functions;
     private final TaskCollectingVisitor planVisitor;
     private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
-    private final StatsTables statsTables;
     private final NodeVisitor nodeVisitor;
     private final ThreadPool threadPool;
 
     private final ClusterService clusterService;
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
-    private final ExecutionNodeOperationStarter executionNodeOperationStarter;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
 
     // operation for handler side collecting
-    private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final CircuitBreaker circuitBreaker;
 
     private final PageDownstreamFactory pageDownstreamFactory;
@@ -93,29 +91,23 @@ public class TransportExecutor implements Executor, TaskExecutor {
     public TransportExecutor(Settings settings,
                              JobContextService jobContextService,
                              ContextPreparer contextPreparer,
-                             ExecutionNodeOperationStarter executionNodeOperationStarter,
                              TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
                              Functions functions,
                              ReferenceResolver referenceResolver,
-                             HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                              PageDownstreamFactory pageDownstreamFactory,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
-                             StatsTables statsTables,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                              StreamerVisitor streamerVisitor) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
-        this.executionNodeOperationStarter = executionNodeOperationStarter;
         this.transportActionProvider = transportActionProvider;
-        this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
-        this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.streamerVisitor = streamerVisitor;
@@ -142,7 +134,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> execute(Job job) {
+    public List<? extends ListenableFuture<TaskResult>> execute(Job job) {
         assert job.tasks().size() > 0;
         return execute(job.tasks());
 
@@ -154,7 +146,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
+    public List<? extends ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
         Task lastTask = null;
         assert tasks.size() > 0 : "need at least one task to execute";
         for (Task task : tasks) {
@@ -226,12 +218,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     job.id(),
                     clusterService,
                     contextPreparer,
-                    executionNodeOperationStarter,
-                    handlerSideDataCollectOperation,
-                    globalProjectionToProjectionVisitor,
                     jobContextService,
                     pageDownstreamFactory,
-                    statsTables,
                     threadPool,
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportCloseContextNodeAction(),
@@ -305,6 +293,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public List<Task> visitQueryThenFetch(QueryThenFetch plan, Job job) {
             return ImmutableList.of(createExecutableNodesTask(job, plan.collectNode(), plan.mergeNode()));
         }
+
+        @Override
+        public List<Task> visitKillPlan(KillPlan killPlan, Job job) {
+            return ImmutableList.<Task>of(new KillTask(
+                    clusterService,
+                    transportActionProvider.transportKillAllNodeAction(),
+                    job.id()));
+        }
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
@@ -335,7 +331,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return singleTask(new ESDeleteByQueryTask(
                     jobId,
                     node,
-                    transportActionProvider.transportDeleteByQueryAction()));
+                    transportActionProvider.transportDeleteByQueryAction(),
+                    jobContextService));
         }
 
         @Override
@@ -343,7 +340,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
             return singleTask(new ESDeleteTask(
                     jobId,
                     node,
-                    transportActionProvider.transportDeleteAction()));
+                    transportActionProvider.transportDeleteAction(),
+                    jobContextService));
         }
 
         @Override

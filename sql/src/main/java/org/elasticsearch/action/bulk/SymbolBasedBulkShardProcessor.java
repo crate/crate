@@ -50,6 +50,7 @@ import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -273,6 +274,9 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         try {
             executeLock.acquire();
             for (Iterator<Map.Entry<ShardId, Request>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+                if (failure.get() != null) {
+                    return;
+                }
                 Map.Entry<ShardId, Request> entry = it.next();
                 final Request request = entry.getValue();
                 final ShardId shardId = entry.getKey();
@@ -331,6 +335,9 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
             FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override
                 public void onSuccess(@Nullable Void result) {
+                    if (failure.get() != null) {
+                        return;
+                    }
                     trace("applying pending requests for created indices...");
                     for (final PendingRequest pendingRequest : pendings) {
                         // add pending requests for created indices
@@ -385,6 +392,11 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         if (pending.get() == 0) {
             setResult();
         }
+    }
+
+    public void kill() {
+        failure.compareAndSet(null, new CancellationException());
+        result.cancel(true);
     }
 
     private void setFailure(Throwable e) {

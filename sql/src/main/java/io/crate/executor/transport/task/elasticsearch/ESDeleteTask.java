@@ -21,10 +21,15 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.analyze.where.DocKeys;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.AsyncChainedTask;
+import io.crate.jobs.ESJobContext;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.planner.node.dml.ESDeleteNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -32,25 +37,59 @@ import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
-public class ESDeleteTask extends AsyncChainedTask {
+public class ESDeleteTask extends JobTask {
 
-    private final TransportDeleteAction transport;
-    private final DeleteRequest request;
-    private final ActionListener<DeleteResponse> listener;
+    private final List<ListenableFuture<TaskResult>> resultList;
+    private final ESJobContext context;
 
-    public ESDeleteTask(UUID jobId, ESDeleteNode node, TransportDeleteAction transport) {
+    public ESDeleteTask(UUID jobId,
+                        ESDeleteNode node,
+                        TransportDeleteAction transport,
+                        JobContextService jobContextService) {
         super(jobId);
-        this.transport = transport;
-        request = new DeleteRequest(
-                ESGetTask.indexName(node.tableInfo(), node.key().partitionValues()),
-                Constants.DEFAULT_MAPPING_TYPE, node.key().id());
-        request.routing(node.key().routing());
-        if (node.key().version().isPresent()) {
-            request.version(node.key().version().get());
+        resultList = new ArrayList<>(node.docKeys().size());
+        List<DeleteRequest> requests = new ArrayList<>(node.docKeys().size());
+        List<ActionListener> listeners = new ArrayList<>(node.docKeys().size());
+        for (DocKeys.DocKey docKey : node.docKeys()) {
+            DeleteRequest request = new DeleteRequest(
+                    ESGetTask.indexName(node.tableInfo(), docKey.partitionValues()),
+                    Constants.DEFAULT_MAPPING_TYPE, docKey.id());
+            request.routing(docKey.routing());
+            if (docKey.version().isPresent()) {
+                request.version(docKey.version().get());
+            }
+            requests.add(request);
+            SettableFuture<TaskResult> result = SettableFuture.create();
+            resultList.add(result);
+            listeners.add(new DeleteResponseListener(result));
         }
-        listener = new DeleteResponseListener(result);
+
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
+        context = new ESJobContext("delete", requests, listeners, resultList, transport);
+        contextBuilder.addSubContext(node.executionNodeId(), context);
+        jobContextService.createContext(contextBuilder);
+    }
+
+    @Override
+    public void start() {
+        context.start();
+    }
+
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> result() {
+        return resultList;
+    }
+
+    @Override
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
+                        getClass().getSimpleName()));
     }
 
     static class DeleteResponseListener implements ActionListener<DeleteResponse> {
@@ -82,10 +121,5 @@ public class ESDeleteTask extends AsyncChainedTask {
                 result.setException(e);
             }
         }
-    }
-
-    @Override
-    public void start() {
-        transport.execute(request, listener);
     }
 }

@@ -31,6 +31,7 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.collect.Collectors;
 import io.crate.operation.collect.CrateCollector;
 
 import javax.annotation.Nullable;
@@ -169,7 +170,6 @@ public class FileReadingCollector implements CrateCollector {
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
-        String line;
         List<URI> uris;
 
         try {
@@ -177,12 +177,10 @@ public class FileReadingCollector implements CrateCollector {
             for (URI uri : uris) {
                 readLines(fileInput, collectorContext, uri, 0, 0);
             }
-
-        } catch (IOException e) {
+            downstream.finish();
+        } catch (Throwable e) {
             downstream.fail(e);
-            return;
         }
-        downstream.finish();
     }
 
     private void readLines(FileInput fileInput, CollectorContext collectorContext, URI uri, long startLine, int retry) throws IOException {
@@ -195,6 +193,7 @@ public class FileReadingCollector implements CrateCollector {
         long linesRead = 0L;
         try (BufferedReader reader = createReader(inputStream)) {
             while ((line = reader.readLine()) != null) {
+                Collectors.cancelIfInterrupted();
                 linesRead++;
                 if (linesRead < startLine) {
                     continue;

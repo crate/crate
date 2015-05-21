@@ -25,6 +25,7 @@ import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.operation.reference.NestedObjectExpression;
+import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -45,17 +46,18 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
     static class SettingExpression extends SimpleObjectExpression<Object> {
         private final Map<String, Object> values;
         private final String name;
+        private final DataType dataType;
 
         protected SettingExpression(Setting<?, ?> setting, Map<String, Object> values) {
             this.name = setting.settingName();
             this.values = values;
+            this.dataType = setting.dataType();
         }
 
         @Override
         public Object value() {
-            return this.values.get(name);
+            return dataType.value(this.values.get(name));
         }
-
     }
 
     static class NestedSettingExpression extends NestedObjectExpression {

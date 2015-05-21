@@ -563,6 +563,9 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(names, Matchers.anyOf(
                 Matchers.hasItems("distributing collect", "distributing collect"),
                 Matchers.hasItems("collect", "localMerge"),
+
+                 // the select * from sys.operations_log has 2 collect operations (1 per node)
+                Matchers.hasItems("collect", "collect"),
                 Matchers.hasItems("distributed merge", "localMerge")));
 
         executor.exec("reset global stats.enabled, stats.operations_log_size");

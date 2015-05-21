@@ -21,6 +21,8 @@
 
 package io.crate.metadata.table;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -40,6 +42,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      * we use a placeholder(empty) string instead.
      */
     public static final String NULL_NODE_ID = "";
+    public static final Predicate<String> IS_NOT_NULL_NODE_ID = Predicates.not(Predicates.equalTo(TableInfo.NULL_NODE_ID));
 
     /**
      * the schemaInfo for the schema that contains this table.

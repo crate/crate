@@ -125,7 +125,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
                         Aggregation.Step.ITER, Aggregation.Step.FINAL)
         );
 
-        ImplementationSymbolVisitor.Context context = visitor.process(aggregations);
+        ImplementationSymbolVisitor.Context context = visitor.extractImplementations(aggregations);
         Input<?> inputCount = context.aggregations.get(0).inputs()[0];
         Input<?> inputAverage = context.aggregations.get(1).inputs()[0];
 
@@ -142,7 +142,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
         );
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
 
-        ImplementationSymbolVisitor.Context context = visitor.process(keys);
+        ImplementationSymbolVisitor.Context context = visitor.extractImplementations(keys);
         assertThat(context.collectExpressions().size(), is(2));
 
         // keyExpressions: [ in0, in1 ]
@@ -181,7 +181,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
                 Aggregation.Step.PARTIAL
         ));
 
-        ImplementationSymbolVisitor.Context context = visitor.process(keys);
+        ImplementationSymbolVisitor.Context context = visitor.extractImplementations(keys);
         // inputs: [ x, multiply ]
         List<Input<?>> keyInputs = context.topLevelInputs();
 
@@ -216,7 +216,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
         Function multiply = new Function(
                 MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(0))
         );
-        ImplementationSymbolVisitor.Context context = visitor.process(Arrays.asList(multiply));
+        ImplementationSymbolVisitor.Context context = visitor.extractImplementations(Arrays.asList(multiply));
         assertThat(context.topLevelInputs().get(0), is(instanceOf(FunctionExpression.class)));
         FunctionExpression expression = (FunctionExpression) context.topLevelInputs().get(0);
         Field f = expression.getClass().getDeclaredField("functionImplementation");

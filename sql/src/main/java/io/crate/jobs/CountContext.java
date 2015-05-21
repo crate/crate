@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CountContext implements RowUpstream, ExecutionSubContext {
@@ -47,6 +48,8 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     private final RowDownstreamHandle rowDownstreamHandle;
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+
+    private ListenableFuture<Long> countFuture;
 
     public CountContext(CountOperation countOperation,
                         RowDownstream rowDownstream,
@@ -60,7 +63,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     public void start() {
         try {
-            ListenableFuture<Long> countFuture = countOperation.count(indexShardMap, whereClause);
+            countFuture = countOperation.count(indexShardMap, whereClause);
             Futures.addCallback(countFuture, new FutureCallback<Long>() {
                 @Override
                 public void onSuccess(@Nullable Long result) {
@@ -88,9 +91,26 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     @Override
     public void close() {
+        doClose(null);
+    }
+
+    @Override
+    public void kill() {
+        if (countFuture != null) {
+            countFuture.cancel(true);
+        }
+        doClose(new CancellationException());;
+    }
+
+    @Override
+    public String name() {
+        return "count(*)";
+    }
+
+    private void doClose(@Nullable Throwable throwable) {
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
-                callback.onClose();
+                callback.onClose(throwable, -1L);
             }
         }
     }

@@ -30,4 +30,11 @@ import java.io.IOException;
  * the next leaf (segment).
  */
 public class CollectionAbortedException extends IOException {
+
+    public CollectionAbortedException() {
+    }
+
+    public CollectionAbortedException(Throwable cause) {
+        super(cause);
+    }
 }

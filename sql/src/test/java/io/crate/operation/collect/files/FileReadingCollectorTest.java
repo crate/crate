@@ -217,7 +217,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     private CollectingProjector getObjects(String fileUri, String compression, final S3ObjectInputStream s3InputStream) throws Throwable {
         CollectingProjector projector = new CollectingProjector();
         FileCollectInputSymbolVisitor.Context context =
-                inputSymbolVisitor.process(createReference("_raw", DataTypes.STRING));
+                inputSymbolVisitor.extractImplementations(createReference("_raw", DataTypes.STRING));
         FileReadingCollector collector = new FileReadingCollector(
                 fileUri,
                 context.topLevelInputs(),

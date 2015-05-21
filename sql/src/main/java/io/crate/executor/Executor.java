@@ -30,6 +30,6 @@ public interface Executor {
 
     public Job newJob(Plan plan);
 
-    public List<ListenableFuture<TaskResult>> execute(Job job);
+    public List<? extends ListenableFuture<TaskResult>> execute(Job job);
 
 }
