@@ -21,16 +21,20 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
+import java.lang.reflect.Field;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.is;
@@ -43,9 +47,30 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @Mock
+    public ActionListener<BulkCreateIndicesResponse> responseActionListener;
+
     @Before
     public void prepare() {
+        MockitoAnnotations.initMocks(this);
         action = cluster().getInstance(TransportBulkCreateIndicesAction.class);
+    }
+
+    @Test
+    public void testKillAllCancelsPendingOperations() throws Exception {
+        Field pendingOperations = TransportBulkCreateIndicesAction.class.getDeclaredField("pendingOperations");
+        pendingOperations.setAccessible(true);
+        ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation> operations =
+                (ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation>)pendingOperations.get(action);
+
+        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
+                new BulkCreateIndicesRequest(ImmutableList.<String>of()), responseActionListener));
+        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
+                new BulkCreateIndicesRequest(ImmutableList.<String>of()), responseActionListener));
+
+        action.killAllCalled();
+
+        assertThat(operations.size(), is(0));
     }
 
     @Test

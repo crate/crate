@@ -34,10 +34,9 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -63,6 +62,8 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
     private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
 
+    private final List<KillAllListener> killAllListeners = Collections.synchronizedList(new ArrayList<KillAllListener>());
+
     @Inject
     public JobContextService(Settings settings,
                              ThreadPool threadPool,
@@ -82,6 +83,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         for (JobExecutionContext context : activeContexts.values()) {
             context.close();
         }
+    }
+
+    public void addListener(KillAllListener listener) {
+        killAllListeners.add(listener);
     }
 
     @Override
@@ -140,6 +145,9 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                     "after killing all contexts they should have been removed from the map due to the callbacks";
         } finally {
             writeLock.unlock();
+        }
+        for (KillAllListener killAllListener : killAllListeners) {
+            killAllListener.killAllCalled();
         }
         return numKilled;
     }

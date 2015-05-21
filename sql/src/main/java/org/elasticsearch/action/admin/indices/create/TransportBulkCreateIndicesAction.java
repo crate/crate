@@ -25,6 +25,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.Charsets;
 import com.google.common.collect.*;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.KillAllListener;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -71,6 +73,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -89,7 +92,8 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
  */
 @Singleton
 public class TransportBulkCreateIndicesAction
-        extends TransportMasterNodeOperationAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse> {
+        extends TransportMasterNodeOperationAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse>
+        implements KillAllListener {
 
     public static final String NAME = "indices:admin/bulk_create";
 
@@ -107,9 +111,11 @@ public class TransportBulkCreateIndicesAction
     private final Object pendingLock = new Object();
     private final Queue<PendingOperation> pendingOperations = new ArrayDeque<>();
     private volatile int activeOperations = 0;
+    private volatile long lastKillAllEvent = System.nanoTime();
 
     @Inject
     protected TransportBulkCreateIndicesAction(Settings settings,
+                                               JobContextService jobContextService,
                                                TransportService transportService,
                                                Environment environment,
                                                ClusterService clusterService,
@@ -131,6 +137,7 @@ public class TransportBulkCreateIndicesAction
         this.allocationService = allocationService;
         this.createIndexService = createIndexService;
 
+        jobContextService.addListener(this);
 
         if (indexTemplateFilters.isEmpty()) {
             this.indexTemplateFilter = DEFAULT_INDEX_TEMPLATE_FILTER;
@@ -192,6 +199,7 @@ public class TransportBulkCreateIndicesAction
             }
             activeOperations++;
         }
+        final long timeStart = System.nanoTime();
 
         final ActionListener<BulkCreateIndicesResponse> listener = new PendingTriggeringActionListener(responseListener);
         final Map<Semaphore, Collection<String>> locked = new HashMap<>();
@@ -200,11 +208,10 @@ public class TransportBulkCreateIndicesAction
         try {
             tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, 0L);
         } catch (InterruptedException e) {
+            unlockIndices(locked);
             listener.onFailure(e);
             return;
         }
-
-        final long timeStart = System.nanoTime();
         final ActionListener<ClusterStateUpdateResponse> stateUpdateListener = new ActionListener<ClusterStateUpdateResponse>() {
             @Override
             public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
@@ -230,6 +237,11 @@ public class TransportBulkCreateIndicesAction
             return;
         }
 
+        if (timeStart <= lastKillAllEvent) {
+            unlockIndices(locked);
+            responseListener.onFailure(new CancellationException());
+            return;
+        }
         if (!locked.isEmpty()) {
             createIndices(request, locked, stateUpdateListener);
         } else {
@@ -247,6 +259,10 @@ public class TransportBulkCreateIndicesAction
                 @Override
                 public void run() {
                     try {
+                        if (timeStart < lastKillAllEvent) {
+                            stateUpdateListener.onFailure(new CancellationException());
+                            return;
+                        }
                         long elapsed = timeStart - System.nanoTime();
                         if (elapsed >= request.masterNodeTimeout().nanos()) {
                             stateUpdateListener.onFailure(new ProcessClusterEventTimeoutException(request.masterNodeTimeout(), "acquire index lock"));
@@ -626,6 +642,17 @@ public class TransportBulkCreateIndicesAction
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA, Iterables.toArray(request.indices(), String.class));
     }
 
+    @Override
+    public void killAllCalled() {
+        lastKillAllEvent = System.nanoTime();
+        synchronized (pendingLock) {
+            PendingOperation pendingOperation;
+            while ( (pendingOperation = pendingOperations.poll()) != null) {
+                pendingOperation.responseListener.onFailure(new CancellationException());
+            }
+        }
+    }
+
     private static class DefaultIndexTemplateFilter implements IndexTemplateFilter {
         @Override
         public boolean apply(CreateIndexClusterStateUpdateRequest request, IndexTemplateMetaData template) {
@@ -633,7 +660,7 @@ public class TransportBulkCreateIndicesAction
         }
     }
 
-    private static class PendingOperation {
+    static class PendingOperation {
 
         private final BulkCreateIndicesRequest request;
         private final ActionListener<BulkCreateIndicesResponse> responseListener;
