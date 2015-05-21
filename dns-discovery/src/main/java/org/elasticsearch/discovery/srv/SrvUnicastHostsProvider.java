@@ -22,7 +22,9 @@
 
 package org.elasticsearch.discovery.srv;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
@@ -36,6 +38,8 @@ import org.elasticsearch.transport.TransportService;
 import org.xbill.DNS.*;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -78,7 +82,7 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
         try {
             Record[] records = lookupRecords();
             logger.trace("Building dynamic unicast discovery nodes...");
-            if (records == null) {
+            if (records == null || records.length == 0) {
                 logger.debug("No nodes found");
             } else {
                 discoNodes = parseRecords(records);
@@ -100,8 +104,21 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
     }
 
     protected List<DiscoveryNode> parseRecords(Record[] records) {
+        ArrayList<Record> sortedList = Lists.newArrayList(records);
+        sortedList.sort(new Comparator<Record>() {
+            @Override
+            public int compare(Record r1, Record r2) {
+                SRVRecord srv1 = (SRVRecord) r1;
+                SRVRecord srv2 = (SRVRecord) r2;
+                return ComparisonChain.start()
+                        .compare(srv1.getPriority(), srv2.getPriority())
+                        .compare(srv1.getWeight(), srv2.getWeight(), Ordering.natural().reverse())
+                        .compare(srv1.getAdditionalName(), srv2.getAdditionalName(), Ordering.natural().nullsLast())
+                        .result();
+            }
+        });
         List<DiscoveryNode> discoNodes = Lists.newArrayList();
-        for (Record record : records) {
+        for (Record record: sortedList) {
             SRVRecord srv = (SRVRecord) record;
 
             String hostname = srv.getTarget().toString().replaceFirst("\\.$", "");

@@ -150,6 +150,8 @@ since the information will be retrieved directly from the translog.
   conistency. Only the refresh of the ``IndexReader`` affects
   consistency.
 
+.. _storage_consistency_cluster_meta_data:
+
 Cluster Meta Data
 =================
 

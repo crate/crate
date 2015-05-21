@@ -502,7 +502,18 @@ When a node starts up with SRV discovery enabled, it performs a DNS lookup using
 the settings below. The hosts and ports from the retrieved SRV records will be
 used to generate a list of unicast hosts for node discovery.
 The same lookup is also performed by all nodes in a cluster whenever the master
-changes.
+is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
+
+The order of the unicast hosts is defined by the priority, weight and name
+of each host defined in the SRV record. For example::
+
+    _crate._srv.example.com. 3600 IN SRV 2 20 4300 crate1.example.com.
+    _crate._srv.example.com. 3600 IN SRV 1 10 4300 crate2.example.com.
+    _crate._srv.example.com. 3600 IN SRV 2 10 4300 crate3.example.com.
+
+would result in a list of discovery nodes ordered like::
+
+    crate2.example.com:4300, crate3.example.com:4300, crate1.example.com:4300
 
 
 **disovery.type**

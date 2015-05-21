@@ -58,12 +58,11 @@ public class SrvUnicastHostsProviderTest {
     @Before
     public void mockTransportService() throws Exception {
         transportService = mock(TransportService.class);
-        when(transportService.addressesFromString(eq("crate1.internal:44300"))).thenReturn(new TransportAddress[]{
-                new LocalTransportAddress("crate1.internal")
-        });
-        when(transportService.addressesFromString(eq("crate2.internal:44301"))).thenReturn(new TransportAddress[]{
-                new LocalTransportAddress("crate2.internal")
-        });
+        for (int i = 0; i < 4; i++) {
+            when(transportService.addressesFromString(eq(String.format("crate%d.internal:44300", i+1)))).thenReturn(new TransportAddress[]{
+                    new LocalTransportAddress(String.format("crate%d.internal", i+1))
+            });
+        }
     }
 
     @Test
@@ -123,7 +122,7 @@ public class SrvUnicastHostsProviderTest {
                 Name srvName = Name.fromConstantString("_crate._srv.crate.internal.");
                 return new Record[]{
                         new SRVRecord(srvName, DClass.IN, 3600, 10, 60, 44300, Name.fromConstantString("crate1.internal.")),
-                        new SRVRecord(srvName, DClass.IN, 3600, 10, 60, 44301, Name.fromConstantString("crate2.internal."))
+                        new SRVRecord(srvName, DClass.IN, 3600, 10, 60, 44300, Name.fromConstantString("crate2.internal."))
                 };
             }
         };
@@ -138,11 +137,16 @@ public class SrvUnicastHostsProviderTest {
 
         Name srvName = Name.fromConstantString("_crate._srv.crate.internal.");
         Record[] records = new Record[]{
-                new SRVRecord(srvName, DClass.IN, 3600, 10, 60, 44300, Name.fromConstantString("crate1.internal.")),
-                new SRVRecord(srvName, DClass.IN, 3600, 10, 60, 44301, Name.fromConstantString("crate2.internal."))
+                new SRVRecord(srvName, DClass.IN, 3600, 2, 30, 44300, Name.fromConstantString("crate4.internal.")),
+                new SRVRecord(srvName, DClass.IN, 3600, 2, 30, 44300, Name.fromConstantString("crate3.internal.")),
+                new SRVRecord(srvName, DClass.IN, 3600, 1, 10, 44300, Name.fromConstantString("crate1.internal.")),
+                new SRVRecord(srvName, DClass.IN, 3600, 2, 20, 44300, Name.fromConstantString("crate2.internal."))
         };
         List<DiscoveryNode> discoNodes = unicastHostsProvider.parseRecords(records);
+        // nodes need to be sorted by priority (asc), weight (desc) and name (asc) of SRV record
         assertEquals("#srv-crate1.internal:44300", discoNodes.get(0).getId());
-        assertEquals("#srv-crate2.internal:44301", discoNodes.get(1).getId());
+        assertEquals("#srv-crate3.internal:44300", discoNodes.get(1).getId());
+        assertEquals("#srv-crate4.internal:44300", discoNodes.get(2).getId());
+        assertEquals("#srv-crate2.internal:44300", discoNodes.get(3).getId());
     }
 }
