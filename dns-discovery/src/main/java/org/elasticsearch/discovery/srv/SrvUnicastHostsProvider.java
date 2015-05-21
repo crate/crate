@@ -57,22 +57,22 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
     public List<DiscoveryNode> buildDynamicNodes() {
         List<DiscoveryNode> discoNodes = Lists.newArrayList();
         if (query == null) {
-            logger.error("DNS query must not be null.");
+            logger.error("DNS query must not be null. Please set '{}'", DISCOVERY_SRV_QUERY);
             return discoNodes;
         }
         try {
             Record[] records = lookupRecords();
-            logger.trace("building dynamic unicast discovery nodes...");
+            logger.trace("Building dynamic unicast discovery nodes...");
             if (records == null) {
                 logger.debug("No nodes found");
             } else {
                 discoNodes = parseRecords(records);
             }
         } catch (TextParseException e) {
-            logger.warn("Unable to parse DNS query '{}'", query);
-            logger.debug("DNS lookup exception:", e);
+            logger.error("Unable to parse DNS query '{}'", query);
+            logger.error("DNS lookup exception:", e);
         }
-        logger.debug("using dynamic discovery nodes {}", discoNodes);
+        logger.info("Using dynamic discovery nodes {}", discoNodes);
         return discoNodes;
     }
 

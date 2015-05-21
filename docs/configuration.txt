@@ -491,6 +491,26 @@ Discovery
   Time a node is waiting for responses from other nodes to a published
   cluster state.
 
+.. _conf_srv_discovery:
+
+Service Discovery via DNS
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Crate has built-in support for service discovery via DNS.
+
+**disovery.type**
+  | *Default:*   ``not set``
+  | *Runtime:*   ``no``
+
+  To enable SRV discovery the type needs to be set to ``srv``.
+
+**discovery.srv.query**
+  | *Default:*  ``not set``
+  | *Runtime:*  ``no``
+
+  The DNS query that is used to look up SRV records,
+  usually in the format ``_service._protocol.fqdn``
+
 .. _conf_routing:
 
 Routing Allocation
