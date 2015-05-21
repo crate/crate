@@ -480,7 +480,8 @@ Discovery
   | *Runtime:*  ``yes``
 
   Set the time to wait for ping responses from other nodes when
-  discovering. Set this option to a higher value on a slow or congested network to minimize discovery failures.
+  discovering. Set this option to a higher value on a slow or congested network
+  to minimize discovery failures.
 
 .. _discovery.zen.publish_timeout:
 
@@ -497,6 +498,12 @@ Service Discovery via DNS
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Crate has built-in support for service discovery via DNS.
+When a node starts up with SRV discovery enabled, it performs a DNS lookup using
+the settings below. The hosts and ports from the retrieved SRV records will be
+used to generate a list of unicast hosts for node discovery.
+The same lookup is also performed by all nodes in a cluster whenever the master
+changes.
+
 
 **disovery.type**
   | *Default:*   ``not set``
