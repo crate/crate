@@ -63,7 +63,7 @@ public abstract class AbstractChainedTask extends JobTask {
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
-                    throw new TaskExecutionException(AbstractChainedTask.this, t);
+                    result.setException(t);
                 }
             });
         } else {
