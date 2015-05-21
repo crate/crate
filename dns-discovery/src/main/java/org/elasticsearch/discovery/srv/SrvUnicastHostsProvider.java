@@ -25,6 +25,7 @@ package org.elasticsearch.discovery.srv;
 import com.google.common.collect.Lists;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -34,6 +35,7 @@ import org.elasticsearch.discovery.zen.ping.unicast.UnicastHostsProvider;
 import org.elasticsearch.transport.TransportService;
 import org.xbill.DNS.*;
 
+import java.net.UnknownHostException;
 import java.util.List;
 
 
@@ -41,9 +43,11 @@ import java.util.List;
 public class SrvUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
 
     public static final String DISCOVERY_SRV_QUERY = "discovery.srv.query";
+    public static final String DISCOVERY_SRV_RESOLVER = "discovery.srv.resolver";
     private final TransportService transportService;
     private final Version version;
     private final String query;
+    protected final Resolver resolver;
 
     @Inject
     public SrvUnicastHostsProvider(Settings settings, TransportService transportService, Version version) {
@@ -51,6 +55,17 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
         this.transportService = transportService;
         this.version = version;
         this.query = settings.get(DISCOVERY_SRV_QUERY);
+        this.resolver = resolver(settings);
+    }
+
+    @Nullable
+    private Resolver resolver(Settings settings) {
+        try {
+            return new SimpleResolver(settings.get(DISCOVERY_SRV_RESOLVER));
+        } catch (UnknownHostException e) {
+            logger.warn("Could not create resolver. Using default resolver.", e);
+        }
+        return null;
     }
 
     @Override
@@ -78,6 +93,9 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
 
     protected Record[] lookupRecords() throws TextParseException {
         Lookup lookup = new Lookup(query, Type.SRV);
+        if (this.resolver != null) {
+            lookup.setResolver(this.resolver);
+        }
         return lookup.run();
     }
 

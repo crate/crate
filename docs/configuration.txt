@@ -501,15 +501,24 @@ Crate has built-in support for service discovery via DNS.
 **disovery.type**
   | *Default:*   ``not set``
   | *Runtime:*   ``no``
+  | *Allowed Values:*  ``srv``
 
   To enable SRV discovery the type needs to be set to ``srv``.
 
 **discovery.srv.query**
-  | *Default:*  ``not set``
   | *Runtime:*  ``no``
 
   The DNS query that is used to look up SRV records,
   usually in the format ``_service._protocol.fqdn``
+  If not set, the service discovery will not be able to look up any
+  SRV records.
+
+**discovery.srv.resolver**
+  | *Runtime:*  ``no``
+
+  The hostname or IP of the DNS server used to resolve DNS records.
+  If this is not set, or the specified hostname/IP is not resolvable,
+  the default (system) resolver is used.
 
 .. _conf_routing:
 
