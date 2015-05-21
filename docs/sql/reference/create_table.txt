@@ -319,7 +319,7 @@ Enabled by default.
 gateway.local.sync
 ~~~~~~~~~~~~~~~~~~
 
-How often the translog is ``fsync``ed to disk.
+How often the translog is ``fsync`` ed to disk.
 
 :value: time in seconds of ``fsync`` period
 
