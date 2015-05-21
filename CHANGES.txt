@@ -7,23 +7,11 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
- - Optimized ``DELETE FROM <partitioned_table>``
-
  - Fix: Do not throw exception on querying `sys.shards` while
    unassigned shards are changing
 
- - Fix: Handle concurrently dropped partitions while collecting rows
-
- - Fix: Updated es/upstream to prevent errors caused by too many cluster
-   state updates when dropping tables with a huge amount of partitions
-
  - Added new table settings that can be set on ``CREATE TABLE``
    and changed/reset with ``ALTER TABLE``.
-
- - Fixed an issue that caused a node stop to always take up at least 10 seconds
-
- - Further improved bulk partition creation which can occur during ``COPY
-   FROM`` or INSERTS with multi-values into partitioned tables
 
  - Support to register a plugin with different settings to multiple crate
    instances using the same JVM
@@ -45,6 +33,22 @@ NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
     - Attempting to use unknown command now results in an error
 
  - Added the IF NOT EXISTS clause to the CREATE TABLE statement
+
+2015/05/20 0.48.6
+=================
+
+ - Optimized ``DELETE FROM <partitioned_table>``
+
+ - Fix: Handle concurrently dropped partitions while collecting rows
+
+ - Fix: Updated es/upstream to prevent errors caused by too many cluster
+   state updates when dropping tables with a huge amount of partitions
+
+ - Fixed an issue that caused a node stop to always take up at least 10 seconds
+
+ - Further improved bulk partition creation which can occur during ``COPY
+   FROM`` or INSERTS with multi-values into partitioned tables
+
 
 2015/05/15 0.48.5
 =================
