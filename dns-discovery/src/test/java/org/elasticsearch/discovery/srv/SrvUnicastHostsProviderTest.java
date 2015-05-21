@@ -24,9 +24,11 @@ package org.elasticsearch.discovery.srv;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Before;
 import org.junit.Test;
 import org.xbill.DNS.*;
 
@@ -39,17 +41,81 @@ import static org.junit.Assert.*;
 
 public class SrvUnicastHostsProviderTest {
 
-    @Test
-    public void testBuildDynamicNodes() throws Exception {
-        TransportService transportService = mock(TransportService.class);
+    private TransportService transportService;
+
+    abstract class DummySrvUnicastHostsProvider extends SrvUnicastHostsProvider {
+
+        public DummySrvUnicastHostsProvider(Settings settings, TransportService transportService, Version version) {
+            super(settings, transportService, version);
+        }
+
+        @Override
+        protected Record[] lookupRecords() throws TextParseException {
+            return null;
+        }
+    }
+
+    @Before
+    public void mockTransportService() throws Exception {
+        transportService = mock(TransportService.class);
         when(transportService.addressesFromString(eq("crate1.internal:44300"))).thenReturn(new TransportAddress[]{
                 new LocalTransportAddress("crate1.internal")
         });
         when(transportService.addressesFromString(eq("crate2.internal:44301"))).thenReturn(new TransportAddress[]{
                 new LocalTransportAddress("crate2.internal")
         });
+    }
+
+    @Test
+    public void testBuildDynamicNodesNoQuery() throws Exception {
+        // no query -> empty list of discovery nodes
         SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(ImmutableSettings.EMPTY,
                 transportService, Version.CURRENT);
+        List<DiscoveryNode> discoNodes = unicastHostsProvider.buildDynamicNodes();
+        assertTrue(discoNodes.isEmpty());
+    }
+
+    @Test
+    public void testBuildDynamicNoRecords() throws Exception {
+        // no records -> empty list of discovery nodes
+        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+                .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.crate.internal");
+        SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(),
+                transportService, Version.CURRENT) {
+            @Override
+            protected Record[] lookupRecords() throws TextParseException {
+                return null;
+            }
+        };
+        List<DiscoveryNode> discoNodes = unicastHostsProvider.buildDynamicNodes();
+        assertTrue(discoNodes.isEmpty());
+    }
+
+    @Test
+    public void testBuildDynamicNodes() throws Exception {
+        // records
+        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+                .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.crate.internal");
+        SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(),
+                transportService, Version.CURRENT) {
+            @Override
+            protected Record[] lookupRecords() throws TextParseException {
+                Name srvName = Name.fromConstantString("_crate._srv.crate.internal.");
+                return new Record[]{
+                        new SRVRecord(srvName, DClass.IN, 3600, 10, 60, 44300, Name.fromConstantString("crate1.internal.")),
+                        new SRVRecord(srvName, DClass.IN, 3600, 10, 60, 44301, Name.fromConstantString("crate2.internal."))
+                };
+            }
+        };
+        List<DiscoveryNode> discoNodes = unicastHostsProvider.buildDynamicNodes();
+        assertEquals(2, discoNodes.size());
+    }
+
+    @Test
+    public void testParseRecords() throws Exception {
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(ImmutableSettings.EMPTY,
+                transportService, Version.CURRENT);
+
         Name srvName = Name.fromConstantString("_crate._srv.crate.internal.");
         Record[] records = new Record[]{
                 new SRVRecord(srvName, DClass.IN, 3600, 10, 60, 44300, Name.fromConstantString("crate1.internal.")),

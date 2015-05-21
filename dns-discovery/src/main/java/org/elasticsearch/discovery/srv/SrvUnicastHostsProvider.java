@@ -40,6 +40,7 @@ import java.util.List;
 @Singleton
 public class SrvUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
 
+    public static final String DISCOVERY_SRV_QUERY = "discovery.srv.query";
     private final TransportService transportService;
     private final Version version;
     private final String query;
@@ -49,7 +50,7 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
         super(settings);
         this.transportService = transportService;
         this.version = version;
-        this.query = settings.get("discovery.srv.query");
+        this.query = settings.get(DISCOVERY_SRV_QUERY);
     }
 
     @Override
@@ -60,7 +61,7 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
             return discoNodes;
         }
         try {
-            Record[] records = new Lookup(query, Type.SRV).run();
+            Record[] records = lookupRecords();
             logger.trace("building dynamic unicast discovery nodes...");
             if (records == null) {
                 logger.debug("No nodes found");
@@ -73,6 +74,11 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
         }
         logger.debug("using dynamic discovery nodes {}", discoNodes);
         return discoNodes;
+    }
+
+    protected Record[] lookupRecords() throws TextParseException {
+        Lookup lookup = new Lookup(query, Type.SRV);
+        return lookup.run();
     }
 
     protected List<DiscoveryNode> parseRecords(Record[] records) {
