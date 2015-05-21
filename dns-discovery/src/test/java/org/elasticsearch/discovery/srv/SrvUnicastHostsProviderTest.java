@@ -67,6 +67,26 @@ public class SrvUnicastHostsProviderTest {
     }
 
     @Test
+    public void testInvalidResolver() throws Exception {
+        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+                .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "foobar.txt")
+                .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.foo.txt");
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
+                transportService, Version.CURRENT);
+        assertNull(unicastHostsProvider.resolver);
+        assertNull(unicastHostsProvider.lookupRecords());
+    }
+
+    @Test
+    public void testValidResolver() throws Exception {
+        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+                .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "8.8.4.4");
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
+                transportService, Version.CURRENT);
+        assertEquals("/8.8.4.4:53", ((SimpleResolver)unicastHostsProvider.resolver).getAddress().toString());
+    }
+
+    @Test
     public void testBuildDynamicNodesNoQuery() throws Exception {
         // no query -> empty list of discovery nodes
         SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(ImmutableSettings.EMPTY,
