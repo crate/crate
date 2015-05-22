@@ -7,6 +7,10 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
+ - Fixed an error that could occur if the same ``delete from
+   <partitoned_table>`` or ``drop table <partitioned_table>`` statement is
+   executed concurrently
+
  - Added the ``KILL ALL`` statement which can be used to cancel running
    operations
 

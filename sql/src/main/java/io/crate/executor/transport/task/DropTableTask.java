@@ -33,6 +33,7 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.indices.IndexTemplateMissingException;
@@ -97,7 +98,11 @@ public class DropTableTask extends AbstractChainedTask {
     }
 
     private void deleteESIndex(String indexOrAlias) {
-        deleteIndexAction.execute(new DeleteIndexRequest(indexOrAlias), new ActionListener<DeleteIndexResponse>() {
+        DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexOrAlias);
+        if (tableInfo.isPartitioned()) {
+            deleteIndexRequest.indicesOptions(IndicesOptions.lenientExpandOpen());
+        }
+        deleteIndexAction.execute(deleteIndexRequest, new ActionListener<DeleteIndexResponse>() {
             @Override
             public void onResponse(DeleteIndexResponse response) {
                 if (!response.isAcknowledged()) {

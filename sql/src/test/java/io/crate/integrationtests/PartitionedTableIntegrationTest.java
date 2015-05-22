@@ -1058,9 +1058,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertEquals(1L, response.rowCount());
 
         execute("delete from quotes"); // this will delete all partitions
-        ensureGreen();
         execute("delete from quotes"); // this should still work even though only the template exists
-        ensureGreen();
 
         execute("drop table quotes");
         assertEquals(1L, response.rowCount());
