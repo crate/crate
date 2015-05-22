@@ -105,25 +105,37 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
                                             int jobSearchContextId,
                                             Function<Engine.Searcher, LuceneDocCollector> createCollectorFunction) throws Exception {
         assert shardsMap.containsKey(indexShard.shardId()) : "all jobSearchContextId's must be registered first using registerJobContextId(..)";
-        LuceneDocCollector docCollector;
-        synchronized (lock) {
-            docCollector = activeCollectors.get(jobSearchContextId);
-            if (docCollector == null) {
-                boolean sharedEngineSearcher = true;
-                Engine.Searcher engineSearcher = acquireSearcher(indexShard);
-                if (engineSearcher == null) {
-                    sharedEngineSearcher = false;
-                    engineSearcher = acquireNewSearcher(indexShard);
-                    engineSearchersRefCount.put(indexShard.shardId(), 1);
+        LuceneDocCollector docCollector = activeCollectors.get(jobSearchContextId);
+        if (docCollector == null) {
+            Engine.Searcher newEngineSearcher = acquireNewSearcher(indexShard);
+            boolean isEngineSearcherShared = true;
+            boolean newCollector = false;
+            synchronized (lock) {
+                docCollector = activeCollectors.get(jobSearchContextId);
+                if (docCollector == null) {
+                    Engine.Searcher engineSearcher;
+                    Engine.Searcher sharedEngineSearcher = acquireSearcher(indexShard);
+                    if (sharedEngineSearcher != null) {
+                        engineSearcher = sharedEngineSearcher;
+                    } else {
+                        engineSearcher = newEngineSearcher;
+                        isEngineSearcherShared = false;
+                        engineSearchersRefCount.putIfAbsent(indexShard.shardId(), 1);
+                    }
+
+                    docCollector = createCollectorFunction.apply(engineSearcher);
+                    assert docCollector != null; // should be never null, but interface marks it as nullable
+                    docCollector.searchContext().sharedEngineSearcher(isEngineSearcherShared);
+                    activeCollectors.put(jobSearchContextId, docCollector);
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Created doc collector with context {} on shard {} for job {}",
+                                jobSearchContextId, indexShard.shardId(), id);
+                    }
+                    newCollector = true;
                 }
-                docCollector = createCollectorFunction.apply(engineSearcher);
-                assert docCollector != null; // should be never null, but interface marks it as nullable
-                docCollector.searchContext().sharedEngineSearcher(sharedEngineSearcher);
-                activeCollectors.put(jobSearchContextId, docCollector);
-                if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Created doc collector with context {} on shard {} for job {}",
-                            jobSearchContextId, indexShard.shardId(), id);
-                }
+            }
+            if (!newCollector && engineSearchersRefCount.remove(indexShard.shardId(), 1)) {
+                newEngineSearcher.close();
             }
         }
         return docCollector;
@@ -171,20 +183,20 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
     /**
      * Try to find a {@link CrateSearchContext} for the same shard.
      * If one is found return its Engine.Searcher, otherwise return null.
+     *
+     * Warning: must be called inside a <code>synchronized(lock) { }</code> block.
      */
     protected Engine.Searcher acquireSearcher(IndexShard indexShard) {
         List<Integer> jobSearchContextIds = shardsMap.get(indexShard.shardId());
         if (jobSearchContextIds != null && jobSearchContextIds.size() > 0) {
             CrateSearchContext searchContext = null;
             Integer jobSearchContextId = null;
-            synchronized (lock) {
-                Iterator<Integer> it = jobSearchContextIds.iterator();
-                while (searchContext == null && it.hasNext()) {
-                    jobSearchContextId = it.next();
-                    LuceneDocCollector docCollector = activeCollectors.get(jobSearchContextId);
-                    if (docCollector != null) {
-                        searchContext = docCollector.searchContext();
-                    }
+            Iterator<Integer> it = jobSearchContextIds.iterator();
+            while (searchContext == null && it.hasNext()) {
+                jobSearchContextId = it.next();
+                LuceneDocCollector docCollector = activeCollectors.get(jobSearchContextId);
+                if (docCollector != null) {
+                    searchContext = docCollector.searchContext();
                 }
             }
             if (searchContext != null) {
