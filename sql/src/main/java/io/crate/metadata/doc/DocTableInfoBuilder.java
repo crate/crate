@@ -80,12 +80,7 @@ public class DocTableInfoBuilder {
         if (metaData.getTemplates().containsKey(templateName)) {
             docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.esName(), templateName);
             createdFromTemplate = true;
-            try {
-                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.esName());
-            } catch(IndexMissingException e) {
-                // no partition created yet
-                concreteIndices = new String[]{};
-            }
+            concreteIndices = metaData.concreteIndices(IndicesOptions.lenientExpandOpen(), ident.esName());
         } else {
             try {
                 concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.esName());
@@ -98,8 +93,7 @@ public class DocTableInfoBuilder {
             }
         }
 
-        if ((!createdFromTemplate && concreteIndices.length == 1)
-                || !checkAliasSchema) {
+        if ((!createdFromTemplate && concreteIndices.length == 1) || !checkAliasSchema) {
             return docIndexMetaData;
         }
         for (int i = 0; i < concreteIndices.length; i++) {
