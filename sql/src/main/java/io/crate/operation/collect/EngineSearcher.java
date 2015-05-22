@@ -39,6 +39,7 @@ public class EngineSearcher {
                                                        @Nullable Engine.Searcher searcher) {
         Engine.Searcher engineSearcher = searcher;
         int retry = 0;
+        int delay = 1;
         while (engineSearcher == null) {
             try {
                 engineSearcher = indexShard.acquireSearcher(searcherName);
@@ -48,7 +49,8 @@ public class EngineSearcher {
                         if (LOGGER.isWarnEnabled() && retry > 10) {
                             LOGGER.warn("shard in POST_RECOVERY - retry: " + retry);
                         }
-                        Thread.sleep(retry * 10);
+                        delay *= 2;
+                        Thread.sleep(delay);
                     } catch (InterruptedException e1) {
                         throw e;
                     }
