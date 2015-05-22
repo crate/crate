@@ -145,7 +145,7 @@ public class CustomBlobPathTest extends ElasticsearchIntegrationTest {
         assertFalse(loc2.exists());
 
         assertThat(tempBlobPath.exists(), is(true));
-        // TODO: add assertion that the folder is empty
+        assertThat(tempBlobPath.listFiles().length, is(0));
 
         blobIndices.createBlobTable("test", indexSettings).get();
         ensureGreen();

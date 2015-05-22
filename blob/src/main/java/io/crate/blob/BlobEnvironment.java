@@ -127,31 +127,21 @@ public class BlobEnvironment {
      * Check if a given blob data path contains no indices and non crate related path
      */
     public boolean isCustomBlobPathEmpty(File root) {
-        if (root != null && root.exists()) {
-            if (root.isDirectory()) {
-                File[] children = root.listFiles();
-                if (children != null) {
-                    boolean empty = true;
-                    for (File aChildren : children) {
-                        if (aChildren.isDirectory()
-                                && aChildren.getName().equals("nodes")) {
-                            for (File nodeFolder : aChildren.listFiles()) {
-                                if (nodeFolder.isDirectory()
-                                        && new File(nodeFolder, "indices").list().length > 0) {
-                                    empty = false;
-                                }
-                            }
-                        } else if (aChildren.getName().equals(clusterName.value())) {
-                            empty = isCustomBlobPathEmpty(aChildren);
-                        } else {
-                            return false;
-                        }
-                    }
-                    return empty;
-                }
-            }
+        return isCustomBlobPathEmpty(root, true);
+    }
+
+    private boolean isCustomBlobPathEmpty(File file, boolean isRoot) {
+        if (file == null || !file.exists() || !file.isDirectory()) {
+            return false;
+        }
+        File[] children = file.listFiles();
+        if (children == null || children.length == 0) {
+            return true;
+        }
+        //noinspection SimplifiableIfStatement
+        if (isRoot && children.length == 1 && children[0].getName().equals("indices")) {
+            return isCustomBlobPathEmpty(children[0], false);
         }
         return false;
     }
-
 }

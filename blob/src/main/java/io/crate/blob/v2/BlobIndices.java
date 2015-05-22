@@ -252,49 +252,56 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         if (event.state().blocks().disableStatePersistence()) {
             return;
         }
-
         MetaData currentMetaData = event.previousState().metaData();
+        // only delete indices when we already received a state
+        if (currentMetaData == null) {
+            return;
+        }
+        removeIndexLocationsForDeletedIndices(event, currentMetaData);
+    }
+
+    private void removeIndexLocationsForDeletedIndices(ClusterChangedEvent event, MetaData currentMetaData) {
         MetaData newMetaData = event.state().metaData();
-
-        // delete blob indices that were there before, but are deleted now
-        if (currentMetaData != null) {
-            // only delete indices when we already received a state (currentMetaData != null)
-            for (IndexMetaData current : currentMetaData) {
-                if (!newMetaData.hasIndex(current.index())) {
-                    if (isBlobIndex(current.index())) {
-                        File indexLocation = null;
-                        File customBlobsPath = null;
-                        if (current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
-                            customBlobsPath = new File(current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
-                            indexLocation = blobEnvironment.indexLocation(new Index(current.index()), customBlobsPath);
-                        } else if (blobEnvironment.blobsPath() != null) {
-                            indexLocation = blobEnvironment.indexLocation(new Index(current.index()));
-                        }
-                        if (indexLocation != null) {
-                            // delete index blob path
-                            if (indexLocation.exists()) {
-                                logger.debug("[{}] Deleting blob index directory '{}'",
-                                        current.index(), indexLocation.getAbsolutePath());
-                                if (!FileSystemUtils.deleteRecursively(indexLocation)) {
-                                    logger.warn("Could not delete blob index directory {}", indexLocation.getAbsolutePath());
-                                }
-                            } else {
-                                logger.warn("blob index directory {} does not exist", indexLocation.getAbsolutePath());
-                            }
-
-                            // check if custom index blobs path is empty, if so delete whole path
-                            if (customBlobsPath != null && blobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
-                                logger.debug("[{}] Empty per table defined blobs path found, deleting {}",
-                                        current.index(), customBlobsPath.getAbsolutePath());
-                                if (!FileSystemUtils.deleteRecursively(customBlobsPath)) {
-                                    logger.warn("Could not delete custom blob path {}", customBlobsPath.getAbsolutePath());
-                                }
-                            }
-                        }
-                    }
-                }
+        for (IndexMetaData current : currentMetaData) {
+            String index = current.index();
+            if (!newMetaData.hasIndex(index) && isBlobIndex(index)) {
+                deleteBlobIndexLocation(current, index);
             }
         }
     }
 
+    private void deleteBlobIndexLocation(IndexMetaData current, String index) {
+        File indexLocation = null;
+        File customBlobsPath = null;
+        if (current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
+            customBlobsPath = new File(current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
+            indexLocation = blobEnvironment.indexLocation(new Index(index), customBlobsPath);
+        } else if (blobEnvironment.blobsPath() != null) {
+            indexLocation = blobEnvironment.indexLocation(new Index(index));
+        }
+
+        if (indexLocation == null) {
+            // default shard location - ES logic deletes everything in this case
+            return;
+        }
+
+        String absolutePath = indexLocation.getAbsolutePath();
+        if (indexLocation.exists()) {
+            logger.debug("[{}] Deleting blob index directory '{}'", index, absolutePath);
+            if (!FileSystemUtils.deleteRecursively(indexLocation)) {
+                logger.warn("Could not delete blob index directory {}", absolutePath);
+            }
+        } else {
+            logger.warn("wanted to delete blob index directory {} but it was already gone", absolutePath);
+        }
+
+        // check if custom index blobs path is empty, if so delete whole path
+        if (customBlobsPath != null && blobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
+            logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
+                    index, customBlobsPath.getAbsolutePath());
+            if (!FileSystemUtils.deleteRecursively(customBlobsPath, false)) {
+                logger.warn("Could not delete custom blob path {}", customBlobsPath.getAbsolutePath());
+            }
+        }
+    }
 }
