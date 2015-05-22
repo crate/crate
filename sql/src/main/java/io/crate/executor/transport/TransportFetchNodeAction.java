@@ -125,9 +125,9 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                 functions,
                 ramAccountingContext);
 
-        SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(outputStreamers(request.toFetchReferences()));
-
-        final NodeFetchResponse response = new NodeFetchResponse(outputStreamers(request.toFetchReferences()));
+        Streamer<?>[] streamers = outputStreamers(request.toFetchReferences());
+        SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
+        final NodeFetchResponse response = new NodeFetchResponse(streamers);
         Futures.addCallback(bucketBuilder.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(@Nullable Bucket result) {

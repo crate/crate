@@ -35,8 +35,6 @@ import static org.hamcrest.core.Is.is;
 
 public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
-    private Setup setup = new Setup(sqlExecutor);
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -262,8 +260,12 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select random(), random() from sys.cluster limit 1");
         assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
 
-        this.setup.groupBySetup();
-        execute("select random(), random() from characters limit 1");
+        execute("create table t (name string) ");
+        ensureYellow();
+        execute("insert into t (name) values ('Marvin')");
+        execute("refresh table t");
+
+        execute("select random(), random() from t");
         assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
     }
 

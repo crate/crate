@@ -128,7 +128,6 @@ public class LuceneDocFetcher implements RowUpstream {
             downstream.finish();
         } catch (Exception e) {
             downstream.fail(e);
-            return;
         } finally {
             jobCollectContext.releaseContext(searchContext);
             if (closeContext) {

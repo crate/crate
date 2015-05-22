@@ -110,8 +110,10 @@ public class NonSortingBucketMerger implements BucketMerger {
                 notifyListener();
             }
         };
+
+        Executor executor = this.executor.or(MoreExecutors.directExecutor());
         for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
-            Futures.addCallback(bucketFuture, callback, executor.isPresent() ? executor.get() : MoreExecutors.directExecutor());
+            Futures.addCallback(bucketFuture, callback, executor);
         }
     }
 
