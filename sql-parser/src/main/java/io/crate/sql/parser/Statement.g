@@ -364,6 +364,10 @@ table
     : qname -> ^(TABLE qname)
     ;
 
+tableOnly
+    : ONLY qname -> ^(TABLE qname ONLY)
+    ;
+
 tableSubquery
     : '(' query ')' -> ^(TABLE_SUBQUERY query)
     ;
@@ -847,9 +851,14 @@ alterBlobTableStmt
     ;
 
 alterTableStmt
-    : (tableWithPartition SET) => tableWithPartition SET '(' genericProperties ')' -> ^(ALTER_TABLE genericProperties tableWithPartition)
+    : (alterTableDefinition SET) => alterTableDefinition SET '(' genericProperties ')' -> ^(ALTER_TABLE genericProperties alterTableDefinition)
     | (tableWithPartition ADD) => tableWithPartition ADD COLUMN? nestedColumnDefinition -> ^(ADD_COLUMN tableWithPartition nestedColumnDefinition)
-    | tableWithPartition RESET identList -> ^(ALTER_TABLE identList tableWithPartition)
+    | alterTableDefinition RESET identList -> ^(ALTER_TABLE identList alterTableDefinition)
+    ;
+
+alterTableDefinition
+    : tableOnly
+    | tableWithPartition
     ;
 // END ALTER STATEMENTS
 
@@ -1027,7 +1036,7 @@ nonReserved
     | COLUMNS | COPY | CURRENT | DATE | DAY | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | INTERVAL | KEY | KILL | LOGICAL | MATERIALIZED | MINUTE
-    | MONTH | OFF | OVER | PARTITION | PARTITIONED | PARTITIONS | PLAIN
+    | MONTH | OFF | ONLY | OVER | PARTITION | PARTITIONED | PARTITIONS | PLAIN
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
@@ -1115,6 +1124,7 @@ BLOB: 'BLOB';
 TABLE: 'TABLE';
 ALTER: 'ALTER';
 KILL: 'KILL';
+ONLY: 'ONLY';
 
 ADD: 'ADD';
 COLUMN: 'COLUMN';

@@ -21,28 +21,7 @@
 
 package io.crate.sql;
 
-import io.crate.sql.tree.AliasedRelation;
-import io.crate.sql.tree.AllColumns;
-import io.crate.sql.tree.AstVisitor;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Join;
-import io.crate.sql.tree.JoinCriteria;
-import io.crate.sql.tree.JoinOn;
-import io.crate.sql.tree.JoinUsing;
-import io.crate.sql.tree.NaturalJoin;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.Query;
-import io.crate.sql.tree.QuerySpecification;
-import io.crate.sql.tree.Relation;
-import io.crate.sql.tree.SampledRelation;
-import io.crate.sql.tree.Select;
-import io.crate.sql.tree.SelectItem;
-import io.crate.sql.tree.SingleColumn;
-import io.crate.sql.tree.SortItem;
-import io.crate.sql.tree.Table;
-import io.crate.sql.tree.TableSubquery;
-import io.crate.sql.tree.With;
-import io.crate.sql.tree.WithQuery;
+import io.crate.sql.tree.*;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -249,7 +228,19 @@ public final class SqlFormatter
         @Override
         protected Void visitTable(Table node, Integer indent)
         {
+            if (node.excludePartitions()) {
+                builder.append(" ONLY ");
+            }
             builder.append(node.getName().toString());
+            if (!node.partitionProperties().isEmpty()) {
+                builder.append("PARTITION (");
+                for (Assignment assignment : node.partitionProperties()) {
+                    builder.append(assignment.columnName().toString());
+                    builder.append("=");
+                    builder.append(assignment.expression().toString());
+                }
+                builder.append(")");
+            }
             return null;
         }
 

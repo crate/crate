@@ -224,6 +224,10 @@ public class TestStatementBuilder
         printStatement("alter table t add column foo['x'] integer");
         printStatement("alter table t add column foo['x']['y'] object as (z integer)");
 
+        printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
+        printStatement("alter table only t set (number_of_replicas=4)");
+
+
         printStatement("select * from t where 'value' LIKE ANY (col)");
         printStatement("select * from t where 'value' NOT LIKE ANY (col)");
         printStatement("select * from t where 'source' ~ 'pattern'");

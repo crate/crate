@@ -31,22 +31,32 @@ public class Table
         extends QueryBody
 {
     private final QualifiedName name;
+    private final boolean excludePartitions;
     private final List<Assignment> partitionProperties;
 
-    public Table(QualifiedName name)
-    {
+    public Table(QualifiedName name) {
+        this(name, true);
+    }
+
+    public Table(QualifiedName name, boolean excludePartitions) {
         this.name = name;
+        this.excludePartitions = excludePartitions;
         this.partitionProperties = ImmutableList.of();
     }
 
     public Table(QualifiedName name, @Nullable List<Assignment> partitionProperties) {
         this.name = name;
+        this.excludePartitions = false;
         this.partitionProperties = MoreObjects.firstNonNull(partitionProperties, ImmutableList.<Assignment>of());
     }
 
     public QualifiedName getName()
     {
         return name;
+    }
+
+    public boolean excludePartitions() {
+        return excludePartitions;
     }
 
     public List<Assignment> partitionProperties() {
@@ -63,6 +73,7 @@ public class Table
     public String toString()
     {
         return MoreObjects.toStringHelper(this)
+                .add("only", excludePartitions)
                 .addValue(name)
                 .add("partitionProperties", partitionProperties)
                 .toString();

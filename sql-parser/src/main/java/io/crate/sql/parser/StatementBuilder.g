@@ -286,7 +286,8 @@ relationType returns [Relation value]
     ;
 
 namedTable returns [Table value]
-    : ^(TABLE qname assignmentList?) { $value = new Table($qname.value, $assignmentList.value); }
+    : ^(TABLE qname ONLY) { $value = new Table($qname.value, true); }
+    | ^(TABLE qname assignmentList?) { $value = new Table($qname.value, $assignmentList.value); }
     ;
 
 joinedTable returns [Relation value]
