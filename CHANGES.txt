@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an error that could occur if the same ``delete from
+   <partitoned_table>`` or ``drop table <partitioned_table>`` statement is
+   executed concurrently
+
 2015/05/21 0.49.1
 =================
 

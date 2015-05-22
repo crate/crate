@@ -74,7 +74,16 @@ public class ESDeleteIndexTask extends AbstractChainedTask {
         super(jobId);
         this.transport = transport;
         this.request = new DeleteIndexRequest(node.indices());
-        this.request.indicesOptions(IndicesOptions.strictExpandOpen());
+        if (node.indices().length > 1) {
+            /**
+             * table is partitioned, in case of concurrent "delete from partitions"
+             * it could be that some partitions are already deleted,
+             * so ignore it if some are missing
+             */
+            this.request.indicesOptions(IndicesOptions.lenientExpandOpen());
+        } else {
+            this.request.indicesOptions(IndicesOptions.strictExpandOpen());
+        }
         this.listener = new DeleteIndexListener(result, node.indices().length > 1);
     }
 
