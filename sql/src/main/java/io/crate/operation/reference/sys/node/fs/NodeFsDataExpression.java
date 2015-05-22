@@ -33,17 +33,19 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.sigar.SigarService;
 import org.hyperic.sigar.FileSystem;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
 
     public static final String NAME = "data";
 
-    private static final ESLogger logger = Loggers.getLogger(NodeFsDataExpression.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(NodeFsDataExpression.class);
 
     private final SigarService sigarService;
     private final NodeEnvironment nodeEnvironment;
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     protected NodeFsDataExpression(SigarService sigarService, NodeEnvironment nodeEnvironment) {
         super(new ColumnIdent(NodeFsExpression.NAME, ImmutableList.of(NAME)));
@@ -53,41 +55,43 @@ public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
 
     @Override
     protected List<NestedObjectExpression> getChildImplementations() {
-        if (childImplementations.isEmpty()) {
+        if (!initialized.getAndSet(true)) {
             addChildImplementations();
         }
-        return super.getChildImplementations();
+        return childImplementations;
     }
 
     private void addChildImplementations() {
-        if (sigarService.sigarAvailable() && nodeEnvironment.hasNodeFile()) {
-            try {
-                FileSystem[] fsList = sigarService.sigar().getFileSystemList();
-                for (File dataLocation : nodeEnvironment.nodeDataLocations()) {
-                    FileSystem winner = null;
-                    String absDataLocation = dataLocation.getCanonicalPath();
-                    for (FileSystem fs : fsList) {
-                        // ignore rootfs as ist might shadow another mount on /
-                        if (!FileSystems.SUPPORTED_FS_TYPE.apply(fs) || "rootfs".equals(fs.getDevName())) {
-                            continue;
-                        }
-                        if (absDataLocation.startsWith(fs.getDirName())
-                                && (winner == null || winner.getDirName().length() < fs.getDirName().length())) {
-                            winner = fs;
-                        }
+        if (!sigarService.sigarAvailable()) {
+            LOGGER.trace("sigar is not available");
+            return;
+        }
+        if (!nodeEnvironment.hasNodeFile()) {
+            LOGGER.trace("no node files available");
+            return;
+        }
+        try {
+            FileSystem[] fsList = sigarService.sigar().getFileSystemList();
+            for (Path dataLocation : nodeEnvironment.nodeDataPaths()) {
+                FileSystem winner = null;
+                String absDataLocation = dataLocation.toFile().getCanonicalPath();
+                for (FileSystem fs : fsList) {
+                    // ignore rootfs as ist might shadow another mount on /
+                    if (!FileSystems.SUPPORTED_FS_TYPE.apply(fs) || "rootfs".equals(fs.getDevName())) {
+                        continue;
                     }
-                    childImplementations.add(new NodeFsDataChildExpression(
-                            winner != null ? new BytesRef(winner.getDevName()) : null,
-                            new BytesRef(absDataLocation)
-                    ));
+                    if (absDataLocation.startsWith(fs.getDirName())
+                            && (winner == null || winner.getDirName().length() < fs.getDirName().length())) {
+                        winner = fs;
+                    }
                 }
-            } catch (Exception e) {
-                logger.warn("error getting fs['data'] expression", e);
+                childImplementations.add(new NodeFsDataChildExpression(
+                        winner != null ? new BytesRef(winner.getDevName()) : null,
+                        new BytesRef(absDataLocation)
+                ));
             }
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace(sigarService.sigarAvailable() ? "no data node" : "sigar not available");
-            }
+        } catch (Exception e) {
+            LOGGER.warn("error getting fs['data'] expression", e);
         }
     }
 

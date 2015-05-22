@@ -25,6 +25,7 @@ import io.crate.Version;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
+import org.elasticsearch.env.NodeEnvironment;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -240,7 +241,9 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
         Object[] data = (Object[])fs.get("data");
         // only one data path configured in test mode
-        assertThat(data.length, is(1));
+
+        int numDataPaths = GLOBAL_CLUSTER.getInstance(NodeEnvironment.class).nodeDataPaths().length;
+        assertThat(data.length, is(numDataPaths));
         Map<String, Object> someData = (Map<String, Object>)data[0];
         assertThat(someData.keySet().size(), is(2));
         assertThat(someData.keySet(), hasItems("dev", "path"));

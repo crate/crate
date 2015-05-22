@@ -76,6 +76,7 @@ import org.mockito.stubbing.Answer;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -200,14 +201,14 @@ public class TestSysNodesExpressions extends CrateUnitTest {
             bind(NodeService.class).toInstance(nodeService);
 
             NodeEnvironment nodeEnv = mock(NodeEnvironment.class);
-            File[] dataLocations = new File[]{ new File("/foo"), new File("/bar") };
+            Path[] dataLocations = new Path[]{ new File("/foo").toPath(), new File("/bar").toPath() };
             when(nodeEnv.hasNodeFile()).then(new Answer<Boolean>() {
                 @Override
                 public Boolean answer(InvocationOnMock invocation) throws Throwable {
                     return isDataNode;
                 }
             });
-            when(nodeEnv.nodeDataLocations()).thenReturn(dataLocations);
+            when(nodeEnv.nodeDataPaths()).thenReturn(dataLocations);
             bind(NodeEnvironment.class).toInstance(nodeEnv);
 
             Sigar sigar = mock(Sigar.class);
