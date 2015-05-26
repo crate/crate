@@ -47,9 +47,9 @@ By default you would probably create the table like this::
   cr> DROP TABLE user;
   DROP OK (... sec)
 
-There's nothing wrong with this method and it does the job, but it is not very
-performant and therefore not what we want to use in a real world
-application.
+There's nothing wrong with this method and it does the job, but it is
+not very performant and therefore not what we want to use in a real
+world application.
 
 
 Shards & Replicas
@@ -75,8 +75,8 @@ of data that goes into the table.
   Be careful, you cannot change the number of shards once the table
   is created!
 
-Assuming there are 6 instances in the cluster we put 2 shards on each node
-giving us a total of 12 shards, which should be more than enough
+Assuming there are 6 instances in the cluster we put 2 shards on each
+node giving us a total of 12 shards, which should be more than enough
 for millions of records.
 
 Shards can be thought of as "virtual nodes" - create enough for your
@@ -173,9 +173,9 @@ completely by setting the ``indices.store.throttle.type`` to ``none``.
   cr> SET GLOBAL TRANSIENT indices.store.throttle.type = 'none';
   SET OK (... sec)
 
-However if you still want to throttle the merging of segments during import
-you can increase the maximum bytes per second from its default of ``20mb``
-to something like 100-200mb/s for SSD disks::
+However if you still want to throttle the merging of segments during
+import you can increase the maximum bytes per second from its default
+of ``20mb`` to something like 100-200mb/s for SSD disks::
 
   cr> SET GLOBAL TRANSIENT indices.store.throttle.max_bytes_per_sec = '150mb';
   SET OK (... sec)
@@ -261,7 +261,9 @@ For example::
 
 In our example it will not make a difference, but if you have a more complex
 data set with a lot of columns and large values, it probably makes sense to
-decrease the ``bulk_size``. A ``bulk_size`` value that is too large might consume a lot of node resources while a small ``bulk_size`` can increase the overhead per request.
+decrease the ``bulk_size``. A ``bulk_size`` value that is too large
+might consume a lot of node resources while a small ``bulk_size`` can
+increase the overhead per request.
 
 
 Compression
@@ -321,10 +323,10 @@ or the other column must lose its constraint.
   ... WITH (number_of_replicas = 0);
   CREATE OK (... sec)
 
-To import data into partitioned tables efficiently you will have to import
-each table partition separately. Since the value of the table partition is not
-stored in the column of the table, the ``JSON`` source must not contain
-the column value.
+To import data into partitioned tables efficiently you should import
+each table partition separately. Since the value of the table
+partition is not stored in the column of the table, the ``JSON``
+source must not contain the column value.
 
 For example: ``users_1408312800.json``
 
@@ -333,40 +335,54 @@ For example: ``users_1408312800.json``
    {"id": 1, "name": "foo", "bio": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.", "address": {"city": "Dornbirn", "country": "Austria"}}
    {"id": 2, "name": "bar", "bio": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.", "address": {"city": "Berlin", "country": "Germany"}}
 
-However the value of the partition column however defined in the ``COPY FROM`` statement using the ``PARTITION`` clause::
+The value of the partition column must be defined in the ``COPY FROM``
+statement using the ``PARTITION`` clause::
 
   cr> COPY user PARTITION (day_joined=1408312800)
   ... FROM '/tmp/best_practice_data/users_1408312800.json';
   COPY OK, 23 rows affected (... sec)
 
-This way, Crate does not need to resolve the partition for each row that is imported but can store it directly into the correct place resulting in a much faster import.
+This way, Crate does not need to resolve the partition for each row
+that is imported but can store it directly into the correct place
+resulting in a much faster import.
 
-However, it is still possible (but not recommended) to import into partitioned tables without the ``PARTITION`` clause and have the column value in the source.
+However, it is still possible (but not recommended) to import into
+partitioned tables without the ``PARTITION`` clause and have the
+column value in the source.
+
+When importing data into a partitioned table with existing partitions,
+it may be wanted to apply import optimizations like e.g. disable the
+`Refresh Interval`_ only to newly created partitions. This can be done
+by altering the partitioned table *only* by using the :ref:`ALTER
+TABLE ONLY <partitioned_tables_alter_table_only>` statement.
 
 .. seealso::
 
   - Detailed documentation of :ref:`partitioned_tables`
   - Table creation of :ref:`sql_ddl_partitioned_by`
+  - :ref:`Alter a partitioned table <partitioned_tables_alter>`
 
 
 Summary
 -------
 
-To sum up the points described above, importing huge data sets is not difficult
-if a few things are kept in mind. These are:
+To sum up the points described above, importing huge data sets is not
+difficult if a few things are kept in mind. These are:
 
-- Reduce the number of replicas as much as possible, ideally to 0. Replication slows down the import process.
+- Reduce the number of replicas as much as possible, ideally
+  to 0. Replication slows down the import process.
 - Use only as many shards as you really need.
-- Disable the periodic table refresh by setting the refresh interval to 0 during import.
+- Disable the periodic table refresh by setting the refresh interval
+  to 0 during import.
 - Adjust the bulk size of the import depending on the size of your records.
-- Import table partitions separately using the ``PARTITION`` clause in the
-  ``COPY TO`` statement.
+- Import table partitions separately using the ``PARTITION`` clause in
+  the ``COPY TO`` statement.
 
 And last but not least:
 
-- Import speed significantly increases with increasing disk I/O. Using SSDs
-  for Crate is recommended anyway, but having one disk more (by adding
-  another node) in the cluster, can make quite a difference.
+- Import speed significantly increases with increasing disk I/O. Using
+  SSDs for Crate is recommended anyway, but having one disk more (by
+  adding another node) in the cluster, can make quite a difference.
 
 Further Reading
 ---------------
