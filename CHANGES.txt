@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.12.1 which includes following changes:
+
+    - updated logo and icons
+
  - Fixed an error that could occur if the same ``delete from
    <partitoned_table>`` or ``drop table <partitioned_table>`` statement is
    executed concurrently
