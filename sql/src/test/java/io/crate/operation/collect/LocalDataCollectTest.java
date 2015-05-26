@@ -367,7 +367,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
                         return new CollectingProjector();
                     }
                 },
-                jobContextService,
                 mock(InformationSchemaCollectService.class),
                 mock(UnassignedShardsCollectService.class)
         );
@@ -544,12 +543,12 @@ public class LocalDataCollectTest extends CrateUnitTest {
     private Bucket getBucket(CollectNode collectNode) throws InterruptedException, ExecutionException {
         CollectingProjector cd = new CollectingProjector();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId());
-        builder.addSubContext(
-                collectNode.executionNodeId(),
-                new JobCollectContext(collectNode.jobId(), collectNode, operation, RAM_ACCOUNTING_CONTEXT, cd));
-        jobContextService.createContext(builder);
+        JobCollectContext jobCollectContext =
+                new JobCollectContext(collectNode.jobId(), collectNode, operation, RAM_ACCOUNTING_CONTEXT, cd);
+        builder.addSubContext(collectNode.executionNodeId(), jobCollectContext);
+        JobExecutionContext context = jobContextService.createContext(builder);
         cd.startProjection();
-        operation.collect(collectNode, cd, null);
+        operation.collect(collectNode, cd, jobCollectContext);
         return cd.result().get();
     }
 

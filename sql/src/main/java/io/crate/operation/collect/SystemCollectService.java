@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
@@ -57,7 +56,7 @@ public class SystemCollectService implements CollectService {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
                 RowContextDocLevelReferenceResolver.INSTANCE);
 
-        iterableGetters = ImmutableMap.<String, StatsTables.IterableGetter>of(
+        iterableGetters = ImmutableMap.of(
                 SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter(),
                 SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter(),
                 SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter(),
@@ -111,10 +110,10 @@ public class SystemCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) {
+        public void doCollect(JobCollectContext jobCollectContext) {
             try {
                 for (R row : rows) {
-                    Collectors.cancelIfInterrupted();
+                    jobCollectContext.interruptIfKilled();
                     for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);
                     }

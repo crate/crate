@@ -23,13 +23,12 @@ package io.crate.operation.collect.blobs;
 
 import io.crate.blob.BlobContainer;
 import io.crate.blob.v2.BlobShard;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.collect.Collectors;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.JobCollectContext;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,8 +57,8 @@ public class BlobDocCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
-        BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor();
+    public void doCollect(JobCollectContext jobCollectContext) {
+        BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor(jobCollectContext);
         try {
             blobShard.blobContainer().walkFiles(null, fileVisitor);
             downstream.finish();
@@ -71,10 +70,15 @@ public class BlobDocCollector implements CrateCollector {
     private class FileListingsFileVisitor implements BlobContainer.FileVisitor {
 
         private final InputRow row = new InputRow(inputs);
+        private JobCollectContext jobCollectContext;
+
+        public FileListingsFileVisitor(JobCollectContext jobCollectContext) {
+            this.jobCollectContext = jobCollectContext;
+        }
 
         @Override
         public boolean visit(File file) throws IOException {
-            Collectors.cancelIfInterrupted();
+            jobCollectContext.interruptIfKilled();
             for (BlobCollectorExpression expression : expressions) {
                 expression.setNextBlob(file);
             }

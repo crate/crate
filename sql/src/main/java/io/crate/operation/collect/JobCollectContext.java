@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
@@ -40,6 +39,7 @@ import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,7 +59,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<ContextCallback> contextCallbacks = new ArrayList<>(1);
 
-    private ListenableFuture<List<Void>> collectFuture;
+    private volatile boolean isKilled = false;
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
@@ -249,9 +249,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
 
     @Override
     public void kill() {
-        if (collectFuture != null) {
-            collectFuture.cancel(true);
-        }
+        isKilled = true;
         close();
     }
 
@@ -269,11 +267,25 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream {
 
     public void start() {
         try {
-            collectFuture = collectOperation.collect(collectNode, downstream, ramAccountingContext);
+            collectOperation.collect(collectNode, downstream, this);
         } catch (Throwable t) {
             RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);
             rowDownstreamHandle.fail(t);
             close();
+        }
+    }
+
+    public RamAccountingContext ramAccountingContext() {
+        return ramAccountingContext;
+    }
+
+    public boolean isKilled() {
+        return isKilled;
+    }
+
+    public void interruptIfKilled() {
+        if (isKilled) {
+            throw new CancellationException();
         }
     }
 }

@@ -264,31 +264,21 @@ public class JobCollectContextTest extends CrateUnitTest {
     public void testKill() throws Exception {
         final Field closed = JobCollectContext.class.getDeclaredField("closed");
         closed.setAccessible(true);
-        final Field collectFuture = JobCollectContext.class.getDeclaredField("collectFuture");
-        collectFuture.setAccessible(true);
+        final Field isKilled = JobCollectContext.class.getDeclaredField("isKilled");
+        isKilled.setAccessible(true);
         final Field activeCollectors = JobCollectContext.class.getDeclaredField("activeCollectors");
         activeCollectors.setAccessible(true);
 
-        ListenableFuture<List<Void>> future = SettableFuture.create();
         for (int i = 0; i < 10; i++) {
             jobCollectContext.registerJobContextId(shardId, i);
             jobCollectContext.createCollectorAndContext(indexShard, i, CONTEXT_FUNCTION);
-            collectFuture.set(jobCollectContext, future); // simulate .start()
         }
         ContextCallback closeCallback = mock(ContextCallback.class);
         jobCollectContext.addCallback(closeCallback);
         jobCollectContext.kill();
 
-        for (int i = 0; i < 10; i++) {
-            assertThat(jobCollectContext.findCollector(i), is(nullValue()));
-        }
-        try {
-            future.get();
-            fail("future not cancelled");
-        } catch (CancellationException ce) {
-            // fine
-        }
         verify(closeCallback, times(1)).onClose(Mockito.any(Throwable.class), anyLong());
+        assertThat((boolean) isKilled.get(jobCollectContext), is(true));
 
         assertThat(((AtomicBoolean) closed.get(jobCollectContext)).get(), is(true));
         assertThat(((Map) activeCollectors.get(jobCollectContext)).size(), is(0));

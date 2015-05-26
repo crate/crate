@@ -34,7 +34,6 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.Job;
@@ -69,8 +68,6 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -85,15 +82,9 @@ import static org.hamcrest.core.Is.is;
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     Setup setup = new Setup(sqlExecutor);
     TransportExecutor executor;
     DocSchemaInfo docSchemaInfo;
-    private static final RamAccountingContext ramAccountingContext =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     @Before
     public void transportSetUp() {
@@ -110,7 +101,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     private void setUpCharacters() {
         sqlExecutor.exec("create table characters (id int primary key, name string) " +
                 "clustered into 2 shards with(number_of_replicas=0)");
-        sqlExecutor.ensureGreen();
+        sqlExecutor.ensureYellowOrGreen();
         sqlExecutor.exec("insert into characters (id, name) values (?, ?)",
                 new Object[][]{
                         new Object[]{1, "Arthur"},
@@ -145,7 +136,6 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         for (Symbol symbol : toCollect) {
             outputTypes.add(symbol.valueType());
         }
-
         CollectNode collectNode = new CollectNode(
                 plannerContext.nextExecutionNodeId(),
                 "collect",
@@ -160,25 +150,30 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         return collectNode;
     }
 
+    private List<Bucket> getBuckets(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+        List<Bucket> results = new ArrayList<>();
+        for (String nodeName : internalCluster().getNodeNames()) {
+            ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class, nodeName);
+            JobContextService contextService = internalCluster().getInstance(JobContextService.class, nodeName);
+
+            JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
+            ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
+            assert future != null;
+
+            JobExecutionContext context = contextService.createContext(builder);
+            context.start();
+            results.add(future.get());
+        }
+        return results;
+    }
+
     @Test
     public void testCollectDocId() throws Exception {
         setUpCharacters();
         Planner.Context plannerContext = new Planner.Context(clusterService());
         CollectNode collectNode = createCollectNode(plannerContext, false);
 
-        List<Bucket> results = new ArrayList<>();
-        Iterable<MapSideDataCollectOperation> collectOperations = internalCluster().getInstances(MapSideDataCollectOperation.class);
-        for (MapSideDataCollectOperation collectOperation : collectOperations) {
-            List<JobExecutionContext> executionContexts = createJobContext(collectNode);
-
-            CollectingProjector downstream = new CollectingProjector();
-            collectOperation.collect(collectNode, downstream, ramAccountingContext);
-            results.add(downstream.result().get());
-
-            for (JobExecutionContext executionContext : executionContexts) {
-                executionContext.close();
-            }
-        }
+        List<Bucket> results = getBuckets(collectNode);
 
         assertThat(results.size(), is(2));
         int seenJobSearchContextId = -1;
@@ -215,17 +210,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         QueryThenFetch plan = ((QueryThenFetch) ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan());
         UUID jobId = UUID.randomUUID();
         plan.collectNode().jobId(jobId);
-        Iterable<MapSideDataCollectOperation> collectOperations = internalCluster().getInstances(MapSideDataCollectOperation.class);
 
-        createJobContext(plan.collectNode());
+        List<Bucket> results = getBuckets(plan.collectNode());
 
-        List<Bucket> results = new ArrayList<>();
-        for (MapSideDataCollectOperation collectOperation : collectOperations) {
-
-            CollectingProjector collectingProjector = new CollectingProjector();
-            collectOperation.collect(plan.collectNode(), collectingProjector, ramAccountingContext);
-            results.add(collectingProjector.result().get());
-        }
 
         TransportFetchNodeAction transportFetchNodeAction = internalCluster().getInstance(TransportFetchNodeAction.class);
 
@@ -282,18 +269,6 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             assertThat((Integer) row.get(0), anyOf(is(1), is(2)));
             assertThat((BytesRef) row.get(1), anyOf(is(new BytesRef("Arthur")), is(new BytesRef("Ford"))));
         }
-    }
-
-    private List<JobExecutionContext> createJobContext(CollectNode collectNode) {
-        ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class);
-
-        List<JobExecutionContext> executionContexts = new ArrayList<>(2);
-        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
-            JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId());
-            contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
-            executionContexts.add(jobContextService.createContext(builder));
-        }
-        return executionContexts;
     }
 
     @Test

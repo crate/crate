@@ -30,20 +30,19 @@ public interface RowCollector<T> {
      *
      * @return false if no colletion is needed
      */
-    public boolean startCollect(RamAccountingContext ramAccountingContext);
+    boolean startCollect(JobCollectContext jobCollectContext);
 
     /**
      * Tells the collector to process the current row
      *
      * @return false if no more rows are needed
      */
-    public boolean processRow();
+    boolean processRow();
 
     /**
      * Called once after the last row is processed.
      *
      * @return The result of the collector
      */
-    public T finishCollect();
-
+    T finishCollect();
 }

@@ -51,6 +51,7 @@ import org.junit.Test;
 import java.util.*;
 
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
@@ -84,7 +85,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
         CollectingProjector collectingProjector = new CollectingProjector();
         collectingProjector.startProjection();
-        operation.collect(collectNode, collectingProjector, null);
+        operation.collect(collectNode, collectingProjector, mock(JobCollectContext.class));
         return collectingProjector.result().get();
     }
 

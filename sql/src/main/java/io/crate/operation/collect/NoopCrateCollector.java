@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 
@@ -36,8 +35,8 @@ public class NoopCrateCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
-        if (Thread.currentThread().isInterrupted()) {
+    public void doCollect(JobCollectContext jobCollectContext) {
+        if (jobCollectContext.isKilled()) {
             downstream.fail(new CancellationException());
         } else {
             downstream.finish();

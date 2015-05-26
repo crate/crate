@@ -25,9 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.*;
-import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
@@ -169,10 +167,10 @@ public class InformationSchemaCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) {
+        public void doCollect(JobCollectContext jobCollectContext) {
             try {
                 for (R row : rows) {
-                    Collectors.cancelIfInterrupted();
+                    jobCollectContext.interruptIfKilled();
                     for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);
                     }

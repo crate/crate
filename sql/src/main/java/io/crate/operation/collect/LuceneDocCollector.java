@@ -117,6 +117,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               CrateSearchContext searchContext,
                               int jobSearchContextId,
                               boolean keepContextForFetcher) throws Exception {
+        this.jobCollectContext = jobCollectContext;
         this.limit = collectNode.limit();
         this.orderBy = collectNode.orderBy();
         this.downstream = downStreamProjector.registerUpstream(this);
@@ -129,7 +130,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
         this.jobSearchContextId = jobSearchContextId;
-        this.jobCollectContext = jobCollectContext;
         this.searchContext = searchContext;
         this.keepContextForFetcher = keepContextForFetcher;
         inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
@@ -146,7 +146,9 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void collect(int doc) throws IOException {
-        Collectors.cancelIfInterrupted();
+        if (jobCollectContext.isKilled()) {
+            throw new CollectionAbortedException(new CancellationException());
+        }
 
         rowCount++;
         if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
@@ -173,14 +175,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         try {
             wantMore = downstream.setNextRow(inputRow);
         } catch (Throwable t) {
-            throw new CollectionAbortedException(
-                    Collectors.gotInterrupted(t) ? new CancellationException() : t);
+            throw new CollectionAbortedException(t);
         }
         if (!wantMore || (limit != null && rowCount == limit)) {
             // no more rows required, we can stop here
             throw new CollectionAbortedException();
         }
-
     }
 
     @Override
@@ -203,8 +203,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
-        this.ramAccountingContext = ramAccountingContext;
+    public void doCollect(JobCollectContext jobCollectContext) {
+        this.ramAccountingContext = jobCollectContext.ramAccountingContext();
         // start collect
         CollectorContext collectorContext = new CollectorContext()
                 .searchContext(searchContext)
@@ -230,7 +230,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                 int collected = topFieldDocs.scoreDocs.length;
                 ScoreDoc lastCollected = collectTopFields(topFieldDocs);
                 while ((limit == null || collected < limit) && topFieldDocs.scoreDocs.length >= batchSize && lastCollected != null) {
-                    Collectors.cancelIfInterrupted();
+                    jobCollectContext.interruptIfKilled();
+
                     batchSize = limit == null ? pageSize : Math.min(pageSize, limit - collected);
                     Query alreadyCollectedQuery = alreadyCollectedQuery((FieldDoc)lastCollected);
                     if (alreadyCollectedQuery != null) {
@@ -259,7 +260,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             }
         } catch (Exception e) {
             failed = true;
-            downstream.fail(Collectors.gotInterrupted(e) ? new CancellationException() : e);
+            downstream.fail(jobCollectContext.isKilled() ? new CancellationException() : e);
         } finally {
             jobCollectContext.releaseContext(searchContext);
             if (!keepContextForFetcher || !producedRows || failed) {

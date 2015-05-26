@@ -26,7 +26,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimaps;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
@@ -113,7 +112,7 @@ public class UnassignedShardsCollectService implements CollectService {
 
     private Iterable<UnassignedShard> createIterator(final Map<String, List<Integer>> indexShardMap) {
         String[] indices = indexShardMap.keySet().toArray(new String[indexShardMap.size()]);
-        List<ShardRouting> allShards = null;
+        List<ShardRouting> allShards;
         try {
             allShards = clusterService.state().routingTable().allShards(indices);
         } catch (IndexMissingException e) {
@@ -206,10 +205,10 @@ public class UnassignedShardsCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(RamAccountingContext ramAccountingContext) {
+        public void doCollect(JobCollectContext jobCollectContext) {
             try {
                 for (UnassignedShard row : rows) {
-                    Collectors.cancelIfInterrupted();
+                    jobCollectContext.interruptIfKilled();
 
                     for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);

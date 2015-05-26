@@ -40,9 +40,7 @@ public interface CollectOperation {
      * and feeding it to the <code>downstream</code>.
      * @param collectNode CollectNode defining what to collect and how to process it
      * @param downstream the final downstream to send the collected and processed rows to.
-     * @param ramAccountingContext account for allocations
-     *                             in order to circuit break huge queries before OOMs happen
      * @return a list of futures, one for each started collect execution (e.g. 1 for each shard)
      */
-    ListenableFuture<List<Void>> collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext);
+    ListenableFuture<List<Void>> collect(CollectNode collectNode, RowDownstream downstream, JobCollectContext jobCollectContext);
 }

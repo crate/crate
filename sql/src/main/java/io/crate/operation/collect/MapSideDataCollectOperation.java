@@ -30,12 +30,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.table.TableInfo;
@@ -93,7 +90,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     protected final EvaluatingNormalizer clusterNormalizer;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
-    private final JobContextService jobContextService;
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
     private final CollectServiceResolver collectServiceResolver;
     private final ProjectionToProjectorVisitor projectorVisitor;
@@ -119,7 +115,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver,
                                        ResultProviderFactory resultProviderFactory,
-                                       JobContextService jobContextService,
                                        InformationSchemaCollectService informationSchemaCollectService,
                                        UnassignedShardsCollectService unassignedShardsCollectService) {
         this.resultProviderFactory = resultProviderFactory;
@@ -131,7 +126,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
         this.clusterService = clusterService;
         this.indicesService = indicesService;
-        this.jobContextService = jobContextService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         this.collectServiceResolver = collectServiceResolver;
@@ -188,8 +182,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      */
     @Override
     public ListenableFuture<List<Void>> collect(CollectNode collectNode,
-                        RowDownstream downstream,
-                        RamAccountingContext ramAccountingContext) {
+                                                RowDownstream downstream,
+                                                JobCollectContext jobCollectContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
         assert collectNode.jobId() != null : "no jobId present for collect operation";
         String localNodeId = clusterService.state().nodes().localNodeId();
@@ -197,54 +191,53 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         if (routingNodes.contains(localNodeId) || localNodeId.equals(collectNode.handlerSideCollect())) {
             if (collectNode.routing().containsShards(localNodeId)) {
                 // shard or doc level (incl. unassigned shards)
-                return handleShardCollect(collectNode, downstream, ramAccountingContext);
+                return handleShardCollect(collectNode, downstream, jobCollectContext);
             } else {
                 if (collectNode instanceof FileUriCollectNode) {
-                    return handleNodeCollect(collectNode, downstream, ramAccountingContext);
+                    return handleWithService(nodeCollectService, collectNode, downstream, jobCollectContext);
                 }
-                switch (collectNode.maxRowGranularity()) {
-                    case CLUSTER:
-                        // sys.cluster
-                        return handleClusterCollect(collectNode, downstream, ramAccountingContext);
-                    case NODE:
-                        // sys.nodes collect
-                        return handleNodeCollect(collectNode, downstream, ramAccountingContext);
-                    case SHARD:
-                        // unassigned shards
-                        return handleUnassignedShardsCollect(collectNode, downstream, ramAccountingContext);
-                    case DOC:
-                        if (collectNode.isPartitioned()) {
-                            // edge case: partitioned table without actual indices
-                            // no results
-                            downstream.registerUpstream(this).finish();
-                            return IMMEDIATE_LIST;
-                        } else {
-                            if (localNodeId.equals(collectNode.handlerSideCollect())) {
-                                // information schema select
-                                return handleInformationSchemaCollect(collectNode, downstream, ramAccountingContext);
-                            } else {
-                                // sys.operations, sys.jobs, sys.*log
-                                return handleNodeCollect(collectNode, downstream, ramAccountingContext);
-                            }
-                        }
+                if (collectNode.isPartitioned() && collectNode.maxRowGranularity() == RowGranularity.DOC) {
+                    // edge case: partitioned table without actual indices
+                    // no results
+                    downstream.registerUpstream(this).finish();
+                    return IMMEDIATE_LIST;
                 }
+
+                CollectService collectService = getCollectService(collectNode, localNodeId);
+                return handleWithService(collectService, collectNode, downstream, jobCollectContext);
             }
         }
         throw new UnhandledServerException("unsupported routing");
     }
 
-    private ListenableFuture<List<Void>> handleInformationSchemaCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
-        return handleWithService(informationSchemaCollectService, collectNode, downstream, ramAccountingContext);
-    }
-
-    private ListenableFuture<List<Void>> handleUnassignedShardsCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
-        return handleWithService(unassignedShardsCollectService, collectNode, downstream, ramAccountingContext);
+    private CollectService getCollectService(CollectNode collectNode, String localNodeId) {
+        switch (collectNode.maxRowGranularity()) {
+            case CLUSTER:
+                // sys.cluster
+                return clusterCollectService;
+            case NODE:
+                // sys.nodes collect
+                return nodeCollectService;
+            case SHARD:
+                // unassigned shards
+                return unassignedShardsCollectService;
+            case DOC:
+                if (localNodeId.equals(collectNode.handlerSideCollect())) {
+                    // information schema select
+                    return informationSchemaCollectService;
+                } else {
+                    // sys.operations, sys.jobs, sys.*log
+                    return nodeCollectService;
+                }
+            default:
+                throw new UnsupportedOperationException("Unsupported rowGranularity " + collectNode.maxRowGranularity());
+        }
     }
 
     private ListenableFuture<List<Void>> handleWithService(final CollectService collectService,
                                                            final CollectNode node,
                                                            final RowDownstream rowDownstream,
-                                                           final RamAccountingContext ramAccountingContext) {
+                                                           final JobCollectContext jobCollectContext) {
         return listeningExecutorService.submit(new Callable<List<Void>>() {
             @Override
             public List<Void> call() throws Exception {
@@ -257,7 +250,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                         if (!localCollectNode.projections().isEmpty()) {
                             FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
                                     projectorVisitor,
-                                    ramAccountingContext,
+                                    jobCollectContext.ramAccountingContext(),
                                     localCollectNode.projections(),
                                     localRowDownStream
                             );
@@ -265,7 +258,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                             localRowDownStream = projectorChain.firstProjector();
                         }
                         CrateCollector collector = collectService.getCollector(localCollectNode, localRowDownStream); // calls projector.registerUpstream()
-                        collector.doCollect(ramAccountingContext);
+                        collector.doCollect(jobCollectContext);
                     }
                 } catch (Throwable t) {
                     LOGGER.error("error during collect", t);
@@ -275,24 +268,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 return ONE_LIST;
             }
         });
-    }
-
-    private ListenableFuture<List<Void>> handleClusterCollect(final CollectNode collectNode,
-                                                              final RowDownstream downstream,
-                                                              final RamAccountingContext ramAccountingContext) {
-        return handleWithService(clusterCollectService, collectNode, downstream, ramAccountingContext);
-    }
-
-    /**
-     * collect data on node level only - one row per node expected
-     *
-     * @param collectNode {@link CollectNode} instance containing routing information and symbols to collect
-     * @param downstream  the receiver of the rows generated
-     */
-    protected ListenableFuture<List<Void>> handleNodeCollect(final CollectNode collectNode,
-                                                          final RowDownstream downstream,
-                                                          final RamAccountingContext ramAccountingContext) {
-        return handleWithService(nodeCollectService, collectNode, downstream, ramAccountingContext);
     }
 
     private CrateCollector getNodeLevelCollector(CollectNode collectNode,
@@ -347,7 +322,9 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      *
      * @param collectNode {@link CollectNode} containing routing information and symbols to collect
      */
-    protected ListenableFuture<List<Void>> handleShardCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    protected ListenableFuture<List<Void>> handleShardCollect(CollectNode collectNode,
+                                                              RowDownstream downstream,
+                                                              JobCollectContext jobCollectContext) {
         String localNodeId = clusterService.state().nodes().localNodeId();
 
         final int numShards = numShards(collectNode, localNodeId);
@@ -360,21 +337,13 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         assert normalizedCollectNode.jobId() != null : "jobId must be set on CollectNode";
-        JobExecutionContext context;
-        context = jobContextService.getContext(normalizedCollectNode.jobId());
-        JobCollectContext jobCollectContext;
-        try {
-            jobCollectContext = context.getSubContext(normalizedCollectNode.executionNodeId());
-        } catch (IllegalArgumentException e) {
-            downstream.registerUpstream(this).finish();
-            return IMMEDIATE_LIST;
-        }
+
         ShardProjectorChain projectorChain = new ShardProjectorChain(
                 numShards,
                 normalizedCollectNode.projections(),
                 downstream,
                 projectorVisitor,
-                ramAccountingContext
+                jobCollectContext.ramAccountingContext()
         );
         TableUnknownException lastException = null;
         int jobSearchContextId = normalizedCollectNode.routing().jobSearchContextIdBase();
@@ -452,10 +421,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         // start the projection
         projectorChain.startProjections();
         try {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("starting {} shardCollectors...", numShards);
-            }
-            return runCollectThreaded(collectNode, shardCollectors, ramAccountingContext);
+            LOGGER.trace("starting {} shardCollectors...", numShards);
+            return runCollectThreaded(collectNode, shardCollectors, jobCollectContext);
         } catch (RejectedExecutionException e) {
             // on distributing collects the merge nodes need to be informed about the failure
             // so they can clean up their context
@@ -468,8 +435,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     }
 
     private ListenableFuture<List<Void>> runCollectThreaded(CollectNode collectNode,
-                                    final List<CrateCollector> shardCollectors,
-                                    final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
+                                                            final List<CrateCollector> shardCollectors,
+                                                            final JobCollectContext jobCollectContext) throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
@@ -477,7 +444,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 @Override
                 public List<Void> call() throws Exception {
                     for (CrateCollector collector : shardCollectors) {
-                        doCollect(collector, ramAccountingContext);
+                        collector.doCollect(jobCollectContext);
                     }
                     return ONE_LIST;
                 }
@@ -486,31 +453,26 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             return ThreadPools.runWithAvailableThreads(
                     executor,
                     poolSize,
-                    collectors2Callables(shardCollectors, ramAccountingContext),
+                    collectors2Callables(shardCollectors, jobCollectContext),
                     new VoidFunction<List<Void>>());
         }
     }
 
     private Collection<Callable<Void>> collectors2Callables(List<CrateCollector> collectors,
-                                                            final RamAccountingContext ramAccountingContext) {
+                                                            final JobCollectContext jobCollectContext) {
         return Lists.transform(collectors, new Function<CrateCollector, Callable<Void>>() {
 
             @Override
-            public Callable<Void> apply(@Nullable final CrateCollector collector) {
+            public Callable<Void> apply(final CrateCollector collector) {
                 return new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        doCollect(collector, ramAccountingContext);
+                        collector.doCollect(jobCollectContext);
                         return null;
                     }
                 };
             }
         });
-    }
-
-    private void doCollect(CrateCollector shardCollector,
-                           RamAccountingContext ramAccountingContext) {
-        shardCollector.doCollect(ramAccountingContext);
     }
 
     private static class OneRowCollectService implements CollectService {

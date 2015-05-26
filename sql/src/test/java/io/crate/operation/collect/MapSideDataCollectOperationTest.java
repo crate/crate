@@ -93,7 +93,6 @@ public class MapSideDataCollectOperationTest {
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
 
-        JobContextService jobContextService = mock(JobContextService.class);
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
 
                 clusterService,
@@ -117,7 +116,6 @@ public class MapSideDataCollectOperationTest {
                         return new CollectingProjector();
                     }
                 },
-                jobContextService,
                 mock(InformationSchemaCollectService.class),
                 mock(UnassignedShardsCollectService.class)
         );
@@ -150,7 +148,7 @@ public class MapSideDataCollectOperationTest {
         PlanNodeBuilder.setOutputTypes(collectNode);
         CollectingProjector cd = new CollectingProjector();
         cd.startProjection();
-        collectOperation.collect(collectNode, cd, null);
+        collectOperation.collect(collectNode, cd, mock(JobCollectContext.class));
         assertThat(cd.result().get(), contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)

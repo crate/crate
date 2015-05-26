@@ -32,7 +32,6 @@ import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.Collectors;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
 import io.crate.operation.projectors.writer.OutputS3;
@@ -183,12 +182,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         if (failure.get() != null) {
             return false;
         }
-        try {
-            rowWriter.write(row);
-        } catch (Throwable t) {
-            Collectors.cancelIfInterrupted(t);
-            throw t;
-        }
+        rowWriter.write(row);
         counter.incrementAndGet();
         return true;
     }

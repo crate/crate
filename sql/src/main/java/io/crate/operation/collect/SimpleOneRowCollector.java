@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
@@ -49,7 +48,7 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
     }
 
     @Override
-    public boolean startCollect(RamAccountingContext ramAccountingContext) {
+    public boolean startCollect(JobCollectContext jobCollectContext) {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
@@ -69,9 +68,9 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
+    public void doCollect(JobCollectContext jobCollectContext) {
         try {
-            collect(ramAccountingContext);
+            collect(jobCollectContext);
         } catch (Throwable t) {
             downstream.fail(t);
         }

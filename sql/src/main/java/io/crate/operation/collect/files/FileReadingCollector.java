@@ -26,13 +26,12 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.collect.Collectors;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.JobCollectContext;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -150,8 +149,8 @@ public class FileReadingCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(RamAccountingContext ramAccountingContext) {
-        FileInput fileInput = null;
+    public void doCollect(JobCollectContext jobCollectContext) {
+        FileInput fileInput;
         try {
             fileInput = getFileInput();
         } catch (IOException e) {
@@ -175,7 +174,7 @@ public class FileReadingCollector implements CrateCollector {
         try {
             uris = getUris(fileInput, uriPredicate);
             for (URI uri : uris) {
-                readLines(fileInput, collectorContext, uri, 0, 0);
+                readLines(jobCollectContext, fileInput, collectorContext, uri, 0, 0);
             }
             downstream.finish();
         } catch (Throwable e) {
@@ -183,7 +182,12 @@ public class FileReadingCollector implements CrateCollector {
         }
     }
 
-    private void readLines(FileInput fileInput, CollectorContext collectorContext, URI uri, long startLine, int retry) throws IOException {
+    private void readLines(JobCollectContext jobCollectContext,
+                           FileInput fileInput,
+                           CollectorContext collectorContext,
+                           URI uri,
+                           long startLine,
+                           int retry) throws IOException {
         InputStream inputStream = fileInput.getStream(uri);
         if (inputStream == null) {
             return;
@@ -193,7 +197,7 @@ public class FileReadingCollector implements CrateCollector {
         long linesRead = 0L;
         try (BufferedReader reader = createReader(inputStream)) {
             while ((line = reader.readLine()) != null) {
-                Collectors.cancelIfInterrupted();
+                jobCollectContext.interruptIfKilled();
                 linesRead++;
                 if (linesRead < startLine) {
                     continue;
@@ -210,7 +214,7 @@ public class FileReadingCollector implements CrateCollector {
             if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
                 throw e;
             } else {
-                readLines(fileInput, collectorContext, uri, linesRead + 1, retry + 1);
+                readLines(jobCollectContext, fileInput, collectorContext, uri, linesRead + 1, retry + 1);
             }
         }
     }

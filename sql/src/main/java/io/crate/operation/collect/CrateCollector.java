@@ -21,9 +21,9 @@
 
 package io.crate.operation.collect;
 
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowUpstream;
 
 public interface CrateCollector extends RowUpstream {
-    public void doCollect(RamAccountingContext ramAccountingContext);
+
+    void doCollect(JobCollectContext jobCollectContext);
 }

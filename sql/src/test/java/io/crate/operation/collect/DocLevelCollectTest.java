@@ -22,10 +22,9 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -34,7 +33,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
@@ -45,14 +43,13 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -61,9 +58,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 
 @ElasticsearchIntegrationTest.ClusterScope(randomDynamicTemplates = false, numDataNodes = 1)
 public class DocLevelCollectTest extends SQLTransportIntegrationTest {
-
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private static final String TEST_TABLE_NAME = "test_table";
     private static final Reference testDocLevelReference = new Reference(
@@ -214,14 +208,14 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
     }
 
-    private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
-        CollectingProjector cd = new CollectingProjector();
+    private Bucket collect(CollectNode collectNode) throws Exception {
         ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getInstance(JobContextService.class);
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
-        contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
-        contextService.createContext(builder);
-        operation.collect(collectNode, cd, RAM_ACCOUNTING_CONTEXT);
-        return cd.result().get();
+        ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
+        assert future != null;
+        JobExecutionContext context = contextService.createContext(builder);
+        context.start();
+        return future.get(500, TimeUnit.MILLISECONDS);
     }
 }
