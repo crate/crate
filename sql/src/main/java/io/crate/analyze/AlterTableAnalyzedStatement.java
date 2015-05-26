@@ -34,6 +34,7 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
     private Optional<PartitionName> partitionName = Optional.absent();
+    private boolean excludePartitions = false;
 
     public AlterTableAnalyzedStatement(ReferenceInfos referenceInfos) {
         this.referenceInfos = referenceInfos;
@@ -53,6 +54,14 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     public Optional<PartitionName> partitionName() {
         return partitionName;
+    }
+
+    public void excludePartitions(boolean excludePartitions) {
+        this.excludePartitions = excludePartitions;
+    }
+
+    public boolean excludePartitions() {
+        return excludePartitions;
     }
 
     @Override

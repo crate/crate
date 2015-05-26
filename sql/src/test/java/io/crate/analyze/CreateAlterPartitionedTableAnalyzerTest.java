@@ -30,6 +30,7 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.sql.parser.ParsingException;
 import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
@@ -332,4 +333,9 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
         analyze("alter table parted partition (date=1395874800000) set (column_policy='strict')");
     }
 
+    @Test
+    public void testAlterPartitionedTableOnlyWithPartition() throws Exception {
+        expectedException.expect(ParsingException.class);
+        analyze("alter table ONLY parted partition (date=1395874800000) set (column_policy='strict')");
+    }
 }

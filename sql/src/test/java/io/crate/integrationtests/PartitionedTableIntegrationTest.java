@@ -1350,7 +1350,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 new Object[]{"foo", "shards", 1, "bar", "replicas", 2});
         refresh();
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
-        response.rows();
         HashMap<String, Object> routingAllocation = new HashMap<String, Object>() {{
             put("enable", "all");
             put("total_shards_per_node", 5);
@@ -1360,15 +1359,40 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("alter table attrs set (\"routing.allocation.total_shards_per_node\"=1)");
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
-        response.rows();
         routingAllocation = new HashMap<String, Object>() {{
             put("enable", "all");
             put("total_shards_per_node", 1);
         }};
         assertEquals(routingAllocation, response.rows()[0][0]);
         assertEquals(routingAllocation, response.rows()[1][0]);
+    }
 
+    @Test
+    public void testAlterPartitionedTableOnlySettings() throws Exception {
+        execute("create table attrs (name string, attr string, value integer) " +
+                "partitioned by (name) clustered into 1 shards with (number_of_replicas=0, \"routing.allocation.total_shards_per_node\"=5)");
+        ensureYellow();
+        execute("insert into attrs (name, attr, value) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{"foo", "shards", 1, "bar", "replicas", 2});
+        refresh();
 
+        execute("alter table ONLY attrs set (\"routing.allocation.total_shards_per_node\"=1)");
+
+        // setting is not changed for existing partitions
+        execute("select settings['routing']['allocation']['total_shards_per_node'] from information_schema.table_partitions where table_name='attrs'");
+        assertThat((Integer) response.rows()[0][0], is(5));
+        assertThat((Integer) response.rows()[1][0], is(5));
+
+        // new partitions must use new settings
+        execute("insert into attrs (name, attr, value) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{"Arthur", "shards", 1, "Ford", "replicas", 2});
+        refresh();
+
+        execute("select settings['routing']['allocation']['total_shards_per_node'] from information_schema.table_partitions where table_name='attrs' order by 1");
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[1][0], is(1));
+        assertThat((Integer) response.rows()[2][0], is(5));
+        assertThat((Integer) response.rows()[3][0], is(5));
     }
 
     @Test

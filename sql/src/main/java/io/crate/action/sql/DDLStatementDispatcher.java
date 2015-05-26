@@ -363,7 +363,11 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         TableParameter concreteTableParameter = tableParameter;
         if (analysis.table().isPartitioned()) {
             if (analysis.partitionName().isPresent()) {
-                indices = new String[]{ analysis.partitionName().get().stringValue() };
+                indices = new String[]{analysis.partitionName().get().stringValue()};
+            } else if (analysis.excludePartitions()) {
+                updateTemplate = true;
+                updateMapping = false;
+                indices = new String[0];
             } else {
                 updateTemplate = true; // only update template when updating whole partitioned table
                 indices = analysis.table().concreteIndices();
@@ -396,9 +400,8 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
             transportActionProvider.transportGetIndexTemplatesAction().execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {
                 @Override
                 public void onResponse(GetIndexTemplatesResponse response) {
-                    Map<String, Object> mapping = new HashMap<>();
                     IndexTemplateMetaData template = response.getIndexTemplates().get(0);
-                    mapping = mergeMapping(template, analysis.tableParameter().mappings());
+                    Map<String, Object> mapping = mergeMapping(template, analysis.tableParameter().mappings());
 
                     ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
                     settingsBuilder.put(template.settings());
