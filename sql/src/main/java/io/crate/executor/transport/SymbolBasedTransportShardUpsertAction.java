@@ -27,6 +27,8 @@ import com.google.common.base.Splitter;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.KillAllListener;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.symbol.InputColumn;
@@ -48,6 +50,7 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -75,8 +78,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 
-public class SymbolBasedTransportShardUpsertAction extends TransportShardReplicationOperationAction<SymbolBasedShardUpsertRequest, SymbolBasedShardUpsertRequest, ShardUpsertResponse> {
+@Singleton
+public class SymbolBasedTransportShardUpsertAction
+        extends TransportShardReplicationOperationAction<SymbolBasedShardUpsertRequest, SymbolBasedShardUpsertRequest, ShardUpsertResponse>
+        implements KillAllListener {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert_symbol_based";
     private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR = new SymbolToFieldExtractor(new GetResultFieldExtractorFactory());
@@ -84,6 +91,7 @@ public class SymbolBasedTransportShardUpsertAction extends TransportShardReplica
     private final TransportIndexAction indexAction;
     private final IndicesService indicesService;
     private final Functions functions;
+    private volatile long lastKillAll = System.nanoTime();
 
     @Inject
     public SymbolBasedTransportShardUpsertAction(Settings settings,
@@ -91,6 +99,7 @@ public class SymbolBasedTransportShardUpsertAction extends TransportShardReplica
                                                  ClusterService clusterService,
                                                  TransportService transportService,
                                                  ActionFilters actionFilters,
+                                                 JobContextService jobContextService,
                                                  TransportIndexAction indexAction,
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
@@ -99,6 +108,7 @@ public class SymbolBasedTransportShardUpsertAction extends TransportShardReplica
         this.indexAction = indexAction;
         this.indicesService = indicesService;
         this.functions = functions;
+        jobContextService.addListener(this);
     }
 
     @Override
@@ -144,11 +154,15 @@ public class SymbolBasedTransportShardUpsertAction extends TransportShardReplica
 
     @Override
     protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
+        long startTime = System.nanoTime();
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
         SymbolBasedShardUpsertRequest request = shardRequest.request;
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             SymbolBasedShardUpsertRequest.Item item = request.items().get(i);
+            if (startTime <= lastKillAll) {
+                throw new CancellationException();
+            }
             try {
                 indexItem(
                         request,
@@ -323,6 +337,11 @@ public class SymbolBasedTransportShardUpsertAction extends TransportShardReplica
                 source.put(changesEntry.getKey(), changesEntry.getValue());
             }
         }
+    }
+
+    @Override
+    public void killAllCalled(long timestamp) {
+        lastKillAll = timestamp;
     }
 
     static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {

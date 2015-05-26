@@ -67,7 +67,7 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
         operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
                 new BulkCreateIndicesRequest(ImmutableList.<String>of()), responseActionListener));
 
-        action.killAllCalled();
+        action.killAllCalled(System.nanoTime());
 
         assertThat(operations.size(), is(0));
     }

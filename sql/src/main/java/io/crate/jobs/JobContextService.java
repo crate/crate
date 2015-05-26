@@ -36,7 +36,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -134,7 +133,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     public long killAll() {
         long numKilled = 0L;
+        long now = System.nanoTime();
         writeLock.lock();
+        for (KillAllListener killAllListener : killAllListeners) {
+            killAllListener.killAllCalled(now);
+        }
         try {
             for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
                 jobExecutionContext.kill();
@@ -145,9 +148,6 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                     "after killing all contexts they should have been removed from the map due to the callbacks";
         } finally {
             writeLock.unlock();
-        }
-        for (KillAllListener killAllListener : killAllListeners) {
-            killAllListener.killAllCalled();
         }
         return numKilled;
     }

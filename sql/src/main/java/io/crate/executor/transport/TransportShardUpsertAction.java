@@ -25,6 +25,8 @@ package io.crate.executor.transport;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.KillAllListener;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocSysColumns;
@@ -82,9 +84,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 
 @Singleton
-public class TransportShardUpsertAction extends TransportShardReplicationOperationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse> {
+public class TransportShardUpsertAction
+        extends TransportShardReplicationOperationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse>
+        implements KillAllListener {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert";
     private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR = new SymbolToFieldExtractor(new GetResultFieldExtractorFactory());
@@ -94,6 +99,7 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
     private final Functions functions;
     private final AssignmentSymbolVisitor assignmentSymbolVisitor;
     private final SymbolToInputVisitor symbolToInputVisitor;
+    private volatile long lastKillAll = System.nanoTime();
 
     @Inject
     public TransportShardUpsertAction(Settings settings,
@@ -103,12 +109,14 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
                                       ActionFilters actionFilters,
                                       TransportIndexAction indexAction,
                                       IndicesService indicesService,
+                                      JobContextService jobContextService,
                                       ShardStateAction shardStateAction,
                                       Functions functions) {
         super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
         this.indexAction = indexAction;
         this.indicesService = indicesService;
         this.functions = functions;
+        jobContextService.addListener(this);
         assignmentSymbolVisitor = new AssignmentSymbolVisitor();
         symbolToInputVisitor = new SymbolToInputVisitor(functions);
     }
@@ -156,6 +164,8 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
 
     @Override
     protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
+        long startTime = System.nanoTime();
+
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
         ShardUpsertRequest request = shardRequest.request;
         SymbolToFieldExtractorContext extractorContextUpdate = null;
@@ -174,9 +184,10 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
             }
         }
 
-        Iterator<ShardUpsertRequest.Item> it = request.iterator();
-        while (it.hasNext()) {
-            ShardUpsertRequest.Item item = it.next();
+        for (ShardUpsertRequest.Item item : request) {
+            if (startTime <= lastKillAll) {
+                throw new CancellationException();
+            }
             try {
                 indexItem(
                         request,
@@ -387,6 +398,11 @@ public class TransportShardUpsertAction extends TransportShardReplicationOperati
                 source.put(changesEntry.getKey().name(), changesEntry.getValue());
             }
         }
+    }
+
+    @Override
+    public void killAllCalled(long timestamp) {
+        lastKillAll = timestamp;
     }
 
     static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {

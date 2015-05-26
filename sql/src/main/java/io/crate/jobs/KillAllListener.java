@@ -23,5 +23,5 @@ package io.crate.jobs;
 
 public interface KillAllListener {
 
-    void killAllCalled();
+    void killAllCalled(long timestamp);
 }

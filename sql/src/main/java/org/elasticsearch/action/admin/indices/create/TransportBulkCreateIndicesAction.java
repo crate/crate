@@ -643,8 +643,8 @@ public class TransportBulkCreateIndicesAction
     }
 
     @Override
-    public void killAllCalled() {
-        lastKillAllEvent = System.nanoTime();
+    public void killAllCalled(long timestamp) {
+        lastKillAllEvent = timestamp;
         synchronized (pendingLock) {
             PendingOperation pendingOperation;
             while ( (pendingOperation = pendingOperations.poll()) != null) {
