@@ -5,6 +5,9 @@ Changes for Crate
 unreleased
 ==========
 
+ - Fix: Row count was wrong when a `DELETE FROM` statement on a
+   partitioned table hit exact 1 partition.
+
  - Fixed an error that could occur if the same ``delete from
    <partitoned_table>`` or ``drop table <partitioned_table>`` statement is
    executed concurrently

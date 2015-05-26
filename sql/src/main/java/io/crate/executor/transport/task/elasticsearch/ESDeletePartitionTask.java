@@ -24,7 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AbstractChainedTask;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
@@ -34,9 +34,8 @@ import org.elasticsearch.action.support.IndicesOptions;
 import java.util.List;
 import java.util.UUID;
 
-public class ESDeleteIndexTask extends AbstractChainedTask {
+public class ESDeletePartitionTask extends AbstractChainedTask {
 
-    private static final TaskResult RESULT = TaskResult.ONE_ROW;
     private static final TaskResult RESULT_PARTITION = TaskResult.ROW_COUNT_UNKNOWN;
 
     private final TransportDeleteIndexAction transport;
@@ -46,20 +45,14 @@ public class ESDeleteIndexTask extends AbstractChainedTask {
     static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
 
         private final SettableFuture<TaskResult> future;
-        private final boolean isPartition;
 
-        DeleteIndexListener(SettableFuture<TaskResult> future, boolean isPartition) {
+        DeleteIndexListener(SettableFuture<TaskResult> future) {
             this.future = future;
-            this.isPartition = isPartition;
         }
 
         @Override
         public void onResponse(DeleteIndexResponse deleteIndexResponse) {
-            if (isPartition) {
-                future.set(RESULT_PARTITION);
-            } else {
-                future.set(RESULT);
-            }
+            future.set(RESULT_PARTITION);
         }
 
         @Override
@@ -68,9 +61,9 @@ public class ESDeleteIndexTask extends AbstractChainedTask {
         }
     }
 
-    public ESDeleteIndexTask(UUID jobId,
-                             TransportDeleteIndexAction transport,
-                             ESDeleteIndexNode node) {
+    public ESDeletePartitionTask(UUID jobId,
+                                 TransportDeleteIndexAction transport,
+                                 ESDeletePartitionNode node) {
         super(jobId);
         this.transport = transport;
         this.request = new DeleteIndexRequest(node.indices());
@@ -84,7 +77,7 @@ public class ESDeleteIndexTask extends AbstractChainedTask {
         } else {
             this.request.indicesOptions(IndicesOptions.strictExpandOpen());
         }
-        this.listener = new DeleteIndexListener(result, node.indices().length > 1);
+        this.listener = new DeleteIndexListener(result);
     }
 
     @Override
