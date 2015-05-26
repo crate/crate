@@ -23,6 +23,7 @@ package org.elasticsearch.discovery.srv;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xbill.DNS.*;
@@ -38,6 +39,11 @@ public class SrvDiscoveryIntegrationTest extends ElasticsearchIntegrationTest {
     @Before
     public void prepare() throws Exception {
         Lookup.setDefaultCache(new MockedZoneCache("crate.internal."), DClass.IN);
+    }
+
+    @After
+    public void clearDNSCache() throws Exception {
+        Lookup.setDefaultCache(new Cache(), DClass.IN);
     }
 
     @Test
