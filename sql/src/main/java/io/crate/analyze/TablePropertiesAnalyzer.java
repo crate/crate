@@ -123,10 +123,8 @@ public class TablePropertiesAnalyzer {
                         Object[] parameters,
                         boolean withDefaults) {
         if (withDefaults) {
-            for (String setting : tableParameterInfo.supportedSettings()) {
-                SettingsApplier settingsApplier = SETTINGS_APPLIER.get(setting);
-                tableParameter.settingsBuilder().put(settingsApplier.getDefault());
-            }
+            SettingsApplier settingsApplier = SETTINGS_APPLIER.get(TableParameterInfo.NUMBER_OF_REPLICAS);
+            tableParameter.settingsBuilder().put(settingsApplier.getDefault());
             for (String mappingEntry : tableParameterInfo.supportedMappings()) {
                 MappingsApplier mappingsApplier = MAPPINGS_APPLIER.get(mappingEntry);
                 tableParameter.mappings().put(mappingsApplier.name, mappingsApplier.getDefault());
