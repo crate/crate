@@ -64,7 +64,7 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitESDeleteIndexNode(ESDeleteIndexNode node, C context) {
+    public R visitESDeletePartitionNode(ESDeletePartitionNode node, C context) {
         return visitPlanNode(node, context);
     }
 

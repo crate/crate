@@ -39,7 +39,7 @@ import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.CreateTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -215,23 +215,28 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testDeleteIndexTask() throws Exception {
-        execute("create table t (id integer primary key, name string)");
-        ensureGreen();
+    public void testDeletePartitionTask() throws Exception {
+        execute("create table t (id integer primary key, name string) partitioned by (id)");
+        ensureYellow();
 
-        execute("select * from information_schema.tables where table_name = 't'");
+        execute("insert into t (id, name) values (1, 'Ford')");
+        assertThat(response.rowCount(), is(1L));
+        ensureYellow();
+
+        execute("select * from information_schema.table_partitions where table_name = 't'");
         assertThat(response.rowCount(), is(1L));
 
-        ESDeleteIndexNode deleteIndexNode = new ESDeleteIndexNode("t");
+        String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).stringValue();
+        ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
         Plan plan = new IterablePlan(deleteIndexNode);
 
         Job job = executor.newJob(plan);
         List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
-        assertThat(objects, contains(isRow(1L)));
+        assertThat(objects, contains(isRow(-1L)));
 
-        execute("select * from information_schema.tables where table_name = 't'");
+        execute("select * from information_schema.table_partitions where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -242,21 +247,27 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
      * cannot prevent this task from deleting closed indices.
      */
     @Test
-    public void testDeleteIndexTaskClosed() throws Exception {
-        execute("create table t (id integer primary key, name string)");
-        ensureGreen();
-        assertTrue(client().admin().indices().prepareClose("t").execute().actionGet().isAcknowledged());
+    public void testDeletePartitionTaskClosed() throws Exception {
+        execute("create table t (id integer primary key, name string) partitioned by (id)");
+        ensureYellow();
 
-        ESDeleteIndexNode deleteIndexNode = new ESDeleteIndexNode("t");
+        execute("insert into t (id, name) values (1, 'Ford')");
+        assertThat(response.rowCount(), is(1L));
+        ensureYellow();
+
+        String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).stringValue();
+        assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
+
+        ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
         Plan plan = new IterablePlan(deleteIndexNode);
 
         Job job = executor.newJob(plan);
         List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
-        assertThat(objects, contains(isRow(1L)));
+        assertThat(objects, contains(isRow(-1L)));
 
-        execute("select * from information_schema.tables where table_name = 't'");
+        execute("select * from information_schema.table_partitions where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
     }
 

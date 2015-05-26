@@ -7,6 +7,9 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
+ - Fix: Row count was wrong when a `DELETE FROM` statement on a
+   partitioned table hit exact 1 partition.
+
  - Added ``ALTER TABLE ONLY`` statement support.
 
  - Updated crate-admin to 0.12.1 which includes following changes:

@@ -25,11 +25,11 @@ import io.crate.planner.node.PlanNodeVisitor;
 
 import javax.annotation.Nonnull;
 
-public class ESDeleteIndexNode extends DDLPlanNode {
+public class ESDeletePartitionNode extends DDLPlanNode {
 
     private final String[] indices;
 
-    public ESDeleteIndexNode(@Nonnull String ... indices) {
+    public ESDeletePartitionNode(@Nonnull String... indices) {
         this.indices = indices;
     }
 
@@ -39,6 +39,6 @@ public class ESDeleteIndexNode extends DDLPlanNode {
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeleteIndexNode(this, context);
+        return visitor.visitESDeletePartitionNode(this, context);
     }
 }

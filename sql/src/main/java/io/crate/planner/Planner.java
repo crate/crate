@@ -494,7 +494,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             String[] indices = indices(tableInfo, whereClauses.get(0));
             if (indices.length > 0) {
                 if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
-                    plan.add(new ESDeleteIndexNode(indices));
+                    plan.add(new ESDeletePartitionNode(indices));
                 } else {
                     indicesList.add(indices);
                 }
