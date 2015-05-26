@@ -12,7 +12,8 @@ Synopsis
 
 ::
 
-    ALTER [BLOB] TABLE table_ident [ PARTITION (partition_column = value [ , ... ]) ]
+    ALTER [ BLOB ] TABLE { ONLY table_ident
+                           | table_ident [ PARTITION (partition_column = value [ , ... ]) ] }
       { SET ( parameter = value [ , ... ] )
         | RESET ( parameter [ , ... ] )
         | ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ]
@@ -38,6 +39,12 @@ ALTER TABLE can be used to alter an existing table.
 Use the ``BLOB`` keyword in order to alter a blob table (see
 :ref:`blob_support`). Blob tables cannot have custom columns which means that
 the ``ADD COLUMN`` keyword won't work.
+
+While altering a partitioned table, using ``ONLY`` will apply changes
+for the table **only** and not for any possible existing partitions. So
+these changes will only be applied to new partitions. The ``ONLY``
+keyword cannot be used together with a `PARTITION Clause`_.
+
 
 Parameters
 ==========

@@ -306,6 +306,19 @@ the :ref:`ref-alter-table-partition-clause`.
     cr> ALTER TABLE parted_table PARTITION (day=1396915200000) RESET (number_of_replicas)
     ALTER OK (... sec)
 
+.. _partitioned_tables_alter_table_only:
+
+Alter Table ONLY
+----------------
+
+Sometimes one wants to alter a partitioned table, but the changes
+should only affect new partitions and not existing ones. This can be
+done by using the ``ONLY`` keywword.
+
+::
+
+    cr> ALTER TABLE ONLY parted_table SET (number_of_replicas = 1);
+    ALTER OK (... sec)
 
 Limitations
 ===========
