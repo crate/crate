@@ -397,8 +397,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public ImmutableList<Task> visitESDeleteIndexNode(ESDeleteIndexNode node, UUID jobId) {
-            return singleTask(new ESDeleteIndexTask(jobId,
+        public ImmutableList<Task> visitESDeletePartitionNode(ESDeletePartitionNode node, UUID jobId) {
+            return singleTask(new ESDeletePartitionTask(jobId,
                     transportActionProvider.transportDeleteIndexAction(),
                     node));
         }

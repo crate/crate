@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Row count was wrong when a `DELETE FROM` statement on a
+   partitioned table hit exact 1 partition.
+
  - Updated crate-admin to 0.12.1 which includes following changes:
 
     - updated logo and icons
