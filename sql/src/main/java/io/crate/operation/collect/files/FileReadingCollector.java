@@ -21,6 +21,8 @@
 
 package io.crate.operation.collect.files;
 
+import com.amazonaws.AbortedException;
+import com.amazonaws.AmazonClientException;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -46,6 +48,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -151,7 +154,7 @@ public class FileReadingCollector implements CrateCollector {
 
     @Override
     public void doCollect(RamAccountingContext ramAccountingContext) {
-        FileInput fileInput = null;
+        FileInput fileInput;
         try {
             fileInput = getFileInput();
         } catch (IOException e) {
@@ -178,6 +181,12 @@ public class FileReadingCollector implements CrateCollector {
                 readLines(fileInput, collectorContext, uri, 0, 0);
             }
             downstream.finish();
+        } catch (AmazonClientException e) {
+            if (e instanceof AbortedException || e.getCause() instanceof AbortedException) {
+                downstream.fail(new CancellationException());
+            } else {
+                downstream.fail(e);
+            }
         } catch (Throwable e) {
             downstream.fail(e);
         }
