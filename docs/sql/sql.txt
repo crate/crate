@@ -2,8 +2,7 @@
 Crate SQL Syntax Reference
 ==========================
 
-This chapter contains reference information for the SQL commands
-supported by Crate.
+This chapter contains reference information for the SQL commands supported by Crate.
 
 .. toctree::
     :maxdepth: 1

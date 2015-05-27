@@ -5,8 +5,7 @@ System Information
 ==================
 
 Crate provides some useful schemas which contains virtual tables.
-Those tables are read-only and can be queried to get statistical
-real-time information about the cluster, its nodes, and their shards.
+These tables are read-only and can be queried to get statistical real-time information about the cluster, its nodes, and their shards.
 
 Cluster
 =======
@@ -49,8 +48,7 @@ The result has at most 1 row::
 Cluster Settings
 ----------------
 
-The ``sys.cluster.settings`` expression returns information about the
-currently applied cluster settings.
+The ``sys.cluster.settings`` expression returns information about the currently applied cluster settings.
 
 ::
 
@@ -153,8 +151,8 @@ For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` con
 Nodes
 =====
 
-To get information about the nodes simply query for `sys.nodes`.
-This table can be queried for one, multiple or all nodes within a cluster.
+To get information about the nodes simply query `sys.nodes`.
+This table can be queried for one, multiple, or all nodes within a cluster.
 
 The table schema is as follows:
 
@@ -351,9 +349,9 @@ thread_pools
 |                               | pool.                                          |             |
 +-------------------------------+------------------------------------------------+-------------+
 | ``thread_pools['largest']``   | Largest number of threads that have ever       | ``Integer`` |
-|                               | simultaniously been in the pool.               |             |
+|                               | simultaneously been in the pool.               |             |
 +-------------------------------+------------------------------------------------+-------------+
-| ``thread_pools['completed']`` | Total number of completed thread in teh thread | ``Long``    |
+| ``thread_pools['completed']`` | Total number of completed thread in the thread | ``Long``    |
 |                               | pool.                                          |             |
 +-------------------------------+------------------------------------------------+-------------+
 | ``thread_pools['threads']``   | Size of the thread pool.                       | ``Integer`` |
@@ -444,8 +442,7 @@ process
 Shards
 ======
 
-The table ``sys.shards`` contains real-time statistics for all
-shards of all (non-system) tables.
+The table ``sys.shards`` contains real-time statistics for all shards of all (non-system) tables.
 
 The table schema is as follows:
 
@@ -535,12 +532,11 @@ Jobs, Operations and Logs
 =========================
 
 In order to see what is happening in the cluster crate provides the
-``sys.jobs`` and ``sys.operations`` tables and there corresponding "logs"
+``sys.jobs`` and ``sys.operations`` tables and their corresponding "logs"
 ``sys.jobs_log`` and ``sys.operations_log``.
 
-These tables are by *default always empty*. Jobs and operations aren't tracked
-unless stats collection is activiated as tracking statistics adds a slight
-performance overhead.
+These tables are by default *always empty*. Jobs and operations aren't tracked
+unless stats collection is activated as tracking statistics adds a slight performance overhead.
 
 In order to activate stats tracking :ref:`ref-set` can be used::
 
@@ -561,7 +557,7 @@ being executed in the cluster::
     +-----------------------------------------------------------------------+-...-----+
     SELECT 1 row in set (... sec)
 
-Each request sent to crate that queries data or manipulates data is considered
+Each request sent to Crate that queries data or manipulates data is considered
 a ``job`` if it passes the analysis step.
 
 For example a request that fails because it attempts to query a table that
@@ -593,7 +589,7 @@ Logs
 
 Both ``sys.jobs`` and ``sys.operations`` have a corresponding ``_log`` table.
 
-After a job or operation finishes the entries will be moved into the ``_log``
+After a job or operation finishes, the entries will be moved into the ``_log``
 table. The ``_log`` tables are bound in size and once a table has reached its
 limit old entries will be discarded as new entries are added::
 
@@ -608,7 +604,7 @@ limit old entries will be discarded as new entries are added::
 
 See :ref:`ref-set` on how to change the size of the tables.
 
-As described above the stats tracking is by default deactivated and has to be
+As described above the stats tracking is deactivated by default and has to be
 enabled using the ``SET`` statement. The same statement can also be used to
 deactivate the stats tracking. This will also wipe all existing log entries::
 
@@ -629,14 +625,14 @@ deactivate the stats tracking. This will also wipe all existing log entries::
 .. note::
 
     Instead of ``SET`` the ``RESET`` statement could also have been used to
-    reset the value of ``stats.enabled`` to its default which is false.
+    reset the value of ``stats.enabled`` to its default which is ``false``.
 
 
 Graceful Stop
 =============
 
-In order to change the shutdown behaviour of nodes of the cluster,
-you can utilise the ``cluster.graceful_stop.*`` cluster settings.
+In order to change the shutdown behavior of nodes of the cluster,
+you can utilize the ``cluster.graceful_stop.*`` cluster settings.
 
 Please refer to :ref:`ref-set` for a complete list of settings.
 
@@ -645,8 +641,9 @@ For example to set the timeout to 30 minutes::
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = 1800000;
     SET OK (... sec)
 
-Crate supports string literals for time values the same way as the ``crate.yml`` does.
-So you can write the previous statmement as::
+Crate supports string literals for time values in the same way as ``crate.yml``.
+
+So the previous statement could be written as::
 
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = '30m';
     SET OK (... sec)

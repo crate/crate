@@ -12,7 +12,7 @@ Scalar functions return a single data value (not a table).
     In UPDATE and DELETE statements scalar functions cannot be used in the WHERE
     clause unless otherwise described in the function description below.
 
-    In the case it is stated below that the scalar function can always be used
+    Where it is stated below that the scalar function can be used
     in a WHERE clause it is still not possible to compare one scalar function
     with another in UPDATE and DELETE statements.
 
@@ -58,8 +58,7 @@ There is also a special concat operator ``||`` which can also be used::
 format('format_string', parameter, [ parameter , ... ]) returns string
 ----------------------------------------------------------------------
 
-The ``format`` function takes a format string and a variable number of
-arguments and returns a formatted string::
+The ``format`` function takes a format string and a variable number of arguments and returns a formatted string::
 
     cr> select format('%s.%s', schema_name, table_name) from sys.shards
     ... where table_name = 'locations'
@@ -91,9 +90,7 @@ For details about the format string syntax see `formatter`_
 substr('string', from, [ count ]) returns string
 ------------------------------------------------
 
-The ``substr`` function extracts a substring from a given string
-starting at character ``from``. It takes an optional argument ``count``
-which defines the length of the substring::
+The ``substr`` function extracts a substring from a given string starting from the character at ``from``. It takes an optional argument ``count`` which defines the length of the substring::
 
     cr> select substr(name, 3, 2) from sys.nodes
     ... limit 1;
@@ -114,8 +111,7 @@ Date/Time Functions
 date_trunc('interval', ['timezone',] timestamp) returns timestamp
 -----------------------------------------------------------------
 
-The ``date_trunc`` function truncates a timestamp to a given interval
-for a specific timezone.
+The ``date_trunc`` function truncates a timestamp to a given interval for a specific timezone.
 
 Valid intervals are:
 
@@ -137,7 +133,7 @@ Valid intervals are:
 
 Valid values for ``timezone`` are either the name of a time zone (for example
 'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00').
-To get a complete overview of all possible values take a look at the
+To see a complete overview of all possible values see the
 `available time zones`_ supported by `Joda-Time`_.
 
 The following example shows how to use the date_trunc function to generate a
@@ -176,8 +172,7 @@ If the time zone is not specified, truncation is based on UTC time::
 extract(field from source)
 --------------------------
 
-``extract`` is a special expression that translates to a function which
-retrieves subfields such as day, hour or minute from a timestamp.
+``extract`` is a special expression that translates to a function which retrieves subfields such as day, hour or minute from a timestamp.
 
 The return type depends on the used ``field``.
 
@@ -206,9 +201,7 @@ synopsis
     SELECT 1 row in set (... sec)
 
 
-``source`` must be an expression that returns a timestamp. In case the
-expression has a different return type but is known to be castable to timestamp
-an implicit cast will be attempted.
+``source`` must be an expression that returns a timestamp. In cases where the expression has a different return type but is known to be castable to a timestamp an implicit cast will be attempted.
 
 ``field`` is an identifier that selects which part of the timestamp to extract.
 The following fields are supported:
@@ -284,16 +277,13 @@ CURRENT_TIMESTAMP
 -----------------
 
 The ``CURRENT_TIMESTAMP`` expression returns the timestamp in milliseconds
-since epoch at the time the SQL statement is handled. It is evaluated once per
-query while the query is analyzed, before actual execution.
+since the Linux epoch at the time the SQL statement is handled. It is evaluated once per query while the query is analyzed, before actual execution.
 
 synopsis::
 
     CURRENT_TIMESTAMP [ ( precision ) ]
 
-``precision`` must be a positive integer between 0 and 3. The default value is 3.
-It determines the number of fractional seconds to output. A value of 0 means the
-timestamp will have second precision, no fractional seconds (milliseconds) are given.
+``precision`` must be a positive integer between 0 and 3. The default value is 3. It determines the number of fractional seconds to output. A value of 0 means the timestamp will have second precision, no fractional seconds (milliseconds) are given.
 
 .. note::
 
@@ -328,7 +318,7 @@ type casting of geo points::
 
 This scalar function can always be used in both the ``WHERE`` and ``ORDER BY``
 clauses. With the limitation that one of the arguments must be a literal and
-the other argument must be a column reference.
+the other must be a column reference.
 
 .. note::
 
@@ -345,13 +335,12 @@ within(shape1, shape2) returns boolean
 --------------------------------------
 
 The ``within`` function returns true if ``shape1`` is within ``shape2``. If
-that is not the case false is returned.
+that is not the case ``false`` is returned.
 
 ``shape1`` can either be a ``geo_shape`` or a ``geo_point``. ``shape2`` must be
 a ``geo_shape``.
 
-Below is an example of the within function which makes use of the implicit type
-casting from strings to geo point and geo shapes::
+Below is an example of the ``within`` function which makes use of the implicit type casting from strings to geo point and geo shapes::
 
     cr> select within(
     ...   'POINT (10 10)',
@@ -370,8 +359,7 @@ This function can always be used within a ``WHERE`` clause.
 Mathematical Functions
 ======================
 
-All mathematical functions can be used within ``WHERE`` and
-``ORDER BY`` clauses.
+All mathematical functions can be used within ``WHERE`` and ``ORDER BY`` clauses.
 
 abs(number)
 -----------
@@ -392,8 +380,9 @@ ceil(number) returns long or integer
 
 Returns the smallest integer or long value that is not less than the argument.
 
-Return value will be of type integer if the input value is an integer or float.
-If the input value is of type long or double the return value will be of type
+The return value will be of type integer if the input value is an integer or float.
+
+If the input value is of type long or double, the return value will be of type
 long::
 
     cr> select ceil(29.9) from sys.cluster;
@@ -495,8 +484,7 @@ The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
 round(number) returns long or integer
 -------------------------------------
 
-If the input is of type double or long the result is the closest long to the
-argument, with ties rounding up.
+If the input is of type double or long the result is the closest long to the argument, with ties rounding up.
 
 If the input is of type float or integer the result is the closest integer to
 the argument, with ties rounding up.
@@ -549,21 +537,17 @@ See the api documentation for more details.
 regexp_matches(source, pattern [, flags]) returns string_array
 --------------------------------------------------------------
 
-This function uses the regular expression pattern in ``pattern``
-to match against the ``source`` string.
+This function uses the regular expression pattern in ``pattern`` to match against the ``source`` string.
 
-If ``source`` matches, an array of the matched regular expression
-groups is returned.
-If no regular expression group was used, the whole pattern is used as
-a group.
+If ``source`` matches, an array of the matched regular expression groups is returned.
+
+If no regular expression group was used, the whole pattern is used as a group.
+
 If ``source`` does not match, this function returns ``NULL``.
 
-A regular expression group is formed by a subexpression that is
-surrounded by parentheses.The position of a group is determined by the
-position of its opening parenthesis.
-For example when matching the pattern ``\b([A-Z])`` a match for the
-subexpression ``([A-Z])`` would create group No. 1. If you want to
-group stuff with parentheses, but without grouping, use ``(?...)``.
+A regular expression group is formed by a subexpression that is surrounded by parentheses.The position of a group is determined by the position of its opening parenthesis.
+
+For example when matching the pattern ``\b([A-Z])`` a match for the subexpression ``([A-Z])`` would create group No. 1. If you want to group items with parentheses, but without grouping, use ``(?...)``.
 
 For example matching the regular expression ``([Aa](.+)z)`` against
 ``alcatraz``, results in these groups:
@@ -611,6 +595,7 @@ Flags
 
 This function takes a number of flags as optional third parameter.
 These flags are given as a string containing any of the characters listed below.
+
 Order does not matter.
 
 +-------+---------------------------------------------------------------------+
@@ -661,33 +646,24 @@ Examples
 regexp_replace(source, pattern, replacement [, flags]) returns string
 ---------------------------------------------------------------------
 
-``regexp_replace`` can be used to replace every (or only the first) occurence of
-a subsequence matching ``pattern`` in the ``source`` string with the ``replacement``
-string. If no subsequence in ``source`` matches the regular expression ``pattern``,
-``source`` is returned unchanged.
+``regexp_replace`` can be used to replace every (or only the first) occurrence of a sub-sequence matching ``pattern`` in the ``source`` string with the ``replacement`` string. If no sub-sequence in ``source`` matches the regular expression ``pattern``, ``source`` is returned unchanged.
 
 ``pattern`` is a java regular expression. For details on the regexp syntax,
 see `Java Regular Expressions`_.
 
-The ``replacement`` string may contain expressions like ``$N``
-where ``N`` is a digit between 0 and 9. It references the *N*\ th matched group of
-``pattern`` and the matching subsequence of that group will be inserted
-in the returned string. The expression ``$0`` will insert the whole matching
-``source``.
+The ``replacement`` string may contain expressions like ``$N`` where ``N`` is a digit between 0 and 9. It references the *N*\ th matched group of ``pattern`` and the matching subsequence of that group will be inserted in the returned string. The expression ``$0`` will insert the whole matching ``source``.
 
-Per default, only the first occurrence of a subsequence matching ``pattern``
-will be replaced. If all occurrences shall be replaced use the ``g`` flag.
+By default, only the first occurrence of a sub-sequence matching ``pattern`` will be replaced. If all occurrences should be replaced use the ``g`` flag.
 
 Flags
 .....
 
-``regexp_replace`` supports the same flags than ``regexp_matches``,
-see :ref:`regexp_matches Flags <scalar-regexp-matches-flags>` and additionally the ``g`` flag:
+``regexp_replace`` supports the same flags than ``regexp_matches``, see :ref:`regexp_matches Flags <scalar-regexp-matches-flags>` and additionally the ``g`` flag:
 
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
 +=======+=====================================================================+
-| g     | replace all occurrences of a subsequence matching ``pattern``,      |
+| g     | replace all occurrences of a sub-sequence matching ``pattern``,      |
 |       | not only the first                                                  |
 +-------+---------------------------------------------------------------------+
 
