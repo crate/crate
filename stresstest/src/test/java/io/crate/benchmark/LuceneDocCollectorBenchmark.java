@@ -81,8 +81,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertFalse;
-
 @BenchmarkHistoryChart(filePrefix="benchmark-lucenedoccollector-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
 public class LuceneDocCollectorBenchmark extends BenchmarkBase {
@@ -108,6 +106,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+    private JobCollectContext jobCollectContext;
 
     @Override
     public byte[] generateRowSource() throws IOException {
@@ -195,12 +194,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
         int jobSearchContextId = 0;
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        JobCollectContext collectContext = new JobCollectContext(jobId, node,
+        jobCollectContext = new JobCollectContext(jobId, node,
                 CLUSTER.getInstance(MapSideDataCollectOperation.class),
                 RAM_ACCOUNTING_CONTEXT, collectingProjector);
-        builder.addSubContext(node.executionNodeId(), collectContext);
-        collectContext.registerJobContextId(shardId, jobSearchContextId);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, collectContext, 0);
+        builder.addSubContext(node.executionNodeId(), jobCollectContext);
+        jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
+        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(PAGE_SIZE);
         return collector;
     }
@@ -255,7 +254,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public void testLuceneDocCollectorOrderedWithScrollingPerformance() throws Exception{
         collectingProjector.rows.clear();
         LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols());
-        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        docCollector.doCollect(jobCollectContext);
         collectingProjector.finish();
         MatcherAssert.assertThat(collectingProjector.rows.size(), CoreMatchers.is(NUMBER_OF_DOCUMENTS));
     }
@@ -264,7 +263,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorOrderedWithoutScrollingPerformance() throws Exception{
         LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, orderBy.orderBySymbols());
-        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        docCollector.doCollect(jobCollectContext);
         collectingProjector.finish();
     }
 
@@ -285,7 +284,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         topNProjector.downstream(collectingProjector);
         topNProjector.startProjection();
         LuceneDocCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
-        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        docCollector.doCollect(jobCollectContext);
         topNProjector.doFinish();
         collectingProjector.finish();
     }
@@ -294,7 +293,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorUnorderedPerformance() throws Exception{
         LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.of((Symbol) reference));
-        docCollector.doCollect(RAM_ACCOUNTING_CONTEXT);
+        docCollector.doCollect(jobCollectContext);
         collectingProjector.finish();
     }
 
