@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -45,36 +46,36 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     final static Joiner dotJoiner = Joiner.on('.');
     final static Joiner commaJoiner = Joiner.on(", ");
-    final static HashMap defaultTableSettings = new HashMap(){{
-        put("routing", new HashMap(){{
-            put("allocation", new HashMap(){{
-                put("enable","all");
+    final static LinkedHashMap defaultTableSettings = new LinkedHashMap(){{
+        put("routing", new LinkedHashMap(){{
+            put("allocation", new LinkedHashMap(){{
                 put("total_shards_per_node", -1);
+                put("enable","all");
             }});
         }});
-        put("translog", new HashMap(){{
-            put("disable_flush", false);
-            put("flush_threshold_period", "30m");
-            put("flush_threshold_ops", Integer.MAX_VALUE);
-            put("flush_threshold_size", "200mb");
-            put("interval", "5s");
-        }});
-        put("blocks", new HashMap(){{
-            put("metadata", false);
-            put("read", false);
-            put("write", false);
-            put("read_only", false);
-        }});
-        put("recovery", new HashMap(){{
-            put("initial_shards", "quorum");
-        }});
-        put("warmer", new HashMap(){{
+        put("warmer", new LinkedHashMap(){{
             put("enabled", true);
         }});
-        put("gateway", new HashMap(){{
+        put("blocks", new LinkedHashMap(){{
+            put("write", false);
+            put("read", false);
+            put("read_only", false);
+            put("metadata", false);
+        }});
+        put("gateway", new LinkedHashMap(){{
             put("local", new HashMap(){{
                 put("sync", "5s");
             }});
+        }});
+        put("translog", new LinkedHashMap(){{
+            put("flush_threshold_ops", Integer.MAX_VALUE);
+            put("flush_threshold_period", "30m");
+            put("flush_threshold_size", "200mb");
+            put("disable_flush", false);
+            put("interval", "5s");
+        }});
+        put("recovery", new LinkedHashMap(){{
+            put("initial_shards", "quorum");
         }});
     }};
 
@@ -805,6 +806,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testTableSettings() throws Exception {
         execute("create table table_props (name string) with (number_of_replicas=0)");
+        execute("alter table table_props set (\"translog.flush_threshold_ops\"="+ Integer.MAX_VALUE +", " +
+                "\"translog.flush_threshold_period\"=1800000," +
+                "\"translog.flush_threshold_size\"=209715200," +
+                "\"translog.interval\"=5000," +
+                "\"translog.disable_flush\"=false" +
+                ")");
         execute("select settings from information_schema.tables where table_name='table_props'");
         assertEquals(defaultTableSettings, response.rows()[0][0]);
         execute("select settings from information_schema.tables where table_name='nodes' and schema_name='sys'");
@@ -838,6 +845,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("insert into my_table (par, content) values (2, 'content5')");
         execute("insert into my_table (par, content) values (3, 'content6')");
         ensureGreen();
+
+        execute("alter table my_table set (\"translog.flush_threshold_ops\"="+ Integer.MAX_VALUE +", " +
+                "\"translog.flush_threshold_period\"=1800000," +
+                "\"translog.flush_threshold_size\"=209715200," +
+                "\"translog.interval\"=5000," +
+                "\"translog.disable_flush\"=false" +
+                ")");
 
         execute("select * from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(3, response.rowCount());
@@ -941,6 +955,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("alter table my_table set (number_of_shards=4)");
         waitNoPendingTasksOnAll();
         execute("insert into my_table (par, par_str, content) values (2, 'asdf', 'content5')");
+        execute("alter table my_table set (\"translog.flush_threshold_ops\"="+ Integer.MAX_VALUE +", " +
+                "\"translog.flush_threshold_period\"=1800000," +
+                "\"translog.flush_threshold_size\"=209715200," +
+                "\"translog.interval\"=5000," +
+                "\"translog.disable_flush\"=false" +
+                ")");
         ensureYellow();
 
         execute("select * from information_schema.table_partitions order by table_name, partition_ident");
