@@ -25,6 +25,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -48,7 +50,13 @@ import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
+import static org.hamcrest.core.Is.is;
 
 public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrationTest {
 
@@ -180,6 +188,24 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                         ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
                         assertThat(tableInfo.getReferenceInfo(columnIdent), Matchers.notNullValue());
                     }
+                }
+            }
+        });
+    }
+
+    public static void assertAllJobExecutionContextClosed() throws Exception {
+        final List<Map<UUID, JobExecutionContext>> contextMaps = new ArrayList<>();
+        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+            Field activeContexts = jobContextService.getClass().getDeclaredField("activeContexts");
+            activeContexts.setAccessible(true);
+            Map<UUID, JobExecutionContext> contextMap = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+            contextMaps.add(contextMap);
+        }
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                for(Map<UUID, JobExecutionContext> map : contextMaps) {
+                    assertThat(map.size(), is(0));
                 }
             }
         });

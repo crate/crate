@@ -7,6 +7,8 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
+ - Fix: Clean up BulkUpsertContext when Bulk Operation is successful
+
  - Fix: Row count was wrong when a `DELETE FROM` statement on a
    partitioned table hit exact 1 partition.
 

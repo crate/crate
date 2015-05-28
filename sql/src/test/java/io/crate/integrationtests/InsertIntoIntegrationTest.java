@@ -702,6 +702,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         SQLBulkResponse bulkResponse = execute("insert into giveittome (date, dirty_names, lashes) values (?, ?, ?)", bulkArgs);
         assertThat(bulkResponse.results().length, is(bulkSize));
         execute("refresh table giveittome");
+
+        // check that JobContexts are closed
+        assertAllJobExecutionContextClosed();
+
         // assert that bulk insert has inserted everything it said it has
         execute("select sum(lashes), date from giveittome group by date");
         assertThat(response.rowCount(), is((long)bulkSize));

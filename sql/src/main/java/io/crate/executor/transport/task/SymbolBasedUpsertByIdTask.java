@@ -192,11 +192,13 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                     } else {
                         futureResult.set(new RowCountResult(result.cardinality()));
                     }
+                    bulkShardProcessorContext.close();
                 }
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
                     futureResult.setException(t);
+                    bulkShardProcessorContext.close();
                 }
             });
             return resultList;
@@ -219,6 +221,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                         SettableFuture<TaskResult> future = (SettableFuture<TaskResult>) resultList.get(i);
                         future.set(result.get(i) ? TaskResult.ONE_ROW : TaskResult.FAILURE);
                     }
+                    bulkShardProcessorContext.close();
                 }
 
                 private void setAllToFailed(@Nullable Throwable throwable) {
@@ -240,6 +243,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
                     setAllToFailed(t);
+                    bulkShardProcessorContext.close();
                 }
             });
             return resultList;
