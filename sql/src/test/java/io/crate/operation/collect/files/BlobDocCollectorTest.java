@@ -28,7 +28,7 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.blobs.BlobCollectorExpression;
 import io.crate.operation.collect.blobs.BlobDocCollector;
-import io.crate.operation.projectors.CollectingProjector;
+import io.crate.testing.CollectingProjector;
 import io.crate.operation.reference.doc.blob.BlobDigestExpression;
 import io.crate.operation.reference.doc.blob.BlobLastModifiedExpression;
 import io.crate.test.integration.CrateUnitTest;

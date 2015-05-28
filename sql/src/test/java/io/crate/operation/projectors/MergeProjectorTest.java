@@ -26,6 +26,7 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import org.junit.Test;
 
 import java.util.ArrayList;

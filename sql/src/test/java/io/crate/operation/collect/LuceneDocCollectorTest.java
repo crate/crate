@@ -31,7 +31,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.projectors.CollectingProjector;
+import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.scalar.arithmetic.MultiplyFunction;
 import io.crate.planner.RowGranularity;
@@ -54,7 +54,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 

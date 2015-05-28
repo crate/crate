@@ -29,7 +29,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.projectors.CollectingProjector;
+import io.crate.testing.CollectingProjector;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 

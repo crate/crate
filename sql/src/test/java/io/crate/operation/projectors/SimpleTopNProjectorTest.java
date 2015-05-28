@@ -36,6 +36,7 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;

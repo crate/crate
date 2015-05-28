@@ -31,7 +31,7 @@ import io.crate.metadata.Functions;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.CollectingProjector;
+import io.crate.testing.CollectingProjector;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;

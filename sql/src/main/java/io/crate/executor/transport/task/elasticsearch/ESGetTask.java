@@ -41,6 +41,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.QueryResultRowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.*;
@@ -66,7 +67,7 @@ public class ESGetTask extends JobTask {
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
 
-    private final List<ListenableFuture<TaskResult>> results;
+    private final List<? extends ListenableFuture<TaskResult>> results;
     private final ESJobContext context;
 
     public ESGetTask(UUID jobId,
@@ -97,7 +98,6 @@ public class ESGetTask extends JobTask {
 
         final FetchSourceContext fsc = new FetchSourceContext(ctx.referenceNames());
 
-        SettableFuture<Bucket> result;
 
         ActionListener listener;
         ActionRequest request;
@@ -106,10 +106,13 @@ public class ESGetTask extends JobTask {
             MultiGetRequest multiGetRequest = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
             request = multiGetRequest;
-            FlatProjectorChain projectorChain = getFlatProjectorChain(projectorFactory, node);
-            ResultProvider resultProvider = projectorChain.resultProvider();
-            assert resultProvider != null : "ResultProvider is NULL";
-            result = resultProvider.result();
+
+            SettableFuture<TaskResult> result = SettableFuture.create();
+            List<SettableFuture<TaskResult>> settableFutures = Collections.singletonList(result);
+            results = settableFutures;
+            QueryResultRowDownstream queryResultRowDownstream = new QueryResultRowDownstream(settableFutures);
+
+            FlatProjectorChain projectorChain = getFlatProjectorChain(projectorFactory, node, queryResultRowDownstream);
             listener = new MultiGetResponseListener(extractors, projectorChain);
 
         } else {
@@ -117,11 +120,9 @@ public class ESGetTask extends JobTask {
             transportAction = getAction;
             request = getRequest;
             SettableFuture<Bucket> settableFuture = SettableFuture.create();
-            result = settableFuture;
             listener = new GetResponseListener(settableFuture, extractors);
-
+            results = ImmutableList.of(Futures.transform(settableFuture, QueryResult.TO_TASK_RESULT));
         }
-        results = ImmutableList.of(Futures.transform(result, QueryResult.TO_TASK_RESULT));
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
         context = new ESJobContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
@@ -161,7 +162,9 @@ public class ESGetTask extends JobTask {
         return multiGetRequest;
     }
 
-    private FlatProjectorChain getFlatProjectorChain(ProjectorFactory projectorFactory, ESGetNode node) {
+    private FlatProjectorChain getFlatProjectorChain(ProjectorFactory projectorFactory,
+                                                     ESGetNode node,
+                                                     QueryResultRowDownstream queryResultRowDownstream) {
         if (node.limit() != null || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
             List<Symbol> orderBySymbols = new ArrayList<>(node.sortSymbols().size());
             for (Symbol symbol : node.sortSymbols()) {
@@ -180,15 +183,16 @@ public class ESGetTask extends JobTask {
                     node.nullsFirst()
             );
             topNProjection.outputs(genInputColumns(node.outputs().size()));
-            return FlatProjectorChain.withResultProvider(
+            return FlatProjectorChain.withAttachedDownstream(
                     projectorFactory,
                     null,
                     ImmutableList.<Projection>of(topNProjection),
+                    queryResultRowDownstream,
                     jobId()
             );
         } else {
             return FlatProjectorChain.withProjectors(
-                    ImmutableList.<Projector>of(new CollectingProjector())
+                    ImmutableList.<Projector>of(queryResultRowDownstream)
             );
         }
     }

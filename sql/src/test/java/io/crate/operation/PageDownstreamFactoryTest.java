@@ -33,7 +33,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
-import io.crate.operation.projectors.CollectingProjector;
+import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;

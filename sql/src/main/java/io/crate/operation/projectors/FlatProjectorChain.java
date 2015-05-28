@@ -21,8 +21,8 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowDownstream;
@@ -46,17 +46,16 @@ import java.util.UUID;
  * <li> call {@linkplain #startProjections()},
  * <li> get the first projector using {@linkplain #firstProjector()}
  * <li> feed data to it,
- * <li> wait for the result of {@linkplain #resultProvider()} or your custom downstream
+ * <li> wait for the result of  your custom downstream
  * </ul>
  */
 public class FlatProjectorChain {
 
     private final List<Projector> projectors;
-    private final Optional<ResultProvider> resultProvider;
 
-    private FlatProjectorChain(List<Projector> projectors, Optional<ResultProvider> resultProvider) {
+    private FlatProjectorChain(List<Projector> projectors) {
+        Preconditions.checkArgument(!projectors.isEmpty(), "no projectors given");
         this.projectors = projectors;
-        this.resultProvider = resultProvider;
     }
 
     public void startProjections() {
@@ -69,11 +68,6 @@ public class FlatProjectorChain {
         return projectors.get(0);
     }
 
-    @Nullable
-    public ResultProvider resultProvider() {
-        return resultProvider.orNull();
-    }
-
     /**
      * No ResultProvider will be added.
      * if <code>downstream</code> is a Projector, {@linkplain io.crate.operation.projectors.Projector#startProjection()} will not be called
@@ -84,41 +78,6 @@ public class FlatProjectorChain {
                                                             Collection<Projection> projections,
                                                             RowDownstream downstream,
                                                             UUID jobId) {
-        Preconditions.checkArgument(!projections.isEmpty(), "no projections given");
-        return create(projectorFactory, ramAccountingContext, projections, downstream, false, jobId);
-
-    }
-
-    /**
-     * attach a ResultProvider if the last projector is none
-     */
-    public static FlatProjectorChain withResultProvider(ProjectorFactory projectorFactory,
-                                                        RamAccountingContext ramAccountingContext,
-                                                        Collection<Projection> projections,
-                                                        UUID jobId) {
-
-        return create(projectorFactory, ramAccountingContext, projections, null, true, jobId);
-    }
-
-    /**
-     * Create a task from a list of projectors (that is already chained).
-     * chains created with this method might not have a ResultProvider, if the last
-     * Projector in the list is none.
-     */
-    public static FlatProjectorChain withProjectors(List<Projector> projectors) {
-        Preconditions.checkArgument(!projectors.isEmpty(), "no projectors given");
-        Projector last = projectors.get(projectors.size()-1);
-        return new FlatProjectorChain(projectors, resultProviderOptional(last));
-    }
-
-    private static FlatProjectorChain create(ProjectorFactory projectorFactory,
-                                             RamAccountingContext ramAccountingContext,
-                                             Collection<Projection> projections,
-                                             @Nullable RowDownstream rowDownstream,
-                                             boolean addResultProviderIfPresent,
-                                             UUID jobId) {
-        assert (rowDownstream == null && addResultProviderIfPresent) || (rowDownstream != null && !addResultProviderIfPresent);
-        Preconditions.checkArgument(!projections.isEmpty() || addResultProviderIfPresent, "no projections given");
         List<Projector> localProjectors = new ArrayList<>();
         Projector previousProjector = null;
         for (Projection projection : projections) {
@@ -129,31 +88,19 @@ public class FlatProjectorChain {
             }
             previousProjector = projector;
         }
-        if (rowDownstream != null) {
-            if (previousProjector != null) {
-                previousProjector.downstream(rowDownstream);
-            }
-        } else if (addResultProviderIfPresent) {
-            if (previousProjector == null
-                    || !(previousProjector instanceof ResultProvider)) {
-                CollectingProjector collectingProjector = new CollectingProjector();
-                if (previousProjector != null) {
-                    previousProjector.downstream(collectingProjector);
-                }
-                localProjectors.add(collectingProjector);
-                previousProjector = collectingProjector;
-            }
+        if (previousProjector != null) {
+            previousProjector.downstream(downstream);
         }
-        return new FlatProjectorChain(localProjectors, resultProviderOptional(previousProjector));
+        return new FlatProjectorChain(localProjectors);
     }
 
-    private static Optional<ResultProvider> resultProviderOptional(@Nullable Projector projector) {
-        Optional<ResultProvider> resultProvider;
-        if (projector != null && projector instanceof ResultProvider) {
-            resultProvider = Optional.of((ResultProvider)projector);
-        } else {
-            resultProvider = Optional.absent();
-        }
-        return resultProvider;
+
+    /**
+     * Create a task from a list of projectors (that is already chained).
+     * chains created with this method might not have a ResultProvider, if the last
+     * Projector in the list is none.
+     */
+    public static FlatProjectorChain withProjectors(List<Projector> projectors) {
+        return new FlatProjectorChain(projectors);
     }
 }

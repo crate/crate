@@ -29,6 +29,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 

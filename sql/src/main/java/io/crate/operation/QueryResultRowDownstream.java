@@ -26,6 +26,7 @@ import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.operation.projectors.Projector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * RowDownstream that will set a TaskResultFuture once the result is ready.
  * It will also close the associated context once it is done
  */
-public class QueryResultRowDownstream implements RowDownstream {
+public class QueryResultRowDownstream implements Projector {
 
     private final List<SettableFuture<TaskResult>> results;
     private final AtomicInteger registeredUpstreams = new AtomicInteger(0);
@@ -68,5 +69,15 @@ public class QueryResultRowDownstream implements RowDownstream {
                 result.setException(throwable);
             }
         };
+    }
+
+    @Override
+    public void startProjection() {
+
+    }
+
+    @Override
+    public void downstream(RowDownstream downstream) {
+        throw new UnsupportedOperationException("QueryResultRowDownstream can't have another downstream");
     }
 }

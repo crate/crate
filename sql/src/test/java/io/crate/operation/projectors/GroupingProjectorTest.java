@@ -16,6 +16,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;

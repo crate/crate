@@ -33,7 +33,7 @@ import io.crate.operation.Input;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.operation.projectors.CollectingProjector;
+import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;

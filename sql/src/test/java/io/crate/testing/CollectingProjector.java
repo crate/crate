@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.testing;
 
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
