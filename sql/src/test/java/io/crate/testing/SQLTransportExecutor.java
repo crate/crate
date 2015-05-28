@@ -35,12 +35,14 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.TestCluster;
 import org.hamcrest.Matchers;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class SQLTransportExecutor {
 
-    private static final ESLogger logger = Loggers.getLogger(SQLTransportExecutor.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
 
     public static SQLTransportExecutor create(final TestCluster testCluster) {
@@ -57,23 +59,23 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return execute(statement, new Object[0]).actionGet();
+        return execute(statement, new Object[0]).actionGet(5, TimeUnit.SECONDS);
     }
 
     public SQLResponse exec(String statement, Object... params) {
-        return execute(statement, params).actionGet();
+        return execute(statement, params).actionGet(5, TimeUnit.SECONDS);
     }
 
     public SQLResponse exec(SQLRequest request) {
-        return execute(request).actionGet();
+        return execute(request).actionGet(5, TimeUnit.SECONDS);
     }
 
     public SQLBulkResponse exec(String statement, Object[][] bulkArgs) {
-        return execute(statement, bulkArgs).actionGet();
+        return execute(statement, bulkArgs).actionGet(5, TimeUnit.SECONDS);
     }
 
     public SQLBulkResponse exec(SQLBulkRequest request) {
-        return execute(request).actionGet();
+        return execute(request).actionGet(5, TimeUnit.SECONDS);
     }
 
     public ActionFuture<SQLResponse> execute(String statement, Object[] params) {
@@ -108,7 +110,7 @@ public class SQLTransportExecutor {
         ).actionGet();
 
         if (actionGet.isTimedOut()) {
-            logger.info("ensure state timed out, cluster state:\n{}\n{}", client().admin().cluster().prepareState().get().getState().prettyPrint(), client().admin().cluster().preparePendingClusterTasks().get().prettyPrint());
+            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", client().admin().cluster().prepareState().get().getState().prettyPrint(), client().admin().cluster().preparePendingClusterTasks().get().prettyPrint());
             assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));
         }
         if (state == ClusterHealthStatus.YELLOW) {
