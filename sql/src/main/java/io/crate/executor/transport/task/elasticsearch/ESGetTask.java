@@ -62,7 +62,7 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.util.*;
 
-public class ESGetTask extends JobTask {
+public class ESGetTask extends JobTask implements RowUpstream {
 
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
@@ -113,8 +113,11 @@ public class ESGetTask extends JobTask {
             QueryResultRowDownstream queryResultRowDownstream = new QueryResultRowDownstream(settableFutures);
 
             FlatProjectorChain projectorChain = getFlatProjectorChain(projectorFactory, node, queryResultRowDownstream);
-            listener = new MultiGetResponseListener(extractors, projectorChain);
 
+            RowDownstreamHandle rowDownstreamHandle = projectorChain.firstProjector().registerUpstream(this);
+            listener = new MultiGetResponseListener(extractors, rowDownstreamHandle);
+            context = new ESJobContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
+            projectorChain.startProjections(context);
         } else {
             GetRequest getRequest = prepareGetRequest(node, fsc);
             transportAction = getAction;
@@ -122,10 +125,10 @@ public class ESGetTask extends JobTask {
             SettableFuture<Bucket> settableFuture = SettableFuture.create();
             listener = new GetResponseListener(settableFuture, extractors);
             results = ImmutableList.of(Futures.transform(settableFuture, QueryResult.TO_TASK_RESULT));
+            context = new ESJobContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
         }
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        context = new ESJobContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
         contextBuilder.addSubContext(executionNodeId, context);
         jobContextService.createContext(contextBuilder);
 
@@ -205,24 +208,21 @@ public class ESGetTask extends JobTask {
         return inputColumns;
     }
 
-    static class MultiGetResponseListener implements ActionListener<MultiGetResponse>, RowUpstream {
+    static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
         private final List<FieldExtractor<GetResponse>> fieldExtractors;
         private final RowDownstreamHandle downstream;
-        private final FlatProjectorChain projectorChain;
 
 
         public MultiGetResponseListener(List<FieldExtractor<GetResponse>> extractors,
-                                        FlatProjectorChain projectorChain) {
-            this.projectorChain = projectorChain;
-            this.downstream = projectorChain.firstProjector().registerUpstream(this);
+                                        RowDownstreamHandle rowDownstreamHandle) {
+            downstream = rowDownstreamHandle;
             this.fieldExtractors = extractors;
         }
 
 
         @Override
         public void onResponse(MultiGetResponse responses) {
-            projectorChain.startProjections();
             FieldExtractorRow<GetResponse> row = new FieldExtractorRow<>(fieldExtractors);
             try {
                 for (MultiGetItemResponse response : responses) {

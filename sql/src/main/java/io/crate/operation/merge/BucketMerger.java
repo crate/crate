@@ -39,6 +39,5 @@ public interface BucketMerger extends PageDownstream, RowUpstream {
      *
      * @param downstream the downstream to be used
      */
-    public void downstream(RowDownstream downstream);
-
+    void downstream(RowDownstream downstream);
 }

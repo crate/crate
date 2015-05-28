@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,28 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.jobs;
 
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowUpstream;
-import io.crate.planner.projection.Projection;
+public interface ExecutionState {
 
-
-/**
- * Operation interface for {@link Projection} instances.
- */
-public interface Projector extends RowDownstream, RowUpstream {
-
-    /**
-     * initialization hook which gets called before execution
-     */
-    void startProjection(ExecutionState executionState);
-
-    /**
-     * sets the downstream of this projector
-     *
-     * @param downstream the downstream to be used
-     */
-    void downstream(RowDownstream downstream);
+    boolean isKilled();
 }

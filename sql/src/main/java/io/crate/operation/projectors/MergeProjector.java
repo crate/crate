@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.google.common.collect.Ordering;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
@@ -56,7 +57,7 @@ public class MergeProjector implements Projector  {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
         if (remainingUpstreams.get() == 0) {
             upstreamFinished();
         }

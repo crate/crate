@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -134,7 +135,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);
-        indexWriter.startProjection();
+        indexWriter.startProjection(mock(ExecutionState.class));
         indexWriter.setNextRow(new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null}));
         indexWriter.finish();
     }

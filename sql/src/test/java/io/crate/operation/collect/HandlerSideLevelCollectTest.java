@@ -26,6 +26,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -84,7 +85,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
         CollectingProjector collectingProjector = new CollectingProjector();
-        collectingProjector.startProjection();
+        collectingProjector.startProjection(mock(ExecutionState.class));
         operation.collect(collectNode, collectingProjector, mock(JobCollectContext.class));
         return collectingProjector.result().get();
     }

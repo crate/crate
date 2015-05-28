@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 
@@ -64,7 +65,7 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
     }
 
     @Override

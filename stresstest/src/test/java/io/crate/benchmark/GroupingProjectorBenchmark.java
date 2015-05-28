@@ -24,6 +24,7 @@ package io.crate.benchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -52,6 +53,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+
+import static org.mockito.Mockito.mock;
 
 public class GroupingProjectorBenchmark {
 
@@ -104,7 +107,7 @@ public class GroupingProjectorBenchmark {
                 Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
 
         groupingProjector.registerUpstream(null);
-        groupingProjector.startProjection();
+        groupingProjector.startProjection(mock(ExecutionState.class));
 
         List<BytesRef> keys = new ArrayList<>(Locale.getISOCountries().length);
         for (String s : Locale.getISOCountries()) {
@@ -142,7 +145,7 @@ public class GroupingProjectorBenchmark {
                 Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
 
         groupingProjector.registerUpstream(null);
-        groupingProjector.startProjection();
+        groupingProjector.startProjection(mock(ExecutionState.class));
 
         SpareRow row = new SpareRow();
         for (int i = 0; i < 20_000_000; i++) {

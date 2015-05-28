@@ -547,7 +547,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
                 new JobCollectContext(collectNode.jobId(), collectNode, operation, RAM_ACCOUNTING_CONTEXT, cd);
         builder.addSubContext(collectNode.executionNodeId(), jobCollectContext);
         JobExecutionContext context = jobContextService.createContext(builder);
-        cd.startProjection();
+        cd.startProjection(jobCollectContext);
         operation.collect(collectNode, cd, jobCollectContext);
         return cd.result().get();
     }

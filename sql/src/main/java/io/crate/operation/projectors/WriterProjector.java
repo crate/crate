@@ -26,6 +26,7 @@ import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
@@ -138,7 +139,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
         counter.set(0);
         try {
             output.open();

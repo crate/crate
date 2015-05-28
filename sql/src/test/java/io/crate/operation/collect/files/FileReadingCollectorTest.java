@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.external.S3ClientHelper;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -249,7 +250,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                 1,
                 0
         );
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         collector.doCollect(mock(JobCollectContext.class));
         return projector;
     }

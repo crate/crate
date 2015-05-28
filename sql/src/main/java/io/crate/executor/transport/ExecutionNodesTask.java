@@ -40,12 +40,14 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
+import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.planner.node.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -164,18 +166,23 @@ public class ExecutionNodesTask extends JobTask {
             MergeNode mergeNode,
             List<ExecutionNode> executionNodes,
             RowDownstream rowDownstream) {
-        PageDownstream finalMergePageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
+        Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
                 rowDownstream,
                 ramAccountingContext,
                 Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
         );
-        return new PageDownstreamContext(
+        PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
                 mergeNode.name(),
-                finalMergePageDownstream,
+                pageDownstreamProjectorChain.v1(),
                 streamers,
                 executionNodes.get(executionNodes.size() - 1).executionNodes().size()
         );
+        FlatProjectorChain flatProjectorChain = pageDownstreamProjectorChain.v2();
+        if (flatProjectorChain != null) {
+            flatProjectorChain.startProjections(pageDownstreamContext);
+        }
+        return pageDownstreamContext;
     }
 
     private void sendJobRequests(Streamer<?>[] streamers,

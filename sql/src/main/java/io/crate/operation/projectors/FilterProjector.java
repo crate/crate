@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
@@ -47,7 +48,7 @@ public class FilterProjector implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
     }
 
     @Override

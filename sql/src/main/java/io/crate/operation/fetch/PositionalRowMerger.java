@@ -22,6 +22,7 @@
 package io.crate.operation.fetch;
 
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
@@ -107,7 +108,7 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
     }
 
     @Override

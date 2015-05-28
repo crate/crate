@@ -28,6 +28,7 @@ import io.crate.core.collections.Row1;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
@@ -98,7 +99,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
     }
 
     @Override

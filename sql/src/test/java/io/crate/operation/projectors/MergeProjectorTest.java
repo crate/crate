@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
@@ -38,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class MergeProjectorTest extends CrateUnitTest {
 
@@ -61,7 +63,7 @@ public class MergeProjectorTest extends CrateUnitTest {
         RowDownstreamHandle handle3 = projector.registerUpstream(null);
 
         projector.downstream(collectingProjector);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
 
         handle1.setNextRow(spare(1));
         handle1.setNextRow(spare(3));
@@ -159,7 +161,7 @@ public class MergeProjectorTest extends CrateUnitTest {
         RowDownstreamHandle handle2 = projector.registerUpstream(null);
 
         projector.downstream(collectingProjector);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
 
         handle1.setNextRow(spare(1));
         handle2.setNextRow(spare(1));
@@ -197,7 +199,7 @@ public class MergeProjectorTest extends CrateUnitTest {
         RowDownstreamHandle handle2 = projector.registerUpstream(null);
         RowDownstreamHandle handle3 = projector.registerUpstream(null);
         projector.downstream(collectingProjector);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
 
         handle1.setNextRow(spare(4));
         handle3.setNextRow(spare(4));
@@ -241,7 +243,7 @@ public class MergeProjectorTest extends CrateUnitTest {
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
 
         projector.downstream(collectingProjector);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
 
         // register upstreams
         List<RowDownstreamHandle> downstreamHandles = new ArrayList<>(numUpstreams);

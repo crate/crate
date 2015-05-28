@@ -25,6 +25,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -51,6 +52,7 @@ import java.util.Arrays;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
@@ -89,7 +91,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 false
         );
         indexWriter.registerUpstream(null);
-        indexWriter.startProjection();
+        indexWriter.startProjection(mock(ExecutionState.class));
         indexWriter.downstream(collectingProjector);
 
         Thread t1 = new Thread(new Runnable() {

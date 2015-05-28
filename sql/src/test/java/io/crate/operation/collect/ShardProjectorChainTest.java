@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceResolver;
@@ -87,7 +88,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
 
     private RowDownstream finalDownstream() {
         CollectingProjector projector = new CollectingProjector();
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         return projector;
     }
 

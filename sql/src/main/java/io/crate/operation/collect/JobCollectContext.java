@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
+import io.crate.jobs.ExecutionState;
 import io.crate.jobs.ExecutionSubContext;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
@@ -44,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class JobCollectContext implements ExecutionSubContext, RowUpstream {
+public class JobCollectContext implements ExecutionSubContext, RowUpstream, ExecutionState {
 
     private final UUID id;
     private final CollectNode collectNode;

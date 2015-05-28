@@ -35,6 +35,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -70,10 +71,10 @@ public class PageDownstreamFactory {
         );
     }
 
-    public PageDownstream createMergeNodePageDownstream(MergeNode mergeNode,
-                                                        RowDownstream rowDownstream,
-                                                        RamAccountingContext ramAccountingContext,
-                                                        Optional<Executor> executorOptional) {
+    public Tuple<PageDownstream, FlatProjectorChain> createMergeNodePageDownstream(MergeNode mergeNode,
+                                                                                   RowDownstream rowDownstream,
+                                                                                   RamAccountingContext ramAccountingContext,
+                                                                                   Optional<Executor> executorOptional) {
         BucketMerger bucketMerger;
         if (mergeNode.sortedInputOutput()) {
             bucketMerger = new SortingBucketMerger(
@@ -100,14 +101,6 @@ public class PageDownstreamFactory {
         }
 
         bucketMerger.downstream(rowDownstream);
-
-        if (projectorChain != null) {
-            // startProjections MUST be called after rowDownstream was passed to bucketMerger,
-            // otherwise the registered upstream of the projections are null and they will
-            // finish immediately
-            projectorChain.startProjections();
-        }
-
-        return bucketMerger;
+        return new Tuple<PageDownstream, FlatProjectorChain>(bucketMerger, projectorChain);
     }
 }

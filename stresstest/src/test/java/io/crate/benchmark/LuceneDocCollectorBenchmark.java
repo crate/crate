@@ -31,6 +31,7 @@ import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ExecutionState;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ReferenceIdent;
@@ -282,7 +283,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 0
         );
         topNProjector.downstream(collectingProjector);
-        topNProjector.startProjection();
+        topNProjector.startProjection(jobCollectContext);
         LuceneDocCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
         docCollector.doCollect(jobCollectContext);
         topNProjector.doFinish();

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.test.integration.CrateUnitTest;
@@ -49,6 +50,7 @@ import java.util.concurrent.Executors;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 public class WriterProjectorTest extends CrateUnitTest {
 
@@ -74,7 +76,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         ResultProvider downstream = new CollectingProjector();
         projector.downstream(downstream);
 
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
 
         projector.registerUpstream(null);
         for (int i = 0; i < 5; i++) {
@@ -121,7 +123,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         );
         CollectingProjector downstream = new CollectingProjector();
         projector.downstream(downstream);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         projector.registerUpstream(null);
         projector.finish();
         downstream.result().get();
@@ -144,7 +146,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         );
         CollectingProjector downstream = new CollectingProjector();
         projector.downstream(downstream);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         projector.registerUpstream(null);
         projector.finish();
         downstream.result().get();

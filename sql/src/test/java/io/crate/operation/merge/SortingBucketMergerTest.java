@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.collect.CollectExpression;
@@ -48,6 +49,7 @@ import java.util.concurrent.Executor;
 import static io.crate.testing.TestingHelpers.createPage;
 import static io.crate.testing.TestingHelpers.isSorted;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 
 @SuppressWarnings("unchecked")
@@ -60,7 +62,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         final SortingBucketMerger merger = new SortingBucketMerger(
                 buckets, new int[] { 0 }, new boolean[] { false }, new Boolean[] { nullsFirst }, Optional.<Executor>absent());
         merger.downstream(collectingProjector);
-        collectingProjector.startProjection();
+        collectingProjector.startProjection(mock(ExecutionState.class));
 
         final Iterator<BucketPage> pageIter = Iterators.forArray(pages);
         if (pageIter.hasNext()) {
@@ -394,8 +396,8 @@ public class SortingBucketMergerTest extends CrateUnitTest {
                 bucketMerger.downstream(topN);
                 CollectingProjector collectingProjector = new CollectingProjector();
                 topN.downstream(collectingProjector);
-                collectingProjector.startProjection();
-                topN.startProjection();
+                collectingProjector.startProjection(mock(ExecutionState.class));
+                topN.startProjection(mock(ExecutionState.class));
                 bucketMerger.nextPage(page1, new PageConsumeListener() {
                     @Override
                     public void needMore() {
@@ -433,7 +435,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         final SortingBucketMerger merger = new SortingBucketMerger(
                 2, new int[]{1, 0}, new boolean[]{false, true}, new Boolean[]{null, true}, Optional.<Executor>absent());
         merger.downstream(collectingProjector);
-        collectingProjector.startProjection();
+        collectingProjector.startProjection(mock(ExecutionState.class));
         BucketPage page1 = createPage(
                 Arrays.asList(
                         new Object[]{"A", "0"},

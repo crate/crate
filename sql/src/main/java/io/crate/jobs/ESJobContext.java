@@ -33,7 +33,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ESJobContext implements ExecutionSubContext {
+public class ESJobContext implements ExecutionSubContext, ExecutionState {
 
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -43,6 +43,7 @@ public class ESJobContext implements ExecutionSubContext {
     private final List<? extends ActionRequest> requests;
     private final List<? extends Future<TaskResult>> resultFutures;
     private final TransportAction transportAction;
+    private volatile boolean iskilled = false;
 
     public ESJobContext(String operationName,
                         List<? extends ActionRequest> requests,
@@ -84,6 +85,7 @@ public class ESJobContext implements ExecutionSubContext {
 
     @Override
     public void kill() {
+        iskilled = true;
         for (Future<?> resultFuture : resultFutures) {
             resultFuture.cancel(true);
         }
@@ -92,6 +94,11 @@ public class ESJobContext implements ExecutionSubContext {
 
     public String name() {
         return operationName;
+    }
+
+    @Override
+    public boolean isKilled() {
+        return iskilled;
     }
 
     private static class InternalActionListener implements ActionListener {

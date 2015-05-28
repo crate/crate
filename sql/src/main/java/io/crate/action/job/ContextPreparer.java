@@ -38,6 +38,7 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.count.CountOperation;
+import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.planner.node.ExecutionNode;
@@ -50,6 +51,7 @@ import io.crate.planner.node.dql.MergeNode;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
@@ -155,20 +157,25 @@ public class ContextPreparer {
         public Void visitMergeNode(final MergeNode node, final PreparerContext context) {
 
             ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
-            PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
-                    node,
-                    downstream,
-                    context.ramAccountingContext,
-                    Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
-            );
+            Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
+                    pageDownstreamFactory.createMergeNodePageDownstream(
+                            node,
+                            downstream,
+                            context.ramAccountingContext,
+                            Optional.of(threadPool.executor(ThreadPool.Names.SEARCH)));
             StreamerVisitor.Context streamerContext = streamerVisitor.processPlanNode(node);
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
                     node.name(),
-                    pageDownstream,
+                    pageDownstreamProjectorChain.v1(),
                     streamerContext.inputStreamers(),
                     node.numUpstreams());
 
             context.contextBuilder.addSubContext(node.executionNodeId(), pageDownstreamContext);
+
+            FlatProjectorChain flatProjectorChain = pageDownstreamProjectorChain.v2();
+            if (flatProjectorChain != null) {
+                flatProjectorChain.startProjections(pageDownstreamContext);
+            }
             return null;
         }
 

@@ -255,7 +255,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                     localRowDownStream,
                                     node.jobId()
                             );
-                            projectorChain.startProjections();
+                            projectorChain.startProjections(jobCollectContext);
                             localRowDownStream = projectorChain.firstProjector();
                         }
                         CrateCollector collector = collectService.getCollector(localCollectNode, localRowDownStream); // calls projector.registerUpstream()
@@ -421,7 +421,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         // start the projection
-        projectorChain.startProjections();
+        projectorChain.startProjections(jobCollectContext);
         try {
             LOGGER.trace("starting {} shardCollectors...", numShards);
             return runCollectThreaded(collectNode, shardCollectors, jobCollectContext);

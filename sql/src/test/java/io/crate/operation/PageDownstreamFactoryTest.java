@@ -30,9 +30,11 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
+import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.dql.MergeNode;
@@ -50,6 +52,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -145,7 +148,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 functions
         );
         CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
+        final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, collectingProjector);
         final SettableFuture<?> future = SettableFuture.create();
         pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
@@ -168,6 +171,14 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         ));
     }
 
+    private PageDownstream getPageDownstream(MergeNode mergeNode, PageDownstreamFactory pageDownstreamFactory, CollectingProjector collectingProjector) {
+        Tuple<PageDownstream, FlatProjectorChain> downstreamFlatProjectorChainTuple =
+                pageDownstreamFactory.createMergeNodePageDownstream(
+                        mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
+        downstreamFlatProjectorChainTuple.v2().startProjections(mock(ExecutionState.class));
+        return downstreamFlatProjectorChainTuple.v1();
+    }
+
     @Test
     public void testMergeMultipleResults() throws Exception {
         MergeNode mergeNode = new MergeNode(0, "merge", 2); // no need for inputTypes here
@@ -184,7 +195,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 functions
         );
         CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
+        final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, collectingProjector);
 
         Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
         BucketPage page1 = new BucketPage(Futures.immediateFuture(rows));

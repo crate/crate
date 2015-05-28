@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.planner.projection.Projection;
 
@@ -43,7 +44,7 @@ import java.util.UUID;
  * Usage:
  * <ul>
  * <li> construct it,
- * <li> call {@linkplain #startProjections()},
+ * <li> call {@linkplain #startProjections(ExecutionState)},
  * <li> get the first projector using {@linkplain #firstProjector()}
  * <li> feed data to it,
  * <li> wait for the result of  your custom downstream
@@ -58,9 +59,9 @@ public class FlatProjectorChain {
         this.projectors = projectors;
     }
 
-    public void startProjections() {
+    public void startProjections(ExecutionState executionState) {
         for (Projector projector : Lists.reverse(projectors)) {
-            projector.startProjection();
+            projector.startProjection(executionState);
         }
     }
 
@@ -70,7 +71,7 @@ public class FlatProjectorChain {
 
     /**
      * No ResultProvider will be added.
-     * if <code>downstream</code> is a Projector, {@linkplain io.crate.operation.projectors.Projector#startProjection()} will not be called
+     * if <code>downstream</code> is a Projector, {@linkplain Projector#startProjection(ExecutionState)} will not be called
      * by this FlatProjectorChain.
      */
     public static FlatProjectorChain withAttachedDownstream(final ProjectorFactory projectorFactory,

@@ -27,6 +27,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.distributed.ResultProviderBase;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
@@ -67,7 +68,7 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }

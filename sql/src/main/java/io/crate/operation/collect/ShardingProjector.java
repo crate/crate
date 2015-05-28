@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.*;
@@ -70,7 +71,7 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
         visitorContext = new VisitorContext();
         if (routingSymbol != null ) {
             routingInput = visitor.process(routingSymbol, visitorContext);

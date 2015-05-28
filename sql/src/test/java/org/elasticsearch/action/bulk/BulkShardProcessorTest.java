@@ -26,6 +26,9 @@ import io.crate.core.collections.RowN;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -52,9 +55,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -80,6 +82,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
 
+
     @Test
     public void testNonEsRejectedExceptionDoesNotResultInRetryButAborts() throws Throwable {
         expectedException.expect(RuntimeException.class);
@@ -103,7 +106,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 ImmutableList.<Symbol>of(new InputColumn(0, IntegerType.INSTANCE)),
                 null
         );
-        shardingProjector.startProjection();
+        shardingProjector.startProjection(mock(ExecutionState.class));
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
                 ImmutableSettings.EMPTY
@@ -175,7 +178,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 ImmutableList.<Symbol>of(new InputColumn(0, IntegerType.INSTANCE)),
                 null
         );
-        shardingProjector.startProjection();
+        shardingProjector.startProjection(mock(ExecutionState.class));
 
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);

@@ -36,7 +36,7 @@ import java.util.BitSet;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class PageDownstreamContext implements ExecutionSubContext {
+public class PageDownstreamContext implements ExecutionSubContext, ExecutionState {
 
     private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
@@ -51,6 +51,7 @@ public class PageDownstreamContext implements ExecutionSubContext {
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private volatile boolean isKilled = false;
 
 
     public PageDownstreamContext(String name,
@@ -188,6 +189,7 @@ public class PageDownstreamContext implements ExecutionSubContext {
 
     @Override
     public void kill() {
+        isKilled = true;
         if (!closed.getAndSet(true)) {
             CancellationException cancellationException = new CancellationException();
             for (ContextCallback contextCallback : callbacks) {
@@ -202,6 +204,11 @@ public class PageDownstreamContext implements ExecutionSubContext {
     @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public boolean isKilled() {
+        return isKilled;
     }
 
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {

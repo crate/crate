@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
@@ -62,7 +63,7 @@ import java.util.UUID;
  *  <li> get a shard projector by calling {@linkplain #newShardDownstreamProjector(ProjectorFactory)}
  *       from a shard context. do this for every shard you have
  *  </li>
- *  <li> call {@linkplain #startProjections()}</li>
+ *  <li> call {@linkplain #startProjections(ExecutionState)}</li>
  *  <li> feed data to the shard projectors</li>
  * </ul>
  */
@@ -70,6 +71,7 @@ public class ShardProjectorChain {
 
     private UUID jobId;
     private final List<Projection> projections;
+    private ExecutionState executionState;
     private final RamAccountingContext ramAccountingContext;
     protected final List<Projector> shardProjectors;
     protected final List<Projector> nodeProjectors;
@@ -85,6 +87,7 @@ public class ShardProjectorChain {
                                RamAccountingContext ramAccountingContext) {
         this.jobId = jobId;
         this.projections = projections;
+        this.executionState = executionState;
         this.ramAccountingContext = ramAccountingContext;
         nodeProjectors = new ArrayList<>();
         int idx = 0;
@@ -147,13 +150,13 @@ public class ShardProjectorChain {
         return projector;
     }
 
-    public void startProjections() {
+    public void startProjections(ExecutionState executionState) {
         for (Projector projector : Lists.reverse(nodeProjectors)) {
-            projector.startProjection();
+            projector.startProjection(executionState);
         }
         if (shardProjectionsIndex >= 0) {
             for (Projector p : shardProjectors) {
-                p.startProjection();
+                p.startProjection(executionState);
             }
         }
     }

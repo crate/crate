@@ -34,6 +34,7 @@ import io.crate.core.collections.Row1;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -166,9 +167,9 @@ public abstract class AbstractIndexWriterProjector implements
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
         assert bulkShardProcessor != null : "must create a BulkShardProcessor first";
-        shardingProjector.startProjection();
+        shardingProjector.startProjection(executionState);
     }
 
     protected abstract Row updateRow(Row row);

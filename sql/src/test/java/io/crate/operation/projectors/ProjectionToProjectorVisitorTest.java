@@ -27,6 +27,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.RowDownstreamHandle;
@@ -141,7 +142,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i < 20; i++) {
             if (!handle.setNextRow(spare(42))) {
@@ -167,7 +168,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         RowDownstreamHandle handle = projector.registerUpstream(null);
         assertThat(projector, instanceOf(SortingTopNProjector.class));
 
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 20; i > 0; i--) {
             if (!handle.setNextRow(spare(i % 4, i))) {
@@ -204,7 +205,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         assertThat(projector, instanceOf(AggregationProjector.class));
 
 
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         handle.setNextRow(spare("foo", 10));
         handle.setNextRow(spare("bar", 20));
         handle.finish();
@@ -237,11 +238,11 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
         SortingTopNProjector topNProjector = (SortingTopNProjector) visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         projector.downstream(topNProjector);
-        topNProjector.startProjection();
+        topNProjector.startProjection(mock(ExecutionState.class));
 
         assertThat(projector, instanceOf(GroupingProjector.class));
 
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         BytesRef human = new BytesRef("human");
         BytesRef vogon = new BytesRef("vogon");
         BytesRef male = new BytesRef("male");
@@ -276,7 +277,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));
 
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         handle.setNextRow(spare("human", 2));
         handle.setNextRow(spare("vogon", 1));
 
@@ -308,7 +309,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         RowDownstreamHandle handle2 = projector.registerUpstream(null);
         RowDownstreamHandle handle3 = projector.registerUpstream(null);
 
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
 
         handle1.setNextRow(row(5, 1, 1));
         handle2.setNextRow(row(0, 1, 2));

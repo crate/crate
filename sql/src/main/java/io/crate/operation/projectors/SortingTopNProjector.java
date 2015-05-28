@@ -27,6 +27,7 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.distributed.ResultProviderBase;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
@@ -89,8 +90,8 @@ public class SortingTopNProjector extends ResultProviderBase {
     }
 
     @Override
-    public void startProjection() {
-        super.startProjection();
+    public void startProjection(ExecutionState executionState) {
+        super.startProjection(executionState);
         synchronized (this){
             if (pq==null) {
                 pq = new RowPriorityQueue<>(maxSize, comparators);

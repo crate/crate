@@ -27,6 +27,7 @@ import com.carrotsearch.hppc.LongArrayList;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.*;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
@@ -147,7 +148,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
         collectDocIdExpression.startCollect();
 
         if (remainingUpstreams.get() <= 0) {

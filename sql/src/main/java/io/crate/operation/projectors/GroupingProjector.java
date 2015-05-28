@@ -28,6 +28,7 @@ import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.*;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -81,11 +83,9 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         // grouper object size overhead
         ramAccountingContext.addBytes(8);
         if (keyInputs.size() == 1) {
-            grouper = new SingleKeyGrouper(keyInputs.get(0), keyTypes.get(0),
-                    collectExpressions, aggregators);
+            grouper = new SingleKeyGrouper(keyInputs.get(0), keyTypes.get(0), collectExpressions, aggregators);
         } else {
-            grouper = new ManyKeyGrouper(keyInputs, keyTypes,
-                    collectExpressions, aggregators);
+            grouper = new ManyKeyGrouper(keyInputs, keyTypes, collectExpressions, aggregators);
         }
     }
 
@@ -104,10 +104,11 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
         for (CollectExpression collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
+        grouper.prepare(executionState);
     }
 
     @Override
@@ -195,6 +196,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         boolean setNextRow(final Row row);
 
         void finish();
+        void prepare(ExecutionState executionState);
     }
 
     private class SingleKeyGrouper implements Grouper {
@@ -204,6 +206,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         private final Input keyInput;
         private final CollectExpression[] collectExpressions;
         private final SizeEstimator<Object> sizeEstimator;
+        private ExecutionState executionState;
 
         public SingleKeyGrouper(Input keyInput,
                                 DataType keyInputType,
@@ -265,6 +268,11 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
                     (1 + aggregators.length) * 4 + 12));
             RowN row = new RowN(1 + aggregators.length);
             for (Map.Entry<Object, Object[]> entry : result.entrySet()) {
+                if (executionState.isKilled()) {
+                    downstream.fail(new CancellationException());
+                    return;
+                }
+
                 Object[] cells = new Object[row.size()];
                 singleTransformToRow(entry, cells, aggregators);
                 row.cells(cells);
@@ -274,6 +282,11 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
             }
             downstream.finish();
         }
+
+        @Override
+        public void prepare(ExecutionState executionState) {
+            this.executionState = executionState;
+        }
     }
 
     private class ManyKeyGrouper implements Grouper {
@@ -281,6 +294,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         private final Aggregator[] aggregators;
         private final Map<List<Object>, Object[]> result;
         private final List<Input<?>> keyInputs;
+        private ExecutionState executionState;
         private final CollectExpression[] collectExpressions;
         private final List<SizeEstimator<Object>> sizeEstimators;
 
@@ -357,6 +371,11 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
                     (keyInputs.size() + aggregators.length) * 4));
             RowN row = new RowN(keyInputs.size() + aggregators.length);
             for (Map.Entry<List<Object>, Object[]> entry : result.entrySet()) {
+                if (executionState.isKilled()) {
+                    downstream.fail(new CancellationException());
+                    return;
+                }
+
                 Object[] cells = new Object[row.size()];
                 transformToRow(entry, cells, aggregators);
                 row.cells(cells);
@@ -365,6 +384,11 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
                 }
             }
             downstream.finish();
+        }
+
+        @Override
+        public void prepare(ExecutionState executionState) {
+            this.executionState = executionState;
         }
     }
 }

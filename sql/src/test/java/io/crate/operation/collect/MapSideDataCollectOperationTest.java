@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.ResultProvider;
@@ -146,7 +147,7 @@ public class MapSideDataCollectOperationTest {
         collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
         CollectingProjector cd = new CollectingProjector();
-        cd.startProjection();
+        cd.startProjection(mock(ExecutionState.class));
         collectOperation.collect(collectNode, cd, mock(JobCollectContext.class));
         assertThat(cd.result().get(), contains(
                 isRow("Arthur", 38),

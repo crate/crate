@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -46,6 +47,7 @@ import java.util.Arrays;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class SimpleTopNProjectorTest extends CrateUnitTest {
 
@@ -90,7 +92,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i<12; i++) {
             if (!projector.setNextRow(row)) {
@@ -117,7 +119,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i<5; i++) {
             if (!projector.setNextRow(row)) {
@@ -144,7 +146,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i<10; i++) {
             if (!projector.setNextRow(row)) {
@@ -171,7 +173,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         projector.finish();
         Bucket projected = collectingProjector.result().get();
         assertThat(projected, emptyIterable());
@@ -190,7 +192,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
                 new CollectExpression[]{(CollectExpression)input}, 1, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i<10; i++) {
             if (!projector.setNextRow(row)) {
@@ -216,7 +218,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i<100;i++) {
             projector.setNextRow(row);
@@ -241,7 +243,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
                 TopN.NO_LIMIT, TopN.NO_OFFSET);
         projector.registerUpstream(null);
         projector.downstream(collectingProjector);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i = 0;
         boolean carryOn;
         do {
@@ -279,7 +281,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.downstream(collectingProjector);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i<12;i++) {
             if (!projector.setNextRow(row)) {
@@ -298,10 +300,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     public void testProjectLimitOnlyUpStream() throws Throwable {
         SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
-        CollectingProjector noop = new CollectingProjector();
-        projector.downstream(noop);
-        projector.registerUpstream(null);
-        projector.startProjection();
+        CollectingProjector noop = getCollectingProjector(projector);
         int i;
         for (i = 0; i<12; i++) {
             if (!projector.setNextRow(row)) {
@@ -324,10 +323,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     public void testProjectLimitLessThanLimitUpStream() throws Throwable {
         SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
-        CollectingProjector noop = new CollectingProjector();
-        projector.downstream(noop);
-        projector.registerUpstream(null);
-        projector.startProjection();
+        CollectingProjector noop = getCollectingProjector(projector);
         int i;
         for (i = 0; i<5; i++) {
             if (!projector.setNextRow(row)) {
@@ -346,14 +342,19 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         assertThat(iterateLength, is(5));
     }
 
+    private CollectingProjector getCollectingProjector(Projector upstreamProjector) {
+        CollectingProjector noop = new CollectingProjector();
+        upstreamProjector.downstream(noop);
+        upstreamProjector.registerUpstream(null);
+        upstreamProjector.startProjection(mock(ExecutionState.class));
+        return noop;
+    }
+
     @Test
     public void testProjectLimitOnly0UpStream() throws Throwable {
         SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
-        CollectingProjector noop = new CollectingProjector();
-        projector.downstream(noop);
-        projector.registerUpstream(null);
-        projector.startProjection();
+        CollectingProjector noop = getCollectingProjector(projector);
         projector.finish();
         Bucket projected = noop.result().get();
         assertThat(projected, emptyIterable());
@@ -363,10 +364,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     public void testProjectOffsetBigger0UpStream() throws Throwable {
         SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
-        CollectingProjector noop = new CollectingProjector();
-        projector.downstream(noop);
-        projector.registerUpstream(null);
-        projector.startProjection();
+        CollectingProjector noop = getCollectingProjector(projector);
         int i;
         for (i = 0; i<100;i++) {
             projector.setNextRow(row);
@@ -388,10 +386,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(input),
                 new CollectExpression[]{(CollectExpression)input},
                 TopN.NO_LIMIT, TopN.NO_OFFSET);
-        CollectingProjector noop = new CollectingProjector();
-        projector.downstream(noop);
-        projector.registerUpstream(null);
-        projector.startProjection();
+        CollectingProjector noop = getCollectingProjector(projector);
         int i = 0;
         boolean carryOn;
         do {

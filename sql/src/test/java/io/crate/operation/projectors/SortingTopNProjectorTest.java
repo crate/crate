@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -37,6 +38,7 @@ import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 public class SortingTopNProjectorTest extends CrateUnitTest {
 
@@ -65,7 +67,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             if (!projector.setNextRow(spare(i))) {
@@ -106,7 +108,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 projector.downstream(collector);
             }
 
-            projector.startProjection();
+            projector.startProjection(mock(ExecutionState.class));
             projector.setNextRow(spare(1));
             projector.setNextRow(spare(2));
             projector.setNextRow(spare(3));
@@ -143,7 +145,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 30
         );
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         for (int i = 0; i < 10; i++) {
             if (!projector.setNextRow(spare(i))) {
                 break;
@@ -166,7 +168,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 TopN.NO_LIMIT,
                 5);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             if (!projector.setNextRow(spare(i))) {
@@ -197,7 +199,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 3,
                 5);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             projector.setNextRow(spare(i));
@@ -227,7 +229,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 100,
                 0);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
@@ -248,7 +250,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 100,
                 0);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
@@ -269,7 +271,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 100,
                 0);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
@@ -290,7 +292,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 100,
                 0);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
@@ -311,7 +313,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 3,
                 5);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i < 10; i++) {   // 0 --> 9
             projector.setNextRow(spare(i));
@@ -360,7 +362,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
         projector.registerUpstream(null);
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         int i;
         for (i = 0; i < 7; i++) {
             projector.setNextRow(spare(i, i % 4));

@@ -13,6 +13,7 @@ import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
@@ -30,6 +31,7 @@ import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 public class GroupingProjectorTest extends CrateUnitTest {
 
@@ -74,7 +76,7 @@ public class GroupingProjectorTest extends CrateUnitTest {
 
         Row emptyRow = new RowN(new Object[]{});
 
-        projector.startProjection();
+        projector.startProjection(mock(JobCollectContext.class));
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);

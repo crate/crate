@@ -23,6 +23,7 @@ package io.crate.executor.transport.distributed;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
@@ -34,8 +35,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class ResultProviderBase implements ResultProvider {
 
     private final SettableFuture<Bucket> result = SettableFuture.create();
-    protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean failed = new AtomicBoolean(false);
+
+    protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
+    protected ExecutionState executionState;
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
@@ -44,7 +47,8 @@ public abstract class ResultProviderBase implements ResultProvider {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
+        this.executionState = executionState;
     }
 
     /**

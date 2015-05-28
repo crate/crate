@@ -26,6 +26,7 @@ import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.projectors.Projector;
 
 import java.util.ArrayList;
@@ -72,7 +73,7 @@ public class QueryResultRowDownstream implements Projector {
     }
 
     @Override
-    public void startProjection() {
+    public void startProjection(ExecutionState executionState) {
 
     }
 

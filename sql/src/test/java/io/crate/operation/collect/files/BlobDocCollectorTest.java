@@ -24,6 +24,7 @@ package io.crate.operation.collect.files;
 import io.crate.blob.BlobContainer;
 import io.crate.blob.v2.BlobShard;
 import io.crate.core.collections.Bucket;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.blobs.BlobCollectorExpression;
@@ -109,7 +110,7 @@ public class BlobDocCollectorTest extends CrateUnitTest {
                 projector
         );
 
-        projector.startProjection();
+        projector.startProjection(mock(ExecutionState.class));
         collector.doCollect(mock(JobCollectContext.class));
         return projector;
     }
