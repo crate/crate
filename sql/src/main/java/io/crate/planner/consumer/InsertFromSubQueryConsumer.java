@@ -23,11 +23,11 @@ package io.crate.planner.consumer;
 
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergeNode;
@@ -41,8 +41,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public InsertFromSubQueryConsumer(AnalysisMetaData analysisMetaData){
-        visitor = new Visitor(analysisMetaData);
+    public InsertFromSubQueryConsumer(){
+        visitor = new Visitor();
     }
 
     @Override
@@ -62,12 +62,6 @@ public class InsertFromSubQueryConsumer implements Consumer {
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public Visitor(AnalysisMetaData analysisMetaData){
-            this.analysisMetaData = analysisMetaData;
-        }
 
         @Override
         public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
@@ -94,7 +88,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 MergeNode mergeNode = null;
                 if (analyzedRelation.resultIsDistributed()) {
                     // add local merge Node which aggregates the distributed results
-                    AggregationProjection aggregationProjection = QueryAndFetchConsumer.localMergeProjection(this.analysisMetaData.functions());
+                    AggregationProjection aggregationProjection = CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION;
                     mergeNode = PlanNodeBuilder.localMerge(
                             ImmutableList.<Projection>of(aggregationProjection),
                             analyzedRelation.resultNode(),
@@ -111,7 +105,6 @@ public class InsertFromSubQueryConsumer implements Consumer {
         protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
             return relation;
         }
-
     }
 
     public static <C, R> void planInnerRelation(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement,

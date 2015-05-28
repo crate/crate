@@ -241,18 +241,4 @@ public class QueryAndFetchConsumer implements Consumer {
             return new QueryAndFetch(collectNode, mergeNode);
         }
     }
-
-    public static AggregationProjection localMergeProjection(Functions functions) {
-        return new AggregationProjection(
-                Arrays.asList(new Aggregation(
-                        functions.getSafe(
-                                new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
-                        ).info(),
-                        Arrays.<Symbol>asList(new InputColumn(0, DataTypes.LONG)),
-                        Aggregation.Step.ITER,
-                        Aggregation.Step.FINAL
-                )
-                )
-        );
-    }
 }

@@ -21,9 +21,9 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.exceptions.ValidationException;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import org.elasticsearch.common.inject.Inject;
@@ -39,7 +39,7 @@ public class ConsumingPlanner {
     private final List<Consumer> consumers = new ArrayList<>();
 
     @Inject
-    public ConsumingPlanner(AnalysisMetaData analysisMetaData) {
+    public ConsumingPlanner() {
         consumers.add(new NonDistributedGroupByConsumer());
         consumers.add(new ReduceOnCollectorGroupByConsumer());
         consumers.add(new DistributedGroupByConsumer());
@@ -47,7 +47,7 @@ public class ConsumingPlanner {
         consumers.add(new GlobalAggregateConsumer());
         consumers.add(new ESGetConsumer());
         consumers.add(new QueryThenFetchConsumer());
-        consumers.add(new InsertFromSubQueryConsumer(analysisMetaData));
+        consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(new QueryAndFetchConsumer());
     }
 
@@ -66,8 +66,9 @@ public class ConsumingPlanner {
                 }
             }
         }
-        if(consumerContext.validationException() != null){
-            throw consumerContext.validationException();
+        ValidationException validationException = consumerContext.validationException();
+        if (validationException != null) {
+            throw validationException;
         }
         return null;
     }
