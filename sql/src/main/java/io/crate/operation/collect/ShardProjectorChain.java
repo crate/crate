@@ -27,11 +27,13 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
+import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.Projection;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * a chain of connected projectors data is flowing through
@@ -57,7 +59,7 @@ import java.util.List;
  *
  * <ul>
  *  <li> construct one from a list of projections</li>
- *  <li> get a shard projector by calling {@linkplain #newShardDownstreamProjector(io.crate.operation.projectors.ProjectionToProjectorVisitor)}
+ *  <li> get a shard projector by calling {@linkplain #newShardDownstreamProjector(ProjectorFactory)}
  *       from a shard context. do this for every shard you have
  *  </li>
  *  <li> call {@linkplain #startProjections()}</li>
@@ -66,6 +68,7 @@ import java.util.List;
  */
 public class ShardProjectorChain {
 
+    private UUID jobId;
     private final List<Projection> projections;
     private final RamAccountingContext ramAccountingContext;
     protected final List<Projector> shardProjectors;
@@ -74,11 +77,13 @@ public class ShardProjectorChain {
     private int shardProjectionsIndex = -1;
 
 
-    public ShardProjectorChain(int numShards,
+    public ShardProjectorChain(UUID jobId,
+                               int numShards,
                                List<Projection> projections,
                                RowDownstream finalDownstream,
-                               ProjectionToProjectorVisitor nodeProjectorVisitor,
+                               ProjectorFactory projectorFactory,
                                RamAccountingContext ramAccountingContext) {
+        this.jobId = jobId;
         this.projections = projections;
         this.ramAccountingContext = ramAccountingContext;
         nodeProjectors = new ArrayList<>();
@@ -95,7 +100,7 @@ public class ShardProjectorChain {
         Projector previousUpstream = null;
         // create the node level projectors
         for (int i = shardProjectionsIndex + 1; i < projections.size(); i++) {
-            Projector projector = nodeProjectorVisitor.process(projections.get(i), ramAccountingContext);
+            Projector projector = projectorFactory.create(projections.get(i), ramAccountingContext, jobId);
             nodeProjectors.add(projector);
             if (previousUpstream != null) {
                 previousUpstream.downstream(projector);
@@ -125,17 +130,16 @@ public class ShardProjectorChain {
      * Creates a new shard downstream chain if needed and returns a projector to be used as downstream
      * this method also calls startProjection on newly created shard level projectors.
      *
-     * @param projectorVisitor the visitor to create projections out of a projection
      * @return a new projector connected to the internal chain
      */
-    public RowDownstream newShardDownstreamProjector(ProjectionToProjectorVisitor projectorVisitor) {
+    public RowDownstream newShardDownstreamProjector(ProjectorFactory projectorFactory) {
         if (shardProjectionsIndex < 0) {
             return firstNodeProjector;
         }
         RowDownstream previousProjector = firstNodeProjector;
         Projector projector = null;
         for (int i = shardProjectionsIndex; i >= 0; i--) {
-            projector = projectorVisitor.process(projections.get(i), ramAccountingContext);
+            projector = projectorFactory.create(projections.get(i), ramAccountingContext, jobId);
             projector.downstream(previousProjector);
             shardProjectors.add(projector);
             previousProjector = projector;

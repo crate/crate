@@ -68,6 +68,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.newMockedThreadPool;
@@ -158,6 +159,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 Arrays.asList(countAggregation()));
         groupProjection.setRequiredGranularity(RowGranularity.SHARD);
         ShardProjectorChain chain = new ShardProjectorChain(
+                UUID.randomUUID(),
                 2,
                 ImmutableList.of(groupProjection, topN),
                 finalDownstream(),
@@ -188,6 +190,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 Arrays.asList(countAggregation()));
         groupProjection2.setRequiredGranularity(RowGranularity.SHARD);
         ShardProjectorChain chain = new ShardProjectorChain(
+                UUID.randomUUID(),
                 2,
                 ImmutableList.of(groupProjection1, groupProjection2, topN),
                 finalDownstream(),
@@ -214,6 +217,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         ShardProjectorChain chain = new ShardProjectorChain(
+                UUID.randomUUID(),
                 2,
                 ImmutableList.of(groupProjection, topN),
                 finalDownstream(),
@@ -240,6 +244,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         ShardProjectorChain chain = new ShardProjectorChain(
+                UUID.randomUUID(),
                 0,
                 ImmutableList.of(groupProjection, topN),
                 finalDownstream(),
@@ -266,6 +271,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 Arrays.asList(countAggregation()));
         groupProjection.setRequiredGranularity(RowGranularity.SHARD);
         ShardProjectorChain chain = new ShardProjectorChain(
+                UUID.randomUUID(),
                 0,
                 ImmutableList.<Projection>of(groupProjection),
                 finalDownstream(),

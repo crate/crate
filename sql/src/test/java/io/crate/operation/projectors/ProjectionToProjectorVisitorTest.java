@@ -60,6 +60,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -134,7 +135,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0)));
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
@@ -161,7 +162,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new Boolean[]{null, null}
         );
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
-        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
         assertThat(projector, instanceOf(SortingTopNProjector.class));
 
@@ -195,7 +196,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
-        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
         CollectingProjector collectingProjector = new CollectingProjector();
         projector.downstream(collectingProjector);
@@ -222,7 +223,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
 
-        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
 
         // use a topN projection in order to get sorted outputs
@@ -233,7 +234,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         topNProjection.outputs(Arrays.<Symbol>asList(
                 new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
                 new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
-        SortingTopNProjector topNProjector = (SortingTopNProjector) visitor.process(topNProjection, RAM_ACCOUNTING_CONTEXT);
+        SortingTopNProjector topNProjector = (SortingTopNProjector) visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         projector.downstream(topNProjector);
         topNProjector.startProjection();
 
@@ -269,7 +270,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));
@@ -297,7 +298,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new boolean[]{false, false},
                 new Boolean[]{false, false}
         );
-        MergeProjector projector = (MergeProjector)visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
+        MergeProjector projector = (MergeProjector)visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
         CollectingProjector collectingProjector = new CollectingProjector();
         projector.downstream(collectingProjector);

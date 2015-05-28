@@ -79,44 +79,25 @@ public class FlatProjectorChain {
      * if <code>downstream</code> is a Projector, {@linkplain io.crate.operation.projectors.Projector#startProjection()} will not be called
      * by this FlatProjectorChain.
      */
-    public static FlatProjectorChain withAttachedDownstream(final ProjectionToProjectorVisitor projectorVisitor,
-                                                            final RamAccountingContext ramAccountingContext,
-                                                            Collection<Projection> projections,
-                                                            RowDownstream downstream) {
-        return withAttachedDownstream(
-                projectorVisitor,
-                ramAccountingContext,
-                projections,
-                downstream,
-                Optional.<UUID>absent()
-        );
-    }
-
-    public static FlatProjectorChain withAttachedDownstream(final ProjectionToProjectorVisitor projectorVisitor,
+    public static FlatProjectorChain withAttachedDownstream(final ProjectorFactory projectorFactory,
                                                             final RamAccountingContext ramAccountingContext,
                                                             Collection<Projection> projections,
                                                             RowDownstream downstream,
-                                                            Optional<UUID> jobId) {
+                                                            UUID jobId) {
         Preconditions.checkArgument(!projections.isEmpty(), "no projections given");
-        return create(projectorVisitor, ramAccountingContext, projections, downstream, false, jobId);
+        return create(projectorFactory, ramAccountingContext, projections, downstream, false, jobId);
 
     }
 
     /**
      * attach a ResultProvider if the last projector is none
      */
-    public static FlatProjectorChain withResultProvider(ProjectionToProjectorVisitor projectorVisitor,
-                                                        RamAccountingContext ramAccountingContext,
-                                                        Collection<Projection> projections) {
-        return withResultProvider(projectorVisitor, ramAccountingContext, projections, Optional.<UUID>absent());
-    }
-
-    public static FlatProjectorChain withResultProvider(ProjectionToProjectorVisitor projectorVisitor,
+    public static FlatProjectorChain withResultProvider(ProjectorFactory projectorFactory,
                                                         RamAccountingContext ramAccountingContext,
                                                         Collection<Projection> projections,
-                                                        Optional<UUID> jobId) {
+                                                        UUID jobId) {
 
-        return create(projectorVisitor, ramAccountingContext, projections, null, true, jobId);
+        return create(projectorFactory, ramAccountingContext, projections, null, true, jobId);
     }
 
     /**
@@ -130,22 +111,18 @@ public class FlatProjectorChain {
         return new FlatProjectorChain(projectors, resultProviderOptional(last));
     }
 
-    private static FlatProjectorChain create(ProjectionToProjectorVisitor projectorVisitor,
+    private static FlatProjectorChain create(ProjectorFactory projectorFactory,
                                              RamAccountingContext ramAccountingContext,
                                              Collection<Projection> projections,
                                              @Nullable RowDownstream rowDownstream,
                                              boolean addResultProviderIfPresent,
-                                             Optional<UUID> jobId) {
+                                             UUID jobId) {
         assert (rowDownstream == null && addResultProviderIfPresent) || (rowDownstream != null && !addResultProviderIfPresent);
         Preconditions.checkArgument(!projections.isEmpty() || addResultProviderIfPresent, "no projections given");
         List<Projector> localProjectors = new ArrayList<>();
         Projector previousProjector = null;
         for (Projection projection : projections) {
-            Projector projector = projectorVisitor.process(
-                    projection,
-                    ramAccountingContext,
-                    jobId
-            );
+            Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
             localProjectors.add(projector);
             if (previousProjector != null) {
                 previousProjector.downstream(projector);

@@ -252,7 +252,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                     projectorVisitor,
                                     jobCollectContext.ramAccountingContext(),
                                     localCollectNode.projections(),
-                                    localRowDownStream
+                                    localRowDownStream,
+                                    node.jobId()
                             );
                             projectorChain.startProjections();
                             localRowDownStream = projectorChain.firstProjector();
@@ -339,6 +340,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         assert normalizedCollectNode.jobId() != null : "jobId must be set on CollectNode";
 
         ShardProjectorChain projectorChain = new ShardProjectorChain(
+                collectNode.jobId(),
                 numShards,
                 normalizedCollectNode.projections(),
                 downstream,

@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
@@ -43,7 +42,8 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 
-public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> {
+public class ProjectionToProjectorVisitor
+        extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory{
 
     private final ClusterService clusterService;
     private ThreadPool threadPool;
@@ -52,9 +52,9 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
+
     @Nullable
     private final ShardId shardId;
-    @Nullable
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         ThreadPool threadPool,
@@ -96,16 +96,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                         symbolVisitor.rowGranularity(),
                         symbolVisitor.referenceResolver())
         );
-    }
-
-    public Projector process(Projection projection, RamAccountingContext ramAccountingContext) {
-        return super.process(projection, new Context(ramAccountingContext));
-    }
-
-    public Projector process(Projection projection,
-                             RamAccountingContext ramAccountingContext,
-                             Optional<UUID> jobId) {
-        return super.process(projection, new Context(ramAccountingContext, jobId));
     }
 
     @Override
@@ -339,7 +329,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
     @Override
     public Projector visitFetchProjection(FetchProjection projection, Context context) {
-        assert context.jobId.isPresent() : "FetchProjector needs a jobId";
 
         ImplementationSymbolVisitor.Context ctxDocId = new ImplementationSymbolVisitor.Context();
         symbolVisitor.process(projection.docIdSymbol(), ctxDocId);
@@ -349,7 +338,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 transportActionProvider.transportFetchNodeAction(),
                 transportActionProvider.transportCloseContextNodeAction(),
                 symbolVisitor.functions(),
-                context.jobId.get(),
+                context.jobId,
                 projection.executionNodeId(),
                 ctxDocId.collectExpressions().iterator().next(),
                 projection.inputSymbols(),
@@ -359,23 +348,22 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 projection.jobSearchContextIdToShard(),
                 projection.executionNodes(),
                 projection.bulkSize(),
-                projection.closeContexts()
-                );
+                projection.closeContexts());
     }
 
-    public static class Context {
+    @Override
+    public Projector create(Projection projection, RamAccountingContext ramAccountingContext, UUID jobId) {
+        return process(projection, new Context(ramAccountingContext, jobId));
+    }
+
+    static class Context {
 
         private final RamAccountingContext ramAccountingContext;
-        private final Optional<UUID> jobId;
+        private final UUID jobId;
 
-        public Context(RamAccountingContext ramAccountingContext) {
-            this(ramAccountingContext, Optional.<UUID>absent());
-        }
-
-        public Context(RamAccountingContext ramAccountingContext, Optional<UUID> jobId) {
+        public Context(RamAccountingContext ramAccountingContext, UUID jobId) {
             this.ramAccountingContext = ramAccountingContext;
             this.jobId = jobId;
         }
-
     }
 }

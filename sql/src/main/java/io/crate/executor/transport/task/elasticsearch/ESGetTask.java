@@ -71,7 +71,7 @@ public class ESGetTask extends JobTask {
 
     public ESGetTask(UUID jobId,
                      Functions functions,
-                     ProjectionToProjectorVisitor projectionToProjectorVisitor,
+                     ProjectorFactory projectorFactory,
                      TransportMultiGetAction multiGetAction,
                      TransportGetAction getAction,
                      ESGetNode node,
@@ -106,7 +106,7 @@ public class ESGetTask extends JobTask {
             MultiGetRequest multiGetRequest = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
             request = multiGetRequest;
-            FlatProjectorChain projectorChain = getFlatProjectorChain(projectionToProjectorVisitor, node);
+            FlatProjectorChain projectorChain = getFlatProjectorChain(projectorFactory, node);
             ResultProvider resultProvider = projectorChain.resultProvider();
             assert resultProvider != null : "ResultProvider is NULL";
             result = resultProvider.result();
@@ -161,8 +161,7 @@ public class ESGetTask extends JobTask {
         return multiGetRequest;
     }
 
-    private FlatProjectorChain getFlatProjectorChain(ProjectionToProjectorVisitor projectionToProjectorVisitor,
-                                                     ESGetNode node) {
+    private FlatProjectorChain getFlatProjectorChain(ProjectorFactory projectorFactory, ESGetNode node) {
         if (node.limit() != null || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
             List<Symbol> orderBySymbols = new ArrayList<>(node.sortSymbols().size());
             for (Symbol symbol : node.sortSymbols()) {
@@ -182,9 +181,10 @@ public class ESGetTask extends JobTask {
             );
             topNProjection.outputs(genInputColumns(node.outputs().size()));
             return FlatProjectorChain.withResultProvider(
-                    projectionToProjectorVisitor,
+                    projectorFactory,
                     null,
-                    ImmutableList.<Projection>of(topNProjection)
+                    ImmutableList.<Projection>of(topNProjection),
+                    jobId()
             );
         } else {
             return FlatProjectorChain.withProjectors(

@@ -94,7 +94,7 @@ public class PageDownstreamFactory {
                     ramAccountingContext,
                     mergeNode.projections(),
                     rowDownstream,
-                    Optional.fromNullable(mergeNode.jobId())
+                    mergeNode.jobId()
             );
             rowDownstream = projectorChain.firstProjector();
         }
