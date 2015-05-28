@@ -102,30 +102,32 @@ public class ESGetTask extends JobTask implements RowUpstream {
         ActionListener listener;
         ActionRequest request;
         TransportAction transportAction;
+
+        FlatProjectorChain projectorChain = null;
         if (node.docKeys().size() > 1) {
-            MultiGetRequest multiGetRequest = prepareMultiGetRequest(node, fsc);
+            request = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
-            request = multiGetRequest;
 
             SettableFuture<TaskResult> result = SettableFuture.create();
             List<SettableFuture<TaskResult>> settableFutures = Collections.singletonList(result);
             results = settableFutures;
             QueryResultRowDownstream queryResultRowDownstream = new QueryResultRowDownstream(settableFutures);
 
-            FlatProjectorChain projectorChain = getFlatProjectorChain(projectorFactory, node, queryResultRowDownstream);
-
+            projectorChain = getFlatProjectorChain(projectorFactory, node, queryResultRowDownstream);
             RowDownstreamHandle rowDownstreamHandle = projectorChain.firstProjector().registerUpstream(this);
             listener = new MultiGetResponseListener(extractors, rowDownstreamHandle);
-            context = new ESJobContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
-            projectorChain.startProjections(context);
         } else {
-            GetRequest getRequest = prepareGetRequest(node, fsc);
+            request = prepareGetRequest(node, fsc);
             transportAction = getAction;
-            request = getRequest;
             SettableFuture<Bucket> settableFuture = SettableFuture.create();
             listener = new GetResponseListener(settableFuture, extractors);
             results = ImmutableList.of(Futures.transform(settableFuture, QueryResult.TO_TASK_RESULT));
-            context = new ESJobContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
+        }
+        context = new ESJobContext("lookup by primary key",
+                ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
+
+        if (projectorChain != null) {
+            projectorChain.startProjections(context);
         }
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
