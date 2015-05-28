@@ -24,9 +24,11 @@ package io.crate.operation.reference.partitioned;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.metadata.information.InformationPartitionsTableInfo;
 import io.crate.operation.reference.information.InformationTablePartitionsExpression;
+import org.apache.lucene.util.BytesRef;
 
 public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpression {
 
+    private static final BytesRef EMPTY_BYTES_REF = new BytesRef();
     public static final String NAME = "settings";
 
     public PartitionsSettingsExpression() {
@@ -118,10 +120,11 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE,
-                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE) {
+                    new InformationTablePartitionsExpression<BytesRef>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE);
+                        public BytesRef value() {
+                            String value = (String) this.row.tableParameters().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE);
+                            return value != null ? new BytesRef(value) : EMPTY_BYTES_REF;
                         }
                     });
             childImplementations.put(TOTAL_SHARDS_PER_NODE,
@@ -147,10 +150,11 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
 
         private void addChildImplementations() {
             childImplementations.put(INITIAL_SHARDS,
-                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS) {
+                    new InformationTablePartitionsExpression<BytesRef>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS);
+                        public BytesRef value() {
+                            String value = (String) this.row.tableParameters().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS);
+                            return value != null ? new BytesRef(value) : EMPTY_BYTES_REF;
                         }
                     });
         }
@@ -206,10 +210,10 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
 
         private void addChildImplementations() {
             childImplementations.put(SYNC,
-                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC) {
+                    new InformationTablePartitionsExpression<Long>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.GATEWAY_LOCAL_SYNC);
+                        public Long value() {
+                            return (Long) this.row.tableParameters().get(TableParameterInfo.GATEWAY_LOCAL_SYNC);
                         }
                     });
         }
@@ -239,17 +243,17 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
                         }
                     });
             childImplementations.put(FLUSH_THRESHOLD_SIZE,
-                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE) {
+                    new InformationTablePartitionsExpression<Long>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE);
+                        public Long value() {
+                            return (Long) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE);
                         }
                     });
             childImplementations.put(FLUSH_THRESHOLD_PERIOD,
-                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD) {
+                    new InformationTablePartitionsExpression<Long>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD);
+                        public Long value() {
+                            return (Long) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD);
                         }
                     });
             childImplementations.put(DISABLE_FLUSH,
@@ -260,10 +264,10 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
                         }
                     });
             childImplementations.put(INTERVAL,
-                    new InformationTablePartitionsExpression<String>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL) {
+                    new InformationTablePartitionsExpression<Long>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.TRANSLOG_INTERVAL);
+                        public Long value() {
+                            return (Long) this.row.tableParameters().get(TableParameterInfo.TRANSLOG_INTERVAL);
                         }
                     });
         }

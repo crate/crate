@@ -121,15 +121,15 @@ public class TableParameterInfo {
                 .put(TableParameterInfo.BLOCKS_WRITE, CrateTableSettings.BLOCKS_WRITE.extract(settings))
                 .put(TableParameterInfo.BLOCKS_METADATA, CrateTableSettings.BLOCKS_METADATA.extract(settings))
                 .put(TableParameterInfo.FLUSH_THRESHOLD_OPS, CrateTableSettings.FLUSH_THRESHOLD_OPS.extract(settings))
-                .put(TableParameterInfo.FLUSH_THRESHOLD_PERIOD, CrateTableSettings.FLUSH_THRESHOLD_PERIOD.extract(settings))
-                .put(TableParameterInfo.FLUSH_THRESHOLD_SIZE, CrateTableSettings.FLUSH_THRESHOLD_SIZE.extract(settings))
+                .put(TableParameterInfo.FLUSH_THRESHOLD_PERIOD, CrateTableSettings.FLUSH_THRESHOLD_PERIOD.extractMillis(settings))
+                .put(TableParameterInfo.FLUSH_THRESHOLD_SIZE, CrateTableSettings.FLUSH_THRESHOLD_SIZE.extractBytes(settings))
                 .put(TableParameterInfo.FLUSH_DISABLE, CrateTableSettings.FLUSH_DISABLE.extract(settings))
-                .put(TableParameterInfo.TRANSLOG_INTERVAL, CrateTableSettings.TRANSLOG_INTERVAL.extract(settings))
+                .put(TableParameterInfo.TRANSLOG_INTERVAL, CrateTableSettings.TRANSLOG_INTERVAL.extractMillis(settings))
                 .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, CrateTableSettings.ROUTING_ALLOCATION_ENABLE.extract(settings))
                 .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, CrateTableSettings.TOTAL_SHARDS_PER_NODE.extract(settings))
                 .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.extract(settings))
                 .put(TableParameterInfo.WARMER_ENABLED, CrateTableSettings.WARMER_ENABLED.extract(settings))
-                .put(TableParameterInfo.GATEWAY_LOCAL_SYNC, CrateTableSettings.GATEWAY_LOCAL_SYNC.extract(settings))
+                .put(TableParameterInfo.GATEWAY_LOCAL_SYNC, CrateTableSettings.GATEWAY_LOCAL_SYNC.extractMillis(settings))
                 .build();
     }
 }

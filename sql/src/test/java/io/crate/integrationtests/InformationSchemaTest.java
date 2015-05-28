@@ -25,8 +25,10 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
@@ -35,7 +37,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -46,38 +48,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     final static Joiner dotJoiner = Joiner.on('.');
     final static Joiner commaJoiner = Joiner.on(", ");
-    final static LinkedHashMap defaultTableSettings = new LinkedHashMap(){{
-        put("routing", new LinkedHashMap(){{
-            put("allocation", new LinkedHashMap(){{
-                put("total_shards_per_node", -1);
-                put("enable","all");
-            }});
-        }});
-        put("warmer", new LinkedHashMap(){{
-            put("enabled", true);
-        }});
-        put("blocks", new LinkedHashMap(){{
-            put("write", false);
-            put("read", false);
-            put("read_only", false);
-            put("metadata", false);
-        }});
-        put("gateway", new LinkedHashMap(){{
-            put("local", new HashMap(){{
-                put("sync", "5s");
-            }});
-        }});
-        put("translog", new LinkedHashMap(){{
-            put("flush_threshold_ops", Integer.MAX_VALUE);
-            put("flush_threshold_period", "30m");
-            put("flush_threshold_size", "200mb");
-            put("disable_flush", false);
-            put("interval", "5s");
-        }});
-        put("recovery", new LinkedHashMap(){{
-            put("initial_shards", "quorum");
-        }});
-    }};
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -804,21 +774,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTableSettings() throws Exception {
-        execute("create table table_props (name string) with (number_of_replicas=0)");
-        execute("alter table table_props set (\"translog.flush_threshold_ops\"="+ Integer.MAX_VALUE +", " +
-                "\"translog.flush_threshold_period\"=1800000," +
-                "\"translog.flush_threshold_size\"=209715200," +
-                "\"translog.interval\"=5000," +
-                "\"translog.disable_flush\"=false" +
-                ")");
-        execute("select settings from information_schema.tables where table_name='table_props'");
-        assertEquals(defaultTableSettings, response.rows()[0][0]);
-        execute("select settings from information_schema.tables where table_name='nodes' and schema_name='sys'");
-        assertEquals(null, response.rows()[0][0]);
-    }
-
-    @Test
     public void testPartitionedBy() throws Exception {
         execute("create table my_table (id integer, name string) partitioned by (name)");
         execute("create table my_other_table (id integer, name string, content string) " +
@@ -846,19 +801,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("insert into my_table (par, content) values (3, 'content6')");
         ensureGreen();
 
-        execute("alter table my_table set (\"translog.flush_threshold_ops\"="+ Integer.MAX_VALUE +", " +
-                "\"translog.flush_threshold_period\"=1800000," +
-                "\"translog.flush_threshold_size\"=209715200," +
-                "\"translog.interval\"=5000," +
-                "\"translog.disable_flush\"=false" +
-                ")");
-
-        execute("select * from information_schema.table_partitions order by table_name, partition_ident");
+        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas "+
+                "from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(3, response.rowCount());
 
-        Object[] row1 = new Object[] { "my_table", "doc", "04132", ImmutableMap.of("par", 1), 5, "1", defaultTableSettings};
-        Object[] row2 = new Object[] { "my_table", "doc", "04134", ImmutableMap.of("par", 2), 5, "1", defaultTableSettings};
-        Object[] row3 = new Object[] { "my_table", "doc", "04136", ImmutableMap.of("par", 3), 5, "1", defaultTableSettings};
+        Object[] row1 = new Object[] { "my_table", "doc", "04132", ImmutableMap.of("par", 1), 5, "1"};
+        Object[] row2 = new Object[] { "my_table", "doc", "04134", ImmutableMap.of("par", 2), 5, "1"};
+        Object[] row3 = new Object[] { "my_table", "doc", "04136", ImmutableMap.of("par", 3), 5, "1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);
@@ -955,22 +904,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("alter table my_table set (number_of_shards=4)");
         waitNoPendingTasksOnAll();
         execute("insert into my_table (par, par_str, content) values (2, 'asdf', 'content5')");
-        execute("alter table my_table set (\"translog.flush_threshold_ops\"="+ Integer.MAX_VALUE +", " +
-                "\"translog.flush_threshold_period\"=1800000," +
-                "\"translog.flush_threshold_size\"=209715200," +
-                "\"translog.interval\"=5000," +
-                "\"translog.disable_flush\"=false" +
-                ")");
         ensureYellow();
 
-        execute("select * from information_schema.table_partitions order by table_name, partition_ident");
+        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas " +
+                "from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(5, response.rowCount());
 
-        Object[] row1 = new Object[] { "my_table", "doc", "08132132c5p0", ImmutableMap.of("par", 1, "par_str", "bar"), 5, "1", defaultTableSettings};
-        Object[] row2 = new Object[] { "my_table", "doc", "08132136dtng", ImmutableMap.of("par", 1, "par_str", "foo"), 5, "1", defaultTableSettings};
-        Object[] row3 = new Object[] { "my_table", "doc", "08134132c5p0", ImmutableMap.of("par", 2, "par_str", "bar"), 5, "1", defaultTableSettings};
-        Object[] row4 = new Object[] { "my_table", "doc", "08134136dtng", ImmutableMap.of("par", 2, "par_str", "foo"), 5, "1", defaultTableSettings};
-        Object[] row5 = new Object[] { "my_table", "doc", "081341b1edi6c", ImmutableMap.of("par", 2, "par_str", "asdf"), 4, "1", defaultTableSettings};
+        Object[] row1 = new Object[] { "my_table", "doc", "08132132c5p0", ImmutableMap.of("par", 1, "par_str", "bar"), 5, "1"};
+        Object[] row2 = new Object[] { "my_table", "doc", "08132136dtng", ImmutableMap.of("par", 1, "par_str", "foo"), 5, "1"};
+        Object[] row3 = new Object[] { "my_table", "doc", "08134132c5p0", ImmutableMap.of("par", 2, "par_str", "bar"), 5, "1"};
+        Object[] row4 = new Object[] { "my_table", "doc", "08134136dtng", ImmutableMap.of("par", 2, "par_str", "foo"), 5, "1"};
+        Object[] row5 = new Object[] { "my_table", "doc", "081341b1edi6c", ImmutableMap.of("par", 2, "par_str", "asdf"), 4, "1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);

@@ -96,7 +96,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final ReferenceInfo TABLE_SETTINGS_GATEWAY_LOCAL = info(
                 Columns.TABLE_SETTINGS_GATEWAY_LOCAL, DataTypes.OBJECT);
         public static final ReferenceInfo TABLE_SETTINGS_GATEWAY_LOCAL_SYNC = info(
-                Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, DataTypes.STRING);
+                Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, DataTypes.LONG);
 
 
     }

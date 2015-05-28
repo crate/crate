@@ -24,9 +24,11 @@ package io.crate.operation.reference.information;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.information.InformationTablesTableInfo;
+import org.apache.lucene.util.BytesRef;
 
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
+    private static final BytesRef EMPTY_BYTES_REF = new BytesRef();
     public static final String NAME = "settings";
 
     public TablesSettingsExpression() {
@@ -118,10 +120,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE) {
+                    new InformationTablesExpression<BytesRef>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE);
+                        public BytesRef value() {
+                            String value = (String) this.row.tableParameters().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE);
+                            return value != null ? new BytesRef(value) : EMPTY_BYTES_REF;
                         }
                     });
             childImplementations.put(TOTAL_SHARDS_PER_NODE,
@@ -147,10 +150,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(INITIAL_SHARDS,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS) {
+                    new InformationTablesExpression<BytesRef>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS);
+                        public BytesRef value() {
+                            String value = (String) this.row.tableParameters().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS);
+                            return value != null ? new BytesRef(value) : EMPTY_BYTES_REF;
                         }
                     });
         }
@@ -207,10 +211,10 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(SYNC,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC) {
+                    new InformationTablesExpression<Long>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.GATEWAY_LOCAL_SYNC);
+                        public Long value() {
+                            return (Long) this.row.tableParameters().get(TableParameterInfo.GATEWAY_LOCAL_SYNC);
                         }
                     });
         }
@@ -240,17 +244,17 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
                         }
                     });
             childImplementations.put(FLUSH_THRESHOLD_SIZE,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE) {
+                    new InformationTablesExpression<Long>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE);
+                        public Long value() {
+                            return (Long) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE);
                         }
                     });
             childImplementations.put(FLUSH_THRESHOLD_PERIOD,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD) {
+                    new InformationTablesExpression<Long>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD);
+                        public Long value() {
+                            return (Long) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD);
                         }
                     });
             childImplementations.put(DISABLE_FLUSH,
@@ -261,12 +265,13 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
                         }
                     });
             childImplementations.put(INTERVAL,
-                    new InformationTablesExpression<String>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL) {
+                    new InformationTablesExpression<Long>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL) {
                         @Override
-                        public String value() {
-                            return (String) this.row.tableParameters().get(TableParameterInfo.TRANSLOG_INTERVAL);
+                        public Long value() {
+                            return (Long) this.row.tableParameters().get(TableParameterInfo.TRANSLOG_INTERVAL);
                         }
                     });
         }
     }
 }
+
