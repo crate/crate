@@ -43,6 +43,14 @@ public abstract class ByteSizeSetting extends Setting<ByteSizeValue, String> {
 
     @Override
     public String extract(Settings settings) {
-        return settings.getAsBytesSize(settingName(), defaultValue()).toString();
+        return extractByteSizeValue(settings).toString();
+    }
+
+    public Long extractBytes(Settings settings) {
+        return extractByteSizeValue(settings).bytes();
+    }
+
+    public ByteSizeValue extractByteSizeValue(Settings settings) {
+        return settings.getAsBytesSize(settingName(), defaultValue());
     }
 }
