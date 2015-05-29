@@ -101,6 +101,24 @@ public class SettingsAppliers {
 
     }
 
+    public static class MemoryValueSettingsApplier extends AbstractSettingsApplier {
+
+        public MemoryValueSettingsApplier(Setting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            try {
+                applyValue(settingsBuilder, ExpressionToMemoryValueVisitor.convert(expression, parameters));
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+        }
+
+    }
+
     public static class ObjectSettingsApplier extends AbstractSettingsApplier {
 
         public ObjectSettingsApplier(NestedSetting settings) {

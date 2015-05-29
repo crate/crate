@@ -107,8 +107,8 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSetInvalidStringValueObject() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Object values are not allowed at 'indices.fielddata.breaker.limit'");
-        analyze("SET GLOBAL PERSISTENT \"indices.fielddata.breaker.limit\" = {foo='bar'}");
+        expectedException.expectMessage("Object values are not allowed at 'indices.store.throttle.type'");
+        analyze("SET GLOBAL PERSISTENT \"indices.store.throttle.type\" = {foo='bar'}");
     }
 
     @Test
@@ -125,6 +125,29 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid value for argument 'indices.recovery.file_chunk_size'");
         analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = 'something'");
+    }
+
+    @Test
+    public void testSetMemorySizeValue() throws Exception {
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = '70%'");
+        assertThat(analysis.settings().toDelimitedString(','), startsWith("indices.breaker.query.limit="));
+
+        analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = '100mb'");
+        assertThat(analysis.settings().toDelimitedString(','), is("indices.breaker.query.limit=100mb,"));
+
+        analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = 1024");
+        assertThat(analysis.settings().toDelimitedString(','), is("indices.breaker.query.limit=1kb,"));
+
+        analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = ?", new Object[]{ "100mb" });
+        assertThat(analysis.settings().toDelimitedString(','), is("indices.breaker.query.limit=100mb,"));
+    }
+
+    @Test
+    public void testSetInvalidMemorySizeValue() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'indices.breaker.query.limit'");
+        analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = '80x'");
+
     }
 
     @Test
