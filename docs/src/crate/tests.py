@@ -82,11 +82,18 @@ class ConnectingCrateLayer(CrateLayer):
         super(ConnectingCrateLayer, self).start()
         cmd._connect(self.crate_servers[0])
 
-empty_layer = ConnectingCrateLayer('crate',
-                         crate_home=crate_path(),
-                         crate_exec=crate_path('bin', 'crate'),
-                         port=CRATE_HTTP_PORT,
-                         transport_port=CRATE_TRANSPORT_PORT)
+empty_layer = ConnectingCrateLayer(
+    'crate',
+    crate_home=crate_path(),
+    crate_exec=crate_path('bin', 'crate'),
+    port=CRATE_HTTP_PORT,
+    transport_port=CRATE_TRANSPORT_PORT,
+    settings={
+        'gateway.type': 'none',
+        'index.store.type': 'memory',
+        'cluster.routing.schedule': '30ms'
+    }
+)
 
 
 def setUpLocations(test):
