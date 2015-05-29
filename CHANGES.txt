@@ -5,6 +5,9 @@ Changes for Crate
 unreleased
 ==========
 
+2015/05/29 0.48.7
+=================
+
  - Fix: Row count was wrong when a `DELETE FROM` statement on a
    partitioned table hit exact 1 partition.
 
