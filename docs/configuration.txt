@@ -128,30 +128,6 @@ Ports
   of the node is not directly reachable from outside, e.g. running it
   behind a firewall or inside a Docker container.
 
-Query Circuit Breaker
----------------------
-
-The Query circuit breaker will keep track of the used memory during
-the execution of a query. If a query consumes too much memory or if
-the cluster is already near its memory limit it will terminate the
-query to ensure the cluster keeps working.
-
-**node.breaker.query.limit**
-  | *Default:*   ``60%``
-  | *Runtime:*   ``yes``
-
-  Specifies the limit for the query breaker. Provided values can
-  either be absolute values (intepreted as a number of bytes), byte
-  sizes (eg. 1mb) or percentage of the heap size (eg. 12%). A value of
-  ``-1`` disables breaking the circuit while still accounting memory usage.
-
-**node.breaker.query.overhead**
-  | *Default:*   ``1.09``
-  | *Runtime:*   ``yes``
-
-  A constant that all data estimations are multiplied with to
-  determine a final estimation.
-
 .. _conf-cluster-settings:
 
 Cluster Wide Settings
@@ -639,6 +615,30 @@ Store Level Throttling
   If throttling is enabled by `indices.store.throttle.type`_, this
   setting specifies the maximum bytes per second a store module
   process can operate with.
+
+Query Circuit Breaker
+---------------------
+
+The Query circuit breaker will keep track of the used memory during
+the execution of a query. If a query consumes too much memory or if
+the cluster is already near its memory limit it will terminate the
+query to ensure the cluster keeps working.
+
+**indices.breaker.query.limit**
+  | *Default:*   ``60%``
+  | *Runtime:*   ``yes``
+
+  Specifies the limit for the query breaker. Provided values can
+  either be absolute values (intepreted as a number of bytes), byte
+  sizes (eg. 1mb) or percentage of the heap size (eg. 12%). A value of
+  ``-1`` disables breaking the circuit while still accounting memory usage.
+
+**indices.breaker.query.overhead**
+  | *Default:*   ``1.09``
+  | *Runtime:*   ``no``
+
+  A constant that all data estimations are multiplied with to
+  determine a final estimation.
 
 Field Data Circuit Breaker
 --------------------------

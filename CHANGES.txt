@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Made circuit breaker cluster settings settable on runtime
+   and renamed the missleading prefix ``node`` to ``indices``.
+   Note: This is a backward incompatibility change!
+
  - Fix: Row count was wrong when a `DELETE FROM` statement on a
    partitioned table hit exact 1 partition.
 
