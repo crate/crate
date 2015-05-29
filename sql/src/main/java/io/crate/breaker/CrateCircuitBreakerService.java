@@ -35,9 +35,9 @@ import java.util.Locale;
 
 public class CrateCircuitBreakerService extends CircuitBreakerService {
 
-    public static final String QUERY_CIRCUIT_BREAKER_LIMIT_SETTING = "node.breaker.query.limit";
-    public static final String QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING = "node.breaker.query.overhead";
-    public static final String QUERY_CIRCUIT_BREAKER_TYPE_SETTING = "node.breaker.query.type";
+    public static final String QUERY_CIRCUIT_BREAKER_LIMIT_SETTING = "indices.breaker.query.limit";
+    public static final String QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING = "indices.breaker.query.overhead";
+    public static final String QUERY_CIRCUIT_BREAKER_TYPE_SETTING = "indices.breaker.query.type";
     public static final String DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT = "60%";
     public static final double DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT = 1.09;
     public static final String DEFAULT_QUERY_CIRCUIT_BREAKER_TYPE = "memory";

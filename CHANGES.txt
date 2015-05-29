@@ -7,6 +7,10 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
+ - Made circuit breaker cluster settings settable on runtime
+   and renamed the missleading prefix ``node`` to ``indices``.
+   Note: This is a backward incompatibility change!
+
  - Fix: made it possible to filter on all types of table settings
 
  - Fix: Row count was wrong when a `DELETE FROM` statement on a

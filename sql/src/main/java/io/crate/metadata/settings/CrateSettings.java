@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.analyze.SettingsApplier;
 import io.crate.analyze.SettingsAppliers;
+import io.crate.breaker.CrateCircuitBreakerService;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -999,6 +1000,66 @@ public class CrateSettings {
         }
     };
 
+    public static final NestedSetting INDICES_BREAKER = new NestedSetting() {
+        @Override
+        public String name() { return "breaker"; }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(INDICES_BREAKER_QUERY);
+        }
+
+        @Override
+        public Setting parent() {
+            return INDICES;
+        }
+    };
+
+    public static final NestedSetting INDICES_BREAKER_QUERY = new NestedSetting() {
+        @Override
+        public String name() { return "query"; }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                    INDICES_BREAKER_QUERY_LIMIT,
+                    INDICES_BREAKER_QUERY_OVERHEAD
+            );
+        }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER;
+        }
+    };
+
+    public static final StringSetting INDICES_BREAKER_QUERY_LIMIT = new StringSetting() {
+        @Override
+        public String name() { return "limit"; }
+
+        @Override
+        public String defaultValue() { return CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT; }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER_QUERY;
+        }
+    };
+
+    public static final DoubleSetting INDICES_BREAKER_QUERY_OVERHEAD = new DoubleSetting() {
+        @Override
+        public String name() { return "overhead"; }
+
+        @Override
+        public Double defaultValue() { return CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT; }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER_QUERY;
+        }
+    };
+
+
     public static final NestedSetting CLUSTER_INFO = new NestedSetting() {
         @Override
         public String name() { return "info"; }
@@ -1190,9 +1251,9 @@ public class CrateSettings {
             .put(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK))
             .put(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW.settingName(),
-                    new SettingsAppliers.StringSettingsApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW))
+                    new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW))
             .put(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH.settingName(),
-                    new SettingsAppliers.StringSettingsApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH))
+                    new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH))
             .put(CrateSettings.INDICES.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES))
             .put(CrateSettings.INDICES_RECOVERY.settingName(),
@@ -1222,9 +1283,17 @@ public class CrateSettings {
             .put(CrateSettings.INDICES_FIELDDATA_BREAKER.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER))
             .put(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT.settingName(),
-                    new SettingsAppliers.StringSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT))
+                    new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT))
             .put(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD.settingName(),
                     new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD))
+            .put(CrateSettings.INDICES_BREAKER.settingName(),
+                    new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER))
+            .put(CrateSettings.INDICES_BREAKER_QUERY.settingName(),
+                    new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY))
+            .put(CrateSettings.INDICES_BREAKER_QUERY_LIMIT.settingName(),
+                    new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY_LIMIT))
+            .put(CrateSettings.INDICES_BREAKER_QUERY_OVERHEAD.settingName(),
+                    new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY_OVERHEAD))
             .put(CrateSettings.CLUSTER_INFO.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.CLUSTER_INFO))
             .put(CrateSettings.CLUSTER_INFO_UPDATE.settingName(),
