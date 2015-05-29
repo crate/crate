@@ -35,8 +35,8 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
                 "clustered into 5 shards " +
                 "with (number_of_replicas=0)");
 
-        client().admin().indices().close(new CloseIndexRequest("t3"));
-        ensureGreen();
+        ensureYellow();
+        client().admin().indices().close(new CloseIndexRequest("t3")).actionGet();
 
         execute("select * from information_schema.tables where schema_name = 'doc'");
         assertEquals(1L, response.rowCount());
