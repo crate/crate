@@ -28,7 +28,6 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
@@ -36,7 +35,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.HashMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -812,6 +810,61 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);
         assertArrayEquals(row3, response.rows()[2]);
+    }
+
+    @Test
+    public void testDisableWriteOnSinglePartition() throws Exception {
+        execute("create table my_table (par int, content string) " +
+                "clustered into 5 shards " +
+                "partitioned by (par)");
+        execute("insert into my_table (par, content) values (1, 'content1'), " +
+                                                            "(1, 'content2'), " +
+                                                            "(2, 'content3'), " +
+                                                            "(2, 'content4'), " +
+                                                            "(2, 'content5'), " +
+                                                            "(3, 'content6')");
+
+        ensureGreen();
+        execute("alter table my_table partition (par=1) set (\"blocks.write\"=true)");
+
+        // update is expected to be executed without exception since this partition has no write block
+        execute("update my_table set content=\'content42\' where par=2");
+        refresh();
+        // verifying update
+        execute("select content from my_table where par=2");
+        assertThat(response.rowCount(), is(3L));
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("blocked by: [FORBIDDEN/8/index write (api)]");
+
+        // trying to perform an update on a partition with a write block
+        execute("update my_table set content=\'content42\' where par=1");
+
+    }
+
+    @Test
+    public void testMultipleWritesWhenOnePartitionIsReadOnly() throws Exception {
+        execute("create table my_table (par int, content string) " +
+                "clustered into 5 shards " +
+                "partitioned by (par)");
+        execute("insert into my_table (par, content) values " +
+                "(1, 'content2'), " +
+                "(2, 'content3')");
+
+        ensureGreen();
+        execute("alter table my_table partition (par=1) set (\"blocks.write\"=true)");
+        try {
+            execute("insert into my_table (par, content) values (2, 'content42'), " +
+                    "(2, 'content42'), " +
+                    "(1, 'content2'), " +
+                    "(3, 'content6')");
+
+        } catch (SQLActionException e) {
+            assertThat(e.getMessage(), is("blocked by: [FORBIDDEN/8/index write (api)];"));
+        }
+        refresh();
+        execute("select * from my_table");
+        assertThat(response.rowCount(), is(4L));
     }
 
     @Test

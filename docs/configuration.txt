@@ -292,6 +292,11 @@ Ports
   of the node is not directly reachable from outside, e.g. running it
   behind a firewall or inside a Docker container.
 
+  .. note::
+
+    It is also possible to alter settings of single partitions of a partitioned table.
+    To change table settings for a particular partitions please refer to :ref:`ref-alter-table-partition-clause`.
+
 .. _conf-cluster-settings:
 
 Cluster Wide Settings
