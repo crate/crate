@@ -897,13 +897,13 @@ query to ensure the cluster keeps working.
   A constant that all data estimations are multiplied with to
   determine a final estimation.
 
+
 Field Data Circuit Breaker
 --------------------------
-The field data circuit breaker allows estimation of needed memory
+
+The field data circuit breaker allows estimation of needed heap memory
 required for loading field data into memory. If a certain limit
 is reached an exception is raised.
-
-.. _indices.fielddata.breaker.limit:
 
 **indices.fielddata.breaker.limit**
   | *Default:*   ``60%``
@@ -911,14 +911,34 @@ is reached an exception is raised.
 
   Specifies the JVM heap limit for the fielddata breaker.
 
-.. _indices.fielddata.breaker.overhead:
-
 **indices.fielddata.breaker.overhead**
   | *Default:*   ``1.03``
   | *Runtime:*  ``yes``
 
   A constant that all field data estimations are multiplied with to
   determine a final estimation.
+
+
+Request Circuit Breaker
+-----------------------
+
+The request circuit breaker allows an estimation of required heap memory
+per request. If a single request exceeds the specified amount of memory,
+an exception is raised.
+
+**indices.breaker.request.limit**
+  | *Default:*   ``40%``
+  | *Runtime:*  ``yes``
+
+  Specifies the JVM heap limit for the request circuit breaker.
+
+**indices.breaker.request.overhead**
+  | *Default:*   ``1.0``
+  | *Runtime:*  ``yes``
+
+  A constant that all request estimations are multiplied with to
+  determine a final estimation.
+
 
 Threadpools
 -----------
