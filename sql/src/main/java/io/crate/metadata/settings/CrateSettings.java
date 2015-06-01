@@ -706,7 +706,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(INDICES_RECOVERY, INDICES_STORE, INDICES_FIELDDATA);
+            return ImmutableList.<Setting>of(INDICES_RECOVERY, INDICES_STORE, INDICES_FIELDDATA, INDICES_BREAKER);
         }
     };
 
@@ -1006,7 +1006,10 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(INDICES_BREAKER_QUERY);
+            return ImmutableList.<Setting>of(
+                    INDICES_BREAKER_QUERY,
+                    INDICES_BREAKER_REQUEST
+            );
         }
 
         @Override
@@ -1059,6 +1062,49 @@ public class CrateSettings {
         }
     };
 
+    public static final NestedSetting INDICES_BREAKER_REQUEST = new NestedSetting() {
+        @Override
+        public String name() { return "request"; }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                    INDICES_BREAKER_REQUEST_LIMIT,
+                    INDICES_BREAKER_REQUEST_OVERHEAD
+            );
+        }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER;
+        }
+    };
+
+    public static final StringSetting INDICES_BREAKER_REQUEST_LIMIT = new StringSetting() {
+        @Override
+        public String name() { return "limit"; }
+
+        @Override
+        public String defaultValue() { return "40%"; }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER_REQUEST;
+        }
+    };
+
+    public static final DoubleSetting INDICES_BREAKER_REQUEST_OVERHEAD = new DoubleSetting() {
+        @Override
+        public String name() { return "overhead"; }
+
+        @Override
+        public Double defaultValue() { return 1.0; }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER_REQUEST;
+        }
+    };
 
     public static final NestedSetting CLUSTER_INFO = new NestedSetting() {
         @Override
@@ -1288,6 +1334,12 @@ public class CrateSettings {
                     new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD))
             .put(CrateSettings.INDICES_BREAKER.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER))
+            .put(CrateSettings.INDICES_BREAKER_REQUEST.settingName(),
+                    new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_REQUEST))
+            .put(CrateSettings.INDICES_BREAKER_REQUEST_LIMIT.settingName(),
+                new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_REQUEST_LIMIT))
+            .put(CrateSettings.INDICES_BREAKER_REQUEST_OVERHEAD.settingName(),
+                    new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_BREAKER_REQUEST_OVERHEAD))
             .put(CrateSettings.INDICES_BREAKER_QUERY.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY))
             .put(CrateSettings.INDICES_BREAKER_QUERY_LIMIT.settingName(),

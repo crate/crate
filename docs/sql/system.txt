@@ -139,6 +139,13 @@ currently applied cluster settings.
     | settings['indices']['fielddata']['breaker']                                       | object    |
     | settings['indices']['fielddata']['breaker']['limit']                              | string    |
     | settings['indices']['fielddata']['breaker']['overhead']                           | double    |
+    | settings['indices']['breaker']                                                    | object    |
+    | settings['indices']['breaker']['query']                                           | object    |
+    | settings['indices']['breaker']['query']['limit']                                  | string    |
+    | settings['indices']['breaker']['query']['overhead']                               | double    |
+    | settings['indices']['breaker']['request']                                         | object    |
+    | settings['indices']['breaker']['request']['limit']                                | string    |
+    | settings['indices']['breaker']['request']['overhead']                             | double    |
     | settings['cluster']['info']                                                       | object    |
     | settings['cluster']['info']['update']                                             | object    |
     | settings['cluster']['info']['update']['interval']                                 | string    |
@@ -146,7 +153,7 @@ currently applied cluster settings.
     | settings['bulk']['request_timeout']                                               | string    |
     | settings['bulk']['partition_creation_timeout']                                    | string    |
     +-----------------------------------------------------------------------------------+-----------+
-    SELECT 75 rows in set (... sec)
+    SELECT 82 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 
