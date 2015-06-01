@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added missing cluster settings for request circuit breaker
+   and expose them via information schema
+
  - Made circuit breaker cluster settings settable on runtime
    and renamed the missleading prefix ``node`` to ``indices``.
    Note: This is a backward incompatibility change!

@@ -10,9 +10,9 @@
 .flooignore
 *~
 .gradle
-/build
+*build/
 /out
-/data
+*data/
 /sandbox
 /docs/eggs
 /docs/out

@@ -431,7 +431,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(207L, response.rowCount());
+        assertEquals(214L, response.rowCount());
     }
 
     @Test
@@ -551,7 +551,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
-        short max_ordinal = 79;
+        short max_ordinal = 80;
         assertEquals(max_ordinal, response.rows()[0][0]);
 
         execute("create table t1 (id integer, col1 string)");
