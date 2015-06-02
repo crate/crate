@@ -23,48 +23,57 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.monitor.process.ProcessInfo;
 import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.node.service.NodeService;
 
-public class NodeProcessExpression extends SysNodeObjectReference {
+public class NodeProcessCpuExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "process";
-
-    public static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
-    public static final String MAX_OPEN_FILE_DESCRIPTORS = "max_open_file_descriptors";
+    public static final String NAME = "cpu";
+    public static final String PERCENT = "percent";
+    public static final String USER = "user";
+    public static final String SYSTEM = "system";
 
     private final NodeService nodeService;
 
     @Inject
-    protected NodeProcessExpression(final NodeService nodeService) {
+    public NodeProcessCpuExpression(NodeService nodeService) {
         this.nodeService = nodeService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(OPEN_FILE_DESCRIPTORS, new SysNodeExpression<Long>() {
+        childImplementations.put(PERCENT, new SysNodeExpression<Short>() {
+            @Override
+            public Short value() {
+                ProcessStats stats = nodeService.stats().getProcess();
+                if (stats != null) {
+                    return stats.cpu().getPercent();
+                } else {
+                    return -1;
+                }
+            }
+        });
+        childImplementations.put(USER, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                ProcessStats processStats = nodeService.stats().getProcess();
-                if (processStats != null) {
-                    return processStats.getOpenFileDescriptors();
+                ProcessStats stats = nodeService.stats().getProcess();
+                if (stats != null) {
+                    return stats.cpu().getUser().millis();
                 } else {
                     return -1L;
                 }
             }
         });
-        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new SysNodeExpression<Long>() {
+        childImplementations.put(SYSTEM, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                ProcessInfo processInfo = nodeService.info().getProcess();
-                if (processInfo != null) {
-                    return processInfo.getMaxFileDescriptors();
+                ProcessStats stats = nodeService.stats().getProcess();
+                if (stats != null) {
+                    return stats.cpu().getSys().millis();
                 } else {
                     return -1L;
                 }
             }
         });
-        childImplementations.put(NodeProcessCpuExpression.NAME, new NodeProcessCpuExpression(nodeService));
     }
 }

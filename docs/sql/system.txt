@@ -438,7 +438,7 @@ process
 +------------------------------------------+------------------------------------------------+--------------+
 | Column Name                              | Description                                    | Return Type  |
 +==========================================+================================================+==============+
-| ``process``                              | Statistics about the Crate process             | ``Object``   |
+| ``process``                              | Statistics about the Crate process.            | ``Object``   |
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['open_file_descriptors']``     | Number of currently open file descriptors used | ``Long``     |
 |                                          | by the Crate process.                          |              |
@@ -446,6 +446,16 @@ process
 | ``process['max_open_file_descriptors']`` | The maximum number of open file descriptors    | ``Long``     |
 |                                          | Crate can use.                                 |              |
 +------------------------------------------+------------------------------------------------+--------------+
+| ``process['cpu']``                       | Information about the system CPU.              | ``Object``   |
++------------------------------------------+------------------------------------------------+--------------+
+| ``process['cpu']['percent']``            | The CPU usage of the Crate JVM process given   | ``Short``    |
+|                                          | in percent.                                    |              |
++------------------------------------------+------------------------------------------------+--------------+
+| ``process['cpu']['user']``               | The process CPU user time in milliseconds.     | ``Long``     |
++------------------------------------------+------------------------------------------------+--------------+
+| ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``Long``     |
++------------------------------------------+------------------------------------------------+--------------+
+
 
 
 Shards
@@ -587,7 +597,8 @@ operation is listed on each node it is being executed on.
 In order to see on which nodes the operations are being executed the
 ``_node`` system column can be used in the query::
 
-    cr> select _node['name'], job_id, name, used_bytes from sys.operations order by name limit 1;
+    cr> select _node['name'], job_id, name, used_bytes from sys.operations
+    ... order by name limit 1;
     +---------------+--------...-+---------+------------+
     | _node['name'] | job_id     | name    | used_bytes |
     +---------------+--------...-+---------+------------+
@@ -652,7 +663,8 @@ For example to set the timeout to 30 minutes::
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = 1800000;
     SET OK (... sec)
 
-Crate supports string literals for time values the same way as the ``crate.yml`` does.
+Crate supports string literals for time values the same way as the ``crate.yml`` 
+does.
 So you can write the previous statmement as::
 
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = '30m';

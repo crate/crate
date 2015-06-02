@@ -114,6 +114,10 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("process", DataTypes.OBJECT, null);
         register("process", DataTypes.LONG, ImmutableList.of("open_file_descriptors"));
         register("process", DataTypes.LONG, ImmutableList.of("max_open_file_descriptors"));
+        register("process", DataTypes.OBJECT, ImmutableList.of("cpu"));
+        register("process", DataTypes.SHORT, ImmutableList.of("cpu", "percent"));
+        register("process", DataTypes.LONG, ImmutableList.of("cpu", "user"));
+        register("process", DataTypes.LONG, ImmutableList.of("cpu", "system"));
 
         register("fs", DataTypes.OBJECT, null);
         register("fs", DataTypes.OBJECT, ImmutableList.of("total"));
