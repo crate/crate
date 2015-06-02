@@ -55,7 +55,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.shard.IndexShard;
@@ -205,21 +204,22 @@ public class ShardCollectService {
                 shardId.id());
         final IndexShard indexShard = indexService.shardSafe(shardId.id());
 
-        return jobCollectContext.createCollectorAndContext(
+        JobQueryShardContext context = new JobQueryShardContext(
                 indexShard,
                 jobSearchContextId,
-                new Function<Engine.Searcher, LuceneDocCollector>() {
+                collectNode.keepContextForFetcher(),
+                new Function<JobQueryShardContext, LuceneDocCollector>() {
 
                     @Nullable
                     @Override
-                    public LuceneDocCollector apply(Engine.Searcher engineSearcher) {
+                    public LuceneDocCollector apply(JobQueryShardContext shardContext) {
                         CrateSearchContext localContext = null;
                         try {
                             localContext = new CrateSearchContext(
                                     jobSearchContextId,
                                     System.currentTimeMillis(),
                                     searchShardTarget,
-                                    engineSearcher,
+                                    shardContext.engineSearcher(),
                                     indexService,
                                     indexShard,
                                     scriptService,
@@ -230,6 +230,7 @@ public class ShardCollectService {
                                     Optional.<Scroll>absent(),
                                     JobContextService.DEFAULT_KEEP_ALIVE
                             );
+                            shardContext.searchContext(localContext);
                             LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(
                                     collectNode.whereClause(), localContext, indexService.cache());
                             localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
@@ -243,10 +244,7 @@ public class ShardCollectService {
                                     collectNode,
                                     functions,
                                     downstream,
-                                    jobCollectContext,
-                                    localContext,
-                                    jobSearchContextId,
-                                    collectNode.keepContextForFetcher());
+                                    shardContext);
                         } catch (Throwable t) {
                             if (localContext != null) {
                                 localContext.close();
@@ -257,5 +255,8 @@ public class ShardCollectService {
                 }
         );
 
+        jobCollectContext.addContext(jobSearchContextId, context);
+
+        return context.collector();
     }
 }

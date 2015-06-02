@@ -94,11 +94,12 @@ public class NodeFetchOperationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testFetchOperationNoLuceneDocCollector() throws Exception {
+    public void testFetchOperationNoCollectContext() throws Exception {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         builder.addSubContext(1, new JobCollectContext(jobId,
-                mock(CollectNode.class), mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
+                mock(CollectNode.class), mock(CollectOperation.class),
+                RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
         jobContextService.createContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
@@ -113,7 +114,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", 0));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "No shard collect context found for job search context id '%s'", 0));
         nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
     }
 }

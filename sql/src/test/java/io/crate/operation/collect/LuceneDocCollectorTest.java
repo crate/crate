@@ -153,13 +153,11 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
-        int jobSearchContextId = 0;
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         jobCollectContext = new JobCollectContext(
                 jobId, node, mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, collectingProjector);
         builder.addSubContext(node.executionNodeId(), jobCollectContext);
         jobContextService.createContext(builder);
-        jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(pageSize);
         return collector;
@@ -351,10 +349,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
-        int jobSearchContextId = 0;
         JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionNodeId());
-        ShardId shardId = new ShardId("test", 0);
-        jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(1);
         collector.doCollect(jobCollectContext);
@@ -371,6 +366,13 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertEquals(expected, TestingHelpers.printedTable(collectingProjector.doFinish()));
 
         // Nulls first
+        node.jobId(UUID.randomUUID());
+        builder = jobContextService.newBuilder(node.jobId());
+        builder.addSubContext(node.executionNodeId(),
+                new JobCollectContext(node.jobId(), node, mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, collectingProjector));
+        jobContextService.createContext(builder);
+        jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionNodeId());
+
         collectingProjector.rows.clear();
         orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, true});
         node.orderBy(orderBy);

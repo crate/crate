@@ -218,7 +218,7 @@ public class JobExecutionContext {
             Object remove = subContexts.remove(executionNodeId);
             int remaining;
             if (remove == null) {
-                LOGGER.error("Closed context {} which was already closed.", executionNodeId);
+                LOGGER.trace("Closed context {} which was already closed.", executionNodeId);
                 remaining = activeSubContexts.get();
             } else {
                 statsTables.operationFinished(executionNodeId, Exceptions.messageOf(error), bytesUsed);

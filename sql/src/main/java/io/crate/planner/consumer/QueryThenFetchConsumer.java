@@ -61,6 +61,7 @@ public class QueryThenFetchConsumer implements Consumer {
 
     private static final Visitor VISITOR = new Visitor();
     private static final OutputOrderReferenceCollector OUTPUT_ORDER_REFERENCE_COLLECTOR = new OutputOrderReferenceCollector();
+    private static final ReferencesCollector REFERENCES_COLLECTOR = new ReferencesCollector();
     private static final ScoreReferenceDetector SCORE_REFERENCE_DETECTOR = new ScoreReferenceDetector();
     private static final ColumnIdent DOC_ID_COLUMN_IDENT = new ColumnIdent(DocSysColumns.DOCID.name());
     private static final InputColumn DEFAULT_DOC_ID_INPUT_COLUMN = new InputColumn(0, DataTypes.STRING);
@@ -98,6 +99,7 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             boolean outputsAreAllOrdered = false;
+            boolean needFetchProjection = REFERENCES_COLLECTOR.collect(querySpec.outputs()).containsAnyReference();
             List<Projection> collectProjections = new ArrayList<>();
             List<Projection> mergeProjections = new ArrayList<>();
             List<Symbol> collectSymbols = new ArrayList<>();
@@ -125,9 +127,11 @@ public class QueryThenFetchConsumer implements Consumer {
                 } else {
                     collectSymbols.addAll(orderBy.orderBySymbols());
                 }
-
             }
-            if (!outputsAreAllOrdered) {
+
+            needFetchProjection = needFetchProjection & !outputsAreAllOrdered;
+
+            if (needFetchProjection) {
                 collectSymbols.add(0, new Reference(docIdRefInfo));
                 for (Symbol symbol : querySpec.outputs()) {
                     // _score can only be resolved during collect
@@ -136,6 +140,9 @@ public class QueryThenFetchConsumer implements Consumer {
                     }
                     outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
                 }
+            } else {
+                // no fetch projection needed, resolve all symbols during collect
+                collectSymbols = splitPoints.toCollect();
             }
             if (orderBy != null) {
                 MergeProjection mergeProjection = projectionBuilder.mergeProjection(
@@ -155,13 +162,13 @@ public class QueryThenFetchConsumer implements Consumer {
             );
 
 
-            collectNode.keepContextForFetcher(!outputsAreAllOrdered);
+            collectNode.keepContextForFetcher(needFetchProjection);
             collectNode.projections(collectProjections);
             // MAP/COLLECT related END
 
             // HANDLER/MERGE/FETCH related
             TopNProjection topNProjection;
-            if (!outputsAreAllOrdered) {
+            if (needFetchProjection) {
                 topNProjection = projectionBuilder.topNProjection(
                         collectSymbols,
                         null,
@@ -289,5 +296,60 @@ public class QueryThenFetchConsumer implements Consumer {
             }
             return null;
         }
+    }
+
+    static class ReferencesCollectorContext {
+        private List<Reference> outputReferences = new ArrayList<>();
+
+        public void addReference(Reference reference) {
+            outputReferences.add(reference);
+        }
+
+        public boolean containsAnyReference() {
+            return !outputReferences.isEmpty();
+        }
+    }
+
+    static class ReferencesCollector extends SymbolVisitor<ReferencesCollectorContext, Void> {
+
+        public ReferencesCollectorContext collect(List<Symbol> symbols) {
+            ReferencesCollectorContext context = new ReferencesCollectorContext();
+            collect(symbols, context);
+            return context;
+        }
+
+        public void collect(List<Symbol> symbols, ReferencesCollectorContext context) {
+            for (Symbol symbol : symbols) {
+                process(symbol, context);
+            }
+        }
+
+        @Override
+        public Void visitAggregation(Aggregation aggregation, ReferencesCollectorContext context) {
+            for (Symbol symbol : aggregation.inputs()) {
+                process(symbol, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, ReferencesCollectorContext context) {
+            context.addReference(symbol);
+            return null;
+        }
+
+        @Override
+        public Void visitDynamicReference(DynamicReference symbol, ReferencesCollectorContext context) {
+            return visitReference(symbol, context);
+        }
+
+        @Override
+        public Void visitFunction(Function function, ReferencesCollectorContext context) {
+            for (Symbol symbol : function.arguments()) {
+                process(symbol, context);
+            }
+            return null;
+        }
+
     }
 }

@@ -92,10 +92,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private final CollectorFieldsVisitor fieldsVisitor;
     private final InputRow inputRow;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
-    private final JobCollectContext jobCollectContext;
+    private final JobQueryShardContext shardContext;
     private final CrateSearchContext searchContext;
-    private final int jobSearchContextId;
-    private final boolean keepContextForFetcher;
     private final List<OrderByCollectorExpression> orderByCollectorExpressions = new ArrayList<>();
     private final Integer limit;
     private final OrderBy orderBy;
@@ -104,6 +102,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private AtomicReader currentReader;
     private RamAccountingContext ramAccountingContext;
     private boolean producedRows = false;
+    private boolean failed = false;
     private Scorer scorer;
     private int rowCount = 0;
     private int pageSize;
@@ -113,11 +112,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               CollectNode collectNode,
                               Functions functions,
                               RowDownstream downStreamProjector,
-                              JobCollectContext jobCollectContext,
-                              CrateSearchContext searchContext,
-                              int jobSearchContextId,
-                              boolean keepContextForFetcher) throws Exception {
-        this.jobCollectContext = jobCollectContext;
+                              JobQueryShardContext shardContext) throws Exception {
+        this.shardContext = shardContext;
         this.limit = collectNode.limit();
         this.orderBy = collectNode.orderBy();
         this.downstream = downStreamProjector.registerUpstream(this);
@@ -129,9 +125,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             }
         }
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
-        this.jobSearchContextId = jobSearchContextId;
-        this.searchContext = searchContext;
-        this.keepContextForFetcher = keepContextForFetcher;
+        this.searchContext = shardContext.searchContext();
         inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
         this.pageSize = Constants.PAGE_SIZE;
     }
@@ -146,7 +140,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void collect(int doc) throws IOException {
-        if (jobCollectContext.isKilled()) {
+        if (shardContext.isKilled()) {
             throw new CollectionAbortedException(new CancellationException());
         }
 
@@ -209,19 +203,18 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         CollectorContext collectorContext = new CollectorContext()
                 .searchContext(searchContext)
                 .visitor(fieldsVisitor)
-                .jobSearchContextId(jobSearchContextId);
+                .jobSearchContextId(shardContext.jobSearchContextId());
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
         visitorEnabled = fieldsVisitor.required();
-        jobCollectContext.acquireContext(searchContext);
+        shardContext.acquireContext();
         Query query = searchContext.query();
         if (query == null) {
             query = new MatchAllDocsQuery();
         }
 
         // do the lucene search
-        boolean failed = false;
         try {
             if( orderBy != null) {
                 Integer batchSize = limit == null ? pageSize : Math.min(pageSize, limit);
@@ -260,17 +253,23 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             }
         } catch (Exception e) {
             failed = true;
-            downstream.fail(jobCollectContext.isKilled() ? new CancellationException() : e);
+            downstream.fail(shardContext.isKilled() ? new CancellationException() : e);
         } finally {
-            jobCollectContext.releaseContext(searchContext);
-            if (!keepContextForFetcher || !producedRows || failed) {
-                jobCollectContext.closeContext(jobSearchContextId);
-            }
+            shardContext.releaseContext();
+            shardContext.close();
         }
     }
 
     public CrateSearchContext searchContext() {
         return searchContext;
+    }
+
+    public boolean producedRows() {
+        return producedRows;
+    }
+
+    public boolean failed() {
+        return failed;
     }
 
     public void pageSize(int pageSize) {

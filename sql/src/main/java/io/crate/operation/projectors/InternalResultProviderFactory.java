@@ -21,9 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributingDownstream;
@@ -58,7 +55,6 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
 
     public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
         Streamer<?>[] streamers = getStreamers(node);
-        assert !Iterables.all(FluentIterable.of(streamers), Predicates.isNull()) : "streamers must not be null";
 
         if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
             return new SingleBucketBuilder(streamers);

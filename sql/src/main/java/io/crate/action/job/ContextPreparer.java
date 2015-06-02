@@ -23,7 +23,6 @@ package io.crate.action.job;
 
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
@@ -36,7 +35,6 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
-import io.crate.operation.collect.StatsTables;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ResultProvider;
@@ -72,7 +70,6 @@ public class ContextPreparer {
     private ClusterService clusterService;
     private CountOperation countOperation;
     private final CircuitBreaker circuitBreaker;
-    private final StatsTables statsTables;
     private final ThreadPool threadPool;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final ResultProviderFactory resultProviderFactory;
@@ -83,7 +80,6 @@ public class ContextPreparer {
     public ContextPreparer(MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
-                           StatsTables statsTables,
                            ThreadPool threadPool,
                            CountOperation countOperation,
                            PageDownstreamFactory pageDownstreamFactory,
@@ -93,7 +89,6 @@ public class ContextPreparer {
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
-        this.statsTables = statsTables;
         this.threadPool = threadPool;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.resultProviderFactory = resultProviderFactory;
@@ -105,8 +100,7 @@ public class ContextPreparer {
     public ListenableFuture<Bucket> prepare(UUID jobId,
                                             ExecutionNode executionNode,
                                             JobExecutionContext.Builder contextBuilder) {
-        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionNode);
-        PreparerContext preparerContext = new PreparerContext(jobId, ramAccountingContext, contextBuilder);
+        PreparerContext preparerContext = new PreparerContext(jobId, contextBuilder);
         innerPreparer.process(executionNode, preparerContext);
         return preparerContext.directResultFuture;
     }
@@ -115,13 +109,10 @@ public class ContextPreparer {
 
         private final UUID jobId;
         private final JobExecutionContext.Builder contextBuilder;
-        private final RamAccountingContext ramAccountingContext;
         private ListenableFuture<Bucket> directResultFuture;
 
         private PreparerContext(UUID jobId,
-                                RamAccountingContext ramAccountingContext,
                                 JobExecutionContext.Builder contextBuilder) {
-            this.ramAccountingContext = ramAccountingContext;
             this.contextBuilder = contextBuilder;
             this.jobId = jobId;
         }
@@ -155,13 +146,13 @@ public class ContextPreparer {
 
         @Override
         public Void visitMergeNode(final MergeNode node, final PreparerContext context) {
-
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, node);
             ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
                             node,
                             downstream,
-                            context.ramAccountingContext,
+                            ramAccountingContext,
                             Optional.of(threadPool.executor(ThreadPool.Names.SEARCH)));
             StreamerVisitor.Context streamerContext = streamerVisitor.processPlanNode(node);
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
@@ -181,6 +172,7 @@ public class ContextPreparer {
 
         @Override
         public Void visitCollectNode(final CollectNode node, final PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, node);
             ResultProvider downstream = collectOperation.createDownstream(node);
 
             if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
@@ -190,21 +182,10 @@ public class ContextPreparer {
                     context.jobId,
                     node,
                     collectOperation,
-                    context.ramAccountingContext,
+                    ramAccountingContext,
                     downstream
             );
             context.contextBuilder.addSubContext(node.executionNodeId(), jobCollectContext);
-            if (!node.keepContextForFetcher()) {
-                downstream.result().addListener(new Runnable() {
-                    @Override
-                    public void run() {
-                        LOGGER.trace("Closing JobCollectContext {}/{} because result is ready",
-                                node.jobId(), node.executionNodeId());
-
-                        jobCollectContext.close();
-                    }
-                }, MoreExecutors.directExecutor());
-            }
             return null;
         }
     }

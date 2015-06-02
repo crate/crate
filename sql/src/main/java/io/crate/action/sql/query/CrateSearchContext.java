@@ -48,7 +48,6 @@ import java.util.Map;
 public class CrateSearchContext extends DefaultSearchContext {
 
     private final Engine.Searcher engineSearcher;
-    private volatile boolean isEngineSearcherShared = false;
 
     public CrateSearchContext(long id,
                               final long nowInMillis,
@@ -78,14 +77,6 @@ public class CrateSearchContext extends DefaultSearchContext {
         return engineSearcher;
     }
 
-    public void sharedEngineSearcher(boolean isShared) {
-        isEngineSearcherShared = isShared;
-    }
-
-    public boolean isEngineSearcherShared() {
-        return isEngineSearcherShared;
-    }
-
     public SearchLookup lookup(boolean shared) {
         if (shared) {
             return super.lookup();
@@ -100,9 +91,8 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
         // clear and scope phase we have
         Releasables.close(searcher());
-        if (!isEngineSearcherShared) {
-            Releasables.close(engineSearcher);
-        }
+
+        // Engine.Searcher will be closed through {@link EngineSearcherDelegate}
     }
 
 

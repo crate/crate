@@ -365,14 +365,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     }
 
                     for (Integer shardId : entry.getValue()) {
-                        try {
-                            jobCollectContext.registerJobContextId(
-                                    indexService.shardSafe(shardId).shardId(), jobSearchContextId);
-                        } catch (IndexMissingException e) {
-                            // edge case: index was deleted while iterating over shards
-                            lastException = new TableUnknownException(entry.getKey(), e);
-                            break;
-                        }
                         Injector shardInjector;
                         try {
                             shardInjector = indexService.shardInjectorSafe(shardId);

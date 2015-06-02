@@ -29,16 +29,16 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.ThreadPools;
-import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.collect.JobFetchShardContext;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.symbol.Reference;
@@ -125,9 +125,9 @@ public class NodeFetchOperation implements RowUpstream {
 
         List<LuceneDocFetcher> shardFetchers = new ArrayList<>(numShards);
         for (IntObjectCursor<ShardDocIdsBucket> entry : shardBuckets) {
-            LuceneDocCollector docCollector = jobCollectContext.findCollector(entry.key);
-            if (docCollector == null) {
-                String errorMsg = String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", entry.key);
+            JobFetchShardContext shardContext = jobCollectContext.getFetchContext(entry.key);
+            if (shardContext == null) {
+                String errorMsg = String.format(Locale.ENGLISH, "No shard collect context found for job search context id '%s'", entry.key);
                 LOGGER.error(errorMsg);
                 throw new IllegalArgumentException(errorMsg);
             }
@@ -139,9 +139,7 @@ public class NodeFetchOperation implements RowUpstream {
                             docCtx.docLevelExpressions(),
                             upstreamsRowMerger,
                             entry.value,
-                            jobCollectContext,
-                            docCollector.searchContext(),
-                            entry.key,
+                            shardContext,
                             closeContext));
         }
 

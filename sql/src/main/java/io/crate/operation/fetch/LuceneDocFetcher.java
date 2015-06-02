@@ -25,7 +25,7 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.*;
-import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.JobFetchShardContext;
 import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -44,9 +44,8 @@ public class LuceneDocFetcher implements RowUpstream {
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
     private final RowDownstreamHandle downstream;
     private final NodeFetchOperation.ShardDocIdsBucket shardDocIdsBucket;
-    private final JobCollectContext jobCollectContext;
+    private final JobFetchShardContext shardContext;
     private final CrateSearchContext searchContext;
-    private final int jobSearchContextId;
     private final boolean closeContext;
     private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
     private boolean visitorEnabled = false;
@@ -56,17 +55,14 @@ public class LuceneDocFetcher implements RowUpstream {
                             List<LuceneCollectorExpression<?>> collectorExpressions,
                             RowDownstream downstream,
                             NodeFetchOperation.ShardDocIdsBucket shardDocIdsBucket,
-                            JobCollectContext jobCollectContext,
-                            CrateSearchContext searchContext,
-                            int jobSearchContextId,
+                            JobFetchShardContext shardContext,
                             boolean closeContext) {
         inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.downstream = downstream.registerUpstream(this);
         this.shardDocIdsBucket = shardDocIdsBucket;
-        this.jobCollectContext = jobCollectContext;
-        this.searchContext = searchContext;
-        this.jobSearchContextId = jobSearchContextId;
+        this.shardContext = shardContext;
+        this.searchContext = shardContext.searchContext();
         this.closeContext = closeContext;
         this.fieldsVisitor = new LuceneDocCollector.CollectorFieldsVisitor(collectorExpressions.size());
     }
@@ -102,7 +98,7 @@ public class LuceneDocFetcher implements RowUpstream {
     public void doFetch(RamAccountingContext ramAccountingContext) {
         this.ramAccountingContext = ramAccountingContext;
 
-        jobCollectContext.acquireContext(searchContext);
+        shardContext.acquireContext();
 
         CollectorContext collectorContext = new CollectorContext()
                 .visitor(fieldsVisitor)
@@ -115,6 +111,8 @@ public class LuceneDocFetcher implements RowUpstream {
 
         try {
             for (int index = 0; index < shardDocIdsBucket.size(); index++) {
+                shardContext.interruptIfKilled();
+
                 int docId = shardDocIdsBucket.docId(index);
                 int readerIndex = ReaderUtil.subIndex(docId, searchContext.searcher().getIndexReader().leaves());
                 AtomicReaderContext subReaderContext = searchContext.searcher().getIndexReader().leaves().get(readerIndex);
@@ -129,9 +127,9 @@ public class LuceneDocFetcher implements RowUpstream {
         } catch (Exception e) {
             downstream.fail(e);
         } finally {
-            jobCollectContext.releaseContext(searchContext);
+            shardContext.releaseContext();
             if (closeContext) {
-                jobCollectContext.closeContext(jobSearchContextId);
+                shardContext.close();
             }
         }
     }

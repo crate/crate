@@ -1826,15 +1826,15 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testFetchPartitionedTable() throws Exception {
         execute("SET GLOBAL stats.enabled = true");
-        execute("create table t (name string, p string) partitioned by (p) with (number_of_replicas=0)");
+        execute("create table fetch_partition_test (name string, p string) partitioned by (p) with (number_of_replicas=0)");
         ensureYellow();
         Object[][] bulkArgs = new Object[20][];
         for (int i = 0; i < 20; i++) {
             bulkArgs[i] = new Object[]{"Marvin", i};
         }
-        execute("insert into t (name, p) values (?, ?)", bulkArgs);
-        execute("refresh table t");
-        execute("select count(*) from t");
+        execute("insert into fetch_partition_test (name, p) values (?, ?)", bulkArgs);
+        execute("refresh table fetch_partition_test");
+        execute("select count(*) from fetch_partition_test");
         assertThat(((long) response.rows()[0][0]), is(20L));
         execute("select count(*), job_id, arbitrary(name) from sys.operations_log where name='fetch' group by 2");
         assertThat(response.rowCount(), is(lessThanOrEqualTo(1L)));
