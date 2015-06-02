@@ -31,7 +31,6 @@ import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -866,10 +865,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select * from my_table");
         assertThat(response.rowCount(), is(both(greaterThanOrEqualTo(2L)).and(lessThanOrEqualTo(5L))));
-    }
-
-    @After
-    public void cleanUp() {
+        //cleaning up
         execute("alter table my_table partition (par=1) set (\"blocks.write\"=false)");
     }
 
