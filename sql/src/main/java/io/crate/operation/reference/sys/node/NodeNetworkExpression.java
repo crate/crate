@@ -28,9 +28,16 @@ import org.elasticsearch.monitor.network.NetworkStats;
 public class NodeNetworkExpression extends SysNodeObjectReference {
 
     public static final String NAME = "network";
+    public static final String PROBE_TIMESTAMP = "probe_timestamp";
 
     @Inject
-    public NodeNetworkExpression(NetworkStats stats) {
+    public NodeNetworkExpression(final NetworkStats stats) {
+        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+            @Override
+            public Long value() {
+                return stats.timestamp();
+            }
+        });
         childImplementations.put(NodeNetworkTCPExpression.NAME,
                 new NodeNetworkTCPExpression(stats));
     }

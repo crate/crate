@@ -35,6 +35,7 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
     public static final String USED = "used";
     public static final String FREE_PERCENT = "free_percent";
     public static final String USED_PERCENT = "used_percent";
+    public static final String PROBE_TIMESTAMP = "probe_timestamp";
 
     public NodeMemoryExpression(OsStats stats) {
         addChildImplementations(stats);
@@ -63,6 +64,12 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
             @Override
             public Short value() {
                 return stats.mem().usedPercent();
+            }
+        });
+        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+            @Override
+            public Long value() {
+                return stats.timestamp();
             }
         });
     }

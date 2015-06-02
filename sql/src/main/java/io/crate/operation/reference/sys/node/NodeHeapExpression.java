@@ -34,6 +34,7 @@ public class NodeHeapExpression extends SysNodeObjectReference {
     public static final String MAX = "max";
     public static final String FREE = "free";
     public static final String USED = "used";
+    public static final String PROBE_TIMESTAMP = "probe_timestamp";
 
     public NodeHeapExpression(JvmStats stats) {
         addChildImplementations(stats);
@@ -56,6 +57,12 @@ public class NodeHeapExpression extends SysNodeObjectReference {
             @Override
             public Long value() {
                 return stats.mem().getHeapMax().bytes();
+            }
+        });
+        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+            @Override
+            public Long value() {
+                return stats.timestamp();
             }
         });
     }

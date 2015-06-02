@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.GlobalReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.SimpleObjectExpression;
@@ -80,7 +79,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
@@ -89,14 +87,14 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     /**
      * Resolve canonical path (platform independent)
+     *
      * @param path the path to be resolved (e.g. /dev/sda1)
      * @return full canonical path (e.g. linux will resolve to /dev/sda1, windows to C:\dev\sda1)
      */
-    String resolveCanonicalPath(String path){
+    String resolveCanonicalPath(String path) {
         try {
             return new File(path).getCanonicalPath();
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return null;
@@ -166,6 +164,12 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             when(nodeStats.getProcess()).thenReturn(processStats);
             when(processStats.getOpenFileDescriptors()).thenReturn(42L);
 
+            ProcessStats.Cpu processCpu = mock(ProcessStats.Cpu.class);
+            when(processCpu.getPercent()).thenReturn((short) 50);
+            when(processCpu.getSys()).thenReturn(new TimeValue(1000));
+            when(processCpu.getUser()).thenReturn(new TimeValue(500));
+            when(processStats.cpu()).thenReturn(processCpu);
+
             NodeInfo nodeInfo = mock(NodeInfo.class);
             when(nodeService.info()).thenReturn(nodeInfo);
 
@@ -181,7 +185,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
             when(node.address()).thenReturn(transportAddress);
             when(node.attributes()).thenReturn(
-                ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
+                    ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
             );
 
             NetworkStats.Tcp tcp = mock(NetworkStats.Tcp.class, new Answer<Long>() {
@@ -200,7 +204,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             bind(NodeService.class).toInstance(nodeService);
 
             NodeEnvironment nodeEnv = mock(NodeEnvironment.class);
-            Path[] dataLocations = new Path[]{ new File("/foo").toPath(), new File("/bar").toPath() };
+            Path[] dataLocations = new Path[]{new File("/foo").toPath(), new File("/bar").toPath()};
             when(nodeEnv.hasNodeFile()).then(new Answer<Boolean>() {
                 @Override
                 public Boolean answer(InvocationOnMock invocation) throws Throwable {
@@ -412,23 +416,23 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         Object[] disks = (Object[]) v.get("disks");
         assertThat(disks.length, is(2));
         Map<String, Object> disk0 = (Map<String, Object>) disks[0];
-        assertThat((String)disk0.get("dev"), is(resolveCanonicalPath("/dev/sda1")));
-        assertThat((Long)disk0.get("size"), is(42L*1024));
+        assertThat((String) disk0.get("dev"), is(resolveCanonicalPath("/dev/sda1")));
+        assertThat((Long) disk0.get("size"), is(42L * 1024));
 
         Map<String, Object> disk1 = (Map<String, Object>) disks[1];
-        assertThat((String)disk1.get("dev"), is(resolveCanonicalPath("/dev/sda2")));
-        assertThat((Long)disk0.get("used"), is(42L*1024));
+        assertThat((String) disk1.get("dev"), is(resolveCanonicalPath("/dev/sda2")));
+        assertThat((Long) disk0.get("used"), is(42L * 1024));
 
         Object[] data = (Object[]) v.get("data");
         assertThat(data.length, is(2));
-        assertThat((String)((Map<String, Object>)data[0]).get("dev"), is(resolveCanonicalPath("/dev/sda1")));
-        assertThat((String)((Map<String, Object>)data[0]).get("path"), is(resolveCanonicalPath("/foo")));
+        assertThat((String) ((Map<String, Object>) data[0]).get("dev"), is(resolveCanonicalPath("/dev/sda1")));
+        assertThat((String) ((Map<String, Object>) data[0]).get("path"), is(resolveCanonicalPath("/foo")));
 
-        assertThat((String)((Map<String, Object>)data[1]).get("dev"), is(resolveCanonicalPath("/dev/sda2")));
-        assertThat((String)((Map<String, Object>)data[1]).get("path"), is(resolveCanonicalPath("/bar")));
+        assertThat((String) ((Map<String, Object>) data[1]).get("dev"), is(resolveCanonicalPath("/dev/sda2")));
+        assertThat((String) ((Map<String, Object>) data[1]).get("path"), is(resolveCanonicalPath("/bar")));
 
         ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME, ImmutableList.of(NodeFsDataExpression.NAME, "dev"));
-        SimpleObjectExpression<Object[]> fsData = (SimpleObjectExpression<Object[]>)resolver.getImplementation(ident);
+        SimpleObjectExpression<Object[]> fsData = (SimpleObjectExpression<Object[]>) resolver.getImplementation(ident);
         for (Object arrayElement : fsData.value()) {
             assertThat(arrayElement, instanceOf(BytesRef.class));
         }
@@ -463,7 +467,6 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     }
 
 
-
     @Test
     public void testVersion() throws Exception {
 
@@ -484,7 +487,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
         Map<String, Object> networkStats = networkRef.value();
         assertThat(mapToSortedString(networkStats),
-                is("tcp={" +
+                is("probe_timestamp=0, tcp={" +
                         "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
                         "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
                         "}"));
@@ -500,14 +503,13 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         assertThat(tcpStats, instanceOf(Map.class));
         assertThat(mapToSortedString(tcpStats),
                 is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
+                        "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
     }
-
 
     @Test
     public void testCpu() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "os");
-        NestedObjectExpression os = (NestedObjectExpression)resolver.getImplementation(ident);
+        NestedObjectExpression os = (NestedObjectExpression) resolver.getImplementation(ident);
 
         Map<String, Object> v = os.value();
         assertEquals(3600000L, v.get("uptime"));
@@ -524,11 +526,17 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Test
     public void testProcess() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "process");
-        NestedObjectExpression processRef = (NestedObjectExpression)resolver.getImplementation(ident);
+        NestedObjectExpression processRef = (NestedObjectExpression) resolver.getImplementation(ident);
 
         Map<String, Object> v = processRef.value();
         assertEquals(42L, (long) v.get("open_file_descriptors"));
         assertEquals(1000L, (long) v.get("max_open_file_descriptors"));
+
+        Map<String, Object> cpuObj = new HashMap<>(4);
+        cpuObj.put("percent", (short) 50);
+        cpuObj.put("system", 1000L);
+        cpuObj.put("user", 500L);
+        assertEquals(cpuObj, v.get("cpu"));
     }
 
     @Test
@@ -537,7 +545,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(ident);
 
         ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version", Collections.singletonList("number"));
-        SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>)resolver.getImplementation(ident);
+        SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>) resolver.getImplementation(ident);
 
         assertThat(version.value().get(NodeVersionExpression.NUMBER), instanceOf(String.class));
         assertThat(versionNumber.value(), is(new BytesRef(version.value().get(NodeVersionExpression.NUMBER).toString())));
