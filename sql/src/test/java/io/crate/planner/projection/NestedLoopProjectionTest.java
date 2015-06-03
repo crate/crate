@@ -21,28 +21,29 @@
 
 package io.crate.planner.projection;
 
-public enum ProjectionType {
+import com.google.common.collect.ImmutableList;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Value;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Test;
 
-    TOPN(TopNProjection.FACTORY),
-    GROUP(GroupProjection.FACTORY),
-    AGGREGATION(AggregationProjection.FACTORY),
-    FILTER(FilterProjection.FACTORY),
-    WRITER(WriterProjection.FACTORY),
-    INDEX_WRITER(SourceIndexWriterProjection.FACTORY),
-    COLUMN_INDEX_WRITER(ColumnIndexWriterProjection.FACTORY),
-    UPDATE(UpdateProjection.FACTORY),
-    FETCH(FetchProjection.FACTORY),
-    MERGE(MergeProjection.FACTORY),
-    NESTED_LOOP(NestedLoopProjection.FACTORY);
+public class NestedLoopProjectionTest extends CrateUnitTest {
 
-    private final Projection.ProjectionFactory factory;
+    @Test
+    public void testStreaming() throws Exception {
+        NestedLoopProjection p = new NestedLoopProjection();
+        p.outputs(ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.INTEGER)));
 
-    ProjectionType(Projection.ProjectionFactory factory) {
-        this.factory = factory;
+        BytesStreamOutput out = new BytesStreamOutput();
+        Projection.toStream(p, out);
+
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        NestedLoopProjection p2 = (NestedLoopProjection)Projection.fromStream(in);
+        assertEquals(p, p2);
+
+        assertNotEquals(p, new NestedLoopProjection());
     }
-
-    public Projection newInstance() {
-        return factory.newInstance();
-    }
-
 }
