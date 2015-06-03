@@ -362,7 +362,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             if (projection instanceof FetchProjection) {
                 FetchProjection fetchProjection = (FetchProjection) projection;
                 newProjections.add(new FetchProjection(
-                        fetchProjection.executionNodeId(),
+                        fetchProjection.jobSearchContextIdToExecutionNodeId(),
                         fetchProjection.docIdSymbol(),
                         fetchProjection.inputSymbols(),
                         fetchProjection.outputSymbols(),
