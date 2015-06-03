@@ -394,6 +394,12 @@ os
 |                         | machine by the hypervisor for other tasks.   |             |
 +-------------------------+----------------------------------------------+-------------+
 
+The cpu information values are cached for 1s. They might vary from the live terms. 
+Use the probe timestamps instead to get the terms which are measured at the time 
+of the collect. You could get the CPU usage for some period by analysing the start 
+and the end values using the "Probe-CPU" timestamp. Otherwise the usage could be 
+zero because of caching the measured values.
+
 network
 -------
 
@@ -456,7 +462,11 @@ process
 | ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``Long``     |
 +------------------------------------------+------------------------------------------------+--------------+
 
-The cpu information values are cached for 1s. They might vary from the real terms.
+The cpu information values are cached for 1s. They might vary from the live terms. 
+Use the probe timestamps instead to get the terms which are measured at the time 
+of the collect. You could get the CPU usage for some period by analysing the start 
+and the end values using the "Probe-CPU" timestamp. Otherwise the usage could be 
+zero because of caching the measured values.
 
 Shards
 ======
