@@ -25,10 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.*;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
@@ -66,6 +63,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -183,7 +181,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     @Override
     public ListenableFuture<List<Void>> collect(CollectNode collectNode,
                                                 RowDownstream downstream,
-                                                JobCollectContext jobCollectContext) {
+                                                final JobCollectContext jobCollectContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
         assert collectNode.jobId() != null : "no jobId present for collect operation";
         String localNodeId = clusterService.state().nodes().localNodeId();
@@ -193,18 +191,34 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 // shard or doc level (incl. unassigned shards)
                 return handleShardCollect(collectNode, downstream, jobCollectContext);
             } else {
+                ListenableFuture<List<Void>> results;
+
                 if (collectNode instanceof FileUriCollectNode) {
-                    return handleWithService(nodeCollectService, collectNode, downstream, jobCollectContext);
-                }
-                if (collectNode.isPartitioned() && collectNode.maxRowGranularity() == RowGranularity.DOC) {
+                    results = handleWithService(nodeCollectService, collectNode, downstream, jobCollectContext);
+                } else if (collectNode.isPartitioned() && collectNode.maxRowGranularity() == RowGranularity.DOC) {
                     // edge case: partitioned table without actual indices
                     // no results
                     downstream.registerUpstream(this).finish();
-                    return IMMEDIATE_LIST;
+                    results = IMMEDIATE_LIST;
+                } else {
+                    CollectService collectService = getCollectService(collectNode, localNodeId);
+                    results = handleWithService(collectService, collectNode, downstream, jobCollectContext);
                 }
 
-                CollectService collectService = getCollectService(collectNode, localNodeId);
-                return handleWithService(collectService, collectNode, downstream, jobCollectContext);
+                // close JobCollectContext after non doc collectors are finished
+                Futures.addCallback(results, new FutureCallback<List<Void>>() {
+                    @Override
+                    public void onSuccess(@Nullable List<Void> result) {
+                        jobCollectContext.close();
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        jobCollectContext.close();
+                    }
+                });
+
+                return results;
             }
         }
         throw new UnhandledServerException("unsupported routing");
@@ -380,6 +394,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                             throw new UnhandledServerException(
                                     String.format(Locale.ENGLISH, "unknown shard id %d on index '%s'",
                                             shardId, entry.getKey()), e);
+                        } catch (CancellationException e) {
+                            throw e;
                         } catch (Exception e) {
                             LOGGER.error("Error while getting collector", e);
                             throw new UnhandledServerException(e);
