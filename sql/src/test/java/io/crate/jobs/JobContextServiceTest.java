@@ -25,8 +25,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.PageDownstream;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -46,6 +49,9 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 
 public class JobContextServiceTest extends CrateUnitTest {
+
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private final Settings settings = ImmutableSettings.EMPTY;
@@ -95,7 +101,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     public void testJobExecutionContextIsSelfClosing() throws Exception {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
+                new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1);
         builder1.addSubContext(1, pageDownstreamContext);
         JobExecutionContext ctx1 = jobContextService.createOrMergeContext(builder1);
 
@@ -124,7 +130,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
+                new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1);
         builder1.addSubContext(1, pageDownstreamContext);
         return jobContextService.createOrMergeContext(builder1);
     }
@@ -160,7 +166,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         for (int i = 0; i < 50; i++) {
             final int currentSubContextId = i;
             final PageDownstreamContext pageDownstreamContext =
-                    new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], 1);
+                    new PageDownstreamContext(mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1);
             ListenableFuture<?> future = executorService.submit(new Runnable() {
                 @Override
                 public void run() {

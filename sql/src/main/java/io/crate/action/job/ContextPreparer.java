@@ -165,7 +165,8 @@ public class ContextPreparer {
             );
             StreamerVisitor.Context streamerContext = streamerVisitor.processPlanNode(node);
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
-                    pageDownstream, streamerContext.inputStreamers(), node.numUpstreams());
+                    pageDownstream, streamerContext.inputStreamers(),
+                    context.ramAccountingContext, node.numUpstreams());
 
             statsTables.operationStarted(node.executionNodeId(), context.jobId, node.name());
             Futures.addCallback(downstream.result(), new OperationFinishedStatsTablesCallback<Bucket>(

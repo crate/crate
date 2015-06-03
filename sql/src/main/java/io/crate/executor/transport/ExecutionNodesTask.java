@@ -162,6 +162,7 @@ public class ExecutionNodesTask extends JobTask {
         return new PageDownstreamContext(
                 finalMergePageDownstream,
                 streamers,
+                ramAccountingContext,
                 executionNodes[executionNodes.length - 1].executionNodes().size()
         );
     }

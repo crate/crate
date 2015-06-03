@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Accounted RAM wasn't freed after distributed grouping queries finished.
+
  - Added missing cluster settings for request circuit breaker
    and expose them via information schema
 
