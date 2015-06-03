@@ -23,6 +23,7 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.operation.PageConsumeListener;
@@ -44,6 +45,7 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     private String name;
     private final PageDownstream pageDownstream;
     private final Streamer<?>[] streamer;
+    private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
     private final ArrayList<SettableFuture<Bucket>> bucketFutures;
     private final BitSet allFuturesSet;
@@ -57,10 +59,12 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     public PageDownstreamContext(String name,
                                  PageDownstream pageDownstream,
                                  Streamer<?>[] streamer,
+                                 RamAccountingContext ramAccountingContext,
                                  int numBuckets) {
         this.name = name;
         this.pageDownstream = pageDownstream;
         this.streamer = streamer;
+        this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
         bucketFutures = new ArrayList<>(numBuckets);
         allFuturesSet = new BitSet(numBuckets);
@@ -167,6 +171,7 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
                 contextCallback.onClose(null, -1L);
             }
             pageDownstream.finish();
+            ramAccountingContext.close();
         } else {
             LOGGER.warn("called finish on an already closed PageDownstreamContext");
         }
@@ -196,6 +201,7 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
                 contextCallback.onClose(cancellationException, -1L);
             }
             pageDownstream.fail(cancellationException);
+            ramAccountingContext.close();
         } else {
             LOGGER.warn("called kill on an already closed PageDownstreamContext");
         }

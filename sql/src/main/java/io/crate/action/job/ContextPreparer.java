@@ -159,6 +159,7 @@ public class ContextPreparer {
                     node.name(),
                     pageDownstreamProjectorChain.v1(),
                     streamerContext.inputStreamers(),
+                    ramAccountingContext,
                     node.numUpstreams());
 
             context.contextBuilder.addSubContext(node.executionNodeId(), pageDownstreamContext);

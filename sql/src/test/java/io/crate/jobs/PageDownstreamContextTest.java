@@ -22,11 +22,14 @@
 package io.crate.jobs;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
@@ -42,6 +45,9 @@ import static org.mockito.Mockito.*;
 
 public class PageDownstreamContextTest extends CrateUnitTest {
 
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+
     @Test
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Exception {
         final AtomicReference<Throwable> ref = new AtomicReference<>();
@@ -55,7 +61,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             }
         }).when(pageDownstream).fail((Throwable)notNull());
 
-        PageDownstreamContext ctx = new PageDownstreamContext("dummy", pageDownstream, new Streamer[0], 3);
+        PageDownstreamContext ctx = new PageDownstreamContext("dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
@@ -71,7 +77,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         PageDownstream downstream = mock(PageDownstream.class);
         ContextCallback callback = mock(ContextCallback.class);
 
-        PageDownstreamContext ctx = new PageDownstreamContext("dummy", downstream, new Streamer[0], 3);
+        PageDownstreamContext ctx = new PageDownstreamContext("dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3);
         ctx.addCallback(callback);
         ctx.kill();
 

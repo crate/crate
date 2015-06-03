@@ -7,6 +7,8 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
+ - Fix: Accounted RAM wasn't freed after distributed grouping queries finished.
+
  - Added missing cluster settings for request circuit breaker
    and expose them via information schema
 

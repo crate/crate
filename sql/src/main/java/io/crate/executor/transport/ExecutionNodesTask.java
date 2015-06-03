@@ -176,6 +176,7 @@ public class ExecutionNodesTask extends JobTask {
                 mergeNode.name(),
                 pageDownstreamProjectorChain.v1(),
                 streamers,
+                ramAccountingContext,
                 executionNodes.get(executionNodes.size() - 1).executionNodes().size()
         );
         FlatProjectorChain flatProjectorChain = pageDownstreamProjectorChain.v2();
