@@ -225,11 +225,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     private FetchProjection getFetchProjection(DocTableInfo characters, List<Symbol> collectSymbols, List<Symbol> outputSymbols, CollectNode collectNode, Planner.Context ctx) {
+        Map<Integer, List<String>> executionNodes = new HashMap<>();
+        executionNodes.put(collectNode.executionNodeId(), new ArrayList<>(collectNode.executionNodes()));
         return new FetchProjection(
-                collectNode.executionNodeId(),
+                ctx.jobSearchContextIdToExecutionNodeId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
-                collectNode.executionNodes(),
+                executionNodes,
                 5,
                 false,
                 ctx.jobSearchContextIdToNode(),
