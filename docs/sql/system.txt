@@ -456,7 +456,7 @@ process
 | ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``Long``     |
 +------------------------------------------+------------------------------------------------+--------------+
 
-
+The cpu information values are cached for 1s. They might vary from the real terms.
 
 Shards
 ======
