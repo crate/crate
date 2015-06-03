@@ -7,31 +7,11 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
- - Fix: Accounted RAM wasn't freed after distributed grouping queries finished.
-
- - Added missing cluster settings for request circuit breaker
-   and expose them via information schema
-
- - Made circuit breaker cluster settings settable on runtime
-   and renamed the missleading prefix ``node`` to ``indices``.
-   Note: This is a backward incompatibility change!
-
  - Fix: made it possible to filter on all types of table settings
-
- - Fix: Row count was wrong when a `DELETE FROM` statement on a
-   partitioned table hit exact 1 partition.
 
  - Added ``ALTER TABLE ONLY`` statement support.
 
- - Updated crate-admin to 0.12.1 which includes following changes:
-
-    - updated logo and icons
-
  - Added unicast host discovery via SRV DNS records
-
- - Fixed an error that could occur if the same ``delete from
-   <partitoned_table>`` or ``drop table <partitioned_table>`` statement is
-   executed concurrently
 
  - Added the ``KILL ALL`` statement which can be used to cancel running
    operations
@@ -55,6 +35,28 @@ NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
  - Added the IF NOT EXISTS clause to the CREATE TABLE statement
 
+2015/06/03 0.49.2
+=================
+
+ - Fix: Accounted RAM wasn't freed after distributed grouping queries finished.
+
+ - Added missing cluster settings for request circuit breaker
+   and expose them via information schema
+
+ - Made circuit breaker cluster settings settable on runtime
+   and renamed the missleading prefix ``node`` to ``indices``.
+   Note: This is a backward incompatibility change!
+
+ - Fix: Row count was wrong when a `DELETE FROM` statement on a
+   partitioned table hit exact 1 partition.
+
+ - Updated crate-admin to 0.12.1 which includes following changes:
+
+    - updated logo and icons
+
+ - Fixed an error that could occur if the same ``delete from
+   <partitoned_table>`` or ``drop table <partitioned_table>`` statement is
+   executed concurrently
 
 2015/05/21 0.49.1
 =================
