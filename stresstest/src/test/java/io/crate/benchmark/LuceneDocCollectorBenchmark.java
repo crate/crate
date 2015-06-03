@@ -31,7 +31,6 @@ import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.jobs.ExecutionState;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ReferenceIdent;
@@ -39,7 +38,6 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.*;
-import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.SortingTopNProjector;
@@ -47,6 +45,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.testing.CollectingProjector;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -193,13 +192,11 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
-        int jobSearchContextId = 0;
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         jobCollectContext = new JobCollectContext(jobId, node,
                 CLUSTER.getInstance(MapSideDataCollectOperation.class),
                 RAM_ACCOUNTING_CONTEXT, collectingProjector);
         builder.addSubContext(node.executionNodeId(), jobCollectContext);
-        jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(PAGE_SIZE);
         return collector;
