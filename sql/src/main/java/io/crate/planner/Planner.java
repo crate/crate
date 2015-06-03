@@ -84,6 +84,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
         private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
+        private final IntObjectOpenHashMap<Integer> jobSearchContextIdToExecutionNodeId = new IntObjectOpenHashMap<>();
         private final ClusterService clusterService;
         private int jobSearchContextIdBaseSeq = 0;
         private int executionNodeId = 0;
@@ -122,6 +123,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                         for (Integer shardId : entry.getValue()) {
                             jobSearchContextIdToShard.put(jobSearchContextId, new ShardId(entry.getKey(), shardId));
                             jobSearchContextIdToNode.put(jobSearchContextId, nodeId);
+                            jobSearchContextIdToExecutionNodeId.put(jobSearchContextId, executionNodeId);
                             jobSearchContextId++;
                         }
                     }
@@ -132,6 +134,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         @Nullable
         public ShardId shardId(int jobSearchContextId) {
             return jobSearchContextIdToShard.get(jobSearchContextId);
+        }
+
+        public IntObjectOpenHashMap<Integer> jobSearchContextIdToExecutionNodeId() {
+            return jobSearchContextIdToExecutionNodeId;
         }
 
         public IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard() {

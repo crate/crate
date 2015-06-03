@@ -59,7 +59,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final TransportCloseContextNodeAction transportCloseContextNodeAction;
 
     private final UUID jobId;
-    private final int executionNodeId;
+    private final IntObjectOpenHashMap<Integer> jobSearchContextIdToExecutionNodeId;
     private final CollectExpression<?> collectDocIdExpression;
     private final List<ReferenceInfo> partitionedBy;
     private final List<Reference> toFetchReferences;
@@ -75,8 +75,8 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final Map<Integer, NodeBucket> nodeBuckets = new HashMap<>();
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean consumingRows = new AtomicBoolean(true);
-    private final List<String> executionNodes;
-    private final int numNodes;
+    private final Map<Integer, List<String>> executionNodes;
+    private int numNodes = 0;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
     private final Map<String, Row> partitionRowsCache = new HashMap<>();
     private final Object partitionRowsCacheLock = new Object();
@@ -91,28 +91,30 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                           TransportCloseContextNodeAction transportCloseContextNodeAction,
                           Functions functions,
                           UUID jobId,
-                          int executionNodeId,
+                          IntObjectOpenHashMap<Integer> jobSearchContextIdToExecutionNodeId,
                           CollectExpression<?> collectDocIdExpression,
                           List<Symbol> inputSymbols,
                           List<Symbol> outputSymbols,
                           List<ReferenceInfo> partitionedBy,
                           IntObjectOpenHashMap<String> jobSearchContextIdToNode,
                           IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard,
-                          Set<String> executionNodes,
+                          Map<Integer, List<String>> executionNodes,
                           int bulkSize,
                           boolean closeContexts) {
         this.transportFetchNodeAction = transportFetchNodeAction;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.jobId = jobId;
-        this.executionNodeId = executionNodeId;
+        this.jobSearchContextIdToExecutionNodeId = jobSearchContextIdToExecutionNodeId;
         this.collectDocIdExpression = collectDocIdExpression;
         this.partitionedBy = partitionedBy;
         this.jobSearchContextIdToNode = jobSearchContextIdToNode;
         this.jobSearchContextIdToShard = jobSearchContextIdToShard;
         this.bulkSize = bulkSize;
         this.closeContexts = closeContexts;
-        numNodes = executionNodes.size();
-        this.executionNodes = new ArrayList<>(executionNodes);
+        for (List<String> nodes : executionNodes.values()) {
+            numNodes += nodes.size();
+        }
+        this.executionNodes = executionNodes;
 
         RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(functions);
 
@@ -172,11 +174,12 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         String nodeId = jobSearchContextIdToNode.get(jobSearchContextId);
         String index = jobSearchContextIdToShard.get(jobSearchContextId).getIndex();
-        int nodeIdIndex = Objects.hash(nodeId);
+        Integer executionNodeId = jobSearchContextIdToExecutionNodeId.get(jobSearchContextId);
+        int nodeIdIndex = Objects.hash(nodeId, executionNodeId);
 
         NodeBucket nodeBucket = nodeBuckets.get(nodeIdIndex);
         if (nodeBucket == null) {
-            nodeBucket = new NodeBucket(nodeId, executionNodes.indexOf(nodeId));
+            nodeBucket = new NodeBucket(nodeId, executionNodes.get(executionNodeId).indexOf(nodeId), executionNodeId);
             nodeBuckets.put(nodeIdIndex, nodeBucket);
 
         }
@@ -258,7 +261,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         NodeFetchRequest request = new NodeFetchRequest();
         request.jobId(jobId);
-        request.executionNodeId(executionNodeId);
+        request.executionNodeId(nodeBucket.executionNodeId);
         request.toFetchReferences(toFetchReferences);
         request.jobSearchContextDocIds(nodeBucket.docIds());
         if (bulkSize > NO_BULK_REQUESTS) {
@@ -312,19 +315,21 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private void closeContexts() {
         if (closeContexts || bulkSize > NO_BULK_REQUESTS) {
             LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
-            for (final String nodeId : executionNodes) {
-                transportCloseContextNodeAction.execute(nodeId,
-                        new NodeCloseContextRequest(jobId, executionNodeId),
-                        new ActionListener<NodeCloseContextResponse>() {
-                    @Override
-                    public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
-                    }
+            for (Map.Entry<Integer, List<String>> executionNode : executionNodes.entrySet()) {
+                for (final String nodeId : executionNode.getValue()) {
+                    transportCloseContextNodeAction.execute(nodeId,
+                            new NodeCloseContextRequest(jobId, executionNode.getKey()),
+                            new ActionListener<NodeCloseContextResponse>() {
+                                @Override
+                                public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
+                                }
 
-                    @Override
-                    public void onFailure(Throwable e) {
-                        LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
-                    }
-                });
+                                @Override
+                                public void onFailure(Throwable e) {
+                                    LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
+                                }
+                            });
+                }
             }
         }
     }
@@ -337,10 +342,12 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         private final List<Row> inputRows = new ArrayList<>();
         private final IntArrayList cursors = new IntArrayList();
         private final LongArrayList docIds = new LongArrayList();
+        private final Integer executionNodeId;
 
-        public NodeBucket(String nodeId, int nodeIdx) {
+        public NodeBucket(String nodeId, int nodeIdx, int executionNodeId) {
             this.nodeId = nodeId;
             this.nodeIdx = nodeIdx;
+            this.executionNodeId = executionNodeId;
         }
 
         public void add(int cursor, Long docId, @Nullable Row partitionRow, Row row) {
