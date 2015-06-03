@@ -31,9 +31,9 @@ import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public class FetchProjection extends Projection {
 
@@ -44,12 +44,12 @@ public class FetchProjection extends Projection {
         }
     };
 
-    private int executionNodeId;
+    private IntObjectOpenHashMap<Integer> jobSearchContextIdToExecutionNodeId;
     private Symbol docIdSymbol;
     private List<Symbol> inputSymbols;
     private List<Symbol> outputSymbols;
     private List<ReferenceInfo> partitionBy;
-    private Set<String> executionNodes;
+    private Map<Integer, List<String>> executionNodes;
     private int bulkSize;
     private boolean closeContexts;
     private IntObjectOpenHashMap<String> jobSearchContextIdToNode;
@@ -58,17 +58,17 @@ public class FetchProjection extends Projection {
     private FetchProjection() {
     }
 
-    public FetchProjection(int executionNodeId,
+    public FetchProjection(IntObjectOpenHashMap<Integer> jobSearchContextIdToExecutionNodeId,
                            Symbol docIdSymbol,
                            List<Symbol> inputSymbols,
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
-                           Set<String> executionNodes,
+                           Map<Integer, List<String>> executionNodes,
                            int bulkSize,
                            boolean closeContexts,
                            IntObjectOpenHashMap<String> jobSearchContextIdToNode,
                            IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard) {
-        this.executionNodeId = executionNodeId;
+        this.jobSearchContextIdToExecutionNodeId = jobSearchContextIdToExecutionNodeId;
         this.docIdSymbol = docIdSymbol;
         this.inputSymbols = inputSymbols;
         this.outputSymbols = outputSymbols;
@@ -80,8 +80,8 @@ public class FetchProjection extends Projection {
         this.jobSearchContextIdToShard = jobSearchContextIdToShard;
     }
 
-    public int executionNodeId() {
-        return executionNodeId;
+    public IntObjectOpenHashMap<Integer> jobSearchContextIdToExecutionNodeId() {
+        return jobSearchContextIdToExecutionNodeId;
     }
 
     public Symbol docIdSymbol() {
@@ -100,7 +100,7 @@ public class FetchProjection extends Projection {
         return partitionBy;
     }
 
-    public Set<String> executionNodes() {
+    public Map<Integer, List<String>> executionNodes() {
         return executionNodes;
     }
 
@@ -143,10 +143,10 @@ public class FetchProjection extends Projection {
 
         FetchProjection that = (FetchProjection) o;
 
-        if (executionNodeId != that.executionNodeId) return false;
         if (closeContexts != that.closeContexts) return false;
         if (bulkSize != that.bulkSize) return false;
-        if (executionNodes != that.executionNodes) return false;
+        if (!jobSearchContextIdToExecutionNodeId.equals(that.jobSearchContextIdToExecutionNodeId)) return false;
+        if (!executionNodes.equals(that.executionNodes)) return false;
         if (!docIdSymbol.equals(that.docIdSymbol)) return false;
         if (!inputSymbols.equals(that.inputSymbols)) return false;
         if (!outputSymbols.equals(that.outputSymbols)) return false;
@@ -157,7 +157,7 @@ public class FetchProjection extends Projection {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + executionNodeId;
+        result = 31 * result + jobSearchContextIdToExecutionNodeId.hashCode();
         result = 31 * result + docIdSymbol.hashCode();
         result = 31 * result + inputSymbols.hashCode();
         result = 31 * result + outputSymbols.hashCode();
@@ -170,7 +170,6 @@ public class FetchProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        executionNodeId = in.readVInt();
         docIdSymbol = Symbol.fromStream(in);
         int inputSymbolsSize = in.readVInt();
         inputSymbols = new ArrayList<>(inputSymbolsSize);
@@ -189,14 +188,28 @@ public class FetchProjection extends Projection {
             referenceInfo.readFrom(in);
             partitionBy.add(referenceInfo);
         }
-        int executionNodesSize = in.readVInt();
-        executionNodes = new HashSet<>(executionNodesSize);
-        for (int i = 0; i < executionNodesSize; i++) {
-            executionNodes.add(in.readString());
+
+        int collectNodesSize = in.readVInt();
+        executionNodes = new HashMap<>(collectNodesSize);
+        for (int i = 0; i < collectNodesSize; i++) {
+            Integer executionNodeId = in.readVInt();
+            int executionNodesSize = in.readVInt();
+            List<String> nodes = new ArrayList<>(executionNodesSize);
+            for (int j = 0; j < executionNodesSize; i++) {
+                nodes.add(in.readString());
+            }
+            executionNodes.put(executionNodeId, nodes);
         }
+
+
         bulkSize = in.readVInt();
         closeContexts = in.readBoolean();
 
+        int numJobSearchContextIdToExecutionNodeId = in.readVInt();
+        jobSearchContextIdToExecutionNodeId = new IntObjectOpenHashMap<>(numJobSearchContextIdToExecutionNodeId);
+        for (int i = 0; i < numJobSearchContextIdToExecutionNodeId; i++) {
+            jobSearchContextIdToNode.put(in.readVInt(), in.readString());
+        }
         int numJobSearchContextIdToNode = in.readVInt();
         jobSearchContextIdToNode = new IntObjectOpenHashMap<>(numJobSearchContextIdToNode);
         for (int i = 0; i < numJobSearchContextIdToNode; i++) {
@@ -211,7 +224,6 @@ public class FetchProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(executionNodeId);
         Symbol.toStream(docIdSymbol, out);
         out.writeVInt(inputSymbols.size());
         for (Symbol symbol : inputSymbols) {
@@ -225,13 +237,24 @@ public class FetchProjection extends Projection {
         for (ReferenceInfo referenceInfo : partitionBy) {
             referenceInfo.writeTo(out);
         }
+
         out.writeVInt(executionNodes.size());
-        for (String nodeId : executionNodes) {
-            out.writeString(nodeId);
+        for (Map.Entry<Integer, List<String>> executionNode : executionNodes.entrySet()) {
+            out.writeVInt(executionNode.getKey());
+            List<String> nodes = executionNode.getValue();
+            out.writeVInt(nodes.size());
+            for (String nodeId : nodes) {
+                out.writeString(nodeId);
+            }
         }
         out.writeVInt(bulkSize);
         out.writeBoolean(closeContexts);
 
+        out.writeVInt(jobSearchContextIdToExecutionNodeId.size());
+        for (IntObjectCursor<Integer> entry : jobSearchContextIdToExecutionNodeId) {
+            out.writeVInt(entry.key);
+            out.writeVInt(entry.value);
+        }
         out.writeVInt(jobSearchContextIdToNode.size());
         for (IntObjectCursor<String> entry : jobSearchContextIdToNode) {
             out.writeVInt(entry.key);
