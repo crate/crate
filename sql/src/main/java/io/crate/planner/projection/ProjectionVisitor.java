@@ -73,5 +73,9 @@ public class ProjectionVisitor<C, R> {
     public R visitMergeProjection(MergeProjection projection, C context) {
         return visitProjection(projection, context);
     }
+
+    public R visitNestedLoopProjection(NestedLoopProjection projection, C context) {
+        return visitProjection(projection, context);
+    }
 }
 
