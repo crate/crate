@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import io.crate.operation.reference.sys.node.NodeSysExpression;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
@@ -29,10 +28,6 @@ import java.util.Map;
 public class GlobalReferenceResolver extends AbstractReferenceResolver {
 
     private final Map<ReferenceIdent, ReferenceImplementation> implementations;
-
-    @Inject
-    private NodeSysExpression nodeSysExpression;
-
 
     @Inject
     public GlobalReferenceResolver(
@@ -44,14 +39,4 @@ public class GlobalReferenceResolver extends AbstractReferenceResolver {
         return implementations;
     }
 
-    @Override
-    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
-        ReferenceImplementation impl = super.getImplementation(ident);
-        if (impl != null){
-            return impl;
-        } else if (nodeSysExpression != null){
-            return nodeSysExpression.getImplementation(ident);
-        }
-        return null;
-    }
 }

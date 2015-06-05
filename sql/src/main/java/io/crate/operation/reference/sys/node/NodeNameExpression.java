@@ -22,7 +22,6 @@
 package io.crate.operation.reference.sys.node;
 
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
 
 public class NodeNameExpression extends SysNodeExpression<BytesRef> {
@@ -31,7 +30,6 @@ public class NodeNameExpression extends SysNodeExpression<BytesRef> {
     private final Discovery discovery;
     private BytesRef value = null;
 
-    @Inject
     public NodeNameExpression(Discovery discovery) {
         this.discovery = discovery;
     }

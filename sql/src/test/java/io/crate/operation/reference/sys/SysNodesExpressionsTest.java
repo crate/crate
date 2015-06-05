@@ -24,15 +24,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.GlobalReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
-import io.crate.operation.reference.sys.node.NodeVersionExpression;
-import io.crate.operation.reference.sys.node.SysNodeExpression;
-import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
+import io.crate.operation.reference.sys.node.*;
 import io.crate.operation.reference.sys.node.fs.NodeFsDataExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import io.crate.test.integration.CrateUnitTest;
@@ -84,7 +81,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
-public class TestSysNodesExpressions extends CrateUnitTest {
+public class SysNodesExpressionsTest extends CrateUnitTest {
 
     /**
      * Resolve canonical path (platform independent)
@@ -281,10 +278,9 @@ public class TestSysNodesExpressions extends CrateUnitTest {
             when(jvmService.stats()).thenReturn(jvmStats);
             bind(JvmService.class).toInstance(jvmService);
 
-            bind(ReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
-
             ThreadPool threadPool = new ThreadPool(getClass().getName());
             bind(ThreadPool.class).toInstance(threadPool);
+
         }
     }
 
@@ -294,7 +290,7 @@ public class TestSysNodesExpressions extends CrateUnitTest {
                 new TestModule(),
                 new SysNodeExpressionModule()
         ).createInjector();
-        resolver = injector.getInstance(ReferenceResolver.class);
+        resolver = new NodeSysReferenceResolver(injector.getInstance(NodeSysExpression.class));
     }
 
     @After

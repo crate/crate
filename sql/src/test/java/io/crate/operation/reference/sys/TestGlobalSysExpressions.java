@@ -52,6 +52,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -115,10 +116,11 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             bind(ClusterService.class).toInstance(clusterService);
             bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
 
+            NodeLoadExpression loadExpr = new NodeLoadExpression(osStats);
+
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-            b.addBinding(SysNodesTableInfo.INFOS.get(new ColumnIdent("load")).ident()).to(
-                    NodeLoadExpression.class).asEagerSingleton();
+            b.addBinding(SysNodesTableInfo.INFOS.get(new ColumnIdent("load")).ident()).toInstance(loadExpr);
 
             b.addBinding(SysClusterTableInfo.INFOS.get(new ColumnIdent("settings")).ident()).to(
                     ClusterSettingsExpression.class).asEagerSingleton();

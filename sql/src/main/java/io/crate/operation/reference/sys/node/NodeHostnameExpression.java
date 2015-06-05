@@ -24,7 +24,6 @@ package io.crate.operation.reference.sys.node;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.Inject;
 
 public class NodeHostnameExpression extends SysNodeExpression<BytesRef> {
 
@@ -32,7 +31,6 @@ public class NodeHostnameExpression extends SysNodeExpression<BytesRef> {
 
     private final ClusterService clusterService;
 
-    @Inject
     public NodeHostnameExpression(ClusterService clusterService) {
         this.clusterService = clusterService;
     }

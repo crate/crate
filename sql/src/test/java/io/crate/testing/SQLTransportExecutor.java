@@ -35,6 +35,8 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -42,6 +44,7 @@ public class SQLTransportExecutor {
 
     private static final ESLogger logger = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
+    private static final Long REQUEST_TIMEOUT = 5L;
 
     public static SQLTransportExecutor create(final CrateTestCluster testCluster) {
         return new SQLTransportExecutor(new ClientProvider() {
@@ -57,23 +60,23 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return execute(statement, new Object[0]).actionGet();
+        return execute(statement, new Object[0]).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
     }
 
     public SQLResponse exec(String statement, Object... params) {
-        return execute(statement, params).actionGet();
+        return execute(statement, params).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
     }
 
     public SQLResponse exec(SQLRequest request) {
-        return execute(request).actionGet();
+        return execute(request).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
     }
 
     public SQLBulkResponse exec(String statement, Object[][] bulkArgs) {
-        return execute(statement, bulkArgs).actionGet();
+        return execute(statement, bulkArgs).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
     }
 
     public SQLBulkResponse exec(SQLBulkRequest request) {
-        return execute(request).actionGet();
+        return execute(request).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
     }
 
     public ActionFuture<SQLResponse> execute(String statement, Object[] params) {

@@ -22,7 +22,6 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.node.service.NodeService;
@@ -40,7 +39,6 @@ public class NodePortExpression extends SysNodeObjectReference {
 
     private final NodeService nodeService;
 
-    @Inject
     public NodePortExpression(NodeService nodeService) {
         this.nodeService = nodeService;
         addChildImplementations();

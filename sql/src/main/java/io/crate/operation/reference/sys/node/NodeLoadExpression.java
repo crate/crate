@@ -22,8 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.monitor.os.OsService;
+import org.elasticsearch.monitor.os.OsStats;
 
 public class NodeLoadExpression extends SysNodeObjectReference {
 
@@ -33,28 +32,26 @@ public class NodeLoadExpression extends SysNodeObjectReference {
     public static final String FIVE = "5";
     public static final String FIFTEEN = "15";
 
-    private final OsService osService;
-
-    @Inject
-    public NodeLoadExpression(OsService osService) {
-        this.osService = osService;
-        childImplementations.put(ONE, new LoadExpression(0));
-        childImplementations.put(FIVE, new LoadExpression(1));
-        childImplementations.put(FIFTEEN, new LoadExpression(2));
+    public NodeLoadExpression(OsStats os) {
+        childImplementations.put(ONE, new LoadExpression(os, 0));
+        childImplementations.put(FIVE, new LoadExpression(os, 1));
+        childImplementations.put(FIFTEEN, new LoadExpression(os, 2));
     }
 
     class LoadExpression extends SysNodeExpression<Double> {
 
         private final int idx;
+        private final OsStats stats;
 
-        LoadExpression(int idx) {
+        LoadExpression(OsStats stats, int idx) {
             this.idx = idx;
+            this.stats = stats;
         }
 
         @Override
         public Double value() {
             try {
-                return osService.stats().loadAverage()[idx];
+                return stats.loadAverage()[idx];
             } catch (IndexOutOfBoundsException e) {
                 return null;
             }

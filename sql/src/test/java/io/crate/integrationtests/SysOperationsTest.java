@@ -77,7 +77,7 @@ public class SysOperationsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testNodeExpressionOnSysOperations() throws Exception {
-        executor.exec("select * from sys.nodes");
+//        executor.exec("select * from sys.nodes");
         SQLResponse response = executor.exec("select _node['name'], id from sys.operations limit 1");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0].toString(), startsWith("node"));

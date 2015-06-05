@@ -21,45 +21,18 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-import java.util.Map;
-
 public class SysNodeExpressionModule extends AbstractModule {
 
-    private Map<ColumnIdent, ReferenceInfo> infos;
     private MapBinder<ReferenceIdent, ReferenceImplementation> refBinder;
-
-    private void bindExpr(String name, Class clazz) {
-        refBinder.addBinding(infos.get(new ColumnIdent(name)).ident()).to(clazz).asEagerSingleton();
-    }
 
     @Override
     protected void configure() {
         refBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-        infos = SysNodesTableInfo.INFOS;
         bind(NodeSysExpression.class).asEagerSingleton();
-
-        bindExpr(NodeFsExpression.NAME, NodeFsExpression.class);
-        bindExpr(NodeHostnameExpression.NAME, NodeHostnameExpression.class);
-        bindExpr(NodeRestUrlExpression.NAME, NodeRestUrlExpression.class);
-        bindExpr(NodeIdExpression.NAME, NodeIdExpression.class);
-        bindExpr(NodeLoadExpression.NAME, NodeLoadExpression.class);
-        bindExpr(NodeMemoryExpression.NAME, NodeMemoryExpression.class);
-        bindExpr(NodeNameExpression.NAME, NodeNameExpression.class);
-        bindExpr(NodePortExpression.NAME, NodePortExpression.class);
-        bindExpr(NodeHeapExpression.NAME, NodeHeapExpression.class);
-        bindExpr(NodeVersionExpression.NAME, NodeVersionExpression.class);
-        bindExpr(NodeThreadPoolsExpression.NAME, NodeThreadPoolsExpression.class);
-        bindExpr(NodeNetworkExpression.NAME, NodeNetworkExpression.class);
-        bindExpr(NodeOsExpression.NAME, NodeOsExpression.class);
-        bindExpr(NodeProcessExpression.NAME, NodeProcessExpression.class);
     }
 }

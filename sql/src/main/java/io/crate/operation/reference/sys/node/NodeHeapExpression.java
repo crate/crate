@@ -22,8 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.monitor.jvm.JvmService;
+import org.elasticsearch.monitor.jvm.JvmStats;
 
 public class NodeHeapExpression extends SysNodeObjectReference {
 
@@ -36,31 +35,27 @@ public class NodeHeapExpression extends SysNodeObjectReference {
     public static final String FREE = "free";
     public static final String USED = "used";
 
-    private final JvmService jvmService;
-
-    @Inject
-    public NodeHeapExpression(JvmService jvmService) {
-        this.jvmService = jvmService;
-        addChildImplementations();
+    public NodeHeapExpression(JvmStats stats) {
+        addChildImplementations(stats);
     }
 
-    private void addChildImplementations() {
+    private void addChildImplementations(final JvmStats stats) {
         childImplementations.put(FREE, new HeapExpression() {
             @Override
             public Long value() {
-                return jvmService.stats().mem().getHeapMax().bytes() - jvmService.stats().mem().getHeapUsed().bytes();
+                return stats.mem().getHeapMax().bytes() - stats.mem().getHeapUsed().bytes();
             }
         });
         childImplementations.put(USED, new HeapExpression() {
             @Override
             public Long value() {
-                return jvmService.stats().mem().getHeapUsed().bytes();
+                return stats.mem().getHeapUsed().bytes();
             }
         });
         childImplementations.put(MAX, new HeapExpression() {
             @Override
             public Long value() {
-                return jvmService.stats().mem().getHeapMax().bytes();
+                return stats.mem().getHeapMax().bytes();
             }
         });
     }
