@@ -397,11 +397,10 @@ os
 |                           | CPU usage probe in milliseconds.             |             |
 +---------------------------+----------------------------------------------+-------------+
 
-The cpu information values are cached for 1s. They might differ from the actual values. 
-Use the probe timestamp to get the time of the collect. You could get the CPU usage 
-for some period by analysing the start and the end values using the 
-``os['probe_timestamp']`` expression. Otherwise the usage could be zero because 
-of caching the measured values.
+The cpu information values are cached for 1s. They might differ from the actual values 
+at query time. Use the probe timestamp to get the time of the collect. When analyzing the 
+cpu usage over time, always use ``os['probe_timestamp']`` to calculate the time difference 
+between 2 probes.
 
 network
 -------
@@ -464,15 +463,14 @@ process
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``Long``     |
 +------------------------------------------+------------------------------------------------+--------------+
-| ``process['probe_timestamp']``           | The timestamp recorded at the collect of the   | ``Long``     |
-|                                          | CPU usage probe in milliseconds.               |              |
+| ``process['probe_timestamp']``           | The system UNIX timestamp at the moment of     | ``Long``     |
+|                                          | the probe collection.                          |              |
 +------------------------------------------+------------------------------------------------+--------------+
 
-The cpu information values are cached for 1s. They might differ from the actual values. 
-Use the probe timestamp to get the time of the collect. You could get the CPU usage 
-for some period by analysing the start and the end values using the 
-``process['probe_timestamp']`` expression. Otherwise the usage could be zero because 
-of caching the measured values.
+The cpu information values are cached for 1s. They might differ from the actual values 
+at query time. Use the probe timestamp to get the time of the collect. When analyzing the 
+cpu usage over time, always use ``process['probe_timestamp']`` to calculate the time difference 
+between 2 probes.
 
 Shards
 ======
